@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Story - Presentation Maker</title>
+    <link rel="stylesheet" href="styles/main.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div id="app">
+        <!-- Left Sidebar: Navigation & Layers -->
+        <aside id="sidebar-left" class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo">STORY</div>
+            </div>
+            <div class="sidebar-content">
+                <!-- Slide Thumbnails will go here -->
+                <div id="slide-list" class="panel-section">
+                    <div class="section-title">SLIDES</div>
+                    <!-- Dynamic Content -->
+                </div>
+                
+                <div id="layer-tree" class="panel-section">
+                    <!-- Dynamic Content -->
+                </div>
+            </div>
+        </aside>
+
+        <!-- Center: Main Canvas -->
+        <main id="main-stage">
+            <div id="toolbar-top">
+                <!-- Tools: Select, Text, Shape, Image -->
+                <div class="tool-group">
+                    <button class="tool-btn active" data-tool="select">SELECT</button>
+                    <button class="tool-btn" data-tool="text">TEXT</button>
+                    <button class="tool-btn" data-tool="shape">SHAPE</button>
+                    <button class="tool-btn" data-tool="image">IMG</button>
+                </div>
+                <div class="tool-group">
+                    <button class="action-btn" id="play-btn">PLAY</button>
+                </div>
+            </div>
+            
+            <div id="canvas-viewport">
+                <div id="canvas-container">
+                    <!-- Viewport Wrapper for Pan/Zoom -->
+                    <div id="viewport">
+                        <!-- 1. Background Layer -->
+                        <div id="slide-background"></div>
+
+                        <!-- 2. Content Layer (The Slide) -->
+                        <div id="slide-content">
+                            <!-- Elements will be injected here -->
+                        </div>
+
+                        <!-- 3. Interaction Layer (Canvas) -->
+                        <canvas id="interaction-canvas"></canvas>
+                    </div>
+                </div>
+                
+                <!-- Viewport Controls -->
+                <div id="viewport-controls">
+                    <button id="btn-fit" class="icon-btn" title="Fit to View"><i class="fa-solid fa-compress"></i></button>
+                    <div class="zoom-group">
+                        <button id="btn-zoom-out" class="icon-btn"><i class="fa-solid fa-minus"></i></button>
+                        <span id="zoom-display">100%</span>
+                        <button id="btn-zoom-in" class="icon-btn"><i class="fa-solid fa-plus"></i></button>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Right Sidebar: Properties -->
+        <aside id="sidebar-right" class="sidebar">
+            <div class="sidebar-header">
+                <div class="tab active">PROPERTIES</div>
+                <div class="tab">THEME</div>
+            </div>
+            <div class="sidebar-content">
+                <!-- Context aware properties -->
+                <div id="properties-panel">
+                    <div class="empty-state">No selection</div>
+                </div>
+            </div>
+        </aside>
+    </div>
+
+    <script type="module" src="src/main.js"></script>
+</body>
+</html>

@@ -1,0 +1,306 @@
+:root {
+    /* Colors - Teenage Engineering Inspired */
+    --te-orange: #FF4D00;
+    --te-blue: #0055FF;
+    --te-green: #00FF41;
+    
+    /* Light Mode (Default) */
+    --bg-app: #F2F2F2;      /* Surface 0 */
+    --bg-panel: #E6E6E6;    /* Surface 1 */
+    --bg-well: #D9D9D9;     /* Surface 2 */
+    --border-color: #B3B3B3;
+    --text-primary: #1A1A1A;
+    --text-secondary: #666666;
+    
+    /* Typography */
+    --font-ui: 'Inter', sans-serif;
+    --font-mono: 'JetBrains Mono', monospace;
+    
+    /* Spacing */
+    --spacing-xs: 4px;
+    --spacing-sm: 8px;
+    --spacing-md: 16px;
+    --spacing-lg: 24px;
+    
+    /* Layout */
+    --sidebar-width: 280px;
+    --header-height: 48px;
+}
+
+@media (prefers-color-scheme: dark) {
+    :root {
+        --bg-app: #1A1A1A;
+        --bg-panel: #262626;
+        --bg-well: #0D0D0D;
+        --border-color: #404040;
+        --text-primary: #F2F2F2;
+        --text-secondary: #999999;
+    }
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    user-select: none; /* Prevent text selection generally */
+}
+
+body {
+    font-family: var(--font-ui);
+    background-color: var(--bg-app);
+    color: var(--text-primary);
+    height: 100vh;
+    overflow: hidden;
+    font-size: 12px;
+    -webkit-font-smoothing: antialiased;
+}
+
+#app {
+    display: grid;
+    grid-template-columns: var(--sidebar-width) 1fr var(--sidebar-width);
+    height: 100vh;
+    width: 100vw;
+}
+
+/* Sidebars */
+.sidebar {
+    background-color: var(--bg-panel);
+    border-right: 1px solid var(--border-color);
+    display: flex;
+    flex-direction: column;
+}
+
+#sidebar-right {
+    border-right: none;
+    border-left: 1px solid var(--border-color);
+}
+
+.sidebar-header {
+    height: var(--header-height);
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    align-items: center;
+    padding: 0 var(--spacing-md);
+    font-family: var(--font-mono);
+    font-weight: 500;
+    letter-spacing: -0.5px;
+    font-size: 14px;
+}
+
+.logo {
+    font-weight: 700;
+    font-size: 16px;
+    color: var(--te-orange);
+}
+
+.sidebar-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: var(--spacing-md);
+}
+
+/* Main Stage */
+#main-stage {
+    background-color: var(--bg-app);
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    overflow: hidden; /* Ensure no scrollbars on the stage itself */
+}
+
+#toolbar-top {
+    height: var(--header-height);
+    min-height: var(--header-height); /* Prevent collapse */
+    flex-shrink: 0; /* Prevent flex shrinking */
+    background-color: var(--bg-panel);
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 var(--spacing-md);
+    z-index: 1001;
+    position: relative;
+}
+
+.tool-group {
+    display: flex;
+    gap: var(--spacing-xs);
+}
+
+/* Buttons */
+button {
+    background: none;
+    border: 1px solid transparent;
+    color: var(--text-primary);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    padding: 6px 12px;
+    cursor: pointer;
+    text-transform: uppercase;
+    transition: all 0.1s ease;
+    border-radius: 2px;
+}
+
+button:hover {
+    background-color: var(--bg-well);
+    border-color: var(--border-color);
+}
+
+button.active {
+    background-color: var(--text-primary);
+    color: var(--bg-app);
+}
+
+.action-btn {
+    background-color: var(--te-orange);
+    color: white;
+    font-weight: 600;
+    border-radius: 0; /* Sharp corners per spec */
+}
+
+.action-btn:hover {
+    background-color: #ff6a2b;
+}
+
+/* Canvas Viewport */
+#canvas-viewport {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    background-image: radial-gradient(var(--border-color) 1px, transparent 1px);
+    background-size: 20px 20px;
+    position: relative; /* Critical for absolute positioning of children */
+}
+
+#canvas-container {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none; /* Allow clicks to pass through if needed, but canvas handles them */
+}
+
+#viewport {
+    width: 100%;
+    height: 100%;
+    position: absolute;
+    top: 0;
+    left: 0;
+}
+
+#interaction-canvas {
+    width: 100%;
+    height: 100%;
+    pointer-events: none; /* Managed by JS */
+}
+
+#active-slide {
+    width: 960px; /* 16:9 aspect ratio base */
+    height: 540px;
+    background-color: white;
+    position: relative;
+    overflow: hidden;
+}
+
+/* Viewport Controls */
+#viewport-controls {
+    position: absolute;
+    bottom: 24px;
+    right: 24px;
+    display: flex;
+    gap: 12px;
+    background-color: var(--bg-panel);
+    padding: 8px;
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    z-index: 1000;
+}
+
+.zoom-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border-left: 1px solid var(--border-color);
+    padding-left: 12px;
+}
+
+#zoom-display {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--text-secondary);
+    min-width: 40px;
+    text-align: center;
+}
+
+.icon-btn {
+    background: none;
+    border: none;
+    color: var(--text-primary);
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+}
+
+.icon-btn:hover {
+    background-color: var(--bg-well);
+    color: var(--te-orange);
+}
+
+/* Utilities */
+.section-title {
+    font-family: var(--font-ui);
+    font-weight: 600;
+    font-size: 10px;
+    color: var(--text-secondary);
+    margin-bottom: var(--spacing-sm);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding-left: 4px;
+}
+
+.panel-section {
+    margin-bottom: var(--spacing-lg);
+    padding: 0 var(--spacing-xs);
+}
+
+/* Component Styles */
+input[type="text"], input[type="number"] {
+    background-color: var(--bg-well);
+    border: 1px solid transparent;
+    color: var(--text-primary);
+    font-family: var(--font-mono);
+    font-size: 13px;
+    padding: 4px 8px;
+    border-radius: 2px;
+    width: 100%;
+    outline: none;
+}
+
+input[type="text"]:focus, input[type="number"]:focus {
+    border-color: var(--te-blue);
+    background-color: var(--bg-app);
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+    width: 8px;
+}
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+::-webkit-scrollbar-thumb {
+    background: var(--border-color);
+    border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+    background: var(--text-secondary);
+}
