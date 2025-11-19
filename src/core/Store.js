@@ -288,6 +288,78 @@ class Store extends EventEmitter {
                 
                 this.emit('state-changed', this.state);
                 break;
+
+            case 'DISTRIBUTE_ELEMENTS':
+                const distType = payload; // 'horizontal', 'vertical'
+                const sDist = this.state.slides[this.state.editor.activeSlideId];
+                const selDistIds = this.state.editor.selectedElementIds;
+                
+                if (!sDist || selDistIds.length < 3) return; // Need at least 3 to distribute
+
+                const elements = selDistIds.map(id => sDist.elements[id]).filter(e => e);
+                
+                if (distType === 'horizontal') {
+                    // Sort by X
+                    elements.sort((a, b) => a.x - b.x);
+                    
+                    const first = elements[0];
+                    const last = elements[elements.length - 1];
+                    
+                    // Calculate total width of all elements except the last one
+                    // Because x_last = x_first + w_first + gap + w_second + gap ...
+                    // Actually, simpler: Total Span available for gaps = (last.x - first.x) - sum(widths of middle elements) - first.width?
+                    // Let's use the formula: gap = (last.x - first.x - sum(widths of 0 to N-2)) / (N-1)
+                    
+                    let sumWidths = 0;
+                    for (let i = 0; i < elements.length - 1; i++) {
+                        sumWidths += elements[i].width;
+                    }
+                    
+                    const totalGapSpace = last.x - first.x - sumWidths;
+                    // Wait, if last.x is the left edge of the last element.
+                    // Distance from first.left to last.left is (last.x - first.x).
+                    // This distance is composed of: width[0] + gap + width[1] + gap ... + gap (N-1 gaps).
+                    // So (last.x - first.x) = sum(width[0]...width[N-2]) + (N-1)*gap.
+                    
+                    const gap = (last.x - first.x - sumWidths) / (elements.length - 1);
+                    
+                    let currentX = first.x;
+                    elements.forEach((el, i) => {
+                        if (i === 0) return; // First stays
+                        if (i === elements.length - 1) return; // Last stays (conceptually, though we could recalc to fix rounding)
+                        
+                        const prev = elements[i-1];
+                        currentX += prev.width + gap;
+                        el.x = currentX;
+                    });
+                    
+                } else if (distType === 'vertical') {
+                    // Sort by Y
+                    elements.sort((a, b) => a.y - b.y);
+                    
+                    const first = elements[0];
+                    const last = elements[elements.length - 1];
+                    
+                    let sumHeights = 0;
+                    for (let i = 0; i < elements.length - 1; i++) {
+                        sumHeights += elements[i].height;
+                    }
+                    
+                    const gap = (last.y - first.y - sumHeights) / (elements.length - 1);
+                    
+                    let currentY = first.y;
+                    elements.forEach((el, i) => {
+                        if (i === 0) return;
+                        if (i === elements.length - 1) return;
+                        
+                        const prev = elements[i-1];
+                        currentY += prev.height + gap;
+                        el.y = currentY;
+                    });
+                }
+                
+                this.emit('state-changed', this.state);
+                break;
                 
             case 'TOGGLE_THEME':
                 this.state.theme = this.state.theme === 'light' ? 'dark' : 'light';

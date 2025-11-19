@@ -83,7 +83,7 @@ This document outlines the step-by-step implementation plan for "Story", a moder
 
 ### 4.2 Transform & Layout Controls
 - [x] **Alignment Tools:** Implement Align Left/Center/Right/Top/Middle/Bottom logic for single and multiple objects.
-- [ ] **Distribution Tools:** Distribute horizontal/vertical spacing.
+- [x] **Distribution Tools:** Distribute horizontal/vertical spacing.
 - [x] **Transform Section:**
     - [x] X, Y, Width, Height (with aspect ratio lock toggle).
     - [x] Rotation (0-360°).
@@ -96,7 +96,7 @@ This document outlines the step-by-step implementation plan for "Story", a moder
     - [x] Font Weight (Dynamic dropdown based on family).
     - [x] Font Size, Line Height (px/%), Letter Spacing.
     - [x] Paragraph Spacing, Text Align, Vertical Align.
-    - [ ] Resizing constraints: Auto Width, Auto Height, Fixed Size.
+    - [x] Resizing constraints: Auto Width, Auto Height, Fixed Size.
 
 ### 4.4 Styling (Fill, Stroke, Effects)
 - [ ] **Fill System:**
@@ -107,8 +107,8 @@ This document outlines the step-by-step implementation plan for "Story", a moder
     - [ ] Color, Width.
     - [ ] Position (Inside, Center, Outside).
     - [ ] Dash array / Caps / Joins.
-- [ ] **Effects System:**
-    - [ ] Drop Shadow (X, Y, Blur, Spread, Color).
+- [x] **Effects System:**
+    - [x] Drop Shadow (X, Y, Blur, Spread, Color).
     - [ ] Layer Blur.
 
 ### 4.5 Media & Assets

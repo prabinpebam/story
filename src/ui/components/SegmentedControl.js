@@ -17,7 +17,13 @@ export class SegmentedControl {
 
         this.options.forEach((opt, index) => {
             const btn = document.createElement('div');
-            btn.innerText = opt.label;
+            if (opt.icon) {
+                btn.innerHTML = `<i class="fa-solid ${opt.icon}"></i>`;
+                btn.title = opt.label; // Tooltip
+            } else {
+                btn.innerText = opt.label;
+            }
+            
             btn.style.flex = '1';
             btn.style.textAlign = 'center';
             btn.style.padding = '4px 0';

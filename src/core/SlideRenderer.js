@@ -80,6 +80,18 @@ export class SlideRenderer {
         div.style.opacity = el.opacity || 1;
         div.style.zIndex = isEditing ? '1000' : (el.zIndex || 'auto'); 
 
+        // Apply Effects (Shadow)
+        if (el.style?.dropShadow) {
+            const { x, y, blur, spread, color } = el.style.dropShadow;
+            if (el.type === 'text') {
+                // Text shadow (no spread)
+                div.style.textShadow = `${x}px ${y}px ${blur}px ${color}`;
+            } else {
+                // Box shadow
+                div.style.boxShadow = `${x}px ${y}px ${blur}px ${spread}px ${color}`;
+            }
+        }
+
         if (el.type === 'text') {
             div.innerHTML = el.content; // Rich text
             div.style.fontFamily = el.style?.fontFamily || 'Inter';
@@ -90,6 +102,21 @@ export class SlideRenderer {
             div.style.color = el.style?.color || 'black';
             div.style.textAlign = el.style?.textAlign || 'left';
             
+            // Resizing Constraints
+            const resizing = el.style?.resizing || 'autoHeight';
+            if (resizing === 'autoWidth') {
+                div.style.width = 'auto';
+                div.style.height = 'auto';
+                div.style.whiteSpace = 'nowrap';
+            } else if (resizing === 'autoHeight') {
+                div.style.height = 'auto';
+                div.style.whiteSpace = 'normal';
+                div.style.wordWrap = 'break-word';
+            } else {
+                // Fixed
+                div.style.overflow = 'hidden';
+            }
+
             if (isEditing) {
                 div.contentEditable = true;
                 div.style.outline = '2px solid #0055FF';
@@ -98,10 +125,18 @@ export class SlideRenderer {
                 
                 // Handle Blur -> Save
                 div.addEventListener('blur', () => {
-                    store.dispatch('UPDATE_ELEMENT', {
+                    // Update dimensions based on content
+                    const updates = {
                         id: el.id,
                         content: div.innerHTML
-                    });
+                    };
+                    
+                    if (resizing === 'autoWidth' || resizing === 'autoHeight') {
+                        updates.width = div.offsetWidth;
+                        updates.height = div.offsetHeight;
+                    }
+                    
+                    store.dispatch('UPDATE_ELEMENT', updates);
                     store.dispatch('SET_EDITING_ELEMENT', null);
                 });
                 

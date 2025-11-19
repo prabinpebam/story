@@ -46,6 +46,9 @@ export class PropertyInspector {
         } else if (element.type === 'image') {
             this.renderImageProperties(element);
         }
+
+        // Effects (Shadow)
+        this.renderEffectsProperties(element);
     }
 
     renderEmptyState() {
@@ -123,7 +126,7 @@ export class PropertyInspector {
         const alignRow = document.createElement('div');
         alignRow.style.display = 'flex';
         alignRow.style.justifyContent = 'space-between';
-        alignRow.style.marginBottom = '16px';
+        alignRow.style.marginBottom = '8px';
         alignRow.style.padding = '0 4px';
 
         const aligns = [
@@ -147,6 +150,35 @@ export class PropertyInspector {
         });
 
         this.container.appendChild(alignRow);
+
+        // Distribution Row (Only if > 2 elements)
+        if (store.state.editor.selectedElementIds.length > 2) {
+            const distRow = document.createElement('div');
+            distRow.style.display = 'flex';
+            distRow.style.justifyContent = 'center';
+            distRow.style.gap = '8px';
+            distRow.style.marginBottom = '16px';
+            
+            const dists = [
+                { icon: 'fa-grip-lines-vertical', action: 'horizontal', title: 'Distribute Horizontal Spacing' },
+                { icon: 'fa-grip-lines', action: 'vertical', title: 'Distribute Vertical Spacing' }
+            ];
+
+            dists.forEach(item => {
+                const btn = document.createElement('button');
+                btn.className = 'icon-btn';
+                btn.style.width = '24px';
+                btn.style.height = '24px';
+                btn.title = item.title;
+                btn.innerHTML = `<i class="fa-solid ${item.icon}"></i>`;
+                btn.onclick = () => store.dispatch('DISTRIBUTE_ELEMENTS', item.action);
+                distRow.appendChild(btn);
+            });
+            
+            this.container.appendChild(distRow);
+        } else {
+            alignRow.style.marginBottom = '16px';
+        }
 
         const { group, content } = this.createControlGroup('TRANSFORM');
         
@@ -329,14 +361,24 @@ export class PropertyInspector {
 
         // Alignment Segmented Control
         const alignControl = new SegmentedControl([
-            { label: 'L', value: 'left' },
-            { label: 'C', value: 'center' },
-            { label: 'R', value: 'right' },
-            { label: 'J', value: 'justify' }
+            { label: 'L', value: 'left', icon: 'fa-align-left' },
+            { label: 'C', value: 'center', icon: 'fa-align-center' },
+            { label: 'R', value: 'right', icon: 'fa-align-right' },
+            { label: 'J', value: 'justify', icon: 'fa-align-justify' }
         ], style.textAlign || 'left', (val) => {
             this.updateStyle(element, 'textAlign', val);
         });
         content.appendChild(alignControl.element);
+
+        // Resizing Segmented Control
+        const resizingControl = new SegmentedControl([
+            { label: 'Auto Width', value: 'autoWidth', icon: 'fa-arrows-left-right' },
+            { label: 'Auto Height', value: 'autoHeight', icon: 'fa-arrows-up-down' },
+            { label: 'Fixed Size', value: 'fixed', icon: 'fa-expand' }
+        ], style.resizing || 'autoHeight', (val) => {
+            this.updateStyle(element, 'resizing', val);
+        });
+        content.appendChild(resizingControl.element);
 
         // Color
         const colorInput = document.createElement('input');
@@ -448,6 +490,120 @@ export class PropertyInspector {
         this.container.appendChild(group);
     }
 
+    renderEffectsProperties(element) {
+        const { group, content } = this.createControlGroup('EFFECTS');
+        const style = element.style || {};
+        const shadow = style.dropShadow;
+
+        // Enable/Disable Row
+        const headerRow = document.createElement('div');
+        headerRow.style.display = 'flex';
+        headerRow.style.justifyContent = 'space-between';
+        headerRow.style.alignItems = 'center';
+        headerRow.style.marginBottom = '8px';
+
+        const label = document.createElement('span');
+        label.innerText = 'Drop Shadow';
+        label.style.fontSize = '11px';
+        label.style.color = 'var(--text-secondary)';
+        
+        const toggle = document.createElement('input');
+        toggle.type = 'checkbox';
+        toggle.checked = !!shadow;
+        toggle.onchange = (e) => {
+            if (e.target.checked) {
+                this.updateStyle(element, 'dropShadow', { x: 0, y: 4, blur: 4, spread: 0, color: '#00000040' });
+            } else {
+                this.updateStyle(element, 'dropShadow', null);
+            }
+        };
+        
+        headerRow.appendChild(label);
+        headerRow.appendChild(toggle);
+        content.appendChild(headerRow);
+
+        if (shadow) {
+            // X / Y
+            const posRow = document.createElement('div');
+            posRow.style.display = 'flex';
+            posRow.style.gap = '8px';
+            posRow.style.marginBottom = '8px';
+            
+            posRow.appendChild(new ScrubbableControl('X', shadow.x, v => this.updateShadow(element, 'x', v)).element);
+            posRow.appendChild(new ScrubbableControl('Y', shadow.y, v => this.updateShadow(element, 'y', v)).element);
+            content.appendChild(posRow);
+
+            // Blur / Spread
+            const blurRow = document.createElement('div');
+            blurRow.style.display = 'flex';
+            blurRow.style.gap = '8px';
+            blurRow.style.marginBottom = '8px';
+            
+            blurRow.appendChild(new ScrubbableControl('Blur', shadow.blur, v => this.updateShadow(element, 'blur', Math.max(0, v))).element);
+            // Spread only for non-text
+            if (element.type !== 'text') {
+                blurRow.appendChild(new ScrubbableControl('Spread', shadow.spread, v => this.updateShadow(element, 'spread', v)).element);
+            }
+            content.appendChild(blurRow);
+
+            // Color & Opacity
+            const colorRow = document.createElement('div');
+            colorRow.style.display = 'flex';
+            colorRow.style.alignItems = 'center';
+            colorRow.style.justifyContent = 'space-between';
+            colorRow.style.marginBottom = '8px';
+
+            const colorLabel = document.createElement('span');
+            colorLabel.innerText = 'Color';
+            colorLabel.style.fontSize = '11px';
+            colorLabel.style.color = 'var(--text-secondary)';
+
+            const colorInput = document.createElement('input');
+            colorInput.type = 'color';
+            // Parse hex from shadow.color (handle #RRGGBBAA)
+            const hex = shadow.color.startsWith('#') ? shadow.color : '#000000';
+            colorInput.value = hex.slice(0, 7);
+            
+            colorInput.style.width = '20px';
+            colorInput.style.height = '20px';
+            colorInput.style.border = 'none';
+            colorInput.style.padding = '0';
+            colorInput.style.background = 'none';
+            colorInput.style.cursor = 'pointer';
+
+            colorInput.addEventListener('change', (e) => {
+                // Preserve alpha
+                const currentAlpha = this.getAlphaFromHex(shadow.color);
+                const newHex = e.target.value + currentAlpha;
+                this.updateShadow(element, 'color', newHex);
+            });
+
+            colorRow.appendChild(colorLabel);
+            colorRow.appendChild(colorInput);
+            content.appendChild(colorRow);
+            
+            // Opacity Slider for Shadow
+            const opacityRow = document.createElement('div');
+            opacityRow.style.display = 'flex';
+            opacityRow.style.marginBottom = '8px';
+            
+            const currentAlphaInt = parseInt(this.getAlphaFromHex(shadow.color), 16);
+            const opacityPercent = Math.round((currentAlphaInt / 255) * 100);
+            
+            const opacityControl = new ScrubbableControl('Opacity', opacityPercent, (val) => {
+                const alpha = Math.min(255, Math.max(0, Math.round((val / 100) * 255)));
+                const alphaHex = alpha.toString(16).padStart(2, '0');
+                const baseHex = shadow.color.slice(0, 7);
+                this.updateShadow(element, 'color', baseHex + alphaHex);
+            }, { min: 0, max: 100 });
+            
+            opacityRow.appendChild(opacityControl.element);
+            content.appendChild(opacityRow);
+        }
+
+        this.container.appendChild(group);
+    }
+
     updateProperty(id, key, value) {
         store.dispatch('UPDATE_ELEMENT', { id, [key]: value });
     }
@@ -455,5 +611,18 @@ export class PropertyInspector {
     updateStyle(element, key, value) {
         const newStyle = { ...element.style, [key]: value };
         store.dispatch('UPDATE_ELEMENT', { id: element.id, style: newStyle });
+    }
+
+    updateShadow(element, key, value) {
+        const current = element.style.dropShadow || { x: 0, y: 4, blur: 4, spread: 0, color: '#00000040' };
+        const newShadow = { ...current, [key]: value };
+        this.updateStyle(element, 'dropShadow', newShadow);
+    }
+
+    getAlphaFromHex(hex) {
+        if (hex.length === 9) {
+            return hex.slice(7, 9);
+        }
+        return 'ff';
     }
 }
