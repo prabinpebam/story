@@ -99,17 +99,17 @@ This document outlines the step-by-step implementation plan for "Story", a moder
     - [x] Resizing constraints: Auto Width, Auto Height, Fixed Size.
 
 ### 4.4 Styling (Fill, Stroke, Effects)
-- [ ] **Fill System:**
-    - [ ] Solid Color (Hex/RGBA).
-    - [ ] Linear/Radial Gradients.
-    - [ ] Image Fill (Scale modes: Fill, Fit, Crop, Tile).
-- [ ] **Stroke System:**
-    - [ ] Color, Width.
+- [x] **Fill System:**
+    - [x] Solid Color (Hex/RGBA).
+    - [x] Linear/Radial Gradients.
+    - [x] Image Fill (Scale modes: Fill, Fit, Crop, Tile).
+- [x] **Stroke System:**
+    - [x] Color, Width.
     - [ ] Position (Inside, Center, Outside).
-    - [ ] Dash array / Caps / Joins.
+    - [x] Dash array / Caps / Joins.
 - [x] **Effects System:**
     - [x] Drop Shadow (X, Y, Blur, Spread, Color).
-    - [ ] Layer Blur.
+    - [x] Layer Blur.
 
 ### 4.5 Media & Assets
 - [x] Implement Image Upload & Drag-and-drop.

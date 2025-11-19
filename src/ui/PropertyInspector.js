@@ -394,33 +394,205 @@ export class PropertyInspector {
         const { group, content } = this.createControlGroup('STYLE');
         const style = element.style || {};
 
-        // Fill
-        const fillRow = document.createElement('div');
-        fillRow.style.display = 'flex';
-        fillRow.style.alignItems = 'center';
-        fillRow.style.justifyContent = 'space-between';
-        fillRow.style.marginBottom = '8px';
+        // Fill Section
+        const fillHeader = document.createElement('div');
+        fillHeader.style.display = 'flex';
+        fillHeader.style.justifyContent = 'space-between';
+        fillHeader.style.alignItems = 'center';
+        fillHeader.style.marginBottom = '8px';
 
         const fillLabel = document.createElement('span');
         fillLabel.textContent = 'Fill';
         fillLabel.style.fontSize = '11px';
         fillLabel.style.color = 'var(--text-secondary)';
-        
-        const fillInput = document.createElement('input');
-        fillInput.type = 'color';
-        fillInput.value = style.backgroundColor || '#D9D9D9';
-        fillInput.style.width = '20px';
-        fillInput.style.height = '20px';
-        fillInput.style.border = 'none';
-        fillInput.style.padding = '0';
-        fillInput.style.background = 'none';
-        fillInput.style.cursor = 'pointer';
-        
-        fillInput.addEventListener('change', (e) => this.updateStyle(element, 'backgroundColor', e.target.value));
-        
-        fillRow.appendChild(fillLabel);
-        fillRow.appendChild(fillInput);
-        content.appendChild(fillRow);
+        fillHeader.appendChild(fillLabel);
+
+        // Fill Type Dropdown (Solid / Gradient)
+        const fillTypeSelect = document.createElement('select');
+        fillTypeSelect.style.background = 'transparent';
+        fillTypeSelect.style.border = 'none';
+        fillTypeSelect.style.color = 'var(--text-primary)';
+        fillTypeSelect.style.fontSize = '11px';
+        fillTypeSelect.style.textAlign = 'right';
+        fillTypeSelect.style.cursor = 'pointer';
+
+        ['Solid', 'Gradient', 'Image'].forEach(type => {
+            const opt = document.createElement('option');
+            opt.value = type.toLowerCase();
+            opt.text = type;
+            opt.selected = (style.fillType || 'solid') === type.toLowerCase();
+            fillTypeSelect.appendChild(opt);
+        });
+
+        fillTypeSelect.addEventListener('change', (e) => {
+            const newType = e.target.value;
+            const updates = { fillType: newType };
+            
+            if (newType === 'gradient' && !style.fillValue) {
+                // Set default gradient if switching to it
+                updates.fillValue = `linear-gradient(180deg, ${style.backgroundColor || '#D9D9D9'} 0%, #000000 100%)`;
+                updates.gradientAngle = 180;
+                updates.gradientStops = [
+                    { color: style.backgroundColor || '#D9D9D9', position: 0 },
+                    { color: '#000000', position: 100 }
+                ];
+            } else if (newType === 'image' && !style.fillValue) {
+                // No default image, user must select
+                updates.fillScaleMode = 'cover';
+            }
+
+            this.updateStyle(element, 'fillType', newType); // This will trigger re-render
+            // We need to merge updates, but updateStyle handles one key. 
+            // Let's manually dispatch for multiple
+            const newStyle = { ...element.style, ...updates };
+            store.dispatch('UPDATE_ELEMENT', { id: element.id, style: newStyle });
+        });
+
+        fillHeader.appendChild(fillTypeSelect);
+        content.appendChild(fillHeader);
+
+        // Fill Controls based on Type
+        if (style.fillType === 'gradient') {
+            // Gradient Controls
+            // 1. Angle
+            const angleRow = document.createElement('div');
+            angleRow.style.marginBottom = '8px';
+            const angleControl = new ScrubbableControl('Angle', style.gradientAngle || 180, (val) => {
+                const angle = val % 360;
+                this.updateGradient(element, { angle });
+            });
+            angleRow.appendChild(angleControl.element);
+            content.appendChild(angleRow);
+
+            // 2. Stops (Simplified: Start & End)
+            const stops = style.gradientStops || [
+                { color: '#D9D9D9', position: 0 },
+                { color: '#000000', position: 100 }
+            ];
+
+            const stopsRow = document.createElement('div');
+            stopsRow.style.display = 'flex';
+            stopsRow.style.justifyContent = 'space-between';
+            stopsRow.style.marginBottom = '8px';
+
+            stops.forEach((stop, index) => {
+                const stopContainer = document.createElement('div');
+                stopContainer.style.display = 'flex';
+                stopContainer.style.alignItems = 'center';
+                stopContainer.style.gap = '4px';
+
+                const colorInput = document.createElement('input');
+                colorInput.type = 'color';
+                colorInput.value = stop.color;
+                colorInput.style.width = '20px';
+                colorInput.style.height = '20px';
+                colorInput.style.border = 'none';
+                colorInput.style.padding = '0';
+                colorInput.style.background = 'none';
+                colorInput.style.cursor = 'pointer';
+
+                colorInput.addEventListener('change', (e) => {
+                    const newStops = [...stops];
+                    newStops[index] = { ...newStops[index], color: e.target.value };
+                    this.updateGradient(element, { stops: newStops });
+                });
+
+                stopContainer.appendChild(colorInput);
+                
+                // Label (0% or 100%)
+                const label = document.createElement('span');
+                label.innerText = `${stop.position}%`;
+                label.style.fontSize = '10px';
+                label.style.color = 'var(--text-secondary)';
+                stopContainer.appendChild(label);
+
+                stopsRow.appendChild(stopContainer);
+            });
+            content.appendChild(stopsRow);
+
+        } else if (style.fillType === 'image') {
+            // Image Fill Controls
+            const imgRow = document.createElement('div');
+            imgRow.style.display = 'flex';
+            imgRow.style.flexDirection = 'column';
+            imgRow.style.gap = '8px';
+            imgRow.style.marginBottom = '8px';
+
+            // Choose Image Button
+            const fileInput = document.createElement('input');
+            fileInput.type = 'file';
+            fileInput.accept = 'image/*';
+            fileInput.style.display = 'none';
+            fileInput.onchange = (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = (evt) => {
+                        this.updateStyle(element, 'fillValue', evt.target.result);
+                    };
+                    reader.readAsDataURL(file);
+                }
+            };
+
+            const btn = document.createElement('button');
+            btn.innerText = 'Choose Image...';
+            btn.style.width = '100%';
+            btn.style.padding = '6px';
+            btn.style.background = 'var(--bg-well)';
+            btn.style.border = '1px solid var(--border-color)';
+            btn.style.color = 'var(--text-primary)';
+            btn.style.cursor = 'pointer';
+            btn.style.fontSize = '11px';
+            btn.onclick = () => fileInput.click();
+
+            imgRow.appendChild(fileInput);
+            imgRow.appendChild(btn);
+
+            // Scale Mode
+            const scaleSelect = document.createElement('select');
+            scaleSelect.style.width = '100%';
+            scaleSelect.style.background = 'var(--bg-well)';
+            scaleSelect.style.border = 'none';
+            scaleSelect.style.color = 'var(--text-primary)';
+            scaleSelect.style.padding = '4px';
+            scaleSelect.style.fontSize = '11px';
+
+            ['Cover', 'Contain', 'Auto'].forEach(mode => {
+                const opt = document.createElement('option');
+                opt.value = mode.toLowerCase();
+                opt.text = mode;
+                opt.selected = (style.fillScaleMode || 'cover') === mode.toLowerCase();
+                scaleSelect.appendChild(opt);
+            });
+
+            scaleSelect.addEventListener('change', (e) => this.updateStyle(element, 'fillScaleMode', e.target.value));
+            imgRow.appendChild(scaleSelect);
+
+            content.appendChild(imgRow);
+
+        } else {
+            // Solid Color
+            const colorRow = document.createElement('div');
+            colorRow.style.display = 'flex';
+            colorRow.style.alignItems = 'center';
+            colorRow.style.justifyContent = 'flex-end'; // Align with dropdown
+            colorRow.style.marginBottom = '8px';
+            
+            const colorInput = document.createElement('input');
+            colorInput.type = 'color';
+            colorInput.value = style.backgroundColor || '#D9D9D9';
+            colorInput.style.width = '100%'; // Full width bar
+            colorInput.style.height = '24px';
+            colorInput.style.border = 'none';
+            colorInput.style.padding = '0';
+            colorInput.style.background = 'none';
+            colorInput.style.cursor = 'pointer';
+            
+            colorInput.addEventListener('change', (e) => this.updateStyle(element, 'backgroundColor', e.target.value));
+            
+            colorRow.appendChild(colorInput);
+            content.appendChild(colorRow);
+        }
 
         // Stroke (Border)
         const strokeRow = document.createElement('div');
@@ -434,6 +606,26 @@ export class PropertyInspector {
         strokeLabel.style.fontSize = '11px';
         strokeLabel.style.color = 'var(--text-secondary)';
 
+        // Stroke Style Dropdown (Solid, Dashed, Dotted)
+        const strokeStyleSelect = document.createElement('select');
+        strokeStyleSelect.style.background = 'transparent';
+        strokeStyleSelect.style.border = 'none';
+        strokeStyleSelect.style.color = 'var(--text-primary)';
+        strokeStyleSelect.style.fontSize = '11px';
+        strokeStyleSelect.style.textAlign = 'right';
+        strokeStyleSelect.style.marginRight = '8px';
+        strokeStyleSelect.style.cursor = 'pointer';
+
+        ['Solid', 'Dashed', 'Dotted'].forEach(type => {
+            const opt = document.createElement('option');
+            opt.value = type.toLowerCase();
+            opt.text = type;
+            opt.selected = (style.borderStyle || 'solid') === type.toLowerCase();
+            strokeStyleSelect.appendChild(opt);
+        });
+
+        strokeStyleSelect.addEventListener('change', (e) => this.updateStyle(element, 'borderStyle', e.target.value));
+
         const strokeInput = document.createElement('input');
         strokeInput.type = 'color';
         strokeInput.value = style.borderColor || '#000000';
@@ -446,8 +638,14 @@ export class PropertyInspector {
 
         strokeInput.addEventListener('change', (e) => this.updateStyle(element, 'borderColor', e.target.value));
 
+        const strokeRight = document.createElement('div');
+        strokeRight.style.display = 'flex';
+        strokeRight.style.alignItems = 'center';
+        strokeRight.appendChild(strokeStyleSelect);
+        strokeRight.appendChild(strokeInput);
+
         strokeRow.appendChild(strokeLabel);
-        strokeRow.appendChild(strokeInput);
+        strokeRow.appendChild(strokeRight);
         content.appendChild(strokeRow);
 
         // Border Width & Radius Row
@@ -466,9 +664,38 @@ export class PropertyInspector {
         });
         borderRow.appendChild(borderWidthControl.element);
 
+        // Border Radius
+        const radiusControl = new ScrubbableControl('Radius', parseFloat(style.borderRadius) || 0, (val) => {
+            this.updateStyle(element, 'borderRadius', Math.max(0, val));
+        });
+        borderRow.appendChild(radiusControl.element);
+
         content.appendChild(borderRow);
 
         this.container.appendChild(group);
+    }
+
+    updateGradient(element, { angle, stops }) {
+        const style = element.style || {};
+        const currentAngle = angle !== undefined ? angle : (style.gradientAngle || 180);
+        const currentStops = stops || (style.gradientStops || [
+            { color: '#D9D9D9', position: 0 },
+            { color: '#000000', position: 100 }
+        ]);
+
+        // Construct CSS gradient string
+        // linear-gradient(180deg, color1 0%, color2 100%)
+        const stopsStr = currentStops.map(s => `${s.color} ${s.position}%`).join(', ');
+        const gradientStr = `linear-gradient(${currentAngle}deg, ${stopsStr})`;
+
+        const newStyle = {
+            ...style,
+            gradientAngle: currentAngle,
+            gradientStops: currentStops,
+            fillValue: gradientStr
+        };
+
+        store.dispatch('UPDATE_ELEMENT', { id: element.id, style: newStyle });
     }
 
     renderImageProperties(element) {
@@ -494,23 +721,24 @@ export class PropertyInspector {
         const { group, content } = this.createControlGroup('EFFECTS');
         const style = element.style || {};
         const shadow = style.dropShadow;
+        const blur = style.blur;
 
-        // Enable/Disable Row
-        const headerRow = document.createElement('div');
-        headerRow.style.display = 'flex';
-        headerRow.style.justifyContent = 'space-between';
-        headerRow.style.alignItems = 'center';
-        headerRow.style.marginBottom = '8px';
+        // --- Drop Shadow ---
+        const shadowHeader = document.createElement('div');
+        shadowHeader.style.display = 'flex';
+        shadowHeader.style.justifyContent = 'space-between';
+        shadowHeader.style.alignItems = 'center';
+        shadowHeader.style.marginBottom = '8px';
 
-        const label = document.createElement('span');
-        label.innerText = 'Drop Shadow';
-        label.style.fontSize = '11px';
-        label.style.color = 'var(--text-secondary)';
+        const shadowLabel = document.createElement('span');
+        shadowLabel.innerText = 'Drop Shadow';
+        shadowLabel.style.fontSize = '11px';
+        shadowLabel.style.color = 'var(--text-secondary)';
         
-        const toggle = document.createElement('input');
-        toggle.type = 'checkbox';
-        toggle.checked = !!shadow;
-        toggle.onchange = (e) => {
+        const shadowToggle = document.createElement('input');
+        shadowToggle.type = 'checkbox';
+        shadowToggle.checked = !!shadow;
+        shadowToggle.onchange = (e) => {
             if (e.target.checked) {
                 this.updateStyle(element, 'dropShadow', { x: 0, y: 4, blur: 4, spread: 0, color: '#00000040' });
             } else {
@@ -518,9 +746,9 @@ export class PropertyInspector {
             }
         };
         
-        headerRow.appendChild(label);
-        headerRow.appendChild(toggle);
-        content.appendChild(headerRow);
+        shadowHeader.appendChild(shadowLabel);
+        shadowHeader.appendChild(shadowToggle);
+        content.appendChild(shadowHeader);
 
         if (shadow) {
             // X / Y
@@ -585,7 +813,7 @@ export class PropertyInspector {
             // Opacity Slider for Shadow
             const opacityRow = document.createElement('div');
             opacityRow.style.display = 'flex';
-            opacityRow.style.marginBottom = '8px';
+            opacityRow.style.marginBottom = '16px'; // Extra spacing before next effect
             
             const currentAlphaInt = parseInt(this.getAlphaFromHex(shadow.color), 16);
             const opacityPercent = Math.round((currentAlphaInt / 255) * 100);
@@ -599,6 +827,47 @@ export class PropertyInspector {
             
             opacityRow.appendChild(opacityControl.element);
             content.appendChild(opacityRow);
+        }
+
+        // --- Layer Blur ---
+        const blurHeader = document.createElement('div');
+        blurHeader.style.display = 'flex';
+        blurHeader.style.justifyContent = 'space-between';
+        blurHeader.style.alignItems = 'center';
+        blurHeader.style.marginBottom = '8px';
+        blurHeader.style.borderTop = '1px solid var(--border-color)';
+        blurHeader.style.paddingTop = '8px';
+
+        const blurLabel = document.createElement('span');
+        blurLabel.innerText = 'Layer Blur';
+        blurLabel.style.fontSize = '11px';
+        blurLabel.style.color = 'var(--text-secondary)';
+        
+        const blurToggle = document.createElement('input');
+        blurToggle.type = 'checkbox';
+        blurToggle.checked = blur !== undefined && blur !== null;
+        blurToggle.onchange = (e) => {
+            if (e.target.checked) {
+                this.updateStyle(element, 'blur', 4);
+            } else {
+                this.updateStyle(element, 'blur', null);
+            }
+        };
+        
+        blurHeader.appendChild(blurLabel);
+        blurHeader.appendChild(blurToggle);
+        content.appendChild(blurHeader);
+
+        if (blur !== undefined && blur !== null) {
+            const blurAmountRow = document.createElement('div');
+            blurAmountRow.style.display = 'flex';
+            blurAmountRow.style.marginBottom = '8px';
+            
+            const blurControl = new ScrubbableControl('Amount', blur, (val) => {
+                this.updateStyle(element, 'blur', Math.max(0, val));
+            });
+            blurAmountRow.appendChild(blurControl.element);
+            content.appendChild(blurAmountRow);
         }
 
         this.container.appendChild(group);

@@ -92,6 +92,11 @@ export class SlideRenderer {
             }
         }
 
+        // Apply Effects (Blur)
+        if (el.style?.blur) {
+            div.style.filter = `blur(${el.style.blur}px)`;
+        }
+
         if (el.type === 'text') {
             div.innerHTML = el.content; // Rich text
             div.style.fontFamily = el.style?.fontFamily || 'Inter';
@@ -144,9 +149,21 @@ export class SlideRenderer {
                 // For now, let's allow newlines
             }
         } else if (el.type === 'rect') {
-            div.style.backgroundColor = el.style?.backgroundColor || '#D9D9D9'; // Fixed property name
+            // Fill (Solid, Gradient, or Image)
+            if (el.style?.fillType === 'gradient') {
+                div.style.background = el.style.fillValue || 'linear-gradient(180deg, #D9D9D9 0%, #737373 100%)';
+            } else if (el.style?.fillType === 'image') {
+                div.style.backgroundImage = `url(${el.style.fillValue})`;
+                div.style.backgroundSize = el.style.fillScaleMode || 'cover';
+                div.style.backgroundPosition = 'center';
+                div.style.backgroundRepeat = 'no-repeat';
+                div.style.backgroundColor = '#D9D9D9'; // Fallback
+            } else {
+                div.style.backgroundColor = el.style?.backgroundColor || '#D9D9D9';
+            }
+            
             div.style.borderWidth = `${el.style?.borderWidth || 0}px`;
-            div.style.borderStyle = el.style?.borderStyle || 'solid'; // Support dashed/dotted
+            div.style.borderStyle = el.style?.borderStyle || 'solid';
             div.style.borderColor = el.style?.borderColor || 'transparent';
             div.style.borderRadius = `${el.style?.radius || 0}px`;
         } else if (el.type === 'image') {
