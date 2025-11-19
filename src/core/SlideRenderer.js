@@ -15,6 +15,7 @@ export class SlideRenderer {
         const state = store.getState();
         const activeSlideId = state.editor.activeSlideId;
         const slide = state.slides[activeSlideId];
+        const editingId = state.editor.editingElementId;
 
         if (!slide) {
             this.container.innerHTML = '';
@@ -35,8 +36,18 @@ export class SlideRenderer {
         slide.elementOrder.forEach(elId => {
             const el = slide.elements[elId];
             if (el) {
-                const domEl = this.createElementDOM(el);
+                const isEditing = elId === editingId;
+                const domEl = this.createElementDOM(el, isEditing);
                 this.container.appendChild(domEl);
+                
+                if (isEditing) {
+                    // Focus and select all text
+                    setTimeout(() => {
+                        domEl.focus();
+                        // Optional: Select all text
+                        // document.execCommand('selectAll', false, null);
+                    }, 0);
+                }
             }
         });
     }
@@ -56,7 +67,7 @@ export class SlideRenderer {
         }
     }
 
-    createElementDOM(el) {
+    createElementDOM(el, isEditing = false) {
         const div = document.createElement('div');
         div.id = el.id;
         div.className = 'slide-element';
@@ -67,7 +78,7 @@ export class SlideRenderer {
         div.style.height = `${el.height}px`;
         div.style.transform = `rotate(${el.rotation || 0}deg)`;
         div.style.opacity = el.opacity || 1;
-        div.style.zIndex = el.zIndex || 'auto'; // elementOrder handles visual stacking order usually
+        div.style.zIndex = isEditing ? '1000' : (el.zIndex || 'auto'); 
 
         if (el.type === 'text') {
             div.innerHTML = el.content; // Rich text
@@ -75,19 +86,52 @@ export class SlideRenderer {
             div.style.fontSize = `${el.style?.fontSize || 16}px`;
             div.style.color = el.style?.color || 'black';
             div.style.textAlign = el.style?.textAlign || 'left';
-            // ... other styles
+            
+            if (isEditing) {
+                div.contentEditable = true;
+                div.style.outline = '2px solid #0055FF';
+                div.style.cursor = 'text';
+                div.style.pointerEvents = 'auto'; // Ensure it receives clicks
+                
+                // Handle Blur -> Save
+                div.addEventListener('blur', () => {
+                    store.dispatch('UPDATE_ELEMENT', {
+                        id: el.id,
+                        content: div.innerHTML
+                    });
+                    store.dispatch('SET_EDITING_ELEMENT', null);
+                });
+                
+                // Handle Enter -> Save (optional, maybe Shift+Enter for newline?)
+                // For now, let's allow newlines
+            }
         } else if (el.type === 'rect') {
-            div.style.backgroundColor = el.style?.fill || '#ff4d00';
-            div.style.border = `${el.style?.strokeWidth || 0}px solid ${el.style?.stroke || 'transparent'}`;
+            div.style.backgroundColor = el.style?.backgroundColor || '#D9D9D9'; // Fixed property name
+            div.style.borderWidth = `${el.style?.borderWidth || 0}px`;
+            div.style.borderStyle = 'solid';
+            div.style.borderColor = el.style?.borderColor || 'transparent';
             div.style.borderRadius = `${el.style?.radius || 0}px`;
+        } else if (el.type === 'image') {
+            const img = document.createElement('img');
+            img.src = el.src;
+            img.style.width = '100%';
+            img.style.height = '100%';
+            img.style.objectFit = 'cover';
+            img.style.borderRadius = `${el.style?.radius || 0}px`;
+            img.draggable = false;
+            div.appendChild(img);
         }
 
-        // Interaction (Selection)
-        div.addEventListener('mousedown', (e) => {
-            e.stopPropagation(); // Prevent canvas pan
-            store.dispatch('UPDATE_SELECTION', [el.id]);
-            // TODO: Initiate Drag
-        });
+        // Interaction (Selection) - Only if not editing
+        if (!isEditing) {
+            div.addEventListener('mousedown', (e) => {
+                // e.stopPropagation(); // Let it bubble to canvas? No, canvas is on top.
+                // Actually, since canvas is on top (z-index 100), these events might not fire
+                // unless we set pointer-events: none on canvas.
+                // But we want canvas to handle selection/drag.
+                // So this listener might be redundant if canvas covers it.
+            });
+        }
 
         return div;
     }

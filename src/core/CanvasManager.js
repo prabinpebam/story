@@ -65,6 +65,17 @@ export class CanvasManager {
         // Panning (MouseDown)
         this.container.addEventListener('mousedown', (e) => this.handleMouseDown(e));
         
+        // Double Click (Edit Text)
+        this.container.addEventListener('dblclick', (e) => this.handleDoubleClick(e));
+        
+        // Drag and Drop (Images)
+        this.container.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'copy';
+        });
+
+        this.container.addEventListener('drop', (e) => this.handleDrop(e));
+
         // Global Mouse Events (for dragging outside container)
         window.addEventListener('mousemove', (e) => this.handleMouseMove(e));
         window.addEventListener('mouseup', (e) => this.handleMouseUp(e));
@@ -489,6 +500,82 @@ export class CanvasManager {
         this.container.style.cursor = 'default';
         this.activeHandle = null;
         this.initialElementState = {};
+    }
+
+    handleDoubleClick(e) {
+        const rect = this.container.getBoundingClientRect();
+        const mouseX = e.clientX - rect.left;
+        const mouseY = e.clientY - rect.top;
+
+        const hit = this.hitTest(mouseX, mouseY);
+
+        if (hit && hit.type === 'element') {
+            const state = store.getState();
+            const activeSlideId = state.editor.activeSlideId;
+            const element = state.slides[activeSlideId].elements[hit.id];
+
+            if (element && element.type === 'text') {
+                store.dispatch('SET_EDITING_ELEMENT', hit.id);
+            }
+        }
+    }
+
+    handleDrop(e) {
+        e.preventDefault();
+        const rect = this.container.getBoundingClientRect();
+        const mouseX = e.clientX - rect.left;
+        const mouseY = e.clientY - rect.top;
+
+        const state = store.getState();
+        const { zoom, pan } = state.editor;
+
+        // Convert to world coordinates
+        const worldX = (mouseX - pan.x) / zoom;
+        const worldY = (mouseY - pan.y) / zoom;
+
+        if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+            const file = e.dataTransfer.files[0];
+            if (file.type.startsWith('image/')) {
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    const img = new Image();
+                    img.onload = () => {
+                        // Scale down if too big
+                        let width = img.width;
+                        let height = img.height;
+                        const maxSize = 800;
+                        
+                        if (width > maxSize || height > maxSize) {
+                            const ratio = width / height;
+                            if (width > height) {
+                                width = maxSize;
+                                height = maxSize / ratio;
+                            } else {
+                                height = maxSize;
+                                width = maxSize * ratio;
+                            }
+                        }
+
+                        const id = `image-${Date.now()}`;
+                        store.dispatch('ADD_ELEMENT', {
+                            id,
+                            type: 'image',
+                            x: worldX - width / 2,
+                            y: worldY - height / 2,
+                            width,
+                            height,
+                            rotation: 0,
+                            src: event.target.result,
+                            style: {}
+                        });
+                        
+                        store.dispatch('UPDATE_SELECTION', [id]);
+                    };
+                    img.src = event.target.result;
+                };
+                reader.readAsDataURL(file);
+            }
+        }
     }
 
     handleKeyDown(e) {

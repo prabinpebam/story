@@ -102,6 +102,33 @@ This should be a modern presentation maker.
 - **Theme:** Light/Dark mode, High contrast.
 - **Components:** Knobs, Switches, Mechanical feel.
 
+### 4.1 Properties Panel Behavior (Figma-like)
+The properties panel must mimic the interaction model of Figma while retaining the TE visual identity.
+
+**Interaction Principles:**
+- **Scrubbable Inputs:** Hovering over a property label (e.g., "W", "H", "Opacity") changes the cursor to a resize arrow. Dragging left/right adjusts the value.
+- **Math Evaluation:** Numeric inputs must accept mathematical expressions (e.g., `100 + 20`, `1920 / 2`, `50 * 1.5`).
+- **Keyboard Navigation:**
+    - `Tab`: Move to next property.
+    - `Shift + Tab`: Move to previous.
+    - `Enter`: Confirm and blur.
+    - `Up/Down Arrow`: Increment/Decrement by 1.
+    - `Shift + Up/Down`: Increment/Decrement by 10.
+- **Multi-Selection State:**
+    - If selected objects share a property value, show the value.
+    - If values differ, show "Mixed" or a visual indicator.
+    - Editing a "Mixed" property updates all selected objects to the new value (or applies a relative delta if dragging).
+
+**Panel Structure:**
+1.  **Alignment & Distribution:** Top row icons (Align Left, Center, Right, Top, Middle, Bottom, Distribute).
+2.  **Transform:** Compact grid for X, Y, W, H, Rotation (°), Corner Radius.
+3.  **Layer:** Blend Mode (dropdown) and Opacity (%).
+4.  **Text (Contextual):** Font Family, Weight, Size, Line Height (px/%), Letter Spacing, Paragraph Spacing, Auto-width/Auto-height toggles.
+5.  **Fill:** Stackable color/gradient/image fills. Toggle visibility per fill.
+6.  **Stroke:** Color, Width, Position (Inside/Center/Outside), Dashed lines.
+7.  **Effects:** Drop Shadow, Inner Shadow, Layer Blur, Background Blur.
+8.  **Export:** (Future scope)
+
 ## 5. Technical Architecture & Stack
 **[Detailed Spec: Architecture Overview](./tech-specs/architecture-overview.md)**
 

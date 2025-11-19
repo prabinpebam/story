@@ -69,20 +69,50 @@ This document outlines the step-by-step implementation plan for "Story", a moder
 - [x] Implement Lock/Unlock and Hide/Show visibility toggles.
 
 ## Phase 4: Content Editing & Properties
-**Goal:** Allow deep customization of slide content.
+**Goal:** Allow deep customization of slide content with a Figma-like interaction model.
 
-### 4.1 Property Inspector
+### 4.1 Property Inspector Infrastructure
 - [x] Build the Context-Aware Right Sidebar.
-- [x] Create property groups that show/hide based on selection (e.g., Text properties only show when text is selected).
-- [ ] Implement "Mixed" state for multi-selection.
+- [ ] **Implement Advanced Input Components:**
+    - [x] `ScrubbableInput`: Label acts as a slider (drag to change value).
+    - [x] `MathInput`: Input field that evaluates expressions (e.g., "100+50") on blur/enter.
+    - [ ] `MultiValueInput`: Handles "Mixed" state for multi-selection.
+- [ ] **Refactor Property Inspector:**
+    - [ ] Create modular sections (Transform, Text, Fill, Stroke, Effects).
+    - [ ] Implement collapsible section headers.
 
-### 4.2 Typography Engine
-- [ ] Implement Text Object editing (Double-click to edit).
-- [x] Add controls for: Font Family (System/Google), Size, Weight, Line Height, Letter Spacing.
-- [ ] Implement Text Styles (H1, H2, Body) application.
+### 4.2 Transform & Layout Controls
+- [x] **Alignment Tools:** Implement Align Left/Center/Right/Top/Middle/Bottom logic for single and multiple objects.
+- [ ] **Distribution Tools:** Distribute horizontal/vertical spacing.
+- [x] **Transform Section:**
+    - [x] X, Y, Width, Height (with aspect ratio lock toggle).
+    - [x] Rotation (0-360°).
+    - [x] Corner Radius (independent corners UI).
 
-### 4.3 Media & Assets
-- [ ] Implement Image Upload & Drag-and-drop.
+### 4.3 Typography Engine
+- [x] Implement Text Object editing (Double-click to edit).
+- [ ] **Advanced Text Properties:**
+    - [ ] Font Family (Google Fonts integration).
+    - [ ] Font Weight (Dynamic dropdown based on family).
+    - [ ] Font Size, Line Height (px/%), Letter Spacing.
+    - [ ] Paragraph Spacing, Text Align, Vertical Align.
+    - [ ] Resizing constraints: Auto Width, Auto Height, Fixed Size.
+
+### 4.4 Styling (Fill, Stroke, Effects)
+- [ ] **Fill System:**
+    - [ ] Solid Color (Hex/RGBA).
+    - [ ] Linear/Radial Gradients.
+    - [ ] Image Fill (Scale modes: Fill, Fit, Crop, Tile).
+- [ ] **Stroke System:**
+    - [ ] Color, Width.
+    - [ ] Position (Inside, Center, Outside).
+    - [ ] Dash array / Caps / Joins.
+- [ ] **Effects System:**
+    - [ ] Drop Shadow (X, Y, Blur, Spread, Color).
+    - [ ] Layer Blur.
+
+### 4.5 Media & Assets
+- [x] Implement Image Upload & Drag-and-drop.
 - [ ] Add Image Processing controls: Crop (masking), Opacity, Border Radius.
 - [ ] Integrate Icon Library search (mock API or direct integration).
 

@@ -2,6 +2,7 @@ import { store } from '../core/Store.js';
 import { Knob } from './components/Knob.js';
 import { Switch } from './components/Switch.js';
 import { SegmentedControl } from './components/SegmentedControl.js';
+import { ScrubbableControl } from './components/ScrubbableControl.js';
 
 export class PropertyInspector {
     constructor(containerId) {
@@ -42,6 +43,8 @@ export class PropertyInspector {
             this.renderTextProperties(element);
         } else if (element.type === 'rect') {
             this.renderShapeProperties(element);
+        } else if (element.type === 'image') {
+            this.renderImageProperties(element);
         }
     }
 
@@ -85,6 +88,35 @@ export class PropertyInspector {
     }
 
     renderCommonProperties(element) {
+        // Alignment Row
+        const alignRow = document.createElement('div');
+        alignRow.style.display = 'flex';
+        alignRow.style.justifyContent = 'space-between';
+        alignRow.style.marginBottom = '16px';
+        alignRow.style.padding = '0 4px';
+
+        const aligns = [
+            { icon: 'fa-align-left', action: 'left', title: 'Align Left' },
+            { icon: 'fa-align-center', action: 'center', title: 'Align Center' },
+            { icon: 'fa-align-right', action: 'right', title: 'Align Right' },
+            { icon: 'fa-align-left', action: 'top', title: 'Align Top', rotate: 90 },
+            { icon: 'fa-align-center', action: 'middle', title: 'Align Middle', rotate: 90 },
+            { icon: 'fa-align-right', action: 'bottom', title: 'Align Bottom', rotate: 90 }
+        ];
+
+        aligns.forEach(item => {
+            const btn = document.createElement('button');
+            btn.className = 'icon-btn';
+            btn.style.width = '24px';
+            btn.style.height = '24px';
+            btn.title = item.title;
+            btn.innerHTML = `<i class="fa-solid ${item.icon}" style="${item.rotate ? `transform: rotate(${item.rotate}deg)` : ''}"></i>`;
+            btn.onclick = () => store.dispatch('ALIGN_ELEMENTS', item.action);
+            alignRow.appendChild(btn);
+        });
+
+        this.container.appendChild(alignRow);
+
         const group = this.createControlGroup('TRANSFORM');
         
         // Position Row (X, Y)
@@ -94,22 +126,16 @@ export class PropertyInspector {
         posRow.style.marginBottom = '8px';
 
         // X Position
-        const xInput = document.createElement('input');
-        xInput.type = 'number';
-        xInput.value = Math.round(element.x);
-        xInput.addEventListener('change', (e) => this.updateProperty(element.id, 'x', parseInt(e.target.value)));
-        
-        const xWrapper = this.createLabelInputPair('X', xInput);
-        posRow.appendChild(xWrapper);
+        const xControl = new ScrubbableControl('X', element.x, (val) => {
+            this.updateProperty(element.id, 'x', val);
+        });
+        posRow.appendChild(xControl.element);
 
         // Y Position
-        const yInput = document.createElement('input');
-        yInput.type = 'number';
-        yInput.value = Math.round(element.y);
-        yInput.addEventListener('change', (e) => this.updateProperty(element.id, 'y', parseInt(e.target.value)));
-        
-        const yWrapper = this.createLabelInputPair('Y', yInput);
-        posRow.appendChild(yWrapper);
+        const yControl = new ScrubbableControl('Y', element.y, (val) => {
+            this.updateProperty(element.id, 'y', val);
+        });
+        posRow.appendChild(yControl.element);
 
         group.appendChild(posRow);
 
@@ -120,36 +146,36 @@ export class PropertyInspector {
         sizeRow.style.marginBottom = '8px';
 
         // Width
-        const wInput = document.createElement('input');
-        wInput.type = 'number';
-        wInput.value = Math.round(element.width);
-        wInput.addEventListener('change', (e) => this.updateProperty(element.id, 'width', parseInt(e.target.value)));
-        
-        const wWrapper = this.createLabelInputPair('W', wInput);
-        sizeRow.appendChild(wWrapper);
+        const wControl = new ScrubbableControl('W', element.width, (val) => {
+            this.updateProperty(element.id, 'width', Math.max(1, val)); // Prevent 0/negative
+        });
+        sizeRow.appendChild(wControl.element);
 
         // Height
-        const hInput = document.createElement('input');
-        hInput.type = 'number';
-        hInput.value = Math.round(element.height);
-        hInput.addEventListener('change', (e) => this.updateProperty(element.id, 'height', parseInt(e.target.value)));
-        
-        const hWrapper = this.createLabelInputPair('H', hInput);
-        sizeRow.appendChild(hWrapper);
+        const hControl = new ScrubbableControl('H', element.height, (val) => {
+            this.updateProperty(element.id, 'height', Math.max(1, val));
+        });
+        sizeRow.appendChild(hControl.element);
 
         group.appendChild(sizeRow);
 
-        // Rotation Knob
-        const rotationKnob = new Knob('ROTATION', element.rotation || 0, 0, 360, (val) => {
-            this.updateProperty(element.id, 'rotation', Math.round(val));
-        });
+        // Rotation
+        const rotRow = document.createElement('div');
+        rotRow.style.display = 'flex';
+        rotRow.style.gap = '8px';
+        rotRow.style.marginBottom = '8px';
         
-        const knobRow = document.createElement('div');
-        knobRow.style.display = 'flex';
-        knobRow.style.justifyContent = 'center';
-        knobRow.style.padding = '8px 0';
-        knobRow.appendChild(rotationKnob.element);
-        group.appendChild(knobRow);
+        const rotControl = new ScrubbableControl('°', element.rotation || 0, (val) => {
+            this.updateProperty(element.id, 'rotation', val % 360);
+        });
+        rotRow.appendChild(rotControl.element);
+        
+        // Spacer to fill row
+        const spacer = document.createElement('div');
+        spacer.style.flex = '1';
+        rotRow.appendChild(spacer);
+
+        group.appendChild(rotRow);
 
         this.container.appendChild(group);
     }
@@ -189,16 +215,15 @@ export class PropertyInspector {
         });
         group.appendChild(this.createInputRow('Content', contentInput));
 
-        // Font Size Knob
-        const sizeKnob = new Knob('SIZE', style.fontSize || 16, 8, 200, (val) => {
-            this.updateStyle(element, 'fontSize', Math.round(val));
-        });
-        
+        // Font Size
         const sizeRow = document.createElement('div');
         sizeRow.style.display = 'flex';
-        sizeRow.style.justifyContent = 'center';
-        sizeRow.style.padding = '8px 0';
-        sizeRow.appendChild(sizeKnob.element);
+        sizeRow.style.marginBottom = '8px';
+        
+        const sizeControl = new ScrubbableControl('Size', style.fontSize || 16, (val) => {
+            this.updateStyle(element, 'fontSize', Math.max(1, val));
+        });
+        sizeRow.appendChild(sizeControl.element);
         group.appendChild(sizeRow);
 
         // Alignment Segmented Control
@@ -240,11 +265,55 @@ export class PropertyInspector {
         group.appendChild(this.createInputRow('Border', borderColorInput));
 
         // Border Width
-        const borderWidthInput = document.createElement('input');
-        borderWidthInput.type = 'number';
-        borderWidthInput.value = style.borderWidth || 0;
-        borderWidthInput.addEventListener('change', (e) => this.updateStyle(element, 'borderWidth', parseInt(e.target.value)));
-        group.appendChild(this.createInputRow('B. Width', borderWidthInput));
+        const borderWidthRow = document.createElement('div');
+        borderWidthRow.style.display = 'flex';
+        borderWidthRow.style.marginBottom = '8px';
+        
+        const borderWidthControl = new ScrubbableControl('Width', style.borderWidth || 0, (val) => {
+            this.updateStyle(element, 'borderWidth', Math.max(0, val));
+        });
+        borderWidthRow.appendChild(borderWidthControl.element);
+        group.appendChild(borderWidthRow);
+
+        // Border Radius
+        const radiusRow = document.createElement('div');
+        radiusRow.style.display = 'flex';
+        radiusRow.style.marginBottom = '8px';
+        
+        const radiusControl = new ScrubbableControl('Radius', style.radius || 0, (val) => {
+            this.updateStyle(element, 'radius', Math.max(0, val));
+        });
+        radiusRow.appendChild(radiusControl.element);
+        group.appendChild(radiusRow);
+
+        this.container.appendChild(group);
+    }
+
+    renderImageProperties(element) {
+        const group = this.createControlGroup('IMAGE');
+        const style = element.style || {};
+
+        // Opacity
+        const opacityRow = document.createElement('div');
+        opacityRow.style.display = 'flex';
+        opacityRow.style.marginBottom = '8px';
+        
+        const opacityControl = new ScrubbableControl('Opacity', (element.opacity !== undefined ? element.opacity : 1) * 100, (val) => {
+            this.updateProperty(element.id, 'opacity', Math.min(100, Math.max(0, val)) / 100);
+        }, { min: 0, max: 100 });
+        opacityRow.appendChild(opacityControl.element);
+        group.appendChild(opacityRow);
+
+        // Border Radius
+        const radiusRow = document.createElement('div');
+        radiusRow.style.display = 'flex';
+        radiusRow.style.marginBottom = '8px';
+        
+        const radiusControl = new ScrubbableControl('Radius', style.radius || 0, (val) => {
+            this.updateStyle(element, 'radius', Math.max(0, val));
+        });
+        radiusRow.appendChild(radiusControl.element);
+        group.appendChild(radiusRow);
 
         this.container.appendChild(group);
     }

@@ -16,6 +16,7 @@ class Store extends EventEmitter {
             editor: {
                 activeSlideId: "slide-1",
                 selectedElementIds: [],
+                editingElementId: null, // ID of element currently being edited (text)
                 activeTool: "select", // 'select', 'text', 'rect', 'circle', 'hand'
                 zoom: 1.0,
                 pan: { x: 0, y: 0 },
@@ -69,7 +70,13 @@ class Store extends EventEmitter {
                 // Clear selection when switching to creation tools
                 if (payload !== 'select') {
                     this.state.editor.selectedElementIds = [];
+                    this.state.editor.editingElementId = null; // Stop editing
                 }
+                this.emit('state-changed', this.state);
+                break;
+
+            case 'SET_EDITING_ELEMENT':
+                this.state.editor.editingElementId = payload;
                 this.emit('state-changed', this.state);
                 break;
 
@@ -226,6 +233,60 @@ class Store extends EventEmitter {
                 this.state.editor.selectedElementIds = payload; // Expecting array of IDs
                 this.emit('state-changed', this.state);
                 this.emit('selection-changed', this.state.editor.selectedElementIds);
+                break;
+
+            case 'ALIGN_ELEMENTS':
+                const alignType = payload; // 'left', 'center', 'right', 'top', 'middle', 'bottom'
+                const currentS = this.state.slides[this.state.editor.activeSlideId];
+                const selectedIds = this.state.editor.selectedElementIds;
+                
+                if (!currentS || selectedIds.length === 0) return;
+
+                // Determine bounds to align to
+                let bounds = { x: 0, y: 0, width: currentS.width, height: currentS.height };
+                
+                if (selectedIds.length > 1) {
+                    // Calculate selection bounds
+                    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+                    selectedIds.forEach(id => {
+                        const el = currentS.elements[id];
+                        if (el) {
+                            minX = Math.min(minX, el.x);
+                            minY = Math.min(minY, el.y);
+                            maxX = Math.max(maxX, el.x + el.width);
+                            maxY = Math.max(maxY, el.y + el.height);
+                        }
+                    });
+                    bounds = { x: minX, y: minY, width: maxX - minX, height: maxY - minY };
+                }
+
+                selectedIds.forEach(id => {
+                    const el = currentS.elements[id];
+                    if (!el) return;
+
+                    switch (alignType) {
+                        case 'left':
+                            el.x = bounds.x;
+                            break;
+                        case 'center':
+                            el.x = bounds.x + (bounds.width - el.width) / 2;
+                            break;
+                        case 'right':
+                            el.x = bounds.x + bounds.width - el.width;
+                            break;
+                        case 'top':
+                            el.y = bounds.y;
+                            break;
+                        case 'middle':
+                            el.y = bounds.y + (bounds.height - el.height) / 2;
+                            break;
+                        case 'bottom':
+                            el.y = bounds.y + bounds.height - el.height;
+                            break;
+                    }
+                });
+                
+                this.emit('state-changed', this.state);
                 break;
                 
             case 'TOGGLE_THEME':
