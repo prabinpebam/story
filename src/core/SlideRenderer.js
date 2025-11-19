@@ -84,6 +84,9 @@ export class SlideRenderer {
             div.innerHTML = el.content; // Rich text
             div.style.fontFamily = el.style?.fontFamily || 'Inter';
             div.style.fontSize = `${el.style?.fontSize || 16}px`;
+            div.style.fontWeight = el.style?.fontWeight || '400';
+            div.style.lineHeight = el.style?.lineHeight || '1.2';
+            div.style.letterSpacing = `${el.style?.letterSpacing || 0}px`;
             div.style.color = el.style?.color || 'black';
             div.style.textAlign = el.style?.textAlign || 'left';
             
@@ -108,7 +111,7 @@ export class SlideRenderer {
         } else if (el.type === 'rect') {
             div.style.backgroundColor = el.style?.backgroundColor || '#D9D9D9'; // Fixed property name
             div.style.borderWidth = `${el.style?.borderWidth || 0}px`;
-            div.style.borderStyle = 'solid';
+            div.style.borderStyle = el.style?.borderStyle || 'solid'; // Support dashed/dotted
             div.style.borderColor = el.style?.borderColor || 'transparent';
             div.style.borderRadius = `${el.style?.radius || 0}px`;
         } else if (el.type === 'image') {

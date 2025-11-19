@@ -73,13 +73,13 @@ This document outlines the step-by-step implementation plan for "Story", a moder
 
 ### 4.1 Property Inspector Infrastructure
 - [x] Build the Context-Aware Right Sidebar.
-- [ ] **Implement Advanced Input Components:**
+- [x] **Implement Advanced Input Components:**
     - [x] `ScrubbableInput`: Label acts as a slider (drag to change value).
     - [x] `MathInput`: Input field that evaluates expressions (e.g., "100+50") on blur/enter.
     - [ ] `MultiValueInput`: Handles "Mixed" state for multi-selection.
-- [ ] **Refactor Property Inspector:**
-    - [ ] Create modular sections (Transform, Text, Fill, Stroke, Effects).
-    - [ ] Implement collapsible section headers.
+- [x] **Refactor Property Inspector:**
+    - [x] Create modular sections (Transform, Text, Fill, Stroke, Effects).
+    - [x] Implement collapsible section headers.
 
 ### 4.2 Transform & Layout Controls
 - [x] **Alignment Tools:** Implement Align Left/Center/Right/Top/Middle/Bottom logic for single and multiple objects.
@@ -91,11 +91,11 @@ This document outlines the step-by-step implementation plan for "Story", a moder
 
 ### 4.3 Typography Engine
 - [x] Implement Text Object editing (Double-click to edit).
-- [ ] **Advanced Text Properties:**
-    - [ ] Font Family (Google Fonts integration).
-    - [ ] Font Weight (Dynamic dropdown based on family).
-    - [ ] Font Size, Line Height (px/%), Letter Spacing.
-    - [ ] Paragraph Spacing, Text Align, Vertical Align.
+- [x] **Advanced Text Properties:**
+    - [x] Font Family (Google Fonts integration).
+    - [x] Font Weight (Dynamic dropdown based on family).
+    - [x] Font Size, Line Height (px/%), Letter Spacing.
+    - [x] Paragraph Spacing, Text Align, Vertical Align.
     - [ ] Resizing constraints: Auto Width, Auto Height, Fixed Size.
 
 ### 4.4 Styling (Fill, Stroke, Effects)

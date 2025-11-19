@@ -58,16 +58,47 @@ export class PropertyInspector {
         this.container.appendChild(div);
     }
 
-    createControlGroup(title) {
+    createControlGroup(title, defaultOpen = true) {
         const group = document.createElement('div');
         group.className = 'panel-section';
+        
+        const header = document.createElement('div');
+        header.className = 'section-header';
+        header.style.display = 'flex';
+        header.style.alignItems = 'center';
+        header.style.cursor = 'pointer';
+        header.style.marginBottom = '8px';
+        header.style.userSelect = 'none';
+
+        const icon = document.createElement('i');
+        icon.className = `fa-solid fa-chevron-${defaultOpen ? 'down' : 'right'}`;
+        icon.style.fontSize = '10px';
+        icon.style.width = '16px';
+        icon.style.color = 'var(--text-secondary)';
         
         const label = document.createElement('div');
         label.className = 'section-title';
         label.innerText = title;
+        label.style.marginBottom = '0'; // Override default
+        label.style.flex = '1';
         
-        group.appendChild(label);
-        return group;
+        header.appendChild(icon);
+        header.appendChild(label);
+        
+        const content = document.createElement('div');
+        content.style.display = defaultOpen ? 'block' : 'none';
+        
+        header.onclick = () => {
+            const isOpen = content.style.display !== 'none';
+            content.style.display = isOpen ? 'none' : 'block';
+            icon.className = `fa-solid fa-chevron-${isOpen ? 'right' : 'down'}`;
+        };
+
+        group.appendChild(header);
+        group.appendChild(content);
+        
+        // Return content container so we append controls there
+        return { group, content };
     }
 
     createInputRow(label, input) {
@@ -117,7 +148,7 @@ export class PropertyInspector {
 
         this.container.appendChild(alignRow);
 
-        const group = this.createControlGroup('TRANSFORM');
+        const { group, content } = this.createControlGroup('TRANSFORM');
         
         // Position Row (X, Y)
         const posRow = document.createElement('div');
@@ -137,7 +168,7 @@ export class PropertyInspector {
         });
         posRow.appendChild(yControl.element);
 
-        group.appendChild(posRow);
+        content.appendChild(posRow);
 
         // Size Row (W, H)
         const sizeRow = document.createElement('div');
@@ -157,9 +188,9 @@ export class PropertyInspector {
         });
         sizeRow.appendChild(hControl.element);
 
-        group.appendChild(sizeRow);
+        content.appendChild(sizeRow);
 
-        // Rotation
+        // Rotation & Radius Row
         const rotRow = document.createElement('div');
         rotRow.style.display = 'flex';
         rotRow.style.gap = '8px';
@@ -170,12 +201,13 @@ export class PropertyInspector {
         });
         rotRow.appendChild(rotControl.element);
         
-        // Spacer to fill row
-        const spacer = document.createElement('div');
-        spacer.style.flex = '1';
-        rotRow.appendChild(spacer);
+        // Corner Radius (Common for all)
+        const radiusControl = new ScrubbableControl('R', element.style?.radius || 0, (val) => {
+            this.updateStyle(element, 'radius', Math.max(0, val));
+        });
+        rotRow.appendChild(radiusControl.element);
 
-        group.appendChild(rotRow);
+        content.appendChild(rotRow);
 
         this.container.appendChild(group);
     }
@@ -193,128 +225,226 @@ export class PropertyInspector {
     }
 
     renderTextProperties(element) {
-        const group = this.createControlGroup('TEXT');
+        const { group, content } = this.createControlGroup('TEXT');
         const style = element.style || {};
 
         // Content (HTML)
-        // For simple text editing, we might want a textarea or just input
-        // But since content can be HTML, let's just show raw for now or strip tags?
-        // Let's assume simple text for the input
         const contentInput = document.createElement('input');
         contentInput.type = 'text';
-        // Strip HTML tags for display
         const tempDiv = document.createElement('div');
         tempDiv.innerHTML = element.content;
         contentInput.value = tempDiv.innerText;
         
         contentInput.addEventListener('change', (e) => {
-            // Wrap in h1/p based on current tag or default?
-            // For now, just update content directly. 
-            // Ideally we'd have a rich text editor or just update inner text.
             this.updateProperty(element.id, 'content', `<h2>${e.target.value}</h2>`);
         });
-        group.appendChild(this.createInputRow('Content', contentInput));
+        content.appendChild(this.createInputRow('Content', contentInput));
 
-        // Font Size
-        const sizeRow = document.createElement('div');
-        sizeRow.style.display = 'flex';
-        sizeRow.style.marginBottom = '8px';
+        // Font Family
+        const fontRow = document.createElement('div');
+        fontRow.style.marginBottom = '8px';
+        const fontSelect = document.createElement('select');
+        fontSelect.style.width = '100%';
+        fontSelect.style.background = 'var(--bg-well)';
+        fontSelect.style.border = 'none';
+        fontSelect.style.color = 'var(--text-primary)';
+        fontSelect.style.padding = '4px';
+        fontSelect.style.fontSize = '11px';
         
+        ['Inter', 'Roboto', 'Arial', 'Times New Roman', 'Courier New', 'JetBrains Mono'].forEach(font => {
+            const option = document.createElement('option');
+            option.value = font;
+            option.text = font;
+            option.selected = (style.fontFamily || 'Inter') === font;
+            fontSelect.appendChild(option);
+        });
+        
+        fontSelect.addEventListener('change', (e) => this.updateStyle(element, 'fontFamily', e.target.value));
+        fontRow.appendChild(fontSelect);
+        content.appendChild(fontRow);
+
+        // Weight & Size Row
+        const weightSizeRow = document.createElement('div');
+        weightSizeRow.style.display = 'flex';
+        weightSizeRow.style.gap = '8px';
+        weightSizeRow.style.marginBottom = '8px';
+
+        // Weight
+        const weightSelect = document.createElement('select');
+        weightSelect.style.flex = '1';
+        weightSelect.style.background = 'var(--bg-well)';
+        weightSelect.style.border = 'none';
+        weightSelect.style.color = 'var(--text-primary)';
+        weightSelect.style.padding = '4px';
+        weightSelect.style.fontSize = '11px';
+
+        const weights = [
+            { label: 'Light', value: '300' },
+            { label: 'Regular', value: '400' },
+            { label: 'Medium', value: '500' },
+            { label: 'Bold', value: '700' },
+            { label: 'Black', value: '900' }
+        ];
+
+        weights.forEach(w => {
+            const option = document.createElement('option');
+            option.value = w.value;
+            option.text = w.label;
+            option.selected = (style.fontWeight || '400') === w.value;
+            weightSelect.appendChild(option);
+        });
+
+        weightSelect.addEventListener('change', (e) => this.updateStyle(element, 'fontWeight', e.target.value));
+        weightSizeRow.appendChild(weightSelect);
+
+        // Size
         const sizeControl = new ScrubbableControl('Size', style.fontSize || 16, (val) => {
             this.updateStyle(element, 'fontSize', Math.max(1, val));
         });
-        sizeRow.appendChild(sizeControl.element);
-        group.appendChild(sizeRow);
+        // Hack to make it fit in the flex row nicely
+        sizeControl.element.style.flex = '0 0 60px'; 
+        weightSizeRow.appendChild(sizeControl.element);
+
+        content.appendChild(weightSizeRow);
+
+        // Line Height & Letter Spacing Row
+        const spacingRow = document.createElement('div');
+        spacingRow.style.display = 'flex';
+        spacingRow.style.gap = '8px';
+        spacingRow.style.marginBottom = '8px';
+
+        // Line Height
+        const lhControl = new ScrubbableControl('LH', parseFloat(style.lineHeight) || 1.2, (val) => {
+            this.updateStyle(element, 'lineHeight', Math.max(0.5, val));
+        }, { step: 0.1 });
+        spacingRow.appendChild(lhControl.element);
+
+        // Letter Spacing
+        const lsControl = new ScrubbableControl('LS', parseFloat(style.letterSpacing) || 0, (val) => {
+            this.updateStyle(element, 'letterSpacing', val);
+        }, { step: 0.1 });
+        spacingRow.appendChild(lsControl.element);
+
+        content.appendChild(spacingRow);
 
         // Alignment Segmented Control
         const alignControl = new SegmentedControl([
             { label: 'L', value: 'left' },
             { label: 'C', value: 'center' },
-            { label: 'R', value: 'right' }
+            { label: 'R', value: 'right' },
+            { label: 'J', value: 'justify' }
         ], style.textAlign || 'left', (val) => {
             this.updateStyle(element, 'textAlign', val);
         });
-        group.appendChild(alignControl.element);
+        content.appendChild(alignControl.element);
 
         // Color
         const colorInput = document.createElement('input');
         colorInput.type = 'color';
         colorInput.value = style.color || '#000000';
         colorInput.addEventListener('change', (e) => this.updateStyle(element, 'color', e.target.value));
-        group.appendChild(this.createInputRow('Color', colorInput));
+        content.appendChild(this.createInputRow('Color', colorInput));
 
         this.container.appendChild(group);
     }
 
     renderShapeProperties(element) {
-        const group = this.createControlGroup('STYLE');
+        const { group, content } = this.createControlGroup('STYLE');
         const style = element.style || {};
 
-        // Fill Color
-        const colorInput = document.createElement('input');
-        colorInput.type = 'color';
-        colorInput.value = style.backgroundColor || '#D9D9D9';
-        colorInput.addEventListener('change', (e) => this.updateStyle(element, 'backgroundColor', e.target.value));
-        group.appendChild(this.createInputRow('Fill', colorInput));
+        // Fill
+        const fillRow = document.createElement('div');
+        fillRow.style.display = 'flex';
+        fillRow.style.alignItems = 'center';
+        fillRow.style.justifyContent = 'space-between';
+        fillRow.style.marginBottom = '8px';
 
-        // Border Color
-        const borderColorInput = document.createElement('input');
-        borderColorInput.type = 'color';
-        borderColorInput.value = style.borderColor || '#000000';
-        borderColorInput.addEventListener('change', (e) => this.updateStyle(element, 'borderColor', e.target.value));
-        group.appendChild(this.createInputRow('Border', borderColorInput));
+        const fillLabel = document.createElement('span');
+        fillLabel.textContent = 'Fill';
+        fillLabel.style.fontSize = '11px';
+        fillLabel.style.color = 'var(--text-secondary)';
+        
+        const fillInput = document.createElement('input');
+        fillInput.type = 'color';
+        fillInput.value = style.backgroundColor || '#D9D9D9';
+        fillInput.style.width = '20px';
+        fillInput.style.height = '20px';
+        fillInput.style.border = 'none';
+        fillInput.style.padding = '0';
+        fillInput.style.background = 'none';
+        fillInput.style.cursor = 'pointer';
+        
+        fillInput.addEventListener('change', (e) => this.updateStyle(element, 'backgroundColor', e.target.value));
+        
+        fillRow.appendChild(fillLabel);
+        fillRow.appendChild(fillInput);
+        content.appendChild(fillRow);
+
+        // Stroke (Border)
+        const strokeRow = document.createElement('div');
+        strokeRow.style.display = 'flex';
+        strokeRow.style.alignItems = 'center';
+        strokeRow.style.justifyContent = 'space-between';
+        strokeRow.style.marginBottom = '8px';
+
+        const strokeLabel = document.createElement('span');
+        strokeLabel.textContent = 'Stroke';
+        strokeLabel.style.fontSize = '11px';
+        strokeLabel.style.color = 'var(--text-secondary)';
+
+        const strokeInput = document.createElement('input');
+        strokeInput.type = 'color';
+        strokeInput.value = style.borderColor || '#000000';
+        strokeInput.style.width = '20px';
+        strokeInput.style.height = '20px';
+        strokeInput.style.border = 'none';
+        strokeInput.style.padding = '0';
+        strokeInput.style.background = 'none';
+        strokeInput.style.cursor = 'pointer';
+
+        strokeInput.addEventListener('change', (e) => this.updateStyle(element, 'borderColor', e.target.value));
+
+        strokeRow.appendChild(strokeLabel);
+        strokeRow.appendChild(strokeInput);
+        content.appendChild(strokeRow);
+
+        // Border Width & Radius Row
+        const borderRow = document.createElement('div');
+        borderRow.style.display = 'flex';
+        borderRow.style.gap = '8px';
+        borderRow.style.marginBottom = '8px';
 
         // Border Width
-        const borderWidthRow = document.createElement('div');
-        borderWidthRow.style.display = 'flex';
-        borderWidthRow.style.marginBottom = '8px';
-        
-        const borderWidthControl = new ScrubbableControl('Width', style.borderWidth || 0, (val) => {
+        const borderWidthControl = new ScrubbableControl('Width', parseFloat(style.borderWidth) || 0, (val) => {
             this.updateStyle(element, 'borderWidth', Math.max(0, val));
+            // Ensure border style is solid if width > 0
+            if (val > 0 && (!style.borderStyle || style.borderStyle === 'none')) {
+                this.updateStyle(element, 'borderStyle', 'solid');
+            }
         });
-        borderWidthRow.appendChild(borderWidthControl.element);
-        group.appendChild(borderWidthRow);
+        borderRow.appendChild(borderWidthControl.element);
 
-        // Border Radius
-        const radiusRow = document.createElement('div');
-        radiusRow.style.display = 'flex';
-        radiusRow.style.marginBottom = '8px';
-        
-        const radiusControl = new ScrubbableControl('Radius', style.radius || 0, (val) => {
-            this.updateStyle(element, 'radius', Math.max(0, val));
-        });
-        radiusRow.appendChild(radiusControl.element);
-        group.appendChild(radiusRow);
+        content.appendChild(borderRow);
 
         this.container.appendChild(group);
     }
 
     renderImageProperties(element) {
-        const group = this.createControlGroup('IMAGE');
+        const { group, content } = this.createControlGroup('IMAGE');
         const style = element.style || {};
 
         // Opacity
-        const opacityRow = document.createElement('div');
-        opacityRow.style.display = 'flex';
-        opacityRow.style.marginBottom = '8px';
-        
+        const row = document.createElement('div');
+        row.style.display = 'flex';
+        row.style.gap = '8px';
+        row.style.marginBottom = '8px';
+
         const opacityControl = new ScrubbableControl('Opacity', (element.opacity !== undefined ? element.opacity : 1) * 100, (val) => {
             this.updateProperty(element.id, 'opacity', Math.min(100, Math.max(0, val)) / 100);
-        }, { min: 0, max: 100 });
-        opacityRow.appendChild(opacityControl.element);
-        group.appendChild(opacityRow);
+        }, { min: 0, max: 100, step: 1 });
+        row.appendChild(opacityControl.element);
 
-        // Border Radius
-        const radiusRow = document.createElement('div');
-        radiusRow.style.display = 'flex';
-        radiusRow.style.marginBottom = '8px';
-        
-        const radiusControl = new ScrubbableControl('Radius', style.radius || 0, (val) => {
-            this.updateStyle(element, 'radius', Math.max(0, val));
-        });
-        radiusRow.appendChild(radiusControl.element);
-        group.appendChild(radiusRow);
-
+        content.appendChild(row);
         this.container.appendChild(group);
     }
 
