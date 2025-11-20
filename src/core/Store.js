@@ -1,5 +1,64 @@
 import { EventEmitter } from './Events.js';
 
+// Default Masters Definition
+const DEFAULT_MASTERS = {
+    "theme-default": {
+        id: "theme-default",
+        type: "theme",
+        name: "Default Theme",
+        background: { type: "solid", value: "#ffffff" },
+        elements: {},
+        elementOrder: [],
+        themeSettings: {
+            colors: {
+                accent: "#18A0FB",
+                textPrimary: "#333333",
+                textSecondary: "#888888"
+            },
+            fonts: { heading: "Inter", body: "Inter" }
+        }
+    },
+    "layout-title": {
+        id: "layout-title",
+        type: "layout",
+        parentId: "theme-default",
+        name: "Title Slide",
+        background: null,
+        elements: {
+            "placeholder-title": {
+                id: "placeholder-title",
+                type: "text",
+                isPlaceholder: true,
+                placeholderType: "title",
+                content: "<h1>Click to add title</h1>",
+                x: 192, y: 300, width: 1536, height: 200, // Centered with margins
+                rotation: 0, opacity: 1,
+                style: { fontSize: 72, textAlign: "center", color: "#333333", fontFamily: "Inter", fontWeight: "700" }
+            },
+            "placeholder-subtitle": {
+                id: "placeholder-subtitle",
+                type: "text",
+                isPlaceholder: true,
+                placeholderType: "subtitle",
+                content: "<h2>Click to add subtitle</h2>",
+                x: 192, y: 550, width: 1536, height: 100,
+                rotation: 0, opacity: 1,
+                style: { fontSize: 32, textAlign: "center", color: "#888888", fontFamily: "Inter", fontWeight: "400" }
+            }
+        },
+        elementOrder: ["placeholder-title", "placeholder-subtitle"]
+    },
+    "layout-blank": {
+        id: "layout-blank",
+        type: "layout",
+        parentId: "theme-default",
+        name: "Blank",
+        background: null,
+        elements: {},
+        elementOrder: []
+    }
+};
+
 class Store extends EventEmitter {
     constructor() {
         super();
@@ -14,7 +73,7 @@ class Store extends EventEmitter {
                 theme: "default-dark"
             },
             editor: {
-                mode: "edit", // 'edit', 'presentation'
+                mode: "edit", // 'edit', 'presentation', 'master'
                 activeSlideId: "slide-1",
                 selectedSlideIds: [], // IDs of selected slides (for operations)
                 selectedElementIds: [],
@@ -25,18 +84,27 @@ class Store extends EventEmitter {
                 gridEnabled: true,
                 snapToGrid: true
             },
+            masters: DEFAULT_MASTERS,
             slides: {
                 "slide-1": {
                     id: "slide-1",
+                    layoutId: "layout-title", // Default to Title Layout
                     title: "Introduction",
                     width: 1920,
                     height: 1080,
-                    background: {
-                        type: "solid",
-                        value: "#ffffff"
-                    },
-                    elements: {}, // Map of ID -> Element
-                    elementOrder: [], // Array of IDs (z-index)
+                    background: null, // Inherit from layout/theme
+                    elements: {
+                        // Instantiate placeholders so they are editable
+                        "placeholder-title": { 
+                            ...DEFAULT_MASTERS["layout-title"].elements["placeholder-title"],
+                            content: "<h1>Introduction</h1>"
+                        },
+                        "placeholder-subtitle": {
+                            ...DEFAULT_MASTERS["layout-title"].elements["placeholder-subtitle"],
+                            content: "<h2>Subtitle</h2>"
+                        }
+                    }, 
+                    elementOrder: ["placeholder-title", "placeholder-subtitle"], // Array of IDs (z-index)
                     notes: "",
                     transition: "magic" // Default transition
                 }
@@ -114,10 +182,11 @@ class Store extends EventEmitter {
                 const newSlideId = `slide-${Date.now()}`;
                 const newSlide = {
                     id: newSlideId,
+                    layoutId: "layout-blank", // Default to Blank for new slides
                     title: "New Slide",
                     width: 1920,
                     height: 1080,
-                    background: { type: "solid", value: "#ffffff" },
+                    background: null, // Inherit
                     elements: {},
                     elementOrder: [],
                     notes: "",
@@ -639,130 +708,74 @@ class Store extends EventEmitter {
                 break;
 
             case 'GROUP_ELEMENTS':
-                const gSlideId = this.state.editor.activeSlideId;
-                const gSlide = this.state.slides[gSlideId];
-                const idsToGroup = this.state.editor.selectedElementIds;
-                
-                if (idsToGroup.length < 2) return; // Need at least 2 items to group
-
-                // 1. Calculate Bounding Box
-                let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-                idsToGroup.forEach(id => {
-                    const el = gSlide.elements[id];
-                    if (el) {
-                        minX = Math.min(minX, el.x);
-                        minY = Math.min(minY, el.y);
-                        maxX = Math.max(maxX, el.x + el.width);
-                        maxY = Math.max(maxY, el.y + el.height);
-                    }
-                });
-
-                const groupX = minX;
-                const groupY = minY;
-                const groupW = maxX - minX;
-                const groupH = maxY - minY;
-
-                // 2. Create Group Element
-                const groupId = `group-${Date.now()}`;
-                const groupEl = {
-                    id: groupId,
-                    type: 'group',
-                    x: groupX,
-                    y: groupY,
-                    width: groupW,
-                    height: groupH,
-                    rotation: 0,
-                    children: [],
-                    opacity: 1
-                };
-
-                // 3. Update Children (Make relative) & Remove from elementOrder
-                // We need to preserve relative Z-order of children
-                const sortedIds = idsToGroup.sort((a, b) => {
-                    return gSlide.elementOrder.indexOf(a) - gSlide.elementOrder.indexOf(b);
-                });
-
-                sortedIds.forEach(id => {
-                    const el = gSlide.elements[id];
-                    // Convert to relative
-                    el.x -= groupX;
-                    el.y -= groupY;
-                    el.parentId = groupId;
-                    groupEl.children.push(id);
-                    
-                    // Remove from top-level order
-                    const idx = gSlide.elementOrder.indexOf(id);
-                    if (idx > -1) gSlide.elementOrder.splice(idx, 1);
-                });
-
-                // 4. Add Group to elements and elementOrder
-                // Insert at the position of the topmost element that was grouped?
-                // Or just on top? Figma puts it at the top of the selection stack.
-                // Let's put it at the index where the *last* (topmost) selected item was.
-                // But we already removed them.
-                // Let's just push to end (top) for now, or try to be smart.
-                // Being smart is hard because we mutated the array.
-                // Simple: Push to end.
-                gSlide.elements[groupId] = groupEl;
-                gSlide.elementOrder.push(groupId);
-
-                // 5. Update Selection
-                this.state.editor.selectedElementIds = [groupId];
-                this.emit('state-changed', this.state);
+                // TODO: Implement grouping
                 break;
-
-            case 'UNGROUP_ELEMENTS':
-                const uSlideId = this.state.editor.activeSlideId;
-                const uSlide = this.state.slides[uSlideId];
-                const selectedGroups = this.state.editor.selectedElementIds.filter(id => {
-                    return uSlide.elements[id] && uSlide.elements[id].type === 'group';
-                });
-
-                if (selectedGroups.length === 0) return;
-
-                const newSelection = [];
-
-                selectedGroups.forEach(gId => {
-                    const group = uSlide.elements[gId];
-                    const groupIndex = uSlide.elementOrder.indexOf(gId);
-                    
-                    // Remove group from order
-                    uSlide.elementOrder.splice(groupIndex, 1);
-
-                    // Process children
-                    group.children.forEach((childId, index) => {
-                        const child = uSlide.elements[childId];
-                        // Convert to absolute
-                        // Need to account for group rotation? (Not implementing group rotation yet for simplicity)
-                        child.x += group.x;
-                        child.y += group.y;
-                        delete child.parentId;
-                        
-                        // Insert into elementOrder
-                        uSlide.elementOrder.splice(groupIndex + index, 0, childId);
-                        newSelection.push(childId);
-                    });
-
-                    // Remove group element
-                    delete uSlide.elements[gId];
-                });
-
-                this.state.editor.selectedElementIds = newSelection;
-                this.emit('state-changed', this.state);
-                break;
-
-            case 'UPDATE_SLIDE':
-                const { id, ...updates } = payload;
-                if (this.state.slides[id]) {
-                    this.state.slides[id] = { ...this.state.slides[id], ...updates };
-                    this.state.meta.modified = Date.now();
-                    this.emit('state-changed', this.state);
-                }
-                break;
-
-            default:
-                console.warn(`Unknown action: ${type}`);
         }
+    }
+
+    /**
+     * Helper to get the effective slide composition (merging Theme -> Layout -> Slide)
+     * This is used by the renderer to know what to draw.
+     * @param {string} slideId 
+     */
+    getEffectiveSlide(slideId) {
+        const slide = this.state.slides[slideId];
+        if (!slide) return null;
+
+        // If no layout, return slide as is (legacy support)
+        if (!slide.layoutId || !this.state.masters || !this.state.masters[slide.layoutId]) {
+            return {
+                ...slide,
+                effectiveBackground: slide.background || { type: 'solid', value: '#ffffff' },
+                effectiveElements: slide.elements,
+                effectiveOrder: slide.elementOrder
+            };
+        }
+
+        const layout = this.state.masters[slide.layoutId];
+        const theme = this.state.masters[layout.parentId];
+
+        // 1. Resolve Background
+        let background = slide.background;
+        if (!background && layout) background = layout.background;
+        if (!background && theme) background = theme.background;
+        if (!background) background = { type: 'solid', value: '#ffffff' };
+
+        // 2. Resolve Elements
+        // We need to merge elements but keep them distinct so we know which are locked
+        // For rendering, we just need a flat list in correct Z-order
+        
+        const effectiveElements = {};
+        const effectiveOrder = [];
+
+        // Theme Elements (Bottom)
+        if (theme && !layout.hideBackgroundGraphics && !slide.hideBackgroundGraphics) {
+            theme.elementOrder.forEach(id => {
+                effectiveElements[id] = { ...theme.elements[id], isLocked: true, source: 'theme' };
+                effectiveOrder.push(id);
+            });
+        }
+
+        // Layout Elements (Middle)
+        if (layout && !slide.hideBackgroundGraphics) {
+            layout.elementOrder.forEach(id => {
+                effectiveElements[id] = { ...layout.elements[id], isLocked: true, source: 'layout' };
+                effectiveOrder.push(id);
+            });
+        }
+
+        // Slide Elements (Top)
+        slide.elementOrder.forEach(id => {
+            effectiveElements[id] = { ...slide.elements[id], source: 'slide' };
+            effectiveOrder.push(id);
+        });
+
+        return {
+            ...slide,
+            effectiveBackground: background,
+            effectiveElements,
+            effectiveOrder
+        };
     }
 }
 

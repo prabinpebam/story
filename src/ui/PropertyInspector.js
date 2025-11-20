@@ -35,7 +35,17 @@ export class PropertyInspector {
         }
 
         // Get all selected elements
-        const elements = selection.map(id => currentSlide.elements[id]).filter(el => el);
+        const elements = selection.map(id => {
+            if (currentSlide.elements[id]) return currentSlide.elements[id];
+            
+            // Check effective slide for master elements (read-only)
+            const effective = store.getEffectiveSlide(activeSlideId);
+            if (effective && effective.effectiveElements && effective.effectiveElements[id]) {
+                return effective.effectiveElements[id];
+            }
+            return null;
+        }).filter(el => el);
+        
         if (elements.length === 0) return;
 
         // Calculate common properties
@@ -66,6 +76,10 @@ export class PropertyInspector {
     }
 
     renderSlideProperties(slide) {
+        const effectiveSlide = store.getEffectiveSlide(slide.id);
+        const effectiveBg = effectiveSlide.effectiveBackground;
+        const isInherited = !slide.background;
+
         const { group, content } = this.createControlGroup('SLIDE', true);
         
         // Dimensions
@@ -105,21 +119,33 @@ export class PropertyInspector {
         bgTypeSelect.style.padding = '4px';
         bgTypeSelect.style.fontSize = '11px';
         
-        ['Solid', 'Gradient', 'Code'].forEach(type => {
+        ['Inherited', 'Solid', 'Gradient', 'Code'].forEach(type => {
             const opt = document.createElement('option');
             opt.value = type.toLowerCase();
             opt.text = type;
-            if (slide.background.type === type.toLowerCase()) opt.selected = true;
+            
+            if (type === 'Inherited') {
+                if (isInherited) opt.selected = true;
+            } else {
+                if (!isInherited && slide.background && slide.background.type === type.toLowerCase()) opt.selected = true;
+            }
             bgTypeSelect.appendChild(opt);
         });
         
         bgTypeSelect.onchange = (e) => {
             const newType = e.target.value;
-            let newValue = slide.background.value;
             
-            if (newType === 'gradient' && !newValue.includes('gradient')) {
+            if (newType === 'inherited') {
+                store.dispatch('UPDATE_SLIDE', { id: slide.id, background: null });
+                return;
+            }
+
+            // If switching from inherited, use effective value as base, otherwise use current explicit value
+            let newValue = isInherited ? effectiveBg.value : slide.background.value;
+            
+            if (newType === 'gradient' && (!newValue || !newValue.includes('gradient'))) {
                 newValue = 'linear-gradient(180deg, #ffffff 0%, #f0f0f0 100%)';
-            } else if (newType === 'solid' && newValue.includes('gradient')) {
+            } else if (newType === 'solid' && newValue && newValue.includes('gradient')) {
                 newValue = '#ffffff';
             } else if (newType === 'code') {
                 // Default Pastel Mesh Gradient
@@ -151,16 +177,19 @@ return {
         };
         content.appendChild(bgTypeSelect);
 
-        if (slide.background.type === 'solid') {
-            const colorInput = new ColorInput(slide.background.value, (val) => {
+        // Determine which background to show controls for
+        const bgToEdit = isInherited ? effectiveBg : slide.background;
+
+        if (bgToEdit.type === 'solid') {
+            const colorInput = new ColorInput(bgToEdit.value, (val) => {
                 store.dispatch('UPDATE_SLIDE', { id: slide.id, background: { type: 'solid', value: val } });
             });
             content.appendChild(colorInput.element);
-        } else if (slide.background.type === 'gradient') {
+        } else if (bgToEdit.type === 'gradient') {
             // Simple Gradient Input (Text for now, could be enhanced)
             const gradientInput = document.createElement('input');
             gradientInput.type = 'text';
-            gradientInput.value = slide.background.value;
+            gradientInput.value = bgToEdit.value;
             gradientInput.style.width = '100%';
             gradientInput.style.background = 'var(--color-bg-input)';
             gradientInput.style.border = '1px solid var(--color-border)';
@@ -174,7 +203,7 @@ return {
                 store.dispatch('UPDATE_SLIDE', { id: slide.id, background: { type: 'gradient', value: e.target.value } });
             };
             content.appendChild(gradientInput);
-        } else if (slide.background.type === 'code') {
+        } else if (bgToEdit.type === 'code') {
             // Code Editor for Slide Background
             const codeContainer = document.createElement('div');
             codeContainer.style.marginBottom = '8px';
@@ -243,7 +272,7 @@ return {
                     updateBtn.disabled = true;
                     activeBtn.innerText = '...';
                     
-                    const currentCode = isReplace ? '' : (slide.background.value || '');
+                    const currentCode = isReplace ? '' : (bgToEdit.value || '');
                     
                     let systemPrompt = `You are an expert HTML5 Canvas artist. 
                     Generate a JavaScript object with a 'draw(time)' function. 
@@ -283,7 +312,7 @@ return {
             codeContainer.appendChild(aiContainer);
             
             const textarea = document.createElement('textarea');
-            textarea.value = slide.background.value || '';
+            textarea.value = bgToEdit.value || '';
             textarea.style.width = '100%';
             textarea.style.height = '200px';
             textarea.style.background = 'var(--color-bg-input)';

@@ -41,14 +41,12 @@ export class SlideRenderer {
 
         // Create new view
         const newView = this.createSlideDOM(slide);
-        this.lastBackground = { ...slide.background };
         
         // Find old view
         const oldView = this.container.querySelector('.slide-view');
 
         if (oldView && this.currentSlideId) {
             // Use the transition defined on the NEW slide (how it enters)
-            // Or maybe the old slide (how it exits)? Usually it's the incoming slide's property.
             const transitionType = slide.transition || 'fade';
             animationManager.transition(this.container, oldView, newView, transitionType).then(() => {
                 this.playEntranceAnimations(slide, newView);
@@ -63,9 +61,10 @@ export class SlideRenderer {
     }
 
     playEntranceAnimations(slide, view) {
-        if (!slide.elements) return;
+        const effectiveSlide = store.getEffectiveSlide(slide.id);
+        if (!effectiveSlide || !effectiveSlide.effectiveElements) return;
         
-        Object.values(slide.elements).forEach(el => {
+        Object.values(effectiveSlide.effectiveElements).forEach(el => {
             if (el.animations && el.animations.entrance && el.animations.entrance !== 'none') {
                 const domEl = view.querySelector(`#${el.id}`);
                 if (domEl) {
@@ -76,48 +75,47 @@ export class SlideRenderer {
     }
 
     updateCurrentSlide() {
-        const state = store.getState();
-        const slide = state.slides[this.currentSlideId];
-        if (!slide) return;
+        const effectiveSlide = store.getEffectiveSlide(this.currentSlideId);
+        if (!effectiveSlide) return;
 
         // Ensure container has dimensions
-        this.container.style.width = `${slide.width}px`;
-        this.container.style.height = `${slide.height}px`;
+        this.container.style.width = `${effectiveSlide.width}px`;
+        this.container.style.height = `${effectiveSlide.height}px`;
 
         const view = this.container.querySelector('.slide-view');
         if (!view) return;
 
         // Update View Dimensions
-        view.style.width = `${slide.width}px`;
-        view.style.height = `${slide.height}px`;
+        view.style.width = `${effectiveSlide.width}px`;
+        view.style.height = `${effectiveSlide.height}px`;
 
         // Update Background
         // Check if background changed to avoid restarting code runner unnecessarily
         if (!this.lastBackground || 
-            this.lastBackground.type !== slide.background.type || 
-            this.lastBackground.value !== slide.background.value) {
+            this.lastBackground.type !== effectiveSlide.effectiveBackground.type || 
+            this.lastBackground.value !== effectiveSlide.effectiveBackground.value) {
             
-            this.applyBackgroundToView(view, slide.background);
-            this.lastBackground = { ...slide.background };
+            this.applyBackgroundToView(view, effectiveSlide.effectiveBackground);
+            this.lastBackground = { ...effectiveSlide.effectiveBackground };
         }
         
         // Only select direct children to avoid removing nested group elements
         const existingEls = Array.from(view.children).filter(el => el.classList.contains('slide-element'));
         const existingMap = new Map(existingEls.map(el => [el.id, el]));
         
-        slide.elementOrder.forEach(id => {
-            const el = slide.elements[id];
+        effectiveSlide.effectiveOrder.forEach(id => {
+            const el = effectiveSlide.effectiveElements[id];
             const domEl = existingMap.get(id);
             
             if (domEl) {
                 // Update properties
-                this.updateElementDOM(domEl, el, slide);
+                this.updateElementDOM(domEl, el, effectiveSlide);
                 existingMap.delete(id);
                 // Ensure DOM order matches elementOrder
                 view.appendChild(domEl);
             } else {
                 // Create new
-                const newDomEl = this.createElementDOM(el, slide);
+                const newDomEl = this.createElementDOM(el, effectiveSlide);
                 view.appendChild(newDomEl);
             }
         });
@@ -346,25 +344,26 @@ return {
     }
 
     createSlideDOM(slide) {
+        const effectiveSlide = store.getEffectiveSlide(slide.id);
+
         const div = document.createElement('div');
         div.className = 'slide-view';
         div.id = `view-${slide.id}`;
-        div.style.width = `${slide.width}px`;
-        div.style.height = `${slide.height}px`;
+        div.style.width = `${effectiveSlide.width}px`;
+        div.style.height = `${effectiveSlide.height}px`;
         div.style.position = 'absolute';
         div.style.top = '0';
         div.style.left = '0';
         // div.style.overflow = 'hidden'; // Allow content to overflow
         div.style.backgroundColor = '#ffffff'; // Default
 
-        this.applyBackgroundToView(div, slide.background);
-        this.renderElementsToView(div, slide);
+        this.applyBackgroundToView(div, effectiveSlide.effectiveBackground);
+        this.renderElementsToView(div, effectiveSlide);
 
         return div;
     }
 
     applyBackgroundToView(view, bg) {
-        console.log('Applying background:', bg);
         // Clean up previous code runner
         if (this.bgCodeRunner) {
             this.bgCodeRunner.stop();
@@ -414,8 +413,11 @@ return {
         const state = store.getState();
         const editingId = state.editor.editingElementId;
 
-        slide.elementOrder.forEach(elId => {
-            const el = slide.elements[elId];
+        const elements = slide.effectiveElements || slide.elements;
+        const order = slide.effectiveOrder || slide.elementOrder;
+
+        order.forEach(elId => {
+            const el = elements[elId];
             if (el) {
                 const isEditing = elId === editingId;
                 const domEl = this.createElementDOM(el, slide, isEditing);
@@ -432,6 +434,19 @@ return {
         const div = document.createElement('div');
         div.id = el.id;
         div.className = 'slide-element';
+
+        // Check inheritance
+        let isMaster = false;
+        if (slide.effectiveElements && slide.elements) {
+            // It is a master element if it exists in effectiveElements but NOT in slide.elements
+            isMaster = !Object.prototype.hasOwnProperty.call(slide.elements, el.id);
+        }
+
+        if (isMaster) {
+             div.classList.add('is-master-element');
+             div.style.pointerEvents = 'none';
+        }
+
         div.style.position = 'absolute';
         div.style.left = `${el.x}px`;
         div.style.top = `${el.y}px`;
@@ -468,7 +483,7 @@ return {
             
             if (el.children) {
                 el.children.forEach(childId => {
-                    const child = slide.elements[childId];
+                    const child = (slide.effectiveElements && slide.effectiveElements[childId]) || (slide.elements && slide.elements[childId]);
                     if (child) {
                         const childDom = this.createElementDOM(child, slide, false);
                         div.appendChild(childDom);

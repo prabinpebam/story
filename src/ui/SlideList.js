@@ -102,14 +102,17 @@ export class SlideList {
                 preview.style.aspectRatio = '16/9';
                 
                 // Dynamic Background
-                if (slide.background) {
-                    if (slide.background.type === 'solid') {
-                        preview.style.background = slide.background.value;
-                    } else if (slide.background.type === 'gradient') {
-                        preview.style.background = slide.background.value;
-                    } else if (slide.background.type === 'image') {
-                        preview.style.background = `url(${slide.background.value}) center/cover no-repeat`;
-                    } else if (slide.background.type === 'code') {
+                const effectiveSlide = store.getEffectiveSlide(slide.id);
+                const bg = effectiveSlide ? effectiveSlide.effectiveBackground : slide.background;
+
+                if (bg) {
+                    if (bg.type === 'solid') {
+                        preview.style.background = bg.value;
+                    } else if (bg.type === 'gradient') {
+                        preview.style.background = bg.value;
+                    } else if (bg.type === 'image') {
+                        preview.style.background = `url(${bg.value}) center/cover no-repeat`;
+                    } else if (bg.type === 'code') {
                         // Placeholder for code background
                         preview.style.background = 'repeating-linear-gradient(45deg, #eee 0, #eee 10px, #fff 10px, #fff 20px)';
                     } else {
