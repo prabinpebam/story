@@ -60,14 +60,14 @@ This document outlines the step-by-step implementation plan for "Story", a moder
     - [x] Center Resize (Alt/Option + Drag).
     - [x] Constrained Movement (Shift + Drag).
     - [x] Nudge (Arrow keys) & Big Nudge (Shift + Arrow keys).
-    - [ ] Duplicate on Drag (Alt + Drag).
-    - [ ] Layer Ordering Shortcuts ([, ], Ctrl+[, Ctrl+]).
+    - [x] Duplicate on Drag (Alt + Drag).
+    - [x] Layer Ordering Shortcuts ([, ], Ctrl+[, Ctrl+]).
     - [ ] Grouping Shortcuts (Ctrl+G, Ctrl+Shift+G).
-    - [ ] Opacity Shortcuts (Number keys).
+    - [x] Opacity Shortcuts (Number keys).
 - [x] **Smart Guides & Snapping:**
     - [x] Dynamic alignment guides (edges/centers).
     - [ ] Spacing guides (equal distance).
-    - [ ] Distance Measurement (Alt + Hover).
+    - [x] Distance Measurement (Alt + Hover).
 - [ ] **Direct Manipulation:**
     - [ ] Double-click behaviors (Text edit, Group enter).
     - [x] Hover effects for interactive objects.

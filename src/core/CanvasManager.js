@@ -329,6 +329,9 @@ export class CanvasManager {
         const rect = this.container.getBoundingClientRect();
         const mouseX = e.clientX - rect.left;
         const mouseY = e.clientY - rect.top;
+        
+        this.lastMouseX = mouseX;
+        this.lastMouseY = mouseY;
 
         if (this.interactionState === 'CREATING') {
             this.dragCurrent = { x: mouseX, y: mouseY };
@@ -621,6 +624,13 @@ export class CanvasManager {
                  this.container.style.cursor = 'default';
                  this.hoveredElementId = null;
              }
+
+             // Distance Measurement (Alt + Hover)
+             if (e.altKey) {
+                 this.updateMeasurementGuides(mouseX, mouseY);
+             } else {
+                 this.measurementGuides = null;
+             }
         }
     }
 
@@ -770,6 +780,16 @@ export class CanvasManager {
     }
 
     handleKeyDown(e) {
+        // Check for Alt key for measurements
+        if (e.key === 'Alt') {
+            if (this.interactionState === 'IDLE' && this.lastMouseX) {
+                const rect = this.container.getBoundingClientRect();
+                const mouseX = this.lastMouseX; // Already relative to container? No, lastMouseX was set from e.clientX - rect.left
+                const mouseY = this.lastMouseY;
+                this.updateMeasurementGuides(mouseX, mouseY);
+            }
+        }
+
         // Space for Panning
         if (e.code === 'Space' && !this.isSpacePressed) {
             // Prevent scrolling page if focus is on body
@@ -900,6 +920,10 @@ export class CanvasManager {
     }
 
     handleKeyUp(e) {
+        if (e.key === 'Alt') {
+            this.measurementGuides = null;
+        }
+
         if (e.code === 'Space') {
             this.isSpacePressed = false;
             if (!this.isPanning) {
@@ -971,6 +995,9 @@ export class CanvasManager {
 
         // Draw Guides
         this.renderGuides();
+
+        // Draw Measurement Guides
+        this.renderMeasurementGuides();
         
         // Draw Creation Ghost
         if (this.interactionState === 'CREATING' && this.dragStart && this.dragCurrent) {
@@ -982,7 +1009,169 @@ export class CanvasManager {
             this.renderSelectionMarquee();
         }
 
+        // Draw Measurement Guides
+        this.renderMeasurementGuides();
+
         requestAnimationFrame(() => this.render());
+    }
+
+    updateMeasurementGuides(mouseX, mouseY) {
+        const state = store.getState();
+        const { selectedElementIds, zoom, pan } = state.editor;
+        
+        // Only works if exactly one element is selected
+        if (selectedElementIds.length !== 1) {
+            this.measurementGuides = null;
+            return;
+        }
+
+        const selectedId = selectedElementIds[0];
+        const slide = state.slides[state.editor.activeSlideId];
+        const selectedEl = slide.elements[selectedId];
+        
+        if (!selectedEl) return;
+
+        // Check if hovering over another element
+        const hit = this.hitTest(mouseX, mouseY);
+        let targetEl = null;
+
+        if (hit && hit.type === 'element' && hit.id !== selectedId) {
+            targetEl = slide.elements[hit.id];
+        }
+
+        if (!targetEl) {
+            this.measurementGuides = null;
+            return;
+        }
+
+        // Calculate distances between selectedEl and targetEl
+        // We use bounding boxes (ignoring rotation for simplicity for now, or using AABB)
+        
+        const r1 = {
+            x: selectedEl.x,
+            y: selectedEl.y,
+            w: selectedEl.width,
+            h: selectedEl.height,
+            r: selectedEl.x + selectedEl.width,
+            b: selectedEl.y + selectedEl.height
+        };
+
+        const r2 = {
+            x: targetEl.x,
+            y: targetEl.y,
+            w: targetEl.width,
+            h: targetEl.height,
+            r: targetEl.x + targetEl.width,
+            b: targetEl.y + targetEl.height
+        };
+
+        const guides = [];
+
+        // Vertical Distance
+        if (r1.b < r2.y) { // Selected is above Target
+            const dist = Math.round(r2.y - r1.b);
+            const x = r1.x + r1.w / 2;
+            guides.push({
+                type: 'line',
+                x1: x, y1: r1.b,
+                x2: x, y2: r2.y,
+                label: `${dist}`,
+                labelX: x + 5, labelY: r1.b + dist / 2
+            });
+        } else if (r1.y > r2.b) { // Selected is below Target
+            const dist = Math.round(r1.y - r2.b);
+            const x = r1.x + r1.w / 2;
+            guides.push({
+                type: 'line',
+                x1: x, y1: r2.b,
+                x2: x, y2: r1.y,
+                label: `${dist}`,
+                labelX: x + 5, labelY: r2.b + dist / 2
+            });
+        }
+
+        // Horizontal Distance
+        if (r1.r < r2.x) { // Selected is left of Target
+            const dist = Math.round(r2.x - r1.r);
+            const y = r1.y + r1.h / 2;
+            guides.push({
+                type: 'line',
+                x1: r1.r, y1: y,
+                x2: r2.x, y2: y,
+                label: `${dist}`,
+                labelX: r1.r + dist / 2, labelY: y - 5
+            });
+        } else if (r1.x > r2.r) { // Selected is right of Target
+            const dist = Math.round(r1.x - r2.r);
+            const y = r1.y + r1.h / 2;
+            guides.push({
+                type: 'line',
+                x1: r2.r, y1: y,
+                x2: r1.x, y2: y,
+                label: `${dist}`,
+                labelX: r2.r + dist / 2, labelY: y - 5
+            });
+        }
+        
+        // Overlap logic (if needed) - for now just gaps
+        
+        this.measurementGuides = guides;
+    }
+
+    renderMeasurementGuides() {
+        if (!this.measurementGuides || this.measurementGuides.length === 0) return;
+
+        const state = store.getState();
+        const { zoom, pan } = state.editor;
+
+        this.ctx.save();
+        this.ctx.translate(pan.x, pan.y);
+        this.ctx.scale(zoom, zoom);
+
+        this.ctx.strokeStyle = '#FF0000';
+        this.ctx.fillStyle = '#FF0000';
+        this.ctx.lineWidth = 1 / zoom;
+        this.ctx.font = `${12 / zoom}px Inter`;
+        this.ctx.textAlign = 'center';
+        this.ctx.textBaseline = 'middle';
+
+        this.measurementGuides.forEach(g => {
+            // Draw Line
+            this.ctx.beginPath();
+            this.ctx.moveTo(g.x1, g.y1);
+            this.ctx.lineTo(g.x2, g.y2);
+            this.ctx.stroke();
+
+            // Draw Ends
+            const tickSize = 4 / zoom;
+            if (g.x1 === g.x2) { // Vertical Line
+                this.ctx.beginPath();
+                this.ctx.moveTo(g.x1 - tickSize, g.y1);
+                this.ctx.lineTo(g.x1 + tickSize, g.y1);
+                this.ctx.moveTo(g.x2 - tickSize, g.y2);
+                this.ctx.lineTo(g.x2 + tickSize, g.y2);
+                this.ctx.stroke();
+            } else { // Horizontal Line
+                this.ctx.beginPath();
+                this.ctx.moveTo(g.x1, g.y1 - tickSize);
+                this.ctx.lineTo(g.x1, g.y1 + tickSize);
+                this.ctx.moveTo(g.x2, g.y2 - tickSize);
+                this.ctx.lineTo(g.x2, g.y2 + tickSize);
+                this.ctx.stroke();
+            }
+
+            // Draw Label Background
+            const textWidth = this.ctx.measureText(g.label).width;
+            const padding = 2 / zoom;
+            this.ctx.save();
+            this.ctx.fillStyle = '#FF0000';
+            this.ctx.fillRect(g.labelX - textWidth / 2 - padding, g.labelY - 6/zoom - padding, textWidth + padding * 2, 12/zoom + padding * 2);
+            this.ctx.fillStyle = '#FFFFFF';
+            this.ctx.fillText(g.label, g.labelX, g.labelY);
+            this.ctx.restore();
+        });
+
+        this.ctx.restore();
     }
 
     snapToGuides(id, x, y, width, height, zoom) {
