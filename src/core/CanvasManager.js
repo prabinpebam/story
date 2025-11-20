@@ -430,16 +430,35 @@ export class CanvasManager {
             if (state.editor.selectedElementIds.length === 1) {
                 const id = state.editor.selectedElementIds[0];
                 const initial = this.initialElementState[id];
+                const slide = state.slides[state.editor.activeSlideId];
                 
                 if (initial) {
-                    let newX = initial.x + dx;
-                    let newY = initial.y + dy;
+                    // Calculate initial absolute position
+                    let initialAbsX = initial.x;
+                    let initialAbsY = initial.y;
+                    let parentX = 0;
+                    let parentY = 0;
+
+                    if (initial.parentId) {
+                        // Calculate parent offset
+                        let parent = slide.elements[initial.parentId];
+                        while (parent) {
+                            parentX += parent.x;
+                            parentY += parent.y;
+                            parent = slide.elements[parent.parentId];
+                        }
+                        initialAbsX += parentX;
+                        initialAbsY += parentY;
+                    }
+
+                    let newAbsX = initialAbsX + dx;
+                    let newAbsY = initialAbsY + dy;
                     
-                    // Snap Logic
-                    const snapResult = this.snapToGuides(id, newX, newY, initial.width, initial.height, zoom);
+                    // Snap Logic (using absolute coordinates)
+                    const snapResult = this.snapToGuides(id, newAbsX, newAbsY, initial.width, initial.height, zoom);
                     
-                    if (!constrainedX) newX = snapResult.x;
-                    if (!constrainedY) newY = snapResult.y;
+                    if (!constrainedX) newAbsX = snapResult.x;
+                    if (!constrainedY) newAbsY = snapResult.y;
                     
                     this.activeGuides = snapResult.guides.filter(g => {
                         if (constrainedX && g.type === 'v') return false;
@@ -447,10 +466,14 @@ export class CanvasManager {
                         return true;
                     });
                     
+                    // Convert back to relative for update
+                    const newRelX = newAbsX - parentX;
+                    const newRelY = newAbsY - parentY;
+
                     store.dispatch('UPDATE_ELEMENT', {
                         id,
-                        x: newX,
-                        y: newY
+                        x: newRelX,
+                        y: newRelY
                     });
                 }
             } else {
@@ -476,8 +499,23 @@ export class CanvasManager {
 
             // Handle Rotation
             if (this.activeHandle === 'rot') {
-                const cx = initial.x + initial.width / 2;
-                const cy = initial.y + initial.height / 2;
+                const slide = store.getState().slides[store.getState().editor.activeSlideId];
+                
+                // Calculate absolute center
+                let absX = initial.x;
+                let absY = initial.y;
+                
+                if (initial.parentId) {
+                    let parent = slide.elements[initial.parentId];
+                    while (parent) {
+                        absX += parent.x;
+                        absY += parent.y;
+                        parent = slide.elements[parent.parentId];
+                    }
+                }
+
+                const cx = absX + initial.width / 2;
+                const cy = absY + initial.height / 2;
                 
                 const worldMouseX = (mouseX - pan.x) / zoom;
                 const worldMouseY = (mouseY - pan.y) / zoom;
@@ -485,6 +523,25 @@ export class CanvasManager {
                 let angle = Math.atan2(worldMouseY - cy, worldMouseX - cx) * 180 / Math.PI;
                 angle += 90;
                 
+                // Adjust for parent rotation if we support it later
+                // For now, angle is absolute rotation. 
+                // If we want local rotation, we should subtract parent rotation.
+                // But we store 'rotation' as local? Or absolute?
+                // The renderer applies rotation. If nested, it applies parent then child.
+                // So child rotation is local.
+                // So we need to subtract parent rotation from the calculated absolute angle.
+                
+                let parentRotation = 0;
+                if (initial.parentId) {
+                    let parent = slide.elements[initial.parentId];
+                    while (parent) {
+                        parentRotation += (parent.rotation || 0);
+                        parent = slide.elements[parent.parentId];
+                    }
+                }
+                
+                angle -= parentRotation;
+
                 if (e.shiftKey) {
                     const snap = 15;
                     angle = Math.round(angle / snap) * snap;
@@ -1064,22 +1121,26 @@ export class CanvasManager {
 
         const selectedId = selectedElementIds[0];
         const slide = state.slides[state.editor.activeSlideId];
-        const selectedEl = slide.elements[selectedId];
+        const rawSelectedEl = slide.elements[selectedId];
         
-        if (!selectedEl) return;
+        if (!rawSelectedEl) return;
 
         // Check if hovering over another element
         const hit = this.hitTest(mouseX, mouseY);
-        let targetEl = null;
+        let rawTargetEl = null;
 
         if (hit && hit.type === 'element' && hit.id !== selectedId) {
-            targetEl = slide.elements[hit.id];
+            rawTargetEl = slide.elements[hit.id];
         }
 
-        if (!targetEl) {
+        if (!rawTargetEl) {
             this.measurementGuides = null;
             return;
         }
+
+        // Use Absolute Coordinates for Measurement
+        const selectedEl = this.getAbsoluteElement(rawSelectedEl, slide);
+        const targetEl = this.getAbsoluteElement(rawTargetEl, slide);
 
         // Calculate distances between selectedEl and targetEl
         // We use bounding boxes (ignoring rotation for simplicity for now, or using AABB)
@@ -1234,8 +1295,15 @@ export class CanvasManager {
         targets.y.push({ value: slide.height / 2, type: 'middle' });
         
         // Add other elements
-        Object.values(slide.elements).forEach(el => {
-            if (el.id === id) return;
+        Object.values(slide.elements).forEach(rawEl => {
+            if (rawEl.id === id) return;
+            
+            // Don't snap to children of the element being moved (if it's a group)
+            // (Not strictly necessary if we only move selection, but good for safety)
+            
+            // Use absolute coordinates for snapping targets
+            const el = this.getAbsoluteElement(rawEl, slide);
+            
             targets.x.push({ value: el.x, type: 'left' });
             targets.x.push({ value: el.x + el.width / 2, type: 'center' });
             targets.x.push({ value: el.x + el.width, type: 'right' });

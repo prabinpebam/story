@@ -100,17 +100,17 @@ The viewport interaction model mimics professional design tools like Figma to en
     - **Send to Back:** [
     - **Bring Forward:** Ctrl/Cmd + ]
     - **Send Backward:** Ctrl/Cmd + [
-    - **Opacity:** Number keys (1-9 for 10-90%, 0 for 100%, .5 for 50% etc)
-    - **Lock/Unlock:** Ctrl/Cmd + Shift + L
-    - **Hide/Show:** Ctrl/Cmd + Shift + H
 
-#### 3.2.3 Smart Guides & Snapping
-- **Alignment Guides:** Red lines appear dynamically when the moving object aligns with:
-    - Edges (Top, Bottom, Left, Right) of other objects.
-    - Centers (Vertical, Horizontal) of other objects.
-    - Slide center and edges.
-- **Spacing Guides:** Visual indicators show equal spacing between multiple objects.
-- **Snapping:** Objects snap to these guides within a threshold (e.g., 4px). Snapping can be temporarily disabled by holding Cmd/Ctrl.
+#### 3.2.3 Grouping & Hierarchy
+- **Grouping:**
+    - Groups act as containers for other elements.
+    - Child elements' coordinates are relative to the group's top-left corner.
+    - **Selection:** Clicking a group selects the group. Double-clicking or Ctrl/Cmd+Click selects a child (Deep Select).
+    - **Interaction:** Moving/Resizing a group moves/resizes all children.
+    - **Implications:**
+        - **Snapping & Measurement:** Must calculate absolute coordinates for nested elements to ensure correct alignment and distance values relative to the canvas or other root elements.
+        - **Hit Testing:** Must be recursive to detect elements inside groups.
+        - **Rendering:** Must handle nested DOM structures or recursive rendering.
 
 #### 3.2.4 Direct Manipulation & Context
 - **Double Click:**
