@@ -85,6 +85,10 @@ export class SlideRenderer {
         const view = this.container.querySelector('.slide-view');
         if (!view) return;
 
+        // Update View Dimensions
+        view.style.width = `${slide.width}px`;
+        view.style.height = `${slide.height}px`;
+
         // Update Background
         // We should check if background changed to avoid restarting code runner unnecessarily
         // But for now, let's just re-apply. Optimization can come later.
@@ -377,6 +381,8 @@ return {
             canvas.className = 'bg-canvas';
             canvas.width = parseInt(view.style.width);
             canvas.height = parseInt(view.style.height);
+            canvas.style.width = '100%';
+            canvas.style.height = '100%';
             canvas.style.position = 'absolute';
             canvas.style.top = '0';
             canvas.style.left = '0';
