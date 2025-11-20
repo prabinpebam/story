@@ -8,6 +8,7 @@ import { PropertyInspector } from './ui/PropertyInspector.js';
 import { Toolbar } from './ui/Toolbar.js';
 import { aiService } from './core/ai/AIService.js';
 import { PresentationManager } from './core/PresentationManager.js';
+import { SettingsModal } from './ui/SettingsModal.js';
 
 class App {
     constructor() {
@@ -27,6 +28,7 @@ class App {
         this.propertyInspector = new PropertyInspector('properties-panel');
         this.toolbar = new Toolbar();
         this.presentationManager = new PresentationManager();
+        this.settingsModal = new SettingsModal();
 
         this.bindEvents();
         
@@ -55,6 +57,12 @@ class App {
     }
 
     bindEvents() {
+        // Settings Button
+        const settingsBtn = document.getElementById('settings-btn');
+        if (settingsBtn) {
+            settingsBtn.onclick = () => this.settingsModal.open();
+        }
+
         // Theme Toggle (Mock implementation for now, usually in settings)
         // We can add a temporary button or keybinding for testing
         document.addEventListener('keydown', (e) => {

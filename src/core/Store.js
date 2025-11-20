@@ -671,6 +671,15 @@ class Store extends EventEmitter {
                 this.emit('state-changed', this.state);
                 break;
 
+            case 'UPDATE_SLIDE':
+                const { id, ...updates } = payload;
+                if (this.state.slides[id]) {
+                    this.state.slides[id] = { ...this.state.slides[id], ...updates };
+                    this.state.meta.modified = Date.now();
+                    this.emit('state-changed', this.state);
+                }
+                break;
+
             default:
                 console.warn(`Unknown action: ${type}`);
         }

@@ -3,6 +3,7 @@ import { Knob } from './components/Knob.js';
 import { Switch } from './components/Switch.js';
 import { SegmentedControl } from './components/SegmentedControl.js';
 import { ScrubbableControl } from './components/ScrubbableControl.js';
+import { aiService } from '../core/ai/AIService.js';
 
 export class PropertyInspector {
     constructor(containerId) {
@@ -19,17 +20,17 @@ export class PropertyInspector {
     render() {
         const state = store.getState();
         const selection = state.editor.selectedElementIds;
+        const activeSlideId = state.editor.activeSlideId;
+        const currentSlide = state.slides[activeSlideId];
         
         this.container.innerHTML = '';
 
+        if (!currentSlide) return;
+
         if (!selection || selection.length === 0) {
-            this.renderEmptyState();
+            this.renderSlideProperties(currentSlide);
             return;
         }
-
-        const activeSlideId = state.editor.activeSlideId;
-        const currentSlide = state.slides[activeSlideId];
-        if (!currentSlide) return;
 
         // Get all selected elements
         const elements = selection.map(id => currentSlide.elements[id]).filter(el => el);
@@ -60,6 +61,91 @@ export class PropertyInspector {
             this.renderEffectsProperties(elements[0], selection);
             this.renderAnimationProperties(elements[0], selection);
         }
+    }
+
+    renderSlideProperties(slide) {
+        const { group, content } = this.createControlGroup('SLIDE', true);
+        
+        // Dimensions
+        const dimRow = document.createElement('div');
+        dimRow.style.display = 'flex';
+        dimRow.style.gap = '8px';
+        dimRow.style.marginBottom = '16px';
+        
+        const wControl = new ScrubbableControl('W', slide.width, (val) => {
+            store.dispatch('UPDATE_SLIDE', { id: slide.id, width: Math.max(100, val) });
+        });
+        
+        const hControl = new ScrubbableControl('H', slide.height, (val) => {
+            store.dispatch('UPDATE_SLIDE', { id: slide.id, height: Math.max(100, val) });
+        });
+        
+        dimRow.appendChild(wControl.element);
+        dimRow.appendChild(hControl.element);
+        content.appendChild(dimRow);
+
+        // Background
+        const bgLabel = document.createElement('div');
+        bgLabel.innerText = 'Background';
+        bgLabel.style.fontSize = '11px';
+        bgLabel.style.color = 'var(--text-secondary)';
+        bgLabel.style.marginBottom = '8px';
+        content.appendChild(bgLabel);
+
+        const bgTypeSelect = document.createElement('select');
+        bgTypeSelect.className = 'input-select';
+        bgTypeSelect.style.width = '100%';
+        bgTypeSelect.style.marginBottom = '8px';
+        
+        ['Solid', 'Gradient'].forEach(type => {
+            const opt = document.createElement('option');
+            opt.value = type.toLowerCase();
+            opt.text = type;
+            if (slide.background.type === type.toLowerCase()) opt.selected = true;
+            bgTypeSelect.appendChild(opt);
+        });
+        
+        bgTypeSelect.onchange = (e) => {
+            const newType = e.target.value;
+            let newValue = slide.background.value;
+            if (newType === 'gradient' && !newValue.includes('gradient')) {
+                newValue = 'linear-gradient(180deg, #ffffff 0%, #f0f0f0 100%)';
+            } else if (newType === 'solid' && newValue.includes('gradient')) {
+                newValue = '#ffffff';
+            }
+            store.dispatch('UPDATE_SLIDE', { id: slide.id, background: { type: newType, value: newValue } });
+        };
+        content.appendChild(bgTypeSelect);
+
+        if (slide.background.type === 'solid') {
+            const colorInput = document.createElement('input');
+            colorInput.type = 'color';
+            colorInput.value = slide.background.value;
+            colorInput.style.width = '100%';
+            colorInput.style.height = '24px';
+            colorInput.style.border = 'none';
+            colorInput.style.padding = '0';
+            colorInput.style.cursor = 'pointer';
+            
+            colorInput.onchange = (e) => {
+                store.dispatch('UPDATE_SLIDE', { id: slide.id, background: { type: 'solid', value: e.target.value } });
+            };
+            content.appendChild(colorInput);
+        } else {
+            // Simple Gradient Input (Text for now, could be enhanced)
+            const gradientInput = document.createElement('input');
+            gradientInput.type = 'text';
+            gradientInput.value = slide.background.value;
+            gradientInput.style.width = '100%';
+            gradientInput.className = 'settings-input';
+            
+            gradientInput.onchange = (e) => {
+                store.dispatch('UPDATE_SLIDE', { id: slide.id, background: { type: 'gradient', value: e.target.value } });
+            };
+            content.appendChild(gradientInput);
+        }
+
+        this.container.appendChild(group);
     }
 
     getCommonProperties(elements) {
@@ -322,7 +408,105 @@ export class PropertyInspector {
         contentInput.addEventListener('change', (e) => {
             this.updateProperty(selection, 'content', `<h2>${e.target.value}</h2>`);
         });
-        content.appendChild(this.createInputRow('Content', contentInput));
+        
+        const contentRow = this.createInputRow('Content', contentInput);
+        
+        // AI Button
+        const aiBtn = document.createElement('button');
+        aiBtn.className = 'icon-btn';
+        aiBtn.innerHTML = '<i class="fa-solid fa-wand-magic-sparkles"></i>';
+        aiBtn.title = 'AI Text Refinement';
+        aiBtn.style.marginLeft = '4px';
+        aiBtn.style.width = '24px';
+        aiBtn.style.height = '24px';
+        aiBtn.style.position = 'relative'; // For popover positioning
+        
+        aiBtn.onclick = (e) => {
+            e.stopPropagation();
+            
+            // Remove existing popover if any
+            const existing = document.querySelector('.ai-popover');
+            if (existing) existing.remove();
+
+            const popover = document.createElement('div');
+            popover.className = 'ai-popover';
+            popover.style.position = 'absolute';
+            popover.style.top = '100%';
+            popover.style.right = '0';
+            popover.style.width = '160px';
+            popover.style.background = 'var(--bg-panel)';
+            popover.style.border = '1px solid var(--border-color)';
+            popover.style.borderRadius = '4px';
+            popover.style.boxShadow = '0 4px 12px rgba(0,0,0,0.2)';
+            popover.style.zIndex = '1000';
+            popover.style.padding = '4px';
+            popover.style.display = 'flex';
+            popover.style.flexDirection = 'column';
+            popover.style.gap = '2px';
+
+            const actions = [
+                { label: 'Summarize', prompt: 'Summarize this text into a concise bullet point or sentence.' },
+                { label: 'Expand', prompt: 'Expand on this text with more detail and context.' },
+                { label: 'Make Professional', prompt: 'Rewrite this text to sound more professional and corporate.' },
+                { label: 'Make Witty', prompt: 'Rewrite this text to be more witty and engaging.' },
+                { label: 'Translate to Spanish', prompt: 'Translate this text to Spanish.' },
+                { label: 'Custom...', custom: true }
+            ];
+
+            actions.forEach(action => {
+                const btn = document.createElement('button');
+                btn.innerText = action.label;
+                btn.style.textAlign = 'left';
+                btn.style.padding = '6px 8px';
+                btn.style.background = 'none';
+                btn.style.border = 'none';
+                btn.style.color = 'var(--text-primary)';
+                btn.style.fontSize = '11px';
+                btn.style.cursor = 'pointer';
+                btn.style.borderRadius = '2px';
+                
+                btn.onmouseover = () => btn.style.background = 'var(--bg-well)';
+                btn.onmouseout = () => btn.style.background = 'none';
+
+                btn.onclick = async () => {
+                    popover.remove();
+                    let instruction = action.prompt;
+                    
+                    if (action.custom) {
+                        instruction = prompt('How should I refine this text?', 'Make it more concise');
+                        if (!instruction) return;
+                    }
+
+                    try {
+                        aiBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+                        const currentText = tempDiv.innerText;
+                        const newText = await aiService.generate(`${instruction}: "${currentText}"`);
+                        // Strip quotes if AI adds them
+                        const cleanText = newText.replace(/^"|"$/g, '');
+                        this.updateProperty(selection, 'content', `<h2>${cleanText}</h2>`);
+                    } catch (err) {
+                        alert(err.message);
+                    } finally {
+                        aiBtn.innerHTML = '<i class="fa-solid fa-wand-magic-sparkles"></i>';
+                    }
+                };
+                popover.appendChild(btn);
+            });
+
+            // Close on click outside
+            const closeHandler = (evt) => {
+                if (!popover.contains(evt.target) && evt.target !== aiBtn) {
+                    popover.remove();
+                    document.removeEventListener('click', closeHandler);
+                }
+            };
+            setTimeout(() => document.addEventListener('click', closeHandler), 0);
+
+            aiBtn.appendChild(popover);
+        };
+        
+        contentRow.appendChild(aiBtn);
+        content.appendChild(contentRow);
 
         // Font Family
         const fontRow = document.createElement('div');
@@ -732,6 +916,81 @@ return { draw };`;
             // Code Editor
             const codeContainer = document.createElement('div');
             codeContainer.style.marginBottom = '8px';
+            
+            // AI Chat Interface
+            const aiContainer = document.createElement('div');
+            aiContainer.style.marginBottom = '8px';
+            aiContainer.style.background = 'var(--bg-well)';
+            aiContainer.style.padding = '8px';
+            aiContainer.style.borderRadius = '4px';
+            
+            const aiLabel = document.createElement('div');
+            aiLabel.innerText = 'AI Generator';
+            aiLabel.style.fontSize = '10px';
+            aiLabel.style.fontWeight = '600';
+            aiLabel.style.marginBottom = '4px';
+            aiLabel.style.color = 'var(--text-secondary)';
+            
+            const promptInput = document.createElement('textarea');
+            promptInput.placeholder = 'Describe an animation (e.g. "Retro synthwave grid moving forward")...';
+            promptInput.style.width = '100%';
+            promptInput.style.height = '60px';
+            promptInput.style.background = 'var(--bg-panel)';
+            promptInput.style.border = '1px solid var(--border-color)';
+            promptInput.style.color = 'var(--text-primary)';
+            promptInput.style.fontSize = '11px';
+            promptInput.style.padding = '4px';
+            promptInput.style.resize = 'none';
+            promptInput.style.marginBottom = '4px';
+            
+            const generateBtn = document.createElement('button');
+            generateBtn.className = 'btn-primary';
+            generateBtn.innerText = 'Generate Code';
+            generateBtn.style.width = '100%';
+            generateBtn.style.fontSize = '11px';
+            
+            generateBtn.onclick = async () => {
+                const promptText = promptInput.value.trim();
+                if (!promptText) return;
+                
+                try {
+                    generateBtn.innerText = 'Generating...';
+                    generateBtn.disabled = true;
+                    
+                    const currentCode = style.code || '';
+                    const systemPrompt = `You are an expert HTML5 Canvas artist. 
+                    Generate a JavaScript object with a 'draw(time)' function. 
+                    Context: 'ctx' is the 2D context, 'width' and 'height' are available. 
+                    Time 't' is passed to draw().
+                    Return ONLY the code for the object. No markdown.
+                    If code already exists, modify it based on the user request.
+                    Existing Code: ${currentCode}`;
+                    
+                    const newCode = await aiService.generate(promptText, { systemPrompt });
+                    
+                    // Clean up code (remove markdown blocks if any)
+                    let cleanCode = newCode.replace(/```javascript|```/g, '').trim();
+                    if (!cleanCode.startsWith('return')) {
+                        // If AI didn't wrap it, try to fix or just trust it returns an object
+                        // Ideally we want: return { draw: function(t) { ... } }
+                    }
+                    
+                    this.updateStyle(selection, 'code', cleanCode);
+                    textarea.value = cleanCode; // Update editor
+                    promptInput.value = ''; // Clear prompt
+                    
+                } catch (err) {
+                    alert('AI Error: ' + err.message);
+                } finally {
+                    generateBtn.innerText = 'Generate Code';
+                    generateBtn.disabled = false;
+                }
+            };
+            
+            aiContainer.appendChild(aiLabel);
+            aiContainer.appendChild(promptInput);
+            aiContainer.appendChild(generateBtn);
+            codeContainer.appendChild(aiContainer);
             
             const textarea = document.createElement('textarea');
             textarea.value = style.code || '';

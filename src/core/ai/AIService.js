@@ -1,21 +1,23 @@
 export class AIService {
     constructor() {
         this.config = {
-            provider: 'openai', // 'azure', 'anthropic', 'openai'
+            provider: localStorage.getItem('story_ai_provider') || 'openai', // 'azure', 'anthropic', 'openai'
             apiKey: localStorage.getItem('story_ai_key') || null,
             endpoint: localStorage.getItem('story_ai_endpoint') || null, // For Azure
-            model: 'gpt-4o'
+            deployment: localStorage.getItem('story_ai_deployment') || null, // For Azure
+            apiVersion: localStorage.getItem('story_ai_api_version') || '2024-04-01-preview', // For Azure
+            model: localStorage.getItem('story_ai_model') || 'gpt-4o'
         };
     }
 
     configure(config) {
         this.config = { ...this.config, ...config };
-        if (config.apiKey) {
-            localStorage.setItem('story_ai_key', config.apiKey);
-        }
-        if (config.endpoint) {
-            localStorage.setItem('story_ai_endpoint', config.endpoint);
-        }
+        if (config.apiKey) localStorage.setItem('story_ai_key', config.apiKey);
+        if (config.endpoint) localStorage.setItem('story_ai_endpoint', config.endpoint);
+        if (config.provider) localStorage.setItem('story_ai_provider', config.provider);
+        if (config.model) localStorage.setItem('story_ai_model', config.model);
+        if (config.deployment) localStorage.setItem('story_ai_deployment', config.deployment);
+        if (config.apiVersion) localStorage.setItem('story_ai_api_version', config.apiVersion);
     }
 
     async generate(prompt, context = {}) {
@@ -38,6 +40,8 @@ export class AIService {
     }
 
     buildSystemPrompt(context) {
+        if (context.systemPrompt) return context.systemPrompt;
+
         return `You are an expert presentation designer and coding assistant for "Story", a modern presentation tool.
         Context: ${JSON.stringify(context)}
         
@@ -100,25 +104,34 @@ export class AIService {
     }
 
     async callAzure(userPrompt, systemPrompt) {
-        // Azure OpenAI implementation
-        const url = `${this.config.endpoint}/openai/deployments/${this.config.model}/chat/completions?api-version=2023-05-15`;
+        const { endpoint, deployment, apiVersion, apiKey } = this.config;
         
+        if (!endpoint || !deployment || !apiVersion) {
+            throw new Error("Azure OpenAI requires Endpoint, Deployment, and API Version");
+        }
+
+        const cleanEndpoint = endpoint.replace(/\/+$/, '');
+        const url = `${cleanEndpoint}/openai/deployments/${deployment}/chat/completions?api-version=${apiVersion}`;
+
         const response = await fetch(url, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'api-key': this.config.apiKey
+                'api-key': apiKey
             },
             body: JSON.stringify({
                 messages: [
                     { role: "system", content: systemPrompt },
                     { role: "user", content: userPrompt }
-                ]
+                ],
+                max_tokens: 4096,
+                temperature: 0.7
             })
         });
 
         if (!response.ok) {
-            throw new Error('Azure API Error');
+            const err = await response.json();
+            throw new Error(err.error?.message || 'Azure OpenAI API Error');
         }
 
         const data = await response.json();

@@ -136,7 +136,8 @@ This document outlines the step-by-step implementation plan for "Story", a moder
 
 ### 4.5 Media & Assets
 - [x] Implement Image Upload & Drag-and-drop.
-- [ ] Add Image Processing controls: Crop (masking), Opacity, Border Radius.
+- [x] Add Image Processing controls: Opacity, Border Radius.
+- [ ] Add Image Processing controls: Crop (masking).
 - [x] Integrate Icon Library search (mock API or direct integration).
 
 ## Phase 5: Animation & Transitions
@@ -167,11 +168,11 @@ This document outlines the step-by-step implementation plan for "Story", a moder
     - [x] Implement the sandbox for rendering user-defined Canvas/JS code.
 
 ### 6.2 AI Copilot Integration
-- [ ] Build the Settings panel for API Key management.
-- [ ] Implement the AI Client module (fetch wrapper).
-- [ ] **Features:**
-    - [ ] Text Refinement (Shorten/Expand).
-    - [ ] "Generate Background" prompt interface (Text-to-Code).
+- [x] Build the Settings panel for API Key management.
+- [x] Implement the AI Client module (fetch wrapper).
+- [x] **Features:**
+    - [x] Text Refinement (Shorten/Expand).
+    - [x] "Generate Background" prompt interface (Text-to-Code).
 
 ## Phase 7: Polish & Presentation Mode
 **Goal:** Finalize the user experience.
