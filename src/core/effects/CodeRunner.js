@@ -8,6 +8,17 @@ export class CodeRunner {
         this.cleanup = null;
         this.drawFunction = null;
         this.startTime = 0;
+        
+        // Mouse state
+        this.mouse = { x: 0, y: 0, down: false };
+        this._handleMouseMove = this._handleMouseMove.bind(this);
+        this._handleMouseDown = this._handleMouseDown.bind(this);
+        this._handleMouseUp = this._handleMouseUp.bind(this);
+        
+        // Attach mouse event listeners
+        this.canvas.addEventListener('mousemove', this._handleMouseMove);
+        this.canvas.addEventListener('mousedown', this._handleMouseDown);
+        this.canvas.addEventListener('mouseup', this._handleMouseUp);
     }
 
     setCode(code) {
@@ -21,11 +32,30 @@ export class CodeRunner {
     play() {
         if (this.isPlaying) return;
         this.isPlaying = true;
+        
+        // Attach listeners
+        this.canvas.addEventListener('mousemove', this._handleMouseMove);
+        this.canvas.addEventListener('mousedown', this._handleMouseDown);
+        this.canvas.addEventListener('mouseup', this._handleMouseUp);
+        this.canvas.addEventListener('mouseleave', this._handleMouseUp);
+        
+        // Initialize mouse props on canvas
+        this.canvas.mouseX = this.canvas.width / 2;
+        this.canvas.mouseY = this.canvas.height / 2;
+        this.canvas.isMouseDown = false;
+
         this.run();
     }
 
     stop() {
         this.isPlaying = false;
+        
+        // Remove listeners
+        this.canvas.removeEventListener('mousemove', this._handleMouseMove);
+        this.canvas.removeEventListener('mousedown', this._handleMouseDown);
+        this.canvas.removeEventListener('mouseup', this._handleMouseUp);
+        this.canvas.removeEventListener('mouseleave', this._handleMouseUp);
+
         if (this.animationFrame) {
             cancelAnimationFrame(this.animationFrame);
             this.animationFrame = null;
@@ -77,19 +107,44 @@ export class CodeRunner {
             // We provide: ctx, canvas, width, height, time
             // User defines: draw(time) or setup()/draw()
             
-            const func = new Function('ctx', 'canvas', 'width', 'height', 'time', `
-                ${this.userCode}
-                // Return a cleanup function if needed, or an object with draw method
-                if (typeof draw === 'function') return { draw };
-                return null;
-            `);
+            let func;
+            let result;
+            let success = false;
 
-            // Initial call to setup or get draw function
-            const result = func(this.ctx, this.canvas, this.canvas.width, this.canvas.height, 0);
+            // Attempt 1: Try to interpret as an object literal or expression returning an object
+            // This handles cases like: { draw: function(t) { ... } }
+            try {
+                func = new Function('ctx', 'canvas', 'width', 'height', 'time', `return (${this.userCode}\n);`);
+                result = func(this.ctx, this.canvas, this.canvas.width, this.canvas.height, 0);
+                if (result && typeof result.draw === 'function') {
+                    success = true;
+                }
+            } catch (e) {
+                // Ignore syntax/runtime errors in this attempt and fall back to statement mode
+            }
+
+            // Attempt 2: Interpret as statements
+            // This handles cases like: function draw(t) { ... } or explicit return { ... }
+            if (!success) {
+                try {
+                    func = new Function('ctx', 'canvas', 'width', 'height', 'time', `
+                        ${this.userCode}
+                        // Return a cleanup function if needed, or an object with draw method
+                        if (typeof draw === 'function') return { draw };
+                        return null;
+                    `);
+                    result = func(this.ctx, this.canvas, this.canvas.width, this.canvas.height, 0);
+                } catch (e) {
+                    console.error('Compilation error in user code:', e);
+                    return;
+                }
+            }
+
             console.log('CodeRunner: Execution result', result);
             
             if (result && typeof result.draw === 'function') {
-                this.drawFunction = result.draw;
+                // Bind draw to the result object so 'this' works inside draw
+                this.drawFunction = result.draw.bind(result);
                 this.startTime = Date.now();
                 console.log('CodeRunner: Starting animation loop');
                 
@@ -124,5 +179,27 @@ export class CodeRunner {
         } catch (e) {
             console.error('Compilation error in user code:', e);
         }
+    }
+    
+    _handleMouseMove(e) {
+        const rect = this.canvas.getBoundingClientRect();
+        this.mouse.x = e.clientX - rect.left;
+        this.mouse.y = e.clientY - rect.top;
+        
+        // Update canvas properties for user access
+        this.canvas.mouseX = this.mouse.x;
+        this.canvas.mouseY = this.mouse.y;
+    }
+
+    _handleMouseDown(e) {
+        this.mouse.down = true;
+        this.canvas.isMouseDown = true;
+        this._handleMouseMove(e); // Update pos
+    }
+
+    _handleMouseUp(e) {
+        this.mouse.down = false;
+        this.canvas.isMouseDown = false;
+        this._handleMouseMove(e); // Update pos
     }
 }

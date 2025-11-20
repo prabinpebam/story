@@ -198,46 +198,41 @@ return {
             promptInput.style.fontSize = '11px';
             promptInput.style.padding = '4px';
             promptInput.style.resize = 'none';
-            promptInput.style.marginBottom = '4px';
+            promptInput.style.marginBottom = '8px';
 
-            // Options Row
-            const optionsRow = document.createElement('div');
-            optionsRow.style.display = 'flex';
-            optionsRow.style.alignItems = 'center';
-            optionsRow.style.marginBottom = '8px';
-            optionsRow.style.gap = '8px';
+            // Buttons Row
+            const btnRow = document.createElement('div');
+            btnRow.style.display = 'flex';
+            btnRow.style.gap = '8px';
+            btnRow.style.marginBottom = '8px';
 
-            const replaceCheck = document.createElement('input');
-            replaceCheck.type = 'checkbox';
-            replaceCheck.id = 'ai-replace-slide-code';
-            replaceCheck.style.cursor = 'pointer';
+            const newBtn = document.createElement('button');
+            newBtn.className = 'btn-secondary';
+            newBtn.innerText = 'New';
+            newBtn.style.flex = '1';
+            newBtn.style.fontSize = '11px';
             
-            const replaceLabel = document.createElement('label');
-            replaceLabel.htmlFor = 'ai-replace-slide-code';
-            replaceLabel.innerText = 'Create New (Discard current)';
-            replaceLabel.style.fontSize = '11px';
-            replaceLabel.style.color = 'var(--text-secondary)';
-            replaceLabel.style.cursor = 'pointer';
-            replaceLabel.style.userSelect = 'none';
+            const updateBtn = document.createElement('button');
+            updateBtn.className = 'btn-primary';
+            updateBtn.innerText = 'Update';
+            updateBtn.style.flex = '1';
+            updateBtn.style.fontSize = '11px';
 
-            optionsRow.appendChild(replaceCheck);
-            optionsRow.appendChild(replaceLabel);
+            btnRow.appendChild(newBtn);
+            btnRow.appendChild(updateBtn);
             
-            const generateBtn = document.createElement('button');
-            generateBtn.className = 'btn-primary';
-            generateBtn.innerText = 'Generate Code';
-            generateBtn.style.width = '100%';
-            generateBtn.style.fontSize = '11px';
-            
-            generateBtn.onclick = async () => {
+            const handleGenerate = async (isReplace) => {
                 const promptText = promptInput.value.trim();
                 if (!promptText) return;
                 
+                const activeBtn = isReplace ? newBtn : updateBtn;
+                const originalText = activeBtn.innerText;
+                
                 try {
-                    generateBtn.innerText = 'Generating...';
-                    generateBtn.disabled = true;
+                    newBtn.disabled = true;
+                    updateBtn.disabled = true;
+                    activeBtn.innerText = '...';
                     
-                    const isReplace = replaceCheck.checked;
                     const currentCode = isReplace ? '' : (slide.background.value || '');
                     
                     let systemPrompt = `You are an expert HTML5 Canvas artist. 
@@ -263,15 +258,18 @@ return {
                 } catch (err) {
                     alert('AI Error: ' + err.message);
                 } finally {
-                    generateBtn.innerText = 'Generate Code';
-                    generateBtn.disabled = false;
+                    newBtn.disabled = false;
+                    updateBtn.disabled = false;
+                    activeBtn.innerText = originalText;
                 }
             };
+
+            newBtn.onclick = () => handleGenerate(true);
+            updateBtn.onclick = () => handleGenerate(false);
             
             aiContainer.appendChild(aiLabel);
             aiContainer.appendChild(promptInput);
-            aiContainer.appendChild(optionsRow);
-            aiContainer.appendChild(generateBtn);
+            aiContainer.appendChild(btnRow);
             codeContainer.appendChild(aiContainer);
             
             const textarea = document.createElement('textarea');
@@ -1096,50 +1094,46 @@ return {
             promptInput.style.resize = 'none';
             promptInput.style.marginBottom = '4px';
 
-            // Options Row
-            const optionsRow = document.createElement('div');
-            optionsRow.style.display = 'flex';
-            optionsRow.style.alignItems = 'center';
-            optionsRow.style.marginBottom = '8px';
-            optionsRow.style.gap = '8px';
+            // Buttons Row
+            const btnRow = document.createElement('div');
+            btnRow.style.display = 'flex';
+            btnRow.style.gap = '8px';
+            btnRow.style.marginBottom = '8px';
 
-            const replaceCheck = document.createElement('input');
-            replaceCheck.type = 'checkbox';
-            replaceCheck.id = 'ai-replace-code';
-            replaceCheck.style.cursor = 'pointer';
+            const newBtn = document.createElement('button');
+            newBtn.className = 'btn-secondary';
+            newBtn.innerText = 'New';
+            newBtn.style.flex = '1';
+            newBtn.style.fontSize = '11px';
             
-            const replaceLabel = document.createElement('label');
-            replaceLabel.htmlFor = 'ai-replace-code';
-            replaceLabel.innerText = 'Create New (Discard current)';
-            replaceLabel.style.fontSize = '11px';
-            replaceLabel.style.color = 'var(--text-secondary)';
-            replaceLabel.style.cursor = 'pointer';
-            replaceLabel.style.userSelect = 'none';
+            const updateBtn = document.createElement('button');
+            updateBtn.className = 'btn-primary';
+            updateBtn.innerText = 'Update';
+            updateBtn.style.flex = '1';
+            updateBtn.style.fontSize = '11px';
 
-            optionsRow.appendChild(replaceCheck);
-            optionsRow.appendChild(replaceLabel);
+            btnRow.appendChild(newBtn);
+            btnRow.appendChild(updateBtn);
             
-            const generateBtn = document.createElement('button');
-            generateBtn.className = 'btn-primary';
-            generateBtn.innerText = 'Generate Code';
-            generateBtn.style.width = '100%';
-            generateBtn.style.fontSize = '11px';
-            
-            generateBtn.onclick = async () => {
+            const handleGenerate = async (isReplace) => {
                 const promptText = promptInput.value.trim();
                 if (!promptText) return;
                 
+                const activeBtn = isReplace ? newBtn : updateBtn;
+                const originalText = activeBtn.innerText;
+                
                 try {
-                    generateBtn.innerText = 'Generating...';
-                    generateBtn.disabled = true;
+                    newBtn.disabled = true;
+                    updateBtn.disabled = true;
+                    activeBtn.innerText = '...';
                     
-                    const isReplace = replaceCheck.checked;
                     const currentCode = isReplace ? '' : (style.code || '');
                     
                     let systemPrompt = `You are an expert HTML5 Canvas artist. 
                     Generate a JavaScript object with a 'draw(time)' function. 
                     Context: 'ctx' is the 2D context, 'canvas' is the DOM element.
                     ALWAYS use 'canvas.width' and 'canvas.height' for dimensions to support resizing.
+                    Mouse interaction: Use 'canvas.mouseX' and 'canvas.mouseY' for coordinates, and 'canvas.isMouseDown' for click state. DO NOT add event listeners.
                     Time 't' is passed to draw().
                     Return ONLY the code for the object. No markdown.`;
 
@@ -1161,15 +1155,18 @@ return {
                 } catch (err) {
                     alert('AI Error: ' + err.message);
                 } finally {
-                    generateBtn.innerText = 'Generate Code';
-                    generateBtn.disabled = false;
+                    newBtn.disabled = false;
+                    updateBtn.disabled = false;
+                    activeBtn.innerText = originalText;
                 }
             };
+
+            newBtn.onclick = () => handleGenerate(true);
+            updateBtn.onclick = () => handleGenerate(false);
             
             aiContainer.appendChild(aiLabel);
             aiContainer.appendChild(promptInput);
-            aiContainer.appendChild(optionsRow);
-            aiContainer.appendChild(generateBtn);
+            aiContainer.appendChild(btnRow);
             codeContainer.appendChild(aiContainer);
             
             const textarea = document.createElement('textarea');
