@@ -59,6 +59,12 @@ export class CanvasManager {
             }
         });
 
+        store.on('state-changed', (state) => {
+            if (this.interactionState === 'IDLE' && !this.isSpacePressed) {
+                this.container.style.cursor = state.editor.activeTool === 'hand' ? 'grab' : 'default';
+            }
+        });
+
         this.bindEvents();
 
         // Initial Fit to View
@@ -229,12 +235,16 @@ export class CanvasManager {
         // Deselect slides on any canvas interaction
         store.dispatch('DESELECT_SLIDES');
 
-        // Middle Mouse or Space+Left Click -> Pan
-        if (e.button === 1 || (e.button === 0 && this.isSpacePressed)) {
+        const state = store.getState();
+        const activeTool = state.editor.activeTool;
+
+        // Middle Mouse or Space+Left Click or Hand Tool -> Pan
+        if (e.button === 1 || (e.button === 0 && (this.isSpacePressed || activeTool === 'hand'))) {
             e.preventDefault();
             this.interactionState = 'PANNING';
-            this.lastMouseX = e.clientX;
-            this.lastMouseY = e.clientY;
+            const rect = this.container.getBoundingClientRect();
+            this.lastMouseX = e.clientX - rect.left;
+            this.lastMouseY = e.clientY - rect.top;
             this.container.style.cursor = 'grabbing';
             return;
         }
@@ -244,11 +254,8 @@ export class CanvasManager {
             const mouseX = e.clientX - rect.left;
             const mouseY = e.clientY - rect.top;
 
-            const state = store.getState();
-            const activeTool = state.editor.activeTool;
-
             // Handle Creation Tools
-            if (activeTool !== 'select' && activeTool !== 'hand') {
+            if (activeTool !== 'select') {
                 this.interactionState = 'CREATING';
                 this.dragStart = { x: mouseX, y: mouseY };
                 this.dragCurrent = { x: mouseX, y: mouseY }; // Track current pos for ghost
@@ -349,9 +356,6 @@ export class CanvasManager {
         const mouseX = e.clientX - rect.left;
         const mouseY = e.clientY - rect.top;
         
-        this.lastMouseX = mouseX;
-        this.lastMouseY = mouseY;
-
         if (this.interactionState === 'CREATING') {
             this.dragCurrent = { x: mouseX, y: mouseY };
             // Render loop will pick this up to draw ghost
@@ -406,12 +410,9 @@ export class CanvasManager {
 
         } else if (this.interactionState === 'PANNING') {
             e.preventDefault();
-            const deltaX = e.clientX - this.lastMouseX;
-            const deltaY = e.clientY - this.lastMouseY;
+            const deltaX = mouseX - this.lastMouseX;
+            const deltaY = mouseY - this.lastMouseY;
             
-            this.lastMouseX = e.clientX;
-            this.lastMouseY = e.clientY;
-
             const state = store.getState();
             const { pan } = state.editor;
 
@@ -814,6 +815,9 @@ export class CanvasManager {
                  this.measurementGuides = null;
              }
         }
+
+        this.lastMouseX = mouseX;
+        this.lastMouseY = mouseY;
     }
 
     handleMouseUp(e) {
@@ -880,7 +884,14 @@ export class CanvasManager {
         }
 
         this.interactionState = 'IDLE';
-        this.container.style.cursor = 'default';
+        
+        const state = store.getState();
+        if (this.isSpacePressed || state.editor.activeTool === 'hand') {
+            this.container.style.cursor = 'grab';
+        } else {
+            this.container.style.cursor = 'default';
+        }
+
         this.activeHandle = null;
         this.initialElementState = {};
     }
@@ -1203,8 +1214,9 @@ export class CanvasManager {
 
         if (e.code === 'Space') {
             this.isSpacePressed = false;
-            if (!this.isPanning) {
-                this.container.style.cursor = 'default';
+            if (this.interactionState !== 'PANNING') {
+                const state = store.getState();
+                this.container.style.cursor = state.editor.activeTool === 'hand' ? 'grab' : 'default';
             }
         }
     }
