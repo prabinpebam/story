@@ -20,6 +20,7 @@ export class CanvasManager {
         this.dragStart = { x: 0, y: 0 };
         this.initialElementState = {}; // Store initial state for undo/redo or delta calc
         this.activeHandle = null;
+        this.hoveredElementId = null;
 
         this.init();
     }
@@ -282,6 +283,25 @@ export class CanvasManager {
                             store.dispatch('UPDATE_SELECTION', [...state.editor.selectedElementIds, hit.id]);
                         }
                     }
+
+                    // Alt + Drag to Duplicate
+                    if (e.altKey) {
+                        const currentState = store.getState();
+                        const selectedIds = currentState.editor.selectedElementIds;
+                        const newSelectedIds = [];
+                        
+                        selectedIds.forEach(id => {
+                            const original = currentState.slides[currentState.editor.activeSlideId].elements[id];
+                            if (original) {
+                                const newId = `${original.type}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+                                const newElement = { ...original, id: newId };
+                                store.dispatch('ADD_ELEMENT', newElement);
+                                newSelectedIds.push(newId);
+                            }
+                        });
+                        
+                        store.dispatch('UPDATE_SELECTION', newSelectedIds);
+                    }
                     
                     // Store initial state for all selected elements
                     // We need to fetch fresh state after potential selection update
@@ -383,8 +403,21 @@ export class CanvasManager {
             const state = store.getState();
             const { zoom } = state.editor;
             
-            const dx = (mouseX - this.dragStart.x) / zoom;
-            const dy = (mouseY - this.dragStart.y) / zoom;
+            let dx = (mouseX - this.dragStart.x) / zoom;
+            let dy = (mouseY - this.dragStart.y) / zoom;
+
+            // Constrained Movement (Shift Key)
+            let constrainedX = false;
+            let constrainedY = false;
+            if (e.shiftKey) {
+                if (Math.abs(dx) > Math.abs(dy)) {
+                    dy = 0;
+                    constrainedY = true; // Moving Horizontally, Y is fixed
+                } else {
+                    dx = 0;
+                    constrainedX = true; // Moving Vertically, X is fixed
+                }
+            }
 
             // Single element snapping
             if (state.editor.selectedElementIds.length === 1) {
@@ -397,9 +430,15 @@ export class CanvasManager {
                     
                     // Snap Logic
                     const snapResult = this.snapToGuides(id, newX, newY, initial.width, initial.height, zoom);
-                    newX = snapResult.x;
-                    newY = snapResult.y;
-                    this.activeGuides = snapResult.guides;
+                    
+                    if (!constrainedX) newX = snapResult.x;
+                    if (!constrainedY) newY = snapResult.y;
+                    
+                    this.activeGuides = snapResult.guides.filter(g => {
+                        if (constrainedX && g.type === 'v') return false;
+                        if (constrainedY && g.type === 'h') return false;
+                        return true;
+                    });
                     
                     store.dispatch('UPDATE_ELEMENT', {
                         id,
@@ -460,6 +499,13 @@ export class CanvasManager {
             const sin = Math.sin(rad);
             let localDx = dx * cos - dy * sin;
             let localDy = dx * sin + dy * cos;
+
+            // Center Resize (Alt Key)
+            const isCenterResize = e.altKey;
+            if (isCenterResize) {
+                localDx *= 2;
+                localDy *= 2;
+            }
 
             // Aspect Ratio Lock (Shift Key)
             if (e.shiftKey && ['nw', 'ne', 'sw', 'se'].includes(this.activeHandle)) {
@@ -542,6 +588,17 @@ export class CanvasManager {
             if (newWidth < 10) newWidth = 10;
             if (newHeight < 10) newHeight = 10;
 
+            // Correct for Center Resize
+            if (isCenterResize) {
+                const oldCenterX = initial.x + initial.width / 2;
+                const oldCenterY = initial.y + initial.height / 2;
+                const newCenterX = newX + newWidth / 2;
+                const newCenterY = newY + newHeight / 2;
+                
+                newX -= (newCenterX - oldCenterX);
+                newY -= (newCenterY - oldCenterY);
+            }
+
             store.dispatch('UPDATE_ELEMENT', {
                 id,
                 x: newX,
@@ -555,8 +612,14 @@ export class CanvasManager {
              const hit = this.hitTest(mouseX, mouseY);
              if (hit) {
                  this.container.style.cursor = hit.type === 'handle' ? 'crosshair' : 'move';
+                 if (hit.type === 'element') {
+                     this.hoveredElementId = hit.id;
+                 } else {
+                     this.hoveredElementId = null;
+                 }
              } else {
                  this.container.style.cursor = 'default';
+                 this.hoveredElementId = null;
              }
         }
     }
@@ -772,6 +835,68 @@ export class CanvasManager {
                 });
             }
         }
+
+        // Layer Ordering
+        if (e.key === '[' || e.key === ']') {
+            const state = store.getState();
+            if (state.editor.editingElementId) return;
+            
+            const selectedIds = state.editor.selectedElementIds;
+            if (selectedIds.length === 0) return;
+
+            const slideId = state.editor.activeSlideId;
+            const slide = state.slides[slideId];
+            
+            // Only handle single selection for now for simplicity, or iterate
+            // Figma handles multiple by moving them all relative to their current pos
+            
+            selectedIds.forEach(id => {
+                const currentIndex = slide.elementOrder.indexOf(id);
+                if (currentIndex === -1) return;
+
+                let newIndex = currentIndex;
+                
+                if (e.ctrlKey || e.metaKey) {
+                    // Send to Back / Bring to Front
+                    if (e.key === '[') newIndex = 0;
+                    else newIndex = slide.elementOrder.length - 1;
+                } else {
+                    // Send Backward / Bring Forward
+                    if (e.key === '[') newIndex = Math.max(0, currentIndex - 1);
+                    else newIndex = Math.min(slide.elementOrder.length - 1, currentIndex + 1);
+                }
+
+                if (newIndex !== currentIndex) {
+                    store.dispatch('REORDER_ELEMENTS', {
+                        slideId,
+                        fromIndex: currentIndex,
+                        toIndex: newIndex
+                    });
+                }
+            });
+        }
+
+        // Opacity (0-9)
+        if (/^[0-9]$/.test(e.key)) {
+            const state = store.getState();
+            if (!state.editor.editingElementId) {
+                const selectedIds = state.editor.selectedElementIds;
+                if (selectedIds.length > 0) {
+                    const val = parseInt(e.key);
+                    const opacity = val === 0 ? 1 : val / 10;
+                    
+                    selectedIds.forEach(id => {
+                        const el = state.slides[state.editor.activeSlideId].elements[id];
+                        if (el) {
+                            store.dispatch('UPDATE_ELEMENT', {
+                                id,
+                                opacity: opacity
+                            });
+                        }
+                    });
+                }
+            }
+        }
     }
 
     handleKeyUp(e) {
@@ -826,6 +951,24 @@ export class CanvasManager {
         // Draw Gizmos, Selection Box, Grid here
         this.renderGizmos();
         
+        // Draw Hover Effect
+        if (this.hoveredElementId && this.interactionState === 'IDLE') {
+             const state = store.getState();
+             const { zoom, pan } = state.editor;
+             const slide = state.slides[state.editor.activeSlideId];
+             // Don't draw hover if already selected
+             if (slide && !state.editor.selectedElementIds.includes(this.hoveredElementId)) {
+                 const el = slide.elements[this.hoveredElementId];
+                 if (el) {
+                     this.ctx.save();
+                     this.ctx.translate(pan.x, pan.y);
+                     this.ctx.scale(zoom, zoom);
+                     this.drawHoverOutline(el, zoom);
+                     this.ctx.restore();
+                 }
+             }
+        }
+
         // Draw Guides
         this.renderGuides();
         
@@ -1025,6 +1168,21 @@ export class CanvasManager {
                 this.drawSelectionBox(el, zoom);
             }
         });
+
+        this.ctx.restore();
+    }
+
+    drawHoverOutline(el, zoom) {
+        const { x, y, width, height, rotation } = el;
+        
+        this.ctx.save();
+        this.ctx.translate(x + width / 2, y + height / 2);
+        this.ctx.rotate((rotation || 0) * Math.PI / 180);
+        this.ctx.translate(-width / 2, -height / 2);
+
+        this.ctx.strokeStyle = '#0055FF'; // TE Blue
+        this.ctx.lineWidth = 1 / zoom;
+        this.ctx.strokeRect(0, 0, width, height);
 
         this.ctx.restore();
     }

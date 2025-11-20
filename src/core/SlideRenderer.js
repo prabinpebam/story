@@ -115,7 +115,7 @@ export class SlideRenderer {
         div.style.width = `${el.width}px`;
         div.style.height = `${el.height}px`;
         div.style.transform = `rotate(${el.rotation || 0}deg)`;
-        div.style.opacity = el.opacity || 1;
+        div.style.opacity = (el.opacity !== undefined && el.opacity !== null) ? el.opacity : 1;
         div.style.zIndex = el.zIndex || 'auto';
 
         // Apply Effects (Shadow)

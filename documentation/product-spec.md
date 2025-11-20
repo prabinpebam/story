@@ -89,11 +89,20 @@ The viewport interaction model mimics professional design tools like Figma to en
     - **Both (Shift + Alt):** Center resize with constrained aspect ratio.
 - **Movement:**
     - **Drag:** Moves selected objects.
+    - **Duplicate (Alt + Drag):** Holding Alt while dragging duplicates the object.
     - **Axis Constraint (Shift + Drag):** Constrains movement to X or Y axis.
     - **Nudge:** Arrow keys move 1px.
-    - **Big Nudge:** Shift + Arrow keys move 10px (configurable).
-- **Visual Feedback:**
-    - While dragging/resizing, display a tooltip with current coordinates (X, Y) or dimensions (W, H).
+    - **Big Nudge:** Shift + Arrow keys move 10px.
+- **Shortcuts (Figma Parity):**
+    - **Group:** Ctrl/Cmd + G
+    - **Ungroup:** Ctrl/Cmd + Shift + G
+    - **Bring to Front:** ]
+    - **Send to Back:** [
+    - **Bring Forward:** Ctrl/Cmd + ]
+    - **Send Backward:** Ctrl/Cmd + [
+    - **Opacity:** Number keys (1-9 for 10-90%, 0 for 100%, .5 for 50% etc)
+    - **Lock/Unlock:** Ctrl/Cmd + Shift + L
+    - **Hide/Show:** Ctrl/Cmd + Shift + H
 
 #### 3.2.3 Smart Guides & Snapping
 - **Alignment Guides:** Red lines appear dynamically when the moving object aligns with:

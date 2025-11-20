@@ -44,29 +44,33 @@ This document outlines the step-by-step implementation plan for "Story", a moder
 - [x] Build the `TransformGizmo` (Bounding box):
     - [x] Drag to move.
     - [x] Resize handles (with aspect ratio lock).
-    - [x] Rotate handle.
-- [ ] Implement Snapping & Alignment guides.
+    - [x] Rotate handle (with snap).
+- [x] Implement Snapping & Alignment guides.
 - [x] **Implement Creation Tools:**
     - [x] Draw Rectangle (Drag to create).
     - [x] Text Tool (Drag to create).
     - [x] Image Tool (Drag to create).
 
 ### 2.4 Advanced Object Manipulation (Figma-like)
-- [ ] **Selection Model Refinement:**
-    - [ ] Marquee Selection (Drag to select multiple).
+- [x] **Selection Model Refinement:**
+    - [x] Marquee Selection (Drag to select multiple).
     - [ ] Deep Select (Cmd/Ctrl + Click for nested groups).
-    - [ ] Select All (Cmd/Ctrl + A).
-- [ ] **Transformation Logic:**
-    - [ ] Center Resize (Alt/Option + Drag).
-    - [ ] Constrained Movement (Shift + Drag).
-    - [ ] Nudge (Arrow keys) & Big Nudge (Shift + Arrow keys).
-- [ ] **Smart Guides & Snapping:**
-    - [ ] Dynamic alignment guides (edges/centers).
+    - [x] Select All (Cmd/Ctrl + A).
+- [x] **Transformation Logic:**
+    - [x] Center Resize (Alt/Option + Drag).
+    - [x] Constrained Movement (Shift + Drag).
+    - [x] Nudge (Arrow keys) & Big Nudge (Shift + Arrow keys).
+    - [ ] Duplicate on Drag (Alt + Drag).
+    - [ ] Layer Ordering Shortcuts ([, ], Ctrl+[, Ctrl+]).
+    - [ ] Grouping Shortcuts (Ctrl+G, Ctrl+Shift+G).
+    - [ ] Opacity Shortcuts (Number keys).
+- [x] **Smart Guides & Snapping:**
+    - [x] Dynamic alignment guides (edges/centers).
     - [ ] Spacing guides (equal distance).
     - [ ] Distance Measurement (Alt + Hover).
 - [ ] **Direct Manipulation:**
     - [ ] Double-click behaviors (Text edit, Group enter).
-    - [ ] Hover effects for interactive objects.
+    - [x] Hover effects for interactive objects.
 
 ## Phase 3: Slide Management
 **Goal:** Manage multiple slides and navigation.
