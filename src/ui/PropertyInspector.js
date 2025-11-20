@@ -829,7 +829,7 @@ return {
         // Fill Type Dropdown (Solid / Gradient)
         const fillTypeSelect = document.createElement('select');
         fillTypeSelect.className = 'input-select';
-        fillTypeSelect.style.background = 'transparent';
+        fillTypeSelect.style.background = 'var(--color-bg-panel)';
         fillTypeSelect.style.border = 'none';
         fillTypeSelect.style.color = 'var(--color-text-primary)';
         fillTypeSelect.style.fontSize = '11px';
@@ -1355,7 +1355,7 @@ return {
 
         // Stroke Style Dropdown (Solid, Dashed, Dotted)
         const strokeStyleSelect = document.createElement('select');
-        strokeStyleSelect.style.background = 'transparent';
+        strokeStyleSelect.style.background = 'var(--color-bg-panel)';
         strokeStyleSelect.style.border = 'none';
         strokeStyleSelect.style.color = 'var(--color-text-primary)';
         strokeStyleSelect.style.fontSize = '11px';
