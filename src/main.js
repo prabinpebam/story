@@ -62,44 +62,6 @@ class App {
         if (settingsBtn) {
             settingsBtn.onclick = () => this.settingsModal.open();
         }
-
-        // Theme Toggle (Mock implementation for now, usually in settings)
-        // We can add a temporary button or keybinding for testing
-        document.addEventListener('keydown', (e) => {
-            if (e.ctrlKey && e.key === 'd') {
-                e.preventDefault();
-                store.dispatch('TOGGLE_THEME');
-            }
-        });
-
-        // store.on('theme-changed', (theme) => {
-        //     this.applyTheme(theme);
-        // });
-    }
-
-    applyTheme(theme) {
-        if (theme === 'dark') {
-            document.documentElement.style.setProperty('--bg-app', '#1a1a1a');
-            document.documentElement.style.setProperty('--bg-panel', '#252525');
-            document.documentElement.style.setProperty('--bg-canvas', '#111111');
-            document.documentElement.style.setProperty('--text-primary', '#f0f0f0');
-            document.documentElement.style.setProperty('--text-secondary', '#a0a0a0');
-            document.documentElement.style.setProperty('--border-color', '#404040');
-        } else {
-            // Reset to CSS variables defaults (Light)
-            document.documentElement.style.removeProperty('--bg-app');
-            document.documentElement.style.removeProperty('--bg-panel');
-            document.documentElement.style.removeProperty('--bg-canvas');
-            document.documentElement.style.removeProperty('--text-primary');
-            document.documentElement.style.removeProperty('--text-secondary');
-            document.documentElement.style.removeProperty('--border-color');
-        }
-    }
-
-    renderInitialState() {
-        const state = store.getState();
-        this.updateToolbarUI(state.editor.activeTool);
-        this.applyTheme(state.meta.theme);
     }
 }
 

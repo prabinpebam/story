@@ -2,8 +2,10 @@ import { aiService } from '../core/ai/AIService.js';
 
 export class SettingsModal {
     constructor() {
+        this.activeTab = 'ai'; // Default tab
         this.createModal();
         this.bindEvents();
+        this.loadTheme();
     }
 
     createModal() {
@@ -14,19 +16,85 @@ export class SettingsModal {
         this.modal = document.createElement('div');
         this.modal.className = 'modal-content';
         
-        const header = document.createElement('div');
-        header.className = 'modal-header';
-        header.innerHTML = '<h3>Settings</h3><button class="close-btn"><i class="fa-solid fa-xmark"></i></button>';
+        // Sidebar
+        this.sidebar = document.createElement('div');
+        this.sidebar.className = 'modal-sidebar';
         
-        const body = document.createElement('div');
-        body.className = 'modal-body';
-        
-        // Provider Section
-        const providerSection = this.createSection('AI Provider');
-        this.providerSelect = document.createElement('select');
-        this.providerSelect.className = 'input-select';
-        this.styleInput(this.providerSelect);
+        // Main Content Area
+        this.main = document.createElement('div');
+        this.main.className = 'modal-main';
 
+        // Header
+        this.header = document.createElement('div');
+        this.header.className = 'modal-header';
+        this.header.innerHTML = `
+            <h3 id="modal-title">Settings</h3>
+            <button class="close-btn"><i class="fa-solid fa-xmark"></i></button>
+        `;
+
+        // Body
+        this.body = document.createElement('div');
+        this.body.className = 'modal-body';
+        
+        this.main.appendChild(this.header);
+        this.main.appendChild(this.body);
+
+        this.modal.appendChild(this.sidebar);
+        this.modal.appendChild(this.main);
+        this.overlay.appendChild(this.modal);
+        
+        document.body.appendChild(this.overlay);
+    }
+
+    renderSidebar() {
+        this.sidebar.innerHTML = '';
+        const tabs = [
+            { id: 'ai', label: 'AI Provider', icon: 'fa-robot' },
+            { id: 'appearance', label: 'Appearance', icon: 'fa-palette' }
+        ];
+
+        tabs.forEach(tab => {
+            const item = document.createElement('div');
+            item.className = `modal-nav-item ${this.activeTab === tab.id ? 'active' : ''}`;
+            item.innerHTML = `<i class="fa-solid ${tab.icon}" style="width: 20px;"></i> ${tab.label}`;
+            item.onclick = () => this.switchTab(tab.id);
+            this.sidebar.appendChild(item);
+        });
+    }
+
+    switchTab(tabId) {
+        this.activeTab = tabId;
+        this.renderSidebar();
+        this.renderContent();
+    }
+
+    renderContent() {
+        this.body.innerHTML = '';
+        const title = this.header.querySelector('#modal-title');
+
+        if (this.activeTab === 'ai') {
+            title.innerText = 'AI Configuration';
+            this.renderAIContent();
+        } else if (this.activeTab === 'appearance') {
+            title.innerText = 'Appearance';
+            this.renderAppearanceContent();
+        }
+    }
+
+    createFormGroup(label) {
+        const group = document.createElement('div');
+        group.className = 'form-group';
+        const lbl = document.createElement('label');
+        lbl.innerText = label;
+        group.appendChild(lbl);
+        return group;
+    }
+
+    renderAIContent() {
+        // Provider
+        const providerGroup = this.createFormGroup('Provider');
+        this.providerSelect = document.createElement('select');
+        this.providerSelect.className = 'form-control';
         ['openai', 'anthropic', 'azure'].forEach(p => {
             const opt = document.createElement('option');
             opt.value = p;
@@ -34,119 +102,124 @@ export class SettingsModal {
             if (aiService.config.provider === p) opt.selected = true;
             this.providerSelect.appendChild(opt);
         });
+        this.providerSelect.onchange = () => this.updateAIFieldsVisibility();
+        providerGroup.appendChild(this.providerSelect);
+        this.body.appendChild(providerGroup);
 
-        providerSection.appendChild(this.providerSelect);
-        body.appendChild(providerSection);
+        // API Key
+        const keyGroup = this.createFormGroup('API Key');
+        this.apiKeyInput = document.createElement('input');
+        this.apiKeyInput.type = 'password';
+        this.apiKeyInput.className = 'form-control';
+        this.apiKeyInput.placeholder = 'sk-...';
+        this.apiKeyInput.value = aiService.config.apiKey || '';
+        keyGroup.appendChild(this.apiKeyInput);
+        this.body.appendChild(keyGroup);
 
-        // API Key Section
-        const keySection = this.createSection('API Key');
-        this.input = document.createElement('input');
-        this.input.type = 'password';
-        this.input.placeholder = 'sk-...';
-        this.styleInput(this.input);
-        keySection.appendChild(this.input);
-        body.appendChild(keySection);
-
-        // Azure Specific Sections
+        // Azure Container
         this.azureContainer = document.createElement('div');
-        this.azureContainer.style.display = 'none';
-
+        
         // Endpoint
-        const endpointSection = this.createSection('Endpoint URL');
+        const endpointGroup = this.createFormGroup('Endpoint URL');
         this.endpointInput = document.createElement('input');
         this.endpointInput.type = 'text';
+        this.endpointInput.className = 'form-control';
         this.endpointInput.placeholder = 'https://...openai.azure.com/';
-        this.styleInput(this.endpointInput);
-        endpointSection.appendChild(this.endpointInput);
-        this.azureContainer.appendChild(endpointSection);
+        this.endpointInput.value = aiService.config.endpoint || '';
+        endpointGroup.appendChild(this.endpointInput);
+        this.azureContainer.appendChild(endpointGroup);
 
         // Deployment
-        const deploymentSection = this.createSection('Deployment Name');
+        const deploymentGroup = this.createFormGroup('Deployment Name');
         this.deploymentInput = document.createElement('input');
         this.deploymentInput.type = 'text';
+        this.deploymentInput.className = 'form-control';
         this.deploymentInput.placeholder = 'e.g., gpt-5-chat';
-        this.styleInput(this.deploymentInput);
-        deploymentSection.appendChild(this.deploymentInput);
-        this.azureContainer.appendChild(deploymentSection);
+        this.deploymentInput.value = aiService.config.deployment || '';
+        deploymentGroup.appendChild(this.deploymentInput);
+        this.azureContainer.appendChild(deploymentGroup);
 
         // API Version
-        const apiVersionSection = this.createSection('API Version');
+        const apiVersionGroup = this.createFormGroup('API Version');
         this.apiVersionInput = document.createElement('input');
         this.apiVersionInput.type = 'text';
+        this.apiVersionInput.className = 'form-control';
         this.apiVersionInput.placeholder = 'e.g., 2024-04-01-preview';
-        this.styleInput(this.apiVersionInput);
-        apiVersionSection.appendChild(this.apiVersionInput);
-        this.azureContainer.appendChild(apiVersionSection);
+        this.apiVersionInput.value = aiService.config.apiVersion || '2024-04-01-preview';
+        apiVersionGroup.appendChild(this.apiVersionInput);
+        this.azureContainer.appendChild(apiVersionGroup);
 
-        body.appendChild(this.azureContainer);
+        this.body.appendChild(this.azureContainer);
 
-        // Model Section (Common)
-        const modelSection = this.createSection('Model Name (Optional for Azure)');
+        // Model
+        const modelGroup = this.createFormGroup('Model Name (Optional for Azure)');
         this.modelInput = document.createElement('input');
         this.modelInput.type = 'text';
+        this.modelInput.className = 'form-control';
         this.modelInput.placeholder = 'gpt-4o, claude-3-5-sonnet...';
-        this.styleInput(this.modelInput);
-        modelSection.appendChild(this.modelInput);
-        body.appendChild(modelSection);
+        this.modelInput.value = aiService.config.model || 'gpt-4o';
+        modelGroup.appendChild(this.modelInput);
+        this.body.appendChild(modelGroup);
 
         // Save Button
         const saveBtn = document.createElement('button');
-        saveBtn.innerText = 'Save Settings';
+        saveBtn.innerText = 'Save AI Settings';
         saveBtn.className = 'btn-primary';
-        saveBtn.style.width = '100%';
-        
-        saveBtn.onclick = () => {
-            aiService.configure({ 
-                provider: this.providerSelect.value,
-                apiKey: this.input.value,
-                model: this.modelInput.value,
-                endpoint: this.endpointInput.value,
-                deployment: this.deploymentInput.value,
-                apiVersion: this.apiVersionInput.value
-            });
-            this.close();
-        };
-        
-        body.appendChild(saveBtn);
-        
-        this.modal.appendChild(header);
-        this.modal.appendChild(body);
-        this.overlay.appendChild(this.modal);
-        
-        document.body.appendChild(this.overlay);
+        saveBtn.style.marginTop = '16px';
+        saveBtn.onclick = () => this.saveAISettings();
+        this.body.appendChild(saveBtn);
 
-        // Handle provider change
-        this.providerSelect.addEventListener('change', () => this.updateVisibility());
+        this.updateAIFieldsVisibility();
     }
 
-    createSection(labelText) {
-        const section = document.createElement('div');
-        section.className = 'settings-section';
-        section.style.marginBottom = '16px';
-        
-        const label = document.createElement('label');
-        label.innerText = labelText;
-        label.style.display = 'block';
-        label.style.marginBottom = '8px';
-        label.style.fontSize = '12px';
-        label.style.color = 'var(--text-secondary)';
-        
-        section.appendChild(label);
-        return section;
-    }
-
-    styleInput(element) {
-        element.style.width = '100%';
-        element.style.padding = '8px';
-        element.style.background = 'var(--bg-well)';
-        element.style.border = '1px solid var(--border-color)';
-        element.style.color = 'var(--text-primary)';
-        element.style.borderRadius = '4px';
-    }
-
-    updateVisibility() {
+    updateAIFieldsVisibility() {
         const isAzure = this.providerSelect.value === 'azure';
         this.azureContainer.style.display = isAzure ? 'block' : 'none';
+    }
+
+    saveAISettings() {
+        aiService.configure({ 
+            provider: this.providerSelect.value,
+            apiKey: this.apiKeyInput.value,
+            model: this.modelInput.value,
+            endpoint: this.endpointInput.value,
+            deployment: this.deploymentInput.value,
+            apiVersion: this.apiVersionInput.value
+        });
+        this.close();
+    }
+
+    renderAppearanceContent() {
+        // Dark Mode Toggle
+        const group = this.createFormGroup('Theme');
+        
+        const select = document.createElement('select');
+        select.className = 'form-control';
+        select.innerHTML = `
+            <option value="light">Light</option>
+            <option value="dark">Dark</option>
+        `;
+        select.value = document.body.classList.contains('theme-dark') ? 'dark' : 'light';
+        
+        select.onchange = (e) => {
+            if (e.target.value === 'dark') {
+                document.body.classList.add('theme-dark');
+                localStorage.setItem('theme', 'dark');
+            } else {
+                document.body.classList.remove('theme-dark');
+                localStorage.setItem('theme', 'light');
+            }
+        };
+
+        group.appendChild(select);
+        this.body.appendChild(group);
+    }
+
+    loadTheme() {
+        const theme = localStorage.getItem('theme');
+        if (theme === 'dark') {
+            document.body.classList.add('theme-dark');
+        }
     }
 
     bindEvents() {
@@ -157,14 +230,8 @@ export class SettingsModal {
     }
 
     open() {
-        this.input.value = aiService.config.apiKey || '';
-        this.providerSelect.value = aiService.config.provider || 'openai';
-        this.modelInput.value = aiService.config.model || 'gpt-4o';
-        this.endpointInput.value = aiService.config.endpoint || '';
-        this.deploymentInput.value = aiService.config.deployment || '';
-        this.apiVersionInput.value = aiService.config.apiVersion || '2024-04-01-preview';
-        
-        this.updateVisibility();
+        this.renderSidebar();
+        this.renderContent();
         this.overlay.style.display = 'flex';
     }
 
