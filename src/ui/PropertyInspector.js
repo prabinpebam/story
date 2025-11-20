@@ -27,31 +27,59 @@ export class PropertyInspector {
             return;
         }
 
-        // Get selected element
         const activeSlideId = state.editor.activeSlideId;
         const currentSlide = state.slides[activeSlideId];
         if (!currentSlide) return;
 
-        const element = currentSlide.elements[selection[0]];
+        // Get all selected elements
+        const elements = selection.map(id => currentSlide.elements[id]).filter(el => el);
+        if (elements.length === 0) return;
 
-        if (!element) return;
+        // Calculate common properties
+        const commonProps = this.getCommonProperties(elements);
 
-        // Render Controls based on type
-        this.renderCommonProperties(element);
+        // Render Controls
+        this.renderCommonProperties(commonProps, selection);
 
-        if (element.type === 'text') {
-            this.renderTextProperties(element);
-        } else if (element.type === 'rect') {
-            this.renderShapeProperties(element);
-        } else if (element.type === 'image') {
-            this.renderImageProperties(element);
+        // Type specific properties (only if all same type)
+        const firstType = elements[0].type;
+        const allSameType = elements.every(el => el.type === firstType);
+
+        if (allSameType) {
+            if (firstType === 'text') {
+                this.renderTextProperties(commonProps, selection);
+            } else if (firstType === 'rect') {
+                this.renderShapeProperties(commonProps, selection);
+            } else if (firstType === 'image') {
+                this.renderImageProperties(commonProps, selection);
+            }
         }
 
-        // Effects (Shadow)
-        this.renderEffectsProperties(element);
+        // Effects (Shadow) - Only for single selection for now
+        if (selection.length === 1) {
+            this.renderEffectsProperties(elements[0]);
+            this.renderAnimationProperties(elements[0]);
+        }
+    }
 
-        // Animations
-        this.renderAnimationProperties(element);
+    getCommonProperties(elements) {
+        const props = {};
+        // Add all potential properties
+        const keys = ['x', 'y', 'width', 'height', 'rotation', 'opacity', 'fontFamily', 'fontSize', 'fontWeight', 'textAlign', 'color', 'backgroundColor', 'cornerRadius'];
+        
+        keys.forEach(key => {
+            const firstVal = this.getPropertyValue(elements[0], key);
+            const allSame = elements.every(el => this.getPropertyValue(el, key) === firstVal);
+            props[key] = allSame ? firstVal : 'Mixed';
+        });
+        
+        return props;
+    }
+
+    getPropertyValue(el, key) {
+        if (key in el) return el[key];
+        if (el.style && key in el.style) return el.style[key];
+        return undefined;
     }
 
     renderEmptyState() {
@@ -124,7 +152,28 @@ export class PropertyInspector {
         return row;
     }
 
-    renderCommonProperties(element) {
+    updateProperty(ids, key, value) {
+        const idArray = Array.isArray(ids) ? ids : [ids];
+        idArray.forEach(id => {
+            store.dispatch('UPDATE_ELEMENT', { id, [key]: value });
+        });
+    }
+
+    updateStyle(ids, key, value) {
+        const idArray = Array.isArray(ids) ? ids : [ids];
+        const state = store.getState();
+        const slide = state.slides[state.editor.activeSlideId];
+        
+        idArray.forEach(id => {
+            const el = slide.elements[id];
+            if (el) {
+                const newStyle = { ...el.style, [key]: value };
+                store.dispatch('UPDATE_ELEMENT', { id, style: newStyle });
+            }
+        });
+    }
+
+    renderCommonProperties(props, selection) {
         // Alignment Row
         const alignRow = document.createElement('div');
         alignRow.style.display = 'flex';
@@ -155,7 +204,7 @@ export class PropertyInspector {
         this.container.appendChild(alignRow);
 
         // Distribution Row (Only if > 2 elements)
-        if (store.state.editor.selectedElementIds.length > 2) {
+        if (selection.length > 2) {
             const distRow = document.createElement('div');
             distRow.style.display = 'flex';
             distRow.style.justifyContent = 'center';
@@ -192,14 +241,14 @@ export class PropertyInspector {
         posRow.style.marginBottom = '8px';
 
         // X Position
-        const xControl = new ScrubbableControl('X', element.x, (val) => {
-            this.updateProperty(element.id, 'x', val);
+        const xControl = new ScrubbableControl('X', props.x, (val) => {
+            this.updateProperty(selection, 'x', val);
         });
         posRow.appendChild(xControl.element);
 
         // Y Position
-        const yControl = new ScrubbableControl('Y', element.y, (val) => {
-            this.updateProperty(element.id, 'y', val);
+        const yControl = new ScrubbableControl('Y', props.y, (val) => {
+            this.updateProperty(selection, 'y', val);
         });
         posRow.appendChild(yControl.element);
 
@@ -212,15 +261,15 @@ export class PropertyInspector {
         sizeRow.style.marginBottom = '8px';
 
         // Width
-        const wControl = new ScrubbableControl('W', element.width, (val) => {
-            this.updateProperty(element.id, 'width', Math.max(1, val)); // Prevent 0/negative
-        });
+        const wControl = new ScrubbableControl('W', props.width, (val) => {
+            this.updateProperty(selection, 'width', Math.max(1, val));
+        }, { min: 1 });
         sizeRow.appendChild(wControl.element);
 
         // Height
-        const hControl = new ScrubbableControl('H', element.height, (val) => {
-            this.updateProperty(element.id, 'height', Math.max(1, val));
-        });
+        const hControl = new ScrubbableControl('H', props.height, (val) => {
+            this.updateProperty(selection, 'height', Math.max(1, val));
+        }, { min: 1 });
         sizeRow.appendChild(hControl.element);
 
         content.appendChild(sizeRow);
@@ -231,14 +280,14 @@ export class PropertyInspector {
         rotRow.style.gap = '8px';
         rotRow.style.marginBottom = '8px';
         
-        const rotControl = new ScrubbableControl('°', element.rotation || 0, (val) => {
-            this.updateProperty(element.id, 'rotation', val % 360);
+        const rotControl = new ScrubbableControl('°', props.rotation, (val) => {
+            this.updateProperty(selection, 'rotation', val % 360);
         });
         rotRow.appendChild(rotControl.element);
         
         // Corner Radius (Common for all)
-        const radiusControl = new ScrubbableControl('R', element.style?.radius || 0, (val) => {
-            this.updateStyle(element, 'radius', Math.max(0, val));
+        const radiusControl = new ScrubbableControl('R', props.cornerRadius || 0, (val) => {
+            this.updateStyle(selection, 'radius', Math.max(0, val));
         });
         rotRow.appendChild(radiusControl.element);
 

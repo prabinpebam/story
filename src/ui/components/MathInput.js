@@ -8,7 +8,16 @@ export class MathInput {
     create() {
         const input = document.createElement('input');
         input.type = 'text';
-        input.value = Math.round(this.value); // Display rounded for cleanliness
+        
+        if (this.value === 'Mixed') {
+            input.value = 'Mixed';
+            input.style.fontStyle = 'italic';
+            input.style.color = 'var(--text-secondary)';
+        } else {
+            input.value = typeof this.value === 'number' ? Math.round(this.value) : this.value;
+            input.style.fontStyle = 'normal';
+        }
+        
         input.className = 'math-input';
         
         // Styles
@@ -29,11 +38,15 @@ export class MathInput {
             }
             if (e.key === 'ArrowUp') {
                 e.preventDefault();
-                this.increment(input, e.shiftKey ? 10 : 1);
+                if (this.value !== 'Mixed') {
+                    this.increment(input, e.shiftKey ? 10 : 1);
+                }
             }
             if (e.key === 'ArrowDown') {
                 e.preventDefault();
-                this.increment(input, e.shiftKey ? -10 : -1);
+                if (this.value !== 'Mixed') {
+                    this.increment(input, e.shiftKey ? -10 : -1);
+                }
             }
         });
 
@@ -43,6 +56,11 @@ export class MathInput {
 
         input.addEventListener('focus', () => {
             input.select();
+            if (input.value === 'Mixed') {
+                input.value = ''; // Clear on focus for easy typing
+                input.style.fontStyle = 'normal';
+                input.style.color = 'var(--text-primary)';
+            }
         });
 
         return input;

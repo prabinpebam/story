@@ -348,7 +348,69 @@ class Store extends EventEmitter {
                 const sId = this.state.editor.activeSlideId;
                 const s = this.state.slides[sId];
                 if (s && s.elements[payload.id]) {
-                    s.elements[payload.id] = { ...s.elements[payload.id], ...payload };
+                    const oldEl = s.elements[payload.id];
+                    const newEl = { ...oldEl, ...payload };
+                    s.elements[payload.id] = newEl;
+
+                    // Check if we need to update parent group bounds
+                    if (newEl.parentId) {
+                        let parentId = newEl.parentId;
+                        while (parentId) {
+                            const parent = s.elements[parentId];
+                            if (!parent || parent.type !== 'group') break;
+
+                            // Recalculate group bounds based on all children
+                            // Note: Children coordinates are relative to the group.
+                            // If a child moves/resizes, the group's bounding box (which wraps children) might change.
+                            // If the group's bounding box changes, its x/y/width/height changes.
+                            // BUT, if x/y changes, the children's relative coordinates must shift to stay in place visually.
+                            
+                            let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+                            
+                            if (parent.children && parent.children.length > 0) {
+                                parent.children.forEach(childId => {
+                                    const child = s.elements[childId];
+                                    if (child) {
+                                        minX = Math.min(minX, child.x);
+                                        minY = Math.min(minY, child.y);
+                                        maxX = Math.max(maxX, child.x + child.width);
+                                        maxY = Math.max(maxY, child.y + child.height);
+                                    }
+                                });
+                            } else {
+                                // Empty group?
+                                minX = 0; minY = 0; maxX = 100; maxY = 100;
+                            }
+
+                            const newGroupX = parent.x + minX;
+                            const newGroupY = parent.y + minY;
+                            const newGroupW = maxX - minX;
+                            const newGroupH = maxY - minY;
+
+                            // Update Parent
+                            parent.x = newGroupX;
+                            parent.y = newGroupY;
+                            parent.width = newGroupW;
+                            parent.height = newGroupH;
+
+                            // Shift all children to keep them visually in place relative to new parent origin
+                            // New Relative X = Old Relative X - minX
+                            // New Relative Y = Old Relative Y - minY
+                            if (minX !== 0 || minY !== 0) {
+                                parent.children.forEach(childId => {
+                                    const child = s.elements[childId];
+                                    if (child) {
+                                        child.x -= minX;
+                                        child.y -= minY;
+                                    }
+                                });
+                            }
+
+                            // Bubble up
+                            parentId = parent.parentId;
+                        }
+                    }
+
                     this.emit('state-changed', this.state);
                 }
                 break;

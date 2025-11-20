@@ -64,12 +64,14 @@ This document outlines the step-by-step implementation plan for "Story", a moder
     - [x] Layer Ordering Shortcuts ([, ], Ctrl+[, Ctrl+]).
     - [x] Grouping Shortcuts (Ctrl+G, Ctrl+Shift+G).
     - [x] Opacity Shortcuts (Number keys).
+    - [ ] **Fix:** Multi-object resizing (scale relative to selection).
+    - [ ] **Fix:** Group bounding box auto-update on child change.
 - [x] **Smart Guides & Snapping:**
     - [x] Dynamic alignment guides (edges/centers).
-    - [ ] Spacing guides (equal distance).
+    - [x] Spacing guides (equal distance).
     - [x] Distance Measurement (Alt + Hover).
-- [ ] **Direct Manipulation:**
-    - [ ] Double-click behaviors (Text edit, Group enter).
+- [x] **Direct Manipulation:**
+    - [x] Double-click behaviors (Text edit, Group enter).
     - [x] Hover effects for interactive objects.
 
 ## Phase 3: Slide Management
@@ -97,7 +99,7 @@ This document outlines the step-by-step implementation plan for "Story", a moder
 - [x] **Implement Advanced Input Components:**
     - [x] `ScrubbableInput`: Label acts as a slider (drag to change value).
     - [x] `MathInput`: Input field that evaluates expressions (e.g., "100+50") on blur/enter.
-    - [ ] `MultiValueInput`: Handles "Mixed" state for multi-selection.
+    - [x] `MultiValueInput`: Handles "Mixed" state for multi-selection.
 - [x] **Refactor Property Inspector:**
     - [x] Create modular sections (Transform, Text, Fill, Stroke, Effects).
     - [x] Implement collapsible section headers.

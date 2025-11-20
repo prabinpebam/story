@@ -91,3 +91,26 @@ When an object is selected, a **Transform Gizmo** (Bounding Box) appears.
 - **Shift + Click:** Add/Remove object from selection.
 - **Marquee Select:** Drag on empty canvas area to create a selection box. Objects intersecting the box are selected.
 - **Group Manipulation:** A multi-selection acts as a temporary group. The Gizmo wraps all selected objects.
+
+### 7.1 Multi-Selection Resizing
+- **Behavior:** Resizing a multi-selection scales all selected objects relative to the selection's bounding box.
+- **Logic:**
+    1.  Calculate the bounding box of the entire selection.
+    2.  Determine the scale factor based on the handle movement (e.g., `newWidth / oldWidth`).
+    3.  Apply the scale factor to each object's size (`width`, `height`).
+    4.  Apply the scale factor to each object's position relative to the selection's origin.
+        - `newX = selectionNewX + (objectX - selectionOldX) * scaleX`
+        - `newY = selectionNewY + (objectY - selectionOldY) * scaleY`
+
+## 8. Grouping
+- **Structure:** Groups are container elements that hold child elements.
+- **Coordinates:** Child elements are positioned relative to the group's top-left corner.
+- **Bounding Box:** The group's bounding box is the union of all its children's bounding boxes.
+- **Dynamic Updates:**
+    - When a child is moved, resized, or modified, the group's bounding box must recalculate.
+    - If the group's top-left corner changes due to child modification, the group's `x,y` updates, and all children's relative coordinates are shifted to maintain their absolute position.
+- **Interaction:**
+    - **Selection:** Clicking any child selects the Group.
+    - **Deep Select:** `Ctrl/Cmd + Click` selects the specific child.
+    - **Double Click:** Enters the group (Deep Selects the child under cursor).
+    - **Resize:** Resizing a group scales all children (similar to Multi-Selection Resizing).

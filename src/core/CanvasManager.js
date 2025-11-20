@@ -261,8 +261,20 @@ export class CanvasManager {
                     this.dragStart = { x: mouseX, y: mouseY };
                     
                     const state = store.getState();
-                    const el = state.slides[state.editor.activeSlideId].elements[hit.id];
-                    this.initialElementState = { ...el };
+                    const slide = state.slides[state.editor.activeSlideId];
+
+                    if (hit.id === 'multi-selection') {
+                        this.initialElementState = {};
+                        state.editor.selectedElementIds.forEach(id => {
+                            const el = slide.elements[id];
+                            if (el) this.initialElementState[id] = { ...el };
+                        });
+                        this.initialSelectionBounds = this.getSelectionBounds(slide, state.editor.selectedElementIds);
+                    } else {
+                        const el = slide.elements[hit.id];
+                        this.initialElementState = { ...el };
+                        this.initialSelectionBounds = null;
+                    }
                     e.stopPropagation();
                 } else if (hit.type === 'element') {
                     this.interactionState = 'DRAGGING';
@@ -460,11 +472,20 @@ export class CanvasManager {
                     if (!constrainedX) newAbsX = snapResult.x;
                     if (!constrainedY) newAbsY = snapResult.y;
                     
-                    this.activeGuides = snapResult.guides.filter(g => {
-                        if (constrainedX && g.type === 'v') return false;
-                        if (constrainedY && g.type === 'h') return false;
-                        return true;
-                    });
+                    // Spacing Guides
+                    const spacingResult = this.checkSpacingGuides(id, newAbsX, newAbsY, initial.width, initial.height, zoom);
+                    
+                    if (!constrainedX && spacingResult.x !== newAbsX) newAbsX = spacingResult.x;
+                    if (!constrainedY && spacingResult.y !== newAbsY) newAbsY = spacingResult.y;
+
+                    this.activeGuides = [
+                        ...snapResult.guides.filter(g => {
+                            if (constrainedX && g.type === 'v') return false;
+                            if (constrainedY && g.type === 'h') return false;
+                            return true;
+                        }),
+                        ...spacingResult.guides
+                    ];
                     
                     // Convert back to relative for update
                     const newRelX = newAbsX - parentX;
@@ -492,184 +513,265 @@ export class CanvasManager {
         } else if (this.interactionState === 'RESIZING') {
             const state = store.getState();
             const { zoom, pan } = state.editor;
-            const id = state.editor.selectedElementIds[0];
-            const initial = this.initialElementState;
             
-            if (!initial || !id) return;
+            if (this.initialSelectionBounds) {
+                // --- Multi-Selection Resize ---
+                const initialBounds = this.initialSelectionBounds;
+                const dx = (mouseX - this.dragStart.x) / zoom;
+                const dy = (mouseY - this.dragStart.y) / zoom;
+                
+                let localDx = dx;
+                let localDy = dy;
 
-            // Handle Rotation
-            if (this.activeHandle === 'rot') {
-                const slide = store.getState().slides[store.getState().editor.activeSlideId];
-                
-                // Calculate absolute center
-                let absX = initial.x;
-                let absY = initial.y;
-                
-                if (initial.parentId) {
-                    let parent = slide.elements[initial.parentId];
-                    while (parent) {
-                        absX += parent.x;
-                        absY += parent.y;
-                        parent = slide.elements[parent.parentId];
+                if (e.altKey) {
+                    localDx *= 2;
+                    localDy *= 2;
+                }
+
+                if (e.shiftKey && ['nw', 'ne', 'sw', 'se'].includes(this.activeHandle)) {
+                    const ratio = initialBounds.width / initialBounds.height;
+                    if (['nw', 'se'].includes(this.activeHandle)) {
+                        const avg = (localDx + localDy * ratio) / 2;
+                        localDx = avg;
+                        localDy = avg / ratio;
+                    } else {
+                        const avg = (localDx - localDy * ratio) / 2;
+                        localDx = avg;
+                        localDy = -avg / ratio;
                     }
                 }
 
-                const cx = absX + initial.width / 2;
-                const cy = absY + initial.height / 2;
+                let newX = initialBounds.x;
+                let newY = initialBounds.y;
+                let newW = initialBounds.width;
+                let newH = initialBounds.height;
+
+                switch (this.activeHandle) {
+                    case 'e': newW += localDx; break;
+                    case 'w': newX += localDx; newW -= localDx; break;
+                    case 's': newH += localDy; break;
+                    case 'n': newY += localDy; newH -= localDy; break;
+                    case 'se': newW += localDx; newH += localDy; break;
+                    case 'sw': newX += localDx; newW -= localDx; newH += localDy; break;
+                    case 'ne': newY += localDy; newW += localDx; newH -= localDy; break;
+                    case 'nw': newX += localDx; newY += localDy; newW -= localDx; newH -= localDy; break;
+                }
+
+                if (e.altKey) {
+                    if (['w', 'nw', 'sw'].includes(this.activeHandle)) newX -= localDx / 2;
+                    if (['n', 'nw', 'ne'].includes(this.activeHandle)) newY -= localDy / 2;
+                }
+
+                if (newW < 1) newW = 1;
+                if (newH < 1) newH = 1;
+
+                const scaleX = newW / initialBounds.width;
+                const scaleY = newH / initialBounds.height;
                 
-                const worldMouseX = (mouseX - pan.x) / zoom;
-                const worldMouseY = (mouseY - pan.y) / zoom;
+                const slide = state.slides[state.editor.activeSlideId];
+
+                Object.entries(this.initialElementState).forEach(([id, initialEl]) => {
+                    let initialAbsX = initialEl.x;
+                    let initialAbsY = initialEl.y;
+                    let parentId = initialEl.parentId;
+                    
+                    while (parentId) {
+                        const parent = slide.elements[parentId];
+                        if (!parent) break;
+                        initialAbsX += parent.x;
+                        initialAbsY += parent.y;
+                        parentId = parent.parentId;
+                    }
+
+                    const newAbsX = newX + (initialAbsX - initialBounds.x) * scaleX;
+                    const newAbsY = newY + (initialAbsY - initialBounds.y) * scaleY;
+                    const newAbsW = initialEl.width * scaleX;
+                    const newAbsH = initialEl.height * scaleY;
+
+                    let parentX = 0;
+                    let parentY = 0;
+                    if (initialEl.parentId) {
+                        let parent = slide.elements[initialEl.parentId];
+                        while (parent) {
+                            parentX += parent.x;
+                            parentY += parent.y;
+                            parent = slide.elements[parent.parentId];
+                        }
+                    }
+                    
+                    store.dispatch('UPDATE_ELEMENT', {
+                        id,
+                        x: newAbsX - parentX,
+                        y: newAbsY - parentY,
+                        width: newAbsW,
+                        height: newAbsH
+                    });
+                });
+
+            } else {
+                // --- Single Element Resize ---
+                const id = state.editor.selectedElementIds[0];
+                const initial = this.initialElementState;
                 
-                let angle = Math.atan2(worldMouseY - cy, worldMouseX - cx) * 180 / Math.PI;
-                angle += 90;
-                
-                // Adjust for parent rotation if we support it later
-                // For now, angle is absolute rotation. 
-                // If we want local rotation, we should subtract parent rotation.
-                // But we store 'rotation' as local? Or absolute?
-                // The renderer applies rotation. If nested, it applies parent then child.
-                // So child rotation is local.
-                // So we need to subtract parent rotation from the calculated absolute angle.
-                
-                let parentRotation = 0;
-                if (initial.parentId) {
-                    let parent = slide.elements[initial.parentId];
-                    while (parent) {
-                        parentRotation += (parent.rotation || 0);
-                        parent = slide.elements[parent.parentId];
+                if (!initial || !id) return;
+
+                // Handle Rotation
+                if (this.activeHandle === 'rot') {
+                    const slide = store.getState().slides[store.getState().editor.activeSlideId];
+                    
+                    let absX = initial.x;
+                    let absY = initial.y;
+                    
+                    if (initial.parentId) {
+                        let parent = slide.elements[initial.parentId];
+                        while (parent) {
+                            absX += parent.x;
+                            absY += parent.y;
+                            parent = slide.elements[parent.parentId];
+                        }
+                    }
+
+                    const cx = absX + initial.width / 2;
+                    const cy = absY + initial.height / 2;
+                    
+                    const worldMouseX = (mouseX - pan.x) / zoom;
+                    const worldMouseY = (mouseY - pan.y) / zoom;
+                    
+                    let angle = Math.atan2(worldMouseY - cy, worldMouseX - cx) * 180 / Math.PI;
+                    angle += 90;
+                    
+                    let parentRotation = 0;
+                    if (initial.parentId) {
+                        let parent = slide.elements[initial.parentId];
+                        while (parent) {
+                            parentRotation += (parent.rotation || 0);
+                            parent = slide.elements[parent.parentId];
+                        }
+                    }
+                    
+                    angle -= parentRotation;
+
+                    if (e.shiftKey) {
+                        const snap = 15;
+                        angle = Math.round(angle / snap) * snap;
+                    }
+                    
+                    store.dispatch('UPDATE_ELEMENT', {
+                        id,
+                        rotation: angle
+                    });
+                    return;
+                }
+
+                const dx = (mouseX - this.dragStart.x) / zoom;
+                const dy = (mouseY - this.dragStart.y) / zoom;
+
+                const rad = -(initial.rotation || 0) * Math.PI / 180;
+                const cos = Math.cos(rad);
+                const sin = Math.sin(rad);
+                let localDx = dx * cos - dy * sin;
+                let localDy = dx * sin + dy * cos;
+
+                const isCenterResize = e.altKey;
+                if (isCenterResize) {
+                    localDx *= 2;
+                    localDy *= 2;
+                }
+
+                if (e.shiftKey && ['nw', 'ne', 'sw', 'se'].includes(this.activeHandle)) {
+                    const ratio = initial.width / initial.height;
+                    
+                    if (['nw', 'se'].includes(this.activeHandle)) {
+                        const avg = (localDx + localDy * ratio) / 2;
+                        localDx = avg;
+                        localDy = avg / ratio;
+                    } else {
+                        const avg = (localDx - localDy * ratio) / 2;
+                        localDx = avg;
+                        localDy = -avg / ratio;
                     }
                 }
-                
-                angle -= parentRotation;
 
-                if (e.shiftKey) {
-                    const snap = 15;
-                    angle = Math.round(angle / snap) * snap;
+                let newX = initial.x;
+                let newY = initial.y;
+                let newWidth = initial.width;
+                let newHeight = initial.height;
+
+                const rotateBack = (lx, ly) => {
+                    const r = (initial.rotation || 0) * Math.PI / 180;
+                    return {
+                        x: lx * Math.cos(r) - ly * Math.sin(r),
+                        y: lx * Math.sin(r) + ly * Math.cos(r)
+                    };
+                };
+
+                switch (this.activeHandle) {
+                    case 'e':
+                        newWidth = initial.width + localDx;
+                        break;
+                    case 'w':
+                        newWidth = initial.width - localDx;
+                        const shiftW = rotateBack(localDx, 0);
+                        newX += shiftW.x;
+                        newY += shiftW.y;
+                        break;
+                    case 's':
+                        newHeight = initial.height + localDy;
+                        break;
+                    case 'n':
+                        newHeight = initial.height - localDy;
+                        const shiftN = rotateBack(0, localDy);
+                        newX += shiftN.x;
+                        newY += shiftN.y;
+                        break;
+                    case 'se':
+                        newWidth = initial.width + localDx;
+                        newHeight = initial.height + localDy;
+                        break;
+                    case 'sw':
+                        newWidth = initial.width - localDx;
+                        newHeight = initial.height + localDy;
+                        const shiftSW = rotateBack(localDx, 0);
+                        newX += shiftSW.x;
+                        newY += shiftSW.y;
+                        break;
+                    case 'ne':
+                        newWidth = initial.width + localDx;
+                        newHeight = initial.height - localDy;
+                        const shiftNE = rotateBack(0, localDy);
+                        newX += shiftNE.x;
+                        newY += shiftNE.y;
+                        break;
+                    case 'nw':
+                        newWidth = initial.width - localDx;
+                        newHeight = initial.height - localDy;
+                        const shiftNW = rotateBack(localDx, localDy);
+                        newX += shiftNW.x;
+                        newY += shiftNW.y;
+                        break;
                 }
-                
+
+                if (newWidth < 10) newWidth = 10;
+                if (newHeight < 10) newHeight = 10;
+
+                if (isCenterResize) {
+                    const oldCenterX = initial.x + initial.width / 2;
+                    const oldCenterY = initial.y + initial.height / 2;
+                    const newCenterX = newX + newWidth / 2;
+                    const newCenterY = newY + newHeight / 2;
+                    
+                    newX -= (newCenterX - oldCenterX);
+                    newY -= (newCenterY - oldCenterY);
+                }
+
                 store.dispatch('UPDATE_ELEMENT', {
                     id,
-                    rotation: angle
+                    x: newX,
+                    y: newY,
+                    width: newWidth,
+                    height: newHeight
                 });
-                return;
             }
-
-            const dx = (mouseX - this.dragStart.x) / zoom;
-            const dy = (mouseY - this.dragStart.y) / zoom;
-
-            // Rotate delta to local space
-            const rad = -(initial.rotation || 0) * Math.PI / 180;
-            const cos = Math.cos(rad);
-            const sin = Math.sin(rad);
-            let localDx = dx * cos - dy * sin;
-            let localDy = dx * sin + dy * cos;
-
-            // Center Resize (Alt Key)
-            const isCenterResize = e.altKey;
-            if (isCenterResize) {
-                localDx *= 2;
-                localDy *= 2;
-            }
-
-            // Aspect Ratio Lock (Shift Key)
-            if (e.shiftKey && ['nw', 'ne', 'sw', 'se'].includes(this.activeHandle)) {
-                const ratio = initial.width / initial.height;
-                
-                if (['nw', 'se'].includes(this.activeHandle)) {
-                    // Signs should be same (both grow or shrink)
-                    const avg = (localDx + localDy * ratio) / 2;
-                    localDx = avg;
-                    localDy = avg / ratio;
-                } else {
-                    // Signs opposite (ne, sw)
-                    const avg = (localDx - localDy * ratio) / 2;
-                    localDx = avg;
-                    localDy = -avg / ratio;
-                }
-            }
-
-            let newX = initial.x;
-            let newY = initial.y;
-            let newWidth = initial.width;
-            let newHeight = initial.height;
-
-            // Helper to rotate vector back to world space
-            const rotateBack = (lx, ly) => {
-                const r = (initial.rotation || 0) * Math.PI / 180;
-                return {
-                    x: lx * Math.cos(r) - ly * Math.sin(r),
-                    y: lx * Math.sin(r) + ly * Math.cos(r)
-                };
-            };
-
-            switch (this.activeHandle) {
-                case 'e':
-                    newWidth = initial.width + localDx;
-                    break;
-                case 'w':
-                    newWidth = initial.width - localDx;
-                    const shiftW = rotateBack(localDx, 0);
-                    newX += shiftW.x;
-                    newY += shiftW.y;
-                    break;
-                case 's':
-                    newHeight = initial.height + localDy;
-                    break;
-                case 'n':
-                    newHeight = initial.height - localDy;
-                    const shiftN = rotateBack(0, localDy);
-                    newX += shiftN.x;
-                    newY += shiftN.y;
-                    break;
-                case 'se':
-                    newWidth = initial.width + localDx;
-                    newHeight = initial.height + localDy;
-                    break;
-                case 'sw':
-                    newWidth = initial.width - localDx;
-                    newHeight = initial.height + localDy;
-                    const shiftSW = rotateBack(localDx, 0);
-                    newX += shiftSW.x;
-                    newY += shiftSW.y;
-                    break;
-                case 'ne':
-                    newWidth = initial.width + localDx;
-                    newHeight = initial.height - localDy;
-                    const shiftNE = rotateBack(0, localDy);
-                    newX += shiftNE.x;
-                    newY += shiftNE.y;
-                    break;
-                case 'nw':
-                    newWidth = initial.width - localDx;
-                    newHeight = initial.height - localDy;
-                    const shiftNW = rotateBack(localDx, localDy);
-                    newX += shiftNW.x;
-                    newY += shiftNW.y;
-                    break;
-            }
-
-            // Minimum size constraint
-            if (newWidth < 10) newWidth = 10;
-            if (newHeight < 10) newHeight = 10;
-
-            // Correct for Center Resize
-            if (isCenterResize) {
-                const oldCenterX = initial.x + initial.width / 2;
-                const oldCenterY = initial.y + initial.height / 2;
-                const newCenterX = newX + newWidth / 2;
-                const newCenterY = newY + newHeight / 2;
-                
-                newX -= (newCenterX - oldCenterX);
-                newY -= (newCenterY - oldCenterY);
-            }
-
-            store.dispatch('UPDATE_ELEMENT', {
-                id,
-                x: newX,
-                y: newY,
-                width: newWidth,
-                height: newHeight
-            });
         }
         
         if (this.interactionState === 'IDLE') {
@@ -792,8 +894,14 @@ export class CanvasManager {
             const activeSlideId = state.editor.activeSlideId;
             const element = state.slides[activeSlideId].elements[hit.id];
 
-            if (element && element.type === 'text') {
-                store.dispatch('SET_EDITING_ELEMENT', hit.id);
+            if (element) {
+                if (element.type === 'text') {
+                    store.dispatch('SET_EDITING_ELEMENT', hit.id);
+                } else {
+                    // Double click to "enter" group (Deep Select)
+                    // hit.id is already the deep element from hitTestRecursive
+                    store.dispatch('UPDATE_SELECTION', [hit.id]);
+                }
             }
         }
     }
@@ -1272,6 +1380,156 @@ export class CanvasManager {
         this.ctx.restore();
     }
 
+    checkSpacingGuides(id, x, y, width, height, zoom) {
+        const state = store.getState();
+        const slide = state.slides[state.editor.activeSlideId];
+        const SNAP_THRESHOLD = 5 / zoom;
+        
+        let snappedX = x;
+        let snappedY = y;
+        const guides = [];
+
+        // Get all other elements absolute
+        const others = [];
+        Object.values(slide.elements).forEach(rawEl => {
+            if (rawEl.id === id) return;
+            others.push(this.getAbsoluteElement(rawEl, slide));
+        });
+
+        // Horizontal Spacing
+        const sortedX = [...others].sort((a, b) => a.x - b.x);
+        const myL = x;
+        const myR = x + width;
+        
+        const yOverlap = (el) => {
+            return !(el.y > y + height || el.y + el.height < y);
+        };
+
+        const candidatesX = sortedX.filter(yOverlap);
+        
+        let left = null;
+        let right = null;
+        
+        for (const el of candidatesX) {
+            if (el.x + el.width < myL) {
+                left = el; 
+            } else if (el.x > myR) {
+                if (!right) right = el; 
+            }
+        }
+
+        // Case 1: Equal spacing between Left and Right
+        if (left && right) {
+            const gapL = myL - (left.x + left.width);
+            const gapR = right.x - myR;
+            
+            if (Math.abs(gapL - gapR) < SNAP_THRESHOLD) {
+                const totalSpace = right.x - (left.x + left.width);
+                const gap = (totalSpace - width) / 2;
+                snappedX = (left.x + left.width) + gap;
+                
+                guides.push({ type: 'gap-x', x1: left.x + left.width, x2: snappedX, y: y + height/2, label: Math.round(gap) });
+                guides.push({ type: 'gap-x', x1: snappedX + width, x2: right.x, y: y + height/2, label: Math.round(gap) });
+            }
+        }
+
+        // Case 2: Equal spacing with Left's Left
+        if (left) {
+            const leftIndex = candidatesX.indexOf(left);
+            if (leftIndex > 0) {
+                const leftLeft = candidatesX[leftIndex - 1];
+                const gapLL = left.x - (leftLeft.x + leftLeft.width);
+                const currentGap = myL - (left.x + left.width);
+                
+                if (Math.abs(currentGap - gapLL) < SNAP_THRESHOLD) {
+                    snappedX = (left.x + left.width) + gapLL;
+                    guides.push({ type: 'gap-x', x1: leftLeft.x + leftLeft.width, x2: left.x, y: y + height/2, label: Math.round(gapLL) });
+                    guides.push({ type: 'gap-x', x1: left.x + left.width, x2: snappedX, y: y + height/2, label: Math.round(gapLL) });
+                }
+            }
+        }
+
+        // Case 3: Equal spacing with Right's Right
+        if (right) {
+            const rightIndex = candidatesX.indexOf(right);
+            if (rightIndex < candidatesX.length - 1) {
+                const rightRight = candidatesX[rightIndex + 1];
+                const gapRR = rightRight.x - (right.x + right.width);
+                const currentGap = right.x - myR;
+                
+                if (Math.abs(currentGap - gapRR) < SNAP_THRESHOLD) {
+                    snappedX = right.x - gapRR - width;
+                    guides.push({ type: 'gap-x', x1: snappedX + width, x2: right.x, y: y + height/2, label: Math.round(gapRR) });
+                    guides.push({ type: 'gap-x', x1: right.x + right.width, x2: rightRight.x, y: y + height/2, label: Math.round(gapRR) });
+                }
+            }
+        }
+
+        // Vertical Spacing
+        const sortedY = [...others].sort((a, b) => a.y - b.y);
+        const xOverlap = (el) => {
+            return !(el.x > x + width || el.x + el.width < x);
+        };
+        const candidatesY = sortedY.filter(xOverlap);
+        
+        let top = null;
+        let bottom = null;
+        
+        for (const el of candidatesY) {
+            if (el.y + el.height < y) {
+                top = el;
+            } else if (el.y > y + height) {
+                if (!bottom) bottom = el;
+            }
+        }
+
+        if (top && bottom) {
+            const gapT = y - (top.y + top.height);
+            const gapB = bottom.y - (y + height);
+            
+            if (Math.abs(gapT - gapB) < SNAP_THRESHOLD) {
+                const totalSpace = bottom.y - (top.y + top.height);
+                const gap = (totalSpace - height) / 2;
+                snappedY = (top.y + top.height) + gap;
+                
+                guides.push({ type: 'gap-y', y1: top.y + top.height, y2: snappedY, x: x + width/2, label: Math.round(gap) });
+                guides.push({ type: 'gap-y', y1: snappedY + height, y2: bottom.y, x: x + width/2, label: Math.round(gap) });
+            }
+        }
+        
+        if (top) {
+            const topIndex = candidatesY.indexOf(top);
+            if (topIndex > 0) {
+                const topTop = candidatesY[topIndex - 1];
+                const gapTT = top.y - (topTop.y + topTop.height);
+                const currentGap = y - (top.y + top.height);
+                
+                if (Math.abs(currentGap - gapTT) < SNAP_THRESHOLD) {
+                    snappedY = (top.y + top.height) + gapTT;
+                    guides.push({ type: 'gap-y', y1: topTop.y + topTop.height, y2: top.y, x: x + width/2, label: Math.round(gapTT) });
+                    guides.push({ type: 'gap-y', y1: top.y + top.height, y2: snappedY, x: x + width/2, label: Math.round(gapTT) });
+                }
+            }
+        }
+
+        if (bottom) {
+            const bottomIndex = candidatesY.indexOf(bottom);
+            if (bottomIndex < candidatesY.length - 1) {
+                const bottomBottom = candidatesY[bottomIndex + 1];
+                const gapBB = bottomBottom.y - (bottom.y + bottom.height);
+                const currentGap = bottom.y - (y + height);
+                
+                if (Math.abs(currentGap - gapBB) < SNAP_THRESHOLD) {
+                    snappedY = bottom.y - gapBB - height;
+                    guides.push({ type: 'gap-y', y1: snappedY + height, y2: bottom.y, x: x + width/2, label: Math.round(gapBB) });
+                    guides.push({ type: 'gap-y', y1: bottom.y + bottom.height, y2: bottomBottom.y, x: x + width/2, label: Math.round(gapBB) });
+                }
+            }
+        }
+
+        return { x: snappedX, y: snappedY, guides };
+    }
+
     snapToGuides(id, x, y, width, height, zoom) {
         const state = store.getState();
         const slide = state.slides[state.editor.activeSlideId];
@@ -1391,11 +1649,89 @@ export class CanvasManager {
             if (g.type === 'v') {
                 this.ctx.moveTo(g.x, -10000); // Infinite line
                 this.ctx.lineTo(g.x, 10000);
-            } else {
+                this.ctx.stroke();
+            } else if (g.type === 'h') {
                 this.ctx.moveTo(-10000, g.y);
                 this.ctx.lineTo(10000, g.y);
+                this.ctx.stroke();
+            } else if (g.type === 'gap-x') {
+                const y = g.y;
+                const x1 = Math.min(g.x1, g.x2);
+                const x2 = Math.max(g.x1, g.x2);
+                
+                this.ctx.moveTo(x1, y);
+                this.ctx.lineTo(x2, y);
+                this.ctx.stroke();
+                
+                // Arrows
+                const arrowSize = 4 / zoom;
+                this.ctx.beginPath();
+                this.ctx.moveTo(x1 + arrowSize, y - arrowSize);
+                this.ctx.lineTo(x1, y);
+                this.ctx.lineTo(x1 + arrowSize, y + arrowSize);
+                this.ctx.stroke();
+                
+                this.ctx.beginPath();
+                this.ctx.moveTo(x2 - arrowSize, y - arrowSize);
+                this.ctx.lineTo(x2, y);
+                this.ctx.lineTo(x2 - arrowSize, y + arrowSize);
+                this.ctx.stroke();
+                
+                // Label
+                const label = g.label.toString();
+                this.ctx.font = `${10/zoom}px Inter, sans-serif`;
+                this.ctx.textAlign = 'center';
+                this.ctx.textBaseline = 'middle';
+                const textWidth = this.ctx.measureText(label).width;
+                const padding = 2 / zoom;
+                const cx = (x1 + x2) / 2;
+                
+                this.ctx.save();
+                this.ctx.fillStyle = '#FF0000';
+                this.ctx.fillRect(cx - textWidth / 2 - padding, y - 6/zoom - padding, textWidth + padding * 2, 12/zoom + padding * 2);
+                this.ctx.fillStyle = '#FFFFFF';
+                this.ctx.fillText(label, cx, y);
+                this.ctx.restore();
+                
+            } else if (g.type === 'gap-y') {
+                const x = g.x;
+                const y1 = Math.min(g.y1, g.y2);
+                const y2 = Math.max(g.y1, g.y2);
+                
+                this.ctx.moveTo(x, y1);
+                this.ctx.lineTo(x, y2);
+                this.ctx.stroke();
+                
+                // Arrows
+                const arrowSize = 4 / zoom;
+                this.ctx.beginPath();
+                this.ctx.moveTo(x - arrowSize, y1 + arrowSize);
+                this.ctx.lineTo(x, y1);
+                this.ctx.lineTo(x + arrowSize, y1 + arrowSize);
+                this.ctx.stroke();
+                
+                this.ctx.beginPath();
+                this.ctx.moveTo(x - arrowSize, y2 - arrowSize);
+                this.ctx.lineTo(x, y2);
+                this.ctx.lineTo(x + arrowSize, y2 - arrowSize);
+                this.ctx.stroke();
+                
+                // Label
+                const label = g.label.toString();
+                this.ctx.font = `${10/zoom}px Inter, sans-serif`;
+                this.ctx.textAlign = 'center';
+                this.ctx.textBaseline = 'middle';
+                const textWidth = this.ctx.measureText(label).width;
+                const padding = 2 / zoom;
+                const cy = (y1 + y2) / 2;
+                
+                this.ctx.save();
+                this.ctx.fillStyle = '#FF0000';
+                this.ctx.fillRect(x - textWidth / 2 - padding, cy - 6/zoom - padding, textWidth + padding * 2, 12/zoom + padding * 2);
+                this.ctx.fillStyle = '#FFFFFF';
+                this.ctx.fillText(label, x, cy);
+                this.ctx.restore();
             }
-            this.ctx.stroke();
         });
         
         this.ctx.restore();
@@ -1456,15 +1792,85 @@ export class CanvasManager {
         this.ctx.translate(pan.x, pan.y);
         this.ctx.scale(zoom, zoom);
 
-        selectedElementIds.forEach(id => {
+        if (selectedElementIds.length === 1) {
+            const id = selectedElementIds[0];
             const el = slide.elements[id];
             if (el) {
                 const absEl = this.getAbsoluteElement(el, slide);
                 this.drawSelectionBox(absEl, zoom);
             }
-        });
+        } else {
+            // Multi-selection
+            // Draw individual outlines first
+            selectedElementIds.forEach(id => {
+                const el = slide.elements[id];
+                if (el) {
+                    const absEl = this.getAbsoluteElement(el, slide);
+                    this.drawHoverOutline(absEl, zoom);
+                }
+            });
+
+            // Draw big bounding box
+            const bounds = this.getSelectionBounds(slide, selectedElementIds);
+            if (bounds) {
+                this.drawSelectionBox(bounds, zoom);
+            }
+        }
 
         this.ctx.restore();
+    }
+
+    getSelectionBounds(slide, selectedIds) {
+        if (selectedIds.length === 0) return null;
+        
+        let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+        
+        selectedIds.forEach(id => {
+            const el = slide.elements[id];
+            if (!el) return;
+            const absEl = this.getAbsoluteElement(el, slide);
+            
+            // For rotated elements, the bounding box is larger
+            // We need the AABB of the rotated element
+            const corners = this.getElementCorners(absEl);
+            corners.forEach(p => {
+                minX = Math.min(minX, p.x);
+                minY = Math.min(minY, p.y);
+                maxX = Math.max(maxX, p.x);
+                maxY = Math.max(maxY, p.y);
+            });
+        });
+        
+        if (minX === Infinity) return null;
+        
+        return {
+            x: minX,
+            y: minY,
+            width: maxX - minX,
+            height: maxY - minY,
+            rotation: 0 // Multi-selection box is always axis-aligned
+        };
+    }
+
+    getElementCorners(el) {
+        const { x, y, width, height, rotation } = el;
+        const cx = x + width / 2;
+        const cy = y + height / 2;
+        const rad = (rotation || 0) * Math.PI / 180;
+        const cos = Math.cos(rad);
+        const sin = Math.sin(rad);
+        
+        const p = [
+            { x: -width/2, y: -height/2 },
+            { x: width/2, y: -height/2 },
+            { x: width/2, y: height/2 },
+            { x: -width/2, y: height/2 }
+        ];
+        
+        return p.map(pt => ({
+            x: cx + (pt.x * cos - pt.y * sin),
+            y: cy + (pt.x * sin + pt.y * cos)
+        }));
     }
 
     drawHoverOutline(el, zoom) {
@@ -1569,15 +1975,24 @@ export class CanvasManager {
         const worldX = (x - pan.x) / zoom;
         const worldY = (y - pan.y) / zoom;
 
-        // 1. Check Handles of Selected Elements
-        for (const id of selectedElementIds) {
+        // 1. Check Handles
+        if (selectedElementIds.length === 1) {
+            const id = selectedElementIds[0];
             const el = slide.elements[id];
-            if (!el) continue;
-            
-            const absEl = this.getAbsoluteElement(el, slide);
-            const handle = this.checkHandles(worldX, worldY, absEl, zoom);
-            if (handle) {
-                return { type: 'handle', id, handle };
+            if (el) {
+                const absEl = this.getAbsoluteElement(el, slide);
+                const handle = this.checkHandles(worldX, worldY, absEl, zoom);
+                if (handle) {
+                    return { type: 'handle', id, handle };
+                }
+            }
+        } else if (selectedElementIds.length > 1) {
+            const bounds = this.getSelectionBounds(slide, selectedElementIds);
+            if (bounds) {
+                const handle = this.checkHandles(worldX, worldY, bounds, zoom);
+                if (handle) {
+                    return { type: 'handle', id: 'multi-selection', handle };
+                }
             }
         }
 
