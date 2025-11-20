@@ -54,7 +54,7 @@ This document outlines the step-by-step implementation plan for "Story", a moder
 ### 2.4 Advanced Object Manipulation (Figma-like)
 - [x] **Selection Model Refinement:**
     - [x] Marquee Selection (Drag to select multiple).
-    - [ ] Deep Select (Cmd/Ctrl + Click for nested groups).
+    - [x] Deep Select (Cmd/Ctrl + Click for nested groups).
     - [x] Select All (Cmd/Ctrl + A).
 - [x] **Transformation Logic:**
     - [x] Center Resize (Alt/Option + Drag).
@@ -62,7 +62,7 @@ This document outlines the step-by-step implementation plan for "Story", a moder
     - [x] Nudge (Arrow keys) & Big Nudge (Shift + Arrow keys).
     - [x] Duplicate on Drag (Alt + Drag).
     - [x] Layer Ordering Shortcuts ([, ], Ctrl+[, Ctrl+]).
-    - [ ] Grouping Shortcuts (Ctrl+G, Ctrl+Shift+G).
+    - [x] Grouping Shortcuts (Ctrl+G, Ctrl+Shift+G).
     - [x] Opacity Shortcuts (Number keys).
 - [x] **Smart Guides & Snapping:**
     - [x] Dynamic alignment guides (edges/centers).

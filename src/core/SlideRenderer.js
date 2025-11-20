@@ -86,7 +86,8 @@ export class SlideRenderer {
 
         // Update Background (if implemented)
         
-        const existingEls = Array.from(view.querySelectorAll('.slide-element'));
+        // Only select direct children to avoid removing nested group elements
+        const existingEls = Array.from(view.children).filter(el => el.classList.contains('slide-element'));
         const existingMap = new Map(existingEls.map(el => [el.id, el]));
         
         slide.elementOrder.forEach(id => {
@@ -95,11 +96,11 @@ export class SlideRenderer {
             
             if (domEl) {
                 // Update properties
-                this.updateElementDOM(domEl, el);
+                this.updateElementDOM(domEl, el, slide);
                 existingMap.delete(id);
             } else {
                 // Create new
-                const newDomEl = this.createElementDOM(el);
+                const newDomEl = this.createElementDOM(el, slide);
                 view.appendChild(newDomEl);
             }
         });
@@ -108,7 +109,7 @@ export class SlideRenderer {
         existingMap.forEach(domEl => domEl.remove());
     }
 
-    updateElementDOM(div, el) {
+    updateElementDOM(div, el, slide) {
         // Update position, size, transform
         div.style.left = `${el.x}px`;
         div.style.top = `${el.y}px`;
@@ -140,7 +141,31 @@ export class SlideRenderer {
             div.style.filter = 'none';
         }
 
-        if (el.type === 'rect') {
+        if (el.type === 'group') {
+            // Reconcile children
+            const existingChildren = Array.from(div.children);
+            const existingMap = new Map(existingChildren.map(c => [c.id, c]));
+            
+            if (el.children) {
+                el.children.forEach(childId => {
+                    const child = slide.elements[childId];
+                    if (child) {
+                        const childDom = existingMap.get(childId);
+                        if (childDom) {
+                            this.updateElementDOM(childDom, child, slide);
+                            existingMap.delete(childId);
+                        } else {
+                            const newChildDom = this.createElementDOM(child, slide, false);
+                            div.appendChild(newChildDom);
+                        }
+                    }
+                });
+            }
+            
+            // Remove deleted children
+            existingMap.forEach(c => c.remove());
+
+        } else if (el.type === 'rect') {
              if (el.style?.fillType === 'mesh') {
                  // Check if already mesh
                  if (!div._meshGradient) {
@@ -245,7 +270,7 @@ export class SlideRenderer {
             const el = slide.elements[elId];
             if (el) {
                 const isEditing = elId === editingId;
-                const domEl = this.createElementDOM(el, isEditing);
+                const domEl = this.createElementDOM(el, slide, isEditing);
                 view.appendChild(domEl);
                 
                 if (isEditing) {
@@ -255,7 +280,7 @@ export class SlideRenderer {
         });
     }
 
-    createElementDOM(el, isEditing = false) {
+    createElementDOM(el, slide, isEditing = false) {
         const div = document.createElement('div');
         div.id = el.id;
         div.className = 'slide-element';
@@ -265,7 +290,7 @@ export class SlideRenderer {
         div.style.width = `${el.width}px`;
         div.style.height = `${el.height}px`;
         div.style.transform = `rotate(${el.rotation || 0}deg)`;
-        div.style.opacity = el.opacity || 1;
+        div.style.opacity = (el.opacity !== undefined && el.opacity !== null) ? el.opacity : 1;
         div.style.zIndex = isEditing ? '1000' : (el.zIndex || 'auto'); 
 
         // Apply Effects (Shadow)
@@ -285,7 +310,24 @@ export class SlideRenderer {
             div.style.filter = `blur(${el.style.blur}px)`;
         }
 
-        if (el.type === 'text') {
+        if (el.type === 'group') {
+            div.style.pointerEvents = 'none'; // Let clicks pass through to children? 
+            // Actually, for selection we want to hit the group?
+            // But for editing, we might want to hit children.
+            // In DOM, if parent has pointer-events: none, children can have auto.
+            // But if we want to select the group by clicking anywhere inside, it should be auto.
+            // Let's keep default (auto).
+            
+            if (el.children) {
+                el.children.forEach(childId => {
+                    const child = slide.elements[childId];
+                    if (child) {
+                        const childDom = this.createElementDOM(child, slide, false);
+                        div.appendChild(childDom);
+                    }
+                });
+            }
+        } else if (el.type === 'text') {
             div.innerHTML = el.content; // Rich text
             div.style.fontFamily = el.style?.fontFamily || 'Inter';
             div.style.fontSize = `${el.style?.fontSize || 16}px`;

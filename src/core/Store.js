@@ -216,15 +216,122 @@ class Store extends EventEmitter {
             case 'REMOVE_ELEMENT':
                 const rSlideId = this.state.editor.activeSlideId;
                 const rSlide = this.state.slides[rSlideId];
-                if (rSlide && rSlide.elements[payload]) {
-                    delete rSlide.elements[payload];
-                    rSlide.elementOrder = rSlide.elementOrder.filter(id => id !== payload);
+                
+                // Handle both single ID and array of IDs
+                const idsToDelete = Array.isArray(payload) ? payload : [payload];
+                const allIdsToDelete = new Set();
+                
+                // Recursively collect all IDs to delete (including children)
+                const collectIds = (id) => {
+                    if (allIdsToDelete.has(id)) return;
+                    allIdsToDelete.add(id);
+                    const el = rSlide.elements[id];
+                    if (el && el.type === 'group' && el.children) {
+                        el.children.forEach(collectIds);
+                    }
+                };
+
+                idsToDelete.forEach(id => {
+                    if (rSlide.elements[id]) collectIds(id);
+                });
+
+                allIdsToDelete.forEach(id => {
+                    const el = rSlide.elements[id];
+                    if (!el) return;
+
+                    // Remove from parent if exists
+                    if (el.parentId) {
+                        const parent = rSlide.elements[el.parentId];
+                        if (parent && parent.children) {
+                            parent.children = parent.children.filter(cid => cid !== id);
+                        }
+                    }
+
+                    // Remove from elementOrder
+                    rSlide.elementOrder = rSlide.elementOrder.filter(eid => eid !== id);
                     
-                    // Also remove from selection if present
-                    this.state.editor.selectedElementIds = this.state.editor.selectedElementIds.filter(id => id !== payload);
+                    // Delete element
+                    delete rSlide.elements[id];
+                });
+                
+                // Update selection
+                this.state.editor.selectedElementIds = this.state.editor.selectedElementIds.filter(id => !allIdsToDelete.has(id));
+                
+                this.emit('state-changed', this.state);
+                break;
+
+            case 'DUPLICATE_ELEMENTS':
+                const dSlideId = this.state.editor.activeSlideId;
+                const dSlide = this.state.slides[dSlideId];
+                const idsToDuplicate = payload.ids || this.state.editor.selectedElementIds;
+                const offset = payload.offset || false;
+
+                const newSelectedIds = [];
+                
+                // Helper to deep clone
+                const cloneElement = (id, parentId = null) => {
+                    const original = dSlide.elements[id];
+                    if (!original) return null;
+
+                    const newId = `${original.type}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+                    const newEl = { ...original, id: newId };
                     
-                    this.emit('state-changed', this.state);
-                }
+                    if (parentId) {
+                        newEl.parentId = parentId;
+                    } else {
+                        delete newEl.parentId;
+                    }
+                    
+                    if (offset && !parentId) { // Only offset top-level clones
+                        newEl.x += 20;
+                        newEl.y += 20;
+                    }
+
+                    if (original.type === 'group' && original.children) {
+                        newEl.children = [];
+                        original.children.forEach(childId => {
+                            const childCloneId = cloneElement(childId, newId);
+                            if (childCloneId) newEl.children.push(childCloneId);
+                        });
+                    }
+                    
+                    dSlide.elements[newId] = newEl;
+                    return newId;
+                };
+
+                // Filter out descendants if their ancestor is also being duplicated
+                const rootsToDuplicate = idsToDuplicate.filter(id => {
+                    let ancestor = dSlide.elements[id]?.parentId;
+                    while (ancestor) {
+                        if (idsToDuplicate.includes(ancestor)) return false;
+                        ancestor = dSlide.elements[ancestor]?.parentId;
+                    }
+                    return true;
+                });
+
+                rootsToDuplicate.forEach(id => {
+                    const original = dSlide.elements[id];
+                    if (!original) return;
+
+                    const newId = cloneElement(id, original.parentId);
+                    if (newId) {
+                        newSelectedIds.push(newId);
+                        
+                        if (original.parentId) {
+                            const parent = dSlide.elements[original.parentId];
+                            if (parent) {
+                                const idx = parent.children.indexOf(id);
+                                parent.children.splice(idx + 1, 0, newId);
+                            }
+                        } else {
+                            const idx = dSlide.elementOrder.indexOf(id);
+                            dSlide.elementOrder.splice(idx + 1, 0, newId);
+                        }
+                    }
+                });
+
+                this.state.editor.selectedElementIds = newSelectedIds;
+                this.emit('state-changed', this.state);
                 break;
 
             case 'ADD_ELEMENT':
@@ -387,6 +494,119 @@ class Store extends EventEmitter {
             case 'TOGGLE_THEME':
                 this.state.theme = this.state.theme === 'light' ? 'dark' : 'light';
                 this.emit('theme-change', this.state.theme);
+                break;
+
+            case 'GROUP_ELEMENTS':
+                const gSlideId = this.state.editor.activeSlideId;
+                const gSlide = this.state.slides[gSlideId];
+                const idsToGroup = this.state.editor.selectedElementIds;
+                
+                if (idsToGroup.length < 2) return; // Need at least 2 items to group
+
+                // 1. Calculate Bounding Box
+                let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+                idsToGroup.forEach(id => {
+                    const el = gSlide.elements[id];
+                    if (el) {
+                        minX = Math.min(minX, el.x);
+                        minY = Math.min(minY, el.y);
+                        maxX = Math.max(maxX, el.x + el.width);
+                        maxY = Math.max(maxY, el.y + el.height);
+                    }
+                });
+
+                const groupX = minX;
+                const groupY = minY;
+                const groupW = maxX - minX;
+                const groupH = maxY - minY;
+
+                // 2. Create Group Element
+                const groupId = `group-${Date.now()}`;
+                const groupEl = {
+                    id: groupId,
+                    type: 'group',
+                    x: groupX,
+                    y: groupY,
+                    width: groupW,
+                    height: groupH,
+                    rotation: 0,
+                    children: [],
+                    opacity: 1
+                };
+
+                // 3. Update Children (Make relative) & Remove from elementOrder
+                // We need to preserve relative Z-order of children
+                const sortedIds = idsToGroup.sort((a, b) => {
+                    return gSlide.elementOrder.indexOf(a) - gSlide.elementOrder.indexOf(b);
+                });
+
+                sortedIds.forEach(id => {
+                    const el = gSlide.elements[id];
+                    // Convert to relative
+                    el.x -= groupX;
+                    el.y -= groupY;
+                    el.parentId = groupId;
+                    groupEl.children.push(id);
+                    
+                    // Remove from top-level order
+                    const idx = gSlide.elementOrder.indexOf(id);
+                    if (idx > -1) gSlide.elementOrder.splice(idx, 1);
+                });
+
+                // 4. Add Group to elements and elementOrder
+                // Insert at the position of the topmost element that was grouped?
+                // Or just on top? Figma puts it at the top of the selection stack.
+                // Let's put it at the index where the *last* (topmost) selected item was.
+                // But we already removed them.
+                // Let's just push to end (top) for now, or try to be smart.
+                // Being smart is hard because we mutated the array.
+                // Simple: Push to end.
+                gSlide.elements[groupId] = groupEl;
+                gSlide.elementOrder.push(groupId);
+
+                // 5. Update Selection
+                this.state.editor.selectedElementIds = [groupId];
+                this.emit('state-changed', this.state);
+                break;
+
+            case 'UNGROUP_ELEMENTS':
+                const uSlideId = this.state.editor.activeSlideId;
+                const uSlide = this.state.slides[uSlideId];
+                const selectedGroups = this.state.editor.selectedElementIds.filter(id => {
+                    return uSlide.elements[id] && uSlide.elements[id].type === 'group';
+                });
+
+                if (selectedGroups.length === 0) return;
+
+                const newSelection = [];
+
+                selectedGroups.forEach(gId => {
+                    const group = uSlide.elements[gId];
+                    const groupIndex = uSlide.elementOrder.indexOf(gId);
+                    
+                    // Remove group from order
+                    uSlide.elementOrder.splice(groupIndex, 1);
+
+                    // Process children
+                    group.children.forEach((childId, index) => {
+                        const child = uSlide.elements[childId];
+                        // Convert to absolute
+                        // Need to account for group rotation? (Not implementing group rotation yet for simplicity)
+                        child.x += group.x;
+                        child.y += group.y;
+                        delete child.parentId;
+                        
+                        // Insert into elementOrder
+                        uSlide.elementOrder.splice(groupIndex + index, 0, childId);
+                        newSelection.push(childId);
+                    });
+
+                    // Remove group element
+                    delete uSlide.elements[gId];
+                });
+
+                this.state.editor.selectedElementIds = newSelection;
+                this.emit('state-changed', this.state);
                 break;
 
             default:

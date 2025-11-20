@@ -269,38 +269,42 @@ export class CanvasManager {
                     this.dragStart = { x: mouseX, y: mouseY };
                     
                     const state = store.getState();
-                    const isSelected = state.editor.selectedElementIds.includes(hit.id);
+                    const slide = state.slides[state.editor.activeSlideId];
+                    let targetId = hit.id;
+
+                    // Deep Select Logic (Ctrl/Cmd + Click)
+                    if (!e.ctrlKey && !e.metaKey) {
+                        // If the hit element is already selected, keep it (allows dragging deep selected items)
+                        if (state.editor.selectedElementIds.includes(hit.id)) {
+                            targetId = hit.id;
+                        } else {
+                            // Walk up to find top-level parent
+                            let el = slide.elements[targetId];
+                            while (el && el.parentId) {
+                                el = slide.elements[el.parentId];
+                            }
+                            if (el) targetId = el.id;
+                        }
+                    }
+                    
+                    const isSelected = state.editor.selectedElementIds.includes(targetId);
                     
                     if (!e.shiftKey) {
                         if (!isSelected) {
-                            store.dispatch('UPDATE_SELECTION', [hit.id]);
+                            store.dispatch('UPDATE_SELECTION', [targetId]);
                         }
                     } else {
                         if (isSelected) {
-                            const newSelection = state.editor.selectedElementIds.filter(id => id !== hit.id);
+                            const newSelection = state.editor.selectedElementIds.filter(id => id !== targetId);
                             store.dispatch('UPDATE_SELECTION', newSelection);
                         } else {
-                            store.dispatch('UPDATE_SELECTION', [...state.editor.selectedElementIds, hit.id]);
+                            store.dispatch('UPDATE_SELECTION', [...state.editor.selectedElementIds, targetId]);
                         }
                     }
 
                     // Alt + Drag to Duplicate
                     if (e.altKey) {
-                        const currentState = store.getState();
-                        const selectedIds = currentState.editor.selectedElementIds;
-                        const newSelectedIds = [];
-                        
-                        selectedIds.forEach(id => {
-                            const original = currentState.slides[currentState.editor.activeSlideId].elements[id];
-                            if (original) {
-                                const newId = `${original.type}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-                                const newElement = { ...original, id: newId };
-                                store.dispatch('ADD_ELEMENT', newElement);
-                                newSelectedIds.push(newId);
-                            }
-                        });
-                        
-                        store.dispatch('UPDATE_SELECTION', newSelectedIds);
+                        store.dispatch('DUPLICATE_ELEMENTS', { ids: null, offset: false });
                     }
                     
                     // Store initial state for all selected elements
@@ -616,7 +620,23 @@ export class CanvasManager {
              if (hit) {
                  this.container.style.cursor = hit.type === 'handle' ? 'crosshair' : 'move';
                  if (hit.type === 'element') {
-                     this.hoveredElementId = hit.id;
+                     let targetId = hit.id;
+                     
+                     // Deep Hover Logic (Ctrl/Cmd + Hover)
+                     // If Ctrl is NOT pressed, we should hover the top-level group
+                     if (!e.ctrlKey && !e.metaKey) {
+                         const state = store.getState();
+                         const slide = state.slides[state.editor.activeSlideId];
+                         if (slide) {
+                             let el = slide.elements[targetId];
+                             while (el && el.parentId) {
+                                 el = slide.elements[el.parentId];
+                             }
+                             if (el) targetId = el.id;
+                         }
+                     }
+                     
+                     this.hoveredElementId = targetId;
                  } else {
                      this.hoveredElementId = null;
                  }
@@ -799,6 +819,12 @@ export class CanvasManager {
             this.container.style.cursor = 'grab';
         }
 
+        // Duplicate (Ctrl+D or Cmd+D)
+        if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'd') {
+            e.preventDefault();
+            store.dispatch('DUPLICATE_ELEMENTS', { ids: null, offset: true });
+        }
+
         // Select All (Ctrl+A or Cmd+A)
         if ((e.ctrlKey || e.metaKey) && e.key === 'a') {
             e.preventDefault();
@@ -917,6 +943,16 @@ export class CanvasManager {
                 }
             }
         }
+
+        // Grouping (Ctrl+G / Cmd+G)
+        if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'g') {
+            e.preventDefault();
+            if (e.shiftKey) {
+                store.dispatch('UNGROUP_ELEMENTS');
+            } else {
+                store.dispatch('GROUP_ELEMENTS');
+            }
+        }
     }
 
     handleKeyUp(e) {
@@ -987,7 +1023,8 @@ export class CanvasManager {
                      this.ctx.save();
                      this.ctx.translate(pan.x, pan.y);
                      this.ctx.scale(zoom, zoom);
-                     this.drawHoverOutline(el, zoom);
+                     const absEl = this.getAbsoluteElement(el, slide);
+                     this.drawHoverOutline(absEl, zoom);
                      this.ctx.restore();
                  }
              }
@@ -1354,7 +1391,8 @@ export class CanvasManager {
         selectedElementIds.forEach(id => {
             const el = slide.elements[id];
             if (el) {
-                this.drawSelectionBox(el, zoom);
+                const absEl = this.getAbsoluteElement(el, slide);
+                this.drawSelectionBox(absEl, zoom);
             }
         });
 
@@ -1429,6 +1467,28 @@ export class CanvasManager {
         this.ctx.restore();
     }
 
+    getAbsoluteElement(el, slide) {
+        let x = el.x;
+        let y = el.y;
+        let rotation = el.rotation || 0;
+        let parentId = el.parentId;
+
+        // TODO: Handle parent rotation properly (requires matrix math)
+        // For now, we assume parents are not rotated or we just handle translation
+        while (parentId) {
+            const parent = slide.elements[parentId];
+            if (!parent) break;
+            
+            x += parent.x;
+            y += parent.y;
+            rotation += (parent.rotation || 0);
+            
+            parentId = parent.parentId;
+        }
+        
+        return { ...el, x, y, rotation };
+    }
+
     hitTest(x, y) {
         const state = store.getState();
         const { selectedElementIds, zoom, pan } = state.editor;
@@ -1446,7 +1506,8 @@ export class CanvasManager {
             const el = slide.elements[id];
             if (!el) continue;
             
-            const handle = this.checkHandles(worldX, worldY, el, zoom);
+            const absEl = this.getAbsoluteElement(el, slide);
+            const handle = this.checkHandles(worldX, worldY, absEl, zoom);
             if (handle) {
                 return { type: 'handle', id, handle };
             }
@@ -1455,14 +1516,38 @@ export class CanvasManager {
         // 2. Check Element Bodies (Reverse Z-Order)
         for (let i = slide.elementOrder.length - 1; i >= 0; i--) {
             const id = slide.elementOrder[i];
-            const el = slide.elements[id];
-            if (!el) continue;
-
-            if (this.pointInElement(worldX, worldY, el)) {
-                return { type: 'element', id };
-            }
+            const hit = this.hitTestRecursive(id, worldX, worldY, slide, 0, 0);
+            if (hit) return hit;
         }
 
+        return null;
+    }
+
+    hitTestRecursive(id, wx, wy, slide, parentX, parentY) {
+        const el = slide.elements[id];
+        if (!el) return null;
+
+        const absX = el.x + parentX;
+        const absY = el.y + parentY;
+
+        // Check if point in element (using absolute coordinates)
+        // We create a temporary object with absolute coordinates for the check
+        const absEl = { ...el, x: absX, y: absY };
+
+        if (this.pointInElement(wx, wy, absEl)) {
+            // If group, check children (reverse order)
+            if (el.type === 'group' && el.children) {
+                for (let i = el.children.length - 1; i >= 0; i--) {
+                    const childId = el.children[i];
+                    const childHit = this.hitTestRecursive(childId, wx, wy, slide, absX, absY);
+                    if (childHit) return childHit;
+                }
+                // If no child hit, but inside group bounds?
+                // Return group? Yes.
+                return { type: 'element', id: el.id };
+            }
+            return { type: 'element', id: el.id };
+        }
         return null;
     }
 
