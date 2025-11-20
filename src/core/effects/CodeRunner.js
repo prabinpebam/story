@@ -6,6 +6,8 @@ export class CodeRunner {
         this.isPlaying = false;
         this.userCode = '';
         this.cleanup = null;
+        this.drawFunction = null;
+        this.startTime = 0;
     }
 
     setCode(code) {
@@ -36,6 +38,28 @@ export class CodeRunner {
             }
         }
         this.cleanup = null;
+        this.drawFunction = null;
+    }
+
+    resize(w, h) {
+        const newW = Math.floor(w);
+        const newH = Math.floor(h);
+        
+        if (this.canvas.width !== newW || this.canvas.height !== newH) {
+            this.canvas.width = newW;
+            this.canvas.height = newH;
+            
+            // Force immediate redraw to prevent flickering
+            if (this.drawFunction && this.isPlaying) {
+                const time = (Date.now() - this.startTime) / 1000;
+                this.ctx.setTransform(1, 0, 0, 1, 0, 0);
+                try {
+                    this.drawFunction(time);
+                } catch (e) {
+                    console.error('Runtime error during resize:', e);
+                }
+            }
+        }
     }
 
     run() {
@@ -65,19 +89,20 @@ export class CodeRunner {
             console.log('CodeRunner: Execution result', result);
             
             if (result && typeof result.draw === 'function') {
-                let startTime = Date.now();
+                this.drawFunction = result.draw;
+                this.startTime = Date.now();
                 console.log('CodeRunner: Starting animation loop');
                 
                 const loop = () => {
                     if (!this.isPlaying) return;
                     
-                    const time = (Date.now() - startTime) / 1000;
+                    const time = (Date.now() - this.startTime) / 1000;
                     
                     // Reset transform before draw
                     this.ctx.setTransform(1, 0, 0, 1, 0, 0);
                     
                     try {
-                        result.draw(time);
+                        this.drawFunction(time);
                     } catch (e) {
                         console.error('Runtime error in user code:', e);
                         this.stop();

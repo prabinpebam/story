@@ -231,10 +231,8 @@ return {
                  }
                  
                  // Update Canvas Size if changed
-                 const canvas = div.querySelector('canvas');
-                 if (canvas && (canvas.width !== el.width || canvas.height !== el.height)) {
-                     canvas.width = el.width;
-                     canvas.height = el.height;
+                 if (div._codeRunner) {
+                     div._codeRunner.resize(el.width, el.height);
                  }
 
              } else {
