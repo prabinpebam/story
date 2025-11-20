@@ -38,8 +38,8 @@ export class IconLibrary {
         searchInput.placeholder = 'Search icons...';
         searchInput.style.width = '100%';
         searchInput.style.padding = '6px';
-        searchInput.style.background = 'var(--color-bg-well)';
-        searchInput.style.border = 'none';
+        searchInput.style.background = 'var(--color-bg-input)';
+        searchInput.style.border = '1px solid var(--color-border)';
         searchInput.style.color = 'var(--color-text-primary)';
         searchInput.style.fontSize = '12px';
         searchInput.style.borderRadius = '4px';

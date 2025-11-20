@@ -8,6 +8,7 @@
     --color-bg-hover: #EBEBEB;     /* Hover state */
     --color-bg-active: #E6F7FF;    /* Selected state (Light Blue) */
     --color-bg-well: #FFFFFF;      /* Input backgrounds (White) */
+    --color-bg-input: #FFFFFF;     /* Input backgrounds (White) */
     
     /* Colors: Borders */
     --color-border: #E0E0E0;       /* Subtle dividers */
@@ -82,6 +83,7 @@
         --color-bg-hover: #383838;
         --color-bg-active: #0C4A6E; /* Dark Blue selection */
         --color-bg-well: #383838;
+        --color-bg-input: #1E1E1E; /* Darker background for inputs */
         
         /* Colors: Borders */
         --color-border: #444444;
@@ -671,7 +673,8 @@ body.theme-dark {
     --color-bg-canvas: #252526;
     --color-bg-panel: #2D2D2D;
     --color-bg-hover: #383838;
-    --color-bg-active: #454545;
+    --color-bg-well: #383838;
+    --color-bg-input: #1E1E1E;
     --color-border: #454545;
     --color-text-primary: #E0E0E0;
     --color-text-secondary: #A0A0A0;

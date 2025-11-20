@@ -758,6 +758,18 @@ export class CanvasManager {
                 if (newWidth < 10) newWidth = 10;
                 if (newHeight < 10) newHeight = 10;
 
+                // Snapping Logic
+                if (!e.shiftKey && !isCenterResize) {
+                    const snapResult = this.snapResize(id, this.activeHandle, newX, newY, newWidth, newHeight, zoom);
+                    newX = snapResult.x;
+                    newY = snapResult.y;
+                    newWidth = snapResult.width;
+                    newHeight = snapResult.height;
+                    this.activeGuides = snapResult.guides;
+                } else {
+                    this.activeGuides = [];
+                }
+
                 if (isCenterResize) {
                     const oldCenterX = initial.x + initial.width / 2;
                     const oldCenterY = initial.y + initial.height / 2;
@@ -1636,9 +1648,14 @@ export class CanvasManager {
         // Potential snap targets
         const targets = { x: [], y: [] };
         
-        // Add Canvas Center
+        // Add Canvas Center & Borders
         targets.x.push({ value: slide.width / 2, type: 'center' });
+        targets.x.push({ value: 0, type: 'left' });
+        targets.x.push({ value: slide.width, type: 'right' });
+
         targets.y.push({ value: slide.height / 2, type: 'middle' });
+        targets.y.push({ value: 0, type: 'top' });
+        targets.y.push({ value: slide.height, type: 'bottom' });
         
         // Add other elements
         Object.values(slide.elements).forEach(rawEl => {
@@ -2183,5 +2200,95 @@ export class CanvasManager {
         const localY = (dx * sin + dy * cos) + height / 2;
 
         return localX >= 0 && localX <= width && localY >= 0 && localY <= height;
+    }
+
+    snapResize(id, handle, x, y, width, height, zoom) {
+        const state = store.getState();
+        const slide = state.slides[state.editor.activeSlideId];
+        const SNAP_THRESHOLD = 5 / zoom;
+        
+        let snappedX = x;
+        let snappedY = y;
+        let snappedW = width;
+        let snappedH = height;
+        const guides = [];
+
+        // Only snap if rotation is 0
+        const el = slide.elements[id];
+        if (el && el.rotation && el.rotation % 360 !== 0) {
+             return { x, y, width, height, guides: [] };
+        }
+
+        const targets = { x: [], y: [] };
+        
+        targets.x.push({ value: slide.width / 2, type: 'center' });
+        targets.x.push({ value: 0, type: 'left' });
+        targets.x.push({ value: slide.width, type: 'right' });
+
+        targets.y.push({ value: slide.height / 2, type: 'middle' });
+        targets.y.push({ value: 0, type: 'top' });
+        targets.y.push({ value: slide.height, type: 'bottom' });
+        
+        Object.values(slide.elements).forEach(rawEl => {
+            if (rawEl.id === id) return;
+            const el = this.getAbsoluteElement(rawEl, slide);
+            targets.x.push({ value: el.x, type: 'left' });
+            targets.x.push({ value: el.x + el.width / 2, type: 'center' });
+            targets.x.push({ value: el.x + el.width, type: 'right' });
+            targets.y.push({ value: el.y, type: 'top' });
+            targets.y.push({ value: el.y + el.height / 2, type: 'middle' });
+            targets.y.push({ value: el.y + el.height, type: 'bottom' });
+        });
+
+        let minDiffX = SNAP_THRESHOLD;
+        let minDiffY = SNAP_THRESHOLD;
+
+        // Horizontal Snapping (Width / X)
+        if (handle.includes('w')) { // Left Edge
+            targets.x.forEach(t => {
+                if (Math.abs(t.value - x) < minDiffX) {
+                    const diff = t.value - x;
+                    snappedX = t.value;
+                    snappedW = width - diff;
+                    minDiffX = Math.abs(diff);
+                    guides.push({ type: 'v', x: t.value });
+                }
+            });
+        } else if (handle.includes('e')) { // Right Edge
+            const right = x + width;
+            targets.x.forEach(t => {
+                if (Math.abs(t.value - right) < minDiffX) {
+                    const diff = t.value - right;
+                    snappedW = width + diff;
+                    minDiffX = Math.abs(diff);
+                    guides.push({ type: 'v', x: t.value });
+                }
+            });
+        }
+
+        // Vertical Snapping (Height / Y)
+        if (handle.includes('n')) { // Top Edge
+            targets.y.forEach(t => {
+                if (Math.abs(t.value - y) < minDiffY) {
+                    const diff = t.value - y;
+                    snappedY = t.value;
+                    snappedH = height - diff;
+                    minDiffY = Math.abs(diff);
+                    guides.push({ type: 'h', y: t.value });
+                }
+            });
+        } else if (handle.includes('s')) { // Bottom Edge
+            const bottom = y + height;
+            targets.y.forEach(t => {
+                if (Math.abs(t.value - bottom) < minDiffY) {
+                    const diff = t.value - bottom;
+                    snappedH = height + diff;
+                    minDiffY = Math.abs(diff);
+                    guides.push({ type: 'h', y: t.value });
+                }
+            });
+        }
+
+        return { x: snappedX, y: snappedY, width: snappedW, height: snappedH, guides };
     }
 }

@@ -97,6 +97,12 @@ export class PropertyInspector {
         bgTypeSelect.className = 'input-select';
         bgTypeSelect.style.width = '100%';
         bgTypeSelect.style.marginBottom = 'var(--spacing-2)';
+        bgTypeSelect.style.background = 'var(--color-bg-input)';
+        bgTypeSelect.style.border = '1px solid var(--color-border)';
+        bgTypeSelect.style.borderRadius = 'var(--radius-sm)';
+        bgTypeSelect.style.color = 'var(--color-text-primary)';
+        bgTypeSelect.style.padding = '4px';
+        bgTypeSelect.style.fontSize = '11px';
         
         ['Solid', 'Gradient', 'Code'].forEach(type => {
             const opt = document.createElement('option');
@@ -164,6 +170,12 @@ return {
             gradientInput.type = 'text';
             gradientInput.value = slide.background.value;
             gradientInput.style.width = '100%';
+            gradientInput.style.background = 'var(--color-bg-input)';
+            gradientInput.style.border = '1px solid var(--color-border)';
+            gradientInput.style.borderRadius = 'var(--radius-sm)';
+            gradientInput.style.color = 'var(--color-text-primary)';
+            gradientInput.style.padding = '4px';
+            gradientInput.style.fontSize = '11px';
             gradientInput.className = 'settings-input';
             
             gradientInput.onchange = (e) => {
@@ -181,6 +193,7 @@ return {
             aiContainer.style.background = 'var(--color-bg-well)';
             aiContainer.style.padding = 'var(--spacing-2)';
             aiContainer.style.borderRadius = 'var(--radius-md)';
+            aiContainer.style.border = '1px solid var(--color-border)';
             
             const aiLabel = document.createElement('div');
             aiLabel.innerText = 'AI Generator';
@@ -193,14 +206,15 @@ return {
             promptInput.placeholder = 'Describe an animation...';
             promptInput.style.width = '100%';
             promptInput.style.height = '60px';
-            promptInput.style.background = 'var(--color-bg-panel)';
+            promptInput.style.background = 'var(--color-bg-input)';
             promptInput.style.border = '1px solid var(--color-border)';
             promptInput.style.color = 'var(--color-text-primary)';
             promptInput.style.fontSize = 'var(--font-size-sm)';
-            promptInput.style.padding = 'var(--spacing-1)';
+            promptInput.style.padding = 'var(--spacing-2)';
             promptInput.style.resize = 'none';
             promptInput.style.marginBottom = 'var(--spacing-2)';
             promptInput.style.borderRadius = 'var(--radius-sm)';
+            promptInput.style.fontFamily = 'var(--font-sans)';
 
             // Buttons Row
             const btnRow = document.createElement('div');
@@ -212,13 +226,15 @@ return {
             newBtn.className = 'btn-secondary';
             newBtn.innerText = 'New';
             newBtn.style.flex = '1';
-            newBtn.style.fontSize = 'var(--font-size-sm)';
+            newBtn.style.fontSize = 'var(--font-size-xs)';
+            newBtn.style.padding = '4px 8px';
             
             const updateBtn = document.createElement('button');
             updateBtn.className = 'btn-primary';
             updateBtn.innerText = 'Update';
             updateBtn.style.flex = '1';
-            updateBtn.style.fontSize = 'var(--font-size-sm)';
+            updateBtn.style.fontSize = 'var(--font-size-xs)';
+            updateBtn.style.padding = '4px 8px';
 
             btnRow.appendChild(newBtn);
             btnRow.appendChild(updateBtn);
@@ -278,10 +294,14 @@ return {
             textarea.value = slide.background.value || '';
             textarea.style.width = '100%';
             textarea.style.height = '200px';
-            textarea.style.background = 'var(--color-bg-well)';
+            textarea.style.background = 'var(--color-bg-input)';
             textarea.style.color = 'var(--color-text-primary)';
+            textarea.style.border = '1px solid var(--color-border)';
+            textarea.style.borderRadius = 'var(--radius-sm)';
             textarea.style.fontSize = '11px';
-            textarea.style.fontFamily = 'monospace';
+            textarea.style.fontFamily = 'var(--font-mono)';
+            textarea.style.padding = '8px';
+            textarea.spellcheck = false;
             
             textarea.onchange = (e) => {
                 store.dispatch('UPDATE_SLIDE', { id: slide.id, background: { type: 'code', value: e.target.value } });
@@ -552,6 +572,14 @@ return {
         // Content (HTML)
         const contentInput = document.createElement('input');
         contentInput.type = 'text';
+        contentInput.style.width = '100%';
+        contentInput.style.background = 'var(--color-bg-input)';
+        contentInput.style.border = '1px solid var(--color-border)';
+        contentInput.style.borderRadius = 'var(--radius-sm)';
+        contentInput.style.color = 'var(--color-text-primary)';
+        contentInput.style.padding = '4px';
+        contentInput.style.fontSize = '11px';
+        
         const tempDiv = document.createElement('div');
         tempDiv.innerHTML = element.content;
         contentInput.value = tempDiv.innerText;
@@ -663,9 +691,11 @@ return {
         const fontRow = document.createElement('div');
         fontRow.style.marginBottom = '8px';
         const fontSelect = document.createElement('select');
+        fontSelect.className = 'input-select';
         fontSelect.style.width = '100%';
-        fontSelect.style.background = 'var(--color-bg-well)';
-        fontSelect.style.border = 'none';
+        fontSelect.style.background = 'var(--color-bg-input)';
+        fontSelect.style.border = '1px solid var(--color-border)';
+        fontSelect.style.borderRadius = 'var(--radius-sm)';
         fontSelect.style.color = 'var(--color-text-primary)';
         fontSelect.style.padding = '4px';
         fontSelect.style.fontSize = '11px';
@@ -690,9 +720,11 @@ return {
 
         // Weight
         const weightSelect = document.createElement('select');
+        weightSelect.className = 'input-select';
         weightSelect.style.flex = '1';
-        weightSelect.style.background = 'var(--color-bg-well)';
-        weightSelect.style.border = 'none';
+        weightSelect.style.background = 'var(--color-bg-input)';
+        weightSelect.style.border = '1px solid var(--color-border)';
+        weightSelect.style.borderRadius = 'var(--radius-sm)';
         weightSelect.style.color = 'var(--color-text-primary)';
         weightSelect.style.padding = '4px';
         weightSelect.style.fontSize = '11px';
@@ -796,12 +828,15 @@ return {
 
         // Fill Type Dropdown (Solid / Gradient)
         const fillTypeSelect = document.createElement('select');
+        fillTypeSelect.className = 'input-select';
         fillTypeSelect.style.background = 'transparent';
         fillTypeSelect.style.border = 'none';
         fillTypeSelect.style.color = 'var(--color-text-primary)';
         fillTypeSelect.style.fontSize = '11px';
         fillTypeSelect.style.textAlign = 'right';
         fillTypeSelect.style.cursor = 'pointer';
+        fillTypeSelect.style.appearance = 'none'; // Remove default arrow
+        fillTypeSelect.style.paddingRight = '0';
 
         ['Solid', 'Gradient', 'Image', 'Mesh', 'Code'].forEach(type => {
             const opt = document.createElement('option');
@@ -897,8 +932,9 @@ return {
             const typeSelect = document.createElement('select');
             typeSelect.className = 'input-select';
             typeSelect.style.width = '100%';
-            typeSelect.style.background = 'var(--color-bg-well)';
-            typeSelect.style.border = 'none';
+            typeSelect.style.background = 'var(--color-bg-input)';
+            typeSelect.style.border = '1px solid var(--color-border)';
+            typeSelect.style.borderRadius = 'var(--radius-sm)';
             typeSelect.style.padding = '4px';
             typeSelect.style.color = 'var(--color-text-primary)';
             
@@ -1006,11 +1042,12 @@ return {
             btn.innerText = 'Choose Image...';
             btn.style.width = '100%';
             btn.style.padding = '6px';
-            btn.style.background = 'var(--color-bg-well)';
+            btn.style.background = 'var(--color-bg-input)';
             btn.style.border = '1px solid var(--color-border)';
             btn.style.color = 'var(--color-text-primary)';
             btn.style.cursor = 'pointer';
             btn.style.fontSize = '11px';
+            btn.style.borderRadius = 'var(--radius-sm)';
             btn.onclick = () => fileInput.click();
 
             imgRow.appendChild(fileInput);
@@ -1018,9 +1055,11 @@ return {
 
             // Scale Mode
             const scaleSelect = document.createElement('select');
+            scaleSelect.className = 'input-select';
             scaleSelect.style.width = '100%';
-            scaleSelect.style.background = 'var(--color-bg-well)';
-            scaleSelect.style.border = 'none';
+            scaleSelect.style.background = 'var(--color-bg-input)';
+            scaleSelect.style.border = '1px solid var(--color-border)';
+            scaleSelect.style.borderRadius = 'var(--radius-sm)';
             scaleSelect.style.color = 'var(--color-text-primary)';
             scaleSelect.style.padding = '4px';
             scaleSelect.style.fontSize = '11px';
@@ -1081,6 +1120,7 @@ return {
             aiContainer.style.background = 'var(--color-bg-well)';
             aiContainer.style.padding = '8px';
             aiContainer.style.borderRadius = '4px';
+            aiContainer.style.border = '1px solid var(--color-border)';
             
             const aiLabel = document.createElement('div');
             aiLabel.innerText = 'AI Generator';
@@ -1093,13 +1133,15 @@ return {
             promptInput.placeholder = 'Describe an animation (e.g. "Retro synthwave grid moving forward")...';
             promptInput.style.width = '100%';
             promptInput.style.height = '60px';
-            promptInput.style.background = 'var(--color-bg-panel)';
+            promptInput.style.background = 'var(--color-bg-input)';
             promptInput.style.border = '1px solid var(--color-border)';
             promptInput.style.color = 'var(--color-text-primary)';
             promptInput.style.fontSize = '11px';
-            promptInput.style.padding = '4px';
+            promptInput.style.padding = '8px';
             promptInput.style.resize = 'none';
             promptInput.style.marginBottom = '4px';
+            promptInput.style.borderRadius = 'var(--radius-sm)';
+            promptInput.style.fontFamily = 'var(--font-sans)';
 
             // Buttons Row
             const btnRow = document.createElement('div');
@@ -1112,12 +1154,14 @@ return {
             newBtn.innerText = 'New';
             newBtn.style.flex = '1';
             newBtn.style.fontSize = '11px';
+            newBtn.style.padding = '4px 8px';
             
             const updateBtn = document.createElement('button');
             updateBtn.className = 'btn-primary';
             updateBtn.innerText = 'Update';
             updateBtn.style.flex = '1';
             updateBtn.style.fontSize = '11px';
+            updateBtn.style.padding = '4px 8px';
 
             btnRow.appendChild(newBtn);
             btnRow.appendChild(updateBtn);
@@ -1229,8 +1273,14 @@ return {
 
             textarea.style.width = '100%';
             textarea.style.height = '200px';
-            textarea.style.background = 'var(--color-bg-well)';
+            textarea.style.background = 'var(--color-bg-input)';
             textarea.style.color = 'var(--color-text-primary)';
+            textarea.style.border = '1px solid var(--color-border)';
+            textarea.style.borderRadius = 'var(--radius-sm)';
+            textarea.style.fontSize = '11px';
+            textarea.style.fontFamily = 'var(--font-mono)';
+            textarea.style.padding = '8px';
+            textarea.spellcheck = false;
 
             // If we just switched to code type and it's empty, save the default immediately so it renders
             if (style.fillType === 'code' && !style.code) {
