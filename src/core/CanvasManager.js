@@ -226,6 +226,9 @@ export class CanvasManager {
     }
 
     handleMouseDown(e) {
+        // Deselect slides on any canvas interaction
+        store.dispatch('DESELECT_SLIDES');
+
         // Middle Mouse or Space+Left Click -> Pan
         if (e.button === 1 || (e.button === 0 && this.isSpacePressed)) {
             e.preventDefault();
@@ -1024,7 +1027,36 @@ export class CanvasManager {
         // Duplicate (Ctrl+D or Cmd+D)
         if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'd') {
             e.preventDefault();
-            store.dispatch('DUPLICATE_ELEMENTS', { ids: null, offset: true });
+            const state = store.getState();
+            if (state.editor.selectedSlideIds && state.editor.selectedSlideIds.length > 0) {
+                state.editor.selectedSlideIds.forEach(id => store.dispatch('DUPLICATE_SLIDE', id));
+            } else {
+                store.dispatch('DUPLICATE_ELEMENTS', { ids: null, offset: true });
+            }
+        }
+
+        // Copy (Ctrl+C)
+        if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'c') {
+            const state = store.getState();
+            if (state.editor.selectedSlideIds && state.editor.selectedSlideIds.length > 0) {
+                e.preventDefault();
+                window.slideClipboard = state.editor.selectedSlideIds[0];
+            }
+        }
+
+        // Paste (Ctrl+V)
+        if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'v') {
+            if (window.slideClipboard) {
+                // Only paste if we are not editing text
+                const state = store.getState();
+                if (!state.editor.editingElementId) {
+                    e.preventDefault();
+                    store.dispatch('PASTE_SLIDE', { 
+                        sourceId: window.slideClipboard, 
+                        targetId: state.editor.activeSlideId 
+                    });
+                }
+            }
         }
 
         // Select All (Ctrl+A or Cmd+A)
@@ -1043,6 +1075,13 @@ export class CanvasManager {
             // If editing text, don't delete element
             const state = store.getState();
             if (state.editor.editingElementId) return;
+
+            if (state.editor.selectedSlideIds && state.editor.selectedSlideIds.length > 0) {
+                if (confirm('Delete selected slide(s)?')) {
+                    state.editor.selectedSlideIds.forEach(id => store.dispatch('DELETE_SLIDE', id));
+                }
+                return;
+            }
 
             const selectedIds = state.editor.selectedElementIds;
             if (selectedIds.length > 0) {

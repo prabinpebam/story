@@ -16,6 +16,7 @@ class Store extends EventEmitter {
             editor: {
                 mode: "edit", // 'edit', 'presentation'
                 activeSlideId: "slide-1",
+                selectedSlideIds: [], // IDs of selected slides (for operations)
                 selectedElementIds: [],
                 editingElementId: null, // ID of element currently being edited (text)
                 activeTool: "select", // 'select', 'text', 'rect', 'circle', 'hand'
@@ -60,6 +61,27 @@ class Store extends EventEmitter {
         console.log(`Action: ${type}`, payload);
 
         switch (type) {
+            case 'SELECT_SLIDE':
+                // Payload: { id, multi }
+                const { id: selectSlideId, multi } = payload;
+                if (multi) {
+                    const index = this.state.editor.selectedSlideIds.indexOf(selectSlideId);
+                    if (index === -1) {
+                        this.state.editor.selectedSlideIds.push(selectSlideId);
+                    } else {
+                        this.state.editor.selectedSlideIds.splice(index, 1);
+                    }
+                } else {
+                    this.state.editor.selectedSlideIds = [selectSlideId];
+                }
+                this.emit('state-changed', this.state);
+                break;
+
+            case 'DESELECT_SLIDES':
+                this.state.editor.selectedSlideIds = [];
+                this.emit('state-changed', this.state);
+                break;
+
             case 'SET_ACTIVE_SLIDE':
                 if (this.state.slides[payload]) {
                     this.state.editor.activeSlideId = payload;
@@ -156,6 +178,40 @@ class Store extends EventEmitter {
                 this.state.slideOrder.splice(sourceIndex + 1, 0, dupId);
                 
                 this.state.editor.activeSlideId = dupId;
+                this.emit('state-changed', this.state);
+                break;
+
+            case 'PASTE_SLIDE':
+                const { sourceId: pasteSourceId, targetId: pasteTargetId } = payload;
+                const pasteSourceSlide = this.state.slides[pasteSourceId];
+                if (!pasteSourceSlide) return;
+
+                const pasteDupId = `slide-${Date.now()}`;
+                // Deep copy elements
+                const pasteNewElements = {};
+                Object.keys(pasteSourceSlide.elements).forEach(key => {
+                    pasteNewElements[key] = { ...pasteSourceSlide.elements[key] };
+                });
+
+                const pasteDupSlide = {
+                    ...pasteSourceSlide,
+                    id: pasteDupId,
+                    title: `${pasteSourceSlide.title} (Copy)`,
+                    elements: pasteNewElements,
+                    elementOrder: [...pasteSourceSlide.elementOrder]
+                };
+
+                // Insert after target slide
+                const pasteTargetIndex = this.state.slideOrder.indexOf(pasteTargetId);
+                this.state.slides[pasteDupId] = pasteDupSlide;
+                // If target not found (shouldn't happen), append to end
+                if (pasteTargetIndex === -1) {
+                    this.state.slideOrder.push(pasteDupId);
+                } else {
+                    this.state.slideOrder.splice(pasteTargetIndex + 1, 0, pasteDupId);
+                }
+                
+                this.state.editor.activeSlideId = pasteDupId;
                 this.emit('state-changed', this.state);
                 break;
 

@@ -50,12 +50,21 @@ export class SlideList {
             state.slideOrder.forEach((slideId, index) => {
                 const slide = state.slides[slideId];
                 const isActive = slideId === state.editor.activeSlideId;
+                const isSelected = state.editor.selectedSlideIds && state.editor.selectedSlideIds.includes(slideId);
                 
                 const item = document.createElement('div');
-                item.className = `slide-thumbnail ${isActive ? 'active' : ''}`;
+                item.className = `slide-thumbnail ${isActive ? 'active' : ''} ${isSelected ? 'selected' : ''}`;
                 item.style.padding = '12px';
-                item.style.backgroundColor = isActive ? 'var(--color-bg-active)' : 'transparent';
-                item.style.border = isActive ? '1px solid var(--color-accent)' : '1px solid var(--color-border)';
+                item.style.backgroundColor = (isActive || isSelected) ? 'var(--color-bg-active)' : 'transparent';
+                
+                if (isSelected) {
+                    item.style.border = '2px solid var(--color-accent)';
+                } else if (isActive) {
+                    item.style.border = '1px solid var(--color-accent)';
+                } else {
+                    item.style.border = '1px solid var(--color-border)';
+                }
+
                 item.style.borderRadius = 'var(--radius-md)';
                 item.style.cursor = 'pointer';
                 item.style.position = 'relative';
@@ -116,42 +125,14 @@ export class SlideList {
                 
                 item.appendChild(preview);
 
-                // Actions (Delete/Duplicate) - Visible on hover or active
-                if (isActive) {
-                    const actions = document.createElement('div');
-                    actions.style.display = 'flex';
-                    actions.style.justifyContent = 'flex-end';
-                    actions.style.gap = '4px';
-                    actions.style.marginTop = '8px';
+                // Actions (Delete/Duplicate) - Removed as per request
 
-                    const dupBtn = document.createElement('button');
-                    dupBtn.className = 'icon-btn';
-                    dupBtn.innerHTML = '<i class="fa-regular fa-copy"></i>';
-                    dupBtn.title = 'Duplicate';
-                    dupBtn.onclick = (e) => {
-                        e.stopPropagation();
-                        store.dispatch('DUPLICATE_SLIDE', slideId);
-                    };
 
-                    const delBtn = document.createElement('button');
-                    delBtn.className = 'icon-btn';
-                    delBtn.innerHTML = '<i class="fa-regular fa-trash-can"></i>';
-                    delBtn.title = 'Delete';
-                    delBtn.style.color = 'var(--color-danger)';
-                    delBtn.onclick = (e) => {
-                        e.stopPropagation();
-                        if (confirm('Delete this slide?')) {
-                            store.dispatch('DELETE_SLIDE', slideId);
-                        }
-                    };
-
-                    actions.appendChild(dupBtn);
-                    actions.appendChild(delBtn);
-                    item.appendChild(actions);
-                }
-
-                item.addEventListener('click', () => {
+                // Keyboard Shortcuts - Moved to global handler (CanvasManager)
+                
+                item.addEventListener('click', (e) => {
                     store.dispatch('SET_ACTIVE_SLIDE', slideId);
+                    store.dispatch('SELECT_SLIDE', { id: slideId, multi: e.ctrlKey || e.metaKey });
                 });
 
                 // Drag and Drop
