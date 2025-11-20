@@ -960,7 +960,8 @@ return { draw };`;
                     const currentCode = style.code || '';
                     const systemPrompt = `You are an expert HTML5 Canvas artist. 
                     Generate a JavaScript object with a 'draw(time)' function. 
-                    Context: 'ctx' is the 2D context, 'width' and 'height' are available. 
+                    Context: 'ctx' is the 2D context, 'canvas' is the DOM element.
+                    ALWAYS use 'canvas.width' and 'canvas.height' for dimensions to support resizing.
                     Time 't' is passed to draw().
                     Return ONLY the code for the object. No markdown.
                     If code already exists, modify it based on the user request.
@@ -993,11 +994,71 @@ return { draw };`;
             codeContainer.appendChild(aiContainer);
             
             const textarea = document.createElement('textarea');
-            textarea.value = style.code || '';
+            // Default pastel mesh gradient animation if code is empty
+            const defaultCode = `
+return {
+    draw: function(t) {
+        // Pastel Mesh Gradient
+        const w = width;
+        const h = height;
+        
+        // Create gradient
+        const grd = ctx.createLinearGradient(0, 0, w, h);
+        
+        // Animated stops
+        const c1 = Math.sin(t * 0.5) * 50 + 200; // 150-250
+        const c2 = Math.cos(t * 0.3) * 50 + 200;
+        
+        grd.addColorStop(0, \`rgb(\${c1}, 200, 255)\`);
+        grd.addColorStop(1, \`rgb(255, \${c2}, 200)\`);
+        
+        ctx.fillStyle = grd;
+        ctx.fillRect(0, 0, w, h);
+        
+        // Floating circles
+        for(let i=0; i<5; i++) {
+            const x = (Math.sin(t * 0.2 + i) * 0.5 + 0.5) * w;
+            const y = (Math.cos(t * 0.3 + i) * 0.5 + 0.5) * h;
+            const r = 100 + Math.sin(t + i) * 50;
+            
+            ctx.beginPath();
+            ctx.arc(x, y, r, 0, Math.PI * 2);
+            ctx.fillStyle = \`rgba(255, 255, 255, 0.2)\`;
+            ctx.fill();
+        }
+    }
+};`;
+            
+            if (!style.code) {
+                // If no code exists, set default but don't save it yet unless user edits?
+                // Or maybe we should save it immediately so it renders?
+                // Let's just show it in textarea, and if they switch type it might be lost if not saved.
+                // Better to save it if they explicitly chose 'code' type.
+                // But here we are just rendering the inspector.
+                // If style.code is empty, we can show default in textarea.
+                textarea.value = defaultCode.trim();
+                // Also trigger update so it renders immediately?
+                // This might cause infinite loop if not careful.
+                // Let's just set the value. If they click away, it won't save unless we bind change.
+            } else {
+                textarea.value = style.code;
+            }
+
             textarea.style.width = '100%';
             textarea.style.height = '200px';
             textarea.style.background = 'var(--bg-well)';
             textarea.style.color = 'var(--text-primary)';
+
+            // If we just switched to code type and it's empty, save the default immediately so it renders
+            if (style.fillType === 'code' && !style.code) {
+                setTimeout(() => {
+                    this.updateStyle(selection, 'code', defaultCode.trim());
+                }, 0);
+            }
+
+            textarea.onchange = (e) => {
+                this.updateStyle(selection, 'code', e.target.value);
+            };
             textarea.style.border = '1px solid var(--border-color)';
             textarea.style.fontFamily = 'var(--font-mono)';
             textarea.style.fontSize = '11px';
