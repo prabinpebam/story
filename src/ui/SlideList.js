@@ -54,9 +54,9 @@ export class SlideList {
                 const item = document.createElement('div');
                 item.className = `slide-thumbnail ${isActive ? 'active' : ''}`;
                 item.style.padding = '12px';
-                item.style.backgroundColor = isActive ? 'var(--bg-well)' : 'transparent';
-                item.style.border = isActive ? '1px solid var(--te-orange)' : '1px solid var(--border-color)';
-                item.style.borderRadius = '4px';
+                item.style.backgroundColor = isActive ? 'var(--color-bg-active)' : 'transparent';
+                item.style.border = isActive ? '1px solid var(--color-accent)' : '1px solid var(--color-border)';
+                item.style.borderRadius = 'var(--radius-md)';
                 item.style.cursor = 'pointer';
                 item.style.position = 'relative';
                 item.style.transition = 'all 0.2s ease';
@@ -71,16 +71,17 @@ export class SlideList {
                 const number = document.createElement('span');
                 number.innerText = index + 1;
                 number.style.fontFamily = 'var(--font-mono)';
-                number.style.fontSize = '10px';
-                number.style.color = 'var(--text-secondary)';
+                number.style.fontSize = 'var(--font-size-xs)';
+                number.style.color = 'var(--color-text-secondary)';
                 
                 const slideTitle = document.createElement('span');
                 slideTitle.innerText = slide.title || `Slide ${index + 1}`;
-                slideTitle.style.fontSize = '12px';
-                slideTitle.style.fontWeight = '500';
+                slideTitle.style.fontSize = 'var(--font-size-md)';
+                slideTitle.style.fontWeight = 'var(--font-weight-medium)';
                 slideTitle.style.whiteSpace = 'nowrap';
                 slideTitle.style.overflow = 'hidden';
                 slideTitle.style.textOverflow = 'ellipsis';
+                slideTitle.style.color = 'var(--color-text-primary)';
 
                 info.appendChild(number);
                 info.appendChild(slideTitle);
@@ -91,9 +92,10 @@ export class SlideList {
                 preview.style.width = '100%';
                 preview.style.aspectRatio = '16/9';
                 preview.style.backgroundColor = 'white';
-                preview.style.border = '1px solid var(--border-color)';
+                preview.style.border = '1px solid var(--color-border)';
                 preview.style.position = 'relative';
                 preview.style.overflow = 'hidden';
+                preview.style.borderRadius = 'var(--radius-sm)';
                 
                 // Mini representation of elements
                 if (slide.elements) {
@@ -135,7 +137,7 @@ export class SlideList {
                     delBtn.className = 'icon-btn';
                     delBtn.innerHTML = '<i class="fa-regular fa-trash-can"></i>';
                     delBtn.title = 'Delete';
-                    delBtn.style.color = 'var(--te-orange)';
+                    delBtn.style.color = 'var(--color-danger)';
                     delBtn.onclick = (e) => {
                         e.stopPropagation();
                         if (confirm('Delete this slide?')) {
@@ -177,11 +179,11 @@ export class SlideList {
                     const rect = item.getBoundingClientRect();
                     const midpoint = rect.top + rect.height / 2;
                     if (e.clientY < midpoint) {
-                        item.style.borderTop = '2px solid var(--te-orange)';
+                        item.style.borderTop = '2px solid var(--color-accent)';
                         item.style.borderBottom = '';
                     } else {
                         item.style.borderTop = '';
-                        item.style.borderBottom = '2px solid var(--te-orange)';
+                        item.style.borderBottom = '2px solid var(--color-accent)';
                     }
                 });
 

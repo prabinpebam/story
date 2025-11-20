@@ -119,7 +119,7 @@ export class Knob {
         ctx.beginPath();
         ctx.moveTo(cx, cy);
         ctx.lineTo(tx, ty);
-        ctx.strokeStyle = '#FF4D00'; // TE Orange
+        ctx.strokeStyle = '#18A0FB'; // Figma Blue (Accent)
         ctx.lineWidth = 4;
         ctx.stroke();
     }

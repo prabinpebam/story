@@ -24,9 +24,9 @@ export class MathInput {
         input.style.width = '100%';
         input.style.background = 'transparent';
         input.style.border = 'none';
-        input.style.color = 'var(--text-primary)';
-        input.style.fontFamily = 'var(--font-mono)';
-        input.style.fontSize = '11px';
+        input.style.color = 'var(--color-text-primary)';
+        input.style.fontFamily = 'var(--font-ui)';
+        input.style.fontSize = 'var(--font-size-sm)';
         input.style.outline = 'none';
         input.style.padding = '2px 0';
 

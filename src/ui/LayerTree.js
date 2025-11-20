@@ -90,14 +90,17 @@ export class LayerTree {
         // Styles
         item.style.display = 'flex';
         item.style.alignItems = 'center';
-        item.style.padding = '6px 8px';
+        item.style.height = '28px';
+        item.style.padding = '0 8px';
         item.style.paddingLeft = `${8 + depth * 16}px`;
-        item.style.backgroundColor = isSelected ? 'var(--bg-well)' : 'transparent';
-        item.style.color = isSelected ? 'var(--text-primary)' : 'var(--text-secondary)';
+        item.style.backgroundColor = isSelected ? 'var(--color-bg-active)' : 'transparent';
+        item.style.color = isSelected ? 'var(--color-accent)' : 'var(--color-text-primary)';
         item.style.cursor = 'pointer';
-        item.style.fontSize = '11px';
+        item.style.fontSize = 'var(--font-size-sm)';
         item.style.userSelect = 'none';
         item.style.border = '1px solid transparent'; // For drop indication
+        item.style.borderRadius = 'var(--radius-sm)';
+        item.style.margin = '1px 4px'; // Small gap between items
         item.style.position = 'relative';
 
         // Icon
@@ -182,7 +185,7 @@ export class LayerTree {
         const lockBtn = document.createElement('i');
         lockBtn.className = el.locked ? 'fa-solid fa-lock' : 'fa-solid fa-lock-open';
         lockBtn.style.fontSize = '10px';
-        lockBtn.style.color = el.locked ? 'var(--te-orange)' : 'var(--text-secondary)';
+        lockBtn.style.color = el.locked ? 'var(--color-text-primary)' : 'var(--color-text-secondary)';
         lockBtn.onclick = (e) => {
             e.stopPropagation();
             store.dispatch('TOGGLE_ELEMENT_LOCK', { id: el.id });
@@ -192,7 +195,7 @@ export class LayerTree {
         const visBtn = document.createElement('i');
         visBtn.className = el.hidden ? 'fa-solid fa-eye-slash' : 'fa-solid fa-eye';
         visBtn.style.fontSize = '10px';
-        visBtn.style.color = el.hidden ? 'var(--text-secondary)' : 'var(--text-secondary)';
+        visBtn.style.color = el.hidden ? 'var(--color-text-secondary)' : 'var(--color-text-secondary)';
         visBtn.onclick = (e) => {
             e.stopPropagation();
             store.dispatch('TOGGLE_ELEMENT_VISIBILITY', { id: el.id });
@@ -242,21 +245,21 @@ export class LayerTree {
             // Reset styles
             item.style.borderTop = '1px solid transparent';
             item.style.borderBottom = '1px solid transparent';
-            item.style.backgroundColor = isSelected ? 'var(--bg-well)' : 'transparent';
+            item.style.backgroundColor = isSelected ? 'var(--color-bg-active)' : 'transparent';
 
             if (relY < rect.height * 0.25) {
                 this.dropPosition = 'before';
-                item.style.borderTop = '2px solid var(--te-orange)';
+                item.style.borderTop = '2px solid var(--color-accent)';
             } else if (relY > rect.height * 0.75) {
                 this.dropPosition = 'after';
-                item.style.borderBottom = '2px solid var(--te-orange)';
+                item.style.borderBottom = '2px solid var(--color-accent)';
             } else {
                 if (el.type === 'group') {
                     this.dropPosition = 'inside';
-                    item.style.backgroundColor = 'rgba(255, 77, 0, 0.1)';
+                    item.style.backgroundColor = 'var(--color-selection)';
                 } else {
                     this.dropPosition = 'after'; // Default to after for non-groups
-                    item.style.borderBottom = '2px solid var(--te-orange)';
+                    item.style.borderBottom = '2px solid var(--color-accent)';
                 }
             }
         });
@@ -264,7 +267,7 @@ export class LayerTree {
         item.addEventListener('dragleave', () => {
             item.style.borderTop = '1px solid transparent';
             item.style.borderBottom = '1px solid transparent';
-            item.style.backgroundColor = isSelected ? 'var(--bg-well)' : 'transparent';
+            item.style.backgroundColor = isSelected ? 'var(--color-bg-active)' : 'transparent';
         });
 
         item.addEventListener('drop', (e) => {

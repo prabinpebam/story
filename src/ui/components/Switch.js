@@ -24,8 +24,8 @@ export class Switch {
         const track = document.createElement('div');
         track.style.width = '32px';
         track.style.height = '16px';
-        track.style.backgroundColor = this.value ? 'var(--te-orange)' : 'var(--bg-well)';
-        track.style.borderRadius = '2px'; // Mechanical look, slightly rounded
+        track.style.backgroundColor = this.value ? 'var(--color-accent)' : 'var(--color-bg-well)';
+        track.style.borderRadius = '8px'; // Rounded pill
         track.style.position = 'relative';
         track.style.cursor = 'pointer';
         track.style.transition = 'background-color 0.2s ease';
@@ -35,7 +35,7 @@ export class Switch {
         thumb.style.width = '12px';
         thumb.style.height = '12px';
         thumb.style.backgroundColor = 'white';
-        thumb.style.borderRadius = '1px';
+        thumb.style.borderRadius = '50%'; // Circle
         thumb.style.position = 'absolute';
         thumb.style.top = '2px';
         thumb.style.left = this.value ? '18px' : '2px';
@@ -50,7 +50,7 @@ export class Switch {
             this.value = !this.value;
             
             // Update Visuals
-            track.style.backgroundColor = this.value ? 'var(--te-orange)' : 'var(--bg-well)';
+            track.style.backgroundColor = this.value ? 'var(--color-accent)' : 'var(--color-bg-well)';
             thumb.style.left = this.value ? '18px' : '2px';
 
             if (this.onChange) this.onChange(this.value);

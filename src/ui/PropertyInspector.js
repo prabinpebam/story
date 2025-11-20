@@ -69,8 +69,8 @@ export class PropertyInspector {
         // Dimensions
         const dimRow = document.createElement('div');
         dimRow.style.display = 'flex';
-        dimRow.style.gap = '8px';
-        dimRow.style.marginBottom = '16px';
+        dimRow.style.gap = 'var(--spacing-2)';
+        dimRow.style.marginBottom = 'var(--spacing-3)';
         
         const wControl = new ScrubbableControl('W', slide.width, (val) => {
             store.dispatch('UPDATE_SLIDE', { id: slide.id, width: Math.max(100, val) });
@@ -87,15 +87,15 @@ export class PropertyInspector {
         // Background
         const bgLabel = document.createElement('div');
         bgLabel.innerText = 'Background';
-        bgLabel.style.fontSize = '11px';
-        bgLabel.style.color = 'var(--text-secondary)';
-        bgLabel.style.marginBottom = '8px';
+        bgLabel.style.fontSize = 'var(--font-size-xs)';
+        bgLabel.style.color = 'var(--color-text-secondary)';
+        bgLabel.style.marginBottom = 'var(--spacing-2)';
         content.appendChild(bgLabel);
 
         const bgTypeSelect = document.createElement('select');
         bgTypeSelect.className = 'input-select';
         bgTypeSelect.style.width = '100%';
-        bgTypeSelect.style.marginBottom = '8px';
+        bgTypeSelect.style.marginBottom = 'var(--spacing-2)';
         
         ['Solid', 'Gradient', 'Code'].forEach(type => {
             const opt = document.createElement('option');
@@ -176,47 +176,48 @@ return {
             
             // AI Chat Interface
             const aiContainer = document.createElement('div');
-            aiContainer.style.marginBottom = '8px';
-            aiContainer.style.background = 'var(--bg-well)';
-            aiContainer.style.padding = '8px';
-            aiContainer.style.borderRadius = '4px';
+            aiContainer.style.marginBottom = 'var(--spacing-2)';
+            aiContainer.style.background = 'var(--color-bg-well)';
+            aiContainer.style.padding = 'var(--spacing-2)';
+            aiContainer.style.borderRadius = 'var(--radius-md)';
             
             const aiLabel = document.createElement('div');
             aiLabel.innerText = 'AI Generator';
-            aiLabel.style.fontSize = '10px';
-            aiLabel.style.fontWeight = '600';
-            aiLabel.style.marginBottom = '4px';
-            aiLabel.style.color = 'var(--text-secondary)';
+            aiLabel.style.fontSize = 'var(--font-size-xs)';
+            aiLabel.style.fontWeight = 'var(--font-weight-bold)';
+            aiLabel.style.marginBottom = 'var(--spacing-1)';
+            aiLabel.style.color = 'var(--color-text-secondary)';
             
             const promptInput = document.createElement('textarea');
             promptInput.placeholder = 'Describe an animation...';
             promptInput.style.width = '100%';
             promptInput.style.height = '60px';
-            promptInput.style.background = 'var(--bg-panel)';
-            promptInput.style.border = '1px solid var(--border-color)';
-            promptInput.style.color = 'var(--text-primary)';
-            promptInput.style.fontSize = '11px';
-            promptInput.style.padding = '4px';
+            promptInput.style.background = 'var(--color-bg-panel)';
+            promptInput.style.border = '1px solid var(--color-border)';
+            promptInput.style.color = 'var(--color-text-primary)';
+            promptInput.style.fontSize = 'var(--font-size-sm)';
+            promptInput.style.padding = 'var(--spacing-1)';
             promptInput.style.resize = 'none';
-            promptInput.style.marginBottom = '8px';
+            promptInput.style.marginBottom = 'var(--spacing-2)';
+            promptInput.style.borderRadius = 'var(--radius-sm)';
 
             // Buttons Row
             const btnRow = document.createElement('div');
             btnRow.style.display = 'flex';
-            btnRow.style.gap = '8px';
-            btnRow.style.marginBottom = '8px';
+            btnRow.style.gap = 'var(--spacing-2)';
+            btnRow.style.marginBottom = 'var(--spacing-2)';
 
             const newBtn = document.createElement('button');
             newBtn.className = 'btn-secondary';
             newBtn.innerText = 'New';
             newBtn.style.flex = '1';
-            newBtn.style.fontSize = '11px';
+            newBtn.style.fontSize = 'var(--font-size-sm)';
             
             const updateBtn = document.createElement('button');
             updateBtn.className = 'btn-primary';
             updateBtn.innerText = 'Update';
             updateBtn.style.flex = '1';
-            updateBtn.style.fontSize = '11px';
+            updateBtn.style.fontSize = 'var(--font-size-sm)';
 
             btnRow.appendChild(newBtn);
             btnRow.appendChild(updateBtn);
@@ -836,7 +837,7 @@ return {
                 // No default image, user must select
                 updates.fillScaleMode = 'cover';
             } else if (newType === 'mesh' && !style.meshColors) {
-                updates.meshColors = ['#FF4D00', '#0055FF', '#00FF41', '#FF0080'];
+                updates.meshColors = ['#18A0FB', '#F24822', '#1BC47D', '#FF0080']; // Blue, Red, Green, Pink
             } else if (newType === 'code' && !style.code) {
                 updates.code = `
 return {
@@ -1039,7 +1040,7 @@ return {
             meshRow.style.gap = '8px';
             meshRow.style.marginBottom = '8px';
 
-            const colors = style.meshColors || ['#FF4D00', '#0055FF', '#00FF41', '#FF0080'];
+            const colors = style.meshColors || ['#18A0FB', '#F24822', '#1BC47D', '#FF0080'];
 
             colors.forEach((color, index) => {
                 const colorInput = document.createElement('input');
