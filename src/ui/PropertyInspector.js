@@ -431,14 +431,30 @@ export class PropertyInspector {
             const newType = e.target.value;
             const updates = { fillType: newType };
             
-            if (newType === 'gradient' && !style.fillValue) {
-                // Set default gradient if switching to it
-                updates.fillValue = `linear-gradient(180deg, ${style.backgroundColor || '#D9D9D9'} 0%, #000000 100%)`;
-                updates.gradientAngle = 180;
-                updates.gradientStops = [
-                    { color: style.backgroundColor || '#D9D9D9', position: 0 },
-                    { color: '#000000', position: 100 }
-                ];
+            if (newType === 'gradient') {
+                // Initialize or Restore Gradient
+                if (style.gradientStops) {
+                    // Restore from existing state
+                    const angle = style.gradientAngle !== undefined ? style.gradientAngle : 180;
+                    const type = style.gradientType || 'linear';
+                    const stops = style.gradientStops;
+                    const stopsString = stops.map(s => `${s.color} ${s.position}%`).join(', ');
+                    
+                    let gradientString = '';
+                    if (type === 'linear') gradientString = `linear-gradient(${angle}deg, ${stopsString})`;
+                    else if (type === 'radial') gradientString = `radial-gradient(circle, ${stopsString})`;
+                    else if (type === 'conic') gradientString = `conic-gradient(from ${angle}deg, ${stopsString})`;
+                    
+                    updates.fillValue = gradientString;
+                } else {
+                    // Set default gradient
+                    updates.fillValue = `linear-gradient(180deg, ${style.backgroundColor || '#D9D9D9'} 0%, #000000 100%)`;
+                    updates.gradientAngle = 180;
+                    updates.gradientStops = [
+                        { color: style.backgroundColor || '#D9D9D9', position: 0 },
+                        { color: '#000000', position: 100 }
+                    ];
+                }
             } else if (newType === 'image' && !style.fillValue) {
                 // No default image, user must select
                 updates.fillScaleMode = 'cover';
@@ -542,11 +558,14 @@ return { draw };`;
                 colorInput.style.background = 'none';
                 colorInput.style.cursor = 'pointer';
 
-                colorInput.addEventListener('change', (e) => {
+                const updateStopColor = (e) => {
                     const newStops = [...stops];
                     newStops[index] = { ...newStops[index], color: e.target.value };
                     this.updateGradient(element, { stops: newStops });
-                });
+                };
+
+                colorInput.addEventListener('input', updateStopColor);
+                colorInput.addEventListener('change', updateStopColor); // Fallback
 
                 stopContainer.appendChild(colorInput);
                 

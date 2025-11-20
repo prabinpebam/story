@@ -167,7 +167,6 @@ export class SlideRenderer {
                  
                  if (el.style?.fillType === 'gradient') {
                     div.style.background = el.style.fillValue;
-                    div.style.backgroundImage = ''; // Clear image if any
                  } else if (el.style?.fillType === 'image') {
                     div.style.backgroundImage = `url(${el.style.fillValue})`;
                     div.style.backgroundSize = el.style.fillScaleMode || 'cover';
