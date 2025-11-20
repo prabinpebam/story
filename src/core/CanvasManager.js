@@ -48,6 +48,16 @@ export class CanvasManager {
             this.updateViewportTransform(viewport);
         });
 
+        store.on('mode-changed', (mode) => {
+            if (mode === 'presentation') {
+                // Force fit to view after a short delay to allow layout to settle
+                setTimeout(() => this.fitToView(), 100);
+            } else {
+                // Reset or fit to view again
+                setTimeout(() => this.fitToView(), 100);
+            }
+        });
+
         this.bindEvents();
 
         // Initial Fit to View
@@ -614,6 +624,16 @@ export class CanvasManager {
             // Also update background if it needs to move (or keep it static depending on design)
             this.backgroundLayer.style.transformOrigin = '0 0';
             this.backgroundLayer.style.transform = `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`;
+
+            // Ensure dimensions are set
+            const state = store.getState();
+            const slide = state.slides[state.editor.activeSlideId];
+            if (slide) {
+                this.contentLayer.style.width = `${slide.width}px`;
+                this.contentLayer.style.height = `${slide.height}px`;
+                this.backgroundLayer.style.width = `${slide.width}px`;
+                this.backgroundLayer.style.height = `${slide.height}px`;
+            }
 
             // Update Zoom Display
             const zoomDisplay = document.getElementById('zoom-display');

@@ -49,6 +49,9 @@ export class PropertyInspector {
 
         // Effects (Shadow)
         this.renderEffectsProperties(element);
+
+        // Animations
+        this.renderAnimationProperties(element);
     }
 
     renderEmptyState() {
@@ -416,7 +419,7 @@ export class PropertyInspector {
         fillTypeSelect.style.textAlign = 'right';
         fillTypeSelect.style.cursor = 'pointer';
 
-        ['Solid', 'Gradient', 'Image'].forEach(type => {
+        ['Solid', 'Gradient', 'Image', 'Mesh', 'Code'].forEach(type => {
             const opt = document.createElement('option');
             opt.value = type.toLowerCase();
             opt.text = type;
@@ -439,6 +442,25 @@ export class PropertyInspector {
             } else if (newType === 'image' && !style.fillValue) {
                 // No default image, user must select
                 updates.fillScaleMode = 'cover';
+            } else if (newType === 'mesh' && !style.meshColors) {
+                updates.meshColors = ['#FF4D00', '#0055FF', '#00FF41', '#FF0080'];
+            } else if (newType === 'code' && !style.code) {
+                updates.code = `// Available: ctx, width, height, time
+ctx.fillStyle = '#000';
+ctx.fillRect(0, 0, width, height);
+
+function draw(t) {
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
+    ctx.fillRect(0, 0, width, height);
+    
+    ctx.fillStyle = '#00FF41';
+    const x = Math.sin(t) * 100 + width/2;
+    const y = Math.cos(t) * 100 + height/2;
+    ctx.beginPath();
+    ctx.arc(x, y, 20, 0, Math.PI*2);
+    ctx.fill();
+}
+return { draw };`;
             }
 
             this.updateStyle(element, 'fillType', newType); // This will trigger re-render
@@ -453,16 +475,45 @@ export class PropertyInspector {
 
         // Fill Controls based on Type
         if (style.fillType === 'gradient') {
-            // Gradient Controls
-            // 1. Angle
-            const angleRow = document.createElement('div');
-            angleRow.style.marginBottom = '8px';
-            const angleControl = new ScrubbableControl('Angle', style.gradientAngle || 180, (val) => {
-                const angle = val % 360;
-                this.updateGradient(element, { angle });
+            // Gradient Type Selector
+            const typeRow = document.createElement('div');
+            typeRow.style.display = 'flex';
+            typeRow.style.marginBottom = '8px';
+            
+            const typeSelect = document.createElement('select');
+            typeSelect.className = 'input-select';
+            typeSelect.style.width = '100%';
+            typeSelect.style.background = 'var(--bg-well)';
+            typeSelect.style.border = 'none';
+            typeSelect.style.padding = '4px';
+            typeSelect.style.color = 'var(--text-primary)';
+            
+            ['Linear', 'Radial', 'Conic'].forEach(t => {
+                const opt = document.createElement('option');
+                opt.value = t.toLowerCase();
+                opt.innerText = t;
+                if ((style.gradientType || 'linear') === t.toLowerCase()) opt.selected = true;
+                typeSelect.appendChild(opt);
             });
-            angleRow.appendChild(angleControl.element);
-            content.appendChild(angleRow);
+            
+            typeSelect.onchange = (e) => {
+                this.updateGradient(element, { type: e.target.value });
+            };
+            
+            typeRow.appendChild(typeSelect);
+            content.appendChild(typeRow);
+
+            // Angle (Only for Linear and Conic)
+            if (!style.gradientType || style.gradientType === 'linear' || style.gradientType === 'conic') {
+                const angleRow = document.createElement('div');
+                angleRow.style.marginBottom = '8px';
+                const angleControl = new ScrubbableControl('Angle', style.gradientAngle !== undefined ? style.gradientAngle : 180, (val) => {
+                    const angle = Math.round(val) % 360;
+                    this.updateGradient(element, { angle });
+                });
+                angleRow.appendChild(angleControl.element);
+                content.appendChild(angleRow);
+            }
 
             // 2. Stops (Simplified: Start & End)
             const stops = style.gradientStops || [
@@ -570,6 +621,74 @@ export class PropertyInspector {
 
             content.appendChild(imgRow);
 
+        } else if (style.fillType === 'mesh') {
+            // Mesh Controls (4 Colors)
+            const meshRow = document.createElement('div');
+            meshRow.style.display = 'grid';
+            meshRow.style.gridTemplateColumns = '1fr 1fr';
+            meshRow.style.gap = '8px';
+            meshRow.style.marginBottom = '8px';
+
+            const colors = style.meshColors || ['#FF4D00', '#0055FF', '#00FF41', '#FF0080'];
+
+            colors.forEach((color, index) => {
+                const colorInput = document.createElement('input');
+                colorInput.type = 'color';
+                colorInput.value = color;
+                colorInput.style.width = '100%';
+                colorInput.style.height = '24px';
+                colorInput.style.border = 'none';
+                colorInput.style.padding = '0';
+                colorInput.style.background = 'none';
+                colorInput.style.cursor = 'pointer';
+                
+                colorInput.addEventListener('change', (e) => {
+                    const newColors = [...colors];
+                    newColors[index] = e.target.value;
+                    this.updateStyle(element, 'meshColors', newColors);
+                });
+                
+                meshRow.appendChild(colorInput);
+            });
+            
+            content.appendChild(meshRow);
+
+        } else if (style.fillType === 'code') {
+            // Code Editor
+            const codeContainer = document.createElement('div');
+            codeContainer.style.marginBottom = '8px';
+            
+            const textarea = document.createElement('textarea');
+            textarea.value = style.code || '';
+            textarea.style.width = '100%';
+            textarea.style.height = '200px';
+            textarea.style.background = 'var(--bg-well)';
+            textarea.style.color = 'var(--text-primary)';
+            textarea.style.border = '1px solid var(--border-color)';
+            textarea.style.fontFamily = 'var(--font-mono)';
+            textarea.style.fontSize = '11px';
+            textarea.style.padding = '8px';
+            textarea.style.resize = 'vertical';
+            textarea.spellcheck = false;
+            
+            // Debounce update
+            let timeout;
+            textarea.addEventListener('input', (e) => {
+                clearTimeout(timeout);
+                timeout = setTimeout(() => {
+                    this.updateStyle(element, 'code', e.target.value);
+                }, 500);
+            });
+            
+            codeContainer.appendChild(textarea);
+            content.appendChild(codeContainer);
+            
+            const helpText = document.createElement('div');
+            helpText.innerText = 'Return an object with a draw(time) function for animation.';
+            helpText.style.fontSize = '10px';
+            helpText.style.color = 'var(--text-secondary)';
+            content.appendChild(helpText);
+
         } else {
             // Solid Color
             const colorRow = document.createElement('div');
@@ -675,200 +794,93 @@ export class PropertyInspector {
         this.container.appendChild(group);
     }
 
-    updateGradient(element, { angle, stops }) {
-        const style = element.style || {};
-        const currentAngle = angle !== undefined ? angle : (style.gradientAngle || 180);
-        const currentStops = stops || (style.gradientStops || [
-            { color: '#D9D9D9', position: 0 },
-            { color: '#000000', position: 100 }
-        ]);
-
-        // Construct CSS gradient string
-        // linear-gradient(180deg, color1 0%, color2 100%)
-        const stopsStr = currentStops.map(s => `${s.color} ${s.position}%`).join(', ');
-        const gradientStr = `linear-gradient(${currentAngle}deg, ${stopsStr})`;
-
-        const newStyle = {
-            ...style,
-            gradientAngle: currentAngle,
-            gradientStops: currentStops,
-            fillValue: gradientStr
-        };
-
-        store.dispatch('UPDATE_ELEMENT', { id: element.id, style: newStyle });
-    }
-
-    renderImageProperties(element) {
-        const { group, content } = this.createControlGroup('IMAGE');
-        const style = element.style || {};
-
-        // Opacity
-        const row = document.createElement('div');
-        row.style.display = 'flex';
-        row.style.gap = '8px';
-        row.style.marginBottom = '8px';
-
-        const opacityControl = new ScrubbableControl('Opacity', (element.opacity !== undefined ? element.opacity : 1) * 100, (val) => {
-            this.updateProperty(element.id, 'opacity', Math.min(100, Math.max(0, val)) / 100);
-        }, { min: 0, max: 100, step: 1 });
-        row.appendChild(opacityControl.element);
-
-        content.appendChild(row);
-        this.container.appendChild(group);
-    }
-
-    renderEffectsProperties(element) {
-        const { group, content } = this.createControlGroup('EFFECTS');
-        const style = element.style || {};
-        const shadow = style.dropShadow;
-        const blur = style.blur;
-
-        // --- Drop Shadow ---
-        const shadowHeader = document.createElement('div');
-        shadowHeader.style.display = 'flex';
-        shadowHeader.style.justifyContent = 'space-between';
-        shadowHeader.style.alignItems = 'center';
-        shadowHeader.style.marginBottom = '8px';
-
-        const shadowLabel = document.createElement('span');
-        shadowLabel.innerText = 'Drop Shadow';
-        shadowLabel.style.fontSize = '11px';
-        shadowLabel.style.color = 'var(--text-secondary)';
+    renderAnimationProperties(element) {
+        const { group, content } = this.createControlGroup('Animations', false);
         
-        const shadowToggle = document.createElement('input');
-        shadowToggle.type = 'checkbox';
-        shadowToggle.checked = !!shadow;
-        shadowToggle.onchange = (e) => {
-            if (e.target.checked) {
-                this.updateStyle(element, 'dropShadow', { x: 0, y: 4, blur: 4, spread: 0, color: '#00000040' });
-            } else {
-                this.updateStyle(element, 'dropShadow', null);
-            }
+        const animations = element.animations || { entrance: 'none', exit: 'none', duration: 1000, delay: 0 };
+
+        // Entrance
+        const entranceRow = document.createElement('div');
+        entranceRow.className = 'control-row';
+        
+        const entranceLabel = document.createElement('label');
+        entranceLabel.innerText = 'Entrance';
+        
+        const entranceSelect = document.createElement('select');
+        entranceSelect.className = 'input-select';
+        ['none', 'fade-in', 'slide-in-left', 'slide-in-right', 'slide-in-bottom', 'slide-in-top', 'zoom-in'].forEach(opt => {
+            const option = document.createElement('option');
+            option.value = opt;
+            option.innerText = opt.replace(/-/g, ' ');
+            if (animations.entrance === opt) option.selected = true;
+            entranceSelect.appendChild(option);
+        });
+        
+        entranceSelect.onchange = (e) => {
+            this.updateAnimation(element, 'entrance', e.target.value);
         };
         
-        shadowHeader.appendChild(shadowLabel);
-        shadowHeader.appendChild(shadowToggle);
-        content.appendChild(shadowHeader);
+        entranceRow.appendChild(entranceLabel);
+        entranceRow.appendChild(entranceSelect);
+        content.appendChild(entranceRow);
 
-        if (shadow) {
-            // X / Y
-            const posRow = document.createElement('div');
-            posRow.style.display = 'flex';
-            posRow.style.gap = '8px';
-            posRow.style.marginBottom = '8px';
-            
-            posRow.appendChild(new ScrubbableControl('X', shadow.x, v => this.updateShadow(element, 'x', v)).element);
-            posRow.appendChild(new ScrubbableControl('Y', shadow.y, v => this.updateShadow(element, 'y', v)).element);
-            content.appendChild(posRow);
+        // Exit
+        const exitRow = document.createElement('div');
+        exitRow.className = 'control-row';
+        
+        const exitLabel = document.createElement('label');
+        exitLabel.innerText = 'Exit';
+        
+        const exitSelect = document.createElement('select');
+        exitSelect.className = 'input-select';
+        ['none', 'fade-out', 'slide-out-left', 'slide-out-right', 'slide-out-bottom', 'slide-out-top', 'zoom-out'].forEach(opt => {
+            const option = document.createElement('option');
+            option.value = opt;
+            option.innerText = opt.replace(/-/g, ' ');
+            if (animations.exit === opt) option.selected = true;
+            exitSelect.appendChild(option);
+        });
+        
+        exitSelect.onchange = (e) => {
+            this.updateAnimation(element, 'exit', e.target.value);
+        };
+        
+        exitRow.appendChild(exitLabel);
+        exitRow.appendChild(exitSelect);
+        content.appendChild(exitRow);
 
-            // Blur / Spread
-            const blurRow = document.createElement('div');
-            blurRow.style.display = 'flex';
-            blurRow.style.gap = '8px';
-            blurRow.style.marginBottom = '8px';
-            
-            blurRow.appendChild(new ScrubbableControl('Blur', shadow.blur, v => this.updateShadow(element, 'blur', Math.max(0, v))).element);
-            // Spread only for non-text
-            if (element.type !== 'text') {
-                blurRow.appendChild(new ScrubbableControl('Spread', shadow.spread, v => this.updateShadow(element, 'spread', v)).element);
-            }
-            content.appendChild(blurRow);
+        // Duration & Delay
+        const timingRow = document.createElement('div');
+        timingRow.style.display = 'flex';
+        timingRow.style.gap = '8px';
+        timingRow.style.marginBottom = '8px';
 
-            // Color & Opacity
-            const colorRow = document.createElement('div');
-            colorRow.style.display = 'flex';
-            colorRow.style.alignItems = 'center';
-            colorRow.style.justifyContent = 'space-between';
-            colorRow.style.marginBottom = '8px';
+        const durationControl = new ScrubbableControl('Duration', animations.duration || 1000, (val) => {
+            this.updateAnimation(element, 'duration', Math.max(0, val));
+        });
+        
+        const delayControl = new ScrubbableControl('Delay', animations.delay || 0, (val) => {
+            this.updateAnimation(element, 'delay', Math.max(0, val));
+        });
 
-            const colorLabel = document.createElement('span');
-            colorLabel.innerText = 'Color';
-            colorLabel.style.fontSize = '11px';
-            colorLabel.style.color = 'var(--text-secondary)';
+        timingRow.appendChild(durationControl.element);
+        timingRow.appendChild(delayControl.element);
+        content.appendChild(timingRow);
 
-            const colorInput = document.createElement('input');
-            colorInput.type = 'color';
-            // Parse hex from shadow.color (handle #RRGGBBAA)
-            const hex = shadow.color.startsWith('#') ? shadow.color : '#000000';
-            colorInput.value = hex.slice(0, 7);
-            
-            colorInput.style.width = '20px';
-            colorInput.style.height = '20px';
-            colorInput.style.border = 'none';
-            colorInput.style.padding = '0';
-            colorInput.style.background = 'none';
-            colorInput.style.cursor = 'pointer';
-
-            colorInput.addEventListener('change', (e) => {
-                // Preserve alpha
-                const currentAlpha = this.getAlphaFromHex(shadow.color);
-                const newHex = e.target.value + currentAlpha;
-                this.updateShadow(element, 'color', newHex);
+        // Preview Button
+        const previewBtn = document.createElement('button');
+        previewBtn.className = 'btn-secondary';
+        previewBtn.innerText = 'Preview';
+        previewBtn.style.width = '100%';
+        previewBtn.onclick = () => {
+            import('../core/AnimationManager.js').then(({ animationManager }) => {
+                const domEl = document.getElementById(element.id);
+                if (domEl) {
+                    animationManager.playElementAnimation(domEl, animations);
+                }
             });
-
-            colorRow.appendChild(colorLabel);
-            colorRow.appendChild(colorInput);
-            content.appendChild(colorRow);
-            
-            // Opacity Slider for Shadow
-            const opacityRow = document.createElement('div');
-            opacityRow.style.display = 'flex';
-            opacityRow.style.marginBottom = '16px'; // Extra spacing before next effect
-            
-            const currentAlphaInt = parseInt(this.getAlphaFromHex(shadow.color), 16);
-            const opacityPercent = Math.round((currentAlphaInt / 255) * 100);
-            
-            const opacityControl = new ScrubbableControl('Opacity', opacityPercent, (val) => {
-                const alpha = Math.min(255, Math.max(0, Math.round((val / 100) * 255)));
-                const alphaHex = alpha.toString(16).padStart(2, '0');
-                const baseHex = shadow.color.slice(0, 7);
-                this.updateShadow(element, 'color', baseHex + alphaHex);
-            }, { min: 0, max: 100 });
-            
-            opacityRow.appendChild(opacityControl.element);
-            content.appendChild(opacityRow);
-        }
-
-        // --- Layer Blur ---
-        const blurHeader = document.createElement('div');
-        blurHeader.style.display = 'flex';
-        blurHeader.style.justifyContent = 'space-between';
-        blurHeader.style.alignItems = 'center';
-        blurHeader.style.marginBottom = '8px';
-        blurHeader.style.borderTop = '1px solid var(--border-color)';
-        blurHeader.style.paddingTop = '8px';
-
-        const blurLabel = document.createElement('span');
-        blurLabel.innerText = 'Layer Blur';
-        blurLabel.style.fontSize = '11px';
-        blurLabel.style.color = 'var(--text-secondary)';
-        
-        const blurToggle = document.createElement('input');
-        blurToggle.type = 'checkbox';
-        blurToggle.checked = blur !== undefined && blur !== null;
-        blurToggle.onchange = (e) => {
-            if (e.target.checked) {
-                this.updateStyle(element, 'blur', 4);
-            } else {
-                this.updateStyle(element, 'blur', null);
-            }
         };
-        
-        blurHeader.appendChild(blurLabel);
-        blurHeader.appendChild(blurToggle);
-        content.appendChild(blurHeader);
-
-        if (blur !== undefined && blur !== null) {
-            const blurAmountRow = document.createElement('div');
-            blurAmountRow.style.display = 'flex';
-            blurAmountRow.style.marginBottom = '8px';
-            
-            const blurControl = new ScrubbableControl('Amount', blur, (val) => {
-                this.updateStyle(element, 'blur', Math.max(0, val));
-            });
-            blurAmountRow.appendChild(blurControl.element);
-            content.appendChild(blurAmountRow);
-        }
+        content.appendChild(previewBtn);
 
         this.container.appendChild(group);
     }
@@ -888,10 +900,205 @@ export class PropertyInspector {
         this.updateStyle(element, 'dropShadow', newShadow);
     }
 
+    updateAnimation(element, key, value) {
+        const current = element.animations || { entrance: 'none', exit: 'none', duration: 1000, delay: 0 };
+        const newAnim = { ...current, [key]: value };
+        store.dispatch('UPDATE_ELEMENT', { id: element.id, animations: newAnim });
+    }
+
+    updateGradient(element, updates) {
+        const style = element.style || {};
+        const currentAngle = style.gradientAngle !== undefined ? style.gradientAngle : 180;
+        const currentStops = style.gradientStops || [
+            { color: '#D9D9D9', position: 0 },
+            { color: '#000000', position: 100 }
+        ];
+        const currentType = style.gradientType || 'linear';
+
+        const newAngle = updates.angle !== undefined ? updates.angle : currentAngle;
+        const newStops = updates.stops !== undefined ? updates.stops : currentStops;
+        const newType = updates.type !== undefined ? updates.type : currentType;
+
+        // Construct CSS String
+        let gradientString = '';
+        const stopsString = newStops.map(s => `${s.color} ${s.position}%`).join(', ');
+
+        if (newType === 'linear') {
+            gradientString = `linear-gradient(${newAngle}deg, ${stopsString})`;
+        } else if (newType === 'radial') {
+            gradientString = `radial-gradient(circle, ${stopsString})`;
+        } else if (newType === 'conic') {
+            gradientString = `conic-gradient(from ${newAngle}deg, ${stopsString})`;
+        }
+
+        const newStyle = {
+            ...style,
+            fillValue: gradientString,
+            gradientAngle: newAngle,
+            gradientStops: newStops,
+            gradientType: newType
+        };
+
+        store.dispatch('UPDATE_ELEMENT', { id: element.id, style: newStyle });
+    }
+
     getAlphaFromHex(hex) {
         if (hex.length === 9) {
             return hex.slice(7, 9);
         }
         return 'ff';
+    }
+
+    renderImageProperties(element) {
+        const { group, content } = this.createControlGroup('Image', true);
+        const style = element.style || {};
+
+        // Replace Image
+        const btn = document.createElement('button');
+        btn.innerText = 'Replace Image...';
+        btn.style.width = '100%';
+        btn.style.marginBottom = '8px';
+        btn.className = 'btn-secondary';
+        
+        const fileInput = document.createElement('input');
+        fileInput.type = 'file';
+        fileInput.accept = 'image/*';
+        fileInput.style.display = 'none';
+        fileInput.onchange = (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (evt) => {
+                    store.dispatch('UPDATE_ELEMENT', { id: element.id, src: evt.target.result });
+                };
+                reader.readAsDataURL(file);
+            }
+        };
+        btn.onclick = () => fileInput.click();
+        content.appendChild(fileInput);
+        content.appendChild(btn);
+
+        // Border Radius
+        const radiusControl = new ScrubbableControl('Radius', parseFloat(style.borderRadius) || 0, (val) => {
+            this.updateStyle(element, 'borderRadius', Math.max(0, val));
+        });
+        content.appendChild(radiusControl.element);
+
+        this.container.appendChild(group);
+    }
+
+    renderEffectsProperties(element) {
+        const { group, content } = this.createControlGroup('Effects', false);
+        const style = element.style || {};
+
+        // Drop Shadow
+        const shadow = style.dropShadow || { x: 0, y: 0, blur: 0, spread: 0, color: '#000000' };
+        const hasShadow = shadow.blur > 0 || shadow.x !== 0 || shadow.y !== 0;
+
+        const shadowHeader = document.createElement('div');
+        shadowHeader.style.display = 'flex';
+        shadowHeader.style.justifyContent = 'space-between';
+        shadowHeader.style.alignItems = 'center';
+        shadowHeader.style.marginBottom = '8px';
+        
+        const shadowLabel = document.createElement('span');
+        shadowLabel.innerText = 'Drop Shadow';
+        shadowLabel.style.fontSize = '11px';
+        shadowLabel.style.color = 'var(--text-secondary)';
+        
+        const shadowToggle = new Switch(hasShadow, (checked) => {
+            if (checked) {
+                this.updateStyle(element, 'dropShadow', { x: 0, y: 4, blur: 4, spread: 0, color: '#00000040' });
+            } else {
+                this.updateStyle(element, 'dropShadow', null);
+            }
+        });
+        
+        shadowHeader.appendChild(shadowLabel);
+        shadowHeader.appendChild(shadowToggle.element);
+        content.appendChild(shadowHeader);
+
+        if (style.dropShadow) {
+            // X / Y
+            const posRow = document.createElement('div');
+            posRow.style.display = 'flex';
+            posRow.style.gap = '8px';
+            posRow.style.marginBottom = '8px';
+            
+            const xControl = new ScrubbableControl('X', shadow.x, (val) => this.updateShadow(element, 'x', val));
+            const yControl = new ScrubbableControl('Y', shadow.y, (val) => this.updateShadow(element, 'y', val));
+            
+            posRow.appendChild(xControl.element);
+            posRow.appendChild(yControl.element);
+            content.appendChild(posRow);
+
+            // Blur / Spread
+            const blurRow = document.createElement('div');
+            blurRow.style.display = 'flex';
+            blurRow.style.gap = '8px';
+            blurRow.style.marginBottom = '8px';
+            
+            const blurControl = new ScrubbableControl('Blur', shadow.blur, (val) => this.updateShadow(element, 'blur', Math.max(0, val)));
+            const spreadControl = new ScrubbableControl('Spread', shadow.spread, (val) => this.updateShadow(element, 'spread', val));
+            
+            blurRow.appendChild(blurControl.element);
+            blurRow.appendChild(spreadControl.element);
+            content.appendChild(blurRow);
+
+            // Color
+            const colorRow = document.createElement('div');
+            colorRow.style.display = 'flex';
+            colorRow.style.justifyContent = 'flex-end';
+            
+            const colorInput = document.createElement('input');
+            colorInput.type = 'color';
+            colorInput.value = shadow.color.substring(0, 7); // Hex only
+            colorInput.style.border = 'none';
+            colorInput.style.background = 'none';
+            colorInput.style.cursor = 'pointer';
+            
+            colorInput.addEventListener('change', (e) => {
+                // Preserve alpha if possible, or just use hex
+                this.updateShadow(element, 'color', e.target.value);
+            });
+            
+            colorRow.appendChild(colorInput);
+            content.appendChild(colorRow);
+        }
+
+        // Layer Blur
+        const blur = style.blur;
+        const blurHeader = document.createElement('div');
+        blurHeader.style.display = 'flex';
+        blurHeader.style.justifyContent = 'space-between';
+        blurHeader.style.alignItems = 'center';
+        blurHeader.style.marginTop = '16px';
+        blurHeader.style.marginBottom = '8px';
+        
+        const blurLabel = document.createElement('span');
+        blurLabel.innerText = 'Layer Blur';
+        blurLabel.style.fontSize = '11px';
+        blurLabel.style.color = 'var(--text-secondary)';
+        
+        const blurToggle = new Switch(blur !== undefined && blur !== null, (checked) => {
+            if (checked) {
+                this.updateStyle(element, 'blur', 4);
+            } else {
+                this.updateStyle(element, 'blur', null);
+            }
+        });
+        
+        blurHeader.appendChild(blurLabel);
+        blurHeader.appendChild(blurToggle.element);
+        content.appendChild(blurHeader);
+
+        if (blur !== undefined && blur !== null) {
+            const blurAmountControl = new ScrubbableControl('Amount', blur, (val) => {
+                this.updateStyle(element, 'blur', Math.max(0, val));
+            });
+            content.appendChild(blurAmountControl.element);
+        }
+
+        this.container.appendChild(group);
     }
 }

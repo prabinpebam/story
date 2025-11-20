@@ -6,6 +6,7 @@ import { LayerTree } from './ui/LayerTree.js';
 import { PropertyInspector } from './ui/PropertyInspector.js';
 import { Toolbar } from './ui/Toolbar.js';
 import { aiService } from './core/ai/AIService.js';
+import { PresentationManager } from './core/PresentationManager.js';
 
 class App {
     constructor() {
@@ -23,6 +24,7 @@ class App {
         this.layerTree = new LayerTree('layer-tree');
         this.propertyInspector = new PropertyInspector('properties-panel');
         this.toolbar = new Toolbar();
+        this.presentationManager = new PresentationManager();
 
         this.bindEvents();
         

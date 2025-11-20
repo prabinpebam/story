@@ -1,8 +1,12 @@
 import { store } from './Store.js';
+import { animationManager } from './AnimationManager.js';
+import { MeshGradient } from './effects/MeshGradient.js';
+import { CodeRunner } from './effects/CodeRunner.js';
 
 export class SlideRenderer {
     constructor(containerId) {
         this.container = document.getElementById(containerId);
+        this.currentSlideId = null;
         this.init();
     }
 
@@ -14,57 +18,242 @@ export class SlideRenderer {
     render() {
         const state = store.getState();
         const activeSlideId = state.editor.activeSlideId;
-        const slide = state.slides[activeSlideId];
-        const editingId = state.editor.editingElementId;
-
-        if (!slide) {
-            this.container.innerHTML = '';
-            return;
+        
+        // Initial render or Slide Change
+        if (this.currentSlideId !== activeSlideId) {
+            this.handleSlideChange(activeSlideId);
+        } else {
+            // Update existing slide (e.g. dragging, typing)
+            this.updateCurrentSlide();
         }
+    }
 
-        // Set Dimensions
+    handleSlideChange(slideId) {
+        const state = store.getState();
+        const slide = state.slides[slideId];
+        if (!slide) return;
+
+        // Ensure container has dimensions
         this.container.style.width = `${slide.width}px`;
         this.container.style.height = `${slide.height}px`;
+
+        // Create new view
+        const newView = this.createSlideDOM(slide);
         
-        // Simple full re-render for now (Optimization: Diffing later)
-        this.container.innerHTML = '';
+        // Find old view
+        const oldView = this.container.querySelector('.slide-view');
 
-        // Render Background
-        this.applyBackground(slide.background, slide.width, slide.height);
+        if (oldView && this.currentSlideId) {
+            // Use the transition defined on the NEW slide (how it enters)
+            // Or maybe the old slide (how it exits)? Usually it's the incoming slide's property.
+            const transitionType = slide.transition || 'fade';
+            animationManager.transition(this.container, oldView, newView, transitionType).then(() => {
+                this.playEntranceAnimations(slide, newView);
+            });
+        } else {
+            this.container.innerHTML = ''; // Clear any garbage
+            this.container.appendChild(newView);
+            this.playEntranceAnimations(slide, newView);
+        }
 
-        // Render Elements
-        slide.elementOrder.forEach(elId => {
-            const el = slide.elements[elId];
-            if (el) {
-                const isEditing = elId === editingId;
-                const domEl = this.createElementDOM(el, isEditing);
-                this.container.appendChild(domEl);
-                
-                if (isEditing) {
-                    // Focus and select all text
-                    setTimeout(() => {
-                        domEl.focus();
-                        // Optional: Select all text
-                        // document.execCommand('selectAll', false, null);
-                    }, 0);
+        this.currentSlideId = slideId;
+    }
+
+    playEntranceAnimations(slide, view) {
+        if (!slide.elements) return;
+        
+        Object.values(slide.elements).forEach(el => {
+            if (el.animations && el.animations.entrance && el.animations.entrance !== 'none') {
+                const domEl = view.querySelector(`#${el.id}`);
+                if (domEl) {
+                    animationManager.playElementAnimation(domEl, el.animations);
                 }
             }
         });
     }
 
-    applyBackground(bg, width, height) {
-        // The background is actually on a separate layer #slide-background
-        const bgLayer = document.getElementById('slide-background');
-        if (bgLayer) {
-            bgLayer.style.width = `${width}px`;
-            bgLayer.style.height = `${height}px`;
+    updateCurrentSlide() {
+        const state = store.getState();
+        const slide = state.slides[this.currentSlideId];
+        if (!slide) return;
+
+        // Ensure container has dimensions
+        this.container.style.width = `${slide.width}px`;
+        this.container.style.height = `${slide.height}px`;
+
+        const view = this.container.querySelector('.slide-view');
+        if (!view) return;
+
+        // Update Background (if implemented)
+        
+        const existingEls = Array.from(view.querySelectorAll('.slide-element'));
+        const existingMap = new Map(existingEls.map(el => [el.id, el]));
+        
+        slide.elementOrder.forEach(id => {
+            const el = slide.elements[id];
+            const domEl = existingMap.get(id);
             
-            if (bg.type === 'solid') {
-                bgLayer.style.background = bg.value;
-            } else if (bg.type === 'gradient') {
-                bgLayer.style.background = bg.value;
+            if (domEl) {
+                // Update properties
+                this.updateElementDOM(domEl, el);
+                existingMap.delete(id);
+            } else {
+                // Create new
+                const newDomEl = this.createElementDOM(el);
+                view.appendChild(newDomEl);
+            }
+        });
+        
+        // Remove deleted
+        existingMap.forEach(domEl => domEl.remove());
+    }
+
+    updateElementDOM(div, el) {
+        // Update position, size, transform
+        div.style.left = `${el.x}px`;
+        div.style.top = `${el.y}px`;
+        div.style.width = `${el.width}px`;
+        div.style.height = `${el.height}px`;
+        div.style.transform = `rotate(${el.rotation || 0}deg)`;
+        div.style.opacity = el.opacity || 1;
+        div.style.zIndex = el.zIndex || 'auto';
+
+        // Apply Effects (Shadow)
+        if (el.style?.dropShadow) {
+            const { x, y, blur, spread, color } = el.style.dropShadow;
+            if (el.type === 'text') {
+                div.style.textShadow = `${x}px ${y}px ${blur}px ${color}`;
+                div.style.boxShadow = 'none';
+            } else {
+                div.style.boxShadow = `${x}px ${y}px ${blur}px ${spread}px ${color}`;
+                div.style.textShadow = 'none';
+            }
+        } else {
+            div.style.boxShadow = 'none';
+            div.style.textShadow = 'none';
+        }
+
+        // Apply Effects (Blur)
+        if (el.style?.blur) {
+            div.style.filter = `blur(${el.style.blur}px)`;
+        } else {
+            div.style.filter = 'none';
+        }
+
+        if (el.type === 'rect') {
+             if (el.style?.fillType === 'mesh') {
+                 // Check if already mesh
+                 if (!div._meshGradient) {
+                     div.innerHTML = ''; // Clear old
+                     const canvas = document.createElement('canvas');
+                     canvas.style.width = '100%';
+                     canvas.style.height = '100%';
+                     canvas.style.borderRadius = `${el.style?.radius || 0}px`;
+                     div.appendChild(canvas);
+                     const mesh = new MeshGradient(canvas);
+                     div._meshGradient = mesh;
+                     mesh.play();
+                 }
+                 // Update colors
+                 if (el.style.meshColors) {
+                     div._meshGradient.setColors(el.style.meshColors);
+                 }
+             } else {
+                 if (div._meshGradient) {
+                     div._meshGradient.stop();
+                     delete div._meshGradient;
+                     div.innerHTML = '';
+                 }
+                 
+                 if (el.style?.fillType === 'gradient') {
+                    div.style.background = el.style.fillValue;
+                    div.style.backgroundImage = ''; // Clear image if any
+                 } else if (el.style?.fillType === 'image') {
+                    div.style.backgroundImage = `url(${el.style.fillValue})`;
+                    div.style.backgroundSize = el.style.fillScaleMode || 'cover';
+                    div.style.backgroundPosition = 'center';
+                    div.style.backgroundRepeat = 'no-repeat';
+                    div.style.backgroundColor = '#D9D9D9'; 
+                 } else {
+                    div.style.background = el.style?.backgroundColor || '#D9D9D9';
+                    div.style.backgroundImage = '';
+                 }
+             }
+             
+             div.style.borderWidth = `${el.style?.borderWidth || 0}px`;
+             div.style.borderStyle = el.style?.borderStyle || 'solid';
+             div.style.borderColor = el.style?.borderColor || 'transparent';
+             div.style.borderRadius = `${el.style?.radius || 0}px`;
+             
+        } else if (el.type === 'text') {
+            // Only update if not editing (to avoid cursor jumping)
+            const state = store.getState();
+            if (state.editor.editingElementId !== el.id) {
+                div.innerHTML = el.content;
+                div.style.fontFamily = el.style?.fontFamily || 'Inter';
+                div.style.fontSize = `${el.style?.fontSize || 16}px`;
+                div.style.fontWeight = el.style?.fontWeight || '400';
+                div.style.lineHeight = el.style?.lineHeight || '1.2';
+                div.style.letterSpacing = `${el.style?.letterSpacing || 0}px`;
+                div.style.color = el.style?.color || 'black';
+                div.style.textAlign = el.style?.textAlign || 'left';
+            }
+        } else if (el.type === 'image') {
+            const img = div.querySelector('img');
+            if (img && img.src !== el.src) {
+                img.src = el.src;
+            }
+            if (img) {
+                img.style.borderRadius = `${el.style?.radius || 0}px`;
             }
         }
+    }
+
+    createSlideDOM(slide) {
+        const div = document.createElement('div');
+        div.className = 'slide-view';
+        div.id = `view-${slide.id}`;
+        div.style.width = `${slide.width}px`;
+        div.style.height = `${slide.height}px`;
+        div.style.position = 'absolute';
+        div.style.top = '0';
+        div.style.left = '0';
+        // div.style.overflow = 'hidden'; // Allow content to overflow
+        div.style.backgroundColor = '#ffffff'; // Default
+
+        this.applyBackgroundToView(div, slide.background);
+        this.renderElementsToView(div, slide);
+
+        return div;
+    }
+
+    applyBackgroundToView(view, bg) {
+        if (bg.type === 'solid') {
+            view.style.background = bg.value;
+        } else if (bg.type === 'gradient') {
+            view.style.background = bg.value;
+        }
+        // Hide the global background layer since we are doing per-slide background
+        const globalBg = document.getElementById('slide-background');
+        if (globalBg) globalBg.style.display = 'none';
+    }
+
+    renderElementsToView(view, slide) {
+        const state = store.getState();
+        const editingId = state.editor.editingElementId;
+
+        slide.elementOrder.forEach(elId => {
+            const el = slide.elements[elId];
+            if (el) {
+                const isEditing = elId === editingId;
+                const domEl = this.createElementDOM(el, isEditing);
+                view.appendChild(domEl);
+                
+                if (isEditing) {
+                    setTimeout(() => domEl.focus(), 0);
+                }
+            }
+        });
     }
 
     createElementDOM(el, isEditing = false) {
@@ -149,8 +338,59 @@ export class SlideRenderer {
                 // For now, let's allow newlines
             }
         } else if (el.type === 'rect') {
-            // Fill (Solid, Gradient, or Image)
-            if (el.style?.fillType === 'gradient') {
+            // Fill (Solid, Gradient, Image, Mesh)
+            if (el.style?.fillType === 'mesh') {
+                const canvas = document.createElement('canvas');
+                canvas.style.width = '100%';
+                canvas.style.height = '100%';
+                canvas.style.borderRadius = `${el.style?.radius || 0}px`;
+                div.appendChild(canvas);
+                
+                const mesh = new MeshGradient(canvas);
+                if (el.style.meshColors) {
+                    mesh.setColors(el.style.meshColors);
+                }
+                mesh.play();
+                
+            } else if (el.style?.fillType === 'code') {
+                const canvas = document.createElement('canvas');
+                canvas.style.width = '100%';
+                canvas.style.height = '100%';
+                canvas.style.borderRadius = `${el.style?.radius || 0}px`;
+                // Set actual size for canvas
+                canvas.width = el.width;
+                canvas.height = el.height;
+                
+                div.appendChild(canvas);
+                
+                const runner = new CodeRunner(canvas);
+                if (el.style.code) {
+                    runner.setCode(el.style.code);
+                } else {
+                    // Default code
+                    const defaultCode = `
+                        // Available: ctx, width, height, time
+                        ctx.fillStyle = '#000';
+                        ctx.fillRect(0, 0, width, height);
+                        
+                        function draw(t) {
+                            ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
+                            ctx.fillRect(0, 0, width, height);
+                            
+                            ctx.fillStyle = '#00FF41';
+                            const x = Math.sin(t) * 100 + width/2;
+                            const y = Math.cos(t) * 100 + height/2;
+                            ctx.beginPath();
+                            ctx.arc(x, y, 20, 0, Math.PI*2);
+                            ctx.fill();
+                        }
+                        return { draw };
+                    `;
+                    runner.setCode(defaultCode);
+                }
+                runner.play();
+
+            } else if (el.style?.fillType === 'gradient') {
                 div.style.background = el.style.fillValue || 'linear-gradient(180deg, #D9D9D9 0%, #737373 100%)';
             } else if (el.style?.fillType === 'image') {
                 div.style.backgroundImage = `url(${el.style.fillValue})`;

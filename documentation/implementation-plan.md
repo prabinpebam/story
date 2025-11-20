@@ -120,26 +120,28 @@ This document outlines the step-by-step implementation plan for "Story", a moder
 **Goal:** Bring the presentation to life using Anime.js.
 
 ### 5.1 Integration
-- [ ] Import and configure `anime.js`.
-- [ ] Create an `AnimationManager` module.
+- [x] Import and configure `anime.js`.
+- [x] Create an `AnimationManager` module.
 
 ### 5.2 Transitions
-- [ ] Implement standard slide transitions (Fade, Slide, Push).
-- [ ] Implement "Magic Morph" (Smart Animate):
-    - [ ] Algorithm to match object IDs between slides.
-    - [ ] Interpolate properties using `anime.js`.
+- [x] Implement standard slide transitions (Fade, Slide, Push).
+- [x] Implement "Magic Morph" (Smart Animate):
+    - [x] Algorithm to match object IDs between slides.
+    - [x] Interpolate properties using `anime.js`.
 
 ### 5.3 Element Animations
-- [ ] Add UI controls to assign Entrance/Exit animations to specific objects.
-- [ ] Preview animations in the canvas.
+- [x] Add UI controls to assign Entrance/Exit animations to specific objects.
+- [x] Preview animations in the canvas.
 
 ## Phase 6: Advanced Backgrounds & AI
 **Goal:** Implement the unique selling points of "Story".
 
 ### 6.1 Rich Backgrounds
-- [ ] Implement Gradient Editor (Linear, Radial, Conic).
-- [ ] **Mesh Gradient:** Implement WebGL shader for fluid gradients with control points.
-- [ ] **Code Background:**
+- [x] Implement Gradient Editor (Linear, Radial, Conic).
+- [x] **Mesh Gradient:** Implement WebGL shader for fluid gradients with control points.
+- [x] **Code Background:**
+    - [x] Create the Code Editor interface (Monaco or simple textarea with highlighting).
+    - [x] Implement the sandbox for rendering user-defined Canvas/JS code.
     - [ ] Create the Code Editor interface (Monaco or simple textarea with highlighting).
     - [ ] Implement the sandbox for rendering user-defined Canvas/JS code.
 
@@ -154,9 +156,9 @@ This document outlines the step-by-step implementation plan for "Story", a moder
 **Goal:** Finalize the user experience.
 
 ### 7.1 Presentation Mode
-- [ ] Implement Fullscreen toggle.
-- [ ] Build the Presentation Runner (keyboard navigation, hidden UI).
-- [ ] Add Laser Pointer tool.
+- [x] Implement Fullscreen toggle.
+- [x] Build the Presentation Runner (keyboard navigation, hidden UI).
+- [x] Add Laser Pointer tool.
 
 ### 7.2 Optimization & Testing
 - [ ] Audit file sizes and modularity (<500 lines per file).

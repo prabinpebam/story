@@ -14,6 +14,7 @@ class Store extends EventEmitter {
                 theme: "default-dark"
             },
             editor: {
+                mode: "edit", // 'edit', 'presentation'
                 activeSlideId: "slide-1",
                 selectedElementIds: [],
                 editingElementId: null, // ID of element currently being edited (text)
@@ -35,7 +36,8 @@ class Store extends EventEmitter {
                     },
                     elements: {}, // Map of ID -> Element
                     elementOrder: [], // Array of IDs (z-index)
-                    notes: ""
+                    notes: "",
+                    transition: "magic" // Default transition
                 }
             },
             slideOrder: ["slide-1"]
@@ -75,6 +77,12 @@ class Store extends EventEmitter {
                 this.emit('state-changed', this.state);
                 break;
 
+            case 'SET_MODE':
+                this.state.editor.mode = payload;
+                this.emit('state-changed', this.state);
+                this.emit('mode-changed', payload);
+                break;
+
             case 'SET_EDITING_ELEMENT':
                 this.state.editor.editingElementId = payload;
                 this.emit('state-changed', this.state);
@@ -90,7 +98,8 @@ class Store extends EventEmitter {
                     background: { type: "solid", value: "#ffffff" },
                     elements: {},
                     elementOrder: [],
-                    notes: ""
+                    notes: "",
+                    transition: "magic"
                 };
                 this.state.slides[newSlideId] = newSlide;
                 this.state.slideOrder.push(newSlideId);
