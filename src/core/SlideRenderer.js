@@ -170,10 +170,13 @@ export class SlideRenderer {
             existingMap.forEach(c => c.remove());
 
         } else if (el.type === 'rect') {
+             // Handle Mesh Gradient
              if (el.style?.fillType === 'mesh') {
-                 // Check if already mesh
                  if (!div._meshGradient) {
-                     div.innerHTML = ''; // Clear old
+                     // Clear others
+                     if (div._codeRunner) { div._codeRunner.stop(); delete div._codeRunner; }
+                     div.innerHTML = ''; 
+                     
                      const canvas = document.createElement('canvas');
                      canvas.style.width = '100%';
                      canvas.style.height = '100%';
@@ -183,14 +186,67 @@ export class SlideRenderer {
                      div._meshGradient = mesh;
                      mesh.play();
                  }
-                 // Update colors
                  if (el.style.meshColors) {
                      div._meshGradient.setColors(el.style.meshColors);
                  }
+             } 
+             // Handle Code Fill
+             else if (el.style?.fillType === 'code') {
+                 if (!div._codeRunner) {
+                     // Clear others
+                     if (div._meshGradient) { div._meshGradient.stop(); delete div._meshGradient; }
+                     div.innerHTML = '';
+
+                     const canvas = document.createElement('canvas');
+                     canvas.style.width = '100%';
+                     canvas.style.height = '100%';
+                     canvas.style.borderRadius = `${el.style?.radius || 0}px`;
+                     canvas.width = el.width;
+                     canvas.height = el.height;
+                     div.appendChild(canvas);
+                     
+                     const runner = new CodeRunner(canvas);
+                     div._codeRunner = runner;
+                     runner.play();
+                 }
+                 
+                 // Update Code
+                 const codeToRun = el.style.code || `
+return {
+    draw: function(t) {
+        const w = canvas.width;
+        const h = canvas.height;
+        const grd = ctx.createLinearGradient(0, 0, w, h);
+        const c1 = Math.sin(t * 0.5) * 50 + 200;
+        const c2 = Math.cos(t * 0.3) * 50 + 200;
+        grd.addColorStop(0, \`rgb(\${c1}, 200, 255)\`);
+        grd.addColorStop(1, \`rgb(255, \${c2}, 200)\`);
+        ctx.fillStyle = grd;
+        ctx.fillRect(0, 0, w, h);
+    }
+};`.trim();
+                 
+                 if (div._codeRunner.userCode !== codeToRun) {
+                     div._codeRunner.setCode(codeToRun);
+                 }
+                 
+                 // Update Canvas Size if changed
+                 const canvas = div.querySelector('canvas');
+                 if (canvas && (canvas.width !== el.width || canvas.height !== el.height)) {
+                     canvas.width = el.width;
+                     canvas.height = el.height;
+                 }
+
              } else {
+                 // Clear complex fills
                  if (div._meshGradient) {
                      div._meshGradient.stop();
                      delete div._meshGradient;
+                     div.innerHTML = '';
+                 }
+                 if (div._codeRunner) {
+                     div._codeRunner.stop();
+                     delete div._codeRunner;
                      div.innerHTML = '';
                  }
                  
@@ -283,6 +339,7 @@ export class SlideRenderer {
     }
 
     applyBackgroundToView(view, bg) {
+        console.log('Applying background:', bg);
         // Clean up previous code runner
         if (this.bgCodeRunner) {
             this.bgCodeRunner.stop();
@@ -301,6 +358,7 @@ export class SlideRenderer {
         } else if (bg.type === 'gradient') {
             view.style.background = bg.value;
         } else if (bg.type === 'code') {
+            console.log('Initializing Code Background');
             const canvas = document.createElement('canvas');
             canvas.className = 'bg-canvas';
             canvas.width = parseInt(view.style.width);
@@ -313,6 +371,7 @@ export class SlideRenderer {
             // But let's make sure elements are on top.
             
             view.insertBefore(canvas, view.firstChild);
+            console.log('Canvas created', canvas.width, canvas.height);
 
             this.bgCodeRunner = new CodeRunner(canvas);
             this.bgCodeRunner.setCode(bg.value);
@@ -467,28 +526,35 @@ export class SlideRenderer {
                 div.appendChild(canvas);
                 
                 const runner = new CodeRunner(canvas);
+                div._codeRunner = runner; // Attach to DOM for updates
+
                 if (el.style.code) {
                     runner.setCode(el.style.code);
                 } else {
                     // Default code
                     const defaultCode = `
-                        // Available: ctx, width, height, time
-                        ctx.fillStyle = '#000';
-                        ctx.fillRect(0, 0, width, height);
-                        
-                        function draw(t) {
-                            ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
-                            ctx.fillRect(0, 0, width, height);
-                            
-                            ctx.fillStyle = '#00FF41';
-                            const x = Math.sin(t) * 100 + width/2;
-                            const y = Math.cos(t) * 100 + height/2;
-                            ctx.beginPath();
-                            ctx.arc(x, y, 20, 0, Math.PI*2);
-                            ctx.fill();
-                        }
-                        return { draw };
-                    `;
+return {
+    draw: function(t) {
+        const w = canvas.width;
+        const h = canvas.height;
+        const grd = ctx.createLinearGradient(0, 0, w, h);
+        const c1 = Math.sin(t * 0.5) * 50 + 200;
+        const c2 = Math.cos(t * 0.3) * 50 + 200;
+        grd.addColorStop(0, \`rgb(\${c1}, 200, 255)\`);
+        grd.addColorStop(1, \`rgb(255, \${c2}, 200)\`);
+        ctx.fillStyle = grd;
+        ctx.fillRect(0, 0, w, h);
+        for(let i=0; i<5; i++) {
+            const x = (Math.sin(t * 0.2 + i) * 0.5 + 0.5) * w;
+            const y = (Math.cos(t * 0.3 + i) * 0.5 + 0.5) * h;
+            const r = 100 + Math.sin(t + i) * 50;
+            ctx.beginPath();
+            ctx.arc(x, y, r, 0, Math.PI * 2);
+            ctx.fillStyle = \`rgba(255, 255, 255, 0.2)\`;
+            ctx.fill();
+        }
+    }
+};`.trim();
                     runner.setCode(defaultCode);
                 }
                 runner.play();

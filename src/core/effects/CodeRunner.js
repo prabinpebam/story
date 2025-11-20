@@ -39,8 +39,12 @@ export class CodeRunner {
     }
 
     run() {
-        if (!this.userCode) return;
+        if (!this.userCode) {
+            console.warn('CodeRunner: No user code to run');
+            return;
+        }
 
+        console.log('CodeRunner: Starting execution');
         // Clear canvas
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
@@ -58,9 +62,11 @@ export class CodeRunner {
 
             // Initial call to setup or get draw function
             const result = func(this.ctx, this.canvas, this.canvas.width, this.canvas.height, 0);
+            console.log('CodeRunner: Execution result', result);
             
             if (result && typeof result.draw === 'function') {
                 let startTime = Date.now();
+                console.log('CodeRunner: Starting animation loop');
                 
                 const loop = () => {
                     if (!this.isPlaying) return;
@@ -69,15 +75,6 @@ export class CodeRunner {
                     
                     // Reset transform before draw
                     this.ctx.setTransform(1, 0, 0, 1, 0, 0);
-                    
-                    // Pass current dimensions in case of resize
-                    // User code should use 'canvas.width' or 'canvas.height' or the passed 'width'/'height' if we re-inject them?
-                    // We can't re-inject 'width'/'height' variables into the closure easily.
-                    // But 'canvas' is a reference. So 'canvas.width' is always current.
-                    // However, if user used the 'width' argument, it's stale.
-                    // We should encourage using canvas.width/height or re-call the function?
-                    // Re-calling the function might reset state.
-                    // Let's just rely on canvas.width/height being available via 'canvas' arg.
                     
                     try {
                         result.draw(time);
@@ -91,6 +88,8 @@ export class CodeRunner {
                 };
                 
                 loop();
+            } else {
+                console.warn('CodeRunner: No draw function returned');
             }
             
             if (result && typeof result.cleanup === 'function') {
