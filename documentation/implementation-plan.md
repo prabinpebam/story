@@ -51,6 +51,23 @@ This document outlines the step-by-step implementation plan for "Story", a moder
     - [x] Text Tool (Drag to create).
     - [x] Image Tool (Drag to create).
 
+### 2.4 Advanced Object Manipulation (Figma-like)
+- [ ] **Selection Model Refinement:**
+    - [ ] Marquee Selection (Drag to select multiple).
+    - [ ] Deep Select (Cmd/Ctrl + Click for nested groups).
+    - [ ] Select All (Cmd/Ctrl + A).
+- [ ] **Transformation Logic:**
+    - [ ] Center Resize (Alt/Option + Drag).
+    - [ ] Constrained Movement (Shift + Drag).
+    - [ ] Nudge (Arrow keys) & Big Nudge (Shift + Arrow keys).
+- [ ] **Smart Guides & Snapping:**
+    - [ ] Dynamic alignment guides (edges/centers).
+    - [ ] Spacing guides (equal distance).
+    - [ ] Distance Measurement (Alt + Hover).
+- [ ] **Direct Manipulation:**
+    - [ ] Double-click behaviors (Text edit, Group enter).
+    - [ ] Hover effects for interactive objects.
+
 ## Phase 3: Slide Management
 **Goal:** Manage multiple slides and navigation.
 
@@ -142,8 +159,6 @@ This document outlines the step-by-step implementation plan for "Story", a moder
 - [x] **Code Background:**
     - [x] Create the Code Editor interface (Monaco or simple textarea with highlighting).
     - [x] Implement the sandbox for rendering user-defined Canvas/JS code.
-    - [ ] Create the Code Editor interface (Monaco or simple textarea with highlighting).
-    - [ ] Implement the sandbox for rendering user-defined Canvas/JS code.
 
 ### 6.2 AI Copilot Integration
 - [ ] Build the Settings panel for API Key management.

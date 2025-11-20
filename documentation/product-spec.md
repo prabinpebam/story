@@ -64,14 +64,60 @@ This should be a modern presentation maker.
 - **Master Slides (Templates):** Inheritance model for layouts. **[Detailed Spec: Master Slides](./tech-specs/master-slide-system.md)**
 - **Layer Management:** Z-index control, Grouping, Locking.
 
-### 3.2 Canvas & Object Manipulation
+### 3.2 Canvas & Object Manipulation (Figma-like Interaction)
 **[Detailed Spec: Interaction Model](./tech-specs/interaction-model.md)**
-- **Infinite/Finite Canvas:** Focused viewport with scratchpad.
-- **Navigation:** Pan (Space+Drag), Zoom (Ctrl+Scroll), Fit to View.
-- **Adding Elements:** Drag-to-create, Drag-from-toolbar.
-- **Snapping & Alignment:** Smart guides.
-- **Transformations:** Resize, Rotate, Skew with Gizmo.
-- **Context Menu:** Custom right-click actions.
+
+The viewport interaction model mimics professional design tools like Figma to ensure familiarity and precision.
+
+#### 3.2.1 Selection Model
+- **Click:** Selects the topmost object.
+- **Marquee Select:** Dragging on the canvas creates a selection box. Objects intersecting (or contained within, configurable) are selected.
+- **Shift + Click/Drag:** Toggles selection state (add/remove from current selection).
+- **Deep Select (Cmd/Ctrl + Click):** Selects nested elements within groups directly, bypassing group selection.
+- **Escape:** Clears selection or moves selection up one level (from child to parent group).
+- **Select All (Cmd/Ctrl + A):** Selects all unlocked objects on the current slide.
+
+#### 3.2.2 Transformation & Gizmos
+- **Bounding Box:**
+    - Selected objects display a thin blue bounding box (1px).
+    - **Resize Handles:** 8 square handles (corners and edges) for resizing.
+    - **Rotation:** Hovering slightly outside any corner handle changes the cursor to a rotation icon.
+- **Resize Logic:**
+    - **Standard:** Resizes from the opposite handle.
+    - **Center (Alt/Option):** Resizes from the center of the object.
+    - **Constrained (Shift):** Maintains aspect ratio during resize.
+    - **Both (Shift + Alt):** Center resize with constrained aspect ratio.
+- **Movement:**
+    - **Drag:** Moves selected objects.
+    - **Axis Constraint (Shift + Drag):** Constrains movement to X or Y axis.
+    - **Nudge:** Arrow keys move 1px.
+    - **Big Nudge:** Shift + Arrow keys move 10px (configurable).
+- **Visual Feedback:**
+    - While dragging/resizing, display a tooltip with current coordinates (X, Y) or dimensions (W, H).
+
+#### 3.2.3 Smart Guides & Snapping
+- **Alignment Guides:** Red lines appear dynamically when the moving object aligns with:
+    - Edges (Top, Bottom, Left, Right) of other objects.
+    - Centers (Vertical, Horizontal) of other objects.
+    - Slide center and edges.
+- **Spacing Guides:** Visual indicators show equal spacing between multiple objects.
+- **Snapping:** Objects snap to these guides within a threshold (e.g., 4px). Snapping can be temporarily disabled by holding Cmd/Ctrl.
+
+#### 3.2.4 Direct Manipulation & Context
+- **Double Click:**
+    - **Text:** Enters text editing mode.
+    - **Group:** Enters the group (isolates selection to group children).
+    - **Image:** Enters crop/mask mode (future).
+- **Hover Effects:**
+    - Unselected objects show a thin blue outline on hover to indicate they are interactive.
+- **Distance Measurement (Alt/Option + Hover):**
+    - When an object is selected, holding Alt and hovering over another object displays red lines and pixel values indicating the distance between the two objects.
+
+#### 3.2.5 Viewport Navigation
+- **Pan:** Spacebar + Drag or Middle Mouse Button Drag.
+- **Zoom:** Ctrl/Cmd + Scroll, or +/- keys. Zoom centers on the mouse cursor.
+- **Fit to View (Shift + 1):** Zooms to fit the slide in the viewport.
+- **Zoom to Selection (Shift + 2):** Zooms to fit the selected object(s).
 
 ### 3.3 Typography & Media
 **[Detailed Spec: Text Engine](./tech-specs/text-engine.md)**
