@@ -96,11 +96,29 @@ export class SlideList {
                 info.appendChild(slideTitle);
                 item.appendChild(info);
 
-                // Preview Box (Placeholder for now)
+                // Preview Box
                 const preview = document.createElement('div');
                 preview.style.width = '100%';
                 preview.style.aspectRatio = '16/9';
-                preview.style.backgroundColor = 'white';
+                
+                // Dynamic Background
+                if (slide.background) {
+                    if (slide.background.type === 'solid') {
+                        preview.style.background = slide.background.value;
+                    } else if (slide.background.type === 'gradient') {
+                        preview.style.background = slide.background.value;
+                    } else if (slide.background.type === 'image') {
+                        preview.style.background = `url(${slide.background.value}) center/cover no-repeat`;
+                    } else if (slide.background.type === 'code') {
+                        // Placeholder for code background
+                        preview.style.background = 'repeating-linear-gradient(45deg, #eee 0, #eee 10px, #fff 10px, #fff 20px)';
+                    } else {
+                        preview.style.background = 'white';
+                    }
+                } else {
+                    preview.style.background = 'white';
+                }
+
                 preview.style.border = '1px solid var(--color-border)';
                 preview.style.position = 'relative';
                 preview.style.overflow = 'hidden';
@@ -115,7 +133,18 @@ export class SlideList {
                         elDiv.style.top = `${(el.y / 1080) * 100}%`;
                         elDiv.style.width = `${(el.width / 1920) * 100}%`;
                         elDiv.style.height = `${(el.height / 1080) * 100}%`;
-                        elDiv.style.backgroundColor = el.type === 'rect' ? (el.style?.fill || '#ccc') : 'rgba(0,0,0,0.1)';
+                        
+                        // Handle element background (Solid or Gradient)
+                        if (el.type === 'rect') {
+                            if (el.style?.fillType === 'gradient' || el.style?.fillType === 'image') {
+                                elDiv.style.background = el.style.fillValue || '#ccc';
+                            } else {
+                                elDiv.style.background = el.style?.backgroundColor || '#ccc';
+                            }
+                        } else {
+                            elDiv.style.background = 'rgba(0,0,0,0.1)';
+                        }
+
                         if (el.type === 'text') {
                             elDiv.style.border = '1px solid rgba(0,0,0,0.2)';
                         }

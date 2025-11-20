@@ -3,6 +3,7 @@ import { Knob } from './components/Knob.js';
 import { Switch } from './components/Switch.js';
 import { SegmentedControl } from './components/SegmentedControl.js';
 import { ScrubbableControl } from './components/ScrubbableControl.js';
+import { ColorInput } from './components/ColorInput.js';
 import { aiService } from '../core/ai/AIService.js';
 
 export class PropertyInspector {
@@ -151,19 +152,10 @@ return {
         content.appendChild(bgTypeSelect);
 
         if (slide.background.type === 'solid') {
-            const colorInput = document.createElement('input');
-            colorInput.type = 'color';
-            colorInput.value = slide.background.value;
-            colorInput.style.width = '100%';
-            colorInput.style.height = '24px';
-            colorInput.style.border = 'none';
-            colorInput.style.padding = '0';
-            colorInput.style.cursor = 'pointer';
-            
-            colorInput.onchange = (e) => {
-                store.dispatch('UPDATE_SLIDE', { id: slide.id, background: { type: 'solid', value: e.target.value } });
-            };
-            content.appendChild(colorInput);
+            const colorInput = new ColorInput(slide.background.value, (val) => {
+                store.dispatch('UPDATE_SLIDE', { id: slide.id, background: { type: 'solid', value: val } });
+            });
+            content.appendChild(colorInput.element);
         } else if (slide.background.type === 'gradient') {
             // Simple Gradient Input (Text for now, could be enhanced)
             const gradientInput = document.createElement('input');
@@ -800,11 +792,10 @@ return {
         content.appendChild(resizingControl.element);
 
         // Color
-        const colorInput = document.createElement('input');
-        colorInput.type = 'color';
-        colorInput.value = style.color || '#000000';
-        colorInput.addEventListener('change', (e) => this.updateStyle(selection, 'color', e.target.value));
-        content.appendChild(this.createInputRow('Color', colorInput));
+        const colorInput = new ColorInput(style.color || '#000000', (val) => {
+            this.updateStyle(selection, 'color', val);
+        });
+        content.appendChild(this.createInputRow('Color', colorInput.element));
 
         this.container.appendChild(group);
     }
@@ -982,26 +973,13 @@ return {
                 stopContainer.style.alignItems = 'center';
                 stopContainer.style.gap = '4px';
 
-                const colorInput = document.createElement('input');
-                colorInput.type = 'color';
-                colorInput.value = stop.color;
-                colorInput.style.width = '20px';
-                colorInput.style.height = '20px';
-                colorInput.style.border = 'none';
-                colorInput.style.padding = '0';
-                colorInput.style.background = 'none';
-                colorInput.style.cursor = 'pointer';
-
-                const updateStopColor = (e) => {
+                const colorInput = new ColorInput(stop.color, (val) => {
                     const newStops = [...stops];
-                    newStops[index] = { ...newStops[index], color: e.target.value };
+                    newStops[index] = { ...newStops[index], color: val };
                     this.updateGradient(selection, { stops: newStops });
-                };
+                }, { compact: true });
 
-                colorInput.addEventListener('input', updateStopColor);
-                colorInput.addEventListener('change', updateStopColor); // Fallback
-
-                stopContainer.appendChild(colorInput);
+                stopContainer.appendChild(colorInput.element);
                 
                 // Label (0% or 100%)
                 const label = document.createElement('span');
@@ -1088,23 +1066,13 @@ return {
             const colors = style.meshColors || ['#18A0FB', '#F24822', '#1BC47D', '#FF0080'];
 
             colors.forEach((color, index) => {
-                const colorInput = document.createElement('input');
-                colorInput.type = 'color';
-                colorInput.value = color;
-                colorInput.style.width = '100%';
-                colorInput.style.height = '24px';
-                colorInput.style.border = 'none';
-                colorInput.style.padding = '0';
-                colorInput.style.background = 'none';
-                colorInput.style.cursor = 'pointer';
-                
-                colorInput.addEventListener('change', (e) => {
+                const colorInput = new ColorInput(color, (val) => {
                     const newColors = [...colors];
-                    newColors[index] = e.target.value;
+                    newColors[index] = val;
                     this.updateStyle(selection, 'meshColors', newColors);
                 });
                 
-                meshRow.appendChild(colorInput);
+                meshRow.appendChild(colorInput.element);
             });
             
             content.appendChild(meshRow);
@@ -1325,19 +1293,11 @@ return {
             colorRow.style.justifyContent = 'flex-end'; // Align with dropdown
             colorRow.style.marginBottom = '8px';
             
-            const colorInput = document.createElement('input');
-            colorInput.type = 'color';
-            colorInput.value = style.backgroundColor || '#D9D9D9';
-            colorInput.style.width = '100%'; // Full width bar
-            colorInput.style.height = '24px';
-            colorInput.style.border = 'none';
-            colorInput.style.padding = '0';
-            colorInput.style.background = 'none';
-            colorInput.style.cursor = 'pointer';
+            const colorInput = new ColorInput(style.backgroundColor || '#D9D9D9', (val) => {
+                this.updateStyle(selection, 'backgroundColor', val);
+            });
             
-            colorInput.addEventListener('change', (e) => this.updateStyle(selection, 'backgroundColor', e.target.value));
-            
-            colorRow.appendChild(colorInput);
+            colorRow.appendChild(colorInput.element);
             content.appendChild(colorRow);
         }
 
@@ -1373,23 +1333,16 @@ return {
 
         strokeStyleSelect.addEventListener('change', (e) => this.updateStyle(selection, 'borderStyle', e.target.value));
 
-        const strokeInput = document.createElement('input');
-        strokeInput.type = 'color';
-        strokeInput.value = style.borderColor || '#000000';
-        strokeInput.style.width = '20px';
-        strokeInput.style.height = '20px';
-        strokeInput.style.border = 'none';
-        strokeInput.style.padding = '0';
-        strokeInput.style.background = 'none';
-        strokeInput.style.cursor = 'pointer';
-
-        strokeInput.addEventListener('change', (e) => this.updateStyle(selection, 'borderColor', e.target.value));
+        const strokeInput = new ColorInput(style.borderColor || '#000000', (val) => {
+            this.updateStyle(selection, 'borderColor', val);
+        }, { compact: true });
 
         const strokeRight = document.createElement('div');
         strokeRight.style.display = 'flex';
         strokeRight.style.alignItems = 'center';
+        strokeRight.style.gap = '8px';
         strokeRight.appendChild(strokeStyleSelect);
-        strokeRight.appendChild(strokeInput);
+        strokeRight.appendChild(strokeInput.element);
 
         strokeRow.appendChild(strokeLabel);
         strokeRow.appendChild(strokeRight);
@@ -1731,20 +1684,13 @@ return {
             const colorRow = document.createElement('div');
             colorRow.style.display = 'flex';
             colorRow.style.justifyContent = 'flex-end';
+            colorRow.style.marginTop = '8px';
             
-            const colorInput = document.createElement('input');
-            colorInput.type = 'color';
-            colorInput.value = shadow.color.substring(0, 7); // Hex only
-            colorInput.style.border = 'none';
-            colorInput.style.background = 'none';
-            colorInput.style.cursor = 'pointer';
-            
-            colorInput.addEventListener('change', (e) => {
-                // Preserve alpha if possible, or just use hex
-                this.updateShadow(selection, 'color', e.target.value);
+            const colorInput = new ColorInput(shadow.color.substring(0, 7), (val) => {
+                this.updateShadow(selection, 'color', val);
             });
             
-            colorRow.appendChild(colorInput);
+            colorRow.appendChild(colorInput.element);
             content.appendChild(colorRow);
         }
 
