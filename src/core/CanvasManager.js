@@ -995,6 +995,13 @@ export class CanvasManager {
     }
 
     handleKeyDown(e) {
+        // Ignore shortcuts if user is typing in an input field
+        if (e.target.tagName === 'INPUT' || 
+            e.target.tagName === 'TEXTAREA' || 
+            e.target.isContentEditable) {
+            return;
+        }
+
         // Check for Alt key for measurements
         if (e.key === 'Alt') {
             if (this.interactionState === 'IDLE' && this.lastMouseX) {

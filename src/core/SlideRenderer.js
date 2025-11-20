@@ -7,6 +7,7 @@ export class SlideRenderer {
     constructor(containerId) {
         this.container = document.getElementById(containerId);
         this.currentSlideId = null;
+        this.bgCodeRunner = null;
         this.init();
     }
 
@@ -84,7 +85,10 @@ export class SlideRenderer {
         const view = this.container.querySelector('.slide-view');
         if (!view) return;
 
-        // Update Background (if implemented)
+        // Update Background
+        // We should check if background changed to avoid restarting code runner unnecessarily
+        // But for now, let's just re-apply. Optimization can come later.
+        this.applyBackgroundToView(view, slide.background);
         
         // Only select direct children to avoid removing nested group elements
         const existingEls = Array.from(view.children).filter(el => el.classList.contains('slide-element'));
@@ -279,11 +283,42 @@ export class SlideRenderer {
     }
 
     applyBackgroundToView(view, bg) {
+        // Clean up previous code runner
+        if (this.bgCodeRunner) {
+            this.bgCodeRunner.stop();
+            this.bgCodeRunner = null;
+        }
+
+        // Remove existing background canvas if any
+        const existingCanvas = view.querySelector('.bg-canvas');
+        if (existingCanvas) existingCanvas.remove();
+
+        // Reset background style
+        view.style.background = 'none';
+
         if (bg.type === 'solid') {
             view.style.background = bg.value;
         } else if (bg.type === 'gradient') {
             view.style.background = bg.value;
+        } else if (bg.type === 'code') {
+            const canvas = document.createElement('canvas');
+            canvas.className = 'bg-canvas';
+            canvas.width = parseInt(view.style.width);
+            canvas.height = parseInt(view.style.height);
+            canvas.style.position = 'absolute';
+            canvas.style.top = '0';
+            canvas.style.left = '0';
+            canvas.style.zIndex = '0'; // Behind elements (elements start at auto/1?)
+            // Elements are appended after, so they will be on top if z-index is auto.
+            // But let's make sure elements are on top.
+            
+            view.insertBefore(canvas, view.firstChild);
+
+            this.bgCodeRunner = new CodeRunner(canvas);
+            this.bgCodeRunner.setCode(bg.value);
+            this.bgCodeRunner.play();
         }
+
         // Hide the global background layer since we are doing per-slide background
         const globalBg = document.getElementById('slide-background');
         if (globalBg) globalBg.style.display = 'none';
