@@ -919,6 +919,36 @@ export class CanvasManager {
         const worldX = (mouseX - pan.x) / zoom;
         const worldY = (mouseY - pan.y) / zoom;
 
+        // Handle Icon Drop
+        const iconData = e.dataTransfer.getData('application/story-icon');
+        if (iconData) {
+            try {
+                const { iconClass } = JSON.parse(iconData);
+                const id = `icon-${Date.now()}`;
+                
+                store.dispatch('ADD_ELEMENT', {
+                    id,
+                    type: 'text',
+                    x: worldX - 25,
+                    y: worldY - 25,
+                    width: 50,
+                    height: 50,
+                    rotation: 0,
+                    content: `<i class="${iconClass}"></i>`,
+                    style: {
+                        fontSize: 48,
+                        color: '#000000',
+                        textAlign: 'center',
+                        fontFamily: 'Inter' // Reset font to ensure icon renders if it relies on global FA
+                    }
+                });
+                store.dispatch('UPDATE_SELECTION', [id]);
+                return;
+            } catch (err) {
+                console.error('Invalid icon data', err);
+            }
+        }
+
         if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
             const file = e.dataTransfer.files[0];
             if (file.type.startsWith('image/')) {

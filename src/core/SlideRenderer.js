@@ -110,11 +110,34 @@ export class SlideRenderer {
     }
 
     updateElementDOM(div, el, slide) {
+        let x = el.x;
+        let y = el.y;
+        let width = el.width;
+        let height = el.height;
+        
+        // Adjust for Stroke Alignment (only for rects/shapes that support it)
+        if (el.type === 'rect' && el.style?.borderWidth > 0) {
+            const w = el.style.borderWidth;
+            const align = el.style.strokeAlign || 'inside';
+            
+            if (align === 'outside') {
+                x -= w;
+                y -= w;
+                width += 2 * w;
+                height += 2 * w;
+            } else if (align === 'center') {
+                x -= w / 2;
+                y -= w / 2;
+                width += w;
+                height += w;
+            }
+        }
+
         // Update position, size, transform
-        div.style.left = `${el.x}px`;
-        div.style.top = `${el.y}px`;
-        div.style.width = `${el.width}px`;
-        div.style.height = `${el.height}px`;
+        div.style.left = `${x}px`;
+        div.style.top = `${y}px`;
+        div.style.width = `${width}px`;
+        div.style.height = `${height}px`;
         div.style.transform = `rotate(${el.rotation || 0}deg)`;
         div.style.opacity = (el.opacity !== undefined && el.opacity !== null) ? el.opacity : 1;
         div.style.zIndex = el.zIndex || 'auto';

@@ -859,6 +859,18 @@ return { draw };`;
 
         content.appendChild(borderRow);
 
+        // Stroke Position
+        const strokePosControl = new SegmentedControl(
+            [
+                { label: 'Inside', value: 'inside' },
+                { label: 'Center', value: 'center' },
+                { label: 'Outside', value: 'outside' }
+            ],
+            style.strokeAlign || 'inside',
+            (val) => this.updateStyle(element, 'strokeAlign', val)
+        );
+        content.appendChild(strokePosControl.element);
+
         this.container.appendChild(group);
     }
 
