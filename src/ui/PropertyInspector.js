@@ -97,7 +97,7 @@ export class PropertyInspector {
         bgTypeSelect.style.width = '100%';
         bgTypeSelect.style.marginBottom = '8px';
         
-        ['Solid', 'Gradient'].forEach(type => {
+        ['Solid', 'Gradient', 'Code'].forEach(type => {
             const opt = document.createElement('option');
             opt.value = type.toLowerCase();
             opt.text = type;
@@ -108,10 +108,36 @@ export class PropertyInspector {
         bgTypeSelect.onchange = (e) => {
             const newType = e.target.value;
             let newValue = slide.background.value;
+            
             if (newType === 'gradient' && !newValue.includes('gradient')) {
                 newValue = 'linear-gradient(180deg, #ffffff 0%, #f0f0f0 100%)';
             } else if (newType === 'solid' && newValue.includes('gradient')) {
                 newValue = '#ffffff';
+            } else if (newType === 'code') {
+                // Default Pastel Mesh Gradient
+                newValue = `
+return {
+    draw: function(t) {
+        const w = canvas.width;
+        const h = canvas.height;
+        const grd = ctx.createLinearGradient(0, 0, w, h);
+        const c1 = Math.sin(t * 0.5) * 50 + 200;
+        const c2 = Math.cos(t * 0.3) * 50 + 200;
+        grd.addColorStop(0, \`rgb(\${c1}, 200, 255)\`);
+        grd.addColorStop(1, \`rgb(255, \${c2}, 200)\`);
+        ctx.fillStyle = grd;
+        ctx.fillRect(0, 0, w, h);
+        for(let i=0; i<5; i++) {
+            const x = (Math.sin(t * 0.2 + i) * 0.5 + 0.5) * w;
+            const y = (Math.cos(t * 0.3 + i) * 0.5 + 0.5) * h;
+            const r = 100 + Math.sin(t + i) * 50;
+            ctx.beginPath();
+            ctx.arc(x, y, r, 0, Math.PI * 2);
+            ctx.fillStyle = \`rgba(255, 255, 255, 0.2)\`;
+            ctx.fill();
+        }
+    }
+};`.trim();
             }
             store.dispatch('UPDATE_SLIDE', { id: slide.id, background: { type: newType, value: newValue } });
         };
@@ -131,7 +157,7 @@ export class PropertyInspector {
                 store.dispatch('UPDATE_SLIDE', { id: slide.id, background: { type: 'solid', value: e.target.value } });
             };
             content.appendChild(colorInput);
-        } else {
+        } else if (slide.background.type === 'gradient') {
             // Simple Gradient Input (Text for now, could be enhanced)
             const gradientInput = document.createElement('input');
             gradientInput.type = 'text';
@@ -143,6 +169,96 @@ export class PropertyInspector {
                 store.dispatch('UPDATE_SLIDE', { id: slide.id, background: { type: 'gradient', value: e.target.value } });
             };
             content.appendChild(gradientInput);
+        } else if (slide.background.type === 'code') {
+            // Code Editor for Slide Background
+            const codeContainer = document.createElement('div');
+            codeContainer.style.marginBottom = '8px';
+            
+            // AI Chat Interface
+            const aiContainer = document.createElement('div');
+            aiContainer.style.marginBottom = '8px';
+            aiContainer.style.background = 'var(--bg-well)';
+            aiContainer.style.padding = '8px';
+            aiContainer.style.borderRadius = '4px';
+            
+            const aiLabel = document.createElement('div');
+            aiLabel.innerText = 'AI Generator';
+            aiLabel.style.fontSize = '10px';
+            aiLabel.style.fontWeight = '600';
+            aiLabel.style.marginBottom = '4px';
+            aiLabel.style.color = 'var(--text-secondary)';
+            
+            const promptInput = document.createElement('textarea');
+            promptInput.placeholder = 'Describe an animation...';
+            promptInput.style.width = '100%';
+            promptInput.style.height = '60px';
+            promptInput.style.background = 'var(--bg-panel)';
+            promptInput.style.border = '1px solid var(--border-color)';
+            promptInput.style.color = 'var(--text-primary)';
+            promptInput.style.fontSize = '11px';
+            promptInput.style.padding = '4px';
+            promptInput.style.resize = 'none';
+            promptInput.style.marginBottom = '4px';
+            
+            const generateBtn = document.createElement('button');
+            generateBtn.className = 'btn-primary';
+            generateBtn.innerText = 'Generate Code';
+            generateBtn.style.width = '100%';
+            generateBtn.style.fontSize = '11px';
+            
+            generateBtn.onclick = async () => {
+                const promptText = promptInput.value.trim();
+                if (!promptText) return;
+                
+                try {
+                    generateBtn.innerText = 'Generating...';
+                    generateBtn.disabled = true;
+                    
+                    const currentCode = slide.background.value || '';
+                    const systemPrompt = `You are an expert HTML5 Canvas artist. 
+                    Generate a JavaScript object with a 'draw(time)' function. 
+                    Context: 'ctx' is the 2D context, 'canvas' is the DOM element.
+                    ALWAYS use 'canvas.width' and 'canvas.height' for dimensions.
+                    Time 't' is passed to draw().
+                    Return ONLY the code for the object. No markdown.
+                    If code already exists, modify it based on the user request.
+                    Existing Code: ${currentCode}`;
+                    
+                    const newCode = await aiService.generate(promptText, { systemPrompt });
+                    let cleanCode = newCode.replace(/```javascript|```/g, '').trim();
+                    
+                    store.dispatch('UPDATE_SLIDE', { id: slide.id, background: { type: 'code', value: cleanCode } });
+                    textarea.value = cleanCode;
+                    promptInput.value = '';
+                    
+                } catch (err) {
+                    alert('AI Error: ' + err.message);
+                } finally {
+                    generateBtn.innerText = 'Generate Code';
+                    generateBtn.disabled = false;
+                }
+            };
+            
+            aiContainer.appendChild(aiLabel);
+            aiContainer.appendChild(promptInput);
+            aiContainer.appendChild(generateBtn);
+            codeContainer.appendChild(aiContainer);
+            
+            const textarea = document.createElement('textarea');
+            textarea.value = slide.background.value || '';
+            textarea.style.width = '100%';
+            textarea.style.height = '200px';
+            textarea.style.background = 'var(--bg-well)';
+            textarea.style.color = 'var(--text-primary)';
+            textarea.style.fontSize = '11px';
+            textarea.style.fontFamily = 'monospace';
+            
+            textarea.onchange = (e) => {
+                store.dispatch('UPDATE_SLIDE', { id: slide.id, background: { type: 'code', value: e.target.value } });
+            };
+            
+            codeContainer.appendChild(textarea);
+            content.appendChild(codeContainer);
         }
 
         this.container.appendChild(group);
@@ -694,22 +810,29 @@ export class PropertyInspector {
             } else if (newType === 'mesh' && !style.meshColors) {
                 updates.meshColors = ['#FF4D00', '#0055FF', '#00FF41', '#FF0080'];
             } else if (newType === 'code' && !style.code) {
-                updates.code = `// Available: ctx, width, height, time
-ctx.fillStyle = '#000';
-ctx.fillRect(0, 0, width, height);
-
-function draw(t) {
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
-    ctx.fillRect(0, 0, width, height);
-    
-    ctx.fillStyle = '#00FF41';
-    const x = Math.sin(t) * 100 + width/2;
-    const y = Math.cos(t) * 100 + height/2;
-    ctx.beginPath();
-    ctx.arc(x, y, 20, 0, Math.PI*2);
-    ctx.fill();
-}
-return { draw };`;
+                updates.code = `
+return {
+    draw: function(t) {
+        const w = canvas.width;
+        const h = canvas.height;
+        const grd = ctx.createLinearGradient(0, 0, w, h);
+        const c1 = Math.sin(t * 0.5) * 50 + 200;
+        const c2 = Math.cos(t * 0.3) * 50 + 200;
+        grd.addColorStop(0, \`rgb(\${c1}, 200, 255)\`);
+        grd.addColorStop(1, \`rgb(255, \${c2}, 200)\`);
+        ctx.fillStyle = grd;
+        ctx.fillRect(0, 0, w, h);
+        for(let i=0; i<5; i++) {
+            const x = (Math.sin(t * 0.2 + i) * 0.5 + 0.5) * w;
+            const y = (Math.cos(t * 0.3 + i) * 0.5 + 0.5) * h;
+            const r = 100 + Math.sin(t + i) * 50;
+            ctx.beginPath();
+            ctx.arc(x, y, r, 0, Math.PI * 2);
+            ctx.fillStyle = \`rgba(255, 255, 255, 0.2)\`;
+            ctx.fill();
+        }
+    }
+};`.trim();
             }
 
             this.updateStyle(selection, 'fillType', newType); // This will trigger re-render
