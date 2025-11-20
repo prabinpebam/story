@@ -223,6 +223,18 @@ return {
         grd.addColorStop(1, \`rgb(255, \${c2}, 200)\`);
         ctx.fillStyle = grd;
         ctx.fillRect(0, 0, w, h);
+        
+        // Floating circles
+        for(let i=0; i<5; i++) {
+            const x = (Math.sin(t * 0.2 + i) * 0.5 + 0.5) * w;
+            const y = (Math.cos(t * 0.3 + i) * 0.5 + 0.5) * h;
+            const r = 100 + Math.sin(t + i) * 50;
+            
+            ctx.beginPath();
+            ctx.arc(x, y, r, 0, Math.PI * 2);
+            ctx.fillStyle = \`rgba(255, 255, 255, 0.2)\`;
+            ctx.fill();
+        }
     }
 };`.trim();
                  

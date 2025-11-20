@@ -199,6 +199,29 @@ return {
             promptInput.style.padding = '4px';
             promptInput.style.resize = 'none';
             promptInput.style.marginBottom = '4px';
+
+            // Options Row
+            const optionsRow = document.createElement('div');
+            optionsRow.style.display = 'flex';
+            optionsRow.style.alignItems = 'center';
+            optionsRow.style.marginBottom = '8px';
+            optionsRow.style.gap = '8px';
+
+            const replaceCheck = document.createElement('input');
+            replaceCheck.type = 'checkbox';
+            replaceCheck.id = 'ai-replace-slide-code';
+            replaceCheck.style.cursor = 'pointer';
+            
+            const replaceLabel = document.createElement('label');
+            replaceLabel.htmlFor = 'ai-replace-slide-code';
+            replaceLabel.innerText = 'Create New (Discard current)';
+            replaceLabel.style.fontSize = '11px';
+            replaceLabel.style.color = 'var(--text-secondary)';
+            replaceLabel.style.cursor = 'pointer';
+            replaceLabel.style.userSelect = 'none';
+
+            optionsRow.appendChild(replaceCheck);
+            optionsRow.appendChild(replaceLabel);
             
             const generateBtn = document.createElement('button');
             generateBtn.className = 'btn-primary';
@@ -214,15 +237,21 @@ return {
                     generateBtn.innerText = 'Generating...';
                     generateBtn.disabled = true;
                     
-                    const currentCode = slide.background.value || '';
-                    const systemPrompt = `You are an expert HTML5 Canvas artist. 
+                    const isReplace = replaceCheck.checked;
+                    const currentCode = isReplace ? '' : (slide.background.value || '');
+                    
+                    let systemPrompt = `You are an expert HTML5 Canvas artist. 
                     Generate a JavaScript object with a 'draw(time)' function. 
                     Context: 'ctx' is the 2D context, 'canvas' is the DOM element.
                     ALWAYS use 'canvas.width' and 'canvas.height' for dimensions.
                     Time 't' is passed to draw().
-                    Return ONLY the code for the object. No markdown.
-                    If code already exists, modify it based on the user request.
-                    Existing Code: ${currentCode}`;
+                    Return ONLY the code for the object. No markdown.`;
+
+                    if (!isReplace && currentCode) {
+                        systemPrompt += `\nIf code already exists, modify it based on the user request.\nExisting Code: ${currentCode}`;
+                    } else {
+                        systemPrompt += `\nCreate a new effect from scratch.`;
+                    }
                     
                     const newCode = await aiService.generate(promptText, { systemPrompt });
                     let cleanCode = newCode.replace(/```javascript|```/g, '').trim();
@@ -241,6 +270,7 @@ return {
             
             aiContainer.appendChild(aiLabel);
             aiContainer.appendChild(promptInput);
+            aiContainer.appendChild(optionsRow);
             aiContainer.appendChild(generateBtn);
             codeContainer.appendChild(aiContainer);
             
@@ -1065,6 +1095,29 @@ return {
             promptInput.style.padding = '4px';
             promptInput.style.resize = 'none';
             promptInput.style.marginBottom = '4px';
+
+            // Options Row
+            const optionsRow = document.createElement('div');
+            optionsRow.style.display = 'flex';
+            optionsRow.style.alignItems = 'center';
+            optionsRow.style.marginBottom = '8px';
+            optionsRow.style.gap = '8px';
+
+            const replaceCheck = document.createElement('input');
+            replaceCheck.type = 'checkbox';
+            replaceCheck.id = 'ai-replace-code';
+            replaceCheck.style.cursor = 'pointer';
+            
+            const replaceLabel = document.createElement('label');
+            replaceLabel.htmlFor = 'ai-replace-code';
+            replaceLabel.innerText = 'Create New (Discard current)';
+            replaceLabel.style.fontSize = '11px';
+            replaceLabel.style.color = 'var(--text-secondary)';
+            replaceLabel.style.cursor = 'pointer';
+            replaceLabel.style.userSelect = 'none';
+
+            optionsRow.appendChild(replaceCheck);
+            optionsRow.appendChild(replaceLabel);
             
             const generateBtn = document.createElement('button');
             generateBtn.className = 'btn-primary';
@@ -1080,24 +1133,26 @@ return {
                     generateBtn.innerText = 'Generating...';
                     generateBtn.disabled = true;
                     
-                    const currentCode = style.code || '';
-                    const systemPrompt = `You are an expert HTML5 Canvas artist. 
+                    const isReplace = replaceCheck.checked;
+                    const currentCode = isReplace ? '' : (style.code || '');
+                    
+                    let systemPrompt = `You are an expert HTML5 Canvas artist. 
                     Generate a JavaScript object with a 'draw(time)' function. 
                     Context: 'ctx' is the 2D context, 'canvas' is the DOM element.
                     ALWAYS use 'canvas.width' and 'canvas.height' for dimensions to support resizing.
                     Time 't' is passed to draw().
-                    Return ONLY the code for the object. No markdown.
-                    If code already exists, modify it based on the user request.
-                    Existing Code: ${currentCode}`;
+                    Return ONLY the code for the object. No markdown.`;
+
+                    if (!isReplace && currentCode) {
+                        systemPrompt += `\nIf code already exists, modify it based on the user request.\nExisting Code: ${currentCode}`;
+                    } else {
+                        systemPrompt += `\nCreate a new effect from scratch.`;
+                    }
                     
                     const newCode = await aiService.generate(promptText, { systemPrompt });
                     
                     // Clean up code (remove markdown blocks if any)
                     let cleanCode = newCode.replace(/```javascript|```/g, '').trim();
-                    if (!cleanCode.startsWith('return')) {
-                        // If AI didn't wrap it, try to fix or just trust it returns an object
-                        // Ideally we want: return { draw: function(t) { ... } }
-                    }
                     
                     this.updateStyle(selection, 'code', cleanCode);
                     textarea.value = cleanCode; // Update editor
@@ -1113,6 +1168,7 @@ return {
             
             aiContainer.appendChild(aiLabel);
             aiContainer.appendChild(promptInput);
+            aiContainer.appendChild(optionsRow);
             aiContainer.appendChild(generateBtn);
             codeContainer.appendChild(aiContainer);
             
@@ -1122,8 +1178,8 @@ return {
 return {
     draw: function(t) {
         // Pastel Mesh Gradient
-        const w = width;
-        const h = height;
+        const w = canvas.width;
+        const h = canvas.height;
         
         // Create gradient
         const grd = ctx.createLinearGradient(0, 0, w, h);
