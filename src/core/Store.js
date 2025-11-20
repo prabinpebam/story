@@ -172,23 +172,47 @@ class Store extends EventEmitter {
                 break;
 
             case 'REORDER_ELEMENTS':
-                // Payload: { slideId, fromIndex, toIndex }
-                // Note: elementOrder is bottom-to-top (0 is background-most)
-                // But UI Layer Tree is top-to-bottom.
-                // So if UI moves item at index 0 (top) to index 1,
-                // it corresponds to moving last element of array to second-to-last.
+                // Payload: { slideId, elementId, targetParentId, targetIndex }
+                // targetParentId: null for root, or ID of group
+                // targetIndex: index in the destination array (children or elementOrder)
                 
-                // Let's assume payload provides indices based on the `elementOrder` array directly
-                // to avoid confusion. The UI should map visual index to array index.
-                const { slideId, fromIndex: elFrom, toIndex: elTo } = payload;
-                const slide = this.state.slides[slideId];
+                const { slideId: reorderSlideId, elementId, targetParentId, targetIndex } = payload;
+                const slide = this.state.slides[reorderSlideId];
                 if (!slide) return;
-                
-                if (elFrom < 0 || elFrom >= slide.elementOrder.length || 
-                    elTo < 0 || elTo >= slide.elementOrder.length) return;
 
-                const [movedElId] = slide.elementOrder.splice(elFrom, 1);
-                slide.elementOrder.splice(elTo, 0, movedElId);
+                const element = slide.elements[elementId];
+                if (!element) return;
+
+                // 1. Remove from old location
+                if (element.parentId) {
+                    const oldParent = slide.elements[element.parentId];
+                    if (oldParent && oldParent.children) {
+                        const idx = oldParent.children.indexOf(elementId);
+                        if (idx > -1) oldParent.children.splice(idx, 1);
+                    }
+                } else {
+                    const idx = slide.elementOrder.indexOf(elementId);
+                    if (idx > -1) slide.elementOrder.splice(idx, 1);
+                }
+
+                // 2. Add to new location
+                if (targetParentId) {
+                    const newParent = slide.elements[targetParentId];
+                    if (newParent) {
+                        if (!newParent.children) newParent.children = [];
+                        // Clamp index
+                        const safeIndex = Math.max(0, Math.min(targetIndex, newParent.children.length));
+                        newParent.children.splice(safeIndex, 0, elementId);
+                        element.parentId = targetParentId;
+                        
+                        // Update group bounds if needed (simplified: just mark for update or let renderer handle)
+                    }
+                } else {
+                    // Root
+                    const safeIndex = Math.max(0, Math.min(targetIndex, slide.elementOrder.length));
+                    slide.elementOrder.splice(safeIndex, 0, elementId);
+                    element.parentId = null;
+                }
                 
                 this.emit('state-changed', this.state);
                 break;

@@ -102,6 +102,8 @@ export class SlideRenderer {
                 // Update properties
                 this.updateElementDOM(domEl, el, slide);
                 existingMap.delete(id);
+                // Ensure DOM order matches elementOrder
+                view.appendChild(domEl);
             } else {
                 // Create new
                 const newDomEl = this.createElementDOM(el, slide);
@@ -158,6 +160,8 @@ export class SlideRenderer {
                         if (childDom) {
                             this.updateElementDOM(childDom, child, slide);
                             existingMap.delete(childId);
+                            // Ensure DOM order matches children array
+                            div.appendChild(childDom);
                         } else {
                             const newChildDom = this.createElementDOM(child, slide, false);
                             div.appendChild(newChildDom);

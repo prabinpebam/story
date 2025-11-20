@@ -87,6 +87,12 @@ This document outlines the step-by-step implementation plan for "Story", a moder
 - [x] Sync selection between Thumbnail view and Main Canvas.
 
 ### 3.3 Layer Management
+- [x] **Refactor Layer Tree:**
+    - [x] Implement recursive rendering for Groups.
+    - [x] Implement Drag & Drop reordering (using HTML5 DnD or a library).
+    - [x] Sync selection state (Canvas <-> Tree).
+    - [x] Implement Visibility (Eye icon) and Lock (Padlock icon) toggles.
+    - [x] Implement Inline Renaming (Double-click).
 - [x] Build the Layer Tree view in the Left Sidebar.
 - [x] Implement Z-index manipulation (Bring to Front/Send to Back).
 - [x] Implement Lock/Unlock and Hide/Show visibility toggles.
@@ -166,6 +172,7 @@ This document outlines the step-by-step implementation plan for "Story", a moder
 - [x] **Code Background:**
     - [x] Create the Code Editor interface (Monaco or simple textarea with highlighting).
     - [x] Implement the sandbox for rendering user-defined Canvas/JS code.
+    - [ ] **Fix:** Mouse interaction in Code Fill (currently static).
 
 ### 6.2 AI Copilot Integration
 - [x] Build the Settings panel for API Key management.
@@ -173,6 +180,7 @@ This document outlines the step-by-step implementation plan for "Story", a moder
 - [x] **Features:**
     - [x] Text Refinement (Shorten/Expand).
     - [x] "Generate Background" prompt interface (Text-to-Code).
+    - [x] "Update Background" prompt interface (Refine existing code).
 
 ## Phase 7: Polish & Presentation Mode
 **Goal:** Finalize the user experience.
