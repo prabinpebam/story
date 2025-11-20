@@ -119,7 +119,7 @@ export class PropertyInspector {
         bgTypeSelect.style.padding = '4px';
         bgTypeSelect.style.fontSize = '11px';
         
-        ['Inherited', 'Solid', 'Gradient', 'Code'].forEach(type => {
+        ['Inherited', 'Solid', 'Gradient', 'Image', 'Code'].forEach(type => {
             const opt = document.createElement('option');
             opt.value = type.toLowerCase();
             opt.text = type;
@@ -147,6 +147,8 @@ export class PropertyInspector {
                 newValue = 'linear-gradient(180deg, #ffffff 0%, #f0f0f0 100%)';
             } else if (newType === 'solid' && newValue && newValue.includes('gradient')) {
                 newValue = '#ffffff';
+            } else if (newType === 'image') {
+                newValue = 'https://placehold.co/1920x1080';
             } else if (newType === 'code') {
                 // Default Pastel Mesh Gradient
                 newValue = `
@@ -203,6 +205,23 @@ return {
                 store.dispatch('UPDATE_SLIDE', { id: slide.id, background: { type: 'gradient', value: e.target.value } });
             };
             content.appendChild(gradientInput);
+        } else if (bgToEdit.type === 'image') {
+            const urlInput = document.createElement('input');
+            urlInput.type = 'text';
+            urlInput.value = bgToEdit.value;
+            urlInput.placeholder = 'Image URL';
+            urlInput.style.width = '100%';
+            urlInput.style.background = 'var(--color-bg-input)';
+            urlInput.style.border = '1px solid var(--color-border)';
+            urlInput.style.borderRadius = 'var(--radius-sm)';
+            urlInput.style.color = 'var(--color-text-primary)';
+            urlInput.style.padding = '4px';
+            urlInput.style.fontSize = '11px';
+            
+            urlInput.onchange = (e) => {
+                store.dispatch('UPDATE_SLIDE', { id: slide.id, background: { type: 'image', value: e.target.value } });
+            };
+            content.appendChild(urlInput);
         } else if (bgToEdit.type === 'code') {
             // Code Editor for Slide Background
             const codeContainer = document.createElement('div');

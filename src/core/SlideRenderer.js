@@ -381,6 +381,8 @@ return {
             view.style.background = bg.value;
         } else if (bg.type === 'gradient') {
             view.style.background = bg.value;
+        } else if (bg.type === 'image') {
+            view.style.background = `url(${bg.value}) center/cover no-repeat`;
         } else if (bg.type === 'code') {
             console.log('Initializing Code Background');
             const canvas = document.createElement('canvas');

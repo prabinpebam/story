@@ -710,6 +710,15 @@ class Store extends EventEmitter {
             case 'GROUP_ELEMENTS':
                 // TODO: Implement grouping
                 break;
+
+            case 'UPDATE_SLIDE':
+                const slideToUpdate = this.state.slides[payload.id];
+                if (slideToUpdate) {
+                    // Merge updates
+                    Object.assign(slideToUpdate, payload);
+                    this.emit('state-changed', this.state);
+                }
+                break;
         }
     }
 
