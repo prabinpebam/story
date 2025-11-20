@@ -110,34 +110,11 @@ export class SlideRenderer {
     }
 
     updateElementDOM(div, el, slide) {
-        let x = el.x;
-        let y = el.y;
-        let width = el.width;
-        let height = el.height;
-        
-        // Adjust for Stroke Alignment (only for rects/shapes that support it)
-        if (el.type === 'rect' && el.style?.borderWidth > 0) {
-            const w = el.style.borderWidth;
-            const align = el.style.strokeAlign || 'inside';
-            
-            if (align === 'outside') {
-                x -= w;
-                y -= w;
-                width += 2 * w;
-                height += 2 * w;
-            } else if (align === 'center') {
-                x -= w / 2;
-                y -= w / 2;
-                width += w;
-                height += w;
-            }
-        }
-
         // Update position, size, transform
-        div.style.left = `${x}px`;
-        div.style.top = `${y}px`;
-        div.style.width = `${width}px`;
-        div.style.height = `${height}px`;
+        div.style.left = `${el.x}px`;
+        div.style.top = `${el.y}px`;
+        div.style.width = `${el.width}px`;
+        div.style.height = `${el.height}px`;
         div.style.transform = `rotate(${el.rotation || 0}deg)`;
         div.style.opacity = (el.opacity !== undefined && el.opacity !== null) ? el.opacity : 1;
         div.style.zIndex = el.zIndex || 'auto';
@@ -227,10 +204,37 @@ export class SlideRenderer {
                  }
              }
              
-             div.style.borderWidth = `${el.style?.borderWidth || 0}px`;
-             div.style.borderStyle = el.style?.borderStyle || 'solid';
-             div.style.borderColor = el.style?.borderColor || 'transparent';
              div.style.borderRadius = `${el.style?.radius || 0}px`;
+
+             // Handle Stroke Alignment
+             const borderWidth = el.style?.borderWidth || 0;
+             const borderStyle = el.style?.borderStyle || 'solid';
+             const borderColor = el.style?.borderColor || 'transparent';
+             const strokeAlign = el.style?.strokeAlign || 'inside';
+
+             if (borderWidth > 0) {
+                 if (strokeAlign === 'inside') {
+                     div.style.borderWidth = `${borderWidth}px`;
+                     div.style.borderStyle = borderStyle;
+                     div.style.borderColor = borderColor;
+                     div.style.outline = 'none';
+                 } else if (strokeAlign === 'outside') {
+                     div.style.borderWidth = '0px';
+                     div.style.outlineWidth = `${borderWidth}px`;
+                     div.style.outlineStyle = borderStyle;
+                     div.style.outlineColor = borderColor;
+                     div.style.outlineOffset = '0px';
+                 } else if (strokeAlign === 'center') {
+                     div.style.borderWidth = '0px';
+                     div.style.outlineWidth = `${borderWidth}px`;
+                     div.style.outlineStyle = borderStyle;
+                     div.style.outlineColor = borderColor;
+                     div.style.outlineOffset = `-${borderWidth / 2}px`;
+                 }
+             } else {
+                 div.style.borderWidth = '0px';
+                 div.style.outline = 'none';
+             }
              
         } else if (el.type === 'text') {
             // Only update if not editing (to avoid cursor jumping)

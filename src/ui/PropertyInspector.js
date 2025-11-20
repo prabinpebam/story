@@ -47,18 +47,18 @@ export class PropertyInspector {
 
         if (allSameType) {
             if (firstType === 'text') {
-                this.renderTextProperties(commonProps, selection);
+                this.renderTextProperties(elements[0], selection);
             } else if (firstType === 'rect') {
-                this.renderShapeProperties(commonProps, selection);
+                this.renderShapeProperties(elements[0], selection);
             } else if (firstType === 'image') {
-                this.renderImageProperties(commonProps, selection);
+                this.renderImageProperties(elements[0], selection);
             }
         }
 
         // Effects (Shadow) - Only for single selection for now
         if (selection.length === 1) {
-            this.renderEffectsProperties(elements[0]);
-            this.renderAnimationProperties(elements[0]);
+            this.renderEffectsProperties(elements[0], selection);
+            this.renderAnimationProperties(elements[0], selection);
         }
     }
 
@@ -308,7 +308,7 @@ export class PropertyInspector {
         return wrapper;
     }
 
-    renderTextProperties(element) {
+    renderTextProperties(element, selection) {
         const { group, content } = this.createControlGroup('TEXT');
         const style = element.style || {};
 
@@ -320,7 +320,7 @@ export class PropertyInspector {
         contentInput.value = tempDiv.innerText;
         
         contentInput.addEventListener('change', (e) => {
-            this.updateProperty(element.id, 'content', `<h2>${e.target.value}</h2>`);
+            this.updateProperty(selection, 'content', `<h2>${e.target.value}</h2>`);
         });
         content.appendChild(this.createInputRow('Content', contentInput));
 
@@ -343,7 +343,7 @@ export class PropertyInspector {
             fontSelect.appendChild(option);
         });
         
-        fontSelect.addEventListener('change', (e) => this.updateStyle(element, 'fontFamily', e.target.value));
+        fontSelect.addEventListener('change', (e) => this.updateStyle(selection, 'fontFamily', e.target.value));
         fontRow.appendChild(fontSelect);
         content.appendChild(fontRow);
 
@@ -378,12 +378,12 @@ export class PropertyInspector {
             weightSelect.appendChild(option);
         });
 
-        weightSelect.addEventListener('change', (e) => this.updateStyle(element, 'fontWeight', e.target.value));
+        weightSelect.addEventListener('change', (e) => this.updateStyle(selection, 'fontWeight', e.target.value));
         weightSizeRow.appendChild(weightSelect);
 
         // Size
         const sizeControl = new ScrubbableControl('Size', style.fontSize || 16, (val) => {
-            this.updateStyle(element, 'fontSize', Math.max(1, val));
+            this.updateStyle(selection, 'fontSize', Math.max(1, val));
         });
         // Hack to make it fit in the flex row nicely
         sizeControl.element.style.flex = '0 0 60px'; 
@@ -399,13 +399,13 @@ export class PropertyInspector {
 
         // Line Height
         const lhControl = new ScrubbableControl('LH', parseFloat(style.lineHeight) || 1.2, (val) => {
-            this.updateStyle(element, 'lineHeight', Math.max(0.5, val));
+            this.updateStyle(selection, 'lineHeight', Math.max(0.5, val));
         }, { step: 0.1 });
         spacingRow.appendChild(lhControl.element);
 
         // Letter Spacing
         const lsControl = new ScrubbableControl('LS', parseFloat(style.letterSpacing) || 0, (val) => {
-            this.updateStyle(element, 'letterSpacing', val);
+            this.updateStyle(selection, 'letterSpacing', val);
         }, { step: 0.1 });
         spacingRow.appendChild(lsControl.element);
 
@@ -418,7 +418,7 @@ export class PropertyInspector {
             { label: 'R', value: 'right', icon: 'fa-align-right' },
             { label: 'J', value: 'justify', icon: 'fa-align-justify' }
         ], style.textAlign || 'left', (val) => {
-            this.updateStyle(element, 'textAlign', val);
+            this.updateStyle(selection, 'textAlign', val);
         });
         content.appendChild(alignControl.element);
 
@@ -428,7 +428,7 @@ export class PropertyInspector {
             { label: 'Auto Height', value: 'autoHeight', icon: 'fa-arrows-up-down' },
             { label: 'Fixed Size', value: 'fixed', icon: 'fa-expand' }
         ], style.resizing || 'autoHeight', (val) => {
-            this.updateStyle(element, 'resizing', val);
+            this.updateStyle(selection, 'resizing', val);
         });
         content.appendChild(resizingControl.element);
 
@@ -436,13 +436,13 @@ export class PropertyInspector {
         const colorInput = document.createElement('input');
         colorInput.type = 'color';
         colorInput.value = style.color || '#000000';
-        colorInput.addEventListener('change', (e) => this.updateStyle(element, 'color', e.target.value));
+        colorInput.addEventListener('change', (e) => this.updateStyle(selection, 'color', e.target.value));
         content.appendChild(this.createInputRow('Color', colorInput));
 
         this.container.appendChild(group);
     }
 
-    renderShapeProperties(element) {
+    renderShapeProperties(element, selection) {
         const { group, content } = this.createControlGroup('STYLE');
         const style = element.style || {};
 
@@ -528,11 +528,18 @@ function draw(t) {
 return { draw };`;
             }
 
-            this.updateStyle(element, 'fillType', newType); // This will trigger re-render
-            // We need to merge updates, but updateStyle handles one key. 
-            // Let's manually dispatch for multiple
-            const newStyle = { ...element.style, ...updates };
-            store.dispatch('UPDATE_ELEMENT', { id: element.id, style: newStyle });
+            this.updateStyle(selection, 'fillType', newType); // This will trigger re-render
+            
+            // Dispatch updates for all selected elements
+            selection.forEach(id => {
+                const state = store.getState();
+                const slide = state.slides[state.editor.activeSlideId];
+                const el = slide.elements[id];
+                if (el) {
+                    const newStyle = { ...el.style, ...updates };
+                    store.dispatch('UPDATE_ELEMENT', { id, style: newStyle });
+                }
+            });
         });
 
         fillHeader.appendChild(fillTypeSelect);
@@ -562,7 +569,7 @@ return { draw };`;
             });
             
             typeSelect.onchange = (e) => {
-                this.updateGradient(element, { type: e.target.value });
+                this.updateGradient(selection, { type: e.target.value });
             };
             
             typeRow.appendChild(typeSelect);
@@ -574,7 +581,7 @@ return { draw };`;
                 angleRow.style.marginBottom = '8px';
                 const angleControl = new ScrubbableControl('Angle', style.gradientAngle !== undefined ? style.gradientAngle : 180, (val) => {
                     const angle = Math.round(val) % 360;
-                    this.updateGradient(element, { angle });
+                    this.updateGradient(selection, { angle });
                 });
                 angleRow.appendChild(angleControl.element);
                 content.appendChild(angleRow);
@@ -610,7 +617,7 @@ return { draw };`;
                 const updateStopColor = (e) => {
                     const newStops = [...stops];
                     newStops[index] = { ...newStops[index], color: e.target.value };
-                    this.updateGradient(element, { stops: newStops });
+                    this.updateGradient(selection, { stops: newStops });
                 };
 
                 colorInput.addEventListener('input', updateStopColor);
@@ -647,7 +654,7 @@ return { draw };`;
                 if (file) {
                     const reader = new FileReader();
                     reader.onload = (evt) => {
-                        this.updateStyle(element, 'fillValue', evt.target.result);
+                        this.updateStyle(selection, 'fillValue', evt.target.result);
                     };
                     reader.readAsDataURL(file);
                 }
@@ -684,7 +691,7 @@ return { draw };`;
                 scaleSelect.appendChild(opt);
             });
 
-            scaleSelect.addEventListener('change', (e) => this.updateStyle(element, 'fillScaleMode', e.target.value));
+            scaleSelect.addEventListener('change', (e) => this.updateStyle(selection, 'fillScaleMode', e.target.value));
             imgRow.appendChild(scaleSelect);
 
             content.appendChild(imgRow);
@@ -713,7 +720,7 @@ return { draw };`;
                 colorInput.addEventListener('change', (e) => {
                     const newColors = [...colors];
                     newColors[index] = e.target.value;
-                    this.updateStyle(element, 'meshColors', newColors);
+                    this.updateStyle(selection, 'meshColors', newColors);
                 });
                 
                 meshRow.appendChild(colorInput);
@@ -744,7 +751,7 @@ return { draw };`;
             textarea.addEventListener('input', (e) => {
                 clearTimeout(timeout);
                 timeout = setTimeout(() => {
-                    this.updateStyle(element, 'code', e.target.value);
+                    this.updateStyle(selection, 'code', e.target.value);
                 }, 500);
             });
             
@@ -775,7 +782,7 @@ return { draw };`;
             colorInput.style.background = 'none';
             colorInput.style.cursor = 'pointer';
             
-            colorInput.addEventListener('change', (e) => this.updateStyle(element, 'backgroundColor', e.target.value));
+            colorInput.addEventListener('change', (e) => this.updateStyle(selection, 'backgroundColor', e.target.value));
             
             colorRow.appendChild(colorInput);
             content.appendChild(colorRow);
@@ -811,7 +818,7 @@ return { draw };`;
             strokeStyleSelect.appendChild(opt);
         });
 
-        strokeStyleSelect.addEventListener('change', (e) => this.updateStyle(element, 'borderStyle', e.target.value));
+        strokeStyleSelect.addEventListener('change', (e) => this.updateStyle(selection, 'borderStyle', e.target.value));
 
         const strokeInput = document.createElement('input');
         strokeInput.type = 'color';
@@ -823,7 +830,7 @@ return { draw };`;
         strokeInput.style.background = 'none';
         strokeInput.style.cursor = 'pointer';
 
-        strokeInput.addEventListener('change', (e) => this.updateStyle(element, 'borderColor', e.target.value));
+        strokeInput.addEventListener('change', (e) => this.updateStyle(selection, 'borderColor', e.target.value));
 
         const strokeRight = document.createElement('div');
         strokeRight.style.display = 'flex';
@@ -843,17 +850,17 @@ return { draw };`;
 
         // Border Width
         const borderWidthControl = new ScrubbableControl('Width', parseFloat(style.borderWidth) || 0, (val) => {
-            this.updateStyle(element, 'borderWidth', Math.max(0, val));
+            this.updateStyle(selection, 'borderWidth', Math.max(0, val));
             // Ensure border style is solid if width > 0
             if (val > 0 && (!style.borderStyle || style.borderStyle === 'none')) {
-                this.updateStyle(element, 'borderStyle', 'solid');
+                this.updateStyle(selection, 'borderStyle', 'solid');
             }
         });
         borderRow.appendChild(borderWidthControl.element);
 
         // Border Radius
         const radiusControl = new ScrubbableControl('Radius', parseFloat(style.borderRadius) || 0, (val) => {
-            this.updateStyle(element, 'borderRadius', Math.max(0, val));
+            this.updateStyle(selection, 'borderRadius', Math.max(0, val));
         });
         borderRow.appendChild(radiusControl.element);
 
@@ -867,14 +874,14 @@ return { draw };`;
                 { label: 'Outside', value: 'outside' }
             ],
             style.strokeAlign || 'inside',
-            (val) => this.updateStyle(element, 'strokeAlign', val)
+            (val) => this.updateStyle(selection, 'strokeAlign', val)
         );
         content.appendChild(strokePosControl.element);
 
         this.container.appendChild(group);
     }
 
-    renderAnimationProperties(element) {
+    renderAnimationProperties(element, selection) {
         const { group, content } = this.createControlGroup('Animations', false);
         
         const animations = element.animations || { entrance: 'none', exit: 'none', duration: 1000, delay: 0 };
@@ -897,7 +904,7 @@ return { draw };`;
         });
         
         entranceSelect.onchange = (e) => {
-            this.updateAnimation(element, 'entrance', e.target.value);
+            this.updateAnimation(selection, 'entrance', e.target.value);
         };
         
         entranceRow.appendChild(entranceLabel);
@@ -922,7 +929,7 @@ return { draw };`;
         });
         
         exitSelect.onchange = (e) => {
-            this.updateAnimation(element, 'exit', e.target.value);
+            this.updateAnimation(selection, 'exit', e.target.value);
         };
         
         exitRow.appendChild(exitLabel);
@@ -936,11 +943,11 @@ return { draw };`;
         timingRow.style.marginBottom = '8px';
 
         const durationControl = new ScrubbableControl('Duration', animations.duration || 1000, (val) => {
-            this.updateAnimation(element, 'duration', Math.max(0, val));
+            this.updateAnimation(selection, 'duration', Math.max(0, val));
         });
         
         const delayControl = new ScrubbableControl('Delay', animations.delay || 0, (val) => {
-            this.updateAnimation(element, 'delay', Math.max(0, val));
+            this.updateAnimation(selection, 'delay', Math.max(0, val));
         });
 
         timingRow.appendChild(durationControl.element);
@@ -965,61 +972,101 @@ return { draw };`;
         this.container.appendChild(group);
     }
 
-    updateProperty(id, key, value) {
-        store.dispatch('UPDATE_ELEMENT', { id, [key]: value });
+    updateProperty(ids, key, value) {
+        const idArray = Array.isArray(ids) ? ids : [ids];
+        idArray.forEach(id => {
+            store.dispatch('UPDATE_ELEMENT', { id, [key]: value });
+        });
     }
 
-    updateStyle(element, key, value) {
-        const newStyle = { ...element.style, [key]: value };
-        store.dispatch('UPDATE_ELEMENT', { id: element.id, style: newStyle });
+    updateStyle(ids, key, value) {
+        const idArray = Array.isArray(ids) ? ids : [ids];
+        const state = store.getState();
+        const slide = state.slides[state.editor.activeSlideId];
+
+        idArray.forEach(id => {
+            const el = slide.elements[id];
+            if (el) {
+                const newStyle = { ...el.style, [key]: value };
+                store.dispatch('UPDATE_ELEMENT', { id, style: newStyle });
+            }
+        });
     }
 
-    updateShadow(element, key, value) {
-        const current = element.style.dropShadow || { x: 0, y: 4, blur: 4, spread: 0, color: '#00000040' };
-        const newShadow = { ...current, [key]: value };
-        this.updateStyle(element, 'dropShadow', newShadow);
+    updateShadow(ids, key, value) {
+        const idArray = Array.isArray(ids) ? ids : [ids];
+        const state = store.getState();
+        const slide = state.slides[state.editor.activeSlideId];
+
+        idArray.forEach(id => {
+            const el = slide.elements[id];
+            if (el) {
+                const current = el.style?.dropShadow || { x: 0, y: 4, blur: 4, spread: 0, color: '#00000040' };
+                const newShadow = { ...current, [key]: value };
+                const newStyle = { ...el.style, dropShadow: newShadow };
+                store.dispatch('UPDATE_ELEMENT', { id, style: newStyle });
+            }
+        });
     }
 
-    updateAnimation(element, key, value) {
-        const current = element.animations || { entrance: 'none', exit: 'none', duration: 1000, delay: 0 };
-        const newAnim = { ...current, [key]: value };
-        store.dispatch('UPDATE_ELEMENT', { id: element.id, animations: newAnim });
+    updateAnimation(ids, key, value) {
+        const idArray = Array.isArray(ids) ? ids : [ids];
+        const state = store.getState();
+        const slide = state.slides[state.editor.activeSlideId];
+
+        idArray.forEach(id => {
+            const el = slide.elements[id];
+            if (el) {
+                const current = el.animations || { entrance: 'none', exit: 'none', duration: 1000, delay: 0 };
+                const newAnim = { ...current, [key]: value };
+                store.dispatch('UPDATE_ELEMENT', { id, animations: newAnim });
+            }
+        });
     }
 
-    updateGradient(element, updates) {
-        const style = element.style || {};
-        const currentAngle = style.gradientAngle !== undefined ? style.gradientAngle : 180;
-        const currentStops = style.gradientStops || [
-            { color: '#D9D9D9', position: 0 },
-            { color: '#000000', position: 100 }
-        ];
-        const currentType = style.gradientType || 'linear';
+    updateGradient(ids, updates) {
+        const idArray = Array.isArray(ids) ? ids : [ids];
+        const state = store.getState();
+        const slide = state.slides[state.editor.activeSlideId];
 
-        const newAngle = updates.angle !== undefined ? updates.angle : currentAngle;
-        const newStops = updates.stops !== undefined ? updates.stops : currentStops;
-        const newType = updates.type !== undefined ? updates.type : currentType;
+        idArray.forEach(id => {
+            const element = slide.elements[id];
+            if (!element) return;
 
-        // Construct CSS String
-        let gradientString = '';
-        const stopsString = newStops.map(s => `${s.color} ${s.position}%`).join(', ');
+            const style = element.style || {};
+            const currentAngle = style.gradientAngle !== undefined ? style.gradientAngle : 180;
+            const currentStops = style.gradientStops || [
+                { color: '#D9D9D9', position: 0 },
+                { color: '#000000', position: 100 }
+            ];
+            const currentType = style.gradientType || 'linear';
 
-        if (newType === 'linear') {
-            gradientString = `linear-gradient(${newAngle}deg, ${stopsString})`;
-        } else if (newType === 'radial') {
-            gradientString = `radial-gradient(circle, ${stopsString})`;
-        } else if (newType === 'conic') {
-            gradientString = `conic-gradient(from ${newAngle}deg, ${stopsString})`;
-        }
+            const newAngle = updates.angle !== undefined ? updates.angle : currentAngle;
+            const newStops = updates.stops !== undefined ? updates.stops : currentStops;
+            const newType = updates.type !== undefined ? updates.type : currentType;
 
-        const newStyle = {
-            ...style,
-            fillValue: gradientString,
-            gradientAngle: newAngle,
-            gradientStops: newStops,
-            gradientType: newType
-        };
+            // Construct CSS String
+            let gradientString = '';
+            const stopsString = newStops.map(s => `${s.color} ${s.position}%`).join(', ');
 
-        store.dispatch('UPDATE_ELEMENT', { id: element.id, style: newStyle });
+            if (newType === 'linear') {
+                gradientString = `linear-gradient(${newAngle}deg, ${stopsString})`;
+            } else if (newType === 'radial') {
+                gradientString = `radial-gradient(circle, ${stopsString})`;
+            } else if (newType === 'conic') {
+                gradientString = `conic-gradient(from ${newAngle}deg, ${stopsString})`;
+            }
+
+            const newStyle = {
+                ...style,
+                fillValue: gradientString,
+                gradientAngle: newAngle,
+                gradientStops: newStops,
+                gradientType: newType
+            };
+
+            store.dispatch('UPDATE_ELEMENT', { id, style: newStyle });
+        });
     }
 
     getAlphaFromHex(hex) {
@@ -1029,7 +1076,7 @@ return { draw };`;
         return 'ff';
     }
 
-    renderImageProperties(element) {
+    renderImageProperties(element, selection) {
         const { group, content } = this.createControlGroup('Image', true);
         const style = element.style || {};
 
@@ -1049,7 +1096,9 @@ return { draw };`;
             if (file) {
                 const reader = new FileReader();
                 reader.onload = (evt) => {
-                    store.dispatch('UPDATE_ELEMENT', { id: element.id, src: evt.target.result });
+                    selection.forEach(id => {
+                        store.dispatch('UPDATE_ELEMENT', { id, src: evt.target.result });
+                    });
                 };
                 reader.readAsDataURL(file);
             }
@@ -1060,14 +1109,14 @@ return { draw };`;
 
         // Border Radius
         const radiusControl = new ScrubbableControl('Radius', parseFloat(style.borderRadius) || 0, (val) => {
-            this.updateStyle(element, 'borderRadius', Math.max(0, val));
+            this.updateStyle(selection, 'borderRadius', Math.max(0, val));
         });
         content.appendChild(radiusControl.element);
 
         this.container.appendChild(group);
     }
 
-    renderEffectsProperties(element) {
+    renderEffectsProperties(element, selection) {
         const { group, content } = this.createControlGroup('Effects', false);
         const style = element.style || {};
 
@@ -1088,9 +1137,9 @@ return { draw };`;
         
         const shadowToggle = new Switch(hasShadow, (checked) => {
             if (checked) {
-                this.updateStyle(element, 'dropShadow', { x: 0, y: 4, blur: 4, spread: 0, color: '#00000040' });
+                this.updateStyle(selection, 'dropShadow', { x: 0, y: 4, blur: 4, spread: 0, color: '#00000040' });
             } else {
-                this.updateStyle(element, 'dropShadow', null);
+                this.updateStyle(selection, 'dropShadow', null);
             }
         });
         
@@ -1105,8 +1154,8 @@ return { draw };`;
             posRow.style.gap = '8px';
             posRow.style.marginBottom = '8px';
             
-            const xControl = new ScrubbableControl('X', shadow.x, (val) => this.updateShadow(element, 'x', val));
-            const yControl = new ScrubbableControl('Y', shadow.y, (val) => this.updateShadow(element, 'y', val));
+            const xControl = new ScrubbableControl('X', shadow.x, (val) => this.updateShadow(selection, 'x', val));
+            const yControl = new ScrubbableControl('Y', shadow.y, (val) => this.updateShadow(selection, 'y', val));
             
             posRow.appendChild(xControl.element);
             posRow.appendChild(yControl.element);
@@ -1118,8 +1167,8 @@ return { draw };`;
             blurRow.style.gap = '8px';
             blurRow.style.marginBottom = '8px';
             
-            const blurControl = new ScrubbableControl('Blur', shadow.blur, (val) => this.updateShadow(element, 'blur', Math.max(0, val)));
-            const spreadControl = new ScrubbableControl('Spread', shadow.spread, (val) => this.updateShadow(element, 'spread', val));
+            const blurControl = new ScrubbableControl('Blur', shadow.blur, (val) => this.updateShadow(selection, 'blur', Math.max(0, val)));
+            const spreadControl = new ScrubbableControl('Spread', shadow.spread, (val) => this.updateShadow(selection, 'spread', val));
             
             blurRow.appendChild(blurControl.element);
             blurRow.appendChild(spreadControl.element);
@@ -1139,7 +1188,7 @@ return { draw };`;
             
             colorInput.addEventListener('change', (e) => {
                 // Preserve alpha if possible, or just use hex
-                this.updateShadow(element, 'color', e.target.value);
+                this.updateShadow(selection, 'color', e.target.value);
             });
             
             colorRow.appendChild(colorInput);
@@ -1162,9 +1211,9 @@ return { draw };`;
         
         const blurToggle = new Switch(blur !== undefined && blur !== null, (checked) => {
             if (checked) {
-                this.updateStyle(element, 'blur', 4);
+                this.updateStyle(selection, 'blur', 4);
             } else {
-                this.updateStyle(element, 'blur', null);
+                this.updateStyle(selection, 'blur', null);
             }
         });
         
@@ -1174,7 +1223,7 @@ return { draw };`;
 
         if (blur !== undefined && blur !== null) {
             const blurAmountControl = new ScrubbableControl('Amount', blur, (val) => {
-                this.updateStyle(element, 'blur', Math.max(0, val));
+                this.updateStyle(selection, 'blur', Math.max(0, val));
             });
             content.appendChild(blurAmountControl.element);
         }
