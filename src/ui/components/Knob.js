@@ -36,7 +36,7 @@ export class Knob {
         const labelEl = document.createElement('div');
         labelEl.innerText = this.label;
         labelEl.style.fontSize = '10px';
-        labelEl.style.color = 'var(--text-secondary)';
+        labelEl.style.color = 'var(--color-text-secondary)';
         labelEl.style.marginTop = '4px';
         labelEl.style.textAlign = 'center';
 
@@ -93,14 +93,20 @@ export class Knob {
         const cy = h / 2;
         const r = (w / 2) - 4;
 
+        // Get colors from CSS variables
+        const style = getComputedStyle(document.body);
+        const bg = style.getPropertyValue('--color-bg-well').trim() || '#E6E6E6';
+        const border = style.getPropertyValue('--color-border').trim() || '#B3B3B3';
+        const accent = style.getPropertyValue('--color-accent').trim() || '#18A0FB';
+
         ctx.clearRect(0, 0, w, h);
 
         // Background Circle
         ctx.beginPath();
         ctx.arc(cx, cy, r, 0, Math.PI * 2);
-        ctx.fillStyle = '#E6E6E6'; // Surface 1
+        ctx.fillStyle = bg;
         ctx.fill();
-        ctx.strokeStyle = '#B3B3B3'; // Border
+        ctx.strokeStyle = border;
         ctx.lineWidth = 2;
         ctx.stroke();
 
@@ -119,7 +125,7 @@ export class Knob {
         ctx.beginPath();
         ctx.moveTo(cx, cy);
         ctx.lineTo(tx, ty);
-        ctx.strokeStyle = '#18A0FB'; // Figma Blue (Accent)
+        ctx.strokeStyle = accent;
         ctx.lineWidth = 4;
         ctx.stroke();
     }

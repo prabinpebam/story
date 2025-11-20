@@ -38,9 +38,9 @@ export class IconLibrary {
         searchInput.placeholder = 'Search icons...';
         searchInput.style.width = '100%';
         searchInput.style.padding = '6px';
-        searchInput.style.background = 'var(--bg-well)';
+        searchInput.style.background = 'var(--color-bg-well)';
         searchInput.style.border = 'none';
-        searchInput.style.color = 'var(--text-primary)';
+        searchInput.style.color = 'var(--color-text-primary)';
         searchInput.style.fontSize = '12px';
         searchInput.style.borderRadius = '4px';
         
@@ -71,11 +71,11 @@ export class IconLibrary {
             item.style.alignItems = 'center';
             item.style.justifyContent = 'center';
             item.style.aspectRatio = '1';
-            item.style.background = 'var(--bg-well)';
+            item.style.background = 'var(--color-bg-well)';
             item.style.borderRadius = '4px';
             item.style.cursor = 'grab';
             item.style.fontSize = '16px';
-            item.style.color = 'var(--text-primary)';
+            item.style.color = 'var(--color-text-primary)';
             
             item.innerHTML = `<i class="${iconClass}"></i>`;
             item.draggable = true;
@@ -89,8 +89,8 @@ export class IconLibrary {
             item.onmouseenter = () => item.style.background = 'var(--te-blue)';
             item.onmouseenter = () => item.style.color = 'white';
             item.onmouseleave = () => {
-                item.style.background = 'var(--bg-well)';
-                item.style.color = 'var(--text-primary)';
+                item.style.background = 'var(--color-bg-well)';
+                item.style.color = 'var(--color-text-primary)';
             };
 
             this.grid.appendChild(item);

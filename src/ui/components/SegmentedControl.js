@@ -9,7 +9,7 @@ export class SegmentedControl {
     create() {
         const container = document.createElement('div');
         container.style.display = 'flex';
-        container.style.border = '1px solid var(--border-color)';
+        container.style.border = '1px solid var(--color-border)';
         container.style.borderRadius = '2px';
         container.style.overflow = 'hidden';
         container.style.marginBottom = '8px';
@@ -34,16 +34,16 @@ export class SegmentedControl {
             
             // Border between items
             if (index < this.options.length - 1) {
-                btn.style.borderRight = '1px solid var(--border-color)';
+                btn.style.borderRight = '1px solid var(--color-border)';
             }
 
             const updateState = () => {
                 if (this.selectedValue === opt.value) {
-                    btn.style.backgroundColor = 'var(--text-primary)';
-                    btn.style.color = 'var(--bg-app)';
+                    btn.style.backgroundColor = 'var(--color-text-primary)';
+                    btn.style.color = 'var(--color-bg-app)';
                 } else {
                     btn.style.backgroundColor = 'transparent';
-                    btn.style.color = 'var(--text-primary)';
+                    btn.style.color = 'var(--color-text-primary)';
                 }
             };
 
@@ -55,11 +55,11 @@ export class SegmentedControl {
                 Array.from(container.children).forEach((child, i) => {
                     const option = this.options[i];
                     if (this.selectedValue === option.value) {
-                        child.style.backgroundColor = 'var(--text-primary)';
-                        child.style.color = 'var(--bg-app)';
+                        child.style.backgroundColor = 'var(--color-text-primary)';
+                        child.style.color = 'var(--color-bg-app)';
                     } else {
                         child.style.backgroundColor = 'transparent';
-                        child.style.color = 'var(--text-primary)';
+                        child.style.color = 'var(--color-text-primary)';
                     }
                 });
                 

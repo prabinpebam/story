@@ -48,7 +48,7 @@ export class LayerTree {
         if (!currentSlide || !currentSlide.elementOrder || currentSlide.elementOrder.length === 0) {
             const empty = document.createElement('div');
             empty.innerText = 'No layers';
-            empty.style.color = 'var(--text-secondary)';
+            empty.style.color = 'var(--color-text-secondary)';
             empty.style.fontSize = '11px';
             empty.style.fontStyle = 'italic';
             empty.style.padding = '0 8px';
@@ -143,8 +143,8 @@ export class LayerTree {
             input.type = 'text';
             input.value = displayName;
             input.style.width = '100%';
-            input.style.background = 'var(--bg-input)';
-            input.style.color = 'var(--text-primary)';
+            input.style.background = 'var(--color-bg-well)';
+            input.style.color = 'var(--color-text-primary)';
             input.style.border = 'none';
             input.style.fontSize = '11px';
             input.style.padding = '0';

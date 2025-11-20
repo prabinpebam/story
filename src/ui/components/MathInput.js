@@ -12,7 +12,7 @@ export class MathInput {
         if (this.value === 'Mixed') {
             input.value = 'Mixed';
             input.style.fontStyle = 'italic';
-            input.style.color = 'var(--text-secondary)';
+            input.style.color = 'var(--color-text-secondary)';
         } else {
             input.value = typeof this.value === 'number' ? Math.round(this.value) : this.value;
             input.style.fontStyle = 'normal';
@@ -59,7 +59,7 @@ export class MathInput {
             if (input.value === 'Mixed') {
                 input.value = ''; // Clear on focus for easy typing
                 input.style.fontStyle = 'normal';
-                input.style.color = 'var(--text-primary)';
+                input.style.color = 'var(--color-text-primary)';
             }
         });
 

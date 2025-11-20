@@ -8,6 +8,7 @@ import { aiService } from '../core/ai/AIService.js';
 export class PropertyInspector {
     constructor(containerId) {
         this.container = document.getElementById(containerId);
+        this.sectionStates = {}; // Persist section collapse state
         this.init();
     }
 
@@ -277,8 +278,8 @@ return {
             textarea.value = slide.background.value || '';
             textarea.style.width = '100%';
             textarea.style.height = '200px';
-            textarea.style.background = 'var(--bg-well)';
-            textarea.style.color = 'var(--text-primary)';
+            textarea.style.background = 'var(--color-bg-well)';
+            textarea.style.color = 'var(--color-text-primary)';
             textarea.style.fontSize = '11px';
             textarea.style.fontFamily = 'monospace';
             
@@ -318,7 +319,7 @@ return {
         div.className = 'empty-state';
         div.innerText = 'No selection';
         div.style.padding = '16px';
-        div.style.color = 'var(--text-secondary)';
+        div.style.color = 'var(--color-text-secondary)';
         div.style.textAlign = 'center';
         this.container.appendChild(div);
     }
@@ -327,6 +328,9 @@ return {
         const group = document.createElement('div');
         group.className = 'panel-section';
         
+        // Determine open state
+        const isOpen = this.sectionStates[title] !== undefined ? this.sectionStates[title] : defaultOpen;
+
         const header = document.createElement('div');
         header.className = 'section-header';
         header.style.display = 'flex';
@@ -336,10 +340,10 @@ return {
         header.style.userSelect = 'none';
 
         const icon = document.createElement('i');
-        icon.className = `fa-solid fa-chevron-${defaultOpen ? 'down' : 'right'}`;
+        icon.className = `fa-solid fa-chevron-${isOpen ? 'down' : 'right'}`;
         icon.style.fontSize = '10px';
         icon.style.width = '16px';
-        icon.style.color = 'var(--text-secondary)';
+        icon.style.color = 'var(--color-text-secondary)';
         
         const label = document.createElement('div');
         label.className = 'section-title';
@@ -351,12 +355,14 @@ return {
         header.appendChild(label);
         
         const content = document.createElement('div');
-        content.style.display = defaultOpen ? 'block' : 'none';
+        content.style.display = isOpen ? 'block' : 'none';
         
         header.onclick = () => {
-            const isOpen = content.style.display !== 'none';
-            content.style.display = isOpen ? 'none' : 'block';
-            icon.className = `fa-solid fa-chevron-${isOpen ? 'right' : 'down'}`;
+            const wasOpen = content.style.display !== 'none';
+            const nowOpen = !wasOpen;
+            content.style.display = nowOpen ? 'block' : 'none';
+            icon.className = `fa-solid fa-chevron-${nowOpen ? 'down' : 'right'}`;
+            this.sectionStates[title] = nowOpen;
         };
 
         group.appendChild(header);
@@ -376,7 +382,7 @@ return {
         labelEl.innerText = label;
         labelEl.style.width = '80px';
         labelEl.style.fontSize = '11px';
-        labelEl.style.color = 'var(--text-secondary)';
+        labelEl.style.color = 'var(--color-text-secondary)';
         
         row.appendChild(labelEl);
         row.appendChild(input);
@@ -533,7 +539,7 @@ return {
         const label = document.createElement('div');
         label.innerText = labelText;
         label.style.fontSize = '10px';
-        label.style.color = 'var(--text-secondary)';
+        label.style.color = 'var(--color-text-secondary)';
         wrapper.appendChild(label);
         wrapper.appendChild(inputElement);
         return wrapper;
@@ -579,8 +585,8 @@ return {
             popover.style.top = '100%';
             popover.style.right = '0';
             popover.style.width = '160px';
-            popover.style.background = 'var(--bg-panel)';
-            popover.style.border = '1px solid var(--border-color)';
+            popover.style.background = 'var(--color-bg-panel)';
+            popover.style.border = '1px solid var(--color-border)';
             popover.style.borderRadius = '4px';
             popover.style.boxShadow = '0 4px 12px rgba(0,0,0,0.2)';
             popover.style.zIndex = '1000';
@@ -605,12 +611,12 @@ return {
                 btn.style.padding = '6px 8px';
                 btn.style.background = 'none';
                 btn.style.border = 'none';
-                btn.style.color = 'var(--text-primary)';
+                btn.style.color = 'var(--color-text-primary)';
                 btn.style.fontSize = '11px';
                 btn.style.cursor = 'pointer';
                 btn.style.borderRadius = '2px';
                 
-                btn.onmouseover = () => btn.style.background = 'var(--bg-well)';
+                btn.onmouseover = () => btn.style.background = 'var(--color-bg-well)';
                 btn.onmouseout = () => btn.style.background = 'none';
 
                 btn.onclick = async () => {
@@ -658,9 +664,9 @@ return {
         fontRow.style.marginBottom = '8px';
         const fontSelect = document.createElement('select');
         fontSelect.style.width = '100%';
-        fontSelect.style.background = 'var(--bg-well)';
+        fontSelect.style.background = 'var(--color-bg-well)';
         fontSelect.style.border = 'none';
-        fontSelect.style.color = 'var(--text-primary)';
+        fontSelect.style.color = 'var(--color-text-primary)';
         fontSelect.style.padding = '4px';
         fontSelect.style.fontSize = '11px';
         
@@ -685,9 +691,9 @@ return {
         // Weight
         const weightSelect = document.createElement('select');
         weightSelect.style.flex = '1';
-        weightSelect.style.background = 'var(--bg-well)';
+        weightSelect.style.background = 'var(--color-bg-well)';
         weightSelect.style.border = 'none';
-        weightSelect.style.color = 'var(--text-primary)';
+        weightSelect.style.color = 'var(--color-text-primary)';
         weightSelect.style.padding = '4px';
         weightSelect.style.fontSize = '11px';
 
@@ -785,14 +791,14 @@ return {
         const fillLabel = document.createElement('span');
         fillLabel.textContent = 'Fill';
         fillLabel.style.fontSize = '11px';
-        fillLabel.style.color = 'var(--text-secondary)';
+        fillLabel.style.color = 'var(--color-text-secondary)';
         fillHeader.appendChild(fillLabel);
 
         // Fill Type Dropdown (Solid / Gradient)
         const fillTypeSelect = document.createElement('select');
         fillTypeSelect.style.background = 'transparent';
         fillTypeSelect.style.border = 'none';
-        fillTypeSelect.style.color = 'var(--text-primary)';
+        fillTypeSelect.style.color = 'var(--color-text-primary)';
         fillTypeSelect.style.fontSize = '11px';
         fillTypeSelect.style.textAlign = 'right';
         fillTypeSelect.style.cursor = 'pointer';
@@ -891,10 +897,10 @@ return {
             const typeSelect = document.createElement('select');
             typeSelect.className = 'input-select';
             typeSelect.style.width = '100%';
-            typeSelect.style.background = 'var(--bg-well)';
+            typeSelect.style.background = 'var(--color-bg-well)';
             typeSelect.style.border = 'none';
             typeSelect.style.padding = '4px';
-            typeSelect.style.color = 'var(--text-primary)';
+            typeSelect.style.color = 'var(--color-text-primary)';
             
             ['Linear', 'Radial', 'Conic'].forEach(t => {
                 const opt = document.createElement('option');
@@ -965,7 +971,7 @@ return {
                 const label = document.createElement('span');
                 label.innerText = `${stop.position}%`;
                 label.style.fontSize = '10px';
-                label.style.color = 'var(--text-secondary)';
+                label.style.color = 'var(--color-text-secondary)';
                 stopContainer.appendChild(label);
 
                 stopsRow.appendChild(stopContainer);
@@ -1000,9 +1006,9 @@ return {
             btn.innerText = 'Choose Image...';
             btn.style.width = '100%';
             btn.style.padding = '6px';
-            btn.style.background = 'var(--bg-well)';
-            btn.style.border = '1px solid var(--border-color)';
-            btn.style.color = 'var(--text-primary)';
+            btn.style.background = 'var(--color-bg-well)';
+            btn.style.border = '1px solid var(--color-border)';
+            btn.style.color = 'var(--color-text-primary)';
             btn.style.cursor = 'pointer';
             btn.style.fontSize = '11px';
             btn.onclick = () => fileInput.click();
@@ -1013,9 +1019,9 @@ return {
             // Scale Mode
             const scaleSelect = document.createElement('select');
             scaleSelect.style.width = '100%';
-            scaleSelect.style.background = 'var(--bg-well)';
+            scaleSelect.style.background = 'var(--color-bg-well)';
             scaleSelect.style.border = 'none';
-            scaleSelect.style.color = 'var(--text-primary)';
+            scaleSelect.style.color = 'var(--color-text-primary)';
             scaleSelect.style.padding = '4px';
             scaleSelect.style.fontSize = '11px';
 
@@ -1072,7 +1078,7 @@ return {
             // AI Chat Interface
             const aiContainer = document.createElement('div');
             aiContainer.style.marginBottom = '8px';
-            aiContainer.style.background = 'var(--bg-well)';
+            aiContainer.style.background = 'var(--color-bg-well)';
             aiContainer.style.padding = '8px';
             aiContainer.style.borderRadius = '4px';
             
@@ -1081,15 +1087,15 @@ return {
             aiLabel.style.fontSize = '10px';
             aiLabel.style.fontWeight = '600';
             aiLabel.style.marginBottom = '4px';
-            aiLabel.style.color = 'var(--text-secondary)';
+            aiLabel.style.color = 'var(--color-text-secondary)';
             
             const promptInput = document.createElement('textarea');
             promptInput.placeholder = 'Describe an animation (e.g. "Retro synthwave grid moving forward")...';
             promptInput.style.width = '100%';
             promptInput.style.height = '60px';
-            promptInput.style.background = 'var(--bg-panel)';
-            promptInput.style.border = '1px solid var(--border-color)';
-            promptInput.style.color = 'var(--text-primary)';
+            promptInput.style.background = 'var(--color-bg-panel)';
+            promptInput.style.border = '1px solid var(--color-border)';
+            promptInput.style.color = 'var(--color-text-primary)';
             promptInput.style.fontSize = '11px';
             promptInput.style.padding = '4px';
             promptInput.style.resize = 'none';
@@ -1223,8 +1229,8 @@ return {
 
             textarea.style.width = '100%';
             textarea.style.height = '200px';
-            textarea.style.background = 'var(--bg-well)';
-            textarea.style.color = 'var(--text-primary)';
+            textarea.style.background = 'var(--color-bg-well)';
+            textarea.style.color = 'var(--color-text-primary)';
 
             // If we just switched to code type and it's empty, save the default immediately so it renders
             if (style.fillType === 'code' && !style.code) {
@@ -1236,7 +1242,7 @@ return {
             textarea.onchange = (e) => {
                 this.updateStyle(selection, 'code', e.target.value);
             };
-            textarea.style.border = '1px solid var(--border-color)';
+            textarea.style.border = '1px solid var(--color-border)';
             textarea.style.fontFamily = 'var(--font-mono)';
             textarea.style.fontSize = '11px';
             textarea.style.padding = '8px';
@@ -1258,7 +1264,7 @@ return {
             const helpText = document.createElement('div');
             helpText.innerText = 'Return an object with a draw(time) function for animation.';
             helpText.style.fontSize = '10px';
-            helpText.style.color = 'var(--text-secondary)';
+            helpText.style.color = 'var(--color-text-secondary)';
             content.appendChild(helpText);
 
         } else {
@@ -1295,13 +1301,13 @@ return {
         const strokeLabel = document.createElement('span');
         strokeLabel.textContent = 'Stroke';
         strokeLabel.style.fontSize = '11px';
-        strokeLabel.style.color = 'var(--text-secondary)';
+        strokeLabel.style.color = 'var(--color-text-secondary)';
 
         // Stroke Style Dropdown (Solid, Dashed, Dotted)
         const strokeStyleSelect = document.createElement('select');
         strokeStyleSelect.style.background = 'transparent';
         strokeStyleSelect.style.border = 'none';
-        strokeStyleSelect.style.color = 'var(--text-primary)';
+        strokeStyleSelect.style.color = 'var(--color-text-primary)';
         strokeStyleSelect.style.fontSize = '11px';
         strokeStyleSelect.style.textAlign = 'right';
         strokeStyleSelect.style.marginRight = '8px';
@@ -1630,9 +1636,9 @@ return {
         const shadowLabel = document.createElement('span');
         shadowLabel.innerText = 'Drop Shadow';
         shadowLabel.style.fontSize = '11px';
-        shadowLabel.style.color = 'var(--text-secondary)';
+        shadowLabel.style.color = 'var(--color-text-secondary)';
         
-        const shadowToggle = new Switch(hasShadow, (checked) => {
+        const shadowToggle = new Switch('', hasShadow, (checked) => {
             if (checked) {
                 this.updateStyle(selection, 'dropShadow', { x: 0, y: 4, blur: 4, spread: 0, color: '#00000040' });
             } else {
@@ -1704,9 +1710,9 @@ return {
         const blurLabel = document.createElement('span');
         blurLabel.innerText = 'Layer Blur';
         blurLabel.style.fontSize = '11px';
-        blurLabel.style.color = 'var(--text-secondary)';
+        blurLabel.style.color = 'var(--color-text-secondary)';
         
-        const blurToggle = new Switch(blur !== undefined && blur !== null, (checked) => {
+        const blurToggle = new Switch('', blur !== undefined && blur !== null, (checked) => {
             if (checked) {
                 this.updateStyle(selection, 'blur', 4);
             } else {

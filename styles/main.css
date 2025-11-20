@@ -192,14 +192,14 @@ body {
     justify-content: center;
     padding: 0;
     border: none;
-    color: var(--text-primary);
+    color: var(--color-text-primary);
     font-size: 16px;
     background: transparent;
     transition: all 0.2s ease;
 }
 
 #floating-toolbar .tool-btn:hover {
-    background-color: var(--bg-well);
+    background-color: var(--color-bg-hover);
 }
 
 #floating-toolbar .tool-btn.active {
@@ -289,13 +289,13 @@ button {
 }
 
 button:hover {
-    background-color: var(--bg-well);
-    border-color: var(--border-color);
+    background-color: var(--color-bg-hover);
+    border-color: var(--color-border);
 }
 
 button.active {
-    background-color: var(--text-primary);
-    color: var(--bg-app);
+    background-color: var(--color-text-primary);
+    color: var(--color-bg-app);
 }
 
 .action-btn {
@@ -667,14 +667,14 @@ body.mode-presentation #laser-canvas {
 
 /* Dark Mode Overrides */
 body.theme-dark {
-    --color-bg-app: #121212;
-    --color-bg-canvas: #1E1E1E;
-    --color-bg-panel: #252526;
-    --color-bg-hover: #2D2D2D;
-    --color-bg-active: #37373D;
-    --color-border: #3E3E42;
-    --color-text-primary: #CCCCCC;
-    --color-text-secondary: #858585;
+    --color-bg-app: #1E1E1E;
+    --color-bg-canvas: #252526;
+    --color-bg-panel: #2D2D2D;
+    --color-bg-hover: #383838;
+    --color-bg-active: #454545;
+    --color-border: #454545;
+    --color-text-primary: #E0E0E0;
+    --color-text-secondary: #A0A0A0;
     --color-shadow: rgba(0, 0, 0, 0.4);
     
     --color-grid-dot: rgba(255, 255, 255, 0.08);
