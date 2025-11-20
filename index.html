@@ -29,26 +29,52 @@
                 <div id="layer-tree" class="panel-section">
                     <!-- Dynamic Content -->
                 </div>
-
-                <div id="icon-library" class="panel-section">
-                    <div class="section-title">ICONS</div>
-                    <!-- Dynamic Content -->
-                </div>
             </div>
         </aside>
 
         <!-- Center: Main Canvas -->
         <main id="main-stage">
-            <div id="toolbar-top">
-                <!-- Tools: Select, Text, Shape, Image -->
-                <div class="tool-group">
-                    <button class="tool-btn active" data-tool="select">SELECT</button>
-                    <button class="tool-btn" data-tool="text">TEXT</button>
-                    <button class="tool-btn" data-tool="shape">SHAPE</button>
-                    <button class="tool-btn" data-tool="image">IMG</button>
-                </div>
-                <div class="tool-group">
-                    <button class="action-btn" id="play-btn">PLAY</button>
+            <!-- Top Right Controls -->
+            <div id="top-controls" style="position: absolute; top: 16px; right: 16px; z-index: 1000;">
+                <button class="action-btn" id="play-btn" style="background: var(--te-green); color: black; border: none; font-weight: 600;">
+                    <i class="fa-solid fa-play"></i> PLAY
+                </button>
+            </div>
+
+            <!-- Floating Toolbar (Bottom Center) -->
+            <div id="floating-toolbar">
+                <button class="tool-btn active" data-tool="select" title="Move (V)">
+                    <i class="fa-solid fa-arrow-pointer"></i>
+                </button>
+                <button class="tool-btn" data-tool="hand" title="Hand Tool (H)">
+                    <i class="fa-solid fa-hand"></i>
+                </button>
+                <div class="divider"></div>
+                <button class="tool-btn" data-tool="shape" title="Rectangle (R)">
+                    <i class="fa-regular fa-square"></i>
+                </button>
+                <button class="tool-btn" data-tool="text" title="Text (T)">
+                    <i class="fa-solid fa-font"></i>
+                </button>
+                <button class="tool-btn" data-tool="image" title="Image (Shift+K)">
+                    <i class="fa-regular fa-image"></i>
+                </button>
+                <div class="divider"></div>
+                <button class="tool-btn" data-tool="resources" title="Resources (Shift+I)">
+                    <i class="fa-solid fa-shapes"></i>
+                </button>
+            </div>
+
+            <!-- Floating Panels Container -->
+            <div id="floating-panels">
+                <div id="icon-library" class="floating-panel hidden">
+                    <div class="panel-header">
+                        <span>Icons</span>
+                        <button class="close-btn"><i class="fa-solid fa-xmark"></i></button>
+                    </div>
+                    <div id="icon-library-content" class="panel-content">
+                        <!-- Dynamic Content -->
+                    </div>
                 </div>
             </div>
             

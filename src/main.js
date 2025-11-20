@@ -24,7 +24,7 @@ class App {
         this.slideRenderer = new SlideRenderer('slide-content');
         this.slideList = new SlideList('slide-list');
         this.layerTree = new LayerTree('layer-tree');
-        this.iconLibrary = new IconLibrary('icon-library');
+        this.iconLibrary = new IconLibrary('icon-library-content');
         this.propertyInspector = new PropertyInspector('properties-panel');
         this.toolbar = new Toolbar();
         this.presentationManager = new PresentationManager();
