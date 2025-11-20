@@ -8,6 +8,7 @@ export class SlideRenderer {
         this.container = document.getElementById(containerId);
         this.currentSlideId = null;
         this.bgCodeRunner = null;
+        this.lastBackground = null;
         this.init();
     }
 
@@ -40,6 +41,7 @@ export class SlideRenderer {
 
         // Create new view
         const newView = this.createSlideDOM(slide);
+        this.lastBackground = { ...slide.background };
         
         // Find old view
         const oldView = this.container.querySelector('.slide-view');
@@ -90,9 +92,14 @@ export class SlideRenderer {
         view.style.height = `${slide.height}px`;
 
         // Update Background
-        // We should check if background changed to avoid restarting code runner unnecessarily
-        // But for now, let's just re-apply. Optimization can come later.
-        this.applyBackgroundToView(view, slide.background);
+        // Check if background changed to avoid restarting code runner unnecessarily
+        if (!this.lastBackground || 
+            this.lastBackground.type !== slide.background.type || 
+            this.lastBackground.value !== slide.background.value) {
+            
+            this.applyBackgroundToView(view, slide.background);
+            this.lastBackground = { ...slide.background };
+        }
         
         // Only select direct children to avoid removing nested group elements
         const existingEls = Array.from(view.children).filter(el => el.classList.contains('slide-element'));
