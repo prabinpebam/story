@@ -294,9 +294,13 @@ export class CanvasManager {
                     });
                 }
             } else {
-                // Clicked on empty space -> Deselect
-                store.dispatch('UPDATE_SELECTION', []);
-                this.interactionState = 'IDLE';
+                // Clicked on empty space -> Start Marquee Selection
+                if (!e.shiftKey) {
+                    store.dispatch('UPDATE_SELECTION', []);
+                }
+                this.interactionState = 'SELECTING';
+                this.dragStart = { x: mouseX, y: mouseY };
+                this.dragCurrent = { x: mouseX, y: mouseY };
             }
         }
     }
@@ -309,6 +313,55 @@ export class CanvasManager {
         if (this.interactionState === 'CREATING') {
             this.dragCurrent = { x: mouseX, y: mouseY };
             // Render loop will pick this up to draw ghost
+        } else if (this.interactionState === 'SELECTING') {
+            this.dragCurrent = { x: mouseX, y: mouseY };
+            
+            // Calculate Marquee Box in World Space
+            const state = store.getState();
+            const { zoom, pan } = state.editor;
+            
+            const startX = (this.dragStart.x - pan.x) / zoom;
+            const startY = (this.dragStart.y - pan.y) / zoom;
+            const currentX = (mouseX - pan.x) / zoom;
+            const currentY = (mouseY - pan.y) / zoom;
+            
+            const marqueeRect = {
+                x: Math.min(startX, currentX),
+                y: Math.min(startY, currentY),
+                width: Math.abs(currentX - startX),
+                height: Math.abs(currentY - startY)
+            };
+
+            // Find intersecting elements
+            const slide = state.slides[state.editor.activeSlideId];
+            const newSelection = [];
+            
+            if (slide && slide.elements) {
+                Object.values(slide.elements).forEach(el => {
+                    // Simple AABB intersection
+                    // Note: Does not account for rotation yet for simplicity, 
+                    // but Figma usually selects if bounding box intersects.
+                    if (
+                        el.x < marqueeRect.x + marqueeRect.width &&
+                        el.x + el.width > marqueeRect.x &&
+                        el.y < marqueeRect.y + marqueeRect.height &&
+                        el.y + el.height > marqueeRect.y
+                    ) {
+                        newSelection.push(el.id);
+                    }
+                });
+            }
+            
+            // Update Selection (Debounce if needed, but for now direct dispatch)
+            // Check if selection actually changed to avoid spamming
+            const currentSelection = state.editor.selectedElementIds;
+            const isSame = newSelection.length === currentSelection.length && 
+                           newSelection.every(id => currentSelection.includes(id));
+            
+            if (!isSame) {
+                store.dispatch('UPDATE_SELECTION', newSelection);
+            }
+
         } else if (this.interactionState === 'PANNING') {
             e.preventDefault();
             const deltaX = e.clientX - this.lastMouseX;
@@ -333,23 +386,70 @@ export class CanvasManager {
             const dx = (mouseX - this.dragStart.x) / zoom;
             const dy = (mouseY - this.dragStart.y) / zoom;
 
-            state.editor.selectedElementIds.forEach(id => {
+            // Single element snapping
+            if (state.editor.selectedElementIds.length === 1) {
+                const id = state.editor.selectedElementIds[0];
                 const initial = this.initialElementState[id];
+                
                 if (initial) {
+                    let newX = initial.x + dx;
+                    let newY = initial.y + dy;
+                    
+                    // Snap Logic
+                    const snapResult = this.snapToGuides(id, newX, newY, initial.width, initial.height, zoom);
+                    newX = snapResult.x;
+                    newY = snapResult.y;
+                    this.activeGuides = snapResult.guides;
+                    
                     store.dispatch('UPDATE_ELEMENT', {
                         id,
-                        x: initial.x + dx,
-                        y: initial.y + dy
+                        x: newX,
+                        y: newY
                     });
                 }
-            });
+            } else {
+                this.activeGuides = [];
+                state.editor.selectedElementIds.forEach(id => {
+                    const initial = this.initialElementState[id];
+                    if (initial) {
+                        store.dispatch('UPDATE_ELEMENT', {
+                            id,
+                            x: initial.x + dx,
+                            y: initial.y + dy
+                        });
+                    }
+                });
+            }
         } else if (this.interactionState === 'RESIZING') {
             const state = store.getState();
-            const { zoom } = state.editor;
+            const { zoom, pan } = state.editor;
             const id = state.editor.selectedElementIds[0];
             const initial = this.initialElementState;
             
             if (!initial || !id) return;
+
+            // Handle Rotation
+            if (this.activeHandle === 'rot') {
+                const cx = initial.x + initial.width / 2;
+                const cy = initial.y + initial.height / 2;
+                
+                const worldMouseX = (mouseX - pan.x) / zoom;
+                const worldMouseY = (mouseY - pan.y) / zoom;
+                
+                let angle = Math.atan2(worldMouseY - cy, worldMouseX - cx) * 180 / Math.PI;
+                angle += 90;
+                
+                if (e.shiftKey) {
+                    const snap = 15;
+                    angle = Math.round(angle / snap) * snap;
+                }
+                
+                store.dispatch('UPDATE_ELEMENT', {
+                    id,
+                    rotation: angle
+                });
+                return;
+            }
 
             const dx = (mouseX - this.dragStart.x) / zoom;
             const dy = (mouseY - this.dragStart.y) / zoom;
@@ -358,8 +458,25 @@ export class CanvasManager {
             const rad = -(initial.rotation || 0) * Math.PI / 180;
             const cos = Math.cos(rad);
             const sin = Math.sin(rad);
-            const localDx = dx * cos - dy * sin;
-            const localDy = dx * sin + dy * cos;
+            let localDx = dx * cos - dy * sin;
+            let localDy = dx * sin + dy * cos;
+
+            // Aspect Ratio Lock (Shift Key)
+            if (e.shiftKey && ['nw', 'ne', 'sw', 'se'].includes(this.activeHandle)) {
+                const ratio = initial.width / initial.height;
+                
+                if (['nw', 'se'].includes(this.activeHandle)) {
+                    // Signs should be same (both grow or shrink)
+                    const avg = (localDx + localDy * ratio) / 2;
+                    localDx = avg;
+                    localDy = avg / ratio;
+                } else {
+                    // Signs opposite (ne, sw)
+                    const avg = (localDx - localDy * ratio) / 2;
+                    localDx = avg;
+                    localDy = -avg / ratio;
+                }
+            }
 
             let newX = initial.x;
             let newY = initial.y;
@@ -445,6 +562,7 @@ export class CanvasManager {
     }
 
     handleMouseUp(e) {
+        this.activeGuides = [];
         if (this.interactionState === 'CREATING') {
             const state = store.getState();
             const { zoom, pan } = state.editor;
@@ -589,12 +707,70 @@ export class CanvasManager {
     }
 
     handleKeyDown(e) {
+        // Space for Panning
         if (e.code === 'Space' && !this.isSpacePressed) {
-            // Prevent scrolling page
+            // Prevent scrolling page if focus is on body
             if (e.target === document.body) e.preventDefault();
             
             this.isSpacePressed = true;
             this.container.style.cursor = 'grab';
+        }
+
+        // Select All (Ctrl+A or Cmd+A)
+        if ((e.ctrlKey || e.metaKey) && e.key === 'a') {
+            e.preventDefault();
+            const state = store.getState();
+            const slide = state.slides[state.editor.activeSlideId];
+            if (slide && slide.elements) {
+                const allIds = Object.keys(slide.elements);
+                store.dispatch('UPDATE_SELECTION', allIds);
+            }
+        }
+
+        // Delete (Delete or Backspace)
+        if (e.key === 'Delete' || e.key === 'Backspace') {
+            // If editing text, don't delete element
+            const state = store.getState();
+            if (state.editor.editingElementId) return;
+
+            const selectedIds = state.editor.selectedElementIds;
+            if (selectedIds.length > 0) {
+                selectedIds.forEach(id => {
+                    store.dispatch('REMOVE_ELEMENT', id);
+                });
+            }
+        }
+
+        // Nudge (Arrow Keys)
+        if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+            const state = store.getState();
+            if (state.editor.editingElementId) return; // Don't nudge if editing text
+
+            const selectedIds = state.editor.selectedElementIds;
+            if (selectedIds.length > 0) {
+                e.preventDefault();
+                const shift = e.shiftKey ? 10 : 1; // Shift for big nudge
+                let dx = 0;
+                let dy = 0;
+
+                switch (e.key) {
+                    case 'ArrowUp': dy = -shift; break;
+                    case 'ArrowDown': dy = shift; break;
+                    case 'ArrowLeft': dx = -shift; break;
+                    case 'ArrowRight': dx = shift; break;
+                }
+
+                selectedIds.forEach(id => {
+                    const el = state.slides[state.editor.activeSlideId].elements[id];
+                    if (el) {
+                        store.dispatch('UPDATE_ELEMENT', {
+                            id,
+                            x: el.x + dx,
+                            y: el.y + dy
+                        });
+                    }
+                });
+            }
         }
     }
 
@@ -650,12 +826,162 @@ export class CanvasManager {
         // Draw Gizmos, Selection Box, Grid here
         this.renderGizmos();
         
+        // Draw Guides
+        this.renderGuides();
+        
         // Draw Creation Ghost
         if (this.interactionState === 'CREATING' && this.dragStart && this.dragCurrent) {
             this.renderCreationGhost();
         }
 
+        // Draw Selection Marquee
+        if (this.interactionState === 'SELECTING' && this.dragStart && this.dragCurrent) {
+            this.renderSelectionMarquee();
+        }
+
         requestAnimationFrame(() => this.render());
+    }
+
+    snapToGuides(id, x, y, width, height, zoom) {
+        const state = store.getState();
+        const slide = state.slides[state.editor.activeSlideId];
+        const SNAP_THRESHOLD = 5 / zoom;
+        
+        let snappedX = x;
+        let snappedY = y;
+        const guides = [];
+        
+        // Edges to check: Left, Center, Right, Top, Middle, Bottom
+        const myEdges = {
+            l: x, c: x + width / 2, r: x + width,
+            t: y, m: y + height / 2, b: y + height
+        };
+        
+        // Potential snap targets
+        const targets = { x: [], y: [] };
+        
+        // Add Canvas Center
+        targets.x.push({ value: slide.width / 2, type: 'center' });
+        targets.y.push({ value: slide.height / 2, type: 'middle' });
+        
+        // Add other elements
+        Object.values(slide.elements).forEach(el => {
+            if (el.id === id) return;
+            targets.x.push({ value: el.x, type: 'left' });
+            targets.x.push({ value: el.x + el.width / 2, type: 'center' });
+            targets.x.push({ value: el.x + el.width, type: 'right' });
+            
+            targets.y.push({ value: el.y, type: 'top' });
+            targets.y.push({ value: el.y + el.height / 2, type: 'middle' });
+            targets.y.push({ value: el.y + el.height, type: 'bottom' });
+        });
+        
+        // Check X Snaps
+        let minDiffX = SNAP_THRESHOLD;
+        
+        // Check Left Edge
+        targets.x.forEach(t => {
+            if (Math.abs(t.value - myEdges.l) < minDiffX) {
+                snappedX = t.value;
+                minDiffX = Math.abs(t.value - myEdges.l);
+                guides.push({ type: 'v', x: t.value });
+            }
+        });
+        
+        // Check Center
+        targets.x.forEach(t => {
+            if (Math.abs(t.value - myEdges.c) < minDiffX) {
+                snappedX = t.value - width / 2;
+                minDiffX = Math.abs(t.value - myEdges.c);
+                guides.push({ type: 'v', x: t.value });
+            }
+        });
+        
+        // Check Right
+        targets.x.forEach(t => {
+            if (Math.abs(t.value - myEdges.r) < minDiffX) {
+                snappedX = t.value - width;
+                minDiffX = Math.abs(t.value - myEdges.r);
+                guides.push({ type: 'v', x: t.value });
+            }
+        });
+        
+        // Check Y Snaps
+        let minDiffY = SNAP_THRESHOLD;
+        
+        targets.y.forEach(t => {
+            if (Math.abs(t.value - myEdges.t) < minDiffY) {
+                snappedY = t.value;
+                minDiffY = Math.abs(t.value - myEdges.t);
+                guides.push({ type: 'h', y: t.value });
+            }
+        });
+        
+        targets.y.forEach(t => {
+            if (Math.abs(t.value - myEdges.m) < minDiffY) {
+                snappedY = t.value - height / 2;
+                minDiffY = Math.abs(t.value - myEdges.m);
+                guides.push({ type: 'h', y: t.value });
+            }
+        });
+        
+        targets.y.forEach(t => {
+            if (Math.abs(t.value - myEdges.b) < minDiffY) {
+                snappedY = t.value - height;
+                minDiffY = Math.abs(t.value - myEdges.b);
+                guides.push({ type: 'h', y: t.value });
+            }
+        });
+        
+        return { x: snappedX, y: snappedY, guides };
+    }
+
+    renderGuides() {
+        if (!this.activeGuides || this.activeGuides.length === 0) return;
+        
+        const state = store.getState();
+        const { zoom, pan } = state.editor;
+        
+        this.ctx.save();
+        this.ctx.translate(pan.x, pan.y);
+        this.ctx.scale(zoom, zoom);
+        
+        this.ctx.strokeStyle = '#FF00FF'; // Magenta for guides
+        this.ctx.lineWidth = 1 / zoom;
+        
+        this.activeGuides.forEach(g => {
+            this.ctx.beginPath();
+            if (g.type === 'v') {
+                this.ctx.moveTo(g.x, -10000); // Infinite line
+                this.ctx.lineTo(g.x, 10000);
+            } else {
+                this.ctx.moveTo(-10000, g.y);
+                this.ctx.lineTo(10000, g.y);
+            }
+            this.ctx.stroke();
+        });
+        
+        this.ctx.restore();
+    }
+
+    renderSelectionMarquee() {
+        const { x: startX, y: startY } = this.dragStart;
+        const { x: currX, y: currY } = this.dragCurrent;
+
+        const x = Math.min(startX, currX);
+        const y = Math.min(startY, currY);
+        const width = Math.abs(currX - startX);
+        const height = Math.abs(currY - startY);
+
+        this.ctx.save();
+        this.ctx.strokeStyle = 'rgba(0, 85, 255, 0.8)'; // TE Blue
+        this.ctx.lineWidth = 1;
+        this.ctx.fillStyle = 'rgba(0, 85, 255, 0.1)'; // Transparent Blue
+        
+        this.ctx.fillRect(x, y, width, height);
+        this.ctx.strokeRect(x, y, width, height);
+        
+        this.ctx.restore();
     }
 
     renderCreationGhost() {

@@ -213,6 +213,20 @@ class Store extends EventEmitter {
                 }
                 break;
 
+            case 'REMOVE_ELEMENT':
+                const rSlideId = this.state.editor.activeSlideId;
+                const rSlide = this.state.slides[rSlideId];
+                if (rSlide && rSlide.elements[payload]) {
+                    delete rSlide.elements[payload];
+                    rSlide.elementOrder = rSlide.elementOrder.filter(id => id !== payload);
+                    
+                    // Also remove from selection if present
+                    this.state.editor.selectedElementIds = this.state.editor.selectedElementIds.filter(id => id !== payload);
+                    
+                    this.emit('state-changed', this.state);
+                }
+                break;
+
             case 'ADD_ELEMENT':
                 const activeSlideId = this.state.editor.activeSlideId;
                 const activeSlide = this.state.slides[activeSlideId];
