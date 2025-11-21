@@ -6,8 +6,28 @@ export class AnimationManager {
     get anime() {
         if (typeof window.anime === 'function') return window.anime;
         if (window.anime && typeof window.anime.default === 'function') return window.anime.default;
+        if (window.anime && window.anime.animate) return window.anime; // v4 support
         console.warn('Anime.js is not loaded or not a function', window.anime);
         return null;
+    }
+
+    run(params) {
+        const anime = this.anime;
+        if (!anime) return { finished: Promise.resolve() };
+
+        if (typeof anime === 'function') {
+            // v3
+            return anime(params);
+        } else if (anime.animate) {
+            // v4
+            const { targets, ...rest } = params;
+            if (rest.easing && !rest.ease) {
+                rest.ease = rest.easing;
+                delete rest.easing;
+            }
+            return anime.animate(targets, rest);
+        }
+        return { finished: Promise.resolve() };
     }
 
     async transition(container, oldContent, newContent, type = 'fade') {
@@ -44,7 +64,7 @@ export class AnimationManager {
 
         if (type === 'fade') {
             newContent.style.opacity = 0;
-            await anime({
+            await this.run({
                 targets: newContent,
                 opacity: [0, 1],
                 duration: 400,
@@ -52,7 +72,7 @@ export class AnimationManager {
             }).finished;
         } else if (type === 'slide') {
             newContent.style.transform = 'translateX(100%)';
-            await anime({
+            await this.run({
                 targets: [newContent],
                 translateX: ['100%', '0%'],
                 duration: 500,
@@ -63,23 +83,39 @@ export class AnimationManager {
             // anime({ targets: oldContent, translateX: -100% ... })
         } else if (type === 'push') {
              newContent.style.transform = 'translateX(100%)';
-             const timeline = anime.timeline({
-                 easing: 'easeOutCubic',
-                 duration: 500
-             });
              
-             timeline.add({
-                 targets: newContent,
-                 translateX: ['100%', '0%']
-             }, 0);
+             let timeline;
+             if (typeof anime === 'function') {
+                 timeline = anime.timeline({
+                     easing: 'easeOutCubic',
+                     duration: 500
+                 });
+                 timeline.add({
+                     targets: newContent,
+                     translateX: ['100%', '0%']
+                 }, 0);
+                 timeline.add({
+                     targets: oldContent,
+                     translateX: ['0%', '-20%'], // Parallax effect
+                     opacity: [1, 0.5]
+                 }, 0);
+             } else if (anime.Timeline) {
+                 // v4
+                 timeline = new anime.Timeline({
+                     ease: 'out(3)', // Approx easeOutCubic
+                     duration: 500
+                 });
+                 timeline.add(newContent, {
+                     translateX: ['100%', '0%']
+                 }, 0);
+                 timeline.add(oldContent, {
+                     translateX: ['0%', '-20%'],
+                     opacity: [1, 0.5]
+                 }, 0);
+             }
              
-             timeline.add({
-                 targets: oldContent,
-                 translateX: ['0%', '-20%'], // Parallax effect
-                 opacity: [1, 0.5]
-             }, 0);
-             
-             await timeline.finished;
+             if (timeline) await timeline.finished;
+
         } else if (type === 'magic') {
             // Smart Animate
             const oldEls = Array.from(oldContent.querySelectorAll('.slide-element'));
@@ -173,7 +209,7 @@ export class AnimationManager {
                 }
             });
 
-            await Promise.all(animations.map(anim => anime(anim).finished));
+            await Promise.all(animations.map(anim => this.run(anim).finished));
             
             // Cleanup
             container.removeChild(ghostContainer);
@@ -254,7 +290,7 @@ export class AnimationManager {
                         break;
                 }
                 
-                anime(anim);
+                this.run(anim);
             }
             
             // Exit
@@ -295,7 +331,7 @@ export class AnimationManager {
                         break;
                 }
                 
-                anime(anim);
+                this.run(anim);
             }
         } catch (e) {
             console.error("Element animation error:", e);
