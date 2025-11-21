@@ -23,9 +23,10 @@ export class LaserPointer {
 
     resize() {
         if (!this.canvas) return;
-        const rect = this.canvas.parentElement.getBoundingClientRect();
-        this.width = rect.width;
-        this.height = rect.height;
+        
+        // Always use window dimensions for the laser pointer as it is fixed position full screen
+        this.width = window.innerWidth;
+        this.height = window.innerHeight;
         
         // Handle high DPI
         const dpr = window.devicePixelRatio || 1;

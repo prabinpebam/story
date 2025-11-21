@@ -120,16 +120,14 @@
 
                         <!-- 3. Interaction Layer (Canvas) -->
                         <canvas id="interaction-canvas"></canvas>
-                        
-                        <!-- 4. Laser Pointer Layer -->
-                        <canvas id="laser-canvas"></canvas>
-
-                        <!-- Presentation Overlays -->
-                        <div id="overlay-black" class="presentation-overlay hidden" style="background-color: black;"></div>
-                        <div id="overlay-white" class="presentation-overlay hidden" style="background-color: white;"></div>
                     </div>
                 </div>
                 
+                <!-- Presentation Overlays (Moved out of viewport to avoid transform clipping) -->
+                <canvas id="laser-canvas"></canvas>
+                <div id="overlay-black" class="presentation-overlay hidden" style="background-color: black;"></div>
+                <div id="overlay-white" class="presentation-overlay hidden" style="background-color: white;"></div>
+
                 <!-- Viewport Controls -->
                 <div id="viewport-controls">
                     <button id="btn-fit" class="icon-btn" title="Fit to View"><i class="fa-solid fa-compress"></i></button>

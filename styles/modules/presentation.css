@@ -82,6 +82,12 @@ body.mode-presentation #laser-canvas {
     display: block;
 }
 
+/* Laser Pointer Cursor Hiding */
+body.laser-active,
+body.laser-active * {
+    cursor: none !important;
+}
+
 /* Presentation Overlays (Black/White Screen) */
 .presentation-overlay {
     position: fixed;

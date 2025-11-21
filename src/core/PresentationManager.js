@@ -116,13 +116,8 @@ export class PresentationManager {
         document.addEventListener('mousemove', (e) => {
             const state = store.getState();
             if (state.editor.mode === 'presentation' && state.presentation.laserPointer) {
-                const canvas = this.laserPointer.canvas;
-                if (canvas) {
-                    const rect = canvas.getBoundingClientRect();
-                    const x = e.clientX - rect.left;
-                    const y = e.clientY - rect.top;
-                    this.laserPointer.addPoint(x, y);
-                }
+                // Canvas is now fixed position full screen, so client coordinates match
+                this.laserPointer.addPoint(e.clientX, e.clientY);
             }
         });
     }
@@ -246,6 +241,13 @@ export class PresentationManager {
             } else {
                 whiteOverlay.classList.add('hidden');
             }
+        }
+
+        // Laser Pointer Cursor
+        if (presentationState.laserPointer) {
+            document.body.classList.add('laser-active');
+        } else {
+            document.body.classList.remove('laser-active');
         }
     }
 }
