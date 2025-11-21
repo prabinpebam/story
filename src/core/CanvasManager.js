@@ -1174,14 +1174,31 @@ export class CanvasManager {
             const selectedIds = state.editor.selectedElementIds;
             if (selectedIds.length === 0) return;
 
-            const slideId = state.editor.activeSlideId;
-            const slide = state.slides[slideId];
+            const container = this.getActiveContainer(state);
+            if (!container) return;
             
             // Only handle single selection for now for simplicity, or iterate
             // Figma handles multiple by moving them all relative to their current pos
             
             selectedIds.forEach(id => {
-                const currentIndex = slide.elementOrder.indexOf(id);
+                // Check if element is in root or group
+                const el = container.elements[id];
+                if (!el) return;
+
+                let list = container.elementOrder;
+                let parentId = null;
+
+                if (el.parentId) {
+                    const parent = container.elements[el.parentId];
+                    if (parent && parent.children) {
+                        list = parent.children;
+                        parentId = el.parentId;
+                    } else {
+                        return; // Should not happen
+                    }
+                }
+
+                const currentIndex = list.indexOf(id);
                 if (currentIndex === -1) return;
 
                 let newIndex = currentIndex;
@@ -1189,18 +1206,19 @@ export class CanvasManager {
                 if (e.ctrlKey || e.metaKey) {
                     // Send to Back / Bring to Front
                     if (e.key === '[') newIndex = 0;
-                    else newIndex = slide.elementOrder.length - 1;
+                    else newIndex = list.length - 1;
                 } else {
                     // Send Backward / Bring Forward
                     if (e.key === '[') newIndex = Math.max(0, currentIndex - 1);
-                    else newIndex = Math.min(slide.elementOrder.length - 1, currentIndex + 1);
+                    else newIndex = Math.min(list.length - 1, currentIndex + 1);
                 }
 
                 if (newIndex !== currentIndex) {
                     store.dispatch('REORDER_ELEMENTS', {
-                        slideId,
-                        fromIndex: currentIndex,
-                        toIndex: newIndex
+                        slideId: container.id,
+                        elementId: id,
+                        targetParentId: parentId,
+                        targetIndex: newIndex
                     });
                 }
             });
@@ -2158,19 +2176,22 @@ export class CanvasManager {
         const worldX = (x - pan.x) / zoom;
         const worldY = (y - pan.y) / zoom;
 
+        const slide = this.getActiveContainer(state);
+        if (!slide) return null;
+
         // 1. Check Handles
         if (state.editor.selectedElementIds.length === 1) {
             const id = state.editor.selectedElementIds[0];
-            const el = state.slides[state.editor.activeSlideId].elements[id];
+            const el = slide.elements[id];
             if (el) {
-                const absEl = this.getAbsoluteElement(el, state.slides[state.editor.activeSlideId]);
+                const absEl = this.getAbsoluteElement(el, slide);
                 const handle = this.checkHandles(worldX, worldY, absEl, zoom);
                 if (handle) {
                     return { type: 'handle', id, handle };
                 }
             }
         } else if (state.editor.selectedElementIds.length > 1) {
-            const bounds = this.getSelectionBounds(state.slides[state.editor.activeSlideId], state.editor.selectedElementIds);
+            const bounds = this.getSelectionBounds(slide, state.editor.selectedElementIds);
             if (bounds) {
                 const handle = this.checkHandles(worldX, worldY, bounds, zoom);
                 if (handle) {

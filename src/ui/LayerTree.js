@@ -34,8 +34,13 @@ export class LayerTree {
 
     render() {
         const state = store.getState();
-        const activeSlideId = state.editor.activeSlideId;
-        const currentSlide = state.slides[activeSlideId];
+        let currentContainer;
+        
+        if (state.editor.mode === 'master') {
+            currentContainer = state.masters[state.editor.activeMasterId];
+        } else {
+            currentContainer = state.slides[state.editor.activeSlideId];
+        }
         
         this.container.innerHTML = '';
 
@@ -45,7 +50,7 @@ export class LayerTree {
         title.innerText = 'LAYERS';
         this.container.appendChild(title);
 
-        if (!currentSlide || !currentSlide.elementOrder || currentSlide.elementOrder.length === 0) {
+        if (!currentContainer || !currentContainer.elementOrder || currentContainer.elementOrder.length === 0) {
             const empty = document.createElement('div');
             empty.innerText = 'No layers';
             empty.style.color = 'var(--color-text-secondary)';
@@ -64,12 +69,12 @@ export class LayerTree {
         // Render root elements (Reverse order for UI: Top -> Bottom)
         // elementOrder is [Back, ..., Front]
         // We want to render [Front, ..., Back]
-        const rootIds = [...currentSlide.elementOrder].reverse();
+        const rootIds = [...currentContainer.elementOrder].reverse();
         
         rootIds.forEach(id => {
-            const el = currentSlide.elements[id];
+            const el = currentContainer.elements[id];
             if (el) {
-                list.appendChild(this.createLayerItem(el, 0, currentSlide, state));
+                list.appendChild(this.createLayerItem(el, 0, currentContainer, state));
             }
         });
 

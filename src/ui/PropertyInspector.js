@@ -19,19 +19,20 @@ export class PropertyInspector {
         store.on('selection-changed', () => this.render());
     }
 
+    getActiveContainer(state) {
+        if (state.editor.mode === 'master') {
+            return state.masters[state.editor.activeMasterId];
+        } else {
+            return state.slides[state.editor.activeSlideId];
+        }
+    }
+
     render() {
         const state = store.getState();
         const selection = state.editor.selectedElementIds;
         const mode = state.editor.mode;
         
-        let currentObject;
-        if (mode === 'master') {
-            const activeId = state.editor.activeMasterId;
-            const masters = state.masters;
-            currentObject = masters[activeId];
-        } else {
-            currentObject = state.slides[state.editor.activeSlideId];
-        }
+        const currentObject = this.getActiveContainer(state);
         
         this.container.innerHTML = '';
 
@@ -490,8 +491,8 @@ return {
     updateStyle(ids, key, value) {
         const idArray = Array.isArray(ids) ? ids : [ids];
         const state = store.getState();
-        const slide = state.slides[state.editor.activeSlideId];
-        
+        const slide = this.getActiveContainer(state);
+
         idArray.forEach(id => {
             const el = slide.elements[id];
             if (el) {
@@ -980,7 +981,7 @@ return {
             // Dispatch updates for all selected elements
             selection.forEach(id => {
                 const state = store.getState();
-                const slide = state.slides[state.editor.activeSlideId];
+                const slide = this.getActiveContainer(state);
                 const el = slide.elements[id];
                 if (el) {
                     const newStyle = { ...el.style, ...updates };
@@ -1567,7 +1568,7 @@ return {
     updateStyle(ids, key, value) {
         const idArray = Array.isArray(ids) ? ids : [ids];
         const state = store.getState();
-        const slide = state.slides[state.editor.activeSlideId];
+        const slide = this.getActiveContainer(state);
 
         idArray.forEach(id => {
             const el = slide.elements[id];
@@ -1581,7 +1582,7 @@ return {
     updateShadow(ids, key, value) {
         const idArray = Array.isArray(ids) ? ids : [ids];
         const state = store.getState();
-        const slide = state.slides[state.editor.activeSlideId];
+        const slide = this.getActiveContainer(state);
 
         idArray.forEach(id => {
             const el = slide.elements[id];
@@ -1597,7 +1598,7 @@ return {
     updateAnimation(ids, key, value) {
         const idArray = Array.isArray(ids) ? ids : [ids];
         const state = store.getState();
-        const slide = state.slides[state.editor.activeSlideId];
+        const slide = this.getActiveContainer(state);
 
         idArray.forEach(id => {
             const el = slide.elements[id];
@@ -1612,7 +1613,7 @@ return {
     updateGradient(ids, updates) {
         const idArray = Array.isArray(ids) ? ids : [ids];
         const state = store.getState();
-        const slide = state.slides[state.editor.activeSlideId];
+        const slide = this.getActiveContainer(state);
 
         idArray.forEach(id => {
             const element = slide.elements[id];
