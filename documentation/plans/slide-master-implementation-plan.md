@@ -1,5 +1,20 @@
 # Slide Master Implementation Plan
 
+## Guiding Principles
+*   **Small, Safe Steps:** Each phase must be testable in isolation.
+*   **No Regressions:** The "Normal Slide Edit" mode must remain fully functional at every step.
+*   **Isolation:** Logic for Master mode should be kept separate from Slide mode where possible (e.g., separate render methods or helpers).
+
+## Risks & Mitigations
+1.  **Renderer Instability:** The `SlideRenderer` is the heart of the app. Modifying it to support Masters carries the risk of breaking normal slide rendering.
+    *   *Mitigation:* We will abstract the data retrieval logic (`getRenderableObject`) before changing the rendering logic.
+2.  **State Confusion:** Mixing up `activeSlideId` and `activeMasterId` could lead to editing the wrong object.
+    *   *Mitigation:* Explicitly separate these in the Store. Actions like `ADD_ELEMENT` must check the current `mode` to determine the target.
+3.  **UI Clutter:** `SlideList.js` could become unmaintainable if we just pile `if/else` logic into it.
+    *   *Mitigation:* We will implement a distinct `renderMasterList()` method (or a separate class if needed) to keep the view logic clean.
+
+---
+
 ## Phase 1: Data Structure & Core Logic (Completed)
 - [x] Update `Store.js` with `masters` state (Theme & Layouts).
 - [x] Define `DEFAULT_MASTERS` structure.
@@ -13,68 +28,83 @@
 - [x] Implement Background inheritance (Theme -> Layout -> Slide).
 - [x] Support for Solid, Gradient, and Image backgrounds.
 
-## Phase 3: Master View Mode (UI & Navigation)
-**Goal:** Allow users to switch between "Slide Edit" and "Master Edit" modes and navigate the master hierarchy.
+---
+
+## Phase 3: Master Mode Foundation (State & Navigation)
+**Goal:** Establish the "Master Mode" state without changing any visible UI or rendering logic yet.
 
 1.  **Store Updates**
     *   Add `editor.mode` state ('edit' | 'master').
-    *   Add `editor.activeMasterId` state.
+    *   Add `editor.activeMasterId` state (default to the first theme).
     *   Add actions: `SET_MODE`, `SET_ACTIVE_MASTER`.
+    *   *Risk:* None. Pure state addition.
 
 2.  **Toolbar UI**
-    *   Add "Edit Master" button to the Toolbar (or View menu).
-    *   Add "Close Master View" button (visible only in Master mode).
+    *   Add "Edit Master" button to the Toolbar (View menu or standalone).
+    *   Add "Close Master View" button (visible only when `mode === 'master'`).
+    *   *Verification:* Clicking the button changes the state in the console/logs. The main view will still show the slide for now (until Phase 5), which is expected.
 
-3.  **Slide List (Left Panel) Adaptation**
-    *   Refactor `SlideList.js` to handle two modes.
-    *   **Normal Mode:** Shows Slides (current behavior).
-    *   **Master Mode:** Shows Tree View:
-        *   Theme Master (Root)
-        *   └── Layout Masters (Children)
-    *   Implement selection logic for Masters/Layouts in the list.
+## Phase 4: The Master List UI (Left Panel)
+**Goal:** Visualize the Master/Layout hierarchy in the left panel when in Master Mode.
 
-4.  **Renderer Adaptation**
-    *   Update `SlideRenderer.js` to handle `editor.mode`.
-    *   If mode is 'master', render `state.masters[activeMasterId]` instead of `state.slides[activeSlideId]`.
-    *   **Important:** When editing a Layout, it should visually inherit from its parent Theme (similar to how Slides inherit from Layouts).
-        *   Need `getEffectiveMaster(masterId)` helper? Or reuse `getEffectiveSlide` logic adapted for masters.
+1.  **Refactor `SlideList.js`**
+    *   Keep `render()` as the entry point.
+    *   Add check: `if (state.editor.mode === 'master') return this.renderMasterList();`
+    *   Implement `renderMasterList()`:
+        *   Iterate through `state.masters`.
+        *   Group Layouts under their parent Theme.
+        *   Render a Tree View (Theme -> Layouts).
+    *   *Risk:* Breaking the existing slide list.
+    *   *Mitigation:* Ensure the "else" path (normal render) is untouched.
 
-## Phase 4: Master Editing (Core)
-**Goal:** Enable editing of Master and Layout slides (backgrounds, elements, placeholders).
+2.  **Selection Logic**
+    *   Clicking a Master/Layout in the list should dispatch `SET_ACTIVE_MASTER`.
+    *   *Verification:* Clicking items in the new list updates `activeMasterId`.
 
-1.  **Selection & Property Inspector**
-    *   Update `SelectionManager` to allow selecting elements on Master slides when in Master mode.
-    *   Update `PropertyInspector` to bind to `state.masters[activeMasterId]` when in Master mode.
+## Phase 5: Rendering Masters (The Engine)
+**Goal:** Update the main canvas to render the selected Master or Layout when in Master Mode.
 
-2.  **Element Operations**
-    *   Update Store actions (`ADD_ELEMENT`, `UPDATE_ELEMENT`, `DELETE_ELEMENT`, `UPDATE_SLIDE`) to target the correct object based on `editor.mode`.
-    *   If in Master mode, target `state.masters[activeMasterId]`.
-    *   If in Slide mode, target `state.slides[activeSlideId]`.
+1.  **Data Retrieval Helper**
+    *   Create `getRenderableObject(id, mode)` in Store (or Utils).
+    *   If mode is 'slide': call `getEffectiveSlide(id)`.
+    *   If mode is 'master':
+        *   If ID is a **Theme**: Return the theme object directly.
+        *   If ID is a **Layout**: We need a new helper `getEffectiveLayout(layoutId)` that merges Theme + Layout (similar to `getEffectiveSlide` but stopping at Layout level).
 
-3.  **Placeholder Management**
-    *   Add "Insert Placeholder" tool to Toolbar (only in Master mode).
-    *   Define `placeholder` element type in Store/Renderer.
-    *   Render placeholders with distinct visual style (dashed border, prompt text).
+2.  **Update `SlideRenderer.js`**
+    *   In `render()` loop:
+        *   Check `state.editor.mode`.
+        *   If 'master', use `state.editor.activeMasterId`.
+        *   If 'edit', use `state.editor.activeSlideId`.
+    *   Pass the ID and Mode to `getRenderableObject`.
+    *   *Risk:* The renderer might crash if the Master object is missing properties expected by the renderer (e.g., `transition`, `notes`).
+    *   *Mitigation:* Ensure `getEffectiveLayout` returns a standardized object shape matching a Slide.
 
-## Phase 5: Layout Application
-**Goal:** Allow users to change the layout of an existing slide.
+## Phase 6: Editing Masters (Interaction)
+**Goal:** Allow adding/moving/modifying elements on Master slides.
 
-1.  **Layout Picker UI**
-    *   Add "Layout" dropdown to `PropertyInspector` (Slide Properties section).
-    *   Show available layouts from the current theme.
+1.  **Selection Manager Update**
+    *   Ensure `SelectionManager` respects the current mode.
+    *   When in Master mode, it should only allow selecting elements that belong to the *current* Master/Layout.
+    *   Inherited elements (from Theme, when editing Layout) should be locked.
 
-2.  **Layout Switching Logic**
-    *   Implement `APPLY_LAYOUT` action in Store.
-    *   **Smart Remapping:**
-        *   When switching layouts, try to map existing elements to new placeholders based on type/ID.
-        *   Preserve content (text, images) while updating position/style to match new layout.
+2.  **Store Action Updates**
+    *   Update `ADD_ELEMENT`, `UPDATE_ELEMENT`, `DELETE_ELEMENT`.
+    *   Add logic:
+        ```javascript
+        const targetId = state.editor.mode === 'master' 
+            ? state.editor.activeMasterId 
+            : state.editor.activeSlideId;
+        const targetCollection = state.editor.mode === 'master' 
+            ? state.masters 
+            : state.slides;
+        ```
+    *   *Risk:* Accidental deletion of slide data.
+    *   *Mitigation:* Unit test or carefully verify the target ID resolution.
 
-## Phase 6: Theme Editor (Global Styles)
-**Goal:** Edit global theme properties.
+## Phase 7: Layout Application & Refinement
+**Goal:** Apply layouts to slides and polish the UX.
 
-1.  **Theme Settings**
-    *   Add `themeSettings` to Theme Master object (colors, fonts).
-    *   Create "Theme" tab in Property Inspector (when Theme Master is selected).
-
-2.  **Global Propagation**
-    *   Ensure all slides/layouts reference these theme variables (CSS variables or Store lookups).
+1.  **Layout Picker** (Property Inspector)
+2.  **Smart Content Remapping** (Preserving text when switching layouts)
+3.  **Theme Settings Editor** (Colors/Fonts)
