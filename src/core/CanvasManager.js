@@ -123,8 +123,7 @@ export class CanvasManager {
 
     fitToView() {
         const state = store.getState();
-        const activeSlideId = state.editor.activeSlideId;
-        const slide = state.slides[activeSlideId];
+        const slide = this.getActiveContainer(state);
         
         if (!slide) return;
 
@@ -344,8 +343,9 @@ export class CanvasManager {
                     // Since dispatch is sync, we can just get state again
                     const newState = store.getState();
                     this.initialElementState = {};
+                    const activeContainer = this.getActiveContainer(newState);
                     newState.editor.selectedElementIds.forEach(id => {
-                        const el = newState.slides[newState.editor.activeSlideId].elements[id];
+                        const el = activeContainer ? activeContainer.elements[id] : null;
                         if (el) this.initialElementState[id] = { ...el };
                     });
                 }
@@ -936,8 +936,8 @@ export class CanvasManager {
 
         if (hit && hit.type === 'element') {
             const state = store.getState();
-            const activeSlideId = state.editor.activeSlideId;
-            const element = state.slides[activeSlideId].elements[hit.id];
+            const container = this.getActiveContainer(state);
+            const element = container ? container.elements[hit.id] : null;
 
             if (element) {
                 if (element.type === 'text') {
@@ -1908,8 +1908,7 @@ export class CanvasManager {
     renderGizmos() {
         const state = store.getState();
         const { selectedElementIds, zoom, pan } = state.editor;
-        const activeSlideId = state.editor.activeSlideId;
-        const slide = state.slides[activeSlideId];
+        const slide = this.getActiveContainer(state);
 
         if (!slide || selectedElementIds.length === 0) return;
 
