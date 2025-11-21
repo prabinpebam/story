@@ -20,13 +20,13 @@ The system relies on CSS variables defined in `styles/main.css`.
 The app defaults to a dark theme for the editor interface.
 - **App Background:** `--color-bg-app` (`#1E1E1E`) - The main window background.
 - **Panel Background:** `--color-bg-panel` (`#2C2C2C`) - Sidebars and floating panels.
-- **Input Background:** `--color-bg-input` (`#383838`) - Text fields and dropdowns.
-- **Input Hover:** `--color-bg-hover` (`#444444`) - Interactive elements on hover.
+- **Input Background:** `--color-bg-input` (`#1E1E1E`) - Text fields and dropdowns.
+- **Input Hover:** `--color-bg-hover` (`#383838`) - Interactive elements on hover.
 - **Border:** `--color-border` (`#444444`) - Subtle dividers and container borders.
 
 ### 2.3 Text Colors
 - **Primary:** `--color-text-primary` (`#FFFFFF`) - Values, Input text, Headers.
-- **Secondary:** `--color-text-secondary` (`#B3B3B3`) - Labels, Icons, Placeholder text.
+- **Secondary:** `--color-text-secondary` (`#AAAAAA`) - Labels, Icons, Placeholder text.
 - **Disabled:** `--color-text-disabled` (`#666666`) - Inactive controls.
 
 ## 3. Typography
@@ -42,7 +42,7 @@ The app defaults to a dark theme for the editor interface.
 
 ### 4.1 Inputs & Controls
 **Numeric Input**
-- **Visual:** Filled container (`--color-bg-input`), Rounded corners (`2px`).
+- **Visual:** Filled container (`--color-bg-input`), Rounded corners (`4px` / `--radius-sm`).
 - **Interaction:**
     - **Hover:** Background lightens (`--color-bg-hover`).
     - **Focus:** Blue border (`1px solid --color-accent`).
@@ -59,7 +59,7 @@ The app defaults to a dark theme for the editor interface.
     - **On:** Solid Blue fill (`--color-accent`).
 
 **Color Swatch**
-- **Visual:** Rounded square (`2px` radius).
+- **Visual:** Rounded square (`4px` / `--radius-sm`).
 - **Interaction:** Click opens the Color Picker.
 - **Border:** `1px solid --color-border` (to separate from bg).
 
