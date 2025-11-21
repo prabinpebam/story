@@ -548,12 +548,19 @@ return {
             isMaster = !Object.prototype.hasOwnProperty.call(slide.elements, el.id);
         }
 
+        const state = store.getState();
+        const isMasterMode = state.editor.mode === 'master';
+
+        if (isMasterMode && el.isPlaceholder) {
+             div.style.border = '2px dashed #999';
+             div.classList.add('is-placeholder');
+        }
+
         if (isMaster) {
              div.classList.add('is-master-element');
              
              // Special handling for Placeholders in Edit Mode
-             const state = store.getState();
-             if (state.editor.mode !== 'master' && el.isPlaceholder) {
+             if (!isMasterMode && el.isPlaceholder) {
                  div.classList.add('is-placeholder-instance');
                  div.style.pointerEvents = 'auto'; // Allow interaction
                  div.style.border = '2px dashed #999'; // Visual cue

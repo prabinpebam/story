@@ -89,6 +89,20 @@
 - [x] **Cleanup:** Remove any temporary debug logs or visual borders.
     - *Action:* Removed debug logs from `SlideRenderer.js` and `Store.js`.
 
+## Phase 10: Master Mode Refinements (Completed)
+**Goal:** Add missing features for full Master Mode capability.
+
+- [x] **Hide Background Graphics:**
+    - Add a toggle in `PropertyInspector.js` for Layouts (hides Theme elements) and Slides (hides Layout elements).
+    - Ensure `Store.js` respects this flag during rendering (already partially implemented in `getEffectiveSlide`).
+- [x] **Rename Master/Layout:**
+    - Add a text input in `PropertyInspector.js` when a Master/Layout is selected to edit its name.
+- [x] **Insert Placeholder:**
+    - Add UI in `PropertyInspector.js` (Master Mode only) to insert Title, Subtitle, Body, and Image placeholders.
+    - Update `SlideRenderer.js` to render placeholders with dashed borders in Master Mode.
+    - Add a UI mechanism (e.g., a button in the Toolbar or Property Inspector) to insert new placeholders when in Master Mode.
+    - Support different placeholder types (Text, Image, Body).
+
 ## Conclusion
 The Slide Master system is now fully implemented. It supports:
 1.  **Hierarchical Inheritance:** Theme -> Layout -> Slide.

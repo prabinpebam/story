@@ -114,6 +114,51 @@ export class PropertyInspector {
 
         const { group, content } = this.createControlGroup(mode === 'master' ? 'MASTER / LAYOUT' : 'SLIDE', true);
         
+        // Rename (Master Mode Only)
+        if (mode === 'master') {
+            const nameLabel = document.createElement('div');
+            nameLabel.innerText = 'Name';
+            nameLabel.style.fontSize = 'var(--font-size-xs)';
+            nameLabel.style.color = 'var(--color-text-secondary)';
+            nameLabel.style.marginBottom = 'var(--spacing-2)';
+            content.appendChild(nameLabel);
+
+            const nameInput = document.createElement('input');
+            nameInput.type = 'text';
+            nameInput.value = slide.name || '';
+            nameInput.className = 'settings-input';
+            nameInput.style.width = '100%';
+            nameInput.style.marginBottom = 'var(--spacing-3)';
+            
+            nameInput.onchange = (e) => {
+                store.dispatch(updateAction, { id: slide.id, name: e.target.value });
+            };
+            content.appendChild(nameInput);
+        }
+
+        // Hide Background Graphics Toggle
+        // Show for Layouts (hides Theme) and Slides (hides Layout)
+        if ((mode === 'master' && slide.type === 'layout') || mode === 'edit') {
+            const hideBgRow = document.createElement('div');
+            hideBgRow.style.display = 'flex';
+            hideBgRow.style.justifyContent = 'space-between';
+            hideBgRow.style.alignItems = 'center';
+            hideBgRow.style.marginBottom = 'var(--spacing-3)';
+
+            const hideBgLabel = document.createElement('span');
+            hideBgLabel.innerText = mode === 'master' ? 'Hide Theme Graphics' : 'Hide Background Graphics';
+            hideBgLabel.style.fontSize = '11px';
+            hideBgLabel.style.color = 'var(--color-text-secondary)';
+
+            const hideBgSwitch = new Switch('', slide.hideBackgroundGraphics || false, (checked) => {
+                store.dispatch(updateAction, { id: slide.id, hideBackgroundGraphics: checked });
+            });
+
+            hideBgRow.appendChild(hideBgLabel);
+            hideBgRow.appendChild(hideBgSwitch.element);
+            content.appendChild(hideBgRow);
+        }
+
         // Layout Picker (Only in Slide Mode)
         if (mode !== 'master') {
             const state = store.getState();
@@ -537,6 +582,74 @@ return {
         }
 
         this.container.appendChild(group);
+
+        // Insert Placeholders (Master Mode Only)
+        if (mode === 'master') {
+            const { group: phGroup, content: phContent } = this.createControlGroup('INSERT PLACEHOLDER', true);
+            phContent.style.display = 'grid';
+            phContent.style.gridTemplateColumns = '1fr 1fr';
+            phContent.style.gap = '8px';
+            phContent.style.padding = '4px';
+
+            const placeholders = [
+                { label: 'Title', type: 'title', icon: 'fa-heading' },
+                { label: 'Subtitle', type: 'subtitle', icon: 'fa-font' },
+                { label: 'Body', type: 'body', icon: 'fa-align-left' },
+                { label: 'Image', type: 'image', icon: 'fa-image' }
+            ];
+
+            placeholders.forEach(ph => {
+                const btn = document.createElement('button');
+                btn.className = 'btn-secondary';
+                btn.style.display = 'flex';
+                btn.style.flexDirection = 'column';
+                btn.style.alignItems = 'center';
+                btn.style.justifyContent = 'center';
+                btn.style.padding = '12px';
+                btn.style.gap = '4px';
+                btn.style.height = 'auto';
+                
+                const icon = document.createElement('i');
+                icon.className = `fa-solid ${ph.icon}`;
+                icon.style.fontSize = '16px';
+                icon.style.marginBottom = '4px';
+                
+                const label = document.createElement('span');
+                label.innerText = ph.label;
+                label.style.fontSize = '11px';
+                
+                btn.appendChild(icon);
+                btn.appendChild(label);
+                
+                btn.onclick = () => {
+                    const id = 'ph-' + Date.now();
+                    const payload = {
+                        id,
+                        type: ph.type === 'image' ? 'image' : 'text',
+                        x: 100,
+                        y: 100,
+                        width: 400,
+                        height: ph.type === 'image' ? 300 : 100,
+                        isPlaceholder: true,
+                        placeholderType: ph.type,
+                        text: ph.label + ' Placeholder',
+                        fontSize: ph.type === 'title' ? 60 : (ph.type === 'subtitle' ? 40 : 24),
+                        fontFamily: 'Inter',
+                        color: '#000000'
+                    };
+                    
+                    if (ph.type === 'image') {
+                        payload.src = 'https://placehold.co/400x300?text=Image+Placeholder';
+                    }
+                    
+                    store.dispatch('ADD_ELEMENT', payload);
+                };
+                
+                phContent.appendChild(btn);
+            });
+
+            this.container.appendChild(phGroup);
+        }
     }
 
     getCommonProperties(elements) {
