@@ -61,8 +61,8 @@ export class CanvasManager {
 
         store.on('mode-changed', (mode) => {
             if (mode === 'presentation') {
-                // Force fit to view after a short delay to allow layout to settle
-                setTimeout(() => this.fitToView(), 100);
+                // PresentationManager handles scaling
+                return;
             } else {
                 // Reset or fit to view again
                 setTimeout(() => this.fitToView(), 100);
@@ -1317,6 +1317,9 @@ export class CanvasManager {
     }
 
     updateViewportTransform({ pan, zoom }) {
+        const state = store.getState();
+        if (state.editor.mode === 'presentation') return;
+
         if (this.viewport) {
             // Apply transform to the viewport container or content layer
             // Based on spec: #slide-content gets the transform

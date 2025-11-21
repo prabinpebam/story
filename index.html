@@ -4,7 +4,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Story - Presentation Maker</title>
-    <link rel="stylesheet" href="styles/main.css">
+    <link rel="stylesheet" href="styles/modules/variables.css">
+    <link rel="stylesheet" href="styles/modules/base.css">
+    <link rel="stylesheet" href="styles/modules/layout.css">
+    <link rel="stylesheet" href="styles/modules/components.css">
+    <link rel="stylesheet" href="styles/modules/canvas.css">
+    <link rel="stylesheet" href="styles/modules/floating-ui.css">
+    <link rel="stylesheet" href="styles/modules/presentation.css">
+    <link rel="stylesheet" href="styles/modules/master-mode.css">
+    <link rel="stylesheet" href="styles/modules/modal.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -101,6 +109,10 @@
                         
                         <!-- 4. Laser Pointer Layer -->
                         <canvas id="laser-canvas"></canvas>
+
+                        <!-- Presentation Overlays -->
+                        <div id="overlay-black" class="presentation-overlay hidden" style="background-color: black;"></div>
+                        <div id="overlay-white" class="presentation-overlay hidden" style="background-color: white;"></div>
                     </div>
                 </div>
                 

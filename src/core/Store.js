@@ -86,6 +86,15 @@ class Store extends EventEmitter {
                 gridEnabled: true,
                 snapToGrid: true
             },
+            presentation: {
+                isActive: false,
+                currentSlideIndex: 0,
+                isPaused: false,
+                blackScreen: false,
+                whiteScreen: false,
+                laserPointer: false,
+                gridView: false
+            },
             masters: DEFAULT_MASTERS,
             slides: {
                 "slide-1": {
@@ -205,8 +214,65 @@ class Store extends EventEmitter {
                     }
                 }
 
+                if (payload === 'presentation') {
+                    this.state.presentation.isActive = true;
+                    // Sync current slide index
+                    const currentIndex = this.state.slideOrder.indexOf(this.state.editor.activeSlideId);
+                    this.state.presentation.currentSlideIndex = currentIndex !== -1 ? currentIndex : 0;
+                } else {
+                    this.state.presentation.isActive = false;
+                }
+
                 this.emit('state-changed', this.state);
                 this.emit('mode-changed', payload);
+                break;
+
+            case 'PRESENTATION_NEXT':
+                if (this.state.presentation.currentSlideIndex < this.state.slideOrder.length - 1) {
+                    this.state.presentation.currentSlideIndex++;
+                    // Sync active slide for rendering
+                    this.state.editor.activeSlideId = this.state.slideOrder[this.state.presentation.currentSlideIndex];
+                    this.emit('state-changed', this.state);
+                }
+                break;
+
+            case 'PRESENTATION_PREV':
+                if (this.state.presentation.currentSlideIndex > 0) {
+                    this.state.presentation.currentSlideIndex--;
+                    // Sync active slide for rendering
+                    this.state.editor.activeSlideId = this.state.slideOrder[this.state.presentation.currentSlideIndex];
+                    this.emit('state-changed', this.state);
+                }
+                break;
+
+            case 'PRESENTATION_GOTO':
+                if (payload >= 0 && payload < this.state.slideOrder.length) {
+                    this.state.presentation.currentSlideIndex = payload;
+                    this.state.editor.activeSlideId = this.state.slideOrder[payload];
+                    this.emit('state-changed', this.state);
+                }
+                break;
+
+            case 'TOGGLE_LASER':
+                this.state.presentation.laserPointer = !this.state.presentation.laserPointer;
+                this.emit('state-changed', this.state);
+                break;
+
+            case 'TOGGLE_BLACK_SCREEN':
+                this.state.presentation.blackScreen = !this.state.presentation.blackScreen;
+                this.state.presentation.whiteScreen = false; // Mutually exclusive
+                this.emit('state-changed', this.state);
+                break;
+
+            case 'TOGGLE_WHITE_SCREEN':
+                this.state.presentation.whiteScreen = !this.state.presentation.whiteScreen;
+                this.state.presentation.blackScreen = false; // Mutually exclusive
+                this.emit('state-changed', this.state);
+                break;
+
+            case 'TOGGLE_GRID_VIEW':
+                this.state.presentation.gridView = !this.state.presentation.gridView;
+                this.emit('state-changed', this.state);
                 break;
 
             case 'SET_EDITING_ELEMENT':

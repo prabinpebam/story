@@ -1,0 +1,101 @@
+/* Presentation Mode */
+body.mode-presentation #app {
+    grid-template-columns: 0 1fr 0;
+}
+
+body.mode-presentation .sidebar,
+body.mode-presentation #floating-toolbar,
+body.mode-presentation #floating-panels,
+body.mode_presentation #top-controls,
+body.mode_presentation #viewport-controls {
+    display: none !important;
+}
+
+body.mode-presentation #main-stage {
+    background-color: #000;
+}
+
+body.mode-presentation #canvas-viewport {
+    background-image: none;
+    background-color: #000;
+}
+
+/* Ensure canvas container is full size */
+body.mode-presentation #canvas-container {
+    width: 100vw;
+    height: 100vh;
+}
+
+/* Presentation Mode Styles - Additional Overrides */
+.mode-presentation #sidebar-left,
+.mode-presentation #sidebar-right,
+.mode-presentation #toolbar-top,
+.mode_presentation .sidebar-header {
+    display: none !important;
+}
+
+.mode-presentation #app {
+    grid-template-columns: 1fr !important;
+    grid-template-rows: 1fr !important;
+    background-color: #000 !important; /* Black background for presentation */
+}
+
+.mode-presentation #canvas-area {
+    background-color: #000 !important;
+    padding: 0 !important;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    grid-column: 1 / -1; /* Span full width */
+}
+
+.mode-presentation #slide-viewport {
+    box-shadow: none !important; /* Remove shadow in presentation */
+    /* Transform is handled by JS */
+    border: none !important;
+}
+
+/* Hide scrollbars in presentation mode */
+.mode-presentation ::-webkit-scrollbar {
+    display: none;
+}
+
+/* Disable interaction canvas in presentation mode */
+body.mode-presentation #interaction-canvas {
+    pointer-events: none;
+}
+
+/* Laser Pointer Canvas */
+#laser-canvas {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 9999;
+    display: none;
+}
+
+body.mode-presentation #laser-canvas {
+    display: block;
+}
+
+/* Presentation Overlays (Black/White Screen) */
+.presentation-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: 10000; /* Above everything including laser */
+    pointer-events: auto; /* Block interactions */
+    opacity: 1;
+    transition: opacity 0.3s ease;
+}
+
+.presentation-overlay.hidden {
+    opacity: 0;
+    pointer-events: none;
+}

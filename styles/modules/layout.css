@@ -1,0 +1,54 @@
+#app {
+    display: grid;
+    grid-template-columns: var(--sidebar-width) 1fr var(--sidebar-width);
+    height: 100vh;
+    width: 100vw;
+    position: relative; /* Ensure pseudo-elements are positioned relative to app */
+}
+
+/* Sidebars */
+.sidebar {
+    background-color: var(--color-bg-panel);
+    border-right: 1px solid var(--color-border);
+    display: flex;
+    flex-direction: column;
+}
+
+#sidebar-right {
+    border-right: none;
+    border-left: 1px solid var(--color-border);
+}
+
+.sidebar-header {
+    height: var(--header-height);
+    border-bottom: 1px solid var(--color-border);
+    display: flex;
+    align-items: center;
+    padding: 0 var(--spacing-2);
+    font-family: var(--font-ui);
+    font-weight: var(--font-weight-bold);
+    font-size: var(--font-size-sm);
+    color: var(--color-text-primary);
+}
+
+.logo {
+    font-weight: 900;
+    font-size: var(--font-size-lg);
+    color: var(--color-text-primary); /* Clean look */
+    letter-spacing: -0.5px;
+}
+
+.sidebar-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: var(--spacing-md);
+}
+
+/* Main Stage */
+#main-stage {
+    background-color: var(--color-bg-app);
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    overflow: hidden; /* Ensure no scrollbars on the stage itself */
+}

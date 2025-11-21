@@ -1,0 +1,63 @@
+/* Master Mode Styles */
+body.mode-master #app::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    border: 4px solid #F24822; /* Orange Border */
+    pointer-events: none; /* Let clicks pass through */
+    z-index: 9999; /* Ensure it sits on top of everything */
+}
+
+body.mode-master .logo::after {
+    content: "MASTER";
+    font-size: 9px;
+    background: var(--color-danger);
+    color: white;
+    padding: 2px 4px;
+    border-radius: 4px;
+    margin-left: 6px;
+    vertical-align: middle;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+}
+
+/* Top Controls specific to Master Mode */
+#edit-master-btn {
+    background-color: transparent;
+    border: 1px solid var(--color-border);
+    color: var(--color-text-primary);
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-medium);
+    padding: 4px 8px;
+    border-radius: var(--radius-sm);
+}
+
+#edit-master-btn:hover {
+    background-color: var(--color-bg-hover);
+}
+
+#close-master-btn {
+    background-color: var(--color-danger);
+    color: white;
+    border: none;
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-bold);
+    padding: 4px 12px;
+    border-radius: var(--radius-sm);
+    box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+}
+
+#close-master-btn:hover {
+    background-color: #d63b19;
+}
+
+/* Top Controls Container */
+#top-controls {
+    margin-left: auto;
+    display: flex;
+    gap: var(--spacing-2);
+    align-items: center;
+}

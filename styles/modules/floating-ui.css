@@ -1,0 +1,108 @@
+/* Floating Toolbar */
+#floating-toolbar {
+    position: absolute;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    height: 48px;
+    background-color: var(--color-bg-panel);
+    border: 1px solid var(--color-border);
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    padding: 0 6px;
+    gap: 4px;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.15);
+    z-index: 2000;
+}
+
+#floating-toolbar .tool-btn {
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    border: none;
+    color: var(--color-text-primary);
+    font-size: 16px;
+    background: transparent;
+    transition: all 0.2s ease;
+}
+
+#floating-toolbar .tool-btn:hover {
+    background-color: var(--color-bg-hover);
+}
+
+#floating-toolbar .tool-btn.active {
+    background-color: var(--color-accent);
+    color: var(--color-text-on-accent);
+}
+
+#floating-toolbar .divider {
+    width: 1px;
+    height: 20px;
+    background-color: var(--color-border);
+    margin: 0 4px;
+}
+
+/* Floating Panels */
+#floating-panels {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 1900;
+}
+
+.floating-panel {
+    position: absolute;
+    background-color: var(--color-bg-panel);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    box-shadow: 0 4px 24px rgba(0,0,0,0.2);
+    pointer-events: auto;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.floating-panel.hidden {
+    display: none;
+}
+
+/* Icon Library Specifics */
+#icon-library.floating-panel {
+    bottom: 80px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 340px;
+    height: 400px;
+}
+
+.panel-header {
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 var(--spacing-2);
+    border-bottom: 1px solid var(--color-border);
+    font-weight: var(--font-weight-bold);
+    font-size: var(--font-size-xs);
+    background-color: var(--color-bg-panel);
+    color: var(--color-text-primary);
+}
+
+.panel-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: var(--spacing-2);
+}
+
+.tool-group {
+    display: flex;
+    gap: var(--spacing-1);
+}
