@@ -1,104 +1,96 @@
 # UI Design System & Component Library
-**Theme:** Teenage Engineering Inspired (Industrial, Tactile, Functional)
+**Theme:** Professional Creative Tool (High Density, Focused, Tactile)
 
 ## 1. Design Philosophy
-The interface should feel like a physical instrument. It prioritizes muscle memory, precision, and clarity over decorative flair.
-- **Tactile:** Controls should invite interaction. Buttons feel "clicky", knobs feel "weighted".
-- **Industrial:** Use of raw materials metaphors (matte plastic, brushed metal looks via flat colors), visible structural lines, and technical typography.
-- **High Contrast:** Critical information stands out immediately. Active states are unambiguous.
-- **Flat but Deep:** Use borders and subtle shadows to create depth without skeuomorphism.
+The interface is designed for professional workflows, balancing the density of a complex editor (like Figma) with tactile, clear interactions.
+- **Content First:** The UI recedes to let the user's work take center stage.
+- **High Density:** Controls are compact to maximize screen real estate for the canvas.
+- **Clear Hierarchy:** Use contrast and spacing (not decoration) to group related controls.
+- **Tactile Feedback:** Hover states, focus rings, and active states provide immediate, clear feedback.
 
-## 2. Color Palette
+## 2. Color Palette & Tokens
+The system relies on CSS variables defined in `styles/main.css`.
 
 ### 2.1 Primary Accents
-Used for active states, selection, and primary actions.
-- **TE Orange:** `#FF4D00` (Main Brand/Action color)
-- **Electric Blue:** `#0055FF` (Selection, Focus rings)
-- **Signal Green:** `#00FF41` (Success, Active Indicators)
+- **Accent Blue:** `--color-accent` (`#18A0FB`) - Used for selection, focus rings, and active toggles.
+- **Brand/Action:** `--color-accent-hover` (`#0D86D7`) - Darker shade for interactions.
+- **Selection Surface:** `--color-selection` (`rgba(24, 160, 251, 0.1)`) - Light blue wash for selected items.
 
-### 2.2 Neutrals (Light Mode)
-- **Surface 0 (App Bg):** `#F2F2F2` (Warm light gray)
-- **Surface 1 (Panels):** `#E6E6E6`
-- **Surface 2 (Inputs/Wells):** `#D9D9D9`
-- **Border:** `#B3B3B3`
-- **Text Primary:** `#1A1A1A`
-- **Text Secondary:** `#666666`
+### 2.2 Neutrals (Dark Mode Default)
+The app defaults to a dark theme for the editor interface.
+- **App Background:** `--color-bg-app` (`#1E1E1E`) - The main window background.
+- **Panel Background:** `--color-bg-panel` (`#2C2C2C`) - Sidebars and floating panels.
+- **Input Background:** `--color-bg-input` (`#383838`) - Text fields and dropdowns.
+- **Input Hover:** `--color-bg-hover` (`#444444`) - Interactive elements on hover.
+- **Border:** `--color-border` (`#444444`) - Subtle dividers and container borders.
 
-### 2.3 Neutrals (Dark Mode)
-- **Surface 0 (App Bg):** `#1A1A1A`
-- **Surface 1 (Panels):** `#262626`
-- **Surface 2 (Inputs/Wells):** `#0D0D0D`
-- **Border:** `#404040`
-- **Text Primary:** `#F2F2F2`
-- **Text Secondary:** `#999999`
+### 2.3 Text Colors
+- **Primary:** `--color-text-primary` (`#FFFFFF`) - Values, Input text, Headers.
+- **Secondary:** `--color-text-secondary` (`#B3B3B3`) - Labels, Icons, Placeholder text.
+- **Disabled:** `--color-text-disabled` (`#666666`) - Inactive controls.
 
 ## 3. Typography
-- **UI Font:** `Inter` (Weights: 400, 500, 600). Clean, legible, neutral.
-- **Data/Code Font:** `JetBrains Mono` (Weights: 400, 500). Used for all numerical values, inputs, and code editors.
-- **Scale:**
-    - Label: 10px (Uppercase, tracking: 0.5px)
-    - Body: 12px
-    - Value: 13px (Mono)
-    - Header: 14px (Medium)
+- **UI Font:** `Inter` (Weights: 400, 500, 600).
+- **Mono Font:** `JetBrains Mono` (Weights: 400). Used for numeric values and code.
+
+**Type Scale:**
+- **Label (XS):** `10px` / `11px` (`--font-size-xs`, `--font-size-sm`) - Property labels.
+- **Body (S):** `12px` (`--font-size-md`) - Standard UI text, Input values.
+- **Header (M):** `13px` / `14px` (`--font-size-lg`) - Section headers.
 
 ## 4. Component Library
 
 ### 4.1 Inputs & Controls
-**The "Knob" (Rotary Control)**
-- **Usage:** For continuous values (Rotation, Opacity, Volume).
-- **Interaction:** Click and drag up/down to change value. Double click to reset.
-- **Visual:** A circular SVG with a tick mark indicating position.
-- **Feedback:** A ring fills up as the value increases.
-
-**The "Mechanical Switch" (Toggle)**
-- **Usage:** Boolean states (On/Off, Show/Hide).
-- **Visual:** Rectangular block that slides physically.
-- **State:**
-    - OFF: Gray background, circle left.
-    - ON: Accent color background, circle right.
-
-**Segmented Control (Radio Group)**
-- **Usage:** Mutually exclusive options (Alignment: Left/Center/Right).
-- **Visual:** A single container with dividers. The selected segment has a solid fill (Inverted text color).
-
 **Numeric Input**
-- **Visual:** Transparent background, bottom border only (or subtle well).
-- **Font:** Monospace.
-- **Interaction:** Draggable label (scrubbing) to change value.
+- **Visual:** Filled container (`--color-bg-input`), Rounded corners (`2px`).
+- **Interaction:**
+    - **Hover:** Background lightens (`--color-bg-hover`).
+    - **Focus:** Blue border (`1px solid --color-accent`).
+    - **Scrub:** Dragging the label adjusts the value.
+
+**Dropdowns**
+- **Visual:** Same styling as Inputs. Chevron icon on the right.
+- **Menu:** Floating panel with `--color-bg-panel`, shadow, and border.
+
+**Toggles (Switch)**
+- **Visual:** Pill shape.
+- **State:**
+    - **Off:** Gray outline or dark fill.
+    - **On:** Solid Blue fill (`--color-accent`).
+
+**Color Swatch**
+- **Visual:** Rounded square (`2px` radius).
+- **Interaction:** Click opens the Color Picker.
+- **Border:** `1px solid --color-border` (to separate from bg).
 
 ### 4.2 Buttons
-**Primary Action**
-- Solid Fill (TE Orange).
-- Uppercase Label.
-- Sharp corners (0px or 2px border radius).
+**Icon Button**
+- **Visual:** Transparent background, `16px` icon.
+- **Interaction:**
+    - **Hover:** Square or rounded background (`--color-bg-hover`).
+    - **Active:** Darker background or Blue tint.
 
-**Tool Button**
-- Icon only or Icon + Label.
-- State:
-    - Default: Transparent.
-    - Hover: Light gray background.
-    - Active: Inverted (Black bg, White text).
-
-### 4.3 Feedback & Indicators
-**LED Indicator**
-- Small (4px) circle.
-- Colors: Green (Active/Good), Red (Error/Recording), Yellow (Warning).
-- Animation: Subtle pulse when active.
-
-**Toast/Notification**
-- Minimal strip at the bottom/top.
-- Monospace text.
-- No close button (auto-dismiss).
+**Primary Button**
+- **Visual:** Solid Blue fill (`--color-accent`), White text.
+- **Radius:** `4px`.
 
 ## 5. Layout & Spacing
-- **Grid:** 4px baseline grid. All spacing/sizing should be multiples of 4 (4, 8, 12, 16, 24).
-- **Borders:** 1px solid borders are used to define regions. No drop shadows for layout separation, only borders.
-- **Density:** High density. This is a pro tool.
+- **Grid:** 4px baseline grid.
+- **Density:** High.
+    - **Row Height:** `32px`.
+    - **Input Height:** `28px`.
+    - **Gap:** `8px` between columns.
+    - **Padding:** `12px` horizontal for panels.
 
-## 6. Motion Design
-- **Duration:** Fast (150ms - 250ms).
-- **Easing:** `cubic-bezier(0.2, 0.0, 0.2, 1)` (Snappy, mechanical).
-- **Micro-interactions:**
-    - Hovering a button instantly snaps to hover state (0ms).
-    - Toggling a switch slides with a spring effect.
-    - Opening a panel slides it in from the edge.
+## 6. Motion
+- **Duration:** Fast (`150ms`).
+- **Easing:** Ease-out.
+- **Usage:** Hover states, focus rings, and simple panel slides. Avoid excessive animation that slows down workflow.
+
+## 7. Property Inspector Specifics
+The Property Inspector utilizes the core system but enforces specific high-density rules:
+- **Labels:** Always `11px` (`--color-text-secondary`).
+- **Values:** Always `12px` (`--color-text-primary`).
+- **Inputs:** Background `#383838` (Surface 2).
+- **Icons:** `16px`, color `#E0E0E0`.
+

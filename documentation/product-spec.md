@@ -37,12 +37,17 @@ This should be a modern presentation maker.
 - Keep individual files modular and preferrably less than 500 lines.
 
 # UI
-- Use Teenage engineering aesthetics
-- Develop exhaustive color palette
-- Support light and dark mode
-- Have an exhaustive good set of component library.
-- Use motion design and animation where required.
-- Minimal, subtle is the theme of the Design aesthetics.
+- **Design System:** "Tactile Precision" (See [UI Overhaul 2025](./specs/ui-overhaul-2025.md))
+- **Theme:** Dark Mode default, High Contrast.
+- **Layout:** 4-Zone Workspace (Rail, Stage, Inspector, Dock).
+- **Aesthetics:** Teenage Engineering inspired (Industrial, Functional).
+
+# Detailed Specifications
+- **[UI Overhaul 2025](./specs/ui-overhaul-2025.md)** (Current Source of Truth for UI)
+- **[Master Slide System](./tech-specs/master-slide-system.md)**
+- **[Interaction Model](./tech-specs/interaction-model.md)**
+- **[Data Structures](./tech-specs/data-structures.md)**
+
 ---
 
 # Expanded Product Specification: Story Presentation Maker
