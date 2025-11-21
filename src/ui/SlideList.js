@@ -17,6 +17,175 @@ export class SlideList {
         const state = store.getState();
         this.container.innerHTML = '';
 
+        if (state.editor.mode === 'master') {
+            this.renderMasterList(state);
+        } else {
+            this.renderSlideList(state);
+        }
+    }
+
+    renderMasterList(state) {
+        // Header
+        const header = document.createElement('div');
+        header.style.display = 'flex';
+        header.style.justifyContent = 'space-between';
+        header.style.alignItems = 'center';
+        header.style.marginBottom = '12px';
+
+        const title = document.createElement('div');
+        title.className = 'section-title';
+        title.innerText = 'MASTERS';
+        title.style.marginBottom = '0';
+        
+        header.appendChild(title);
+        this.container.appendChild(header);
+
+        // List Container
+        const list = document.createElement('div');
+        list.style.display = 'flex';
+        list.style.flexDirection = 'column';
+        list.style.gap = '12px';
+
+        // Iterate Masters
+        const allMasters = state.masters;
+        const themes = Object.values(allMasters).filter(m => m.type === 'theme');
+
+        themes.forEach(theme => {
+            // 1. Render the Master Slide itself
+            const masterItem = this.createThumbnailItem(theme, state, true);
+            list.appendChild(masterItem);
+
+            // 2. Render Layouts
+            const layouts = Object.values(allMasters).filter(m => m.type === 'layout' && m.parentId === theme.id);
+            
+            if (layouts.length > 0) {
+                const layoutsContainer = document.createElement('div');
+                layoutsContainer.style.paddingLeft = '20px'; // Indent layouts
+                layoutsContainer.style.display = 'flex';
+                layoutsContainer.style.flexDirection = 'column';
+                layoutsContainer.style.gap = '8px';
+                layoutsContainer.style.marginTop = '-8px'; // Pull closer to master
+                layoutsContainer.style.marginBottom = '8px';
+                
+                layouts.forEach(layout => {
+                    const layoutItem = this.createThumbnailItem(layout, state, false);
+                    layoutsContainer.appendChild(layoutItem);
+                });
+
+                list.appendChild(layoutsContainer);
+            }
+        });
+
+        this.container.appendChild(list);
+    }
+
+    createThumbnailItem(slideOrMaster, state, isMasterRoot) {
+        const id = slideOrMaster.id;
+        const isActive = id === state.editor.activeMasterId;
+        
+        const item = document.createElement('div');
+        item.className = `slide-thumbnail ${isActive ? 'active' : ''}`;
+        item.style.padding = '8px'; // Slightly smaller for masters
+        item.style.backgroundColor = isActive ? 'var(--color-bg-active)' : 'transparent';
+        item.style.border = isActive ? '1px solid var(--color-accent)' : '1px solid var(--color-border)';
+        item.style.borderRadius = 'var(--radius-md)';
+        item.style.cursor = 'pointer';
+        item.style.position = 'relative';
+        item.style.transition = 'all 0.2s ease';
+
+        // Title
+        const info = document.createElement('div');
+        info.style.display = 'flex';
+        info.style.alignItems = 'center';
+        info.style.gap = '8px';
+        info.style.marginBottom = '6px';
+        
+        const icon = document.createElement('i');
+        icon.className = isMasterRoot ? 'fa-solid fa-layer-group' : 'fa-regular fa-file';
+        icon.style.fontSize = '10px';
+        icon.style.color = 'var(--color-text-secondary)';
+        
+        const titleText = document.createElement('span');
+        titleText.innerText = slideOrMaster.name || (isMasterRoot ? 'Master' : 'Layout');
+        titleText.style.fontSize = 'var(--font-size-sm)';
+        titleText.style.fontWeight = isMasterRoot ? '600' : '400';
+        titleText.style.color = 'var(--color-text-primary)';
+
+        info.appendChild(icon);
+        info.appendChild(titleText);
+        item.appendChild(info);
+
+        // Preview
+        const preview = document.createElement('div');
+        preview.style.width = '100%';
+        preview.style.aspectRatio = '16/9';
+        
+        // Background Logic
+        // For masters/layouts, we don't use getEffectiveSlide because they ARE the source
+        // But layouts inherit from master.
+        let bg = slideOrMaster.background;
+        
+        // If layout has inherited background, resolve it from master
+        if (!isMasterRoot && (!bg || bg.type === 'inherited')) {
+             const parentId = slideOrMaster.parentId;
+             if (parentId && state.masters[parentId]) {
+                 bg = state.masters[parentId].background;
+             }
+        }
+
+        if (bg) {
+            if (bg.type === 'solid') {
+                preview.style.background = bg.value;
+            } else if (bg.type === 'gradient') {
+                preview.style.background = bg.value;
+            } else if (bg.type === 'image') {
+                preview.style.background = `url(${bg.value}) center/cover no-repeat`;
+            } else {
+                preview.style.background = 'white';
+            }
+        } else {
+            preview.style.background = 'white';
+        }
+
+        preview.style.border = '1px solid var(--color-border)';
+        preview.style.borderRadius = 'var(--radius-sm)';
+        preview.style.position = 'relative';
+        preview.style.overflow = 'hidden';
+
+        // Mini Elements
+        if (slideOrMaster.elements) {
+            Object.values(slideOrMaster.elements).forEach(el => {
+                const elDiv = document.createElement('div');
+                elDiv.style.position = 'absolute';
+                elDiv.style.left = `${(el.x / 1920) * 100}%`;
+                elDiv.style.top = `${(el.y / 1080) * 100}%`;
+                elDiv.style.width = `${(el.width / 1920) * 100}%`;
+                elDiv.style.height = `${(el.height / 1080) * 100}%`;
+                
+                if (el.type === 'rect') {
+                     elDiv.style.background = el.style?.backgroundColor || '#ccc';
+                } else if (el.type === 'placeholder') {
+                    // Dotted border for placeholders
+                    elDiv.style.border = '1px dashed #999';
+                    elDiv.style.background = 'rgba(0,0,0,0.05)';
+                } else {
+                    elDiv.style.background = 'rgba(0,0,0,0.1)';
+                }
+                preview.appendChild(elDiv);
+            });
+        }
+
+        item.appendChild(preview);
+
+        // Click Handler
+        item.addEventListener('click', () => {
+            store.dispatch('SET_ACTIVE_MASTER', id);
+        });
+
+        return item;
+    }
+
+    renderSlideList(state) {
         // Header / Title
         const header = document.createElement('div');
         header.style.display = 'flex';

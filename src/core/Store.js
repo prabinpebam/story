@@ -75,6 +75,7 @@ class Store extends EventEmitter {
             editor: {
                 mode: "edit", // 'edit', 'presentation', 'master'
                 activeSlideId: "slide-1",
+                activeMasterId: "theme-default", // Default to the first theme
                 selectedSlideIds: [], // IDs of selected slides (for operations)
                 selectedElementIds: [],
                 editingElementId: null, // ID of element currently being edited (text)
@@ -157,6 +158,14 @@ class Store extends EventEmitter {
                 }
                 break;
 
+            case 'SET_ACTIVE_MASTER':
+                // Check if it's a master or layout
+                if (this.state.masters[payload]) {
+                    this.state.editor.activeMasterId = payload;
+                    this.emit('state-changed', this.state);
+                }
+                break;
+
             case 'SET_ACTIVE_TOOL':
                 this.state.editor.activeTool = payload;
                 // Clear selection when switching to creation tools
@@ -169,6 +178,15 @@ class Store extends EventEmitter {
 
             case 'SET_MODE':
                 this.state.editor.mode = payload;
+                
+                if (payload === 'master' && !this.state.editor.activeMasterId) {
+                    // Default to first master
+                    const firstMaster = Object.keys(this.state.masters)[0];
+                    if (firstMaster) {
+                        this.state.editor.activeMasterId = firstMaster;
+                    }
+                }
+
                 this.emit('state-changed', this.state);
                 this.emit('mode-changed', payload);
                 break;
@@ -301,8 +319,13 @@ class Store extends EventEmitter {
                 // targetParentId: null for root, or ID of group
                 // targetIndex: index in the destination array (children or elementOrder)
                 
-                const { slideId: reorderSlideId, elementId, targetParentId, targetIndex } = payload;
-                const slide = this.state.slides[reorderSlideId];
+                const { slideId: reorderContainerId, elementId, targetParentId, targetIndex } = payload;
+                
+                let slide = this.state.slides[reorderContainerId];
+                if (!slide) {
+                    slide = this.state.masters[reorderContainerId];
+                }
+                
                 if (!slide) return;
 
                 const element = slide.elements[elementId];
@@ -344,7 +367,13 @@ class Store extends EventEmitter {
 
             case 'TOGGLE_ELEMENT_LOCK':
                 // Payload: { id }
-                const sLock = this.state.slides[this.state.editor.activeSlideId];
+                let sLock;
+                if (this.state.editor.mode === 'master') {
+                    sLock = this.state.masters[this.state.editor.activeMasterId];
+                } else {
+                    sLock = this.state.slides[this.state.editor.activeSlideId];
+                }
+
                 if (sLock && sLock.elements[payload.id]) {
                     const el = sLock.elements[payload.id];
                     el.locked = !el.locked;
@@ -354,7 +383,13 @@ class Store extends EventEmitter {
 
             case 'TOGGLE_ELEMENT_VISIBILITY':
                 // Payload: { id }
-                const sVis = this.state.slides[this.state.editor.activeSlideId];
+                let sVis;
+                if (this.state.editor.mode === 'master') {
+                    sVis = this.state.masters[this.state.editor.activeMasterId];
+                } else {
+                    sVis = this.state.slides[this.state.editor.activeSlideId];
+                }
+
                 if (sVis && sVis.elements[payload.id]) {
                     const el = sVis.elements[payload.id];
                     el.hidden = !el.hidden;
@@ -363,8 +398,15 @@ class Store extends EventEmitter {
                 break;
 
             case 'REMOVE_ELEMENT':
-                const rSlideId = this.state.editor.activeSlideId;
-                const rSlide = this.state.slides[rSlideId];
+                let rSlide;
+                if (this.state.editor.mode === 'master') {
+                    const activeId = this.state.editor.activeMasterId;
+                    rSlide = this.state.masters[activeId];
+                } else {
+                    rSlide = this.state.slides[this.state.editor.activeSlideId];
+                }
+                
+                if (!rSlide) break;
                 
                 // Handle both single ID and array of IDs
                 const idsToDelete = Array.isArray(payload) ? payload : [payload];
@@ -410,8 +452,15 @@ class Store extends EventEmitter {
                 break;
 
             case 'DUPLICATE_ELEMENTS':
-                const dSlideId = this.state.editor.activeSlideId;
-                const dSlide = this.state.slides[dSlideId];
+                let dSlide;
+                if (this.state.editor.mode === 'master') {
+                    dSlide = this.state.masters[this.state.editor.activeMasterId];
+                } else {
+                    dSlide = this.state.slides[this.state.editor.activeSlideId];
+                }
+                
+                if (!dSlide) break;
+
                 const idsToDuplicate = payload.ids || this.state.editor.selectedElementIds;
                 const offset = payload.offset || false;
 
@@ -484,28 +533,40 @@ class Store extends EventEmitter {
                 break;
 
             case 'ADD_ELEMENT':
-                const activeSlideId = this.state.editor.activeSlideId;
-                const activeSlide = this.state.slides[activeSlideId];
-                if (activeSlide) {
-                    activeSlide.elements[payload.id] = payload;
-                    activeSlide.elementOrder.push(payload.id);
+                let addContainer;
+                if (this.state.editor.mode === 'master') {
+                    const activeId = this.state.editor.activeMasterId;
+                    addContainer = this.state.masters[activeId];
+                } else {
+                    addContainer = this.state.slides[this.state.editor.activeSlideId];
+                }
+
+                if (addContainer) {
+                    addContainer.elements[payload.id] = payload;
+                    addContainer.elementOrder.push(payload.id);
                     this.emit('state-changed', this.state);
                 }
                 break;
 
             case 'UPDATE_ELEMENT':
-                const sId = this.state.editor.activeSlideId;
-                const s = this.state.slides[sId];
-                if (s && s.elements[payload.id]) {
-                    const oldEl = s.elements[payload.id];
+                let container;
+                if (this.state.editor.mode === 'master') {
+                    const activeId = this.state.editor.activeMasterId;
+                    container = this.state.masters[activeId];
+                } else {
+                    container = this.state.slides[this.state.editor.activeSlideId];
+                }
+
+                if (container && container.elements[payload.id]) {
+                    const oldEl = container.elements[payload.id];
                     const newEl = { ...oldEl, ...payload };
-                    s.elements[payload.id] = newEl;
+                    container.elements[payload.id] = newEl;
 
                     // Check if we need to update parent group bounds
                     if (newEl.parentId) {
                         let parentId = newEl.parentId;
                         while (parentId) {
-                            const parent = s.elements[parentId];
+                            const parent = container.elements[parentId];
                             if (!parent || parent.type !== 'group') break;
 
                             // Recalculate group bounds based on all children
@@ -518,7 +579,7 @@ class Store extends EventEmitter {
                             
                             if (parent.children && parent.children.length > 0) {
                                 parent.children.forEach(childId => {
-                                    const child = s.elements[childId];
+                                    const child = container.elements[childId];
                                     if (child) {
                                         minX = Math.min(minX, child.x);
                                         minY = Math.min(minY, child.y);
@@ -716,6 +777,16 @@ class Store extends EventEmitter {
                 if (slideToUpdate) {
                     // Merge updates
                     Object.assign(slideToUpdate, payload);
+                    this.emit('state-changed', this.state);
+                }
+                break;
+
+            case 'UPDATE_MASTER':
+                const masters = this.state.masters;
+                const masterToUpdate = masters[payload.id];
+
+                if (masterToUpdate) {
+                    Object.assign(masterToUpdate, payload);
                     this.emit('state-changed', this.state);
                 }
                 break;

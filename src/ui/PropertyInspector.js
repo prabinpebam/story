@@ -22,26 +22,43 @@ export class PropertyInspector {
     render() {
         const state = store.getState();
         const selection = state.editor.selectedElementIds;
-        const activeSlideId = state.editor.activeSlideId;
-        const currentSlide = state.slides[activeSlideId];
+        const mode = state.editor.mode;
+        
+        let currentObject;
+        if (mode === 'master') {
+            const activeId = state.editor.activeMasterId;
+            const masters = state.masters;
+            currentObject = masters[activeId];
+        } else {
+            currentObject = state.slides[state.editor.activeSlideId];
+        }
         
         this.container.innerHTML = '';
 
-        if (!currentSlide) return;
+        if (!currentObject) return;
 
         if (!selection || selection.length === 0) {
-            this.renderSlideProperties(currentSlide);
+            this.renderSlideProperties(currentObject, mode);
             return;
         }
 
         // Get all selected elements
         const elements = selection.map(id => {
-            if (currentSlide.elements[id]) return currentSlide.elements[id];
+            if (currentObject.elements && currentObject.elements[id]) return currentObject.elements[id];
             
-            // Check effective slide for master elements (read-only)
-            const effective = store.getEffectiveSlide(activeSlideId);
-            if (effective && effective.effectiveElements && effective.effectiveElements[id]) {
-                return effective.effectiveElements[id];
+            if (mode === 'master') {
+                // If not found in current object (layout), check parent master
+                if (currentObject.type === 'layout' && currentObject.parentId) {
+                     const master = state.masters[currentObject.parentId];
+                     if (master && master.elements && master.elements[id]) {
+                         return master.elements[id];
+                     }
+                }
+            } else if (mode === 'edit') {
+                const effective = store.getEffectiveSlide(state.editor.activeSlideId);
+                if (effective && effective.effectiveElements && effective.effectiveElements[id]) {
+                    return effective.effectiveElements[id];
+                }
             }
             return null;
         }).filter(el => el);
@@ -75,12 +92,26 @@ export class PropertyInspector {
         }
     }
 
-    renderSlideProperties(slide) {
-        const effectiveSlide = store.getEffectiveSlide(slide.id);
-        const effectiveBg = effectiveSlide.effectiveBackground;
-        const isInherited = !slide.background;
+    renderSlideProperties(slide, mode) {
+        let effectiveBg;
+        let isInherited = false;
 
-        const { group, content } = this.createControlGroup('SLIDE', true);
+        if (mode === 'master') {
+            if (slide.background && slide.background.type !== 'inherited') {
+                effectiveBg = slide.background;
+            } else {
+                effectiveBg = slide.background || { type: 'solid', value: '#ffffff' };
+                isInherited = !slide.background || slide.background.type === 'inherited';
+            }
+        } else {
+            const effectiveSlide = store.getEffectiveSlide(slide.id);
+            effectiveBg = effectiveSlide ? effectiveSlide.effectiveBackground : (slide.background || { type: 'solid', value: '#ffffff' });
+            isInherited = !slide.background;
+        }
+
+        const updateAction = mode === 'master' ? 'UPDATE_MASTER' : 'UPDATE_SLIDE';
+
+        const { group, content } = this.createControlGroup(mode === 'master' ? 'MASTER / LAYOUT' : 'SLIDE', true);
         
         // Dimensions
         const dimRow = document.createElement('div');
@@ -89,11 +120,11 @@ export class PropertyInspector {
         dimRow.style.marginBottom = 'var(--spacing-3)';
         
         const wControl = new ScrubbableControl('W', slide.width, (val) => {
-            store.dispatch('UPDATE_SLIDE', { id: slide.id, width: Math.max(100, val) });
+            store.dispatch(updateAction, { id: slide.id, width: Math.max(100, val) });
         });
         
         const hControl = new ScrubbableControl('H', slide.height, (val) => {
-            store.dispatch('UPDATE_SLIDE', { id: slide.id, height: Math.max(100, val) });
+            store.dispatch(updateAction, { id: slide.id, height: Math.max(100, val) });
         });
         
         dimRow.appendChild(wControl.element);
@@ -136,12 +167,12 @@ export class PropertyInspector {
             const newType = e.target.value;
             
             if (newType === 'inherited') {
-                store.dispatch('UPDATE_SLIDE', { id: slide.id, background: null });
+                store.dispatch(updateAction, { id: slide.id, background: null });
                 return;
             }
 
             // If switching from inherited, use effective value as base, otherwise use current explicit value
-            let newValue = isInherited ? effectiveBg.value : slide.background.value;
+            let newValue = isInherited ? effectiveBg.value : (slide.background ? slide.background.value : '#ffffff');
             
             if (newType === 'gradient' && (!newValue || !newValue.includes('gradient'))) {
                 newValue = 'linear-gradient(180deg, #ffffff 0%, #f0f0f0 100%)';
@@ -175,7 +206,7 @@ return {
     }
 };`.trim();
             }
-            store.dispatch('UPDATE_SLIDE', { id: slide.id, background: { type: newType, value: newValue } });
+            store.dispatch(updateAction, { id: slide.id, background: { type: newType, value: newValue } });
         };
         content.appendChild(bgTypeSelect);
 
@@ -184,7 +215,7 @@ return {
 
         if (bgToEdit.type === 'solid') {
             const colorInput = new ColorInput(bgToEdit.value, (val) => {
-                store.dispatch('UPDATE_SLIDE', { id: slide.id, background: { type: 'solid', value: val } });
+                store.dispatch(updateAction, { id: slide.id, background: { type: 'solid', value: val } });
             });
             content.appendChild(colorInput.element);
         } else if (bgToEdit.type === 'gradient') {
@@ -202,7 +233,7 @@ return {
             gradientInput.className = 'settings-input';
             
             gradientInput.onchange = (e) => {
-                store.dispatch('UPDATE_SLIDE', { id: slide.id, background: { type: 'gradient', value: e.target.value } });
+                store.dispatch(updateAction, { id: slide.id, background: { type: 'gradient', value: e.target.value } });
             };
             content.appendChild(gradientInput);
         } else if (bgToEdit.type === 'image') {
@@ -219,7 +250,7 @@ return {
             urlInput.style.fontSize = '11px';
             
             urlInput.onchange = (e) => {
-                store.dispatch('UPDATE_SLIDE', { id: slide.id, background: { type: 'image', value: e.target.value } });
+                store.dispatch(updateAction, { id: slide.id, background: { type: 'image', value: e.target.value } });
             };
             content.appendChild(urlInput);
         } else if (bgToEdit.type === 'code') {
@@ -309,7 +340,7 @@ return {
                     const newCode = await aiService.generate(promptText, { systemPrompt });
                     let cleanCode = newCode.replace(/```javascript|```/g, '').trim();
                     
-                    store.dispatch('UPDATE_SLIDE', { id: slide.id, background: { type: 'code', value: cleanCode } });
+                    store.dispatch(updateAction, { id: slide.id, background: { type: 'code', value: cleanCode } });
                     textarea.value = cleanCode;
                     promptInput.value = '';
                     
@@ -344,7 +375,7 @@ return {
             textarea.spellcheck = false;
             
             textarea.onchange = (e) => {
-                store.dispatch('UPDATE_SLIDE', { id: slide.id, background: { type: 'code', value: e.target.value } });
+                store.dispatch(updateAction, { id: slide.id, background: { type: 'code', value: e.target.value } });
             };
             
             codeContainer.appendChild(textarea);

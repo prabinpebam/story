@@ -62,6 +62,35 @@ class App {
         if (settingsBtn) {
             settingsBtn.onclick = () => this.settingsModal.open();
         }
+
+        // Master Mode Buttons
+        const editMasterBtn = document.getElementById('edit-master-btn');
+        const closeMasterBtn = document.getElementById('close-master-btn');
+
+        if (editMasterBtn) {
+            editMasterBtn.onclick = () => {
+                store.dispatch('SET_MODE', 'master');
+            };
+        }
+
+        if (closeMasterBtn) {
+            closeMasterBtn.onclick = () => {
+                store.dispatch('SET_MODE', 'edit');
+            };
+        }
+
+        // Listen for mode changes to update UI
+        store.on('mode-changed', (mode) => {
+            if (mode === 'master') {
+                editMasterBtn.classList.add('hidden');
+                closeMasterBtn.classList.remove('hidden');
+                document.body.classList.add('mode-master');
+            } else if (mode === 'edit') {
+                editMasterBtn.classList.remove('hidden');
+                closeMasterBtn.classList.add('hidden');
+                document.body.classList.remove('mode-master');
+            }
+        });
     }
 }
 

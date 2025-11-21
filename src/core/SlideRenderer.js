@@ -19,20 +19,32 @@ export class SlideRenderer {
 
     render() {
         const state = store.getState();
-        const activeSlideId = state.editor.activeSlideId;
+        const mode = state.editor.mode;
+        const activeId = mode === 'master' ? state.editor.activeMasterId : state.editor.activeSlideId;
         
         // Initial render or Slide Change
-        if (this.currentSlideId !== activeSlideId) {
-            this.handleSlideChange(activeSlideId);
+        if (this.currentSlideId !== activeId || this.currentMode !== mode) {
+            this.handleSlideChange(activeId, mode);
         } else {
             // Update existing slide (e.g. dragging, typing)
             this.updateCurrentSlide();
         }
     }
 
-    handleSlideChange(slideId) {
+    handleSlideChange(id, mode) {
         const state = store.getState();
-        const slide = state.slides[slideId];
+        let slide;
+
+        if (mode === 'master') {
+            // Find Master or Layout
+            const masters = state.masters;
+            if (masters[id]) {
+                slide = masters[id];
+            }
+        } else {
+            slide = state.slides[id];
+        }
+
         if (!slide) return;
 
         // Ensure container has dimensions
@@ -40,7 +52,7 @@ export class SlideRenderer {
         this.container.style.height = `${slide.height}px`;
 
         // Create new view
-        const newView = this.createSlideDOM(slide);
+        const newView = this.createSlideDOM(slide, mode);
         
         // Find old view
         const oldView = this.container.querySelector('.slide-view');
@@ -57,11 +69,12 @@ export class SlideRenderer {
             this.playEntranceAnimations(slide, newView);
         }
 
-        this.currentSlideId = slideId;
+        this.currentSlideId = id;
+        this.currentMode = mode;
     }
 
     playEntranceAnimations(slide, view) {
-        const effectiveSlide = store.getEffectiveSlide(slide.id);
+        const effectiveSlide = this.getEffectiveSlideData(slide.id, this.currentMode);
         if (!effectiveSlide || !effectiveSlide.effectiveElements) return;
         
         Object.values(effectiveSlide.effectiveElements).forEach(el => {
@@ -75,7 +88,7 @@ export class SlideRenderer {
     }
 
     updateCurrentSlide() {
-        const effectiveSlide = store.getEffectiveSlide(this.currentSlideId);
+        const effectiveSlide = this.getEffectiveSlideData(this.currentSlideId, this.currentMode);
         if (!effectiveSlide) return;
 
         // Ensure container has dimensions
@@ -343,8 +356,56 @@ return {
         }
     }
 
-    createSlideDOM(slide) {
-        const effectiveSlide = store.getEffectiveSlide(slide.id);
+    getEffectiveSlideData(id, mode) {
+        if (mode === 'master') {
+            const state = store.getState();
+            const masters = state.masters;
+            const item = masters[id];
+            
+            if (!item) return null;
+
+            if (item.type === 'theme') {
+                // It is a master theme
+                return {
+                    ...item,
+                    effectiveBackground: item.background,
+                    effectiveElements: item.elements,
+                    effectiveOrder: item.elementOrder || []
+                };
+            } else if (item.type === 'layout') {
+                // It is a layout, inherits from parentId
+                const masterId = item.parentId;
+                const master = masters[masterId];
+                
+                // Merge Master elements + Layout elements
+                // Note: Master elements should be behind Layout elements
+                // We need to be careful about ID collisions, but usually they are distinct
+                
+                const effectiveElements = { ...master.elements, ...item.elements };
+                const effectiveOrder = [...(master.elementOrder || []), ...(item.elementOrder || [])];
+                
+                // Background inheritance
+                let effectiveBackground = item.background;
+                if (!effectiveBackground || effectiveBackground.type === 'inherited') {
+                    effectiveBackground = master.background;
+                }
+
+                return {
+                    ...item,
+                    effectiveBackground,
+                    effectiveElements,
+                    effectiveOrder
+                };
+            }
+            return null;
+        } else {
+            return store.getEffectiveSlide(id);
+        }
+    }
+
+    createSlideDOM(slide, mode) {
+        const effectiveSlide = this.getEffectiveSlideData(slide.id, mode || this.currentMode);
+        if (!effectiveSlide) return document.createElement('div');
 
         const div = document.createElement('div');
         div.className = 'slide-view';
