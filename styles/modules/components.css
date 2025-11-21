@@ -33,6 +33,18 @@ button.active {
     background-color: #ff6a2b;
 }
 
+#play-btn {
+    background-color: var(--color-success);
+    color: white;
+    border: none;
+    font-weight: 600;
+    border-radius: var(--radius-sm);
+}
+
+#play-btn:hover {
+    background-color: #159c63;
+}
+
 /* Utilities */
 .section-title {
     font-family: var(--font-ui);

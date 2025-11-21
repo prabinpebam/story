@@ -51,14 +51,22 @@ export class PresentationManager {
                 case 'PageDown':
                 case 'n':
                     e.preventDefault();
-                    store.dispatch('PRESENTATION_NEXT');
+                    if (state.presentation.buildIndex < state.presentation.buildCount - 1) {
+                        store.dispatch('NEXT_BUILD');
+                    } else {
+                        store.dispatch('PRESENTATION_NEXT');
+                    }
                     break;
                 case 'ArrowLeft':
                 case 'Backspace':
                 case 'PageUp':
                 case 'p':
                     e.preventDefault();
-                    store.dispatch('PRESENTATION_PREV');
+                    if (state.presentation.buildIndex > -1) {
+                        store.dispatch('PREV_BUILD');
+                    } else {
+                        store.dispatch('PRESENTATION_PREV');
+                    }
                     break;
                 case 'Escape':
                     e.preventDefault();
@@ -132,7 +140,7 @@ export class PresentationManager {
             if (this.appContainer.requestFullscreen) {
                 await this.appContainer.requestFullscreen();
             }
-            this.appContainer.classList.add('mode-presentation');
+            document.body.classList.add('mode-presentation');
             this.updateScale();
             
             // Start Laser Pointer loop if needed
@@ -147,7 +155,7 @@ export class PresentationManager {
         if (document.fullscreenElement) {
             document.exitFullscreen();
         }
-        this.appContainer.classList.remove('mode-presentation');
+        document.body.classList.remove('mode-presentation');
         
         // Reset scale
         if (this.slideContainer) {
@@ -165,29 +173,59 @@ export class PresentationManager {
     updateScale() {
         if (!this.slideContainer) return;
 
-        const state = store.getState();
-        const slideId = state.editor.activeSlideId;
-        const slide = state.slides[slideId];
-        
-        if (!slide) return;
+        // Use requestAnimationFrame to ensure we run after any potential conflicts
+        requestAnimationFrame(() => {
+            const state = store.getState();
+            // Double check mode
+            if (state.editor.mode !== 'presentation') return;
 
-        const windowWidth = window.innerWidth;
-        const windowHeight = window.innerHeight;
-        const slideWidth = slide.width || 1920;
-        const slideHeight = slide.height || 1080;
+            const slideId = state.editor.activeSlideId;
+            const slide = state.slides[slideId];
+            
+            if (!slide) return;
 
-        // Calculate Scale to fit
-        const scaleX = windowWidth / slideWidth;
-        const scaleY = windowHeight / slideHeight;
-        const scale = Math.min(scaleX, scaleY);
+            const windowWidth = window.innerWidth;
+            const windowHeight = window.innerHeight;
+            const slideWidth = slide.width || 1920;
+            const slideHeight = slide.height || 1080;
 
-        // Apply Transform
-        // We need to center the slide
-        this.slideContainer.style.position = 'absolute';
-        this.slideContainer.style.top = '50%';
-        this.slideContainer.style.left = '50%';
-        this.slideContainer.style.transform = `translate(-50%, -50%) scale(${scale})`;
-        this.slideContainer.style.transformOrigin = 'center center';
+            // Calculate Scale to fit
+            const scaleX = windowWidth / slideWidth;
+            const scaleY = windowHeight / slideHeight;
+            const scale = Math.min(scaleX, scaleY);
+
+            // Apply Transform
+            // We need to center the slide
+            this.slideContainer.style.position = 'absolute';
+            this.slideContainer.style.top = '50%';
+            this.slideContainer.style.left = '50%';
+            this.slideContainer.style.width = `${slideWidth}px`;
+            this.slideContainer.style.height = `${slideHeight}px`;
+            this.slideContainer.style.transform = `translate(-50%, -50%) scale(${scale})`;
+            this.slideContainer.style.transformOrigin = 'center center';
+
+            // Reset inner layers to neutral state (remove Edit Mode transforms)
+            const contentLayer = document.getElementById('slide-content');
+            const backgroundLayer = document.getElementById('slide-background');
+            
+            if (contentLayer) {
+                contentLayer.style.transform = 'none';
+                contentLayer.style.transformOrigin = '0 0'; // Reset origin
+                contentLayer.style.width = '100%';
+                contentLayer.style.height = '100%';
+                contentLayer.style.top = '0';
+                contentLayer.style.left = '0';
+            }
+            
+            if (backgroundLayer) {
+                backgroundLayer.style.transform = 'none';
+                backgroundLayer.style.transformOrigin = '0 0'; // Reset origin
+                backgroundLayer.style.width = '100%';
+                backgroundLayer.style.height = '100%';
+                backgroundLayer.style.top = '0';
+                backgroundLayer.style.left = '0';
+            }
+        });
     }
 
     updateOverlays(presentationState) {

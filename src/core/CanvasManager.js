@@ -56,7 +56,10 @@ export class CanvasManager {
         
         // Subscribe to store changes
         store.on('viewport-changed', (viewport) => {
-            this.updateViewportTransform(viewport);
+            const state = store.getState();
+            if (state.editor.mode !== 'presentation') {
+                this.updateViewportTransform(viewport);
+            }
         });
 
         store.on('mode-changed', (mode) => {
@@ -1310,6 +1313,11 @@ export class CanvasManager {
     }
 
     resize() {
+        const state = store.getState();
+        if (state.editor.mode === 'presentation' || document.body.classList.contains('mode-presentation')) return;
+
+        if (!this.container || !this.canvas) return;
+
         const rect = this.container.getBoundingClientRect();
         this.canvas.width = rect.width;
         this.canvas.height = rect.height;
@@ -1318,7 +1326,7 @@ export class CanvasManager {
 
     updateViewportTransform({ pan, zoom }) {
         const state = store.getState();
-        if (state.editor.mode === 'presentation') return;
+        if (state.editor.mode === 'presentation' || document.body.classList.contains('mode-presentation')) return;
 
         if (this.viewport) {
             // Apply transform to the viewport container or content layer
@@ -1349,6 +1357,9 @@ export class CanvasManager {
     }
 
     render() {
+        const state = store.getState();
+        if (state.editor.mode === 'presentation' || document.body.classList.contains('mode-presentation')) return;
+
         // Clear interaction canvas
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
         

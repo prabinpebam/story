@@ -89,6 +89,8 @@ class Store extends EventEmitter {
             presentation: {
                 isActive: false,
                 currentSlideIndex: 0,
+                buildIndex: -1, // -1 means "base slide", 0+ are build steps
+                buildCount: 0,
                 isPaused: false,
                 blackScreen: false,
                 whiteScreen: false,
@@ -216,6 +218,8 @@ class Store extends EventEmitter {
 
                 if (payload === 'presentation') {
                     this.state.presentation.isActive = true;
+                    this.state.presentation.buildIndex = -1;
+                    this.state.presentation.buildCount = 0;
                     // Sync current slide index
                     const currentIndex = this.state.slideOrder.indexOf(this.state.editor.activeSlideId);
                     this.state.presentation.currentSlideIndex = currentIndex !== -1 ? currentIndex : 0;
@@ -230,6 +234,8 @@ class Store extends EventEmitter {
             case 'PRESENTATION_NEXT':
                 if (this.state.presentation.currentSlideIndex < this.state.slideOrder.length - 1) {
                     this.state.presentation.currentSlideIndex++;
+                    this.state.presentation.buildIndex = -1;
+                    this.state.presentation.buildCount = 0;
                     // Sync active slide for rendering
                     this.state.editor.activeSlideId = this.state.slideOrder[this.state.presentation.currentSlideIndex];
                     this.emit('state-changed', this.state);
@@ -239,10 +245,31 @@ class Store extends EventEmitter {
             case 'PRESENTATION_PREV':
                 if (this.state.presentation.currentSlideIndex > 0) {
                     this.state.presentation.currentSlideIndex--;
+                    this.state.presentation.buildIndex = -1;
+                    this.state.presentation.buildCount = 0;
                     // Sync active slide for rendering
                     this.state.editor.activeSlideId = this.state.slideOrder[this.state.presentation.currentSlideIndex];
                     this.emit('state-changed', this.state);
                 }
+                break;
+
+            case 'NEXT_BUILD':
+                if (this.state.presentation.buildIndex < this.state.presentation.buildCount - 1) {
+                    this.state.presentation.buildIndex++;
+                    this.emit('state-changed', this.state);
+                }
+                break;
+
+            case 'PREV_BUILD':
+                if (this.state.presentation.buildIndex > -1) {
+                    this.state.presentation.buildIndex--;
+                    this.emit('state-changed', this.state);
+                }
+                break;
+
+            case 'SET_BUILD_COUNT':
+                this.state.presentation.buildCount = payload;
+                this.emit('state-changed', this.state);
                 break;
 
             case 'PRESENTATION_GOTO':

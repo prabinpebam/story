@@ -9,6 +9,8 @@ export class SlideRenderer {
         this.currentSlideId = null;
         this.bgCodeRunner = null;
         this.lastBackground = null;
+        this.lastBuildIndex = -1;
+        this.buildElements = [];
         this.init();
     }
 
@@ -28,6 +30,53 @@ export class SlideRenderer {
         } else {
             // Update existing slide (e.g. dragging, typing)
             this.updateCurrentSlide();
+        }
+
+        // Check for Build Index Change in Presentation Mode
+        if (mode === 'presentation' && state.presentation.buildIndex !== this.lastBuildIndex) {
+            this.playBuild(state.presentation.buildIndex);
+            this.lastBuildIndex = state.presentation.buildIndex;
+        }
+    }
+
+    playBuild(index) {
+        if (index === -1) {
+            // Reset logic if needed (e.g. going back to start of slide)
+            // For now, we assume we just hide everything again if we go back to -1, 
+            // but PREV_BUILD usually decrements. 
+            // If we jump to -1, we should hide all builds.
+            this.buildElements.forEach(el => {
+                const domEl = this.container.querySelector(`#${el.id}`);
+                if (domEl) domEl.style.opacity = 0;
+            });
+            return;
+        }
+
+        // If we are moving forward (index > lastBuildIndex), play the new build
+        // If we are moving backward, we might need to "undo" the build?
+        // For now, let's just handle forward play.
+        // To handle backward, we'd need to reset the element to hidden.
+        
+        if (index < this.lastBuildIndex) {
+            // Moving backward: Hide the element that was at lastBuildIndex
+            const el = this.buildElements[this.lastBuildIndex];
+            if (el) {
+                const domEl = this.container.querySelector(`#${el.id}`);
+                if (domEl) {
+                    domEl.style.opacity = 0;
+                    // Also cancel animation?
+                    if (window.anime) window.anime.remove(domEl);
+                }
+            }
+            return;
+        }
+
+        const el = this.buildElements[index];
+        if (el) {
+            const domEl = this.container.querySelector(`#${el.id}`);
+            if (domEl) {
+                animationManager.playElementAnimation(domEl, el.animations);
+            }
         }
     }
 
@@ -71,9 +120,40 @@ export class SlideRenderer {
 
         this.currentSlideId = id;
         this.currentMode = mode;
+
+        // Calculate Builds for Presentation Mode
+        if (mode === 'presentation') {
+            const effectiveSlide = this.getEffectiveSlideData(slide.id, mode);
+            if (effectiveSlide && effectiveSlide.effectiveElements) {
+                this.buildElements = Object.values(effectiveSlide.effectiveElements)
+                    .filter(el => el.animations && el.animations.entrance && el.animations.entrance !== 'none')
+                    .sort((a, b) => {
+                        const order = effectiveSlide.effectiveOrder || [];
+                        return order.indexOf(a.id) - order.indexOf(b.id);
+                    });
+                
+                store.dispatch('SET_BUILD_COUNT', this.buildElements.length);
+                this.lastBuildIndex = -1;
+            } else {
+                this.buildElements = [];
+                store.dispatch('SET_BUILD_COUNT', 0);
+            }
+        } else {
+            this.buildElements = [];
+        }
     }
 
     playEntranceAnimations(slide, view) {
+        const state = store.getState();
+        if (state.editor.mode === 'presentation') {
+            // Hide all build elements initially
+            this.buildElements.forEach(el => {
+                const domEl = view.querySelector(`#${el.id}`);
+                if (domEl) domEl.style.opacity = 0;
+            });
+            return; // Don't play yet
+        }
+
         const effectiveSlide = this.getEffectiveSlideData(slide.id, this.currentMode);
         if (!effectiveSlide || !effectiveSlide.effectiveElements) return;
         

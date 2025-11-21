@@ -6,8 +6,8 @@ body.mode-presentation #app {
 body.mode-presentation .sidebar,
 body.mode-presentation #floating-toolbar,
 body.mode-presentation #floating-panels,
-body.mode_presentation #top-controls,
-body.mode_presentation #viewport-controls {
+body.mode-presentation #top-controls,
+body.mode-presentation #viewport-controls {
     display: none !important;
 }
 
@@ -30,7 +30,7 @@ body.mode-presentation #canvas-container {
 .mode-presentation #sidebar-left,
 .mode-presentation #sidebar-right,
 .mode-presentation #toolbar-top,
-.mode_presentation .sidebar-header {
+.mode-presentation .sidebar-header {
     display: none !important;
 }
 
