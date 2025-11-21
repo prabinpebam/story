@@ -937,9 +937,19 @@ class Store extends EventEmitter {
 
         // 1. Resolve Background
         let background = slide.background;
-        if (!background && layout) background = layout.background;
-        if (!background && theme) background = theme.background;
-        if (!background) background = { type: 'solid', value: '#ffffff' };
+        
+        // If background is explicitly "inherited" or null/undefined, look up
+        if (!background || background.type === 'inherited') {
+             if (layout && layout.background && layout.background.type !== 'inherited') {
+                 background = layout.background;
+             } else if (theme && theme.background) {
+                 background = theme.background;
+             }
+        }
+        
+        if (!background || background.type === 'inherited') {
+             background = { type: 'solid', value: '#ffffff' };
+        }
 
         // 2. Resolve Elements
         // We need to merge elements but keep them distinct so we know which are locked

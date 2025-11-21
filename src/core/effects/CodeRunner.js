@@ -98,7 +98,7 @@ export class CodeRunner {
             return;
         }
 
-        console.log('CodeRunner: Starting execution');
+        // console.log('CodeRunner: Starting execution');
         // Clear canvas
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
@@ -140,13 +140,13 @@ export class CodeRunner {
                 }
             }
 
-            console.log('CodeRunner: Execution result', result);
+            // console.log('CodeRunner: Execution result', result);
             
             if (result && typeof result.draw === 'function') {
                 // Bind draw to the result object so 'this' works inside draw
                 this.drawFunction = result.draw.bind(result);
                 this.startTime = Date.now();
-                console.log('CodeRunner: Starting animation loop');
+                // console.log('CodeRunner: Starting animation loop');
                 
                 const loop = () => {
                     if (!this.isPlaying) return;
@@ -169,7 +169,7 @@ export class CodeRunner {
                 
                 loop();
             } else {
-                console.warn('CodeRunner: No draw function returned');
+                // console.warn('CodeRunner: No draw function returned');
             }
             
             if (result && typeof result.cleanup === 'function') {

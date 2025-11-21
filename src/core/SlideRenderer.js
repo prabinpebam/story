@@ -403,7 +403,12 @@ return {
                 // Background inheritance
                 let effectiveBackground = item.background;
                 if (!effectiveBackground || effectiveBackground.type === 'inherited') {
-                    effectiveBackground = master.background || { type: 'solid', value: '#ffffff' };
+                    effectiveBackground = master.background;
+                }
+                
+                // Fallback if master background is also missing/inherited (shouldn't happen for theme, but safe)
+                if (!effectiveBackground || effectiveBackground.type === 'inherited') {
+                    effectiveBackground = { type: 'solid', value: '#ffffff' };
                 }
 
                 return {
@@ -481,8 +486,13 @@ return {
         } else if (bg.type === 'code') {
             const canvas = document.createElement('canvas');
             canvas.className = 'bg-canvas';
-            canvas.width = parseInt(view.style.width);
-            canvas.height = parseInt(view.style.height);
+            
+            // Ensure width/height are valid numbers
+            const w = parseInt(view.style.width) || 1920;
+            const h = parseInt(view.style.height) || 1080;
+            
+            canvas.width = w;
+            canvas.height = h;
             canvas.style.width = '100%';
             canvas.style.height = '100%';
             canvas.style.position = 'absolute';
