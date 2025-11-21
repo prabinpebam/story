@@ -151,6 +151,7 @@ export class PresentationManager {
             document.exitFullscreen();
         }
         document.body.classList.remove('mode-presentation');
+        document.body.classList.remove('laser-active');
         
         // Reset scale
         if (this.slideContainer) {

@@ -225,6 +225,11 @@ class Store extends EventEmitter {
                     this.state.presentation.currentSlideIndex = currentIndex !== -1 ? currentIndex : 0;
                 } else {
                     this.state.presentation.isActive = false;
+                    // Reset presentation specific states
+                    this.state.presentation.laserPointer = false;
+                    this.state.presentation.blackScreen = false;
+                    this.state.presentation.whiteScreen = false;
+                    this.state.presentation.gridView = false;
                 }
 
                 this.emit('state-changed', this.state);
