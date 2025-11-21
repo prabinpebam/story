@@ -253,6 +253,18 @@ class Store extends EventEmitter {
                 }
                 break;
 
+            case 'PRESENTATION_GOTO': {
+                const gotoIndex = payload;
+                if (gotoIndex >= 0 && gotoIndex < this.state.slideOrder.length) {
+                    this.state.presentation.currentSlideIndex = gotoIndex;
+                    this.state.presentation.buildIndex = -1;
+                    this.state.presentation.buildCount = 0;
+                    this.state.editor.activeSlideId = this.state.slideOrder[gotoIndex];
+                    this.emit('state-changed', this.state);
+                }
+                break;
+            }
+
             case 'NEXT_BUILD':
                 if (this.state.presentation.buildIndex < this.state.presentation.buildCount - 1) {
                     this.state.presentation.buildIndex++;
@@ -270,14 +282,6 @@ class Store extends EventEmitter {
             case 'SET_BUILD_COUNT':
                 this.state.presentation.buildCount = payload;
                 this.emit('state-changed', this.state);
-                break;
-
-            case 'PRESENTATION_GOTO':
-                if (payload >= 0 && payload < this.state.slideOrder.length) {
-                    this.state.presentation.currentSlideIndex = payload;
-                    this.state.editor.activeSlideId = this.state.slideOrder[payload];
-                    this.emit('state-changed', this.state);
-                }
                 break;
 
             case 'TOGGLE_LASER':
@@ -452,7 +456,7 @@ class Store extends EventEmitter {
                 this.emit('state-changed', this.state);
                 break;
 
-            case 'REORDER_ELEMENTS':
+            case 'REORDER_ELEMENTS': {
                 // Payload: { slideId, elementId, targetParentId, targetIndex }
                 // targetParentId: null for root, or ID of group
                 // targetIndex: index in the destination array (children or elementOrder)
@@ -502,6 +506,7 @@ class Store extends EventEmitter {
                 
                 this.emit('state-changed', this.state);
                 break;
+            }
 
             case 'TOGGLE_ELEMENT_LOCK':
                 // Payload: { id }

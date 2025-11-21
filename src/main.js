@@ -9,6 +9,8 @@ import { Toolbar } from './ui/Toolbar.js';
 import { aiService } from './core/ai/AIService.js';
 import { PresentationManager } from './core/PresentationManager.js';
 import { SettingsModal } from './ui/SettingsModal.js';
+import { GridView } from './ui/GridView.js';
+import { HUD } from './ui/HUD.js';
 
 class App {
     constructor() {
@@ -29,6 +31,8 @@ class App {
         this.toolbar = new Toolbar();
         this.presentationManager = new PresentationManager();
         this.settingsModal = new SettingsModal();
+        this.gridView = new GridView('presentation-grid-view');
+        this.hud = new HUD('presentation-hud');
 
         this.bindEvents();
         

@@ -99,3 +99,163 @@ body.mode-presentation #laser-canvas {
     opacity: 0;
     pointer-events: none;
 }
+
+/* Grid View Overlay */
+#presentation-grid-view {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: rgba(0, 0, 0, 0.9);
+    z-index: 10001; /* Above overlays */
+    display: flex;
+    flex-direction: column;
+    padding: 40px;
+    box-sizing: border-box;
+    backdrop-filter: blur(10px);
+    transition: opacity 0.3s ease;
+}
+
+#presentation-grid-view.hidden {
+    opacity: 0;
+    pointer-events: none;
+    display: none; /* Actually hide it to prevent clicks */
+}
+
+.grid-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 40px;
+    color: white;
+}
+
+.grid-header h2 {
+    font-size: 24px;
+    font-weight: 500;
+    margin: 0;
+}
+
+.grid-content {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 32px;
+    overflow-y: auto;
+    padding-bottom: 40px;
+}
+
+.grid-slide-item {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    cursor: pointer;
+    transition: transform 0.2s ease;
+}
+
+.grid-slide-item:hover {
+    transform: scale(1.05);
+}
+
+.slide-preview {
+    aspect-ratio: 16/9;
+    background-color: #333;
+    border-radius: 8px;
+    border: 2px solid transparent;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+}
+
+.grid-slide-item.active .slide-preview {
+    border-color: var(--color-accent, #18A0FB);
+    box-shadow: 0 0 0 4px rgba(24, 160, 251, 0.3);
+}
+
+.slide-number {
+    font-size: 48px;
+    font-weight: 700;
+    color: rgba(255, 255, 255, 0.1);
+}
+
+.slide-title {
+    color: #ccc;
+    font-size: 14px;
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.grid-slide-item.active .slide-title {
+    color: white;
+    font-weight: 500;
+}
+
+/* HUD (Heads-Up Display) */
+#presentation-hud {
+    position: fixed;
+    bottom: 32px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 10002; /* Above everything */
+    transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+#presentation-hud.hidden {
+    opacity: 0;
+    pointer-events: none;
+    transform: translateX(-50%) translateY(20px);
+}
+
+.hud-controls {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background-color: rgba(30, 30, 30, 0.8);
+    backdrop-filter: blur(10px);
+    padding: 8px 16px;
+    border-radius: 32px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.hud-btn {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    border: none;
+    background: transparent;
+    color: rgba(255, 255, 255, 0.7);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    transition: all 0.2s ease;
+}
+
+.hud-btn:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+    color: white;
+    transform: translateY(-2px);
+}
+
+.hud-btn:active {
+    transform: translateY(0);
+}
+
+.hud-btn.active {
+    background-color: var(--color-accent, #18A0FB);
+    color: white;
+    box-shadow: 0 0 12px rgba(24, 160, 251, 0.5);
+}
+
+.hud-divider {
+    width: 1px;
+    height: 24px;
+    background-color: rgba(255, 255, 255, 0.1);
+    margin: 0 4px;
+}

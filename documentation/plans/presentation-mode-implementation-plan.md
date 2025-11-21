@@ -41,11 +41,11 @@ This plan details the steps to build a robust, high-performance Presentation Mod
     - Implement `B` (Black) and `W` (White) shortcuts.
     - Create a high z-index overlay div that toggles visibility.
 
-- [ ] **Step 2.4: Slide Navigator (Grid View)**
-    - Implement `G` shortcut.
-    - Create a Grid Overlay component that renders thumbnails of all slides.
-    - Implement click-to-jump logic.
-    - Add zoom-in/out transitions using CSS transforms.
+- [x] **Step 2.4: Slide Navigator (Grid View)**
+    - [x] Implement `G` shortcut (Store action dispatched).
+    - [ ] Create a Grid Overlay component that renders thumbnails of all slides.
+    - [ ] Implement click-to-jump logic.
+    - [ ] Add zoom-in/out transitions using CSS transforms.
 
 ## Phase 3: Animation Integration
 **Goal:** Play transitions and element animations during navigation.
@@ -72,10 +72,10 @@ This plan details the steps to build a robust, high-performance Presentation Mod
     - Draw a glowing red circle with a trailing effect (using `requestAnimationFrame`).
     - Toggle with `L` key.
 
-- [ ] **Step 4.2: Heads-Up Display (HUD)**
-    - Create a subtle control bar at the bottom of the screen.
-    - Show on mouse move, hide after 3s of inactivity.
-    - Buttons: Prev, Next, Grid View, Exit, Laser Toggle.
+- [x] **Step 4.2: Heads-Up Display (HUD)**
+    - [x] Create a subtle control bar at the bottom of the screen.
+    - [x] Show on mouse move, hide after 3s of inactivity.
+    - [x] Buttons: Prev, Next, Grid View, Exit, Laser Toggle.
 
 ## Phase 5: Polish & Optimization
 **Goal:** Ensure 60fps performance and smooth UX.
