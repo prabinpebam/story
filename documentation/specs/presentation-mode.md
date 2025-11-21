@@ -1,47 +1,147 @@
 # Feature Spec: Presentation Mode (Play)
 
 ## 1. Overview
-Presentation Mode transforms the editor into a full-screen, distraction-free viewer. It executes transitions, animations, and handles navigation logic.
+Presentation Mode transforms the editor into a high-performance, distraction-free environment for delivering content. It must rival top-tier tools (Keynote, PowerPoint, Pitch) in fluidity, responsiveness, and presenter tools.
 
-## 2. Activation
-- **Trigger:** "PLAY" button in the top toolbar or `F5` / `Ctrl+Enter`.
-- **Action:**
-    1.  Request Browser Fullscreen (`element.requestFullscreen()`).
-    2.  Hide UI panels (Sidebars, Toolbar).
-    3.  Center and Scale the Slide to fit the screen (`object-fit: contain` logic).
-    4.  Switch input handling to "Navigation Mode".
+## 2. Modes of Operation
 
-## 3. Navigation & Controls
+### 2.1 Viewer Mode (Standard)
+- **Description:** The default single-screen experience.
+- **Behavior:** Content fills the screen, UI is hidden, focus is on the slide.
 
-### 3.1 Input Mapping
-- **Next Slide / Step:**
-    - `Right Arrow`, `Down Arrow`, `Spacebar`, `Enter`, `Page Down`.
-    - Left Mouse Click.
-- **Previous Slide / Step:**
-    - `Left Arrow`, `Up Arrow`, `Backspace`, `Page Up`.
+### 2.2 Presenter View (Dual Screen)
+- **Description:** A specialized view for the presenter when a second display is connected.
+- **Mechanism:** Opens a separate window/tab that stays in sync with the main presentation window using `BroadcastChannel` API.
+- **Audience Display:** Shows the current slide full-screen (clean feed).
+- **Presenter Display:**
+    - **Current Slide:** Large preview.
+    - **Next Slide:** Smaller preview of what's coming.
+    - **Speaker Notes:** Scrollable text area.
+    - **Timer:** Elapsed time and current time.
+    - **Progress:** Slide X of Y.
+
+### 2.3 Kiosk / Autoplay Mode
+- **Description:** Unattended playback loop.
+- **Settings:**
+    - **Interval:** Time per slide (e.g., 5s).
+    - **Loop:** Restart after last slide.
+    - **Interactive:** Allow user interruption, then resume auto-timer after inactivity.
+
+## 3. Activation & Deactivation
+- **Trigger:**
+    - "Play" button in Toolbar.
+    - Shortcut: `F5` (Start from beginning), `Shift + F5` or `Ctrl + Enter` (Start from current).
 - **Exit:**
     - `Esc` key.
+    - Context menu "End Show".
+    - Reaching the end (optional configuration: Loop, Exit, or Black screen).
 
-### 3.2 Laser Pointer
-- **Toggle:** Press `L` key.
-- **Visual:** A red glowing dot follows the mouse cursor.
-- **Tech:** A high z-index `div` or canvas overlay that tracks `mousemove`.
+## 4. Navigation & Input
 
-## 4. Rendering & Scaling
-- **Aspect Ratio:** The slide maintains its aspect ratio (e.g., 16:9).
-- **Letterboxing:** Black bars appear if the screen aspect ratio differs from the slide.
-- **Scaling:**
-    - `scale = Math.min(windowWidth / slideWidth, windowHeight / slideHeight)`
-    - The slide container is transformed: `transform: translate(-50%, -50%) scale(scale)`.
+### 4.1 Keyboard Shortcuts
+| Action | Keys |
+| :--- | :--- |
+| **Next Slide / Build** | `Right Arrow`, `Down Arrow`, `Space`, `Enter`, `Page Down`, `N` |
+| **Previous Slide / Build** | `Left Arrow`, `Up Arrow`, `Backspace`, `Page Up`, `P` |
+| **First Slide** | `Home` |
+| **Last Slide** | `End` |
+| **Jump to Slide** | `Number` + `Enter` (e.g., "5" + "Enter") |
+| **Grid View (Navigator)** | `G` or `-` (Zoom out) |
+| **Black Screen** | `B` or `.` (Toggle) |
+| **White Screen** | `W` or `,` (Toggle) |
+| **Laser Pointer** | `L` (Toggle) |
+| **Hide Cursor** | `H` (Toggle immediate), Auto-hide after 3s inactivity |
 
-## 5. Animation Execution
-- **Transitions:**
-    - When navigating `Next`, trigger the `Exit` transition of current slide and `Enter` transition of next slide.
-    - **Magic Morph:** If active, calculate the interpolation and animate.
-- **Builds (Element Animations):**
-    - If the current slide has pending animations (e.g., "On Click"), the `Next` action triggers the animation instead of changing the slide.
+### 4.2 Mouse Interaction
+- **Left Click:** Next Slide / Build (unless clicking an interactive element).
+- **Right Click:** Context Menu (Next, Previous, Jump to..., End Show).
+- **Scroll Wheel:**
+    - Default: Ignored (to prevent accidental jumps).
+    - Configurable: Next/Prev slide.
 
-## 6. Technical Implementation
-- **Mode State:** Store has `mode: 'edit' | 'present'`.
-- **Router:** A `PresentationController` class intercepts keyboard/mouse events when in `present` mode.
-- **DOM:** We reuse the main rendering canvas but change its CSS context (remove editor wrappers, apply fullscreen styles).
+### 4.3 Touch Gestures (Mobile/Tablet)
+- **Swipe Left:** Next Slide.
+- **Swipe Right:** Previous Slide.
+- **Long Press:** Laser Pointer active.
+- **Pinch In:** Enter Grid View.
+- **Pinch Out:** Exit Grid View / Zoom.
+
+## 5. Rendering & Scaling Engine
+
+### 5.1 Aspect Ratio Handling
+- **Fit to Screen:** The slide is scaled to fit within the viewport while maintaining its aspect ratio.
+- **Letterboxing:** Black (or custom color) bars fill the remaining space.
+- **Scaling Logic:**
+    - Use CSS `transform: scale()` on a container to ensure high performance (GPU acceleration).
+    - Text and vectors remain sharp (avoid rasterizing if possible, or use high-DPI canvas).
+
+### 5.2 Media Playback
+- **Video/Audio:**
+    - **Auto-play:** Media set to "Start Automatically" plays immediately upon slide entry.
+    - **On Click:** Media set to "Start on Click" waits for trigger.
+    - **Looping:** Support for background loops.
+
+## 6. Animation Sequencer
+The engine must distinguish between **Slide Transitions** and **Element Builds**.
+
+1.  **State A (Current Slide):** Static.
+2.  **Input (Next):**
+    - *Check:* Are there pending "Build In" animations?
+    - *Yes:* Play next Build.
+    - *No:* Trigger Slide Transition to Next Slide.
+3.  **Transition:**
+    - Execute Exit Transition (Current Slide).
+    - Execute Entrance Transition (Next Slide).
+    - **Magic Morph:** If active, interpolate matching elements between slides.
+
+## 7. Interactive Tools
+
+### 7.1 Laser Pointer
+- **Visual:** A glowing red (or custom color) trail that follows the cursor.
+- **Physics:** Slight delay/smoothing to mimic a real laser pointer.
+
+### 7.2 On-Screen Controls (HUD)
+- **Visibility:** Appears on mouse move in the bottom-left or bottom-center. Fades out after inactivity.
+- **Buttons:**
+    - Previous / Next.
+    - Slide Navigator (Grid view).
+    - Pen / Laser toggle.
+    - Fullscreen toggle.
+    - Menu (three dots).
+
+### 7.3 Slide Navigator (Grid View)
+- **Trigger:** `G` key or HUD button.
+- **Visual:** A zoomed-out grid of all slides.
+- **Interaction:**
+    - Click a slide to jump to it immediately.
+    - Arrow keys to navigate selection.
+    - `Esc` to cancel and return to current slide.
+- **Animation:** Zoom out from current slide to grid; Zoom in to selected slide.
+
+## 8. Technical Architecture
+
+### 8.1 PresentationController
+A singleton class responsible for:
+- **State Machine:** `IDLE` -> `ANIMATING` -> `PAUSED`.
+- **Input Handling:** Global event listeners (keydown, resize, touch).
+- **Focus Management:** Trapping focus within the presentation container.
+- **Multi-Window Sync:** Uses `BroadcastChannel` to communicate state (current slide, timer) between Audience and Presenter windows.
+
+### 8.2 DOM Structure
+```html
+<div id="presentation-layer" class="fullscreen">
+    <div id="scaler">
+        <!-- Current Slide -->
+        <div class="slide-container active">...</div>
+        <!-- Next Slide (Preloaded) -->
+        <div class="slide-container next">...</div>
+    </div>
+    <div id="grid-overlay" class="hidden">...</div>
+    <canvas id="pointer-layer"></canvas>
+    <div id="hud-controls">...</div>
+</div>
+```
+
+### 8.3 Performance Optimization
+- **Preloading:** The next and previous slides should be rendered in the DOM (hidden) to ensure instant transitions.
+- **Layer Promotion:** Use `will-change: transform` on the scaler and animating elements.
