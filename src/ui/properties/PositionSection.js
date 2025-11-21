@@ -1,0 +1,182 @@
+import { Section } from '../components/Section.js';
+import { IconButton } from '../components/IconButton.js';
+import { NumberInput } from '../components/NumberInput.js';
+import { Icons } from '../Icons.js';
+import { store } from '../../core/Store.js';
+
+export class PositionSection {
+    constructor() {
+        this.section = new Section({ title: 'Position' });
+        this.createContent();
+    }
+
+    createContent() {
+        // 1. Alignment Row
+        const alignRow = document.createElement('div');
+        alignRow.className = 'pi-row';
+        // Use Grid for equal distribution and better sizing
+        alignRow.style.display = 'grid';
+        alignRow.style.gridTemplateColumns = 'repeat(6, 1fr)';
+        alignRow.style.gap = '2px';
+        alignRow.style.marginBottom = 'var(--spacing-2)';
+
+        const alignments = [
+            { icon: Icons.ALIGN_LEFT, action: 'left', title: 'Align Left' },
+            { icon: Icons.ALIGN_CENTER, action: 'center', title: 'Align Horizontal Center' },
+            { icon: Icons.ALIGN_RIGHT, action: 'right', title: 'Align Right' },
+            { icon: Icons.ALIGN_TOP, action: 'top', title: 'Align Top' },
+            { icon: Icons.ALIGN_MIDDLE, action: 'middle', title: 'Align Vertical Center' },
+            { icon: Icons.ALIGN_BOTTOM, action: 'bottom', title: 'Align Bottom' }
+        ];
+
+        alignments.forEach(item => {
+            const btn = new IconButton({
+                icon: item.icon,
+                title: item.title,
+                onClick: () => this.handleAlign(item.action)
+            });
+            // Make button fill the grid cell
+            btn.element.style.width = '100%';
+            alignRow.appendChild(btn.element);
+        });
+
+        this.section.appendChild(alignRow);
+
+        // 2. Coordinates Row (X, Y)
+        const coordRow = document.createElement('div');
+        coordRow.className = 'pi-row';
+
+        this.xInput = new NumberInput({
+            label: 'X',
+            value: 0,
+            onChange: (val) => this.updateProperty('x', val)
+        });
+
+        this.yInput = new NumberInput({
+            label: 'Y',
+            value: 0,
+            onChange: (val) => this.updateProperty('y', val)
+        });
+
+        coordRow.appendChild(this.xInput.element);
+        coordRow.appendChild(this.yInput.element);
+        this.section.appendChild(coordRow);
+
+        // 3. Transform Row (Rotation, Flips)
+        const transformRow = document.createElement('div');
+        transformRow.className = 'pi-row';
+
+        this.rotationInput = new NumberInput({
+            label: '°', // Rotation symbol
+            value: 0,
+            units: '°',
+            onChange: (val) => this.updateProperty('rotation', val)
+        });
+        
+        // Wrap rotation input to take less space if needed, or let it flex
+        // For now, let's give it flex 1 like others
+        
+        const flipGroup = document.createElement('div');
+        flipGroup.style.display = 'flex';
+        flipGroup.style.gap = '4px';
+        flipGroup.style.flexShrink = '0';
+
+        // Rotate -90
+        const rot90Btn = new IconButton({
+            icon: Icons.ROTATE_CCW,
+            title: 'Rotate -90°',
+            onClick: () => this.handleRotateStep(-90)
+        });
+
+        // Flip H
+        const flipHBtn = new IconButton({
+            icon: Icons.FLIP_H,
+            title: 'Flip Horizontal',
+            onClick: () => this.handleFlip('horizontal')
+        });
+
+        // Flip V
+        const flipVBtn = new IconButton({
+            icon: Icons.FLIP_V,
+            title: 'Flip Vertical',
+            onClick: () => this.handleFlip('vertical')
+        });
+
+        flipGroup.appendChild(rot90Btn.element);
+        flipGroup.appendChild(flipHBtn.element);
+        flipGroup.appendChild(flipVBtn.element);
+
+        transformRow.appendChild(this.rotationInput.element);
+        transformRow.appendChild(flipGroup);
+        this.section.appendChild(transformRow);
+    }
+
+    update(selection) {
+        if (!selection || selection.length === 0) {
+            this.section.element.style.display = 'none';
+            return;
+        }
+        
+        this.section.element.style.display = 'block';
+        
+        // For multi-selection, we might show mixed values or the first one
+        // For now, let's grab the first element's properties
+        // In a real app, we'd calculate bounding box for X/Y
+        
+        const state = store.getState();
+        const elementId = selection[0];
+        const element = this.getElement(state, elementId);
+
+        if (element) {
+            this.xInput.setValue(element.x, false); // false = don't trigger onChange
+            this.yInput.setValue(element.y, false);
+            this.rotationInput.setValue(element.rotation || 0, false);
+        }
+    }
+
+    getElement(state, id) {
+        // Helper to find element in current context (slide or master)
+        // This logic duplicates PropertyInspector.js a bit, maybe move to Store or Helper
+        const mode = state.editor.mode;
+        if (mode === 'master') {
+            const master = state.masters[state.editor.activeMasterId];
+            return master?.elements[id];
+        } else {
+            const slide = state.slides[state.editor.activeSlideId];
+            return slide?.elements[id];
+        }
+    }
+
+    updateProperty(prop, value) {
+        const state = store.getState();
+        const selection = state.editor.selectedElementIds;
+        
+        selection.forEach(id => {
+            store.dispatch('UPDATE_ELEMENT', { id, [prop]: value });
+        });
+    }
+
+    handleAlign(action) {
+        // Dispatch alignment action to store
+        store.dispatch('ALIGN_ELEMENTS', action);
+    }
+
+    handleRotateStep(deg) {
+        const state = store.getState();
+        const selection = state.editor.selectedElementIds;
+        
+        selection.forEach(id => {
+            const el = this.getElement(state, id);
+            if (el) {
+                const currentRot = el.rotation || 0;
+                store.dispatch('UPDATE_ELEMENT', { id, rotation: currentRot + deg });
+            }
+        });
+    }
+
+    handleFlip(axis) {
+        // Flip logic usually involves scaling by -1
+        // Or if we have specific flip properties
+        console.log('Flip:', axis);
+    }
+}

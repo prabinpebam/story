@@ -5,11 +5,22 @@ import { SegmentedControl } from './components/SegmentedControl.js';
 import { ScrubbableControl } from './components/ScrubbableControl.js';
 import { ColorInput } from './components/ColorInput.js';
 import { aiService } from '../core/ai/AIService.js';
+import { PositionSection } from './properties/PositionSection.js';
+import { LayoutSection } from './properties/LayoutSection.js';
+import { AppearanceSection } from './properties/AppearanceSection.js';
+import { SlideSection } from './properties/SlideSection.js';
 
 export class PropertyInspector {
     constructor(containerId) {
         this.container = document.getElementById(containerId);
         this.sectionStates = {}; // Persist section collapse state
+        
+        // Initialize Sections
+        this.positionSection = new PositionSection();
+        this.layoutSection = new LayoutSection();
+        this.appearanceSection = new AppearanceSection();
+        this.slideSection = new SlideSection();
+        
         this.init();
     }
 
@@ -28,6 +39,48 @@ export class PropertyInspector {
     }
 
     render() {
+        this.container.classList.add('property-inspector');
+        
+        const state = store.getState();
+        const selection = state.editor.selectedElementIds;
+        
+        // Clear container
+        this.container.innerHTML = '';
+        
+        if (selection && selection.length > 0) {
+            // 1. Position Section
+            this.positionSection.update(selection);
+            this.container.appendChild(this.positionSection.section.element);
+            
+            // 2. Layout Section
+            this.layoutSection.update(selection);
+            this.container.appendChild(this.layoutSection.section.element);
+
+            // 3. Appearance Section
+            this.appearanceSection.update(selection);
+            this.container.appendChild(this.appearanceSection.section.element);
+            
+            // TODO: Add other sections here as they are built
+        } else {
+            // No selection: Show Slide Properties
+            this.slideSection.update(selection);
+            this.container.appendChild(this.slideSection.section.element);
+        }
+
+        // Fallback to legacy for missing parts (or if we want to mix them)
+        // For now, let's append a container for legacy stuff below the new stuff
+        const legacyContainer = document.createElement('div');
+        legacyContainer.className = 'legacy-properties';
+        this.container.appendChild(legacyContainer);
+        
+        // We need to temporarily hijack the container for renderLegacy to work on the sub-div
+        const originalContainer = this.container;
+        this.container = legacyContainer;
+        this.renderLegacy();
+        this.container = originalContainer;
+    }
+
+    renderLegacy() {
         const state = store.getState();
         const selection = state.editor.selectedElementIds;
         const mode = state.editor.mode;

@@ -75,6 +75,16 @@ Create the building blocks in `src/ui/components/`.
     - Corner Radius input.
     - Blend Mode dropdown (if supported by engine).
 
+### 3.3. Slide Properties Section
+- **Action**: Create `src/ui/properties/SlideSection.js`.
+- **Specs**: `property-inspector-slide.md`.
+- **Details**:
+    - Name input (Master mode).
+    - Layout picker (Slide mode).
+    - Dimensions (W/H).
+    - Background controls (Inherited/Solid/Code/etc.).
+    - Theme settings (Theme Master mode).
+
 ---
 
 ## Phase 4: Export Section
@@ -131,8 +141,15 @@ Create the building blocks in `src/ui/components/`.
 
 ### 8.1. Color Picker Component
 - **Action**: Create `src/ui/components/ColorPicker/`.
-- **Details**: Implement the full HSB, Gradient, and Image picker as per `color-picker-ui.md`.
+- **Details**: Implement the full HSB, Gradient, Image, and **Code Fill** picker as per `color-picker-ui.md` and `property-inspector-fill.md`.
 
-### 8.2. Integration
+### 8.2. Code Fill Implementation
+- **Action**: Implement `CodeFillView.js` in the Color Picker.
+- **Details**:
+    - AI Prompt input and generation logic.
+    - Code Editor (Monospace textarea).
+    - Integration with `CodeRunner.js`.
+
+### 8.3. Integration
 - **Action**: Update `FillSection`, `StrokeSection`, and `EffectsSection`.
 - **Details**: Replace `ColorInput` with the new `ColorPicker` trigger.

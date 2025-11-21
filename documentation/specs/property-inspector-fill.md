@@ -44,6 +44,7 @@ A row of icons to switch modes:
 5.  **Diamond Gradient**
 6.  **Image**
 7.  **Video** (Optional)
+8.  **Code** (Generative Canvas)
 
 ---
 
@@ -112,6 +113,24 @@ Active when "Image" icon is selected.
 **6. Adjustments**
 - Sliders for Exposure, Contrast, Saturation, Temperature, Tint, Highlights, Shadows.
 
+---
+
+### Tab 4: Code Fill (Generative)
+Active when "Code" icon is selected. This mode allows users to write JavaScript (Canvas API) to generate dynamic textures or animations.
+
+**1. AI Generator**
+- **Prompt Input**: Textarea for natural language description (e.g., "Retro synthwave grid").
+- **Generate Button**: Triggers AI generation of the code.
+
+**2. Code Editor**
+- **Editor Area**: Monospace text area for raw JavaScript code.
+- **Syntax**: Expects a returned object with a `draw(t)` function.
+- **Context**: Provides `ctx` (CanvasContext), `w` (width), `h` (height), `t` (time).
+
+**3. Preview/Controls**
+- **Run/Stop**: Toggle animation.
+- **Error Log**: Display area for compilation/runtime errors.
+
 ## Summary Table
 
 | Feature | Type | Description |
@@ -120,5 +139,6 @@ Active when "Image" icon is selected.
 | **Solid Fill** | Mode | HSB picker, Hex/RGB inputs. |
 | **Gradient Fill** | Mode | Linear, Radial, Angular, Diamond. Stop editing. |
 | **Image Fill** | Mode | Upload, AI Gen, Adjustments (Contrast, etc.). |
+| **Code Fill** | Mode | JavaScript (Canvas API) for dynamic content. |
 | **Opacity** | Input | Layer opacity. |
 | **Visibility** | Toggle | Show/Hide fill. |

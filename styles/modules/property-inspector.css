@@ -1,0 +1,126 @@
+/* --- Property Inspector (High Density) --- */
+.property-inspector {
+    /* Overrides for High-Density Panel */
+    --prop-bg-input: #383838;       /* Lighter input for contrast on dark panel */
+    --prop-bg-input-hover: #444444;
+    --prop-text-label: #B3B3B3;     /* Muted label */
+    --prop-border-radius: 2px;      /* Sharper corners for pro feel */
+    
+    /* Spacing Overrides */
+    --row-height: 32px;
+    --input-height: 28px;
+    --spacing-row: 8px;
+    
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-row);
+    padding: 0; /* Sections handle their own padding */
+    width: 100%;
+}
+
+.property-inspector input {
+    font-family: var(--font-ui);
+    font-size: var(--font-size-md);
+    color: var(--color-text-primary);
+}
+
+/* Scoped Component Styles */
+.pi-section {
+    border-bottom: 1px solid var(--color-border);
+    padding-bottom: var(--spacing-2);
+    margin-bottom: var(--spacing-2);
+}
+
+.pi-section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: var(--row-height);
+    padding: 0 var(--spacing-3);
+    cursor: pointer;
+}
+
+.pi-section-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--color-text-primary);
+}
+
+.pi-section-content {
+    padding: 0 var(--spacing-3);
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-row);
+}
+
+.pi-row {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-2);
+}
+
+.pi-input-group {
+    display: flex;
+    align-items: center;
+    flex: 1;
+    min-width: 0;
+    
+    /* Visuals */
+    background-color: var(--prop-bg-input);
+    border-radius: var(--prop-border-radius);
+    height: var(--input-height);
+    padding: 0 4px;
+    border: 1px solid transparent;
+}
+
+.pi-input-group:hover {
+    background-color: var(--prop-bg-input-hover);
+}
+
+.pi-input-group:focus-within {
+    border-color: var(--color-accent);
+    background-color: var(--prop-bg-input);
+}
+
+.pi-label {
+    color: var(--prop-text-label);
+    font-size: var(--font-size-sm);
+    margin-right: 4px;
+    cursor: ew-resize;
+    user-select: none;
+}
+
+.pi-input {
+    width: 100%;
+    background: transparent;
+    border: none;
+    color: var(--color-text-primary);
+    font-family: var(--font-ui);
+    font-size: var(--font-size-md);
+    outline: none;
+    padding: 0;
+}
+
+.pi-icon-btn {
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius-sm);
+    border: none;
+    background: transparent;
+    color: var(--color-text-secondary);
+    cursor: pointer;
+    flex-shrink: 0;
+}
+
+.pi-icon-btn:hover {
+    background-color: var(--color-bg-hover);
+    color: var(--color-text-primary);
+}
+
+.pi-icon-btn.active {
+    background-color: var(--color-bg-active);
+    color: var(--color-accent);
+}
