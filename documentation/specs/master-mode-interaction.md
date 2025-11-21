@@ -41,10 +41,11 @@ All interaction components (`CanvasManager`, `PropertyInspector`, `SlideRenderer
 - **Mode Indication**:
     - **Edit Mode**: Standard UI.
     - **Master Mode**: Orange border around the viewport/app to indicate "System Level" editing.
+    - **Layout Stability**: The visual indication (border) must be implemented as a pointer-events-none overlay (pseudo-element) to prevent layout shifts and ensure visibility over other UI elements.
 
 ## 5. Data Isolation
 - **Strict Separation**: Actions performed in Master Mode must **never** affect normal slides, and vice versa.
-- **Store Logic**: Redux-style actions (`ADD_ELEMENT`, `UPDATE_ELEMENT`, etc.) must check `state.editor.mode` to determine the target collection (`state.slides` vs `state.masters`).
+- **Store Logic**: Redux-style actions (`ADD_ELEMENT`, `UPDATE_ELEMENT`, etc.) must use the `getActiveContainer()` helper to determine the target collection (`state.slides` vs `state.masters`).
 
 ## 6. Implementation Strategy (Code Reuse)
 Instead of branching logic like:
@@ -56,4 +57,9 @@ We use:
 const container = getActiveContainer(state);
 // operate on container
 ```
-This ensures 100% consistency. Branching is only allowed in the `Store` (to locate the container) or when specific mode-dependent constraints apply (e.g., preventing deletion of the last Master).
+This ensures 100% consistency. Branching is only allowed in the `Store` (inside `getActiveContainer`) or when specific mode-dependent constraints apply (e.g., preventing deletion of the last Master).
+This pattern applies to:
+- `CanvasManager` (Interaction)
+- `PropertyInspector` (UI)
+- `Store` (State Mutations)
+- `LayerTree` (Hierarchy)

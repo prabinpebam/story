@@ -367,12 +367,7 @@ class Store extends EventEmitter {
 
             case 'TOGGLE_ELEMENT_LOCK':
                 // Payload: { id }
-                let sLock;
-                if (this.state.editor.mode === 'master') {
-                    sLock = this.state.masters[this.state.editor.activeMasterId];
-                } else {
-                    sLock = this.state.slides[this.state.editor.activeSlideId];
-                }
+                const sLock = this.getActiveContainer();
 
                 if (sLock && sLock.elements[payload.id]) {
                     const el = sLock.elements[payload.id];
@@ -383,12 +378,7 @@ class Store extends EventEmitter {
 
             case 'TOGGLE_ELEMENT_VISIBILITY':
                 // Payload: { id }
-                let sVis;
-                if (this.state.editor.mode === 'master') {
-                    sVis = this.state.masters[this.state.editor.activeMasterId];
-                } else {
-                    sVis = this.state.slides[this.state.editor.activeSlideId];
-                }
+                const sVis = this.getActiveContainer();
 
                 if (sVis && sVis.elements[payload.id]) {
                     const el = sVis.elements[payload.id];
@@ -398,13 +388,7 @@ class Store extends EventEmitter {
                 break;
 
             case 'REMOVE_ELEMENT':
-                let rSlide;
-                if (this.state.editor.mode === 'master') {
-                    const activeId = this.state.editor.activeMasterId;
-                    rSlide = this.state.masters[activeId];
-                } else {
-                    rSlide = this.state.slides[this.state.editor.activeSlideId];
-                }
+                const rSlide = this.getActiveContainer();
                 
                 if (!rSlide) break;
                 
@@ -452,12 +436,7 @@ class Store extends EventEmitter {
                 break;
 
             case 'DUPLICATE_ELEMENTS':
-                let dSlide;
-                if (this.state.editor.mode === 'master') {
-                    dSlide = this.state.masters[this.state.editor.activeMasterId];
-                } else {
-                    dSlide = this.state.slides[this.state.editor.activeSlideId];
-                }
+                const dSlide = this.getActiveContainer();
                 
                 if (!dSlide) break;
 
@@ -533,13 +512,7 @@ class Store extends EventEmitter {
                 break;
 
             case 'ADD_ELEMENT':
-                let addContainer;
-                if (this.state.editor.mode === 'master') {
-                    const activeId = this.state.editor.activeMasterId;
-                    addContainer = this.state.masters[activeId];
-                } else {
-                    addContainer = this.state.slides[this.state.editor.activeSlideId];
-                }
+                const addContainer = this.getActiveContainer();
 
                 if (addContainer) {
                     addContainer.elements[payload.id] = payload;
@@ -549,13 +522,7 @@ class Store extends EventEmitter {
                 break;
 
             case 'UPDATE_ELEMENT':
-                let container;
-                if (this.state.editor.mode === 'master') {
-                    const activeId = this.state.editor.activeMasterId;
-                    container = this.state.masters[activeId];
-                } else {
-                    container = this.state.slides[this.state.editor.activeSlideId];
-                }
+                const container = this.getActiveContainer();
 
                 if (container && container.elements[payload.id]) {
                     const oldEl = container.elements[payload.id];
@@ -856,6 +823,14 @@ class Store extends EventEmitter {
             effectiveElements,
             effectiveOrder
         };
+    }
+
+    getActiveContainer() {
+        if (this.state.editor.mode === 'master') {
+            return this.state.masters[this.state.editor.activeMasterId];
+        } else {
+            return this.state.slides[this.state.editor.activeSlideId];
+        }
     }
 }
 

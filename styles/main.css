@@ -118,6 +118,7 @@ body {
     grid-template-columns: var(--sidebar-width) 1fr var(--sidebar-width);
     height: 100vh;
     width: 100vw;
+    position: relative; /* Ensure pseudo-elements are positioned relative to app */
 }
 
 /* Sidebars */
@@ -728,9 +729,16 @@ body.theme-dark {
 }
 
 /* Master Mode Styles */
-body.mode-master #app {
+body.mode-master #app::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
     border: 4px solid #F24822; /* Orange Border */
-    box-sizing: border-box;
+    pointer-events: none; /* Let clicks pass through */
+    z-index: 9999; /* Ensure it sits on top of everything */
 }
 
 body.mode-master .logo::after {
