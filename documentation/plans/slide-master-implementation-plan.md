@@ -61,9 +61,39 @@
     *   *Risk:* Accidental deletion of slide data.
     *   *Mitigation:* Unit test or carefully verify the target ID resolution.
 
-## Phase 8: Layout Application & Refinement (In Progress)
-**Goal:** Apply layouts to slides and polish the UX.
+## Phase 8: Theme Settings & Global Styles (Completed)
+**Goal:** Implement the "Theme" concept fully, allowing global changes to colors and fonts that cascade to all slides.
 
-- [x] **Layout Picker**: Add dropdown in Property Inspector to switch layouts.
-- [x] **Smart Content Remapping**: Preserve content when switching layouts by matching placeholder IDs.
-- [ ] **Theme Settings Editor**: Add controls for Theme Colors and Fonts.
+### 8.1: Core Infrastructure (Store & Renderer) (Completed)
+- [x] **Store Action:** Implement `UPDATE_THEME_SETTINGS` in `Store.js`.
+- [x] **Renderer Update:** Modify `SlideRenderer.js` to inject CSS variables into the slide container.
+- [x] **Element Update:** Update `DEFAULT_MASTERS` placeholders to use these CSS variables.
+
+### 8.2: UI Implementation (Property Inspector) (Completed)
+- [x] **Theme Context:** In `PropertyInspector.js`, detect when a **Theme Master** is selected.
+- [x] **Color Controls:** Add color pickers for `accent`, `textPrimary`, `textSecondary`.
+- [x] **Font Controls:** Add dropdowns for `heading` and `body` fonts.
+- [x] **Live Preview:** Ensure changes reflect immediately (via the CSS variable injection).
+
+### 8.3: Verification & Safety (Completed)
+- [x] **Risks:** Verified that `updateCurrentSlide` also updates CSS variables for live preview.
+- [x] **Mitigation:** Added `themeSettings` to `getEffectiveSlide` and `getEffectiveSlideData` to ensure data availability.
+
+## Phase 9: Final Polish & Optimization (Completed)
+**Goal:** Ensure the feature is production-ready.
+
+- [x] **Undo/Redo:** Verify `UPDATE_THEME_SETTINGS` and `UPDATE_SLIDE` (layout change) are captured in history.
+    - *Implementation:* Created `HistoryManager.js` and integrated it into `Store.js`. Added keyboard shortcuts (Ctrl+Z/Y).
+- [x] **Performance:** Check if changing a theme color triggers a full re-render.
+    - *Verification:* It uses CSS variables (`--theme-accent`), so it updates the DOM style instantly without re-rendering the element tree.
+- [x] **Cleanup:** Remove any temporary debug logs or visual borders.
+    - *Action:* Removed debug logs from `SlideRenderer.js` and `Store.js`.
+
+## Conclusion
+The Slide Master system is now fully implemented. It supports:
+1.  **Hierarchical Inheritance:** Theme -> Layout -> Slide.
+2.  **Global Theming:** Colors and Fonts via CSS variables.
+3.  **Layout Switching:** With smart content remapping.
+4.  **Master Editing:** Dedicated UI for editing templates.
+5.  **Undo/Redo:** For critical actions.
+

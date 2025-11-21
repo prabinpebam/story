@@ -1,4 +1,5 @@
 import { EventEmitter } from './Events.js';
+import { historyManager } from './HistoryManager.js';
 
 // Default Masters Definition
 const DEFAULT_MASTERS = {
@@ -33,7 +34,7 @@ const DEFAULT_MASTERS = {
                 content: "<h1>Click to add title</h1>",
                 x: 192, y: 300, width: 1536, height: 200, // Centered with margins
                 rotation: 0, opacity: 1,
-                style: { fontSize: 72, textAlign: "center", color: "#333333", fontFamily: "Inter", fontWeight: "700" }
+                style: { fontSize: 72, textAlign: "center", color: "var(--theme-text-primary, #333333)", fontFamily: "var(--theme-font-heading, Inter)", fontWeight: "700" }
             },
             "placeholder-subtitle": {
                 id: "placeholder-subtitle",
@@ -43,7 +44,7 @@ const DEFAULT_MASTERS = {
                 content: "<h2>Click to add subtitle</h2>",
                 x: 192, y: 550, width: 1536, height: 100,
                 rotation: 0, opacity: 1,
-                style: { fontSize: 32, textAlign: "center", color: "#888888", fontFamily: "Inter", fontWeight: "400" }
+                style: { fontSize: 32, textAlign: "center", color: "var(--theme-text-secondary, #888888)", fontFamily: "var(--theme-font-body, Inter)", fontWeight: "400" }
             }
         },
         elementOrder: ["placeholder-title", "placeholder-subtitle"]
@@ -126,10 +127,27 @@ class Store extends EventEmitter {
      * @param {string} type - Action type
      * @param {any} payload - Action data
      */
-    dispatch(type, payload) {
-        console.log(`Action: ${type}`, payload);
+    dispatch(type, payload, options = {}) {
+        // console.log(`Action: ${type}`, payload);
+        const { fromHistory } = options;
 
         switch (type) {
+            case 'UNDO':
+                if (historyManager.canUndo()) {
+                    const entry = historyManager.undo();
+                    historyManager.addRedo(entry);
+                    this.dispatch(entry.undo.type, entry.undo.payload, { fromHistory: true });
+                }
+                break;
+
+            case 'REDO':
+                if (historyManager.canRedo()) {
+                    const entry = historyManager.redo();
+                    historyManager.addUndo(entry);
+                    this.dispatch(entry.redo.type, entry.redo.payload, { fromHistory: true });
+                }
+                break;
+
             case 'SELECT_SLIDE':
                 // Payload: { id, multi }
                 const { id: selectSlideId, multi } = payload;
@@ -769,6 +787,20 @@ class Store extends EventEmitter {
             case 'UPDATE_SLIDE':
                 const slideToUpdate = this.state.slides[payload.id];
                 if (slideToUpdate) {
+                    // History Capture
+                    if (!fromHistory) {
+                        // Capture only changed properties
+                        const undoPayload = { id: payload.id };
+                        Object.keys(payload).forEach(key => {
+                            if (key !== 'id') undoPayload[key] = slideToUpdate[key];
+                        });
+                        
+                        historyManager.push({
+                            undo: { type: 'UPDATE_SLIDE', payload: undoPayload },
+                            redo: { type: 'UPDATE_SLIDE', payload: payload }
+                        });
+                    }
+
                     // Check if layout is changing
                     if (payload.layoutId && payload.layoutId !== slideToUpdate.layoutId) {
                         this.remapContent(slideToUpdate, payload.layoutId);
@@ -787,6 +819,60 @@ class Store extends EventEmitter {
                 if (masterToUpdate) {
                     Object.assign(masterToUpdate, payload);
                     this.emit('state-changed', this.state);
+                }
+                break;
+
+            case 'UPDATE_THEME_SETTINGS':
+                {
+                    const { id, settings } = payload;
+                    const themeMaster = this.state.masters[id];
+                    
+                    // Validation: Must exist and be a theme
+                    if (themeMaster && themeMaster.type === 'theme') {
+                        // Ensure themeSettings object exists
+                        if (!themeMaster.themeSettings) {
+                            themeMaster.themeSettings = { colors: {}, fonts: {} };
+                        }
+
+                        // History Capture
+                        if (!fromHistory) {
+                            // We need to capture the OLD values of the specific settings being changed
+                            const undoSettings = { colors: {}, fonts: {} };
+                            
+                            if (settings.colors) {
+                                Object.keys(settings.colors).forEach(k => {
+                                    undoSettings.colors[k] = themeMaster.themeSettings.colors[k];
+                                });
+                            }
+                            if (settings.fonts) {
+                                Object.keys(settings.fonts).forEach(k => {
+                                    undoSettings.fonts[k] = themeMaster.themeSettings.fonts[k];
+                                });
+                            }
+
+                            historyManager.push({
+                                undo: { type: 'UPDATE_THEME_SETTINGS', payload: { id, settings: undoSettings } },
+                                redo: { type: 'UPDATE_THEME_SETTINGS', payload: payload }
+                            });
+                        }
+
+                        // Deep merge settings
+                        if (settings.colors) {
+                            themeMaster.themeSettings.colors = {
+                                ...themeMaster.themeSettings.colors,
+                                ...settings.colors
+                            };
+                        }
+                        
+                        if (settings.fonts) {
+                            themeMaster.themeSettings.fonts = {
+                                ...themeMaster.themeSettings.fonts,
+                                ...settings.fonts
+                            };
+                        }
+                        
+                        this.emit('state-changed', this.state);
+                    }
                 }
                 break;
 
@@ -846,6 +932,9 @@ class Store extends EventEmitter {
         const layout = this.state.masters[slide.layoutId];
         const theme = this.state.masters[layout.parentId];
 
+        // Resolve Theme Settings
+        const themeSettings = theme ? theme.themeSettings : (this.state.masters['theme-default']?.themeSettings || {});
+
         // 1. Resolve Background
         let background = slide.background;
         if (!background && layout) background = layout.background;
@@ -885,7 +974,8 @@ class Store extends EventEmitter {
             ...slide,
             effectiveBackground: background,
             effectiveElements,
-            effectiveOrder
+            effectiveOrder,
+            themeSettings
         };
     }
 

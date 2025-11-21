@@ -158,6 +158,112 @@ export class PropertyInspector {
             }
         }
 
+        // Theme Settings (Only for Theme Master)
+        if (mode === 'master' && slide.type === 'theme') {
+            const themeSettings = slide.themeSettings || { colors: {}, fonts: {} };
+            
+            const themeLabel = document.createElement('div');
+            themeLabel.innerText = 'Theme Settings';
+            themeLabel.className = 'section-title';
+            themeLabel.style.marginTop = '0';
+            themeLabel.style.marginBottom = '12px';
+            themeLabel.style.fontSize = '12px';
+            themeLabel.style.fontWeight = '600';
+            content.appendChild(themeLabel);
+
+            // Colors
+            const colorsLabel = document.createElement('div');
+            colorsLabel.innerText = 'Colors';
+            colorsLabel.style.fontSize = '11px';
+            colorsLabel.style.color = 'var(--color-text-secondary)';
+            colorsLabel.style.marginBottom = '8px';
+            content.appendChild(colorsLabel);
+
+            const colorMap = {
+                accent: 'Accent',
+                textPrimary: 'Text Primary',
+                textSecondary: 'Text Secondary'
+            };
+
+            Object.entries(colorMap).forEach(([key, label]) => {
+                const row = document.createElement('div');
+                row.style.display = 'flex';
+                row.style.justifyContent = 'space-between';
+                row.style.alignItems = 'center';
+                row.style.marginBottom = '4px';
+                
+                const lbl = document.createElement('span');
+                lbl.innerText = label;
+                lbl.style.fontSize = '11px';
+                
+                const colorInput = new ColorInput(themeSettings.colors[key] || '#000000', (val) => {
+                    store.dispatch('UPDATE_THEME_SETTINGS', { 
+                        id: slide.id, 
+                        settings: { colors: { [key]: val } } 
+                    });
+                });
+                
+                row.appendChild(lbl);
+                row.appendChild(colorInput.element);
+                content.appendChild(row);
+            });
+
+            // Fonts
+            const fontsLabel = document.createElement('div');
+            fontsLabel.innerText = 'Fonts';
+            fontsLabel.style.fontSize = '11px';
+            fontsLabel.style.color = 'var(--color-text-secondary)';
+            fontsLabel.style.marginTop = '12px';
+            fontsLabel.style.marginBottom = '8px';
+            content.appendChild(fontsLabel);
+
+            const fontMap = {
+                heading: 'Heading',
+                body: 'Body'
+            };
+            
+            const availableFonts = ['Inter', 'Roboto', 'Arial', 'Helvetica', 'Times New Roman', 'Courier New'];
+
+            Object.entries(fontMap).forEach(([key, label]) => {
+                const row = document.createElement('div');
+                row.style.marginBottom = '8px';
+                
+                const lbl = document.createElement('div');
+                lbl.innerText = label;
+                lbl.style.fontSize = '11px';
+                lbl.style.marginBottom = '4px';
+                
+                const select = document.createElement('select');
+                select.className = 'input-select';
+                select.style.width = '100%';
+                
+                availableFonts.forEach(font => {
+                    const opt = document.createElement('option');
+                    opt.value = font;
+                    opt.text = font;
+                    if (themeSettings.fonts[key] === font) opt.selected = true;
+                    select.appendChild(opt);
+                });
+                
+                select.onchange = (e) => {
+                    store.dispatch('UPDATE_THEME_SETTINGS', { 
+                        id: slide.id, 
+                        settings: { fonts: { [key]: e.target.value } } 
+                    });
+                };
+                
+                row.appendChild(lbl);
+                row.appendChild(select);
+                content.appendChild(row);
+            });
+            
+            const divider = document.createElement('div');
+            divider.style.height = '1px';
+            divider.style.backgroundColor = 'var(--color-border)';
+            divider.style.margin = '16px 0';
+            content.appendChild(divider);
+        }
+
         // Dimensions
         const dimRow = document.createElement('div');
         dimRow.style.display = 'flex';
@@ -196,6 +302,9 @@ export class PropertyInspector {
         bgTypeSelect.style.fontSize = '11px';
         
         ['Inherited', 'Solid', 'Gradient', 'Image', 'Code'].forEach(type => {
+            // Theme Masters cannot inherit background
+            if (type === 'Inherited' && mode === 'master' && slide.type === 'theme') return;
+
             const opt = document.createElement('option');
             opt.value = type.toLowerCase();
             opt.text = type;

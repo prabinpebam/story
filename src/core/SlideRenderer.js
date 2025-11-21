@@ -95,8 +95,23 @@ export class SlideRenderer {
         this.container.style.width = `${effectiveSlide.width}px`;
         this.container.style.height = `${effectiveSlide.height}px`;
 
-        const view = this.container.querySelector('.slide-view');
+        // Target the specific view for this slide
+        const view = this.container.querySelector(`#view-${this.currentSlideId}`);
         if (!view) return;
+
+        // Inject Theme Variables (Update)
+        if (effectiveSlide.themeSettings) {
+            const { colors, fonts } = effectiveSlide.themeSettings;
+            if (colors) {
+                if (colors.accent) view.style.setProperty('--theme-accent', colors.accent);
+                if (colors.textPrimary) view.style.setProperty('--theme-text-primary', colors.textPrimary);
+                if (colors.textSecondary) view.style.setProperty('--theme-text-secondary', colors.textSecondary);
+            }
+            if (fonts) {
+                if (fonts.heading) view.style.setProperty('--theme-font-heading', fonts.heading);
+                if (fonts.body) view.style.setProperty('--theme-font-body', fonts.body);
+            }
+        }
 
         // Update View Dimensions
         view.style.width = `${effectiveSlide.width}px`;
@@ -368,9 +383,10 @@ return {
                 // It is a master theme
                 return {
                     ...item,
-                    effectiveBackground: item.background,
+                    effectiveBackground: item.background || { type: 'solid', value: '#ffffff' },
                     effectiveElements: item.elements,
-                    effectiveOrder: item.elementOrder || []
+                    effectiveOrder: item.elementOrder || [],
+                    themeSettings: item.themeSettings
                 };
             } else if (item.type === 'layout') {
                 // It is a layout, inherits from parentId
@@ -387,14 +403,15 @@ return {
                 // Background inheritance
                 let effectiveBackground = item.background;
                 if (!effectiveBackground || effectiveBackground.type === 'inherited') {
-                    effectiveBackground = master.background;
+                    effectiveBackground = master.background || { type: 'solid', value: '#ffffff' };
                 }
 
                 return {
                     ...item,
                     effectiveBackground,
                     effectiveElements,
-                    effectiveOrder
+                    effectiveOrder,
+                    themeSettings: master.themeSettings
                 };
             }
             return null;
@@ -418,6 +435,20 @@ return {
         // div.style.overflow = 'hidden'; // Allow content to overflow
         div.style.backgroundColor = '#ffffff'; // Default
 
+        // Inject Theme Variables
+        if (effectiveSlide.themeSettings) {
+            const { colors, fonts } = effectiveSlide.themeSettings;
+            if (colors) {
+                if (colors.accent) div.style.setProperty('--theme-accent', colors.accent);
+                if (colors.textPrimary) div.style.setProperty('--theme-text-primary', colors.textPrimary);
+                if (colors.textSecondary) div.style.setProperty('--theme-text-secondary', colors.textSecondary);
+            }
+            if (fonts) {
+                if (fonts.heading) div.style.setProperty('--theme-font-heading', fonts.heading);
+                if (fonts.body) div.style.setProperty('--theme-font-body', fonts.body);
+            }
+        }
+
         this.applyBackgroundToView(div, effectiveSlide.effectiveBackground);
         this.renderElementsToView(div, effectiveSlide);
 
@@ -425,10 +456,10 @@ return {
     }
 
     applyBackgroundToView(view, bg) {
-        // Clean up previous code runner
-        if (this.bgCodeRunner) {
-            this.bgCodeRunner.stop();
-            this.bgCodeRunner = null;
+        // Clean up previous code runner attached to THIS view
+        if (view._bgCodeRunner) {
+            view._bgCodeRunner.stop();
+            delete view._bgCodeRunner;
         }
 
         // Remove existing background canvas if any
@@ -438,6 +469,9 @@ return {
         // Reset background style
         view.style.background = 'none';
 
+        // Fallback for null background (safety)
+        if (!bg) bg = { type: 'solid', value: '#ffffff' };
+
         if (bg.type === 'solid') {
             view.style.background = bg.value;
         } else if (bg.type === 'gradient') {
@@ -445,7 +479,6 @@ return {
         } else if (bg.type === 'image') {
             view.style.background = `url(${bg.value}) center/cover no-repeat`;
         } else if (bg.type === 'code') {
-            console.log('Initializing Code Background');
             const canvas = document.createElement('canvas');
             canvas.className = 'bg-canvas';
             canvas.width = parseInt(view.style.width);
@@ -455,16 +488,16 @@ return {
             canvas.style.position = 'absolute';
             canvas.style.top = '0';
             canvas.style.left = '0';
-            canvas.style.zIndex = '0'; // Behind elements (elements start at auto/1?)
-            // Elements are appended after, so they will be on top if z-index is auto.
-            // But let's make sure elements are on top.
+            canvas.style.zIndex = '0'; 
             
             view.insertBefore(canvas, view.firstChild);
-            console.log('Canvas created', canvas.width, canvas.height);
 
-            this.bgCodeRunner = new CodeRunner(canvas);
-            this.bgCodeRunner.setCode(bg.value);
-            this.bgCodeRunner.play();
+            const runner = new CodeRunner(canvas);
+            runner.setCode(bg.value);
+            runner.play();
+            
+            // Attach runner to the view element
+            view._bgCodeRunner = runner;
         }
 
         // Hide the global background layer since we are doing per-slide background

@@ -91,6 +91,22 @@ class App {
                 document.body.classList.remove('mode-master');
             }
         });
+
+        // Keyboard Shortcuts
+        window.addEventListener('keydown', (e) => {
+            if ((e.ctrlKey || e.metaKey) && e.key === 'z') {
+                e.preventDefault();
+                if (e.shiftKey) {
+                    store.dispatch('REDO');
+                } else {
+                    store.dispatch('UNDO');
+                }
+            }
+            if ((e.ctrlKey || e.metaKey) && e.key === 'y') {
+                e.preventDefault();
+                store.dispatch('REDO');
+            }
+        });
     }
 }
 
