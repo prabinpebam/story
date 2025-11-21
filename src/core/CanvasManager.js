@@ -296,6 +296,21 @@ export class CanvasManager {
                     }
                     e.stopPropagation();
                 } else if (hit.type === 'element') {
+                    // Handle Inherited Elements (Placeholders)
+                    if (hit.isInherited) {
+                        if (hit.element.isPlaceholder) {
+                            // Instantiate Placeholder
+                            store.dispatch('INSTANTIATE_PLACEHOLDER', { 
+                                placeholderId: hit.id,
+                                element: hit.element
+                            });
+                            return; // Stop further processing (selection will be handled by store update)
+                        } else {
+                            // Regular inherited element - ignore or maybe flash to show it's locked
+                            return;
+                        }
+                    }
+
                     this.interactionState = 'DRAGGING';
                     this.dragStart = { x: mouseX, y: mouseY };
                     
@@ -1080,18 +1095,40 @@ export class CanvasManager {
         // Copy (Ctrl+C)
         if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'c') {
             const state = store.getState();
-            if (state.editor.selectedSlideIds && state.editor.selectedSlideIds.length > 0) {
+            // Priority: Elements > Slides
+            if (state.editor.selectedElementIds && state.editor.selectedElementIds.length > 0) {
+                e.preventDefault();
+                // Copy Elements
+                const container = this.getActiveContainer(state);
+                if (container) {
+                    const elementsToCopy = state.editor.selectedElementIds.map(id => container.elements[id]).filter(e => e);
+                    if (elementsToCopy.length > 0) {
+                        // Store in a custom clipboard format
+                        window.elementClipboard = JSON.stringify(elementsToCopy);
+                        // Clear slide clipboard to avoid confusion
+                        window.slideClipboard = null;
+                    }
+                }
+            } else if (state.editor.selectedSlideIds && state.editor.selectedSlideIds.length > 0) {
                 e.preventDefault();
                 window.slideClipboard = state.editor.selectedSlideIds[0];
+                window.elementClipboard = null;
             }
         }
 
         // Paste (Ctrl+V)
         if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'v') {
-            if (window.slideClipboard) {
-                // Only paste if we are not editing text
-                const state = store.getState();
-                if (!state.editor.editingElementId) {
+            const state = store.getState();
+            if (!state.editor.editingElementId) {
+                if (window.elementClipboard) {
+                    e.preventDefault();
+                    try {
+                        const elements = JSON.parse(window.elementClipboard);
+                        store.dispatch('PASTE_ELEMENTS', { elements });
+                    } catch (err) {
+                        console.error('Failed to paste elements', err);
+                    }
+                } else if (window.slideClipboard) {
                     e.preventDefault();
                     store.dispatch('PASTE_SLIDE', { 
                         sourceId: window.slideClipboard, 
@@ -1530,10 +1567,23 @@ export class CanvasManager {
 
         // Get all other elements absolute
         const others = [];
+        
+        // 1. Current Container Elements
         Object.values(slide.elements).forEach(rawEl => {
             if (rawEl.id === id) return;
             others.push(this.getAbsoluteElement(rawEl, slide));
         });
+
+        // 2. Inherited Elements (if editing a Layout)
+        if (state.editor.mode === 'master' && slide.type === 'layout' && slide.parentId) {
+            const master = state.masters[slide.parentId];
+            if (master && master.elements) {
+                Object.values(master.elements).forEach(rawEl => {
+                    // Master elements are already in the same coordinate space as Layout
+                    others.push(this.getAbsoluteElement(rawEl, master));
+                });
+            }
+        }
 
         // Horizontal Spacing
         const sortedX = [...others].sort((a, b) => a.x - b.x);
@@ -1697,23 +1747,33 @@ export class CanvasManager {
         targets.y.push({ value: slide.height, type: 'bottom' });
         
         // Add other elements
-        Object.values(slide.elements).forEach(rawEl => {
-            if (rawEl.id === id) return;
+        const addSnapTargets = (container) => {
+            if (!container || !container.elements) return;
             
-            // Don't snap to children of the element being moved (if it's a group)
-            // (Not strictly necessary if we only move selection, but good for safety)
-            
-            // Use absolute coordinates for snapping targets
-            const el = this.getAbsoluteElement(rawEl, slide);
-            
-            targets.x.push({ value: el.x, type: 'left' });
-            targets.x.push({ value: el.x + el.width / 2, type: 'center' });
-            targets.x.push({ value: el.x + el.width, type: 'right' });
-            
-            targets.y.push({ value: el.y, type: 'top' });
-            targets.y.push({ value: el.y + el.height / 2, type: 'middle' });
-            targets.y.push({ value: el.y + el.height, type: 'bottom' });
-        });
+            Object.values(container.elements).forEach(rawEl => {
+                if (rawEl.id === id) return;
+                
+                // Use absolute coordinates for snapping targets
+                const el = this.getAbsoluteElement(rawEl, container);
+                
+                targets.x.push({ value: el.x, type: 'left' });
+                targets.x.push({ value: el.x + el.width / 2, type: 'center' });
+                targets.x.push({ value: el.x + el.width, type: 'right' });
+                
+                targets.y.push({ value: el.y, type: 'top' });
+                targets.y.push({ value: el.y + el.height / 2, type: 'middle' });
+                targets.y.push({ value: el.y + el.height, type: 'bottom' });
+            });
+        };
+
+        // 1. Current Container Elements
+        addSnapTargets(slide);
+
+        // 2. Inherited Elements (if editing a Layout)
+        if (state.editor.mode === 'master' && slide.type === 'layout' && slide.parentId) {
+            const master = state.masters[slide.parentId];
+            addSnapTargets(master);
+        }
         
         // Check X Snaps
         let minDiffX = SNAP_THRESHOLD;
@@ -2130,38 +2190,26 @@ export class CanvasManager {
         
         let elementsToCheck = [];
         if (state.editor.mode === 'master' && slide.type === 'layout') {
-             // We need to include master elements for hit testing if we want to allow selecting them
-             // But they should probably be read-only.
-             // For now, let's just check the layout's own elements to avoid confusion
-             // unless the user explicitly wants to select them.
-             // If "Objects are not rendered properly" means they are missing, that's a Renderer issue.
-             // If "Can select object but property not displayed", that implies selection works.
-             // If selection works for inherited elements, it means they are being hit tested?
-             // NO, getActiveContainer returns the Layout, which DOES NOT contain inherited elements.
-             // So inherited elements are NOT hit-testable currently.
-             // If the user says "Can select object", they must be selecting the Layout's own elements.
-             
-             // Wait, if the user says "Objects are not rendered properly", maybe they mean inherited ones?
-             // If I am in Layout view, I expect to see Master elements.
-             // SlideRenderer handles that.
-             
-             // If I select a Layout element, and property is not displayed.
-             // That was the PropertyInspector issue I fixed.
-             
-             // Let's assume standard hit testing for now.
+             // Layout mode: Check layout elements only (for now)
              elementsToCheck = (slide.elementOrder || []).map(id => slide.elements[id]).filter(e => e);
+        } else if (state.editor.mode === 'edit') {
+             // Edit Mode: Check effective elements (including placeholders)
+             const effectiveSlide = store.getEffectiveSlide(slide.id);
+             if (effectiveSlide) {
+                 elementsToCheck = (effectiveSlide.effectiveOrder || []).map(id => effectiveSlide.effectiveElements[id]).filter(e => e);
+             } else {
+                 elementsToCheck = (slide.elementOrder || []).map(id => slide.elements[id]).filter(e => e);
+             }
         } else {
              elementsToCheck = (slide.elementOrder || []).map(id => slide.elements[id]).filter(e => e);
         }
         
-        // Check children of groups recursively? 
-        // For now, flat check of top level, then check children if group
-        // Actually elementOrder is top level.
-        
         for (let i = elementsToCheck.length - 1; i >= 0; i--) {
             const el = elementsToCheck[i];
             if (this.pointInElement(worldX, worldY, el)) {
-                return { type: 'element', id: el.id };
+                // Check if it's inherited
+                const isInherited = !Object.prototype.hasOwnProperty.call(slide.elements, el.id);
+                return { type: 'element', id: el.id, isInherited, element: el };
             }
         }
 

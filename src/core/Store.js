@@ -268,6 +268,33 @@ class Store extends EventEmitter {
                 this.emit('state-changed', this.state);
                 break;
 
+            case 'PASTE_ELEMENTS':
+                // Payload: { elements: [] }
+                const pContainer = this.getActiveContainer();
+                if (!pContainer || !payload.elements || payload.elements.length === 0) return;
+
+                const pastedIds = [];
+                payload.elements.forEach(el => {
+                    const newId = `${el.type}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+                    const newEl = { ...el, id: newId };
+                    
+                    // Offset slightly to show it's a copy
+                    newEl.x += 20;
+                    newEl.y += 20;
+                    
+                    // Reset parentId as we are pasting to root (or we could support pasting into groups later)
+                    delete newEl.parentId; 
+
+                    pContainer.elements[newId] = newEl;
+                    pContainer.elementOrder.push(newId);
+                    pastedIds.push(newId);
+                });
+
+                // Select pasted elements
+                this.state.editor.selectedElementIds = pastedIds;
+                this.emit('state-changed', this.state);
+                break;
+
             case 'PASTE_SLIDE':
                 const { sourceId: pasteSourceId, targetId: pasteTargetId } = payload;
                 const pasteSourceSlide = this.state.slides[pasteSourceId];
@@ -742,6 +769,11 @@ class Store extends EventEmitter {
             case 'UPDATE_SLIDE':
                 const slideToUpdate = this.state.slides[payload.id];
                 if (slideToUpdate) {
+                    // Check if layout is changing
+                    if (payload.layoutId && payload.layoutId !== slideToUpdate.layoutId) {
+                        this.remapContent(slideToUpdate, payload.layoutId);
+                    }
+
                     // Merge updates
                     Object.assign(slideToUpdate, payload);
                     this.emit('state-changed', this.state);
@@ -754,6 +786,38 @@ class Store extends EventEmitter {
 
                 if (masterToUpdate) {
                     Object.assign(masterToUpdate, payload);
+                    this.emit('state-changed', this.state);
+                }
+                break;
+
+            case 'INSTANTIATE_PLACEHOLDER':
+                {
+                    const { placeholderId, element } = payload;
+                    const slide = this.getActiveContainer();
+                    if (!slide) return;
+
+                    // Create a copy of the placeholder element
+                    const newEl = { ...element };
+                    
+                    // It keeps the same ID to override the master element
+                    // We remove isPlaceholder so it becomes a normal element
+                    delete newEl.isPlaceholder;
+
+                    // Add to slide elements map
+                    slide.elements[newEl.id] = newEl;
+                    
+                    // We do NOT add to elementOrder to preserve the Layout's z-index structure.
+                    // The element will be rendered because it is in the Master's elementOrder,
+                    // but the data will be pulled from the Slide's elements map (overriding the Master's).
+                    
+                    // Select it
+                    this.state.editor.selectedElementIds = [newEl.id];
+                    
+                    // Auto-enter edit mode if it's text
+                    if (newEl.type === 'text') {
+                        this.state.editor.editingElementId = newEl.id;
+                    }
+                    
                     this.emit('state-changed', this.state);
                 }
                 break;
@@ -831,6 +895,48 @@ class Store extends EventEmitter {
         } else {
             return this.state.slides[this.state.editor.activeSlideId];
         }
+    }
+
+    remapContent(slide, newLayoutId) {
+        const state = this.state;
+        const oldLayoutId = slide.layoutId;
+        const oldLayout = state.masters[oldLayoutId];
+        const newLayout = state.masters[newLayoutId];
+
+        if (!oldLayout || !newLayout) return;
+
+        // Find elements on the slide that are "instantiated placeholders"
+        Object.keys(slide.elements).forEach(elId => {
+            const slideEl = slide.elements[elId];
+            const oldMasterEl = oldLayout.elements[elId];
+
+            if (oldMasterEl && oldMasterEl.isPlaceholder) {
+                // This element on the slide corresponds to a placeholder in the old layout
+                
+                // Check if the NEW layout has a placeholder with the same ID
+                const newMasterEl = newLayout.elements[elId];
+                
+                if (newMasterEl && newMasterEl.isPlaceholder) {
+                    // Match found!
+                    // We want the slide element to inherit position/style from the NEW placeholder
+                    // But keep the content.
+                    
+                    const keptProps = ['id', 'type', 'content'];
+                    
+                    // If it's an image, keep 'src'
+                    if (slideEl.type === 'image') keptProps.push('src');
+                    
+                    // Create new object with only kept props
+                    const newSlideEl = {};
+                    keptProps.forEach(prop => {
+                        if (slideEl[prop] !== undefined) newSlideEl[prop] = slideEl[prop];
+                    });
+                    
+                    // Replace the element on the slide
+                    slide.elements[elId] = newSlideEl;
+                }
+            }
+        });
     }
 }
 

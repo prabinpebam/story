@@ -507,7 +507,17 @@ return {
 
         if (isMaster) {
              div.classList.add('is-master-element');
-             div.style.pointerEvents = 'none';
+             
+             // Special handling for Placeholders in Edit Mode
+             const state = store.getState();
+             if (state.editor.mode !== 'master' && el.isPlaceholder) {
+                 div.classList.add('is-placeholder-instance');
+                 div.style.pointerEvents = 'auto'; // Allow interaction
+                 div.style.border = '2px dashed #999'; // Visual cue
+                 div.dataset.placeholderId = el.id;
+             } else {
+                 div.style.pointerEvents = 'none';
+             }
         }
 
         div.style.position = 'absolute';

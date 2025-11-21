@@ -114,6 +114,50 @@ export class PropertyInspector {
 
         const { group, content } = this.createControlGroup(mode === 'master' ? 'MASTER / LAYOUT' : 'SLIDE', true);
         
+        // Layout Picker (Only in Slide Mode)
+        if (mode !== 'master') {
+            const state = store.getState();
+            const currentLayoutId = slide.layoutId;
+            const currentLayout = state.masters[currentLayoutId];
+            
+            if (currentLayout) {
+                const themeId = currentLayout.parentId;
+                const layouts = Object.values(state.masters).filter(m => m.type === 'layout' && m.parentId === themeId);
+                
+                const layoutLabel = document.createElement('div');
+                layoutLabel.innerText = 'Layout';
+                layoutLabel.style.fontSize = 'var(--font-size-xs)';
+                layoutLabel.style.color = 'var(--color-text-secondary)';
+                layoutLabel.style.marginBottom = 'var(--spacing-2)';
+                content.appendChild(layoutLabel);
+
+                const layoutSelect = document.createElement('select');
+                layoutSelect.className = 'input-select';
+                layoutSelect.style.width = '100%';
+                layoutSelect.style.marginBottom = 'var(--spacing-3)';
+                layoutSelect.style.background = 'var(--color-bg-input)';
+                layoutSelect.style.border = '1px solid var(--color-border)';
+                layoutSelect.style.borderRadius = 'var(--radius-sm)';
+                layoutSelect.style.color = 'var(--color-text-primary)';
+                layoutSelect.style.padding = '4px';
+                layoutSelect.style.fontSize = '11px';
+
+                layouts.forEach(layout => {
+                    const opt = document.createElement('option');
+                    opt.value = layout.id;
+                    opt.text = layout.name;
+                    if (layout.id === currentLayoutId) opt.selected = true;
+                    layoutSelect.appendChild(opt);
+                });
+
+                layoutSelect.onchange = (e) => {
+                    store.dispatch('UPDATE_SLIDE', { id: slide.id, layoutId: e.target.value });
+                };
+
+                content.appendChild(layoutSelect);
+            }
+        }
+
         // Dimensions
         const dimRow = document.createElement('div');
         dimRow.style.display = 'flex';

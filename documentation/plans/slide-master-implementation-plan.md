@@ -30,81 +30,40 @@
 
 ---
 
-## Phase 3: Master Mode Foundation (State & Navigation)
-**Goal:** Establish the "Master Mode" state without changing any visible UI or rendering logic yet.
+## Phase 3: Master Mode Foundation (State & Navigation) (Completed)
+- [x] Add `editor.mode` state ('edit' | 'master').
+- [x] Add `editor.activeMasterId` state.
+- [x] Add actions: `SET_MODE`, `SET_ACTIVE_MASTER`.
+- [x] Add "Edit Master" and "Close Master View" buttons.
 
-1.  **Store Updates**
-    *   Add `editor.mode` state ('edit' | 'master').
-    *   Add `editor.activeMasterId` state (default to the first theme).
-    *   Add actions: `SET_MODE`, `SET_ACTIVE_MASTER`.
-    *   *Risk:* None. Pure state addition.
+## Phase 4: The Master List UI (Left Panel) (Completed)
+- [x] Refactor `SlideList.js` to support `renderMasterList()`.
+- [x] Implement Tree View for Masters/Layouts.
+- [x] Implement selection logic for Masters/Layouts.
 
-2.  **Toolbar UI**
-    *   Add "Edit Master" button to the Toolbar (View menu or standalone).
-    *   Add "Close Master View" button (visible only when `mode === 'master'`).
-    *   *Verification:* Clicking the button changes the state in the console/logs. The main view will still show the slide for now (until Phase 5), which is expected.
+## Phase 5: Rendering Masters (The Engine) (Completed)
+- [x] Implement `getRenderableObject` logic (handled via `handleSlideChange` in Renderer).
+- [x] Update `SlideRenderer.js` to support Master Mode rendering.
+- [x] Ensure Layouts inherit correctly from Themes during rendering.
 
-## Phase 4: The Master List UI (Left Panel)
-**Goal:** Visualize the Master/Layout hierarchy in the left panel when in Master Mode.
+## Phase 6: Editing Masters (Interaction) (Completed)
+- [x] **Unified Interaction Logic**: Implemented `getActiveContainer(state)` abstraction to unify interaction across modes.
+- [x] **Store Updates**: `ADD_ELEMENT`, `UPDATE_ELEMENT`, `REMOVE_ELEMENT`, etc., now use `getActiveContainer` to target the correct collection.
+- [x] **Canvas Manager**: Hit testing, gizmos, and manipulation now respect the active container.
+- [x] **Visual Feedback**: Added orange border overlay for Master Mode.
+- [x] **Layer Tree**: Updated to show Master/Layout hierarchy.
 
-1.  **Refactor `SlideList.js`**
-    *   Keep `render()` as the entry point.
-    *   Add check: `if (state.editor.mode === 'master') return this.renderMasterList();`
-    *   Implement `renderMasterList()`:
-        *   Iterate through `state.masters`.
-        *   Group Layouts under their parent Theme.
-        *   Render a Tree View (Theme -> Layouts).
-    *   *Risk:* Breaking the existing slide list.
-    *   *Mitigation:* Ensure the "else" path (normal render) is untouched.
-
-2.  **Selection Logic**
-    *   Clicking a Master/Layout in the list should dispatch `SET_ACTIVE_MASTER`.
-    *   *Verification:* Clicking items in the new list updates `activeMasterId`.
-
-## Phase 5: Rendering Masters (The Engine)
-**Goal:** Update the main canvas to render the selected Master or Layout when in Master Mode.
-
-1.  **Data Retrieval Helper**
-    *   Create `getRenderableObject(id, mode)` in Store (or Utils).
-    *   If mode is 'slide': call `getEffectiveSlide(id)`.
-    *   If mode is 'master':
-        *   If ID is a **Theme**: Return the theme object directly.
-        *   If ID is a **Layout**: We need a new helper `getEffectiveLayout(layoutId)` that merges Theme + Layout (similar to `getEffectiveSlide` but stopping at Layout level).
-
-2.  **Update `SlideRenderer.js`**
-    *   In `render()` loop:
-        *   Check `state.editor.mode`.
-        *   If 'master', use `state.editor.activeMasterId`.
-        *   If 'edit', use `state.editor.activeSlideId`.
-    *   Pass the ID and Mode to `getRenderableObject`.
-    *   *Risk:* The renderer might crash if the Master object is missing properties expected by the renderer (e.g., `transition`, `notes`).
-    *   *Mitigation:* Ensure `getEffectiveLayout` returns a standardized object shape matching a Slide.
-
-## Phase 6: Editing Masters (Interaction)
-**Goal:** Allow adding/moving/modifying elements on Master slides.
-
-1.  **Selection Manager Update**
-    *   Ensure `SelectionManager` respects the current mode.
-    *   When in Master mode, it should only allow selecting elements that belong to the *current* Master/Layout.
-    *   Inherited elements (from Theme, when editing Layout) should be locked.
-
-2.  **Store Action Updates**
-    *   Update `ADD_ELEMENT`, `UPDATE_ELEMENT`, `DELETE_ELEMENT`.
-    *   Add logic:
-        ```javascript
-        const targetId = state.editor.mode === 'master' 
-            ? state.editor.activeMasterId 
-            : state.editor.activeSlideId;
-        const targetCollection = state.editor.mode === 'master' 
-            ? state.masters 
-            : state.slides;
+## Phase 7: Advanced Features (Completed)
+- [x] **Snapping to Inherited Elements**: Allow Layout elements to snap to Master Theme elements.
+- [x] **Clipboard Operations**: Verify Copy/Paste works across modes.
+- [x] **Placeholder Logic**: Implement specific behaviors for placeholders.
         ```
     *   *Risk:* Accidental deletion of slide data.
     *   *Mitigation:* Unit test or carefully verify the target ID resolution.
 
-## Phase 7: Layout Application & Refinement
+## Phase 8: Layout Application & Refinement (In Progress)
 **Goal:** Apply layouts to slides and polish the UX.
 
-1.  **Layout Picker** (Property Inspector)
-2.  **Smart Content Remapping** (Preserving text when switching layouts)
-3.  **Theme Settings Editor** (Colors/Fonts)
+- [x] **Layout Picker**: Add dropdown in Property Inspector to switch layouts.
+- [x] **Smart Content Remapping**: Preserve content when switching layouts by matching placeholder IDs.
+- [ ] **Theme Settings Editor**: Add controls for Theme Colors and Fonts.
