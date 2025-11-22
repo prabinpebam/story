@@ -1,7 +1,8 @@
 import { IconButton } from '../IconButton.js';
 import { Icons } from '../../Icons.js';
 import { CodeRunner } from '../../../core/effects/CodeRunner.js';
-// import { aiService } from '../../../core/ai/AIService.js'; // Assuming singleton export or similar
+import { AIService } from '../../../core/ai/AIService.js';
+import { CODE_FILL_PROMPT, CODE_FILL_UPDATE_PROMPT } from '../../../core/ai/prompts/templates.js';
 
 export class CodeTab {
     constructor(options = {}) {
@@ -136,30 +137,43 @@ export class CodeTab {
     async handleAIGenerate(prompt, mode) {
         if (!prompt) return;
         
-        // Placeholder for AI integration
-        console.log(`AI Generation: ${mode} - "${prompt}"`);
+        const btn = mode === 'update' ? this.element.querySelectorAll('button')[0] : this.element.querySelectorAll('button')[1];
+        const originalText = btn.textContent;
+        btn.textContent = 'Generating...';
+        btn.disabled = true;
         
-        // Mock response for now
-        const mockCode = `
-return {
-    draw: function(t) {
-        const w = canvas.width;
-        const h = canvas.height;
-        // Generated for: ${prompt}
-        const hue = (t * 50) % 360;
-        ctx.fillStyle = \`hsl(\${hue}, 70%, 50%)\`;
-        ctx.fillRect(0, 0, w, h);
-        
-        ctx.fillStyle = '#FFF';
-        ctx.font = '20px Arial';
-        ctx.textAlign = 'center';
-        ctx.fillText('${mode === 'update' ? 'Updated' : 'New'}', w/2, h/2);
-    }
-};`.trim();
+        try {
+            let systemPrompt = '';
+            let userPrompt = '';
+            
+            if (mode === 'new') {
+                systemPrompt = CODE_FILL_PROMPT.replace('{description}', prompt);
+                userPrompt = `Generate a canvas animation code for: ${prompt}`;
+            } else {
+                systemPrompt = CODE_FILL_UPDATE_PROMPT
+                    .replace('{existingCode}', this.editor.value)
+                    .replace('{request}', prompt);
+                userPrompt = `Update the code to: ${prompt}`;
+            }
 
-        this.editor.value = mockCode;
-        this.runner.setCode(mockCode);
-        this.onChange({ code: mockCode });
+            // Call AI Service
+            const ai = new AIService();
+            const generatedCode = await ai.generate(userPrompt, { systemPrompt });
+            
+            // Clean up code (remove markdown blocks if any)
+            let cleanCode = generatedCode.replace(/```javascript/g, '').replace(/```/g, '').trim();
+            
+            this.editor.value = cleanCode;
+            this.runner.setCode(cleanCode);
+            this.onChange({ code: cleanCode });
+            
+        } catch (error) {
+            console.error('AI Generation failed:', error);
+            alert('Failed to generate code. Please check your AI settings.');
+        } finally {
+            btn.textContent = originalText;
+            btn.disabled = false;
+        }
     }
     
     destroy() {

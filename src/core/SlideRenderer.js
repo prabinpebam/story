@@ -424,7 +424,7 @@ export class SlideRenderer {
                      const canvas = document.createElement('canvas');
                      canvas.style.width = '100%';
                      canvas.style.height = '100%';
-                     canvas.style.borderRadius = `${el.style?.radius || 0}px`;
+                     canvas.style.borderRadius = 'inherit';
                      canvas.width = el.width;
                      canvas.height = el.height;
                      div.appendChild(canvas);
@@ -480,6 +480,7 @@ export class SlideRenderer {
                              layer.style.height = '100%';
                              // Inherit border radius
                              layer.style.borderRadius = 'inherit'; 
+                             layer.style.overflow = 'hidden';
                              div.appendChild(layer);
                          }
                          
