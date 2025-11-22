@@ -321,6 +321,29 @@ export class FillSection {
         combinedInput.appendChild(opacityInput.element);
         row.appendChild(combinedInput);
 
+        // Button Group
+        const buttonGroup = document.createElement('div');
+        buttonGroup.style.display = 'flex';
+        buttonGroup.style.alignItems = 'center';
+        buttonGroup.style.gap = '0px'; // Minimize space
+        buttonGroup.style.marginLeft = '4px';
+
+        // Blend Mode Button
+        const isNormalBlend = !fill.blendMode || fill.blendMode === 'normal';
+        const blendBtn = new IconButton({
+            icon: Icons.BLEND_MODE,
+            title: `Blend Mode: ${fill.blendMode || 'Normal'}`,
+            onClick: (e) => {
+                // Find the button element (could be the icon or the button wrapper)
+                const btn = e.target.closest('button') || e.target;
+                this.openBlendModeMenu(btn, fill, index, element);
+            }
+        });
+        blendBtn.element.style.color = isNormalBlend ? '#666' : '#0055FF'; // Blue if active
+        blendBtn.element.style.width = '24px'; // Compact
+        blendBtn.element.style.height = '24px';
+        blendBtn.element.style.padding = '0';
+
         // Visibility Button
         const visIcon = !fill.visible ? Icons.HIDDEN : Icons.VISIBLE;
         const visBtn = new IconButton({
@@ -330,6 +353,9 @@ export class FillSection {
                 this.updateFill(element, index, { visible: !fill.visible });
             }
         });
+        visBtn.element.style.width = '24px'; // Compact
+        visBtn.element.style.height = '24px';
+        visBtn.element.style.padding = '0';
 
         // Remove Button
         const removeBtn = new IconButton({
@@ -339,13 +365,96 @@ export class FillSection {
                 this.removeFill(element, index);
             }
         });
+        removeBtn.element.style.width = '24px'; // Compact
+        removeBtn.element.style.height = '24px';
+        removeBtn.element.style.padding = '0';
 
-        // row.appendChild(colorInput.element); // Replaced by swatch
-        // row.appendChild(opacityInput.element); // Moved to combinedInput
-        row.appendChild(visBtn.element);
-        row.appendChild(removeBtn.element);
+        buttonGroup.appendChild(blendBtn.element);
+        buttonGroup.appendChild(visBtn.element);
+        buttonGroup.appendChild(removeBtn.element);
+
+        row.appendChild(buttonGroup);
 
         return row;
+    }
+
+    openBlendModeMenu(target, fill, index, element) {
+        // Create a simple dropdown menu
+        const menu = document.createElement('div');
+        menu.style.position = 'fixed';
+        menu.style.zIndex = '10000';
+        menu.style.backgroundColor = '#2C2C2C';
+        menu.style.border = '1px solid #444';
+        menu.style.borderRadius = '4px';
+        menu.style.padding = '4px 0';
+        menu.style.boxShadow = '0 4px 12px rgba(0,0,0,0.5)';
+        menu.style.width = '140px';
+        menu.style.maxHeight = '300px';
+        menu.style.overflowY = 'auto';
+        menu.style.fontFamily = 'sans-serif';
+
+        const modes = [
+            'normal', 'multiply', 'screen', 'overlay', 'darken', 'lighten', 
+            'color-dodge', 'color-burn', 'hard-light', 'soft-light', 
+            'difference', 'exclusion', 'hue', 'saturation', 'color', 'luminosity'
+        ];
+
+        modes.forEach(mode => {
+            const item = document.createElement('div');
+            item.textContent = mode.charAt(0).toUpperCase() + mode.slice(1).replace('-', ' ');
+            item.style.padding = '6px 12px';
+            item.style.fontSize = '12px';
+            item.style.color = '#ccc';
+            item.style.cursor = 'pointer';
+            item.style.display = 'flex';
+            item.style.alignItems = 'center';
+            item.style.justifyContent = 'space-between';
+
+            if ((fill.blendMode || 'normal') === mode) {
+                item.style.backgroundColor = '#0055FF';
+                item.style.color = '#fff';
+            }
+
+            item.onmouseenter = () => {
+                if ((fill.blendMode || 'normal') !== mode) item.style.backgroundColor = '#383838';
+            };
+            item.onmouseleave = () => {
+                if ((fill.blendMode || 'normal') !== mode) item.style.backgroundColor = 'transparent';
+            };
+
+            item.onclick = () => {
+                this.updateFill(element, index, { blendMode: mode });
+                menu.remove();
+                document.removeEventListener('mousedown', closeHandler);
+            };
+
+            menu.appendChild(item);
+        });
+
+        document.body.appendChild(menu);
+
+        const rect = target.getBoundingClientRect();
+        // Align right of menu with right of button if possible, or left
+        // Let's align right edge of menu to right edge of button
+        let left = rect.right - 140;
+        if (left < 0) left = rect.left;
+        
+        menu.style.left = `${left}px`;
+        menu.style.top = `${rect.bottom + 4}px`;
+
+        // Adjust if off screen
+        const menuRect = menu.getBoundingClientRect();
+        if (menuRect.bottom > window.innerHeight) {
+            menu.style.top = `${rect.top - menuRect.height - 4}px`;
+        }
+
+        const closeHandler = (e) => {
+            if (!menu.contains(e.target) && !target.contains(e.target)) {
+                menu.remove();
+                document.removeEventListener('mousedown', closeHandler);
+            }
+        };
+        setTimeout(() => document.addEventListener('mousedown', closeHandler), 0);
     }
 
     addFill() {
@@ -438,6 +547,10 @@ export class FillSection {
         
         if (updates.type) {
             fill.type = updates.type;
+        }
+        
+        if (updates.blendMode !== undefined) {
+            fill.blendMode = updates.blendMode;
         }
         
         if (updates.code !== undefined) {

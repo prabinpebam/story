@@ -188,6 +188,25 @@ This UI appears when the **Code Fill** icon is active. This feature allows gener
 
 ---
 
+## Fill Property Row UI (Property Inspector)
+When multiple fills are supported, they are listed in the Property Inspector. Each row contains:
+
+1.  **Drag Handle**: For reordering fills.
+2.  **Combined Input**:
+    *   **Color Swatch**: Shows preview (Color, Gradient, Image, Code). Clicking opens the Color Picker Flyout.
+    *   **Label**: Hex code or Type name.
+    *   **Separator**: Vertical line.
+    *   **Opacity Input**: Percentage value (0-100%).
+3.  **Action Group** (Right aligned, compact):
+    *   **Blend Mode**: Drop icon.
+        *   *Default*: Grey (`#666`).
+        *   *Active*: Blue (`#0055FF`) if mode is not 'Normal'.
+        *   *Action*: Opens a context menu with blend modes.
+    *   **Visibility**: Eye icon. Toggles fill visibility.
+    *   **Remove**: Minus icon. Removes the fill layer.
+
+---
+
 ## Summary Table (All Tabs)
 
 | Category | Solid | Gradient | Image | Video | Code |
