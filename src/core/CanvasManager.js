@@ -21,6 +21,7 @@ export class CanvasManager {
         this.initialElementState = {}; // Store initial state for undo/redo or delta calc
         this.activeHandle = null;
         this.hoveredElementId = null;
+        this.isRendering = false;
 
         this.init();
     }
@@ -65,14 +66,21 @@ export class CanvasManager {
         store.on('mode-changed', (mode) => {
             if (mode === 'presentation') {
                 // PresentationManager handles scaling
+                // Clear canvas immediately to remove any selection overlays
+                this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+                this.isRendering = false;
                 return;
             } else {
                 // Reset or fit to view again
                 setTimeout(() => this.fitToView(), 100);
+                if (!this.isRendering) {
+                    this.render();
+                }
             }
         });
 
         store.on('state-changed', (state) => {
+            if (state.editor.mode === 'presentation') return;
             if (this.interactionState === 'IDLE' && !this.isSpacePressed) {
                 this.container.style.cursor = state.editor.activeTool === 'hand' ? 'grab' : 'default';
             }
@@ -196,6 +204,9 @@ export class CanvasManager {
     }
 
     handleWheel(e) {
+        const state = store.getState();
+        if (state.editor.mode === 'presentation') return;
+
         if (e.ctrlKey || e.metaKey) {
             e.preventDefault();
             
@@ -244,10 +255,12 @@ export class CanvasManager {
     }
 
     handleMouseDown(e) {
+        const state = store.getState();
+        if (state.editor.mode === 'presentation') return;
+
         // Deselect slides on any canvas interaction
         store.dispatch('DESELECT_SLIDES');
 
-        const state = store.getState();
         const activeTool = state.editor.activeTool;
 
         // Middle Mouse or Space+Left Click or Hand Tool -> Pan
@@ -380,6 +393,9 @@ export class CanvasManager {
     }
 
     handleMouseMove(e) {
+        const state = store.getState();
+        if (state.editor.mode === 'presentation') return;
+
         const rect = this.container.getBoundingClientRect();
         const mouseX = e.clientX - rect.left;
         const mouseY = e.clientY - rect.top;
@@ -870,9 +886,11 @@ export class CanvasManager {
     }
 
     handleMouseUp(e) {
+        const state = store.getState();
+        if (state.editor.mode === 'presentation') return;
+
         this.activeGuides = [];
         if (this.interactionState === 'CREATING') {
-            const state = store.getState();
             const { zoom, pan } = state.editor;
             const activeTool = state.editor.activeTool;
 
@@ -933,7 +951,6 @@ export class CanvasManager {
 
         this.interactionState = 'IDLE';
         
-        const state = store.getState();
         if (this.isSpacePressed || state.editor.activeTool === 'hand') {
             this.container.style.cursor = 'grab';
         } else {
@@ -945,6 +962,9 @@ export class CanvasManager {
     }
 
     handleDoubleClick(e) {
+        const state = store.getState();
+        if (state.editor.mode === 'presentation') return;
+
         const rect = this.container.getBoundingClientRect();
         const mouseX = e.clientX - rect.left;
         const mouseY = e.clientY - rect.top;
@@ -952,7 +972,6 @@ export class CanvasManager {
         const hit = this.hitTest(mouseX, mouseY);
 
         if (hit && hit.type === 'element') {
-            const state = store.getState();
             const container = this.getActiveContainer(state);
             const element = container ? container.elements[hit.id] : null;
 
@@ -970,11 +989,13 @@ export class CanvasManager {
 
     handleDrop(e) {
         e.preventDefault();
+        const state = store.getState();
+        if (state.editor.mode === 'presentation') return;
+
         const rect = this.container.getBoundingClientRect();
         const mouseX = e.clientX - rect.left;
         const mouseY = e.clientY - rect.top;
 
-        const state = store.getState();
         const { zoom, pan } = state.editor;
 
         // Convert to world coordinates
@@ -1057,6 +1078,9 @@ export class CanvasManager {
     }
 
     handleKeyDown(e) {
+        const state = store.getState();
+        if (state.editor.mode === 'presentation') return;
+
         // Ignore shortcuts if user is typing in an input field
         if (e.target.tagName === 'INPUT' || 
             e.target.tagName === 'TEXTAREA' || 
@@ -1298,6 +1322,9 @@ export class CanvasManager {
     }
 
     handleKeyUp(e) {
+        const state = store.getState();
+        if (state.editor.mode === 'presentation') return;
+
         if (e.key === 'Alt') {
             this.measurementGuides = null;
         }
@@ -1313,7 +1340,7 @@ export class CanvasManager {
 
     resize() {
         const state = store.getState();
-        if (state.editor.mode === 'presentation' || document.body.classList.contains('mode-presentation')) return;
+        if (state.editor.mode === 'presentation') return;
 
         if (!this.container || !this.canvas) return;
 
@@ -1325,7 +1352,7 @@ export class CanvasManager {
 
     updateViewportTransform({ pan, zoom }) {
         const state = store.getState();
-        if (state.editor.mode === 'presentation' || document.body.classList.contains('mode-presentation')) return;
+        if (state.editor.mode === 'presentation') return;
 
         if (this.viewport) {
             // Apply transform to the viewport container or content layer
@@ -1357,7 +1384,15 @@ export class CanvasManager {
 
     render() {
         const state = store.getState();
-        if (state.editor.mode === 'presentation' || document.body.classList.contains('mode-presentation')) return;
+        // Only check state mode. The class check causes race conditions because 
+        // PresentationManager removes the class in a separate listener that might run after this.
+        if (state.editor.mode === 'presentation') {
+            this.isRendering = false;
+            // Ensure canvas is clear when in presentation mode
+            this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+            return;
+        }
+        this.isRendering = true;
 
         // Clear interaction canvas
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);

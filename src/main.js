@@ -98,6 +98,9 @@ class App {
 
         // Keyboard Shortcuts
         window.addEventListener('keydown', (e) => {
+            const state = store.getState();
+            if (state.editor.mode === 'presentation') return;
+
             if ((e.ctrlKey || e.metaKey) && e.key === 'z') {
                 e.preventDefault();
                 if (e.shiftKey) {

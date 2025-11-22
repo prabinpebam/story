@@ -66,22 +66,66 @@ Presentation Mode transforms the editor into a high-performance, distraction-fre
 - **Pinch In:** Enter Grid View.
 - **Pinch Out:** Exit Grid View / Zoom.
 
-## 5. Rendering & Scaling Engine
+## 5. Edit Mode vs. Presentation Mode State
 
-### 5.1 Aspect Ratio Handling
+When switching between Edit Mode and Presentation Mode, the application must strictly manage the state of UI elements and interaction layers to ensure a clean presentation and a restored editing environment upon exit.
+
+### 5.1 Disabled in Presentation Mode
+The following "Edit Mode" behaviors must be **disabled** or **hidden** when Presentation Mode is active:
+
+1.  **Canvas Rendering Loop (Interaction Layer):**
+    - **Selection Marquee:** No drag-to-select box.
+    - **Selection Overlays:** No blue bounding boxes or outlines around elements.
+    - **Transform Handles:** No resize/rotate handles.
+    - **Hover Highlights:** No outlines when moving the mouse over elements.
+    - **Guides:** No alignment or measurement guides.
+    - **Grid:** The layout grid must be hidden.
+    - **Gizmos:** Any on-canvas tools (crop handles, gradient handles) must be hidden.
+
+2.  **Interaction Events:**
+    - **Selection:** Clicking elements should not select them.
+    - **Manipulation:** Dragging elements should not move them.
+    - **Context Menus:** The standard editor context menu should be replaced by the presentation context menu (or disabled).
+    - **Double Click:** Should not enter text editing mode.
+
+3.  **UI Chrome:**
+    - **Toolbar:** Hidden.
+    - **Slide List:** Hidden.
+    - **Property Inspector:** Hidden.
+    - **Rulers:** Hidden.
+
+### 5.2 Re-enabled upon Exit
+When exiting Presentation Mode, the application must restore the previous state:
+
+1.  **Canvas Rendering:**
+    - The render loop must restart immediately.
+    - Selection overlays for previously selected elements must reappear.
+    - Hover effects must resume.
+    - The interaction canvas must be cleared of any presentation artifacts (like laser pointer trails) and repainted with editor gizmos.
+
+2.  **Interaction:**
+    - Pointer events on the interaction canvas must be re-enabled (`pointer-events: auto`).
+    - Cursor should revert to the appropriate tool state (e.g., default arrow or hand).
+
+3.  **UI Chrome:**
+    - All panels (Toolbar, Slide List, Property Inspector) must reappear.
+
+## 6. Rendering & Scaling Engine
+
+### 6.1 Aspect Ratio Handling
 - **Fit to Screen:** The slide is scaled to fit within the viewport while maintaining its aspect ratio.
 - **Letterboxing:** Black (or custom color) bars fill the remaining space.
 - **Scaling Logic:**
     - Use CSS `transform: scale()` on a container to ensure high performance (GPU acceleration).
     - Text and vectors remain sharp (avoid rasterizing if possible, or use high-DPI canvas).
 
-### 5.2 Media Playback
+### 6.2 Media Playback
 - **Video/Audio:**
     - **Auto-play:** Media set to "Start Automatically" plays immediately upon slide entry.
     - **On Click:** Media set to "Start on Click" waits for trigger.
     - **Looping:** Support for background loops.
 
-## 6. Animation Sequencer
+## 7. Animation Sequencer
 The engine must distinguish between **Slide Transitions** and **Element Builds**.
 
 1.  **State A (Current Slide):** Static.
@@ -94,13 +138,13 @@ The engine must distinguish between **Slide Transitions** and **Element Builds**
     - Execute Entrance Transition (Next Slide).
     - **Magic Morph:** If active, interpolate matching elements between slides.
 
-## 7. Interactive Tools
+## 8. Interactive Tools
 
-### 7.1 Laser Pointer
+### 8.1 Laser Pointer
 - **Visual:** A glowing red (or custom color) trail that follows the cursor.
 - **Physics:** Slight delay/smoothing to mimic a real laser pointer.
 
-### 7.2 On-Screen Controls (HUD)
+### 8.2 On-Screen Controls (HUD)
 - **Visibility:** Appears on mouse move in the bottom-left or bottom-center. Fades out after inactivity.
 - **Buttons:**
     - Previous / Next.
@@ -109,7 +153,7 @@ The engine must distinguish between **Slide Transitions** and **Element Builds**
     - Fullscreen toggle.
     - Menu (three dots).
 
-### 7.3 Slide Navigator (Grid View)
+### 8.3 Slide Navigator (Grid View)
 - **Trigger:** `G` key or HUD button.
 - **Visual:** A zoomed-out grid of all slides.
 - **Interaction:**
@@ -118,16 +162,16 @@ The engine must distinguish between **Slide Transitions** and **Element Builds**
     - `Esc` to cancel and return to current slide.
 - **Animation:** Zoom out from current slide to grid; Zoom in to selected slide.
 
-## 8. Technical Architecture
+## 9. Technical Architecture
 
-### 8.1 PresentationController
+### 9.1 PresentationController
 A singleton class responsible for:
 - **State Machine:** `IDLE` -> `ANIMATING` -> `PAUSED`.
 - **Input Handling:** Global event listeners (keydown, resize, touch).
 - **Focus Management:** Trapping focus within the presentation container.
 - **Multi-Window Sync:** Uses `BroadcastChannel` to communicate state (current slide, timer) between Audience and Presenter windows.
 
-### 8.2 DOM Structure
+### 9.2 DOM Structure
 ```html
 <div id="presentation-layer" class="fullscreen">
     <div id="scaler">
@@ -142,6 +186,6 @@ A singleton class responsible for:
 </div>
 ```
 
-### 8.3 Performance Optimization
+### 9.3 Performance Optimization
 - **Preloading:** The next and previous slides should be rendered in the DOM (hidden) to ensure instant transitions.
 - **Layer Promotion:** Use `will-change: transform` on the scaler and animating elements.
