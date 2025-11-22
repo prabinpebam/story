@@ -600,17 +600,22 @@ export class SlideRenderer {
                  strokes.forEach((stroke, index) => {
                      let layer = div._strokeLayers[index];
                      
-                     // Create if missing
-                     if (!layer) {
-                         layer = document.createElement('div');
-                         layer.className = 'stroke-layer';
+                     // Create if missing or wrong type (we switched from div to svg)
+                     if (!layer || layer.tagName !== 'svg') {
+                         if (layer) layer.remove();
+                         layer = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+                         layer.setAttribute('class', 'stroke-layer');
                          layer.style.position = 'absolute';
-                         layer.style.pointerEvents = 'none'; // Let clicks pass through to fill/shape
-                         layer.style.boxSizing = 'border-box';
+                         layer.style.pointerEvents = 'none'; // Let clicks pass through
+                         layer.style.overflow = 'visible';
+                         
+                         const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+                         layer.appendChild(rect);
+                         
                          div._strokeLayers[index] = layer;
                      }
                      
-                     // Ensure attached to DOM (in case innerHTML was cleared by fills)
+                     // Ensure attached
                      if (layer.parentNode !== div) {
                          div.appendChild(layer);
                      }
@@ -619,44 +624,72 @@ export class SlideRenderer {
                      layer.style.display = stroke.visible === false ? 'none' : 'block';
                      layer.style.opacity = (stroke.opacity !== undefined) ? stroke.opacity / 100 : 1;
                      layer.style.mixBlendMode = stroke.blendMode || 'normal';
-                     
-                     // Style
+                     layer.style.zIndex = 100 + (strokes.length - index);
+
+                     const rect = layer.firstChild;
                      const width = stroke.width || 0;
                      const color = stroke.color || 'transparent';
-                     const style = stroke.style || 'solid'; // solid, dashed, dotted
-                     
-                     layer.style.borderStyle = style;
-                     layer.style.borderColor = color;
-                     layer.style.borderWidth = `${width}px`;
-                     
-                     // Position & Geometry
                      const align = stroke.position || 'center';
                      const radius = el.borderRadius || el.style?.radius || 0;
                      
+                     // Stroke Attributes
+                     rect.setAttribute('stroke', color);
+                     rect.setAttribute('stroke-width', width);
+                     rect.setAttribute('fill', 'none');
+                     
+                     // Dash Array & Cap
+                     let dashArray = 'none';
+                     if (stroke.style === 'dashed') {
+                         dashArray = stroke.dashArray ? stroke.dashArray.replace(/,/g, ' ') : '4 4';
+                     } else if (stroke.style === 'dotted') {
+                         dashArray = stroke.dashArray ? stroke.dashArray.replace(/,/g, ' ') : '1 3';
+                     } else if (stroke.style === 'custom') {
+                         dashArray = stroke.dashArray ? stroke.dashArray.replace(/,/g, ' ') : 'none';
+                     }
+                     rect.setAttribute('stroke-dasharray', dashArray);
+                     rect.setAttribute('stroke-linecap', stroke.dashCap || 'butt');
+                     rect.setAttribute('stroke-linejoin', stroke.join || 'miter');
+                     if (stroke.join === 'miter') {
+                         rect.setAttribute('stroke-miterlimit', stroke.miterLimit || 4);
+                     }
+
+                     // Geometry & Positioning
+                     layer.style.left = '0';
+                     layer.style.top = '0';
+                     layer.style.width = '100%';
+                     layer.style.height = '100%';
+                     
+                     // Calculate Rect Geometry based on Alignment
+                     let x, y, w, h, rx;
+                     
                      if (align === 'inside') {
-                         layer.style.left = '0';
-                         layer.style.top = '0';
-                         layer.style.width = '100%';
-                         layer.style.height = '100%';
-                         layer.style.borderRadius = `${radius}px`;
+                         const inset = width / 2;
+                         x = inset;
+                         y = inset;
+                         w = el.width - width;
+                         h = el.height - width;
+                         rx = Math.max(0, radius - inset);
                      } else if (align === 'outside') {
-                         layer.style.left = `-${width}px`;
-                         layer.style.top = `-${width}px`;
-                         layer.style.width = `calc(100% + ${width * 2}px)`;
-                         layer.style.height = `calc(100% + ${width * 2}px)`;
-                         layer.style.borderRadius = `${radius + width}px`;
+                         const outset = width / 2;
+                         x = -outset;
+                         y = -outset;
+                         w = el.width + width;
+                         h = el.height + width;
+                         rx = radius + outset;
                      } else { // center
-                         layer.style.left = `-${width / 2}px`;
-                         layer.style.top = `-${width / 2}px`;
-                         layer.style.width = `calc(100% + ${width}px)`;
-                         layer.style.height = `calc(100% + ${width}px)`;
-                         layer.style.borderRadius = `${radius + (width / 2)}px`;
+                         x = 0;
+                         y = 0;
+                         w = el.width;
+                         h = el.height;
+                         rx = radius;
                      }
                      
-                     // Z-Index: Strokes usually on top of fills.
-                     // And within strokes, list order (0 is top) means higher z-index.
-                     // Let's say base z-index for strokes is 100.
-                     layer.style.zIndex = 100 + (strokes.length - index);
+                     rect.setAttribute('x', x);
+                     rect.setAttribute('y', y);
+                     rect.setAttribute('width', Math.max(0, w));
+                     rect.setAttribute('height', Math.max(0, h));
+                     rect.setAttribute('rx', rx);
+                     rect.setAttribute('ry', rx);
                  });
                  
                  // Cleanup extra layers

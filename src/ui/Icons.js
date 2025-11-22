@@ -65,4 +65,9 @@ export const Icons = {
     JOIN_MITER: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 13V3H13" stroke="currentColor" stroke-width="1.5" stroke-linejoin="miter"/></svg>',
     JOIN_ROUND: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 13V6C3 4.34315 4.34315 3 6 3H13" stroke="currentColor" stroke-width="1.5"/></svg>',
     JOIN_BEVEL: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 13V5L5 3H13" stroke="currentColor" stroke-width="1.5" stroke-linejoin="bevel"/></svg>',
+
+    // Stroke Caps
+    CAP_BUTT: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 8H13" stroke="currentColor" stroke-width="4" stroke-linecap="butt"/></svg>',
+    CAP_ROUND: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 8H13" stroke="currentColor" stroke-width="4" stroke-linecap="round"/></svg>',
+    CAP_SQUARE: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 8H13" stroke="currentColor" stroke-width="4" stroke-linecap="square"/></svg>',
 };

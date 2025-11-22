@@ -2,6 +2,7 @@ import { Flyout } from '../Flyout.js';
 import { SegmentedControl } from '../SegmentedControl.js';
 import { Dropdown } from '../Dropdown.js';
 import { NumberInput } from '../NumberInput.js';
+import { TextInput } from '../TextInput.js';
 import { IconButton } from '../IconButton.js';
 import { Icons } from '../../Icons.js';
 import { SolidTab } from '../FillFlyout/SolidTab.js';
@@ -143,20 +144,72 @@ export class StrokeSettingsFlyout {
         rowA.appendChild(positionDropdown.element);
         propsContainer.appendChild(rowA);
 
-        // Style (Solid/Dashed)
+        // Style (Solid/Dashed) - Segmented Control
         const styleRow = this.createRow('Style');
-        const styleDropdown = new Dropdown({
+        const styleControl = new SegmentedControl({
             options: [
                 { label: 'Solid', value: 'solid' },
-                { label: 'Dashed', value: 'dashed' },
-                { label: 'Dotted', value: 'dotted' }
+                { label: 'Dashed', value: 'dashed' }
             ],
-            value: this.stroke.style || 'solid',
-            width: '100%',
-            onChange: (val) => this.onChange({ style: val })
+            value: (this.stroke.style === 'dashed' || this.stroke.style === 'custom') ? 'dashed' : 'solid',
+            onChange: (val) => {
+                // If switching to dashed, default to 'dashed' style (or keep custom if it was custom?)
+                // Let's just set it to 'dashed' or 'solid'.
+                // If 'dashed' is selected, we show the dash input which allows customization.
+                // If the user types in the input, we might want to switch to 'custom' internally if needed, 
+                // or just treat 'dashed' as having a dashArray.
+                // The renderer handles 'dashed' with dashArray.
+                this.onChange({ style: val });
+                updateDashVisibility(val);
+            }
         });
-        styleRow.appendChild(styleDropdown.element);
+        styleRow.appendChild(styleControl.element);
         propsContainer.appendChild(styleRow);
+
+        // Dashes & Cap (Conditional)
+        const dashRow = this.createRow('Dashes');
+        dashRow.style.display = 'none';
+        
+        const dashContainer = document.createElement('div');
+        dashContainer.style.display = 'flex';
+        dashContainer.style.gap = '8px';
+        dashContainer.style.width = '100%';
+
+        const dashInput = new TextInput({
+            value: this.stroke.dashArray || '2, 4',
+            placeholder: '2, 4',
+            onChange: (val) => this.onChange({ dashArray: val })
+        });
+        dashInput.element.style.flex = '1';
+        // Fix TextInput styling to match
+        const inputEl = dashInput.element.querySelector('input');
+        if (inputEl) {
+            inputEl.style.textAlign = 'center';
+            inputEl.style.fontFamily = 'var(--font-mono)';
+        }
+
+        const capControl = new SegmentedControl({
+            options: [
+                { label: 'Butt', value: 'butt', icon: Icons.CAP_BUTT },
+                { label: 'Square', value: 'square', icon: Icons.CAP_SQUARE },
+                { label: 'Round', value: 'round', icon: Icons.CAP_ROUND }
+            ],
+            value: this.stroke.dashCap || 'butt',
+            onChange: (val) => this.onChange({ dashCap: val })
+        });
+        capControl.element.style.width = 'auto';
+        capControl.element.style.flex = '0 0 auto';
+        capControl.element.style.marginBottom = '0';
+
+        dashContainer.appendChild(dashInput.element);
+        dashContainer.appendChild(capControl.element);
+        dashRow.appendChild(dashContainer);
+        propsContainer.appendChild(dashRow);
+
+        const updateDashVisibility = (style) => {
+            dashRow.style.display = (style === 'dashed' || style === 'custom') ? 'flex' : 'none';
+        };
+        updateDashVisibility(this.stroke.style || 'solid');
 
         // Joins
         const joinRow = this.createRow('Join');

@@ -111,6 +111,71 @@ export class StrokeSection {
         dragHandle.style.justifyContent = 'center';
         dragHandle.style.width = '16px';
         dragHandle.style.height = '100%';
+        dragHandle.draggable = true;
+
+        dragHandle.addEventListener('dragstart', (e) => {
+            e.dataTransfer.effectAllowed = 'move';
+            e.dataTransfer.setData('text/plain', index);
+            e.dataTransfer.setDragImage(row, 0, 0);
+            row.style.opacity = '0.5';
+            this.dragStartIndex = index;
+            e.stopPropagation();
+        });
+
+        dragHandle.addEventListener('dragend', (e) => {
+            row.style.opacity = '1';
+            this.container.querySelectorAll('.pi-row').forEach(r => {
+                r.style.borderTop = 'none';
+                r.style.borderBottom = 'none';
+            });
+            this.dragStartIndex = null;
+        });
+
+        row.addEventListener('dragover', (e) => {
+            e.preventDefault(); // Necessary to allow dropping
+            e.dataTransfer.dropEffect = 'move';
+            
+            if (this.dragStartIndex === null || this.dragStartIndex === index) return;
+
+            // Visual feedback
+            const rect = row.getBoundingClientRect();
+            const midY = rect.top + rect.height / 2;
+            
+            if (e.clientY < midY) {
+                row.style.borderTop = '2px solid #0055FF';
+                row.style.borderBottom = 'none';
+            } else {
+                row.style.borderTop = 'none';
+                row.style.borderBottom = '2px solid #0055FF';
+            }
+        });
+
+        row.addEventListener('dragleave', () => {
+            row.style.borderTop = 'none';
+            row.style.borderBottom = 'none';
+        });
+
+        row.addEventListener('drop', (e) => {
+            e.preventDefault();
+            const fromIndex = parseInt(e.dataTransfer.getData('text/plain'));
+            let toIndex = index;
+            
+            // Calculate if dropping above or below
+            const rect = row.getBoundingClientRect();
+            const midY = rect.top + rect.height / 2;
+            
+            if (e.clientY > midY) {
+                toIndex = index + 1;
+            }
+            
+            if (fromIndex !== toIndex) {
+                this.reorderStrokes(element, fromIndex, toIndex);
+            }
+            
+            row.style.borderTop = 'none';
+            row.style.borderBottom = 'none';
+        });
+
         row.appendChild(dragHandle);
 
         // 2. Combined Input Group (Swatch + Hex + Opacity)
@@ -374,6 +439,22 @@ export class StrokeSection {
 
         strokes[index] = { ...strokes[index], ...updates };
         this.commitChanges(strokes);
+    }
+
+    reorderStrokes(element, fromIndex, toIndex) {
+        const style = element.style || {};
+        if (!style.strokes) return;
+
+        const newStrokes = [...style.strokes];
+        const [movedItem] = newStrokes.splice(fromIndex, 1);
+        
+        // Adjust toIndex if we removed an item before it
+        if (fromIndex < toIndex) {
+            toIndex--;
+        }
+        
+        newStrokes.splice(toIndex, 0, movedItem);
+        this.commitChanges(newStrokes);
     }
 
     commitChanges(strokes) {
