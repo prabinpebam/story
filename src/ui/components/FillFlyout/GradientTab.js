@@ -178,6 +178,7 @@ export class GradientTab {
                 max: 360,
                 step: 1,
                 units: '°',
+                scrubbable: true,
                 onChange: (val) => {
                     this.state.angle = val;
                     this.emitChange();
@@ -287,7 +288,26 @@ export class GradientTab {
                 e.stopPropagation();
                 this.selectedStopIndex = index;
                 this.updateColorState();
-                this.render(); // Highlight selected
+                
+                // Update selection visual without full re-render
+                const allHandles = container.querySelectorAll('div[style*="border-radius: 50%"]');
+                allHandles.forEach((h, i) => {
+                    if (i === index) {
+                        h.style.borderColor = '#0055FF';
+                        h.style.transform = 'translate(-50%, -50%) scale(1.2)';
+                        h.style.zIndex = '10';
+                    } else {
+                        h.style.borderColor = '#fff';
+                        h.style.transform = 'translate(-50%, -50%)';
+                        h.style.zIndex = '1';
+                    }
+                });
+                
+                // Update list selection visual
+                const listRows = this.stopsListContainer.querySelectorAll('div[style*="cursor: pointer"]');
+                listRows.forEach((row, i) => {
+                    row.style.backgroundColor = i === index ? '#444' : 'transparent';
+                });
 
                 const startX = e.clientX;
                 const startPos = stop.position;
@@ -299,6 +319,7 @@ export class GradientTab {
                     let newPos = Math.max(0, Math.min(100, startPos + dPos));
                     
                     stop.position = newPos;
+                    
                     handle.style.left = `${newPos}%`;
                     preview.style.background = this.getGradientString(true);
                     this.emitChange();
@@ -307,9 +328,11 @@ export class GradientTab {
                 const upHandler = () => {
                     document.removeEventListener('mousemove', moveHandler);
                     document.removeEventListener('mouseup', upHandler);
+                    // Sort stops
                     this.state.stops.sort((a, b) => a.position - b.position);
+                    // Update selected index
                     this.selectedStopIndex = this.state.stops.indexOf(stop);
-                    this.render(); // Re-render to sort handles and update list
+                    this.render();
                 };
 
                 document.addEventListener('mousemove', moveHandler);
@@ -393,6 +416,7 @@ export class GradientTab {
             const posInput = new NumberInput({
                 value: Math.round(stop.position),
                 min: 0, max: 100, units: '%',
+                scrubbable: true,
                 onChange: (val) => {
                     stop.position = val;
                     this.state.stops.sort((a, b) => a.position - b.position);
@@ -410,6 +434,7 @@ export class GradientTab {
             const opacityInput = new NumberInput({
                 value: Math.round(rgba.a * 100),
                 min: 0, max: 100, units: '%',
+                scrubbable: true,
                 onChange: (val) => {
                     const currentRgba = ColorUtils.parseColor(stop.color);
                     const newColor = `rgba(${currentRgba.r}, ${currentRgba.g}, ${currentRgba.b}, ${val/100})`;
