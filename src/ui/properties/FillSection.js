@@ -582,14 +582,27 @@ export class FillSection {
             // For now, let's bake opacity into the rgba string for 'color' property to keep it simple for renderer.
             const currentOpacity = fill.opacity !== undefined ? fill.opacity : 100;
             fill.color = this.applyOpacity(updates.color, currentOpacity);
-            fill.value = fill.color;
+            
+            // Only sync value to color if type is solid
+            if (fill.type === 'solid') {
+                fill.value = fill.color;
+            }
         }
 
         if (updates.opacity !== undefined) {
             fill.opacity = updates.opacity;
             // Re-bake opacity into color string
             fill.color = this.applyOpacity(fill.color, fill.opacity);
-            fill.value = fill.color;
+            
+            // Only sync value to color if type is solid
+            if (fill.type === 'solid') {
+                fill.value = fill.color;
+            }
+        }
+
+        // For non-solid types (gradient, image, etc), the value comes directly from updates
+        if (fill.type !== 'solid' && updates.value !== undefined) {
+            fill.value = updates.value;
         }
 
         if (updates.visible !== undefined) {

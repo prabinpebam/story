@@ -19,6 +19,22 @@ export class GradientTab {
         this.element.style.display = 'flex';
         this.element.style.flexDirection = 'column';
         this.element.style.gap = '12px';
+
+        // Create persistent containers
+        this.topBar = document.createElement('div');
+        this.topBar.style.display = 'flex';
+        this.topBar.style.gap = '8px';
+        this.topBar.style.alignItems = 'center';
+        this.element.appendChild(this.topBar);
+
+        this.sliderContainer = document.createElement('div');
+        this.element.appendChild(this.sliderContainer);
+
+        this.stopsListContainer = document.createElement('div');
+        this.element.appendChild(this.stopsListContainer);
+
+        this.pickerContainer = document.createElement('div');
+        this.element.appendChild(this.pickerContainer);
         
         this.render();
     }
@@ -54,12 +70,22 @@ export class GradientTab {
                 } else {
                     stopsString = content;
                 }
+            } else if (value.startsWith('conic-gradient')) {
+                type = 'angular';
+                const content = value.substring(15, value.length - 1);
+                // Format: from 90deg at center, ...
+                const fromMatch = content.match(/from\s+([\d.]+)deg\s+at\s+center,\s*/);
+                if (fromMatch) {
+                    angle = parseFloat(fromMatch[1]);
+                    stopsString = content.substring(fromMatch[0].length);
+                } else {
+                    stopsString = content;
+                }
             } else {
                 return defaultGradient;
             }
 
             // Parse stops (handling rgba commas)
-            // Split by comma, but ignore commas inside parentheses
             const stops = [];
             let current = '';
             let depth = 0;
@@ -86,12 +112,11 @@ export class GradientTab {
     }
 
     parseStop(stopStr) {
-        // Format: "color position%" or just "color"
         const match = stopStr.match(/^(.*?)\s+([\d.]+)%$/);
         if (match) {
             return { color: match[1], position: parseFloat(match[2]) };
         }
-        return { color: stopStr, position: 0 }; // Fallback
+        return { color: stopStr, position: 0 };
     }
 
     updateColorState() {
@@ -110,13 +135,14 @@ export class GradientTab {
     }
 
     render() {
-        this.element.innerHTML = '';
-        
-        // 1. Top Bar: Type & Angle
-        const topBar = document.createElement('div');
-        topBar.style.display = 'flex';
-        topBar.style.gap = '8px';
-        topBar.style.alignItems = 'center';
+        this.renderTopBar();
+        this.renderGradientSlider();
+        this.renderStopsList();
+        this.renderColorPicker();
+    }
+
+    renderTopBar() {
+        this.topBar.innerHTML = '';
 
         // Type Select
         const typeSelect = document.createElement('select');
@@ -129,7 +155,7 @@ export class GradientTab {
         typeSelect.style.fontSize = '11px';
         typeSelect.style.height = '24px';
         
-        ['linear', 'radial'].forEach(t => {
+        ['linear', 'radial', 'angular', 'diamond'].forEach(t => {
             const opt = document.createElement('option');
             opt.value = t;
             opt.textContent = t.charAt(0).toUpperCase() + t.slice(1);
@@ -140,12 +166,12 @@ export class GradientTab {
         typeSelect.onchange = (e) => {
             this.state.type = e.target.value;
             this.emitChange();
-            this.render(); // Re-render to show/hide angle
+            this.render(); // Full render needed for angle input visibility
         };
-        topBar.appendChild(typeSelect);
+        this.topBar.appendChild(typeSelect);
 
-        // Angle Input (only for linear)
-        if (this.state.type === 'linear') {
+        // Angle Input
+        if (this.state.type === 'linear' || this.state.type === 'angular') {
             const angleInput = new NumberInput({
                 value: this.state.angle,
                 min: 0,
@@ -158,12 +184,24 @@ export class GradientTab {
                 }
             });
             angleInput.element.style.width = '60px';
-            topBar.appendChild(angleInput.element);
+            this.topBar.appendChild(angleInput.element);
         }
+
+        // Rotate Button
+        const rotateBtn = new IconButton({
+            icon: Icons.ROTATE || '<i class="fa-solid fa-rotate-right"></i>',
+            title: 'Rotate 90°',
+            onClick: () => {
+                this.state.angle = (this.state.angle + 90) % 360;
+                this.emitChange();
+                this.render();
+            }
+        });
+        this.topBar.appendChild(rotateBtn.element);
 
         // Reverse Button
         const reverseBtn = new IconButton({
-            icon: Icons.REVERSE || '<i class="fa-solid fa-arrow-right-arrow-left"></i>', // Fallback icon
+            icon: Icons.REVERSE || '<i class="fa-solid fa-arrow-right-arrow-left"></i>',
             title: 'Reverse Gradient',
             onClick: () => {
                 this.state.stops.reverse();
@@ -172,18 +210,11 @@ export class GradientTab {
                 this.render();
             }
         });
-        topBar.appendChild(reverseBtn.element);
-
-        this.element.appendChild(topBar);
-
-        // 2. Gradient Slider
-        this.renderGradientSlider();
-
-        // 3. Stop Color Picker (HSB)
-        this.renderColorPicker();
+        this.topBar.appendChild(reverseBtn.element);
     }
 
     renderGradientSlider() {
+        this.sliderContainer.innerHTML = '';
         const container = document.createElement('div');
         container.style.height = '24px';
         container.style.position = 'relative';
@@ -197,7 +228,6 @@ export class GradientTab {
         bar.style.borderRadius = '6px';
         bar.style.position = 'absolute';
         bar.style.top = '6px';
-        // Checkerboard bg for transparency
         bar.style.backgroundImage = `
             linear-gradient(45deg, #ccc 25%, transparent 25%), 
             linear-gradient(-45deg, #ccc 25%, transparent 25%), 
@@ -206,26 +236,21 @@ export class GradientTab {
         bar.style.backgroundSize = '8px 8px';
         bar.style.backgroundColor = '#fff';
 
-        // Gradient Preview Overlay
+        // Preview
         const preview = document.createElement('div');
         preview.style.position = 'absolute';
-        preview.style.top = '0';
-        preview.style.left = '0';
-        preview.style.width = '100%';
-        preview.style.height = '100%';
+        preview.style.inset = '0';
         preview.style.borderRadius = 'inherit';
-        preview.style.background = this.getGradientString(true); // Linear 90deg for preview
+        preview.style.background = this.getGradientString(true);
         bar.appendChild(preview);
         
-        // Click bar to add stop
+        // Click to add stop
         bar.addEventListener('mousedown', (e) => {
             if (e.target !== bar && e.target !== preview) return;
             const rect = bar.getBoundingClientRect();
             const x = e.clientX - rect.left;
             const pos = Math.max(0, Math.min(100, (x / rect.width) * 100));
             
-            // Add new stop
-            // Interpolate color at this position? For now, just duplicate selected or white
             const newStop = { color: '#FFFFFF', position: pos };
             this.state.stops.push(newStop);
             this.state.stops.sort((a, b) => a.position - b.position);
@@ -258,7 +283,6 @@ export class GradientTab {
                 handle.style.transform = 'translate(-50%, -50%) scale(1.2)';
             }
 
-            // Drag Logic
             handle.addEventListener('mousedown', (e) => {
                 e.stopPropagation();
                 this.selectedStopIndex = index;
@@ -275,7 +299,6 @@ export class GradientTab {
                     let newPos = Math.max(0, Math.min(100, startPos + dPos));
                     
                     stop.position = newPos;
-                    
                     handle.style.left = `${newPos}%`;
                     preview.style.background = this.getGradientString(true);
                     this.emitChange();
@@ -284,11 +307,9 @@ export class GradientTab {
                 const upHandler = () => {
                     document.removeEventListener('mousemove', moveHandler);
                     document.removeEventListener('mouseup', upHandler);
-                    // Sort stops
                     this.state.stops.sort((a, b) => a.position - b.position);
-                    // Update selected index
                     this.selectedStopIndex = this.state.stops.indexOf(stop);
-                    this.render();
+                    this.render(); // Re-render to sort handles and update list
                 };
 
                 document.addEventListener('mousemove', moveHandler);
@@ -298,11 +319,138 @@ export class GradientTab {
             container.appendChild(handle);
         });
 
-        this.element.appendChild(container);
+        this.sliderContainer.appendChild(container);
+    }
+
+    renderStopsList() {
+        this.stopsListContainer.innerHTML = '';
+        
+        const listHeader = document.createElement('div');
+        listHeader.style.display = 'flex';
+        listHeader.style.justifyContent = 'space-between';
+        listHeader.style.alignItems = 'center';
+        listHeader.style.marginBottom = '4px';
+        
+        const label = document.createElement('span');
+        label.textContent = 'Stops';
+        label.style.fontSize = '11px';
+        label.style.color = '#888';
+        listHeader.appendChild(label);
+
+        const addStopBtn = new IconButton({
+            icon: Icons.PLUS,
+            title: 'Add Stop',
+            onClick: () => {
+                const newStop = { color: '#FFFFFF', position: 50 };
+                this.state.stops.push(newStop);
+                this.state.stops.sort((a, b) => a.position - b.position);
+                this.selectedStopIndex = this.state.stops.indexOf(newStop);
+                this.updateColorState();
+                this.emitChange();
+                this.render();
+            }
+        });
+        listHeader.appendChild(addStopBtn.element);
+        this.stopsListContainer.appendChild(listHeader);
+
+        const stopsList = document.createElement('div');
+        stopsList.style.display = 'flex';
+        stopsList.style.flexDirection = 'column';
+        stopsList.style.gap = '4px';
+        stopsList.style.marginBottom = '12px';
+        stopsList.style.maxHeight = '120px';
+        stopsList.style.overflowY = 'auto';
+
+        this.state.stops.forEach((stop, index) => {
+            const row = document.createElement('div');
+            row.style.display = 'flex';
+            row.style.alignItems = 'center';
+            row.style.gap = '8px';
+            row.style.padding = '4px';
+            row.style.borderRadius = '4px';
+            row.style.cursor = 'pointer';
+            
+            if (index === this.selectedStopIndex) {
+                row.style.backgroundColor = '#444';
+            }
+            
+            row.onclick = () => {
+                this.selectedStopIndex = index;
+                this.updateColorState();
+                this.render();
+            };
+
+            // Color Swatch
+            const swatch = document.createElement('div');
+            swatch.style.width = '16px';
+            swatch.style.height = '16px';
+            swatch.style.borderRadius = '2px';
+            swatch.style.backgroundColor = stop.color;
+            swatch.style.border = '1px solid #666';
+            row.appendChild(swatch);
+
+            // Position Input
+            const posInput = new NumberInput({
+                value: Math.round(stop.position),
+                min: 0, max: 100, units: '%',
+                onChange: (val) => {
+                    stop.position = val;
+                    this.state.stops.sort((a, b) => a.position - b.position);
+                    this.selectedStopIndex = this.state.stops.indexOf(stop);
+                    this.emitChange();
+                    this.render();
+                }
+            });
+            posInput.element.style.width = '48px';
+            posInput.element.onclick = (e) => e.stopPropagation();
+            row.appendChild(posInput.element);
+
+            // Opacity Input
+            const rgba = ColorUtils.parseColor(stop.color);
+            const opacityInput = new NumberInput({
+                value: Math.round(rgba.a * 100),
+                min: 0, max: 100, units: '%',
+                onChange: (val) => {
+                    const currentRgba = ColorUtils.parseColor(stop.color);
+                    const newColor = `rgba(${currentRgba.r}, ${currentRgba.g}, ${currentRgba.b}, ${val/100})`;
+                    stop.color = newColor;
+                    if (index === this.selectedStopIndex) this.updateColorState();
+                    this.emitChange();
+                    this.render();
+                }
+            });
+            opacityInput.element.style.width = '48px';
+            opacityInput.element.onclick = (e) => e.stopPropagation();
+            row.appendChild(opacityInput.element);
+
+            // Remove Button
+            const removeBtn = new IconButton({
+                icon: Icons.MINUS,
+                title: 'Remove',
+                onClick: (e) => {
+                    e.stopPropagation();
+                    if (this.state.stops.length <= 2) return;
+                    this.state.stops.splice(index, 1);
+                    this.selectedStopIndex = Math.max(0, this.selectedStopIndex - 1);
+                    this.updateColorState();
+                    this.emitChange();
+                    this.render();
+                }
+            });
+            if (this.state.stops.length <= 2) {
+                removeBtn.element.style.opacity = '0.5';
+                removeBtn.element.style.pointerEvents = 'none';
+            }
+            row.appendChild(removeBtn.element);
+
+            stopsList.appendChild(row);
+        });
+        
+        this.stopsListContainer.appendChild(stopsList);
     }
 
     renderColorPicker() {
-        // Reusing SolidTab logic
+        this.pickerContainer.innerHTML = '';
         const container = document.createElement('div');
         container.style.display = 'flex';
         container.style.flexDirection = 'column';
@@ -311,13 +459,12 @@ export class GradientTab {
         // 1. Color Area (HSB)
         const colorArea = document.createElement('div');
         colorArea.style.width = '100%';
-        colorArea.style.height = '120px'; // Slightly shorter
+        colorArea.style.height = '120px';
         colorArea.style.borderRadius = '4px';
         colorArea.style.position = 'relative';
         colorArea.style.cursor = 'default';
         colorArea.style.overflow = 'hidden';
         
-        // Backgrounds
         const colorAreaBg = document.createElement('div');
         colorAreaBg.style.position = 'absolute';
         colorAreaBg.style.inset = '0';
@@ -337,7 +484,6 @@ export class GradientTab {
         colorArea.appendChild(whiteGrad);
         colorArea.appendChild(blackGrad);
 
-        // Handle
         const areaHandle = document.createElement('div');
         areaHandle.style.width = '12px';
         areaHandle.style.height = '12px';
@@ -349,10 +495,8 @@ export class GradientTab {
         areaHandle.style.top = `${100 - this.colorState.b}%`;
         areaHandle.style.transform = 'translate(-50%, -50%)';
         areaHandle.style.pointerEvents = 'none';
-        
         colorArea.appendChild(areaHandle);
 
-        // Interaction
         const handleAreaMove = (e) => {
             const rect = colorArea.getBoundingClientRect();
             if (rect.width === 0) return;
@@ -453,7 +597,6 @@ export class GradientTab {
         alphaGrad.style.position = 'absolute';
         alphaGrad.style.inset = '0';
         alphaGrad.style.borderRadius = 'inherit';
-        // Update this gradient dynamically
         const rgb = ColorUtils.hsbToRgb(this.colorState.h, this.colorState.s, this.colorState.b);
         alphaGrad.style.background = `linear-gradient(to right, rgba(${rgb.r},${rgb.g},${rgb.b},0), rgba(${rgb.r},${rgb.g},${rgb.b},1))`;
         alphaSlider.appendChild(alphaGrad);
@@ -499,25 +642,7 @@ export class GradientTab {
 
         sliders.appendChild(alphaSlider);
         container.appendChild(sliders);
-
-        // Delete Stop Button
-        if (this.state.stops.length > 2) {
-            const deleteBtn = new IconButton({
-                icon: Icons.TRASH || '<i class="fa-solid fa-trash"></i>',
-                title: 'Delete Stop',
-                onClick: () => {
-                    this.state.stops.splice(this.selectedStopIndex, 1);
-                    this.selectedStopIndex = Math.max(0, this.selectedStopIndex - 1);
-                    this.updateColorState();
-                    this.emitChange();
-                    this.render();
-                }
-            });
-            deleteBtn.element.style.alignSelf = 'flex-end';
-            container.appendChild(deleteBtn.element);
-        }
-
-        this.element.appendChild(container);
+        this.pickerContainer.appendChild(container);
     }
 
     updateStopColor() {
@@ -528,25 +653,44 @@ export class GradientTab {
         this.state.stops[this.selectedStopIndex].color = color;
         this.emitChange();
         
-        // Update gradient slider preview immediately if possible, but render() does it.
-        // To avoid full re-render loop, we could just update the specific elements, 
-        // but for now render() is safe enough.
-        // Actually, full render might kill the drag interaction of the color picker.
-        // So we should NOT call render() here.
-        // We need to update the gradient bar preview manually.
-        const barPreview = this.element.querySelector('div[style*="linear-gradient"]'); // Hacky selector
-        // Better: store reference
+        // Update UI parts without full re-render
+        const preview = this.sliderContainer.querySelector('div[style*="linear-gradient"], div[style*="radial-gradient"], div[style*="conic-gradient"]');
+        if (preview) {
+            preview.style.background = this.getGradientString(true);
+        }
+
+        this.renderStopsList();
+
+        const alphaGrad = this.pickerContainer.querySelector('div[style*="rgba"]');
+        if (alphaGrad) {
+            alphaGrad.style.background = `linear-gradient(to right, rgba(${rgb.r},${rgb.g},${rgb.b},0), rgba(${rgb.r},${rgb.g},${rgb.b},1))`;
+        }
     }
 
     getGradientString(forPreview = false) {
         const type = forPreview ? 'linear' : this.state.type;
-        const angle = forPreview ? '90deg' : (this.state.type === 'linear' ? `${this.state.angle}deg` : 'circle');
-        
+        let prefix = 'linear-gradient';
+        let args = '';
+
         const stopsStr = this.state.stops
             .map(s => `${s.color} ${s.position}%`)
             .join(', ');
-            
-        return `${type}-gradient(${angle}, ${stopsStr})`;
+
+        if (type === 'linear') {
+            prefix = 'linear-gradient';
+            args = `${forPreview ? '90' : this.state.angle}deg, ${stopsStr}`;
+        } else if (type === 'radial') {
+            prefix = 'radial-gradient';
+            args = `circle at center, ${stopsStr}`;
+        } else if (type === 'angular') {
+            prefix = 'conic-gradient';
+            args = `from ${forPreview ? '0' : (this.state.angle || 0)}deg at center, ${stopsStr}`;
+        } else if (type === 'diamond') {
+             prefix = 'radial-gradient';
+             args = `circle at center, ${stopsStr}`; 
+        }
+
+        return `${prefix}(${args})`;
     }
 
     emitChange() {
