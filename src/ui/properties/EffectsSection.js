@@ -76,7 +76,9 @@ export class EffectsSection {
                 'Drop Shadow', 
                 Icons.EFFECT_SHADOW, 
                 this.activeEffectType === 'dropShadow',
+                dropShadow.visible !== false,
                 (trigger) => this.openShadowFlyout(dropShadow, trigger), 
+                () => this.toggleVisibility('dropShadow'),
                 () => this.removeEffect('dropShadow')
             );
         }
@@ -87,7 +89,9 @@ export class EffectsSection {
                 'Layer Blur', 
                 Icons.EFFECT_BLUR, 
                 this.activeEffectType === 'blur',
+                blur.visible !== false,
                 (trigger) => this.openBlurFlyout(blur, trigger), 
+                () => this.toggleVisibility('blur'),
                 () => this.removeEffect('blur')
             );
         }
@@ -98,13 +102,15 @@ export class EffectsSection {
                 'Background Blur', 
                 Icons.EFFECT_BG_BLUR, 
                 this.activeEffectType === 'backgroundBlur',
+                backgroundBlur.visible !== false,
                 (trigger) => this.openBackgroundBlurFlyout(backgroundBlur, trigger), 
+                () => this.toggleVisibility('backgroundBlur'),
                 () => this.removeEffect('backgroundBlur')
             );
         }
     }
 
-    renderEffectRow(type, name, icon, isActive, onEdit, onRemove) {
+    renderEffectRow(type, name, icon, isActive, isVisible, onEdit, onToggleVisibility, onRemove) {
         const row = document.createElement('div');
         row.dataset.effectType = type;
         row.className = 'pi-row';
@@ -112,6 +118,7 @@ export class EffectsSection {
         row.style.cursor = 'pointer';
         row.style.padding = '4px 8px';
         row.style.borderRadius = '4px';
+        row.style.opacity = isVisible ? '1' : '0.5';
         
         if (isActive) {
             row.style.backgroundColor = 'var(--color-accent-soft)';
@@ -155,11 +162,11 @@ export class EffectsSection {
         right.style.gap = '4px';
         
         const visibleBtn = new IconButton({
-            icon: Icons.VISIBLE,
+            icon: isVisible ? Icons.VISIBLE : Icons.HIDDEN,
             title: 'Toggle Visibility',
             onClick: (e) => {
                 e.stopPropagation();
-                // Toggle visibility logic here (not fully implemented in store yet for effects)
+                onToggleVisibility();
             }
         });
 
@@ -214,10 +221,44 @@ export class EffectsSection {
         headerRight.style.display = 'flex';
         headerRight.style.gap = '4px';
 
-        const blendBtn = new IconButton({ icon: Icons.BLEND_MODE, title: 'Blend Mode' });
+        // Blend Mode Dropdown (replacing the icon button)
+        const blendModes = [
+            { label: 'Normal', value: 'normal' },
+            { label: 'Multiply', value: 'multiply' },
+            { label: 'Screen', value: 'screen' },
+            { label: 'Overlay', value: 'overlay' },
+            { label: 'Darken', value: 'darken' },
+            { label: 'Lighten', value: 'lighten' },
+            { label: 'Color Dodge', value: 'color-dodge' },
+            { label: 'Color Burn', value: 'color-burn' },
+            { label: 'Hard Light', value: 'hard-light' },
+            { label: 'Soft Light', value: 'soft-light' },
+            { label: 'Difference', value: 'difference' },
+            { label: 'Exclusion', value: 'exclusion' },
+            { label: 'Hue', value: 'hue' },
+            { label: 'Saturation', value: 'saturation' },
+            { label: 'Color', value: 'color' },
+            { label: 'Luminosity', value: 'luminosity' }
+        ];
+
+        // Note: This sets the blend mode of the SHADOW.
+        // We need to fetch the current blend mode from the shadow style.
+        const state = store.getState();
+        const element = this.getElement(state, this.selection[0]);
+        const currentBlendMode = element.style?.dropShadow?.blendMode || 'normal';
+
+        const blendDropdown = new Dropdown({
+            options: blendModes,
+            value: currentBlendMode,
+            onChange: (val) => this.updateDropShadow('blendMode', val)
+        });
+        // Style the dropdown to look like an icon button or small trigger if needed, 
+        // but for now a standard dropdown is fine.
+        blendDropdown.element.style.width = '80px';
+
         const closeBtn = new IconButton({ icon: Icons.CLOSE, title: 'Close', onClick: () => this.activeFlyout.close() });
 
-        headerRight.appendChild(blendBtn.element);
+        headerRight.appendChild(blendDropdown.element);
         headerRight.appendChild(closeBtn.element);
 
         header.appendChild(typeSelect.element);
@@ -262,15 +303,15 @@ export class EffectsSection {
 
         const colorInput = new ColorInput(
             shadow.color,
-            (v) => this.updateDropShadow('color', v)
+            (v) => this.updateShadowColor(v)
         );
         colorInput.element.style.flex = '1';
 
         const opacityInput = new NumberInput({ 
-            value: 100, // TODO: Parse opacity from color or separate field
+            value: this.getOpacityFromColor(shadow.color),
             label: '%', 
             min: 0, max: 100,
-            onChange: (v) => {} 
+            onChange: (v) => this.updateShadowOpacity(v)
         });
         opacityInput.element.style.width = '60px';
 
@@ -335,8 +376,9 @@ export class EffectsSection {
         content.appendChild(modeControl.element);
 
         // Blur Intensity
+        const radiusValue = (typeof blurData === 'number') ? blurData : (blurData.radius !== undefined ? blurData.radius : 4);
         const blurInput = new NumberInput({ 
-            value: blurData.radius || blurData, // Handle legacy number format if needed
+            value: radiusValue,
             label: Icons.GRID_3X3, // Grid icon
             min: 0, 
             onChange: (v) => this.updateBlur('radius', v) 
@@ -389,8 +431,9 @@ export class EffectsSection {
         content.appendChild(header);
 
         // Blur Intensity
+        const radiusValue = (typeof blurData === 'number') ? blurData : (blurData.radius !== undefined ? blurData.radius : 4);
         const blurInput = new NumberInput({ 
-            value: blurData.radius || 4,
+            value: radiusValue,
             label: Icons.GRID_3X3,
             min: 0, 
             onChange: (v) => this.updateBackgroundBlur('radius', v) 
@@ -502,5 +545,91 @@ export class EffectsSection {
         // 3. Re-open flyout for new type
         this.activeEffectType = newType;
         if (this.activeFlyout) this.activeFlyout.close();
+    }
+
+    toggleVisibility(type) {
+        this.selection.forEach(id => {
+            const state = store.getState();
+            const el = this.getElement(state, id);
+            const current = el.style?.[type] || {};
+            // If visible is undefined, it's true. So toggle means false.
+            const newVisible = current.visible === false ? true : false;
+            this.updateStyle(type, { ...current, visible: newVisible });
+        });
+    }
+
+    getOpacityFromColor(color) {
+        if (!color) return 100;
+        if (color.startsWith('#')) {
+            if (color.length === 9) {
+                const alpha = parseInt(color.slice(7, 9), 16);
+                return Math.round((alpha / 255) * 100);
+            }
+            return 100;
+        }
+        if (color.startsWith('rgba')) {
+            const match = color.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?\)/);
+            if (match && match[4] !== undefined) {
+                return Math.round(parseFloat(match[4]) * 100);
+            }
+            return 100;
+        }
+        return 100;
+    }
+
+    applyOpacityToColor(color, opacity) {
+        // Ensure opacity is 0-100
+        opacity = Math.max(0, Math.min(100, opacity));
+        const alpha = Math.round((opacity / 100) * 255);
+        const alphaHex = alpha.toString(16).padStart(2, '0');
+
+        if (!color) return '#000000' + alphaHex;
+
+        if (color.startsWith('#')) {
+            // Strip existing alpha if present (length 9)
+            const base = color.length === 9 ? color.slice(0, 7) : color;
+            return base + alphaHex;
+        }
+        
+        if (color.startsWith('rgb')) {
+            // Parse rgb/rgba and reconstruct
+            const match = color.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
+            if (match) {
+                return `rgba(${match[1]}, ${match[2]}, ${match[3]}, ${opacity / 100})`;
+            }
+        }
+        
+        return color; // Fallback
+    }
+
+    updateShadowOpacity(opacity) {
+        this.selection.forEach(id => {
+            const state = store.getState();
+            const el = this.getElement(state, id);
+            const current = el.style?.dropShadow || {};
+            const newColor = this.applyOpacityToColor(current.color || '#000000', opacity);
+            this.updateStyle('dropShadow', { ...current, color: newColor });
+        });
+    }
+
+    updateShadowColor(newBaseColor) {
+        this.selection.forEach(id => {
+            const state = store.getState();
+            const el = this.getElement(state, id);
+            const current = el.style?.dropShadow || {};
+            const currentOpacity = this.getOpacityFromColor(current.color);
+            
+            // newBaseColor is likely #RRGGBB from the picker
+            // We want to preserve the current opacity
+            const finalColor = this.applyOpacityToColor(newBaseColor, currentOpacity);
+            
+            this.updateStyle('dropShadow', { ...current, color: finalColor });
+        });
+    }
+
+    updateBlendMode(mode) {
+        this.selection.forEach(id => {
+            store.dispatch('UPDATE_ELEMENT', { id, blendMode: mode });
+        });
     }
 }

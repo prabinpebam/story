@@ -219,20 +219,38 @@ export class SlideRenderer {
                 // Update properties
                 this.updateElementDOM(domEl, el, effectiveSlide);
                 existingMap.delete(id);
+                
+                // Ensure Shadow Element is attached and ordered correctly
+                if (domEl._shadowEl) {
+                    view.appendChild(domEl._shadowEl);
+                }
+                
                 // Ensure DOM order matches elementOrder
                 view.appendChild(domEl);
             } else {
                 // Create new
                 const newDomEl = this.createElementDOM(el, effectiveSlide);
+                
+                // Ensure Shadow Element is attached
+                if (newDomEl._shadowEl) {
+                    view.appendChild(newDomEl._shadowEl);
+                }
+                
                 view.appendChild(newDomEl);
             }
         });
         
         // Remove deleted
-        existingMap.forEach(domEl => domEl.remove());
+        existingMap.forEach(domEl => {
+            if (domEl._shadowEl) domEl._shadowEl.remove();
+            domEl.remove();
+        });
     }
 
     updateElementDOM(div, el, slide) {
+        const state = store.getState();
+        const isEditing = state.editor.editingElementId === el.id;
+
         // Update position, size, transform
         div.style.left = `${el.x}px`;
         div.style.top = `${el.y}px`;
@@ -240,7 +258,7 @@ export class SlideRenderer {
         div.style.height = `${el.height}px`;
         div.style.transform = `rotate(${el.rotation || 0}deg)`;
         div.style.opacity = (el.opacity !== undefined && el.opacity !== null) ? el.opacity : 1;
-        div.style.zIndex = el.zIndex || 'auto';
+        div.style.zIndex = isEditing ? '1000' : (el.zIndex || 'auto');
         
         // Visibility
         div.style.display = el.hidden ? 'none' : 'block';
@@ -253,25 +271,100 @@ export class SlideRenderer {
         div.style.borderRadius = `${radius}px`;
 
         // Apply Effects (Shadow)
-        if (el.style?.dropShadow) {
-            const { x, y, blur, spread, color } = el.style.dropShadow;
-            if (el.type === 'text') {
-                div.style.textShadow = `${x}px ${y}px ${blur}px ${color}`;
+        if (el.style?.dropShadow && el.style.dropShadow.visible !== false) {
+            const { x, y, blur, spread, color, blendMode } = el.style.dropShadow;
+            
+            // If blend mode is used (and not normal), we need a separate shadow element
+            if (blendMode && blendMode !== 'normal') {
+                // Remove standard shadow
                 div.style.boxShadow = 'none';
-            } else {
-                div.style.boxShadow = `${x}px ${y}px ${blur}px ${spread}px ${color}`;
                 div.style.textShadow = 'none';
+
+                // Create or update shadow element
+                let shadowEl = div._shadowEl;
+                if (!shadowEl) {
+                    shadowEl = document.createElement('div');
+                    shadowEl.className = 'element-shadow';
+                    shadowEl.style.position = 'absolute';
+                    shadowEl.style.pointerEvents = 'none'; // Pass through clicks
+                    div._shadowEl = shadowEl;
+                    // Insert BEFORE the element in the parent container
+                    if (div.parentNode) {
+                        div.parentNode.insertBefore(shadowEl, div);
+                    }
+                } else {
+                    // Ensure it's in the DOM
+                    if (!shadowEl.parentNode && div.parentNode) {
+                        div.parentNode.insertBefore(shadowEl, div);
+                    }
+                }
+
+                // Sync geometry with main element
+                shadowEl.style.left = div.style.left;
+                shadowEl.style.top = div.style.top;
+                shadowEl.style.width = div.style.width;
+                shadowEl.style.height = div.style.height;
+                shadowEl.style.transform = div.style.transform;
+                shadowEl.style.borderRadius = div.style.borderRadius;
+                shadowEl.style.zIndex = div.style.zIndex; // Same z-index, but DOM order puts it behind
+                
+                // Apply Shadow & Blend Mode
+                shadowEl.style.mixBlendMode = blendMode;
+                shadowEl.style.boxShadow = `${x}px ${y}px ${blur}px ${spread}px ${color}`;
+                
+                // For text, we might need a different approach (duplicate text), 
+                // but for now let's support box-shadow blending which is the main use case for shapes.
+                if (el.type === 'text') {
+                    // Text shadow blending is very hard without duplicating content.
+                    // Fallback to standard text-shadow on the element for now, ignoring blend mode
+                    div.style.textShadow = `${x}px ${y}px ${blur}px ${color}`;
+                    shadowEl.style.display = 'none';
+                } else {
+                    shadowEl.style.display = 'block';
+                }
+
+            } else {
+                // Standard Shadow (No Blend Mode)
+                if (div._shadowEl) {
+                    div._shadowEl.remove();
+                    delete div._shadowEl;
+                }
+
+                if (el.type === 'text') {
+                    div.style.textShadow = `${x}px ${y}px ${blur}px ${color}`;
+                    div.style.boxShadow = 'none';
+                } else {
+                    div.style.boxShadow = `${x}px ${y}px ${blur}px ${spread}px ${color}`;
+                    div.style.textShadow = 'none';
+                }
             }
         } else {
             div.style.boxShadow = 'none';
             div.style.textShadow = 'none';
+            if (div._shadowEl) {
+                div._shadowEl.remove();
+                delete div._shadowEl;
+            }
         }
 
         // Apply Effects (Blur)
-        if (el.style?.blur) {
-            div.style.filter = `blur(${el.style.blur}px)`;
+        const blur = el.style?.blur;
+        if (blur && blur.visible !== false) {
+            const radius = (typeof blur === 'object') ? blur.radius : blur;
+            div.style.filter = `blur(${radius}px)`;
         } else {
             div.style.filter = 'none';
+        }
+
+        // Apply Effects (Background Blur)
+        const bgBlur = el.style?.backgroundBlur;
+        if (bgBlur && bgBlur.visible !== false) {
+            const radius = (typeof bgBlur === 'object') ? bgBlur.radius : bgBlur;
+            div.style.backdropFilter = `blur(${radius}px)`;
+            div.style.webkitBackdropFilter = `blur(${radius}px)`;
+        } else {
+            div.style.backdropFilter = 'none';
+            div.style.webkitBackdropFilter = 'none';
         }
 
         if (el.type === 'group') {
@@ -618,6 +711,12 @@ return {
             if (el) {
                 const isEditing = elId === editingId;
                 const domEl = this.createElementDOM(el, slide, isEditing);
+                
+                // Append Shadow Element if it exists (created in createElementDOM -> updateElementDOM)
+                if (domEl._shadowEl) {
+                    view.appendChild(domEl._shadowEl);
+                }
+                
                 view.appendChild(domEl);
                 
                 if (isEditing) {
@@ -662,40 +761,10 @@ return {
         }
 
         div.style.position = 'absolute';
-        div.style.left = `${el.x}px`;
-        div.style.top = `${el.y}px`;
-        div.style.width = `${el.width}px`;
-        div.style.height = `${el.height}px`;
-        div.style.transform = `rotate(${el.rotation || 0}deg)`;
-        div.style.opacity = (el.opacity !== undefined && el.opacity !== null) ? el.opacity : 1;
-        div.style.zIndex = isEditing ? '1000' : (el.zIndex || 'auto'); 
+        // Basic properties are set by updateElementDOM
         
-        // Visibility
-        div.style.display = el.hidden ? 'none' : 'block';
-        
-        // Blend Mode
-        div.style.mixBlendMode = el.blendMode || 'normal';
-        
-        // Border Radius
-        const radius = el.borderRadius || el.style?.radius || 0;
-        div.style.borderRadius = `${radius}px`;
-
-        // Apply Effects (Shadow)
-        if (el.style?.dropShadow) {
-            const { x, y, blur, spread, color } = el.style.dropShadow;
-            if (el.type === 'text') {
-                // Text shadow (no spread)
-                div.style.textShadow = `${x}px ${y}px ${blur}px ${color}`;
-            } else {
-                // Box shadow
-                div.style.boxShadow = `${x}px ${y}px ${blur}px ${spread}px ${color}`;
-            }
-        }
-
-        // Apply Effects (Blur)
-        if (el.style?.blur) {
-            div.style.filter = `blur(${el.style.blur}px)`;
-        }
+        // Initial Update to handle complex logic (like Shadow Elements)
+        this.updateElementDOM(div, el, slide);
 
         if (el.type === 'group') {
             div.style.pointerEvents = 'none'; // Let clicks pass through to children? 

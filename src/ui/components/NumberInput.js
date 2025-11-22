@@ -23,7 +23,7 @@ export class NumberInput {
         if (this.options.label) {
             const label = document.createElement('div');
             label.className = 'pi-label';
-            label.textContent = this.options.label;
+            label.innerHTML = this.options.label;
             label.addEventListener('mousedown', (e) => this.handleScrubStart(e));
             container.appendChild(label);
         }
