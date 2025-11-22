@@ -41,7 +41,8 @@ A row of icon buttons to switch between paint modes. The available icons may var
     1.  **Solid Color** (Square icon).
     2.  **Gradient** (Fade icon).  
     3.  **Image** (Image icon).
-    4.  **Video Fill** (Video icon - optional/grouped).    
+    4.  **Video Fill** (Video icon - optional/grouped).
+    5.  **Code Fill** (Code/Sparkle icon).    
 
 
 *Visual*: Icons are `--color-text-secondary` (`#888`) by default. Active state has `--color-bg-active` (or subtle highlight) and `--color-text-primary` (`#FFF`).
@@ -151,16 +152,38 @@ Scrollable list of non-destructive image corrections (Range -100 to +100).
 
 ---
 
+## Tab 4: Code Fill
+This UI appears when the **Code Fill** icon is active. This feature allows generating dynamic, programmatic fills using AI or manual code.
+
+### 1. AI Prompt Input
+- **Input**: Text area for natural language description (e.g., "Animated blue ocean waves").
+- **Generate Button**: Triggers AI generation.
+- *Style*: Prominent input field with a "Sparkle" action button.
+
+### 2. Code Editor
+- **Component**: Monospace code editor (e.g., Monaco or simple textarea).
+- **Language**: JavaScript (Canvas API).
+- **Content**: The generated or manually written code.
+- **Validation**: Real-time syntax checking (if possible).
+
+### 3. Preview & Controls
+- **Preview**: Live canvas preview of the code execution.
+- **Play/Pause**: Controls for animated fills.
+- **Reset**: Revert to original code.
+
+---
+
 ## Summary Table (All Tabs)
 
-| Category | Solid | Gradient | Image |
-| :--- | :--- | :--- | :--- |
-| **Color Picker** | ✔️ (Main) | ✔️ (Per stop) | ❌ |
-| **Hue / SV / Alpha** | ✔️ | ✔️ (Per stop) | ❌ |
-| **Gradient Types** | ❌ | ✔️ (4 types) | ❌ |
-| **Gradient Stops** | ❌ | ✔️ (Add/Edit) | ❌ |
-| **Image Upload** | ❌ | ❌ | ✔️ |
-| **Image Adjustments** | ❌ | ❌ | ✔️ |
-| **Fill Type Switch** | ✔️ | ✔️ | ✔️ |
-| **Libraries** | ✔️ | ✔️ | ✔️ |
+| Category | Solid | Gradient | Image | Code |
+| :--- | :--- | :--- | :--- | :--- |
+| **Color Picker** | ✔️ (Main) | ✔️ (Per stop) | ❌ | ❌ |
+| **Hue / SV / Alpha** | ✔️ | ✔️ (Per stop) | ❌ | ❌ |
+| **Gradient Types** | ❌ | ✔️ (4 types) | ❌ | ❌ |
+| **Gradient Stops** | ❌ | ✔️ (Add/Edit) | ❌ | ❌ |
+| **Image Upload** | ❌ | ❌ | ✔️ | ❌ |
+| **Image Adjustments** | ❌ | ❌ | ✔️ | ❌ |
+| **Code Editor** | ❌ | ❌ | ❌ | ✔️ |
+| **Fill Type Switch** | ✔️ | ✔️ | ✔️ | ✔️ |
+| **Libraries** | ✔️ | ✔️ | ✔️ | ✔️ |
 
