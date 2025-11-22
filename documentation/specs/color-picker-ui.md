@@ -207,6 +207,39 @@ When multiple fills are supported, they are listed in the Property Inspector. Ea
 
 ---
 
+## Blend Modes
+Blend modes are used in Fill layers and Drop Shadows. The application supports the standard CSS blend modes.
+
+**Reusable Configuration:**
+The list of supported blend modes is defined in `src/core/constants/BlendModes.js` and should be used across the application for consistency.
+
+**Supported Modes:**
+*   Normal
+*   Multiply
+*   Screen
+*   Overlay
+*   Darken
+*   Lighten
+*   Color Dodge
+*   Color Burn
+*   Hard Light
+*   Soft Light
+*   Difference
+*   Exclusion
+*   Hue
+*   Saturation
+*   Color
+*   Luminosity
+
+**UI Behavior:**
+*   **Icon:** Drop icon (`Icons.BLEND_MODE`).
+*   **State:**
+    *   **Normal:** Icon color is Grey (`#666`).
+    *   **Active (Non-Normal):** Icon color is Blue (`#0055FF`).
+*   **Menu:** A context menu lists all available modes. The current mode is highlighted. Hovering over other modes provides a preview (if implemented) or visual feedback.
+
+---
+
 ## Summary Table (All Tabs)
 
 | Category | Solid | Gradient | Image | Video | Code |

@@ -488,6 +488,7 @@ export class SlideRenderer {
                          layer.style.zIndex = fills.length - index;
                          layer.style.display = fill.visible ? 'block' : 'none';
                          layer.style.opacity = (fill.opacity !== undefined) ? fill.opacity / 100 : 1;
+                         layer.style.mixBlendMode = fill.blendMode || 'normal';
                          
                          // Reset layer styles
                          layer.style.background = 'transparent';

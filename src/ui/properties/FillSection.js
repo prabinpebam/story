@@ -5,6 +5,7 @@ import { IconButton } from '../components/IconButton.js';
 import { Icons } from '../Icons.js';
 import { store } from '../../core/Store.js';
 import { FillFlyout } from '../components/FillFlyout/FillFlyout.js';
+import { BlendModes } from '../../core/constants/BlendModes.js';
 
 export class FillSection {
     constructor() {
@@ -393,15 +394,9 @@ export class FillSection {
         menu.style.overflowY = 'auto';
         menu.style.fontFamily = 'sans-serif';
 
-        const modes = [
-            'normal', 'multiply', 'screen', 'overlay', 'darken', 'lighten', 
-            'color-dodge', 'color-burn', 'hard-light', 'soft-light', 
-            'difference', 'exclusion', 'hue', 'saturation', 'color', 'luminosity'
-        ];
-
-        modes.forEach(mode => {
+        BlendModes.forEach(({ id: mode, label }) => {
             const item = document.createElement('div');
-            item.textContent = mode.charAt(0).toUpperCase() + mode.slice(1).replace('-', ' ');
+            item.textContent = label;
             item.style.padding = '6px 12px';
             item.style.fontSize = '12px';
             item.style.color = '#ccc';
