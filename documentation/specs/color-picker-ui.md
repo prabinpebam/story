@@ -4,7 +4,7 @@
 This document details the design and functionality of the unified **Color & Paint Picker** component. This is a reusable floating panel used throughout the application whenever a color or paint resource needs to be selected.
 
 **Usage Contexts:**
-- **Fill**: Full functionality (Solid, Gradient, Image).
+- **Fill**: Full functionality (Solid, Gradient, Image, Video, Code).
 - **Stroke**: Full functionality (Solid, Gradient). Image mode may be disabled depending on engine support.
 - **Effects (Shadows/Glows)**: Typically restricted to **Solid Color** mode only.
 - **Text Color**: Typically restricted to **Solid Color** or **Gradient**.
@@ -24,28 +24,19 @@ The Color Picker follows the **Professional Creative Tool** design system define
 
 ## Layout Structure
 
-### 1. Header (Global)
-- **Tabs**:
-    - **Custom** (Active): Manual color selection.
-    - **Libraries** (Inactive): Saved styles/variables. (for future)
-    - *Style*: Text-only tabs, active state has `--color-text-primary` and maybe a bottom border.
-- **Actions**:
-    - **Add (+)**: Create a new style from current color.
-    - **Close (X)**: Close the picker.
-    - *Style*: Icon buttons, hover state `--color-bg-hover`.
-
-### 2. Paint Mode Selector (Global)
-A row of icon buttons to switch between paint modes. The available icons may vary based on the context (e.g., Shadows may only show Solid Color).
-
-- **Icons**:
-    1.  **Solid Color** (Square icon).
-    2.  **Gradient** (Fade icon).  
-    3.  **Image** (Image icon).
-    4.  **Video Fill** (Video icon - optional/grouped).
-    5.  **Code Fill** (Code/Sparkle icon).    
-
-
-*Visual*: Icons are `--color-text-secondary` (`#888`) by default. Active state has `--color-bg-active` (or subtle highlight) and `--color-text-primary` (`#FFF`).
+### 1. Global Flyout Header (Common to all tabs)
+* **Tab Switcher:** Toggle between `Custom` (Manual editing) and `Libraries` (Saved styles).
+* **Action Icons (Top Right):**
+    * `+` : Create a new Style from the current settings.
+    * `x` : Close the flyout.
+* **Fill Mode Selectors (The Icon Row):**
+    * **Solid:** (Square icon)
+    * **Gradient:** (Fade square icon)
+    * **Image:** (Picture icon)
+    * **Video:** (Play button icon)
+    * **Code:** (Curly braces `{}` or Terminal icon `>_`)
+    * **Blend Mode:** (Water drop icon) - Toggles blend mode dropdown.
+    * **Visibility:** (Eye slash/open icon) - Toggles fill visibility.
 
 ---
 
@@ -152,38 +143,63 @@ Scrollable list of non-destructive image corrections (Range -100 to +100).
 
 ---
 
-## Tab 4: Code Fill
+## Tab 4: Video Fill
+*Aligned to the "Image" tab UX but optimized for media playback.*
+
+### 1. Preview/Playback Area
+- **Visual**: Large thumbnail acting as the video player.
+- **Center Overlay**: Play/Pause icon toggle.
+- **Scrubber Bar**: A thin progress line at the bottom of the preview to scrub through the video timeline.
+
+### 2. Source Actions
+- **Choose video**: Button to upload `.mp4`, `.webm`, or `.mov`.
+
+### 3. Playback Settings (Toggles)
+- **Loop**: Restart video automatically (Default: On).
+- **Autoplay**: Start playing immediately (Default: On).
+- **Muted**: Play without sound (Default: On).
+
+### 4. Video Adjustments (Collapsible)
+- Similar to Image adjustments (Exposure, Contrast, Saturation) to color-grade the video footage directly in the UI.
+
+---
+
+## Tab 5: Code Fill
 This UI appears when the **Code Fill** icon is active. This feature allows generating dynamic, programmatic fills using AI or manual code.
 
-### 1. AI Prompt Input
-- **Input**: Text area for natural language description (e.g., "Animated blue ocean waves").
-- **Generate Button**: Triggers AI generation.
-- *Style*: Prominent input field with a "Sparkle" action button.
+### 1. Canvas Preview (Top Section)
+- **Live View**: A large square area (replacing the Color Field/Image Preview) that renders the output of the code.
+- **Interactive Overlay**:
+    - **Play/Pause**: (If code is animated) Bottom-left corner of the preview.
+    - **Resolution**: A small label showing the canvas render size (e.g., "100%").
 
-### 2. Code Editor
-- **Component**: Monospace code editor (e.g., Monaco or simple textarea).
-- **Language**: JavaScript (Canvas API).
-- **Content**: The generated or manually written code.
-- **Validation**: Real-time syntax checking (if possible).
+### 2. AI Generation (Middle Section)
+- **Prompt Input**: A text field with placeholder "Describe a pattern or animation...".
+- **Action Buttons**:
+    - **Update (Primary)**: Modifies the existing code based on the prompt (e.g., "Make it faster", "Change colors to blue").
+    - **Generate New (Secondary)**: Completely replaces the current code with a new generation.
+- **Integration**: Plugs into the existing `CodeRunner` implementation.
 
-### 3. Preview & Controls
-- **Preview**: Live canvas preview of the code execution.
-- **Play/Pause**: Controls for animated fills.
-- **Reset**: Revert to original code.
+### 3. Code Editor (Bottom Section)
+- **Editor Area**: A scrollable, monospace text area with syntax highlighting (dark mode theme to match UI).
+- **Language Label**: Small text indicating "JS / Canvas API".
+- **Error Handling**: If the code fails, a small red status bar appears at the bottom of the editor with the error message.
+- **Reset Icon**: A small "Revert" arrow to undo changes to the code.
 
 ---
 
 ## Summary Table (All Tabs)
 
-| Category | Solid | Gradient | Image | Code |
-| :--- | :--- | :--- | :--- | :--- |
-| **Color Picker** | ✔️ (Main) | ✔️ (Per stop) | ❌ | ❌ |
-| **Hue / SV / Alpha** | ✔️ | ✔️ (Per stop) | ❌ | ❌ |
-| **Gradient Types** | ❌ | ✔️ (4 types) | ❌ | ❌ |
-| **Gradient Stops** | ❌ | ✔️ (Add/Edit) | ❌ | ❌ |
-| **Image Upload** | ❌ | ❌ | ✔️ | ❌ |
-| **Image Adjustments** | ❌ | ❌ | ✔️ | ❌ |
-| **Code Editor** | ❌ | ❌ | ❌ | ✔️ |
-| **Fill Type Switch** | ✔️ | ✔️ | ✔️ | ✔️ |
-| **Libraries** | ✔️ | ✔️ | ✔️ | ✔️ |
+| Category | Solid | Gradient | Image | Video | Code |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **Color Picker** | ✔️ (Main) | ✔️ (Per stop) | ❌ | ❌ | ❌ |
+| **Hue / SV / Alpha** | ✔️ | ✔️ (Per stop) | ❌ | ❌ | ❌ |
+| **Gradient Types** | ❌ | ✔️ (4 types) | ❌ | ❌ | ❌ |
+| **Gradient Stops** | ❌ | ✔️ (Add/Edit) | ❌ | ❌ | ❌ |
+| **Image Upload** | ❌ | ❌ | ✔️ | ❌ | ❌ |
+| **Video Upload** | ❌ | ❌ | ❌ | ✔️ | ❌ |
+| **Adjustments** | ❌ | ❌ | ✔️ | ✔️ | ❌ |
+| **Code Editor** | ❌ | ❌ | ❌ | ❌ | ✔️ |
+| **Fill Type Switch** | ✔️ | ✔️ | ✔️ | ✔️ | ✔️ |
+| **Libraries** | ✔️ | ✔️ | ✔️ | ✔️ | ✔️ |
 

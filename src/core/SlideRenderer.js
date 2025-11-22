@@ -435,32 +435,7 @@ export class SlideRenderer {
                  }
                  
                  // Update Code
-                 const codeToRun = el.style.code || `
-return {
-    draw: function(t) {
-        const w = canvas.width;
-        const h = canvas.height;
-        const grd = ctx.createLinearGradient(0, 0, w, h);
-        const c1 = Math.sin(t * 0.5) * 50 + 200;
-        const c2 = Math.cos(t * 0.3) * 50 + 200;
-        grd.addColorStop(0, \`rgb(\${c1}, 200, 255)\`);
-        grd.addColorStop(1, \`rgb(255, \${c2}, 200)\`);
-        ctx.fillStyle = grd;
-        ctx.fillRect(0, 0, w, h);
-        
-        // Floating circles
-        for(let i=0; i<5; i++) {
-            const x = (Math.sin(t * 0.2 + i) * 0.5 + 0.5) * w;
-            const y = (Math.cos(t * 0.3 + i) * 0.5 + 0.5) * h;
-            const r = 100 + Math.sin(t + i) * 50;
-            
-            ctx.beginPath();
-            ctx.arc(x, y, r, 0, Math.PI * 2);
-            ctx.fillStyle = \`rgba(255, 255, 255, 0.2)\`;
-            ctx.fill();
-        }
-    }
-};`.trim();
+                 const codeToRun = el.style.code || CodeRunner.DEFAULT_CODE;
                  
                  if (div._codeRunner.userCode !== codeToRun) {
                      div._codeRunner.setCode(codeToRun);
@@ -486,41 +461,83 @@ return {
                  
                  // Handle Multiple Fills
                  if (el.style?.fills && el.style.fills.length > 0) {
-                     const backgrounds = [];
-                     const sizes = [];
-                     const positions = [];
-                     const repeats = [];
-
-                     el.style.fills.forEach(fill => {
-                         if (!fill.visible) return;
+                     // Clear base styles
+                     div.style.background = 'transparent';
+                     div.style.backgroundImage = 'none';
+                     
+                     const fills = el.style.fills;
+                     const children = Array.from(div.children);
+                     
+                     // Reconcile layers
+                     fills.forEach((fill, index) => {
+                         let layer = children[index];
+                         if (!layer) {
+                             layer = document.createElement('div');
+                             layer.style.position = 'absolute';
+                             layer.style.top = '0';
+                             layer.style.left = '0';
+                             layer.style.width = '100%';
+                             layer.style.height = '100%';
+                             // Inherit border radius
+                             layer.style.borderRadius = 'inherit'; 
+                             div.appendChild(layer);
+                         }
                          
-                         if (fill.type === 'solid') {
-                             backgrounds.push(`linear-gradient(0deg, ${fill.color}, ${fill.color})`);
-                             sizes.push('100% 100%');
-                             positions.push('center');
-                             repeats.push('no-repeat');
-                         } else if (fill.type === 'gradient') {
-                             backgrounds.push(fill.value);
-                             sizes.push('100% 100%');
-                             positions.push('center');
-                             repeats.push('no-repeat');
-                         } else if (fill.type === 'image') {
-                             backgrounds.push(`url(${fill.value})`);
-                             sizes.push(fill.scaleMode || 'cover');
-                             positions.push('center');
-                             repeats.push('no-repeat');
+                         // Stack order: fills[0] is top
+                         layer.style.zIndex = fills.length - index;
+                         layer.style.display = fill.visible ? 'block' : 'none';
+                         layer.style.opacity = (fill.opacity !== undefined) ? fill.opacity / 100 : 1;
+                         
+                         // Reset layer styles
+                         layer.style.background = 'transparent';
+                         layer.style.backgroundImage = 'none';
+                         
+                         if (fill.type === 'code') {
+                             if (!layer._codeRunner) {
+                                 layer.innerHTML = ''; 
+                                 const canvas = document.createElement('canvas');
+                                 canvas.style.width = '100%';
+                                 canvas.style.height = '100%';
+                                 canvas.width = el.width;
+                                 canvas.height = el.height;
+                                 layer.appendChild(canvas);
+                                 layer._codeRunner = new CodeRunner(canvas);
+                                 layer._codeRunner.play();
+                             }
+                             
+                             const code = fill.code || CodeRunner.DEFAULT_CODE;
+                             if (layer._codeRunner.userCode !== code) {
+                                 layer._codeRunner.setCode(code);
+                             }
+                             layer._codeRunner.resize(el.width, el.height);
+                             
+                         } else {
+                             if (layer._codeRunner) {
+                                 layer._codeRunner.stop();
+                                 delete layer._codeRunner;
+                                 layer.innerHTML = '';
+                             }
+                             
+                             if (fill.type === 'solid') {
+                                 layer.style.backgroundColor = fill.color;
+                             } else if (fill.type === 'gradient') {
+                                 layer.style.background = fill.value;
+                             } else if (fill.type === 'image') {
+                                 layer.style.backgroundImage = `url(${fill.value})`;
+                                 layer.style.backgroundSize = fill.scaleMode || 'cover';
+                                 layer.style.backgroundPosition = 'center';
+                                 layer.style.backgroundRepeat = 'no-repeat';
+                             }
                          }
                      });
                      
-                     if (backgrounds.length > 0) {
-                         div.style.backgroundImage = backgrounds.join(', ');
-                         div.style.backgroundSize = sizes.join(', ');
-                         div.style.backgroundPosition = positions.join(', ');
-                         div.style.backgroundRepeat = repeats.join(', ');
-                         div.style.backgroundColor = 'transparent';
-                     } else {
-                         div.style.background = 'transparent';
+                     // Remove extra layers
+                     while (div.children.length > fills.length) {
+                         const layer = div.lastChild;
+                         if (layer._codeRunner) layer._codeRunner.stop();
+                         layer.remove();
                      }
+                     
                  } else {
                      // Legacy / Single Fill Fallback
                      if (el.style?.fillType === 'gradient') {

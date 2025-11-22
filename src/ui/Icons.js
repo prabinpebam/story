@@ -43,4 +43,19 @@ export const Icons = {
     EFFECT_BG_BLUR: '<i class="fa-solid fa-chess-board"></i>',
     GRID_3X3: '<i class="fa-solid fa-table-cells"></i>',
     CLOSE: '<i class="fa-solid fa-xmark"></i>',
+
+    // Fill Types
+    FILL_SOLID: '<i class="fa-solid fa-square"></i>',
+    FILL_GRADIENT: '<i class="fa-solid fa-square-poll-horizontal"></i>', // Approximation
+    FILL_IMAGE: '<i class="fa-regular fa-image"></i>',
+    FILL_VIDEO: '<i class="fa-solid fa-play"></i>',
+    FILL_CODE: '<i class="fa-solid fa-code"></i>',
+    EYEDROPPER: '<i class="fa-solid fa-eye-dropper"></i>',
+    GRADIENT_LINEAR: '<i class="fa-solid fa-arrow-right"></i>',
+    GRADIENT_RADIAL: '<i class="fa-regular fa-circle"></i>',
+    GRADIENT_ANGULAR: '<i class="fa-solid fa-rotate"></i>',
+    GRADIENT_DIAMOND: '<i class="fa-solid fa-gem"></i>',
+    REVERSE: '<i class="fa-solid fa-arrow-right-arrow-left"></i>',
+    ROTATE: '<i class="fa-solid fa-rotate-right"></i>',
+    SPARKLE: '<i class="fa-solid fa-wand-magic-sparkles"></i>',
 };

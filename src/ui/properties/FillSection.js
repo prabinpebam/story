@@ -4,6 +4,7 @@ import { NumberInput } from '../components/NumberInput.js';
 import { IconButton } from '../components/IconButton.js';
 import { Icons } from '../Icons.js';
 import { store } from '../../core/Store.js';
+import { FillFlyout } from '../components/FillFlyout/FillFlyout.js';
 
 export class FillSection {
     constructor() {
@@ -109,19 +110,70 @@ export class FillSection {
         row.style.gap = '8px';
         row.style.height = '28px';
 
-        // Color Input
-        // For now we assume solid color or fallback
-        const colorValue = this.rgbToHex(fill.color || fill.value || '#000000');
-        const colorInput = new ColorInput(colorValue, (color) => {
-            this.updateFill(element, index, { color });
-        });
-        colorInput.element.style.flex = '1';
-        colorInput.element.style.minWidth = '0';
-        colorInput.element.style.width = 'auto';
+        // Color Swatch (Trigger for Flyout)
+        const swatch = document.createElement('div');
+        swatch.className = 'color-swatch-trigger';
+        swatch.style.flex = '1';
+        swatch.style.height = '24px';
+        swatch.style.borderRadius = '4px';
+        swatch.style.border = '1px solid #444';
+        swatch.style.cursor = 'pointer';
+        swatch.style.position = 'relative';
+        swatch.style.display = 'flex';
+        swatch.style.alignItems = 'center';
+        swatch.style.paddingLeft = '8px';
+        
+        // Preview
+        const preview = document.createElement('div');
+        preview.style.width = '16px';
+        preview.style.height = '16px';
+        preview.style.borderRadius = '2px';
+        preview.style.border = '1px solid rgba(255,255,255,0.1)';
+        preview.style.marginRight = '8px';
+        preview.style.display = 'flex';
+        preview.style.alignItems = 'center';
+        preview.style.justifyContent = 'center';
+        
+        if (fill.type === 'image') {
+             preview.style.backgroundImage = `url(${fill.value})`;
+             preview.style.backgroundSize = 'cover';
+        } else if (fill.type === 'gradient') {
+             preview.style.background = fill.value;
+        } else if (fill.type === 'code') {
+             preview.style.backgroundColor = '#333';
+             preview.innerHTML = '<i class="fa-solid fa-code" style="font-size: 10px; color: #fff;"></i>';
+        } else if (fill.type === 'video') {
+             preview.style.backgroundColor = '#333';
+             preview.innerHTML = '<i class="fa-solid fa-play" style="font-size: 10px; color: #fff;"></i>';
+        } else {
+             preview.style.backgroundColor = fill.color || fill.value || '#000000';
+        }
+        swatch.appendChild(preview);
+
+        // Label (Hex or Type)
+        const label = document.createElement('span');
+        label.style.fontSize = '11px';
+        label.style.color = '#ccc';
+        label.style.fontFamily = 'monospace';
+        if (fill.type === 'solid' || !fill.type) {
+            label.textContent = this.rgbToHex(fill.color || fill.value || '#000000').toUpperCase();
+        } else if (fill.type === 'code') {
+            label.textContent = 'Code Fill';
+        } else {
+            label.textContent = fill.type.charAt(0).toUpperCase() + fill.type.slice(1);
+        }
+        swatch.appendChild(label);
+
+        swatch.onclick = (e) => {
+            e.stopPropagation();
+            this.openFlyout(swatch, fill, index, element);
+        };
         
         if (!fill.visible) {
-            colorInput.element.style.opacity = '0.5';
+            swatch.style.opacity = '0.5';
         }
+
+        row.appendChild(swatch);
 
         // Opacity Input
         // If opacity is stored separately (0-100), use it. 
@@ -170,7 +222,7 @@ export class FillSection {
             }
         });
 
-        row.appendChild(colorInput.element);
+        // row.appendChild(colorInput.element); // Replaced by swatch
         row.appendChild(opacityInput.element);
         row.appendChild(visBtn.element);
         row.appendChild(removeBtn.element);
@@ -266,6 +318,14 @@ export class FillSection {
 
         const fill = { ...fills[index] };
         
+        if (updates.type) {
+            fill.type = updates.type;
+        }
+        
+        if (updates.code !== undefined) {
+            fill.code = updates.code;
+        }
+
         if (updates.color) {
             // Update color value
             // If opacity is managed separately, we might want to keep it separate or bake it in.
@@ -363,5 +423,65 @@ export class FillSection {
         }
         
         return "#" + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
+    }
+
+    openFlyout(targetElement, fill, index, element) {
+        if (this.activeFlyout) {
+            if (typeof this.activeFlyout.destroy === 'function') {
+                this.activeFlyout.destroy();
+            }
+            this.activeFlyout.element.remove();
+            this.activeFlyout = null;
+        }
+
+        const flyout = new FillFlyout({
+            fill: fill,
+            onChange: (updates) => {
+                this.updateFill(element, index, updates);
+            },
+            onClose: () => {
+                if (this.activeFlyout) {
+                    if (typeof this.activeFlyout.destroy === 'function') {
+                        this.activeFlyout.destroy();
+                    }
+                    this.activeFlyout.element.remove();
+                    this.activeFlyout = null;
+                }
+            }
+        });
+
+        document.body.appendChild(flyout.element);
+        
+        // Position
+        const rect = targetElement.getBoundingClientRect();
+        // Position to the left of the target, aligned top
+        // Or if not enough space, position right?
+        // Property inspector is usually on the right side of screen.
+        // So flyout should be to the left.
+        const flyoutWidth = 240; // From spec
+        let left = rect.left - flyoutWidth - 12;
+        let top = rect.top;
+        
+        // Boundary checks
+        if (left < 10) left = rect.right + 12; // Flip to right if no space on left
+        if (top + 400 > window.innerHeight) top = window.innerHeight - 400; // Simple bottom check
+
+        flyout.element.style.left = `${left}px`;
+        flyout.element.style.top = `${top}px`;
+        
+        this.activeFlyout = flyout;
+
+        // Close on click outside
+        const closeHandler = (e) => {
+            if (this.activeFlyout && !this.activeFlyout.element.contains(e.target) && !targetElement.contains(e.target)) {
+                if (typeof this.activeFlyout.destroy === 'function') {
+                    this.activeFlyout.destroy();
+                }
+                this.activeFlyout.element.remove();
+                this.activeFlyout = null;
+                document.removeEventListener('mousedown', closeHandler);
+            }
+        };
+        setTimeout(() => document.addEventListener('mousedown', closeHandler), 0);
     }
 }
