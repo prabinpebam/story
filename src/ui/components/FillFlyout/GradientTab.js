@@ -2,6 +2,7 @@ import { IconButton } from '../IconButton.js';
 import { Icons } from '../../Icons.js';
 import { NumberInput } from '../NumberInput.js';
 import { ColorUtils } from '../../../utils/ColorUtils.js';
+import { ColorPickerFlyout } from './ColorPickerFlyout.js';
 
 export class GradientTab {
     constructor(options = {}) {
@@ -32,9 +33,6 @@ export class GradientTab {
 
         this.stopsListContainer = document.createElement('div');
         this.element.appendChild(this.stopsListContainer);
-
-        this.pickerContainer = document.createElement('div');
-        this.element.appendChild(this.pickerContainer);
         
         this.render();
     }
@@ -156,7 +154,6 @@ export class GradientTab {
         this.renderTopBar();
         this.renderGradientSlider();
         this.renderStopsList();
-        this.renderColorPicker();
     }
 
     renderTopBar() {
@@ -432,6 +429,13 @@ export class GradientTab {
             swatch.style.borderRadius = '2px';
             swatch.style.backgroundColor = stop.color;
             swatch.style.border = '1px solid #666';
+            swatch.style.cursor = 'pointer';
+            
+            swatch.onclick = (e) => {
+                e.stopPropagation();
+                this.openColorPicker(swatch, stop, index);
+            };
+
             row.appendChild(swatch);
 
             // Position Input
@@ -496,223 +500,9 @@ export class GradientTab {
         this.stopsListContainer.appendChild(stopsList);
     }
 
-    renderColorPicker() {
-        this.pickerContainer.innerHTML = '';
-        const container = document.createElement('div');
-        container.style.display = 'flex';
-        container.style.flexDirection = 'column';
-        container.style.gap = '12px';
 
-        // 1. Color Area (HSB)
-        const colorArea = document.createElement('div');
-        colorArea.style.width = '100%';
-        colorArea.style.height = '120px';
-        colorArea.style.borderRadius = '4px';
-        colorArea.style.position = 'relative';
-        colorArea.style.cursor = 'default';
-        colorArea.style.overflow = 'hidden';
-        
-        const colorAreaBg = document.createElement('div');
-        colorAreaBg.style.position = 'absolute';
-        colorAreaBg.style.inset = '0';
-        colorAreaBg.style.backgroundColor = `hsl(${this.colorState.h}, 100%, 50%)`;
-        
-        const whiteGrad = document.createElement('div');
-        whiteGrad.style.position = 'absolute';
-        whiteGrad.style.inset = '0';
-        whiteGrad.style.background = 'linear-gradient(to right, #fff, transparent)';
-        
-        const blackGrad = document.createElement('div');
-        blackGrad.style.position = 'absolute';
-        blackGrad.style.inset = '0';
-        blackGrad.style.background = 'linear-gradient(to top, #000, transparent)';
 
-        colorArea.appendChild(colorAreaBg);
-        colorArea.appendChild(whiteGrad);
-        colorArea.appendChild(blackGrad);
 
-        const areaHandle = document.createElement('div');
-        areaHandle.style.width = '12px';
-        areaHandle.style.height = '12px';
-        areaHandle.style.borderRadius = '50%';
-        areaHandle.style.border = '2px solid #fff';
-        areaHandle.style.boxShadow = '0 0 2px rgba(0,0,0,0.5)';
-        areaHandle.style.position = 'absolute';
-        areaHandle.style.left = `${this.colorState.s}%`;
-        areaHandle.style.top = `${100 - this.colorState.b}%`;
-        areaHandle.style.transform = 'translate(-50%, -50%)';
-        areaHandle.style.pointerEvents = 'none';
-        colorArea.appendChild(areaHandle);
-
-        const handleAreaMove = (e) => {
-            const rect = colorArea.getBoundingClientRect();
-            if (rect.width === 0) return;
-            let x = Math.max(0, Math.min(e.clientX - rect.left, rect.width));
-            let y = Math.max(0, Math.min(e.clientY - rect.top, rect.height));
-            
-            this.colorState.s = (x / rect.width) * 100;
-            this.colorState.b = 100 - ((y / rect.height) * 100);
-            
-            areaHandle.style.left = `${this.colorState.s}%`;
-            areaHandle.style.top = `${100 - this.colorState.b}%`;
-            
-            this.updateStopColor();
-        };
-
-        colorArea.addEventListener('mousedown', (e) => {
-            e.preventDefault();
-            handleAreaMove(e);
-            const moveHandler = (e) => {
-                if (e.buttons === 0) { upHandler(); return; }
-                handleAreaMove(e);
-            };
-            const upHandler = () => {
-                document.removeEventListener('mousemove', moveHandler);
-                document.removeEventListener('mouseup', upHandler);
-            };
-            document.addEventListener('mousemove', moveHandler);
-            document.addEventListener('mouseup', upHandler);
-        });
-
-        container.appendChild(colorArea);
-
-        // 2. Sliders
-        const sliders = document.createElement('div');
-        sliders.style.display = 'flex';
-        sliders.style.flexDirection = 'column';
-        sliders.style.gap = '10px';
-
-        // Hue Slider
-        const hueSlider = document.createElement('div');
-        hueSlider.style.height = '10px';
-        hueSlider.style.borderRadius = '5px';
-        hueSlider.style.background = 'linear-gradient(to right, #f00, #ff0, #0f0, #0ff, #00f, #f0f, #f00)';
-        hueSlider.style.position = 'relative';
-        
-        const hueHandle = document.createElement('div');
-        hueHandle.style.width = '12px';
-        hueHandle.style.height = '12px';
-        hueHandle.style.borderRadius = '50%';
-        hueHandle.style.backgroundColor = '#fff';
-        hueHandle.style.boxShadow = '0 0 2px rgba(0,0,0,0.5)';
-        hueHandle.style.position = 'absolute';
-        hueHandle.style.top = '50%';
-        hueHandle.style.left = `${(this.colorState.h / 360) * 100}%`;
-        hueHandle.style.transform = 'translate(-50%, -50%)';
-        hueHandle.style.pointerEvents = 'none';
-        hueSlider.appendChild(hueHandle);
-
-        const handleHueMove = (e) => {
-            const rect = hueSlider.getBoundingClientRect();
-            if (rect.width === 0) return;
-            let x = Math.max(0, Math.min(e.clientX - rect.left, rect.width));
-            
-            this.colorState.h = (x / rect.width) * 360;
-            hueHandle.style.left = `${(this.colorState.h / 360) * 100}%`;
-            colorAreaBg.style.backgroundColor = `hsl(${this.colorState.h}, 100%, 50%)`;
-            
-            this.updateStopColor();
-        };
-
-        hueSlider.addEventListener('mousedown', (e) => {
-            e.preventDefault();
-            handleHueMove(e);
-            const moveHandler = (e) => {
-                if (e.buttons === 0) { upHandler(); return; }
-                handleHueMove(e);
-            };
-            const upHandler = () => {
-                document.removeEventListener('mousemove', moveHandler);
-                document.removeEventListener('mouseup', upHandler);
-            };
-            document.addEventListener('mousemove', moveHandler);
-            document.addEventListener('mouseup', upHandler);
-        });
-
-        sliders.appendChild(hueSlider);
-
-        // Alpha Slider
-        const alphaSlider = document.createElement('div');
-        alphaSlider.style.height = '10px';
-        alphaSlider.style.borderRadius = '5px';
-        alphaSlider.style.backgroundImage = `linear-gradient(45deg, #ccc 25%, transparent 25%), linear-gradient(-45deg, #ccc 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #ccc 75%), linear-gradient(-45deg, transparent 75%, #ccc 75%)`;
-        alphaSlider.style.backgroundSize = '8px 8px';
-        alphaSlider.style.backgroundColor = '#fff';
-        alphaSlider.style.position = 'relative';
-
-        const alphaGrad = document.createElement('div');
-        alphaGrad.style.position = 'absolute';
-        alphaGrad.style.inset = '0';
-        alphaGrad.style.borderRadius = 'inherit';
-        const rgb = ColorUtils.hsbToRgb(this.colorState.h, this.colorState.s, this.colorState.b);
-        alphaGrad.style.background = `linear-gradient(to right, rgba(${rgb.r},${rgb.g},${rgb.b},0), rgba(${rgb.r},${rgb.g},${rgb.b},1))`;
-        alphaSlider.appendChild(alphaGrad);
-
-        const alphaHandle = document.createElement('div');
-        alphaHandle.style.width = '12px';
-        alphaHandle.style.height = '12px';
-        alphaHandle.style.borderRadius = '50%';
-        alphaHandle.style.backgroundColor = '#fff';
-        alphaHandle.style.boxShadow = '0 0 2px rgba(0,0,0,0.5)';
-        alphaHandle.style.position = 'absolute';
-        alphaHandle.style.top = '50%';
-        alphaHandle.style.left = `${this.colorState.a}%`;
-        alphaHandle.style.transform = 'translate(-50%, -50%)';
-        alphaHandle.style.pointerEvents = 'none';
-        alphaSlider.appendChild(alphaHandle);
-
-        const handleAlphaMove = (e) => {
-            const rect = alphaSlider.getBoundingClientRect();
-            if (rect.width === 0) return;
-            let x = Math.max(0, Math.min(e.clientX - rect.left, rect.width));
-            
-            this.colorState.a = (x / rect.width) * 100;
-            alphaHandle.style.left = `${this.colorState.a}%`;
-            
-            this.updateStopColor();
-        };
-
-        alphaSlider.addEventListener('mousedown', (e) => {
-            e.preventDefault();
-            handleAlphaMove(e);
-            const moveHandler = (e) => {
-                if (e.buttons === 0) { upHandler(); return; }
-                handleAlphaMove(e);
-            };
-            const upHandler = () => {
-                document.removeEventListener('mousemove', moveHandler);
-                document.removeEventListener('mouseup', upHandler);
-            };
-            document.addEventListener('mousemove', moveHandler);
-            document.addEventListener('mouseup', upHandler);
-        });
-
-        sliders.appendChild(alphaSlider);
-        container.appendChild(sliders);
-        this.pickerContainer.appendChild(container);
-    }
-
-    updateStopColor() {
-        const rgb = ColorUtils.hsbToRgb(this.colorState.h, this.colorState.s, this.colorState.b);
-        const alpha = this.colorState.a / 100;
-        const color = `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${alpha})`;
-        
-        this.state.stops[this.selectedStopIndex].color = color;
-        this.emitChange();
-        
-        // Update UI parts without full re-render
-        const preview = this.sliderContainer.querySelector('div[style*="linear-gradient"], div[style*="radial-gradient"], div[style*="conic-gradient"]');
-        if (preview) {
-            preview.style.background = this.getGradientString(true);
-        }
-
-        this.renderStopsList();
-
-        const alphaGrad = this.pickerContainer.querySelector('div[style*="rgba"]');
-        if (alphaGrad) {
-            alphaGrad.style.background = `linear-gradient(to right, rgba(${rgb.r},${rgb.g},${rgb.b},0), rgba(${rgb.r},${rgb.g},${rgb.b},1))`;
-        }
-    }
 
     getGradientString(forPreview = false) {
         const type = forPreview ? 'linear' : this.state.type;
@@ -752,6 +542,75 @@ export class GradientTab {
             value: val,
             type: 'gradient'
         });
+    }
+
+    openColorPicker(target, stop, index) {
+        // Capture position before render destroys the element
+        const rect = target.getBoundingClientRect();
+        const pickerWidth = 240;
+        const gap = 10;
+        
+        // Default to left of the swatch to avoid overlapping the FillFlyout
+        let left = rect.left - pickerWidth - gap;
+        let top = rect.top;
+
+        if (this.activeColorPicker) {
+            this.activeColorPicker.destroy();
+            this.activeColorPicker = null;
+        }
+
+        this.selectedStopIndex = index;
+        this.updateColorState();
+        this.render(); // Highlight selected row
+
+        const picker = new ColorPickerFlyout({
+            color: stop.color,
+            onChange: (newColor) => {
+                stop.color = newColor;
+                this.updateColorState();
+                this.emitChange();
+                this.render();
+            },
+            onClose: () => {
+                if (this.activeColorPicker) {
+                    this.activeColorPicker.destroy();
+                    this.activeColorPicker = null;
+                }
+            }
+        });
+
+        document.body.appendChild(picker.element);
+        this.activeColorPicker = picker;
+
+        // Position adjustments
+        // If not enough space on left, try right
+        if (left < 10) {
+            left = rect.right + gap;
+        }
+        
+        if (top + 300 > window.innerHeight) {
+            top = window.innerHeight - 300 - 10;
+        }
+
+        picker.element.style.left = `${left}px`;
+        picker.element.style.top = `${top}px`;
+        
+        // Close on click outside
+        const closeHandler = (e) => {
+            if (this.activeColorPicker && !picker.element.contains(e.target)) {
+                picker.destroy();
+                this.activeColorPicker = null;
+                document.removeEventListener('mousedown', closeHandler, true);
+            }
+        };
+        setTimeout(() => document.addEventListener('mousedown', closeHandler, true), 0);
+    }
+
+    destroy() {
+        if (this.activeColorPicker) {
+            this.activeColorPicker.destroy();
+            this.activeColorPicker = null;
+        }
     }
 }
 
