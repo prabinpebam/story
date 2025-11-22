@@ -94,6 +94,14 @@ export class StrokeSettingsFlyout {
                     // Update UI state of buttons
                     modeRow.querySelectorAll('.icon-button').forEach(b => b.classList.remove('active'));
                     btn.element.classList.add('active');
+
+                    // Update Data Model immediately
+                    if (activeMode === 'gradient') {
+                        const val = this.stroke.value || 'linear-gradient(90deg, #000000 0%, #ffffff 100%)';
+                        this.onChange({ type: 'gradient', value: val });
+                    } else {
+                        this.onChange({ type: 'solid' });
+                    }
                 }
             });
             if (mode.type === activeMode) btn.element.classList.add('active');
@@ -252,18 +260,18 @@ export class StrokeSettingsFlyout {
             const tab = new SolidTab({
                 fill: { color: this.stroke.color, opacity: 100 }, // Adapt stroke to fill format
                 onChange: (updates) => {
-                    if (updates.color) this.onChange({ color: updates.color });
+                    if (updates.color) this.onChange({ color: updates.color, type: 'solid' });
                 }
             });
             container.appendChild(tab.element);
         } else if (mode === 'gradient') {
-            // Placeholder for gradient support on strokes
-            const msg = document.createElement('div');
-            msg.textContent = 'Gradient stroke support coming soon.';
-            msg.style.fontSize = '11px';
-            msg.style.color = 'var(--text-tertiary)';
-            msg.style.padding = '12px 0';
-            container.appendChild(msg);
+            const tab = new GradientTab({
+                fill: { value: this.stroke.value || 'linear-gradient(90deg, #000000 0%, #ffffff 100%)' },
+                onChange: (updates) => {
+                    this.onChange({ value: updates.value, type: 'gradient' });
+                }
+            });
+            container.appendChild(tab.element);
         }
     }
 

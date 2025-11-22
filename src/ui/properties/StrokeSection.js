@@ -60,12 +60,12 @@ export class StrokeSection {
         if (style.strokes && Array.isArray(style.strokes)) {
             strokes = style.strokes;
         } else {
-            // Legacy support: Check borderWidth/borderColor
-            const hasStroke = style.borderWidth > 0 || style.borderColor;
+            // Legacy support: Check borderWidth
+            const hasStroke = style.borderWidth > 0;
             if (hasStroke) {
                 strokes = [{
                     color: style.borderColor || '#000000',
-                    width: style.borderWidth || 1,
+                    width: style.borderWidth,
                     opacity: 100,
                     position: style.strokeAlign || 'center',
                     visible: true
@@ -208,8 +208,7 @@ export class StrokeSection {
         preview.style.border = '1px solid rgba(255,255,255,0.1)';
         
         if (stroke.type === 'gradient') {
-             // Placeholder for gradient preview
-             preview.style.background = 'linear-gradient(45deg, #ccc, #333)'; 
+             preview.style.background = stroke.value || 'linear-gradient(90deg, #000000 0%, #ffffff 100%)'; 
         } else {
              preview.style.backgroundColor = stroke.color || '#000000';
         }
@@ -445,10 +444,10 @@ export class StrokeSection {
         let strokes = style.strokes ? [...style.strokes] : [];
         
         // If migrating from legacy
-        if (!style.strokes && (style.borderWidth > 0 || style.borderColor)) {
+        if (!style.strokes && style.borderWidth > 0) {
             strokes.push({
                 color: style.borderColor || '#000000',
-                width: style.borderWidth || 1,
+                width: style.borderWidth,
                 opacity: 100,
                 position: style.strokeAlign || 'center',
                 visible: true
@@ -476,10 +475,10 @@ export class StrokeSection {
         let strokes = style.strokes ? [...style.strokes] : [];
         
         // Handle legacy migration if needed
-        if (!style.strokes && (style.borderWidth > 0 || style.borderColor)) {
+        if (!style.strokes && style.borderWidth > 0) {
              strokes = [{
                 color: style.borderColor || '#000000',
-                width: style.borderWidth || 1,
+                width: style.borderWidth,
                 opacity: 100,
                 position: style.strokeAlign || 'center',
                 visible: true
@@ -499,10 +498,10 @@ export class StrokeSection {
         let strokes = style.strokes ? [...style.strokes] : [];
 
         // Handle legacy migration if needed
-        if (!style.strokes && (style.borderWidth > 0 || style.borderColor)) {
+        if (!style.strokes && style.borderWidth > 0) {
              strokes = [{
                 color: style.borderColor || '#000000',
-                width: style.borderWidth || 1,
+                width: style.borderWidth,
                 opacity: 100,
                 position: style.strokeAlign || 'center',
                 visible: true
@@ -530,6 +529,12 @@ export class StrokeSection {
     }
 
     commitChanges(strokes) {
+        const state = store.getState();
+        const element = this.getElement(state, this.selection[0]);
+        if (!element) return;
+
+        const currentStyle = element.style || {};
+
         // Sync back to legacy properties for the first visible stroke
         // This ensures the renderer (which likely uses borderWidth/borderColor) still works
         const firstVisible = strokes.find(s => s.visible !== false);
@@ -546,6 +551,7 @@ export class StrokeSection {
         store.dispatch('UPDATE_ELEMENT', {
             id: this.selection[0],
             style: {
+                ...currentStyle,
                 strokes: strokes,
                 ...legacyUpdates
             }

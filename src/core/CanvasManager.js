@@ -914,8 +914,7 @@ export class CanvasManager {
                     element.type = 'rect';
                     element.style = {
                         backgroundColor: '#D9D9D9',
-                        borderWidth: 0,
-                        borderColor: '#000000'
+                        borderWidth: 0
                     };
                 } else if (activeTool === 'image') {
                     element.src = 'https://placehold.co/600x400'; // Placeholder

@@ -467,13 +467,15 @@ export class SlideRenderer {
                      div.style.backgroundImage = 'none';
                      
                      const fills = el.style.fills;
-                     const children = Array.from(div.children);
+                     // Filter out stroke layers to only get fill layers
+                     const fillLayers = Array.from(div.children).filter(c => !c.classList.contains('stroke-layer'));
                      
                      // Reconcile layers
                      fills.forEach((fill, index) => {
-                         let layer = children[index];
+                         let layer = fillLayers[index];
                          if (!layer) {
                              layer = document.createElement('div');
+                             layer.className = 'fill-layer';
                              layer.style.position = 'absolute';
                              layer.style.top = '0';
                              layer.style.left = '0';
@@ -560,8 +562,8 @@ export class SlideRenderer {
                      });
                      
                      // Remove extra layers
-                     while (div.children.length > fills.length) {
-                         const layer = div.lastChild;
+                     for (let i = fills.length; i < fillLayers.length; i++) {
+                         const layer = fillLayers[i];
                          if (layer._codeRunner) layer._codeRunner.stop();
                          layer.remove();
                      }
@@ -626,14 +628,49 @@ export class SlideRenderer {
                      layer.style.mixBlendMode = stroke.blendMode || 'normal';
                      layer.style.zIndex = 100 + (strokes.length - index);
 
-                     const rect = layer.firstChild;
+                     let rect = layer.querySelector('rect');
+                     if (!rect) {
+                         rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+                         layer.appendChild(rect);
+                     }
+
                      const width = stroke.width || 0;
                      const color = stroke.color || 'transparent';
                      const align = stroke.position || 'center';
                      const radius = el.borderRadius || el.style?.radius || 0;
                      
                      // Stroke Attributes
-                     rect.setAttribute('stroke', color);
+                     const isGradient = stroke.type === 'gradient';
+                     const gradientValue = stroke.value || 'linear-gradient(90deg, #000000 0%, #ffffff 100%)';
+
+                     if (isGradient && gradientValue) {
+                         // Use a unique ID that changes with the value to force browser re-render
+                         // Simple hash of the value string or just a timestamp/counter
+                         const valueHash = gradientValue.split('').reduce((a,b)=>{a=((a<<5)-a)+b.charCodeAt(0);return a&a},0);
+                         const gradId = `stroke-grad-${el.id}-${index}-${valueHash}`;
+                         
+                         let defs = layer.querySelector('defs');
+                         if (!defs) {
+                             defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+                             layer.insertBefore(defs, layer.firstChild);
+                         }
+                         
+                         // Only update if needed (though hash check implies it changed)
+                         // But we need to ensure the element exists in DOM
+                         const existingGrad = defs.querySelector(`#${gradId}`);
+                         if (!existingGrad) {
+                             const gradEl = this.createSVGGradient(gradId, gradientValue);
+                             defs.innerHTML = '';
+                             defs.appendChild(gradEl);
+                         }
+                         
+                         rect.setAttribute('stroke', `url(#${gradId})`);
+                     } else {
+                         rect.setAttribute('stroke', color);
+                         const defs = layer.querySelector('defs');
+                         if (defs) defs.remove();
+                     }
+
                      rect.setAttribute('stroke-width', width);
                      rect.setAttribute('fill', 'none');
                      
@@ -1242,5 +1279,113 @@ return {
         }
 
         return div;
+    }
+
+    createSVGGradient(id, gradientString) {
+        // Handle Radial Gradient
+        if (gradientString.startsWith('radial-gradient')) {
+            const grad = document.createElementNS('http://www.w3.org/2000/svg', 'radialGradient');
+            grad.setAttribute('id', id);
+            grad.setAttribute('cx', '50%');
+            grad.setAttribute('cy', '50%');
+            grad.setAttribute('r', '50%');
+            grad.setAttribute('fx', '50%');
+            grad.setAttribute('fy', '50%');
+
+            // Parse stops
+            const stopRegex = /(#[0-9a-fA-F]{3,8}|rgba?\([^)]+\))\s+(\d+%)/g;
+            let match;
+            while ((match = stopRegex.exec(gradientString)) !== null) {
+                const color = match[1];
+                const offset = match[2];
+                const stop = document.createElementNS('http://www.w3.org/2000/svg', 'stop');
+                stop.setAttribute('offset', offset);
+                stop.setAttribute('stop-color', color);
+                grad.appendChild(stop);
+            }
+            return grad;
+        }
+
+        // Handle Conic Gradient (Fallback to Linear for now as SVG 1.1 doesn't support it)
+        // Or we could try to approximate it, but that's complex.
+        // A better fallback might be the first color or a simple linear gradient.
+        if (gradientString.startsWith('conic-gradient')) {
+             // Fallback: Create a linear gradient that at least shows the colors
+             const grad = document.createElementNS('http://www.w3.org/2000/svg', 'linearGradient');
+             grad.setAttribute('id', id);
+             grad.setAttribute('x1', '0%');
+             grad.setAttribute('y1', '0%');
+             grad.setAttribute('x2', '100%');
+             grad.setAttribute('y2', '100%');
+             
+             const stopRegex = /(#[0-9a-fA-F]{3,8}|rgba?\([^)]+\))\s+(\d+%)/g;
+             let match;
+             while ((match = stopRegex.exec(gradientString)) !== null) {
+                 const color = match[1];
+                 const offset = match[2];
+                 const stop = document.createElementNS('http://www.w3.org/2000/svg', 'stop');
+                 stop.setAttribute('offset', offset);
+                 stop.setAttribute('stop-color', color);
+                 grad.appendChild(stop);
+             }
+             return grad;
+        }
+
+        // Default: Linear Gradient
+        const grad = document.createElementNS('http://www.w3.org/2000/svg', 'linearGradient');
+        grad.setAttribute('id', id);
+        
+        // Parse angle
+        const angleMatch = gradientString.match(/(\d+)deg/);
+        const angle = angleMatch ? parseInt(angleMatch[1]) : 90;
+        
+        // Convert CSS angle (0deg = up, 90deg = right) to SVG coordinates
+        // CSS: 0deg is bottom->top. SVG: y2 < y1.
+        // CSS: 90deg is left->right. SVG: x2 > x1.
+        // Formula:
+        // x1 = 50% - 50% * sin(angle)
+        // y1 = 50% + 50% * cos(angle)
+        // x2 = 50% + 50% * sin(angle)
+        // y2 = 50% - 50% * cos(angle)
+        // Note: CSS angles are clockwise from top (0deg).
+        // Wait, standard CSS linear-gradient: 0deg is bottom to top. 90deg is left to right.
+        // So 0deg = (0,1) -> (0,0). 90deg = (0,0) -> (1,0).
+        
+        const rad = (angle * Math.PI) / 180;
+        
+        // Calculate vector
+        // 0deg: x=0, y=-1
+        // 90deg: x=1, y=0
+        // 180deg: x=0, y=1
+        // 270deg: x=-1, y=0
+        const dx = Math.sin(rad);
+        const dy = -Math.cos(rad);
+        
+        // Map to 0..1 coordinates centered at 0.5, 0.5
+        // Start point
+        const x1 = 0.5 - (dx / 2);
+        const y1 = 0.5 - (dy / 2);
+        // End point
+        const x2 = 0.5 + (dx / 2);
+        const y2 = 0.5 + (dy / 2);
+        
+        grad.setAttribute('x1', `${x1 * 100}%`);
+        grad.setAttribute('y1', `${y1 * 100}%`);
+        grad.setAttribute('x2', `${x2 * 100}%`);
+        grad.setAttribute('y2', `${y2 * 100}%`);
+        
+        // Parse stops
+        const stopRegex = /(#[0-9a-fA-F]{3,8}|rgba?\([^)]+\))\s+(\d+%)/g;
+        let match;
+        while ((match = stopRegex.exec(gradientString)) !== null) {
+            const color = match[1];
+            const offset = match[2];
+            const stop = document.createElementNS('http://www.w3.org/2000/svg', 'stop');
+            stop.setAttribute('offset', offset);
+            stop.setAttribute('stop-color', color);
+            grad.appendChild(stop);
+        }
+        
+        return grad;
     }
 }
