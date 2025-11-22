@@ -241,6 +241,16 @@ export class SlideRenderer {
         div.style.transform = `rotate(${el.rotation || 0}deg)`;
         div.style.opacity = (el.opacity !== undefined && el.opacity !== null) ? el.opacity : 1;
         div.style.zIndex = el.zIndex || 'auto';
+        
+        // Visibility
+        div.style.display = el.hidden ? 'none' : 'block';
+        
+        // Blend Mode
+        div.style.mixBlendMode = el.blendMode || 'normal';
+        
+        // Border Radius (Root or Style)
+        const radius = el.borderRadius || el.style?.radius || 0;
+        div.style.borderRadius = `${radius}px`;
 
         // Apply Effects (Shadow)
         if (el.style?.dropShadow) {
@@ -395,7 +405,7 @@ return {
                  }
              }
              
-             div.style.borderRadius = `${el.style?.radius || 0}px`;
+             // div.style.borderRadius handled at top
 
              // Handle Stroke Alignment
              const borderWidth = el.style?.borderWidth || 0;
@@ -446,7 +456,8 @@ return {
                 img.src = el.src;
             }
             if (img) {
-                img.style.borderRadius = `${el.style?.radius || 0}px`;
+                const radius = el.borderRadius || el.style?.radius || 0;
+                img.style.borderRadius = `${radius}px`;
             }
         }
     }
@@ -658,6 +669,16 @@ return {
         div.style.transform = `rotate(${el.rotation || 0}deg)`;
         div.style.opacity = (el.opacity !== undefined && el.opacity !== null) ? el.opacity : 1;
         div.style.zIndex = isEditing ? '1000' : (el.zIndex || 'auto'); 
+        
+        // Visibility
+        div.style.display = el.hidden ? 'none' : 'block';
+        
+        // Blend Mode
+        div.style.mixBlendMode = el.blendMode || 'normal';
+        
+        // Border Radius
+        const radius = el.borderRadius || el.style?.radius || 0;
+        div.style.borderRadius = `${radius}px`;
 
         // Apply Effects (Shadow)
         if (el.style?.dropShadow) {
@@ -819,14 +840,15 @@ return {
             div.style.borderWidth = `${el.style?.borderWidth || 0}px`;
             div.style.borderStyle = el.style?.borderStyle || 'solid';
             div.style.borderColor = el.style?.borderColor || 'transparent';
-            div.style.borderRadius = `${el.style?.radius || 0}px`;
+            // div.style.borderRadius handled at top
         } else if (el.type === 'image') {
             const img = document.createElement('img');
             img.src = el.src;
             img.style.width = '100%';
             img.style.height = '100%';
             img.style.objectFit = 'cover';
-            img.style.borderRadius = `${el.style?.radius || 0}px`;
+            const radius = el.borderRadius || el.style?.radius || 0;
+            img.style.borderRadius = `${radius}px`;
             img.draggable = false;
             div.appendChild(img);
         }

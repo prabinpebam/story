@@ -133,10 +133,10 @@ export class AppearanceSection {
         
         // Toggle based on first item
         const firstEl = this.getElement(state, selection[0]);
-        const newVisible = !firstEl.visible;
+        const newHidden = !firstEl.hidden; // Toggle hidden state
         
         selection.forEach(id => {
-            store.dispatch('UPDATE_ELEMENT', { id, visible: newVisible });
+            store.dispatch('UPDATE_ELEMENT', { id, hidden: newHidden });
         });
         
         // Update icon state (optional, or wait for re-render)
