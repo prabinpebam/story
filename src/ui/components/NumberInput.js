@@ -8,6 +8,7 @@ export class NumberInput {
             step: 1,
             precision: 2,
             units: '',
+            scrubbable: false,
             onChange: () => {},
             ...options
         };
@@ -33,14 +34,65 @@ export class NumberInput {
         this.input.type = 'text';
         this.input.value = this.formatValue(this.value);
         
+        if (this.options.scrubbable) {
+            this.input.style.cursor = 'ew-resize';
+            this.input.addEventListener('mousedown', (e) => this.handleInputMouseDown(e));
+        }
+
         this.input.addEventListener('change', (e) => this.handleInputChange(e));
         this.input.addEventListener('keydown', (e) => this.handleKeyDown(e));
-        this.input.addEventListener('focus', () => this.input.select());
+        this.input.addEventListener('focus', () => {
+            if (!this.isScrubbing) this.input.select();
+        });
         this.input.addEventListener('blur', () => this.handleBlur());
 
         container.appendChild(this.input);
 
         return container;
+    }
+
+    handleInputMouseDown(e) {
+        if (e.button !== 0) return; // Only left click
+
+        // If already focused, allow default text interaction (cursor placement, text selection)
+        if (document.activeElement === this.input) return;
+
+        // Prevent default to stop immediate focus/selection
+        e.preventDefault();
+
+        this.startX = e.clientX;
+        this.startValue = this.value;
+        this.hasMoved = false;
+
+        const moveHandler = (e) => {
+            const deltaX = e.clientX - this.startX;
+            if (!this.hasMoved && Math.abs(deltaX) > 3) {
+                this.hasMoved = true;
+                this.isScrubbing = true;
+                document.body.style.cursor = 'ew-resize';
+                this.input.blur();
+            }
+
+            if (this.isScrubbing) {
+                e.preventDefault();
+                this.handleScrubMove(e);
+            }
+        };
+
+        const upHandler = () => {
+            this.isScrubbing = false;
+            document.body.style.cursor = '';
+            window.removeEventListener('mousemove', moveHandler);
+            window.removeEventListener('mouseup', upHandler);
+            
+            if (!this.hasMoved) {
+                // Clicked without dragging: Focus (which triggers Select All via focus listener)
+                this.input.focus();
+            }
+        };
+
+        window.addEventListener('mousemove', moveHandler);
+        window.addEventListener('mouseup', upHandler);
     }
 
     setValue(newValue, notify = true) {

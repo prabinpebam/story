@@ -50,85 +50,114 @@ export class FillSection {
         this.container.innerHTML = '';
         
         const style = element.style || {};
-        // Check if we have a fill.
-        // A fill exists if:
-        // 1. backgroundColor is set and not transparent
-        // 2. OR it is explicitly marked as hidden (but exists)
-        // 3. OR it has a special fillType (gradient/image)
-        const isTransparent = !style.backgroundColor || style.backgroundColor === 'transparent';
-        const isHidden = style._fillEnabled === false;
-        const hasFill = !isTransparent || isHidden || style.fillType;
         
-        if (!hasFill) {
+        // Normalize fills:
+        // If style.fills exists, use it.
+        // Else if backgroundColor/fillType exists, create a single fill entry.
+        // Else empty.
+        let fills = [];
+        if (style.fills && Array.isArray(style.fills)) {
+            fills = style.fills;
+        } else {
+            // Migration / Legacy support
+            const isTransparent = !style.backgroundColor || style.backgroundColor === 'transparent';
+            const isHidden = style._fillEnabled === false;
+            const hasLegacyFill = !isTransparent || isHidden || style.fillType;
+            
+            if (hasLegacyFill) {
+                fills = [{
+                    type: style.fillType || 'solid',
+                    value: style.fillValue || style.backgroundColor || '#D9D9D9',
+                    color: style.backgroundColor || '#D9D9D9', // For solid
+                    opacity: 100, // Legacy assumed 100% or baked into color
+                    visible: style._fillEnabled !== false
+                }];
+                // If hidden, restore saved color
+                if (isHidden && style._savedFillColor) {
+                    fills[0].color = style._savedFillColor;
+                    fills[0].value = style._savedFillColor;
+                }
+            }
+        }
+
+        if (fills.length === 0) {
             this.section.setCollapsed(true);
             return;
         }
         
         this.section.setCollapsed(false);
 
-        // Container for the list of fills (currently just 1)
+        // Container for the list of fills
         const list = document.createElement('div');
         list.style.display = 'flex';
         list.style.flexDirection = 'column';
         list.style.gap = '8px';
         
-        // Create the single fill row
+        fills.forEach((fill, index) => {
+            const row = this.createFillRow(element, fill, index, fills);
+            list.appendChild(row);
+        });
+        
+        this.container.appendChild(list);
+    }
+
+    createFillRow(element, fill, index, allFills) {
         const row = document.createElement('div');
         row.className = 'pi-row';
         row.style.display = 'flex';
         row.style.alignItems = 'center';
         row.style.gap = '8px';
-        row.style.height = '28px'; // Compact height
-
-        // Determine display values
-        // If hidden, show the saved color instead of transparent
-        let displayColor = style.backgroundColor || '#D9D9D9';
-        if (isHidden && style._savedFillColor) {
-            displayColor = style._savedFillColor;
-        }
+        row.style.height = '28px';
 
         // Color Input
-        const colorValue = this.rgbToHex(displayColor);
+        // For now we assume solid color or fallback
+        const colorValue = this.rgbToHex(fill.color || fill.value || '#000000');
         const colorInput = new ColorInput(colorValue, (color) => {
-            this.updateFill(element, { color });
+            this.updateFill(element, index, { color });
         });
-        // Flex grow to fill space
         colorInput.element.style.flex = '1';
-        colorInput.element.style.minWidth = '0'; // Allow shrinking
-        colorInput.element.style.width = 'auto'; // Override fixed width
-        // If hidden, maybe dim the color input?
-        if (isHidden) {
+        colorInput.element.style.minWidth = '0';
+        colorInput.element.style.width = 'auto';
+        
+        if (!fill.visible) {
             colorInput.element.style.opacity = '0.5';
         }
 
         // Opacity Input
-        const currentOpacity = this.getOpacity(displayColor);
+        // If opacity is stored separately (0-100), use it. 
+        // If not, try to extract from color string (legacy migration).
+        let opacityVal = fill.opacity;
+        if (opacityVal === undefined) {
+            opacityVal = this.getOpacity(fill.color || fill.value);
+        }
+
         const opacityInput = new NumberInput({
-            value: currentOpacity,
+            value: opacityVal,
             onChange: (val) => {
-                this.updateFill(element, { opacity: val });
+                this.updateFill(element, index, { opacity: val });
             },
             min: 0,
             max: 100,
             step: 1,
-            units: '%'
+            units: '%',
+            scrubbable: true
         });
-        // Just enough for "100%"
         opacityInput.element.style.width = '50px';
-        opacityInput.element.style.flex = '0 0 50px'; // Prevent flex growth/shrink
-        opacityInput.element.querySelector('input').style.padding = '0 4px'; // Tighten padding
-        if (isHidden) {
+        opacityInput.element.style.flex = '0 0 50px';
+        opacityInput.element.querySelector('input').style.padding = '0 4px';
+        
+        if (!fill.visible) {
             opacityInput.element.style.opacity = '0.5';
             opacityInput.element.style.pointerEvents = 'none';
         }
 
         // Visibility Button
-        const visIcon = isHidden ? Icons.HIDDEN : Icons.VISIBLE;
+        const visIcon = !fill.visible ? Icons.HIDDEN : Icons.VISIBLE;
         const visBtn = new IconButton({
             icon: visIcon,
-            title: isHidden ? 'Show Fill' : 'Hide Fill',
+            title: !fill.visible ? 'Show Fill' : 'Hide Fill',
             onClick: () => {
-                this.toggleVisibility(element);
+                this.updateFill(element, index, { visible: !fill.visible });
             }
         });
 
@@ -137,7 +166,7 @@ export class FillSection {
             icon: Icons.MINUS,
             title: 'Remove Fill',
             onClick: () => {
-                this.removeFill(element);
+                this.removeFill(element, index);
             }
         });
 
@@ -145,101 +174,138 @@ export class FillSection {
         row.appendChild(opacityInput.element);
         row.appendChild(visBtn.element);
         row.appendChild(removeBtn.element);
-        
-        list.appendChild(row);
-        this.container.appendChild(list);
+
+        return row;
     }
 
     addFill() {
         if (!this.selection) return;
         
-        const updates = {};
-        // Default to gray if adding a fill
-        updates.style = {
-            backgroundColor: '#D9D9D9',
-            _fillEnabled: true,
-            _savedFillColor: null
-        };
+        const state = store.getState();
+        const element = this.getElement(state, this.selection[0]);
+        if (!element) return;
 
-        store.dispatch('UPDATE_ELEMENT', {
-            id: this.selection[0],
-            ...updates
+        const style = element.style || {};
+        let fills = style.fills ? [...style.fills] : [];
+        
+        // If migrating from legacy single fill
+        if (!style.fills && (style.backgroundColor || style.fillType)) {
+             const isTransparent = !style.backgroundColor || style.backgroundColor === 'transparent';
+             if (!isTransparent) {
+                 fills.push({
+                    type: style.fillType || 'solid',
+                    value: style.fillValue || style.backgroundColor,
+                    color: style.backgroundColor,
+                    opacity: 100,
+                    visible: style._fillEnabled !== false
+                 });
+             }
+        }
+
+        // Add new fill to TOP (index 0)
+        // Default: Black, 25% opacity
+        fills.unshift({
+            type: 'solid',
+            color: 'rgba(0, 0, 0, 0.25)',
+            value: 'rgba(0, 0, 0, 0.25)',
+            opacity: 25,
+            visible: true
         });
-    }
 
-    removeFill(element) {
+        // Update store
+        // We also update legacy backgroundColor to the bottom-most visible fill for backward compatibility if needed,
+        // or we update the renderer to read 'fills'.
+        // For now, let's assume we update 'fills' and also set 'backgroundColor' to the composite or bottom one?
+        // Actually, to support multiple fills, the renderer MUST be updated.
+        // But for now, let's just save the structure.
+        
         store.dispatch('UPDATE_ELEMENT', {
             id: element.id,
             style: {
-                ...element.style,
-                backgroundColor: 'transparent',
-                fillType: null,
-                fillValue: null,
-                _fillEnabled: true, // Reset to default state (not hidden)
-                _savedFillColor: null
+                ...style,
+                fills: fills,
+                // Legacy fallback: use the bottom-most visible fill or the top-most?
+                // Usually simple renderers use the first one.
+                // Let's set backgroundColor to the first visible fill's color for basic compatibility.
+                backgroundColor: this.getCompositeColor(fills)
             }
         });
     }
 
-    toggleVisibility(element) {
+    removeFill(element, index) {
         const style = element.style || {};
-        const isHidden = style._fillEnabled === false;
-        
-        const updates = { style: { ...style } };
-        
-        if (isHidden) {
-            // Show
-            updates.style._fillEnabled = true;
-            updates.style.backgroundColor = style._savedFillColor || '#D9D9D9';
-        } else {
-            // Hide
-            updates.style._fillEnabled = false;
-            updates.style._savedFillColor = style.backgroundColor || '#D9D9D9';
-            updates.style.backgroundColor = 'transparent';
-        }
-        
-        store.dispatch('UPDATE_ELEMENT', { 
-            id: element.id, 
-            ...updates 
-        });
-    }
+        if (!style.fills) return; // Should not happen if we rendered rows
 
-    updateFill(element, updates) {
-        const style = element.style || {};
-        // If hidden, we update the saved color
-        const isHidden = style._fillEnabled === false;
-        const currentColor = isHidden ? (style._savedFillColor || '#D9D9D9') : (style.backgroundColor || '#D9D9D9');
-        
-        let newColor = currentColor;
-
-        if (updates.color) {
-            // updates.color is Hex. Preserve current opacity.
-            const opacity = this.getOpacity(currentColor);
-            newColor = this.applyOpacity(updates.color, opacity);
-        }
-
-        if (updates.opacity !== undefined) {
-            // updates.opacity is 0-100. Apply to current color.
-            newColor = this.applyOpacity(currentColor, updates.opacity);
-        }
-
-        const newStyle = { ...style };
-        
-        if (isHidden) {
-            newStyle._savedFillColor = newColor;
-            // backgroundColor remains transparent
-        } else {
-            newStyle.backgroundColor = newColor;
-        }
-        
-        // Reset fillType if we are editing color
-        newStyle.fillType = null;
-        newStyle.fillValue = null;
+        const newFills = [...style.fills];
+        newFills.splice(index, 1);
 
         store.dispatch('UPDATE_ELEMENT', {
             id: element.id,
-            style: newStyle
+            style: {
+                ...style,
+                fills: newFills,
+                backgroundColor: this.getCompositeColor(newFills)
+            }
         });
+    }
+
+    updateFill(element, index, updates) {
+        const style = element.style || {};
+        let fills = style.fills ? [...style.fills] : [];
+        
+        // Migration check
+        if (!style.fills && (style.backgroundColor || style.fillType)) {
+             fills = [{
+                type: style.fillType || 'solid',
+                value: style.fillValue || style.backgroundColor,
+                color: style.backgroundColor,
+                opacity: 100,
+                visible: style._fillEnabled !== false
+             }];
+        }
+
+        const fill = { ...fills[index] };
+        
+        if (updates.color) {
+            // Update color value
+            // If opacity is managed separately, we might want to keep it separate or bake it in.
+            // The prompt asked for "Black with 25% opacity".
+            // Let's store base color and opacity separately if possible, or bake them.
+            // For now, let's bake opacity into the rgba string for 'color' property to keep it simple for renderer.
+            const currentOpacity = fill.opacity !== undefined ? fill.opacity : 100;
+            fill.color = this.applyOpacity(updates.color, currentOpacity);
+            fill.value = fill.color;
+        }
+
+        if (updates.opacity !== undefined) {
+            fill.opacity = updates.opacity;
+            // Re-bake opacity into color string
+            fill.color = this.applyOpacity(fill.color, fill.opacity);
+            fill.value = fill.color;
+        }
+
+        if (updates.visible !== undefined) {
+            fill.visible = updates.visible;
+        }
+
+        fills[index] = fill;
+
+        store.dispatch('UPDATE_ELEMENT', {
+            id: element.id,
+            style: {
+                ...style,
+                fills: fills,
+                backgroundColor: this.getCompositeColor(fills)
+            }
+        });
+    }
+
+    getCompositeColor(fills) {
+        // Find the first visible fill to use as legacy fallback
+        // Or maybe we should construct a CSS background string?
+        // For now, return the top-most visible color for simple renderers
+        const visible = fills.find(f => f.visible);
+        return visible ? visible.color : 'transparent';
     }
 
     // Helpers

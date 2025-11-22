@@ -484,17 +484,57 @@ return {
                      div.innerHTML = '';
                  }
                  
-                 if (el.style?.fillType === 'gradient') {
-                    div.style.background = el.style.fillValue;
-                 } else if (el.style?.fillType === 'image') {
-                    div.style.backgroundImage = `url(${el.style.fillValue})`;
-                    div.style.backgroundSize = el.style.fillScaleMode || 'cover';
-                    div.style.backgroundPosition = 'center';
-                    div.style.backgroundRepeat = 'no-repeat';
-                    div.style.backgroundColor = '#D9D9D9'; 
+                 // Handle Multiple Fills
+                 if (el.style?.fills && el.style.fills.length > 0) {
+                     const backgrounds = [];
+                     const sizes = [];
+                     const positions = [];
+                     const repeats = [];
+
+                     el.style.fills.forEach(fill => {
+                         if (!fill.visible) return;
+                         
+                         if (fill.type === 'solid') {
+                             backgrounds.push(`linear-gradient(0deg, ${fill.color}, ${fill.color})`);
+                             sizes.push('100% 100%');
+                             positions.push('center');
+                             repeats.push('no-repeat');
+                         } else if (fill.type === 'gradient') {
+                             backgrounds.push(fill.value);
+                             sizes.push('100% 100%');
+                             positions.push('center');
+                             repeats.push('no-repeat');
+                         } else if (fill.type === 'image') {
+                             backgrounds.push(`url(${fill.value})`);
+                             sizes.push(fill.scaleMode || 'cover');
+                             positions.push('center');
+                             repeats.push('no-repeat');
+                         }
+                     });
+                     
+                     if (backgrounds.length > 0) {
+                         div.style.backgroundImage = backgrounds.join(', ');
+                         div.style.backgroundSize = sizes.join(', ');
+                         div.style.backgroundPosition = positions.join(', ');
+                         div.style.backgroundRepeat = repeats.join(', ');
+                         div.style.backgroundColor = 'transparent';
+                     } else {
+                         div.style.background = 'transparent';
+                     }
                  } else {
-                    div.style.background = el.style?.backgroundColor || '#D9D9D9';
-                    div.style.backgroundImage = '';
+                     // Legacy / Single Fill Fallback
+                     if (el.style?.fillType === 'gradient') {
+                        div.style.background = el.style.fillValue;
+                     } else if (el.style?.fillType === 'image') {
+                        div.style.backgroundImage = `url(${el.style.fillValue})`;
+                        div.style.backgroundSize = el.style.fillScaleMode || 'cover';
+                        div.style.backgroundPosition = 'center';
+                        div.style.backgroundRepeat = 'no-repeat';
+                        div.style.backgroundColor = '#D9D9D9'; 
+                     } else {
+                        div.style.background = el.style?.backgroundColor || '#D9D9D9';
+                        div.style.backgroundImage = '';
+                     }
                  }
              }
              
