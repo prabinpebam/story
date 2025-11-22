@@ -6,6 +6,7 @@ import { IconButton } from '../components/IconButton.js';
 import { Icons } from '../Icons.js';
 import { store } from '../../core/Store.js';
 import { StrokeSettingsFlyout } from '../components/StrokeFlyout/StrokeSettingsFlyout.js';
+import { BlendModes } from '../../core/constants/BlendModes.js';
 
 export class StrokeSection {
     constructor() {
@@ -300,14 +301,14 @@ export class StrokeSection {
         buttonGroup.style.gap = '0px';
         buttonGroup.style.marginLeft = '4px';
 
-        // Blend Mode (Placeholder)
+        // Blend Mode
         const isNormalBlend = !stroke.blendMode || stroke.blendMode === 'normal';
         const blendBtn = new IconButton({
             icon: Icons.BLEND_MODE,
             title: `Blend Mode: ${stroke.blendMode || 'Normal'}`,
             onClick: (e) => {
-                // TODO: Open blend menu
-                console.log('Open blend menu');
+                const btn = e.target.closest('button') || e.target;
+                this.openBlendModeMenu(btn, stroke, index, element);
             }
         });
         blendBtn.element.style.color = isNormalBlend ? '#666' : '#0055FF';
@@ -363,6 +364,77 @@ export class StrokeSection {
         this.activeFlyout.open();
     }
 
+    openBlendModeMenu(target, stroke, index, element) {
+        // Create a simple dropdown menu
+        const menu = document.createElement('div');
+        menu.style.position = 'fixed';
+        menu.style.zIndex = '10000';
+        menu.style.backgroundColor = '#2C2C2C';
+        menu.style.border = '1px solid #444';
+        menu.style.borderRadius = '4px';
+        menu.style.padding = '4px 0';
+        menu.style.boxShadow = '0 4px 12px rgba(0,0,0,0.5)';
+        menu.style.width = '140px';
+        menu.style.maxHeight = '300px';
+        menu.style.overflowY = 'auto';
+        menu.style.fontFamily = 'sans-serif';
+
+        BlendModes.forEach(({ id: mode, label }) => {
+            const item = document.createElement('div');
+            item.textContent = label;
+            item.style.padding = '6px 12px';
+            item.style.fontSize = '12px';
+            item.style.color = '#ccc';
+            item.style.cursor = 'pointer';
+            item.style.display = 'flex';
+            item.style.alignItems = 'center';
+            item.style.justifyContent = 'space-between';
+
+            if ((stroke.blendMode || 'normal') === mode) {
+                item.style.backgroundColor = '#0055FF';
+                item.style.color = '#fff';
+            }
+
+            item.onmouseenter = () => {
+                if ((stroke.blendMode || 'normal') !== mode) item.style.backgroundColor = '#383838';
+            };
+            item.onmouseleave = () => {
+                if ((stroke.blendMode || 'normal') !== mode) item.style.backgroundColor = 'transparent';
+            };
+
+            item.onclick = () => {
+                this.updateStroke(index, { blendMode: mode });
+                menu.remove();
+                document.removeEventListener('mousedown', closeHandler);
+            };
+
+            menu.appendChild(item);
+        });
+
+        document.body.appendChild(menu);
+
+        const rect = target.getBoundingClientRect();
+        // Align right of menu with right of button if possible, or left
+        let left = rect.right - 140;
+        if (left < 0) left = rect.left;
+        
+        menu.style.left = `${left}px`;
+        menu.style.top = `${rect.bottom + 4}px`;
+
+        // Adjust if off screen
+        const menuRect = menu.getBoundingClientRect();
+        if (menuRect.bottom > window.innerHeight) {
+            menu.style.top = `${rect.top - menuRect.height - 4}px`;
+        }
+
+        const closeHandler = (e) => {
+            if (!menu.contains(e.target) && !target.contains(e.target)) {
+                menu.remove();
+                document.removeEventListener('mousedown', closeHandler);
+            }
+        };
+        setTimeout(() => document.addEventListener('mousedown', closeHandler), 0);
+    }
 
     addStroke() {
         const state = store.getState();
