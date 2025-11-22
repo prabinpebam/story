@@ -182,9 +182,15 @@ export class FillFlyout {
     }
 
     updateFill(updates) {
+        const oldType = this.fill.type;
         this.fill = { ...this.fill, ...updates };
         this.onChange(this.fill);
-        this.render(); // Re-render to update UI state
+        
+        // Only re-render if the type changed (e.g. solid -> gradient)
+        // This prevents destroying the active tab while dragging sliders
+        if (updates.type && updates.type !== oldType) {
+            this.render();
+        }
     }
 
     destroy() {

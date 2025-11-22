@@ -216,27 +216,23 @@ export class FillSection {
         combinedInput.style.overflow = 'hidden';
         combinedInput.style.backgroundColor = '#262626'; // Match input bg
 
-        // Color Swatch (Trigger for Flyout)
+        // 1. Color Swatch (Trigger for Flyout)
         const swatch = document.createElement('div');
         swatch.className = 'color-swatch-trigger';
-        swatch.style.flex = '1';
+        swatch.style.width = '28px'; // Fixed width
         swatch.style.height = '100%';
         swatch.style.cursor = 'pointer';
-        swatch.style.position = 'relative';
         swatch.style.display = 'flex';
         swatch.style.alignItems = 'center';
-        swatch.style.paddingLeft = '3px';
+        swatch.style.justifyContent = 'center';
+        swatch.style.borderRight = '1px solid #444';
         
         // Preview
         const preview = document.createElement('div');
-        preview.style.width = '16px';
-        preview.style.height = '16px';
+        preview.style.width = '14px';
+        preview.style.height = '14px';
         preview.style.borderRadius = '2px';
         preview.style.border = '1px solid rgba(255,255,255,0.1)';
-        preview.style.marginRight = '8px';
-        preview.style.display = 'flex';
-        preview.style.alignItems = 'center';
-        preview.style.justifyContent = 'center';
         
         if (fill.type === 'image') {
              preview.style.backgroundImage = `url(${fill.value})`;
@@ -254,20 +250,6 @@ export class FillSection {
         }
         swatch.appendChild(preview);
 
-        // Label (Hex or Type)
-        const label = document.createElement('span');
-        label.style.fontSize = '11px';
-        label.style.color = '#ccc';
-        label.style.fontFamily = 'monospace';
-        if (fill.type === 'solid' || !fill.type) {
-            label.textContent = this.rgbToHex(fill.color || fill.value || '#000000').toUpperCase();
-        } else if (fill.type === 'code') {
-            label.textContent = 'Code Fill';
-        } else {
-            label.textContent = fill.type.charAt(0).toUpperCase() + fill.type.slice(1);
-        }
-        swatch.appendChild(label);
-
         swatch.onclick = (e) => {
             e.stopPropagation();
             this.openFlyout(swatch, fill, index, element);
@@ -278,6 +260,46 @@ export class FillSection {
         }
 
         combinedInput.appendChild(swatch);
+
+        // 2. Hex Input (Editable)
+        const hexInput = document.createElement('input');
+        hexInput.type = 'text';
+        hexInput.style.flex = '1';
+        hexInput.style.minWidth = '0';
+        hexInput.style.border = 'none';
+        hexInput.style.background = 'transparent';
+        hexInput.style.color = '#ccc';
+        hexInput.style.fontSize = '11px';
+        hexInput.style.fontFamily = 'monospace';
+        hexInput.style.padding = '0 6px';
+        hexInput.spellcheck = false;
+        
+        if (fill.type === 'solid' || !fill.type) {
+            hexInput.value = this.rgbToHex(fill.color || fill.value || '#000000').toUpperCase();
+            hexInput.onchange = (e) => {
+                let val = e.target.value.trim();
+                if (!val.startsWith('#')) val = '#' + val;
+                // Basic validation
+                if (/^#[0-9A-F]{6}$/i.test(val) || /^#[0-9A-F]{3}$/i.test(val)) {
+                    this.updateFill(element, index, { color: val });
+                } else {
+                    // Revert
+                    e.target.value = this.rgbToHex(fill.color || fill.value || '#000000').toUpperCase();
+                }
+            };
+        } else if (fill.type === 'code') {
+            hexInput.value = 'Code Fill';
+            hexInput.disabled = true;
+        } else {
+            hexInput.value = fill.type.charAt(0).toUpperCase() + fill.type.slice(1);
+            hexInput.disabled = true;
+        }
+        
+        if (!fill.visible) {
+            hexInput.style.opacity = '0.5';
+        }
+
+        combinedInput.appendChild(hexInput);
 
         // Separator
         const separator = document.createElement('div');
