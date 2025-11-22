@@ -107,21 +107,124 @@ export class FillSection {
         row.className = 'pi-row';
         row.style.display = 'flex';
         row.style.alignItems = 'center';
-        row.style.gap = '8px';
+        row.style.gap = '2px';
         row.style.height = '28px';
+        row.dataset.index = index;
+
+        // Drag Handle
+        const dragHandle = document.createElement('div');
+        dragHandle.innerHTML = Icons.DRAG_HANDLE;
+        dragHandle.style.color = '#666';
+        dragHandle.style.cursor = 'grab';
+        dragHandle.style.fontSize = '12px';
+        dragHandle.style.display = 'flex';
+        dragHandle.style.alignItems = 'center';
+        dragHandle.style.justifyContent = 'center';
+        dragHandle.style.width = '16px';
+        dragHandle.style.height = '100%';
+        dragHandle.draggable = true;
+        
+        dragHandle.addEventListener('dragstart', (e) => {
+            e.dataTransfer.effectAllowed = 'move';
+            e.dataTransfer.setData('text/plain', index);
+            e.dataTransfer.setDragImage(row, 0, 0);
+            row.style.opacity = '0.5';
+            this.dragStartIndex = index;
+            e.stopPropagation();
+        });
+
+        dragHandle.addEventListener('dragend', (e) => {
+            row.style.opacity = '1';
+            this.container.querySelectorAll('.pi-row').forEach(r => {
+                r.style.borderTop = 'none';
+                r.style.borderBottom = 'none';
+            });
+            this.dragStartIndex = null;
+        });
+
+        row.addEventListener('dragover', (e) => {
+            e.preventDefault(); // Necessary to allow dropping
+            e.dataTransfer.dropEffect = 'move';
+            
+            if (this.dragStartIndex === null || this.dragStartIndex === index) return;
+
+            // Visual feedback
+            const rect = row.getBoundingClientRect();
+            const midY = rect.top + rect.height / 2;
+            
+            if (e.clientY < midY) {
+                row.style.borderTop = '2px solid #0055FF';
+                row.style.borderBottom = 'none';
+            } else {
+                row.style.borderTop = 'none';
+                row.style.borderBottom = '2px solid #0055FF';
+            }
+        });
+
+        row.addEventListener('dragleave', () => {
+            row.style.borderTop = 'none';
+            row.style.borderBottom = 'none';
+        });
+
+        row.addEventListener('drop', (e) => {
+            e.preventDefault();
+            const fromIndex = parseInt(e.dataTransfer.getData('text/plain'));
+            let toIndex = index;
+            
+            // Calculate if dropping above or below
+            const rect = row.getBoundingClientRect();
+            const midY = rect.top + rect.height / 2;
+            
+            if (e.clientY > midY) {
+                // Dropped below this item
+                // If moving down: from 0 to 2 (below 2) -> insert at 3? No.
+                // If we are at index 2, and drop below, we want to be at index 3?
+                // But splice logic is tricky.
+                // Let's just say we want to insert AFTER this index.
+                // But if we are moving down, the index shifts.
+                // Let's simplify:
+                // We want the target index in the NEW array.
+            }
+            
+            // Actually, let's just use the visual indicator logic.
+            // If borderTop, we drop BEFORE (index).
+            // If borderBottom, we drop AFTER (index + 1).
+            
+            if (e.clientY > midY) {
+                toIndex = index + 1;
+            }
+            
+            if (fromIndex !== toIndex) {
+                this.reorderFills(element, fromIndex, toIndex);
+            }
+            
+            row.style.borderTop = 'none';
+            row.style.borderBottom = 'none';
+        });
+
+        row.appendChild(dragHandle);
+
+        // Combined Input Group (Swatch + Opacity)
+        const combinedInput = document.createElement('div');
+        combinedInput.style.flex = '1';
+        combinedInput.style.display = 'flex';
+        combinedInput.style.alignItems = 'center';
+        combinedInput.style.border = '1px solid #444';
+        combinedInput.style.borderRadius = '4px';
+        combinedInput.style.height = '24px';
+        combinedInput.style.overflow = 'hidden';
+        combinedInput.style.backgroundColor = '#262626'; // Match input bg
 
         // Color Swatch (Trigger for Flyout)
         const swatch = document.createElement('div');
         swatch.className = 'color-swatch-trigger';
         swatch.style.flex = '1';
-        swatch.style.height = '24px';
-        swatch.style.borderRadius = '4px';
-        swatch.style.border = '1px solid #444';
+        swatch.style.height = '100%';
         swatch.style.cursor = 'pointer';
         swatch.style.position = 'relative';
         swatch.style.display = 'flex';
         swatch.style.alignItems = 'center';
-        swatch.style.paddingLeft = '8px';
+        swatch.style.paddingLeft = '3px';
         
         // Preview
         const preview = document.createElement('div');
@@ -173,7 +276,14 @@ export class FillSection {
             swatch.style.opacity = '0.5';
         }
 
-        row.appendChild(swatch);
+        combinedInput.appendChild(swatch);
+
+        // Separator
+        const separator = document.createElement('div');
+        separator.style.width = '1px';
+        separator.style.height = '100%';
+        separator.style.backgroundColor = '#444';
+        combinedInput.appendChild(separator);
 
         // Opacity Input
         // If opacity is stored separately (0-100), use it. 
@@ -194,14 +304,22 @@ export class FillSection {
             units: '%',
             scrubbable: true
         });
+        
+        // Style opacity input to fit in group
         opacityInput.element.style.width = '50px';
         opacityInput.element.style.flex = '0 0 50px';
+        opacityInput.element.style.border = 'none'; // Remove border
+        opacityInput.element.style.background = 'transparent'; // Remove bg
         opacityInput.element.querySelector('input').style.padding = '0 4px';
+        opacityInput.element.querySelector('input').style.textAlign = 'center';
         
         if (!fill.visible) {
             opacityInput.element.style.opacity = '0.5';
             opacityInput.element.style.pointerEvents = 'none';
         }
+
+        combinedInput.appendChild(opacityInput.element);
+        row.appendChild(combinedInput);
 
         // Visibility Button
         const visIcon = !fill.visible ? Icons.HIDDEN : Icons.VISIBLE;
@@ -223,7 +341,7 @@ export class FillSection {
         });
 
         // row.appendChild(colorInput.element); // Replaced by swatch
-        row.appendChild(opacityInput.element);
+        // row.appendChild(opacityInput.element); // Moved to combinedInput
         row.appendChild(visBtn.element);
         row.appendChild(removeBtn.element);
 
@@ -356,6 +474,30 @@ export class FillSection {
                 ...style,
                 fills: fills,
                 backgroundColor: this.getCompositeColor(fills)
+            }
+        });
+    }
+
+    reorderFills(element, fromIndex, toIndex) {
+        const style = element.style || {};
+        if (!style.fills) return;
+
+        const newFills = [...style.fills];
+        const [movedItem] = newFills.splice(fromIndex, 1);
+        
+        // Adjust toIndex if we removed an item before it
+        if (fromIndex < toIndex) {
+            toIndex--;
+        }
+        
+        newFills.splice(toIndex, 0, movedItem);
+
+        store.dispatch('UPDATE_ELEMENT', {
+            id: element.id,
+            style: {
+                ...style,
+                fills: newFills,
+                backgroundColor: this.getCompositeColor(newFills)
             }
         });
     }

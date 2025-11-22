@@ -58,4 +58,5 @@ export const Icons = {
     REVERSE: '<i class="fa-solid fa-arrow-right-arrow-left"></i>',
     ROTATE: '<i class="fa-solid fa-rotate-right"></i>',
     SPARKLE: '<i class="fa-solid fa-wand-magic-sparkles"></i>',
+    DRAG_HANDLE: '<i class="fa-solid fa-grip-vertical"></i>',
 };
