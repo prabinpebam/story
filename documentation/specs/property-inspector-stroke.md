@@ -10,7 +10,7 @@ The main panel interface supports stacking multiple strokes on a single object.
 - **Title**: "Stroke".
 - **Actions**:
     - **Add (+)**: Adds a new stroke layer to the top of the stack.
-    - **Settings (...)**: Opens the [Stroke Settings Flyout](#2-stroke-settings-flyout).
+    - **Menu (Grid Icon)**: Opens library or presets menu.
 
 ### Stroke List Item (Per Stroke)
 Each stroke is a row in the list. Strokes are rendered from bottom to top (last in list = bottom).
@@ -28,7 +28,7 @@ Each stroke is a row in the list. Strokes are rendered from bottom to top (last 
 1.  **Weight**: Numeric input (e.g., `1`). Controls thickness.
 2.  **Position**: Dropdown (Inside, Center, Outside).
 3.  **Sides Selector**: Icon button (Square outline). Opens the [Stroke Sides Menu](#3-stroke-sides-selector-menu).
-4.  **Advanced Settings**: Icon button (Three dots or Sliders). Opens the [Stroke Settings Flyout](#2-stroke-settings-flyout).
+4.  **Settings (Sliders)**: Icon button (Blue highlighted when active). Opens the [Stroke Settings Flyout](#2-stroke-settings-flyout).
 
 ## 2. Stroke Settings Flyout
 A detailed configuration panel for advanced stroke properties.

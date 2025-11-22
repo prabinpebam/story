@@ -59,4 +59,10 @@ export const Icons = {
     ROTATE: '<i class="fa-solid fa-rotate-right"></i>',
     SPARKLE: '<i class="fa-solid fa-wand-magic-sparkles"></i>',
     DRAG_HANDLE: '<i class="fa-solid fa-grip-vertical"></i>',
+    SQUARE: '<i class="fa-regular fa-square"></i>',
+    
+    // Stroke Joins
+    JOIN_MITER: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 13V3H13" stroke="currentColor" stroke-width="1.5" stroke-linejoin="miter"/></svg>',
+    JOIN_ROUND: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 13V6C3 4.34315 4.34315 3 6 3H13" stroke="currentColor" stroke-width="1.5"/></svg>',
+    JOIN_BEVEL: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 13V5L5 3H13" stroke="currentColor" stroke-width="1.5" stroke-linejoin="bevel"/></svg>',
 };

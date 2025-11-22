@@ -1,8 +1,18 @@
 export class SegmentedControl {
-    constructor(options, selectedValue, onChange) {
-        this.options = options; // Array of { label: string, value: any }
-        this.selectedValue = selectedValue;
-        this.onChange = onChange;
+    constructor(optionsOrConfig, selectedValue, onChange) {
+        if (Array.isArray(optionsOrConfig)) {
+            // Legacy positional arguments
+            this.options = optionsOrConfig;
+            this.selectedValue = selectedValue;
+            this.onChange = onChange;
+        } else {
+            // Config object pattern
+            const config = optionsOrConfig || {};
+            this.options = config.options || [];
+            this.selectedValue = config.value;
+            this.onChange = config.onChange;
+        }
+        
         this.element = this.create();
     }
 
@@ -18,7 +28,13 @@ export class SegmentedControl {
         this.options.forEach((opt, index) => {
             const btn = document.createElement('div');
             if (opt.icon) {
-                btn.innerHTML = `<i class="fa-solid ${opt.icon}"></i>`;
+                // Check if it's an SVG string or HTML tag
+                if (opt.icon.trim().startsWith('<')) {
+                    btn.innerHTML = opt.icon;
+                } else {
+                    // Assume FontAwesome class name
+                    btn.innerHTML = `<i class="fa-solid ${opt.icon}"></i>`;
+                }
                 btn.title = opt.label; // Tooltip
             } else {
                 btn.innerText = opt.label;

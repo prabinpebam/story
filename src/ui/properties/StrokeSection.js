@@ -5,13 +5,15 @@ import { Dropdown } from '../components/Dropdown.js';
 import { IconButton } from '../components/IconButton.js';
 import { Icons } from '../Icons.js';
 import { store } from '../../core/Store.js';
+import { StrokeSettingsFlyout } from '../components/StrokeFlyout/StrokeSettingsFlyout.js';
 
 export class StrokeSection {
     constructor() {
         this.section = new Section({ 
             title: 'Stroke',
             actions: [
-                { icon: Icons.PLUS, title: 'Add Stroke', onClick: () => this.addStroke() }
+                { icon: Icons.PLUS, title: 'Add Stroke', onClick: () => this.addStroke() },
+                { icon: Icons.GRID_3X3, title: 'Stroke Presets', onClick: () => console.log('Presets') }
             ]
         });
         this.container = document.createElement('div');
@@ -51,96 +53,349 @@ export class StrokeSection {
         this.container.innerHTML = '';
         
         const style = element.style || {};
-        const borderWidth = style.borderWidth || 0;
-        const borderColor = style.borderColor || '#000000';
-        const strokeAlign = style.strokeAlign || 'inside';
         
-        // If no stroke (borderWidth 0), maybe show nothing or just the Add button in header?
-        // But for now, let's show the controls if there is a stroke or if we want to allow adding one.
-        // Actually, if borderWidth is 0, we might consider it "no stroke".
-        // But let's assume we always show one row for simplicity, or handle the "Add" logic.
-        
-        if (borderWidth === 0 && !style.hasStroke) {
-            // Show empty state or just rely on the header "Plus" button
-            const hint = document.createElement('div');
-            hint.textContent = 'No stroke';
-            hint.style.color = 'var(--text-tertiary)';
-            hint.style.fontSize = '11px';
-            hint.style.padding = 'var(--spacing-1) 0';
-            this.container.appendChild(hint);
+        // Normalize strokes
+        let strokes = [];
+        if (style.strokes && Array.isArray(style.strokes)) {
+            strokes = style.strokes;
+        } else {
+            // Legacy support: Check borderWidth/borderColor
+            const hasStroke = style.borderWidth > 0 || style.borderColor;
+            if (hasStroke) {
+                strokes = [{
+                    color: style.borderColor || '#000000',
+                    width: style.borderWidth || 1,
+                    opacity: 100,
+                    position: style.strokeAlign || 'center',
+                    visible: true
+                }];
+            }
+        }
+
+        if (strokes.length === 0) {
+            // Show empty state hint if desired, or just rely on header
+            // For now, let's just show nothing in the body
             return;
         }
 
-        // Row 1: Color, Visibility, Remove
-        const row1 = document.createElement('div');
-        row1.className = 'pi-row';
-        row1.style.marginBottom = 'var(--spacing-1)';
-        
-        const colorInput = new ColorInput(
-            borderColor,
-            (val) => this.updateStyle('borderColor', val)
-        );
-        colorInput.element.style.flex = '1';
+        const list = document.createElement('div');
+        list.style.display = 'flex';
+        list.style.flexDirection = 'column';
+        list.style.gap = '12px'; // Spacing between stroke blocks
 
-        // Visibility (Toggle borderWidth between 0 and saved value? Or just opacity?)
-        // For now, let's just have a remove button.
+        strokes.forEach((stroke, index) => {
+            const row = this.createStrokeRow(element, stroke, index, strokes);
+            list.appendChild(row);
+        });
+
+        this.container.appendChild(list);
+    }
+
+    createStrokeRow(element, stroke, index, allStrokes) {
+        const row = document.createElement('div');
+        row.className = 'pi-row';
+        row.style.display = 'flex';
+        row.style.alignItems = 'center';
+        row.style.gap = '2px';
+        row.style.height = '28px';
+        row.dataset.index = index;
+
+        // 1. Drag Handle
+        const dragHandle = document.createElement('div');
+        dragHandle.innerHTML = Icons.DRAG_HANDLE;
+        dragHandle.style.color = '#666';
+        dragHandle.style.cursor = 'grab';
+        dragHandle.style.fontSize = '12px';
+        dragHandle.style.display = 'flex';
+        dragHandle.style.alignItems = 'center';
+        dragHandle.style.justifyContent = 'center';
+        dragHandle.style.width = '16px';
+        dragHandle.style.height = '100%';
+        row.appendChild(dragHandle);
+
+        // 2. Combined Input Group (Swatch + Hex + Opacity)
+        const combinedInput = document.createElement('div');
+        combinedInput.style.flex = '1';
+        combinedInput.style.display = 'flex';
+        combinedInput.style.alignItems = 'center';
+        combinedInput.style.border = '1px solid #444';
+        combinedInput.style.borderRadius = '4px';
+        combinedInput.style.height = '24px';
+        combinedInput.style.overflow = 'hidden';
+        combinedInput.style.backgroundColor = '#262626';
+
+        // Swatch (Trigger for Flyout)
+        const swatch = document.createElement('div');
+        swatch.className = 'color-swatch-trigger';
+        swatch.style.width = '28px';
+        swatch.style.height = '100%';
+        swatch.style.cursor = 'pointer';
+        swatch.style.display = 'flex';
+        swatch.style.alignItems = 'center';
+        swatch.style.justifyContent = 'center';
+        swatch.style.borderRight = '1px solid #444';
+        
+        const preview = document.createElement('div');
+        preview.style.width = '14px';
+        preview.style.height = '14px';
+        preview.style.borderRadius = '2px';
+        preview.style.border = '1px solid rgba(255,255,255,0.1)';
+        
+        if (stroke.type === 'gradient') {
+             // Placeholder for gradient preview
+             preview.style.background = 'linear-gradient(45deg, #ccc, #333)'; 
+        } else {
+             preview.style.backgroundColor = stroke.color || '#000000';
+        }
+        swatch.appendChild(preview);
+
+        swatch.onclick = (e) => {
+            e.stopPropagation();
+            this.openFlyout(stroke, index, swatch);
+        };
+        
+        if (stroke.visible === false) {
+            swatch.style.opacity = '0.5';
+        }
+        combinedInput.appendChild(swatch);
+
+        // Hex Input
+        const hexInput = document.createElement('input');
+        hexInput.type = 'text';
+        hexInput.style.flex = '1';
+        hexInput.style.minWidth = '0';
+        hexInput.style.border = 'none';
+        hexInput.style.background = 'transparent';
+        hexInput.style.color = '#ccc';
+        hexInput.style.fontSize = '11px';
+        hexInput.style.fontFamily = 'monospace';
+        hexInput.style.padding = '0 6px';
+        hexInput.spellcheck = false;
+        
+        if (stroke.type === 'solid' || !stroke.type) {
+            hexInput.value = (stroke.color || '#000000').toUpperCase();
+            hexInput.onchange = (e) => {
+                let val = e.target.value.trim();
+                if (!val.startsWith('#')) val = '#' + val;
+                if (/^#[0-9A-F]{6}$/i.test(val) || /^#[0-9A-F]{3}$/i.test(val)) {
+                    this.updateStroke(index, { color: val });
+                } else {
+                    e.target.value = (stroke.color || '#000000').toUpperCase();
+                }
+            };
+        } else {
+            hexInput.value = (stroke.type || 'Solid').charAt(0).toUpperCase() + (stroke.type || 'Solid').slice(1);
+            hexInput.disabled = true;
+        }
+        
+        if (stroke.visible === false) {
+            hexInput.style.opacity = '0.5';
+        }
+        combinedInput.appendChild(hexInput);
+
+        // Separator
+        const separator = document.createElement('div');
+        separator.style.width = '1px';
+        separator.style.height = '100%';
+        separator.style.backgroundColor = '#444';
+        combinedInput.appendChild(separator);
+
+        // Opacity Input
+        const opacityInput = new NumberInput({
+            value: stroke.opacity !== undefined ? stroke.opacity : 100,
+            onChange: (val) => {
+                this.updateStroke(index, { opacity: val });
+            },
+            min: 0,
+            max: 100,
+            step: 1,
+            units: '%',
+            scrubbable: true
+        });
+        
+        opacityInput.element.style.width = '50px';
+        opacityInput.element.style.flex = '0 0 50px';
+        opacityInput.element.style.border = 'none';
+        opacityInput.element.style.background = 'transparent';
+        opacityInput.element.querySelector('input').style.padding = '0 4px';
+        opacityInput.element.querySelector('input').style.textAlign = 'center';
+        
+        if (stroke.visible === false) {
+            opacityInput.element.style.opacity = '0.5';
+            opacityInput.element.style.pointerEvents = 'none';
+        }
+        combinedInput.appendChild(opacityInput.element);
+        
+        row.appendChild(combinedInput);
+
+        // 3. Button Group (Blend, Vis, Remove)
+        const buttonGroup = document.createElement('div');
+        buttonGroup.style.display = 'flex';
+        buttonGroup.style.alignItems = 'center';
+        buttonGroup.style.gap = '0px';
+        buttonGroup.style.marginLeft = '4px';
+
+        // Blend Mode (Placeholder)
+        const isNormalBlend = !stroke.blendMode || stroke.blendMode === 'normal';
+        const blendBtn = new IconButton({
+            icon: Icons.BLEND_MODE,
+            title: `Blend Mode: ${stroke.blendMode || 'Normal'}`,
+            onClick: (e) => {
+                // TODO: Open blend menu
+                console.log('Open blend menu');
+            }
+        });
+        blendBtn.element.style.color = isNormalBlend ? '#666' : '#0055FF';
+        blendBtn.element.style.width = '24px';
+        blendBtn.element.style.height = '24px';
+        blendBtn.element.style.padding = '0';
+
+        // Visibility
+        const visIcon = stroke.visible !== false ? Icons.VISIBLE : Icons.HIDDEN;
+        const visBtn = new IconButton({
+            icon: visIcon,
+            title: stroke.visible !== false ? 'Hide Stroke' : 'Show Stroke',
+            onClick: () => this.updateStroke(index, { visible: stroke.visible === false })
+        });
+        visBtn.element.style.width = '24px';
+        visBtn.element.style.height = '24px';
+        visBtn.element.style.padding = '0';
+
+        // Remove
         const removeBtn = new IconButton({
             icon: Icons.MINUS,
             title: 'Remove Stroke',
-            onClick: () => this.removeStroke()
+            onClick: () => this.removeStroke(index)
         });
+        removeBtn.element.style.width = '24px';
+        removeBtn.element.style.height = '24px';
+        removeBtn.element.style.padding = '0';
 
-        row1.appendChild(colorInput.element);
-        row1.appendChild(removeBtn.element);
-        this.container.appendChild(row1);
+        buttonGroup.appendChild(blendBtn.element);
+        buttonGroup.appendChild(visBtn.element);
+        buttonGroup.appendChild(removeBtn.element);
 
-        // Row 2: Weight, Align, Options
-        const row2 = document.createElement('div');
-        row2.className = 'pi-row';
-        
-        const weightInput = new NumberInput({
-            value: borderWidth,
-            min: 0,
-            label: 'W', // Icon would be better
-            onChange: (val) => this.updateStyle('borderWidth', val)
-        });
-        weightInput.element.style.flex = '0 0 60px';
+        row.appendChild(buttonGroup);
 
-        const alignSelect = new Dropdown({
-            options: [
-                { label: 'Inside', value: 'inside' },
-                { label: 'Center', value: 'center' },
-                { label: 'Outside', value: 'outside' }
-            ],
-            value: strokeAlign,
-            onChange: (val) => this.updateStyle('strokeAlign', val)
-        });
-        alignSelect.element.style.flex = '1';
-
-        row2.appendChild(weightInput.element);
-        row2.appendChild(alignSelect.element);
-        this.container.appendChild(row2);
+        return row;
     }
+
+    openFlyout(stroke, index, trigger) {
+        if (this.activeFlyout) {
+            this.activeFlyout.close();
+            this.activeFlyout = null;
+        }
+        
+        this.activeFlyout = new StrokeSettingsFlyout({
+            trigger: trigger,
+            stroke: stroke,
+            onChange: (updates) => this.updateStroke(index, updates),
+            onClose: () => {
+                this.activeFlyout = null;
+            }
+        });
+        
+        this.activeFlyout.open();
+    }
+
 
     addStroke() {
-        // Set default stroke
-        this.updateStyle('borderWidth', 1);
-        this.updateStyle('borderColor', '#000000');
-        this.updateStyle('strokeAlign', 'inside');
-        this.updateStyle('hasStroke', true);
+        const state = store.getState();
+        const element = this.getElement(state, this.selection[0]);
+        if (!element) return;
+
+        const style = element.style || {};
+        let strokes = style.strokes ? [...style.strokes] : [];
+        
+        // If migrating from legacy
+        if (!style.strokes && (style.borderWidth > 0 || style.borderColor)) {
+            strokes.push({
+                color: style.borderColor || '#000000',
+                width: style.borderWidth || 1,
+                opacity: 100,
+                position: style.strokeAlign || 'center',
+                visible: true
+            });
+        }
+
+        // Add new default stroke
+        strokes.unshift({ // Add to top (start of array)
+            color: '#000000',
+            width: 1,
+            opacity: 100,
+            position: 'center',
+            visible: true
+        });
+
+        this.commitChanges(strokes);
     }
 
-    removeStroke() {
-        this.updateStyle('borderWidth', 0);
-        this.updateStyle('hasStroke', false);
+    removeStroke(index) {
+        const state = store.getState();
+        const element = this.getElement(state, this.selection[0]);
+        if (!element) return;
+
+        const style = element.style || {};
+        let strokes = style.strokes ? [...style.strokes] : [];
+        
+        // Handle legacy migration if needed
+        if (!style.strokes && (style.borderWidth > 0 || style.borderColor)) {
+             strokes = [{
+                color: style.borderColor || '#000000',
+                width: style.borderWidth || 1,
+                opacity: 100,
+                position: style.strokeAlign || 'center',
+                visible: true
+            }];
+        }
+
+        strokes.splice(index, 1);
+        this.commitChanges(strokes);
     }
 
-    updateStyle(key, value) {
-        this.selection.forEach(id => {
-            const state = store.getState();
-            const el = this.getElement(state, id);
-            const newStyle = { ...(el.style || {}), [key]: value };
-            store.dispatch('UPDATE_ELEMENT', { id, style: newStyle });
+    updateStroke(index, updates) {
+        const state = store.getState();
+        const element = this.getElement(state, this.selection[0]);
+        if (!element) return;
+
+        const style = element.style || {};
+        let strokes = style.strokes ? [...style.strokes] : [];
+
+        // Handle legacy migration if needed
+        if (!style.strokes && (style.borderWidth > 0 || style.borderColor)) {
+             strokes = [{
+                color: style.borderColor || '#000000',
+                width: style.borderWidth || 1,
+                opacity: 100,
+                position: style.strokeAlign || 'center',
+                visible: true
+            }];
+        }
+
+        strokes[index] = { ...strokes[index], ...updates };
+        this.commitChanges(strokes);
+    }
+
+    commitChanges(strokes) {
+        // Sync back to legacy properties for the first visible stroke
+        // This ensures the renderer (which likely uses borderWidth/borderColor) still works
+        const firstVisible = strokes.find(s => s.visible !== false);
+        
+        const legacyUpdates = {};
+        if (firstVisible) {
+            legacyUpdates.borderColor = firstVisible.color;
+            legacyUpdates.borderWidth = firstVisible.width;
+            legacyUpdates.strokeAlign = firstVisible.position;
+        } else {
+            legacyUpdates.borderWidth = 0;
+        }
+
+        store.dispatch('UPDATE_ELEMENT', {
+            id: this.selection[0],
+            style: {
+                strokes: strokes,
+                ...legacyUpdates
+            }
         });
     }
 }

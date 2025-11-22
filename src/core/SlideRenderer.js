@@ -585,34 +585,122 @@ export class SlideRenderer {
              
              // div.style.borderRadius handled at top
 
-             // Handle Stroke Alignment
-             const borderWidth = el.style?.borderWidth || 0;
-             const borderStyle = el.style?.borderStyle || 'solid';
-             const borderColor = el.style?.borderColor || 'transparent';
-             const strokeAlign = el.style?.strokeAlign || 'inside';
-
-             if (borderWidth > 0) {
-                 if (strokeAlign === 'inside') {
-                     div.style.borderWidth = `${borderWidth}px`;
-                     div.style.borderStyle = borderStyle;
-                     div.style.borderColor = borderColor;
-                     div.style.outline = 'none';
-                 } else if (strokeAlign === 'outside') {
-                     div.style.borderWidth = '0px';
-                     div.style.outlineWidth = `${borderWidth}px`;
-                     div.style.outlineStyle = borderStyle;
-                     div.style.outlineColor = borderColor;
-                     div.style.outlineOffset = '0px';
-                 } else if (strokeAlign === 'center') {
-                     div.style.borderWidth = '0px';
-                     div.style.outlineWidth = `${borderWidth}px`;
-                     div.style.outlineStyle = borderStyle;
-                     div.style.outlineColor = borderColor;
-                     div.style.outlineOffset = `-${borderWidth / 2}px`;
-                 }
-             } else {
+             // Handle Strokes
+             if (el.style?.strokes && el.style.strokes.length > 0) {
+                 // Clear legacy
                  div.style.borderWidth = '0px';
                  div.style.outline = 'none';
+                 
+                 // Manage stroke layers
+                 if (!div._strokeLayers) div._strokeLayers = [];
+                 
+                 const strokes = el.style.strokes;
+                 
+                 // Reconcile
+                 strokes.forEach((stroke, index) => {
+                     let layer = div._strokeLayers[index];
+                     
+                     // Create if missing
+                     if (!layer) {
+                         layer = document.createElement('div');
+                         layer.className = 'stroke-layer';
+                         layer.style.position = 'absolute';
+                         layer.style.pointerEvents = 'none'; // Let clicks pass through to fill/shape
+                         layer.style.boxSizing = 'border-box';
+                         div._strokeLayers[index] = layer;
+                     }
+                     
+                     // Ensure attached to DOM (in case innerHTML was cleared by fills)
+                     if (layer.parentNode !== div) {
+                         div.appendChild(layer);
+                     }
+                     
+                     // Apply Properties
+                     layer.style.display = stroke.visible === false ? 'none' : 'block';
+                     layer.style.opacity = (stroke.opacity !== undefined) ? stroke.opacity / 100 : 1;
+                     layer.style.mixBlendMode = stroke.blendMode || 'normal';
+                     
+                     // Style
+                     const width = stroke.width || 0;
+                     const color = stroke.color || 'transparent';
+                     const style = stroke.style || 'solid'; // solid, dashed, dotted
+                     
+                     layer.style.borderStyle = style;
+                     layer.style.borderColor = color;
+                     layer.style.borderWidth = `${width}px`;
+                     
+                     // Position & Geometry
+                     const align = stroke.position || 'center';
+                     const radius = el.borderRadius || el.style?.radius || 0;
+                     
+                     if (align === 'inside') {
+                         layer.style.left = '0';
+                         layer.style.top = '0';
+                         layer.style.width = '100%';
+                         layer.style.height = '100%';
+                         layer.style.borderRadius = `${radius}px`;
+                     } else if (align === 'outside') {
+                         layer.style.left = `-${width}px`;
+                         layer.style.top = `-${width}px`;
+                         layer.style.width = `calc(100% + ${width * 2}px)`;
+                         layer.style.height = `calc(100% + ${width * 2}px)`;
+                         layer.style.borderRadius = `${radius + width}px`;
+                     } else { // center
+                         layer.style.left = `-${width / 2}px`;
+                         layer.style.top = `-${width / 2}px`;
+                         layer.style.width = `calc(100% + ${width}px)`;
+                         layer.style.height = `calc(100% + ${width}px)`;
+                         layer.style.borderRadius = `${radius + (width / 2)}px`;
+                     }
+                     
+                     // Z-Index: Strokes usually on top of fills.
+                     // And within strokes, list order (0 is top) means higher z-index.
+                     // Let's say base z-index for strokes is 100.
+                     layer.style.zIndex = 100 + (strokes.length - index);
+                 });
+                 
+                 // Cleanup extra layers
+                 while (div._strokeLayers.length > strokes.length) {
+                     const layer = div._strokeLayers.pop();
+                     layer.remove();
+                 }
+                 
+             } else {
+                 // Cleanup stroke layers if switching to legacy/none
+                 if (div._strokeLayers) {
+                     div._strokeLayers.forEach(l => l.remove());
+                     div._strokeLayers = [];
+                 }
+
+                 // Handle Stroke Alignment (Legacy)
+                 const borderWidth = el.style?.borderWidth || 0;
+                 const borderStyle = el.style?.borderStyle || 'solid';
+                 const borderColor = el.style?.borderColor || 'transparent';
+                 const strokeAlign = el.style?.strokeAlign || 'inside';
+
+                 if (borderWidth > 0) {
+                     if (strokeAlign === 'inside') {
+                         div.style.borderWidth = `${borderWidth}px`;
+                         div.style.borderStyle = borderStyle;
+                         div.style.borderColor = borderColor;
+                         div.style.outline = 'none';
+                     } else if (strokeAlign === 'outside') {
+                         div.style.borderWidth = '0px';
+                         div.style.outlineWidth = `${borderWidth}px`;
+                         div.style.outlineStyle = borderStyle;
+                         div.style.outlineColor = borderColor;
+                         div.style.outlineOffset = '0px';
+                     } else if (strokeAlign === 'center') {
+                         div.style.borderWidth = '0px';
+                         div.style.outlineWidth = `${borderWidth}px`;
+                         div.style.outlineStyle = borderStyle;
+                         div.style.outlineColor = borderColor;
+                         div.style.outlineOffset = `-${borderWidth / 2}px`;
+                     }
+                 } else {
+                     div.style.borderWidth = '0px';
+                     div.style.outline = 'none';
+                 }
              }
              
         } else if (el.type === 'text') {
