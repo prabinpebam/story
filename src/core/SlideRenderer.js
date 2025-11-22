@@ -2,6 +2,7 @@ import { store } from './Store.js';
 import { animationManager } from './AnimationManager.js';
 import { MeshGradient } from './effects/MeshGradient.js';
 import { CodeRunner } from './effects/CodeRunner.js';
+import { ColorUtils } from '../utils/ColorUtils.js';
 
 export class SlideRenderer {
     constructor(containerId) {
@@ -519,11 +520,36 @@ export class SlideRenderer {
                                  delete layer._codeRunner;
                                  layer.innerHTML = '';
                              }
+
+                             // Remove any existing diamond gradient canvas if we are not in diamond mode
+                             // We do this check inside each block or just once here?
+                             // If we are in diamond mode, renderDiamondGradient will handle removal/update.
+                             // If we are NOT in diamond mode, we must remove it.
+                             const existingCanvas = layer.querySelector('.bg-canvas');
+                             if (existingCanvas && (!fill.value || !fill.value.startsWith('/* diamond|'))) {
+                                 existingCanvas.remove();
+                             }
                              
                              if (fill.type === 'solid') {
                                  layer.style.backgroundColor = fill.color;
                              } else if (fill.type === 'gradient') {
-                                 layer.style.background = fill.value;
+                                 if (fill.value.startsWith('/* diamond|')) {
+                                     const metaEnd = fill.value.indexOf('*/');
+                                     if (metaEnd > -1) {
+                                         const meta = fill.value.substring(11, metaEnd).trim();
+                                         const parts = meta.split('|');
+                                         const angle = parseFloat(parts[0] || '0');
+                                         const stopsStr = parts[1] || '';
+                                         const stops = stopsStr.split(';').map(s => {
+                                             const [color, pos] = s.split('@');
+                                             return { color, position: parseFloat(pos) };
+                                         }).filter(s => s.color && !isNaN(s.position));
+                                         
+                                         this.renderDiamondGradient(layer, el.width, el.height, angle, stops);
+                                     }
+                                 } else {
+                                     layer.style.background = fill.value;
+                                 }
                              } else if (fill.type === 'image') {
                                  layer.style.backgroundImage = `url(${fill.value})`;
                                  layer.style.backgroundSize = fill.scaleMode || 'cover';
@@ -703,6 +729,88 @@ export class SlideRenderer {
         return div;
     }
 
+    renderDiamondGradient(container, width, height, angle, stops) {
+        // Clear container
+        // container.innerHTML = ''; // Don't clear everything, might remove other children? 
+        // For background view, it has children (elements). We should insert canvas at bottom.
+        // For element layer, it's empty or has canvas.
+        
+        // Remove existing canvas
+        const existing = container.querySelector('.bg-canvas');
+        if (existing) existing.remove();
+
+        const canvas = document.createElement('canvas');
+        canvas.className = 'bg-canvas';
+        canvas.width = width;
+        canvas.height = height;
+        canvas.style.width = '100%';
+        canvas.style.height = '100%';
+        canvas.style.position = 'absolute';
+        canvas.style.top = '0';
+        canvas.style.left = '0';
+        canvas.style.zIndex = '0'; // Behind content
+        
+        // Insert as first child
+        if (container.firstChild) {
+            container.insertBefore(canvas, container.firstChild);
+        } else {
+            container.appendChild(canvas);
+        }
+
+        const ctx = canvas.getContext('2d');
+        const cx = width / 2;
+        const cy = height / 2;
+
+        // 1. Calculate Max Distance (L1) to cover the viewport
+        // We need to check the 4 corners of the viewport in the rotated space
+        const rad = -angle * Math.PI / 180; // Inverse rotation to map viewport to diamond space
+        const cos = Math.cos(rad);
+        const sin = Math.sin(rad);
+        
+        const corners = [
+            { x: -cx, y: -cy },
+            { x: cx, y: -cy },
+            { x: -cx, y: cy },
+            { x: cx, y: cy }
+        ];
+        
+        let maxDist = 0;
+        corners.forEach(p => {
+            const rx = p.x * cos - p.y * sin;
+            const ry = p.x * sin + p.y * cos;
+            const dist = Math.abs(rx) + Math.abs(ry);
+            if (dist > maxDist) maxDist = dist;
+        });
+
+        // 2. Create Gradient
+        // The gradient goes from (0,0) to (L, L) where L = maxDist / 2
+        // This corresponds to the diagonal of the diamond quadrant
+        const L = maxDist / 2;
+        const grad = ctx.createLinearGradient(0, 0, L, L);
+        
+        // Sort stops
+        const sortedStops = [...stops].sort((a, b) => a.position - b.position);
+        sortedStops.forEach(stop => {
+            grad.addColorStop(stop.position / 100, stop.color);
+        });
+
+        // 3. Draw 4 Quadrants
+        ctx.translate(cx, cy);
+        ctx.rotate(angle * Math.PI / 180); // User rotation
+
+        const size = Math.max(width, height) * 2; // Large enough to cover
+
+        for (let i = 0; i < 4; i++) {
+            ctx.save();
+            ctx.rotate(i * Math.PI / 2);
+            // Draw in the first quadrant (x>0, y>0)
+            ctx.fillStyle = grad;
+            // Overlap slightly to prevent white lines (gaps) at the axes
+            ctx.fillRect(-1, -1, size + 1, size + 1);
+            ctx.restore();
+        }
+    }
+
     applyBackgroundToView(view, bg) {
         // Clean up previous code runner attached to THIS view
         if (view._bgCodeRunner) {
@@ -723,6 +831,26 @@ export class SlideRenderer {
         if (bg.type === 'solid') {
             view.style.background = bg.value;
         } else if (bg.type === 'gradient') {
+            // Check for Diamond Gradient Metadata
+            if (bg.value.startsWith('/* diamond|')) {
+                const metaEnd = bg.value.indexOf('*/');
+                if (metaEnd > -1) {
+                    const meta = bg.value.substring(11, metaEnd).trim();
+                    const parts = meta.split('|');
+                    const angle = parseFloat(parts[0] || '0');
+                    const stopsStr = parts[1] || '';
+                    const stops = stopsStr.split(';').map(s => {
+                        const [color, pos] = s.split('@');
+                        return { color, position: parseFloat(pos) };
+                    }).filter(s => s.color && !isNaN(s.position));
+
+                    const w = parseInt(view.style.width) || 1920;
+                    const h = parseInt(view.style.height) || 1080;
+                    
+                    this.renderDiamondGradient(view, w, h, angle, stops);
+                    return;
+                }
+            }
             view.style.background = bg.value;
         } else if (bg.type === 'image') {
             view.style.background = `url(${bg.value}) center/cover no-repeat`;

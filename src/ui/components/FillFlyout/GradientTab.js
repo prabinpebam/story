@@ -53,6 +53,24 @@ export class GradientTab {
         if (!value || typeof value !== 'string') return defaultGradient;
 
         try {
+            // Check for Diamond metadata
+            if (value.startsWith('/* diamond|')) {
+                const metaEnd = value.indexOf('*/');
+                if (metaEnd > -1) {
+                    const meta = value.substring(11, metaEnd).trim();
+                    const parts = meta.split('|');
+                    // Format: angle|stops
+                    // stops: color@pos,color@pos
+                    const angle = parseFloat(parts[0] || '0');
+                    const stopsStr = parts[1] || '';
+                    const stops = stopsStr.split(';').map(s => {
+                        const [color, pos] = s.split('@');
+                        return { color, position: parseFloat(pos) };
+                    });
+                    return { type: 'diamond', angle, stops };
+                }
+            }
+
             let type = 'linear';
             let angle = 90;
             let stopsString = '';
@@ -171,7 +189,7 @@ export class GradientTab {
         this.topBar.appendChild(typeSelect);
 
         // Angle Input
-        if (this.state.type === 'linear' || this.state.type === 'angular') {
+        if (this.state.type === 'linear' || this.state.type === 'angular' || this.state.type === 'diamond') {
             const angleInput = new NumberInput({
                 value: this.state.angle,
                 min: 0,
@@ -219,7 +237,7 @@ export class GradientTab {
         const container = document.createElement('div');
         container.style.height = '24px';
         container.style.position = 'relative';
-        container.style.marginTop = '4px';
+        container.style.marginTop = '24px';
         container.style.marginBottom = '12px';
 
         // Bar
@@ -272,7 +290,7 @@ export class GradientTab {
             handle.style.border = '2px solid #fff';
             handle.style.boxShadow = '0 0 2px rgba(0,0,0,0.5)';
             handle.style.position = 'absolute';
-            handle.style.top = '12px';
+            handle.style.top = '0px';
             handle.style.left = `${stop.position}%`;
             handle.style.transform = 'translate(-50%, -85%) rotate(45deg)';
             handle.style.cursor = 'grab';
@@ -716,7 +734,13 @@ export class GradientTab {
             args = `from ${forPreview ? '0' : (this.state.angle || 0)}deg at center, ${stopsStr}`;
         } else if (type === 'diamond') {
              prefix = 'radial-gradient';
-             args = `circle at center, ${stopsStr}`; 
+             args = `circle at center, ${stopsStr}`;
+             
+             if (!forPreview) {
+                 const metaStops = this.state.stops.map(s => `${s.color}@${s.position}`).join(';');
+                 const meta = `/* diamond|${this.state.angle || 0}|${metaStops} */`;
+                 return `${meta} ${prefix}(${args})`;
+             }
         }
 
         return `${prefix}(${args})`;
