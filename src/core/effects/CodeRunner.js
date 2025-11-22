@@ -136,6 +136,7 @@ export class CodeRunner {
                     result = func(this.ctx, this.canvas, this.canvas.width, this.canvas.height, 0);
                 } catch (e) {
                     console.error('Compilation error in user code:', e);
+                    this.startErrorState();
                     return;
                 }
             }
@@ -160,7 +161,7 @@ export class CodeRunner {
                         this.drawFunction(time);
                     } catch (e) {
                         console.error('Runtime error in user code:', e);
-                        this.stop();
+                        this.startErrorState();
                         return;
                     }
                     
@@ -170,6 +171,7 @@ export class CodeRunner {
                 loop();
             } else {
                 // console.warn('CodeRunner: No draw function returned');
+                this.startErrorState();
             }
             
             if (result && typeof result.cleanup === 'function') {
@@ -178,8 +180,166 @@ export class CodeRunner {
 
         } catch (e) {
             console.error('Compilation error in user code:', e);
+            this.startErrorState();
         }
     }
+
+    startErrorState() {
+        this.drawFunction = this.drawErrorState.bind(this);
+        this.startTime = Date.now();
+        
+        // If not already looping, start loop
+        if (!this.animationFrame) {
+            const loop = () => {
+                if (!this.isPlaying) return;
+                const time = (Date.now() - this.startTime) / 1000;
+                this.ctx.setTransform(1, 0, 0, 1, 0, 0);
+                this.drawErrorState(time);
+                this.animationFrame = requestAnimationFrame(loop);
+            };
+            loop();
+        }
+    }
+
+    drawErrorState(t) {
+        const w = this.canvas.width;
+        const h = this.canvas.height;
+        const ctx = this.ctx;
+
+        // Solid black background
+        ctx.fillStyle = '#000000';
+        ctx.fillRect(0, 0, w, h);
+
+        const fontSize = 12;
+        ctx.font = `${fontSize}px monospace`;
+        const speed = 1; 
+        const trailLength = 15;
+        const numCols = Math.floor(w / fontSize);
+
+        // Initialize drops if needed
+        if (!this._matrixDrops) {
+            this._matrixDrops = [];
+            // Initial population - Reduced density (was 0.2)
+            for (let i = 0; i < numCols; i++) {
+                if (Math.random() > 0.05) {
+                    this._matrixDrops.push({
+                        col: i,
+                        y: Math.random() * h
+                    });
+                }
+            }
+        }
+
+        // Update positions & Remove off-screen
+        for (let i = this._matrixDrops.length - 1; i >= 0; i--) {
+            this._matrixDrops[i].y += speed;
+            // Remove if trail is off screen
+            if (this._matrixDrops[i].y - (trailLength * fontSize) > h) {
+                this._matrixDrops.splice(i, 1);
+            }
+        }
+
+        // Spawn new drops - Reduced frequency
+        // Was 2 attempts at 0.1 prob (~0.2/frame). Now 1 attempt at 0.05 prob (~0.05/frame)
+        if (Math.random() > 0.95) { 
+             const col = Math.floor(Math.random() * numCols);
+             // Check if this column is clear at the top
+             const isClear = !this._matrixDrops.some(d => d.col === col && d.y < (trailLength * fontSize + fontSize));
+             
+             if (isClear) {
+                 this._matrixDrops.push({ col, y: 0 });
+             }
+        }
+
+        // Draw Trails (Green, Linear Fade)
+        this._matrixDrops.forEach(drop => {
+            const x = drop.col * fontSize;
+            const y = drop.y;
+            
+            for (let j = 1; j < trailLength; j++) {
+                const trailY = y - (j * fontSize);
+                const snappedY = Math.floor(trailY / fontSize) * fontSize;
+                
+                if (snappedY < -fontSize || snappedY > h) continue;
+
+                const charCode = 0x30A0 + ((x + snappedY) * 33) % 96;
+                const char = String.fromCharCode(charCode);
+                
+                // Linear fade from 1.0 to 0.0
+                const opacity = 1 - (j / trailLength);
+                ctx.fillStyle = `rgba(36, 215, 102, ${opacity})`;
+                ctx.fillText(char, x, snappedY);
+            }
+        });
+
+        // Draw Heads (White + Glow)
+        ctx.save();
+        ctx.fillStyle = '#FFFFFF';
+        ctx.shadowColor = 'rgba(255, 255, 255, 0.8)';
+        ctx.shadowBlur = 8;
+        
+        this._matrixDrops.forEach(drop => {
+            const x = drop.col * fontSize;
+            const y = drop.y;
+            const snappedY = Math.floor(y / fontSize) * fontSize;
+            
+            if (snappedY < -fontSize || snappedY > h) return;
+
+            const charCode = 0x30A0 + ((x + snappedY) * 33) % 96;
+            const char = String.fromCharCode(charCode);
+            ctx.fillText(char, x, snappedY);
+        });
+        ctx.restore();
+
+        // Error Box - Static, Smaller, Classy
+        const boxW = 140;
+        const boxH = 40;
+        const boxX = (w - boxW) / 2;
+        const boxY = (h - boxH) / 2;
+        const matrixColor = '#24D766'; 
+
+        ctx.save();
+        ctx.translate(boxX, boxY); 
+        
+        // Box Background - Subtle dark green
+        ctx.fillStyle = 'rgba(0, 20, 10, 0.85)';
+        ctx.strokeStyle = matrixColor;
+        ctx.lineWidth = 1;
+        
+        // Rounded corners
+        ctx.beginPath();
+        ctx.roundRect(0, 0, boxW, boxH, 4);
+        ctx.fill();
+        ctx.stroke();
+
+        // Icon (Warning Triangle)
+        ctx.beginPath();
+        ctx.moveTo(15, 30);
+        ctx.lineTo(25, 10);
+        ctx.lineTo(35, 30);
+        ctx.closePath();
+        ctx.strokeStyle = matrixColor;
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+        
+        // Exclamation mark
+        ctx.beginPath();
+        ctx.moveTo(25, 16);
+        ctx.lineTo(25, 22);
+        ctx.moveTo(25, 25);
+        ctx.lineTo(25, 26);
+        ctx.stroke();
+
+        // Text
+        ctx.fillStyle = matrixColor;
+        ctx.font = '12px "Inter", sans-serif';
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('CODE ERROR', 45, 20);
+
+        ctx.restore();
+    }
+
     
     _handleMouseMove(e) {
         const rect = this.canvas.getBoundingClientRect();
