@@ -87,6 +87,17 @@ export class Section {
         }
     }
 
+    setCollapsed(collapsed) {
+        if (this.collapsed === collapsed) return;
+        this.collapsed = collapsed;
+        this.content.style.display = this.collapsed ? 'none' : 'flex';
+        this.chevron.style.transform = this.collapsed ? 'rotate(-90deg)' : 'rotate(0deg)';
+        
+        if (this.options.onToggle) {
+            this.options.onToggle(this.collapsed);
+        }
+    }
+
     appendChild(element) {
         this.content.appendChild(element);
     }

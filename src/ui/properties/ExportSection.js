@@ -9,6 +9,7 @@ export class ExportSection {
     constructor() {
         this.section = new Section({ 
             title: 'Export',
+            collapsed: true,
             actions: [
                 { icon: Icons.PLUS, title: 'Add Export Preset', onClick: () => this.addPreset() }
             ]
@@ -41,6 +42,20 @@ export class ExportSection {
         const element = this.getElement(state, selection[0]);
         
         if (element) {
+            // Check if there are any custom export presets defined
+            // If element.exportPresets is undefined or empty, we consider it "no export settings"
+            // However, the code below defaults to [{ scale: '1x', format: 'png', suffix: '' }] if undefined.
+            // To follow the "collapsed if no effects" logic, we should check if the user has explicitly added presets.
+            // But here, it seems we always show at least one default preset?
+            // If the design intent is "Export section always has a default", then it should probably be collapsed by default unless the user has interacted with it?
+            // Or, if we treat "default preset" as "no custom export settings", we can collapse it.
+            
+            // Let's assume if exportPresets is present and length > 0, it's "active".
+            // If it's undefined, we show default but keep it collapsed.
+            
+            const hasCustomPresets = element.exportPresets && element.exportPresets.length > 0;
+            this.section.setCollapsed(!hasCustomPresets);
+
             this.presets = element.exportPresets || [{ scale: '1x', format: 'png', suffix: '' }];
             this.renderPresets();
             this.exportBtn.textContent = `Export ${element.name || 'Layer'}`;
@@ -123,6 +138,7 @@ export class ExportSection {
     }
 
     addPreset() {
+        this.section.setCollapsed(false);
         const newPreset = { scale: '1x', format: 'png', suffix: '' };
         const newPresets = [...this.presets, newPreset];
         this.savePresets(newPresets);

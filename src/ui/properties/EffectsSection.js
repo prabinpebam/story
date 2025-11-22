@@ -12,6 +12,7 @@ export class EffectsSection {
     constructor() {
         this.section = new Section({ 
             title: 'Effects',
+            collapsed: true,
             actions: [
                 { icon: Icons.STYLES, title: 'Effect Styles', onClick: () => {} },
                 { icon: Icons.PLUS, title: 'Add Effect', onClick: () => this.addEffect() }
@@ -19,6 +20,7 @@ export class EffectsSection {
         });
         this.container = document.createElement('div');
         this.container.className = 'pi-section-content';
+        this.container.style.gap = '0';
         this.section.appendChild(this.container);
         this.activeFlyout = null;
         this.activeEffectType = null;
@@ -60,7 +62,13 @@ export class EffectsSection {
         const blur = style.blur;
         const backgroundBlur = style.backgroundBlur;
         
-        if (!dropShadow && !blur && !backgroundBlur) {
+        const hasEffects = dropShadow || blur || backgroundBlur;
+
+        // Auto-collapse/expand based on content
+        // If effects exist, expand. If not, collapse.
+        this.section.setCollapsed(!hasEffects);
+
+        if (!hasEffects) {
              const hint = document.createElement('div');
             hint.textContent = 'No effects';
             hint.style.color = 'var(--text-tertiary)';
@@ -116,7 +124,7 @@ export class EffectsSection {
         row.className = 'pi-row';
         row.style.justifyContent = 'space-between';
         row.style.cursor = 'pointer';
-        row.style.padding = '4px 8px';
+        // row.style.padding = '4px 8px';
         row.style.borderRadius = '4px';
         row.style.opacity = isVisible ? '1' : '0.5';
         
@@ -453,13 +461,16 @@ export class EffectsSection {
     }
 
     addEffect() {
+        // Ensure section is expanded when adding an effect
+        this.section.setCollapsed(false);
+
         this.selection.forEach(id => {
             const state = store.getState();
             const el = this.getElement(state, id);
             const style = el.style || {};
             
             if (!style.dropShadow) {
-                this.updateStyle('dropShadow', { x: 0, y: 4, blur: 4, spread: 0, color: '#000000' });
+                this.updateStyle('dropShadow', { x: 0, y: 4, blur: 4, spread: 0, color: '#00000080' });
             } else if (!style.blur) {
                 this.updateStyle('blur', { radius: 4, type: 'uniform' });
             }
@@ -533,7 +544,7 @@ export class EffectsSection {
         // 2. Add new effect with defaults
         let defaultData;
         if (newType === 'dropShadow') {
-            defaultData = { x: 0, y: 4, blur: 4, spread: 0, color: '#000000' };
+            defaultData = { x: 0, y: 4, blur: 4, spread: 0, color: '#00000080' };
         } else if (newType === 'blur') {
             defaultData = { radius: 4, type: 'uniform' };
         } else if (newType === 'backgroundBlur') {

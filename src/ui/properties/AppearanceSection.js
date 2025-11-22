@@ -54,7 +54,7 @@ export class AppearanceSection {
         });
         
         // Style adjustments for row
-        this.opacityInput.element.style.flex = '0 0 80px'; // Fixed width for opacity
+        this.opacityInput.element.style.flex = '0 0 100px'; // Fixed width for opacity
         this.blendModeSelect.element.style.flex = '1';
 
         opacityRow.appendChild(this.opacityInput.element);
