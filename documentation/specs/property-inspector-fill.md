@@ -55,3 +55,20 @@ This section manages the stack of fills applied to the selected object. Note tha
     * **Opacity %:** Shows transparency.
     * **Visibility (Eye Icon):** Toggles that specific fill layer on/off.
     * **Remove (Minus Icon):** Deletes that specific fill layer.
+
+### 3. Code Fill Specification
+The Code Fill feature allows users to generate canvas-based animations using AI or custom JavaScript.
+
+**UI Elements**
+* **Preview Canvas:** Shows the live rendering of the code.
+* **Prompt Input:** Text area for describing the desired animation.
+* **Refine Prompt Checkbox:**
+    *   **Label:** "Refine prompt"
+    *   **Default State:** Checked.
+    *   **Functionality:** When checked, the generation process becomes a 2-step operation:
+        1.  **Refinement:** The user's prompt is sent to the AI to be rewritten into a detailed, specific technical description suitable for code generation. The UI updates the prompt input with this refined text.
+        2.  **Generation:** The refined prompt is then used to generate the actual JavaScript code.
+* **Action Buttons:**
+    *   **Update:** Modifies the existing code based on the prompt.
+    *   **Generate New:** Replaces the current code with a completely new generation.
+* **Code Editor:** A text editor showing the generated JavaScript code, allowing manual edits.

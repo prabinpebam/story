@@ -63,3 +63,17 @@ Requirements:
 - Modify the code to satisfy the request.
 - Return ONLY the valid JavaScript code. No markdown.
 `;
+
+export const PROMPT_REFINEMENT_PROMPT = `
+You are an expert prompt engineer for generative art code.
+Your task is to refine the user's prompt into a detailed, specific instruction for generating canvas animation code.
+
+User Prompt: "{userPrompt}"
+
+Guidelines:
+1. Make it specific and detailed suitable for a code generation model.
+2. Clarify vague terms (e.g., "cool background" -> "dynamic particle system with glowing trails").
+3. Ensure NO specific details from the original prompt are lost.
+4. Focus on visual description, motion, colors, and behavior.
+5. Return ONLY the refined prompt text. No explanations.
+`;

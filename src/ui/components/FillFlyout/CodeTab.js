@@ -2,7 +2,7 @@ import { IconButton } from '../IconButton.js';
 import { Icons } from '../../Icons.js';
 import { CodeRunner } from '../../../core/effects/CodeRunner.js';
 import { AIService } from '../../../core/ai/AIService.js';
-import { CODE_FILL_PROMPT, CODE_FILL_UPDATE_PROMPT } from '../../../core/ai/prompts/templates.js';
+import { CODE_FILL_PROMPT, CODE_FILL_UPDATE_PROMPT, PROMPT_REFINEMENT_PROMPT } from '../../../core/ai/prompts/templates.js';
 
 export class CodeTab {
     constructor(options = {}) {
@@ -69,6 +69,31 @@ export class CodeTab {
         promptInput.style.resize = 'none';
         promptInput.style.fontFamily = 'Inter, sans-serif';
 
+        // Refine Prompt Checkbox
+        const refineContainer = document.createElement('div');
+        refineContainer.style.display = 'flex';
+        refineContainer.style.alignItems = 'center';
+        refineContainer.style.gap = '8px';
+        refineContainer.style.padding = '0 4px';
+
+        const refineCheckbox = document.createElement('input');
+        refineCheckbox.type = 'checkbox';
+        refineCheckbox.id = 'refine-prompt-checkbox';
+        refineCheckbox.checked = true;
+        refineCheckbox.style.cursor = 'pointer';
+        
+        const refineLabel = document.createElement('label');
+        refineLabel.htmlFor = 'refine-prompt-checkbox';
+        refineLabel.textContent = 'Refine prompt';
+        refineLabel.style.color = '#D4D4D4';
+        refineLabel.style.fontSize = '11px';
+        refineLabel.style.userSelect = 'none';
+        refineLabel.style.cursor = 'pointer';
+
+        refineContainer.appendChild(refineCheckbox);
+        refineContainer.appendChild(refineLabel);
+        this.refineCheckbox = refineCheckbox;
+
         const buttonRow = document.createElement('div');
         buttonRow.style.display = 'flex';
         buttonRow.style.gap = '8px';
@@ -101,6 +126,7 @@ export class CodeTab {
         buttonRow.appendChild(generateBtn);
         
         aiSection.appendChild(promptInput);
+        aiSection.appendChild(refineContainer);
         aiSection.appendChild(buttonRow);
         this.element.appendChild(aiSection);
 
@@ -143,21 +169,43 @@ export class CodeTab {
         btn.disabled = true;
         
         try {
+            const ai = new AIService();
+            let finalPrompt = prompt;
+
+            // Step 1: Refine Prompt if requested
+            if (this.refineCheckbox && this.refineCheckbox.checked) {
+                btn.textContent = 'Refining...';
+                const refinementSystemPrompt = PROMPT_REFINEMENT_PROMPT.replace('{userPrompt}', prompt);
+                
+                const refined = await ai.generate("Refine the prompt.", { 
+                    systemPrompt: refinementSystemPrompt 
+                });
+                
+                finalPrompt = refined.trim();
+                
+                // Update UI with refined prompt
+                const promptInput = this.element.querySelector('textarea');
+                if (promptInput) {
+                    promptInput.value = finalPrompt;
+                }
+                
+                btn.textContent = 'Generating Code...';
+            }
+
             let systemPrompt = '';
             let userPrompt = '';
             
             if (mode === 'new') {
-                systemPrompt = CODE_FILL_PROMPT.replace('{description}', prompt);
-                userPrompt = `Generate a canvas animation code for: ${prompt}`;
+                systemPrompt = CODE_FILL_PROMPT.replace('{description}', finalPrompt);
+                userPrompt = `Generate a canvas animation code for: ${finalPrompt}`;
             } else {
                 systemPrompt = CODE_FILL_UPDATE_PROMPT
                     .replace('{existingCode}', this.editor.value)
-                    .replace('{request}', prompt);
-                userPrompt = `Update the code to: ${prompt}`;
+                    .replace('{request}', finalPrompt);
+                userPrompt = `Update the code to: ${finalPrompt}`;
             }
 
             // Call AI Service
-            const ai = new AIService();
             const generatedCode = await ai.generate(userPrompt, { systemPrompt });
             
             // Clean up code (remove markdown blocks if any)
