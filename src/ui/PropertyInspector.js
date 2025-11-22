@@ -8,6 +8,10 @@ import { aiService } from '../core/ai/AIService.js';
 import { PositionSection } from './properties/PositionSection.js';
 import { LayoutSection } from './properties/LayoutSection.js';
 import { AppearanceSection } from './properties/AppearanceSection.js';
+import { FillSection } from './properties/FillSection.js';
+import { StrokeSection } from './properties/StrokeSection.js';
+import { EffectsSection } from './properties/EffectsSection.js';
+import { ExportSection } from './properties/ExportSection.js';
 import { SlideSection } from './properties/SlideSection.js';
 
 export class PropertyInspector {
@@ -19,6 +23,10 @@ export class PropertyInspector {
         this.positionSection = new PositionSection();
         this.layoutSection = new LayoutSection();
         this.appearanceSection = new AppearanceSection();
+        this.fillSection = new FillSection();
+        this.strokeSection = new StrokeSection();
+        this.effectsSection = new EffectsSection();
+        this.exportSection = new ExportSection();
         this.slideSection = new SlideSection();
         
         this.init();
@@ -59,6 +67,22 @@ export class PropertyInspector {
             // 3. Appearance Section
             this.appearanceSection.update(selection);
             this.container.appendChild(this.appearanceSection.section.element);
+
+            // 4. Fill Section
+            this.fillSection.update(selection);
+            this.container.appendChild(this.fillSection.section.element);
+
+            // 5. Stroke Section
+            this.strokeSection.update(selection);
+            this.container.appendChild(this.strokeSection.section.element);
+
+            // 6. Effects Section
+            this.effectsSection.update(selection);
+            this.container.appendChild(this.effectsSection.section.element);
+
+            // 7. Export Section
+            this.exportSection.update(selection);
+            this.container.appendChild(this.exportSection.section.element);
             
             // TODO: Add other sections here as they are built
         } else {
@@ -822,35 +846,6 @@ return {
     }
 
     renderCommonProperties(props, selection) {
-        // Alignment Row
-        const alignRow = document.createElement('div');
-        alignRow.style.display = 'flex';
-        alignRow.style.justifyContent = 'space-between';
-        alignRow.style.marginBottom = '8px';
-        alignRow.style.padding = '0 4px';
-
-        const aligns = [
-            { icon: 'fa-align-left', action: 'left', title: 'Align Left' },
-            { icon: 'fa-align-center', action: 'center', title: 'Align Center' },
-            { icon: 'fa-align-right', action: 'right', title: 'Align Right' },
-            { icon: 'fa-align-left', action: 'top', title: 'Align Top', rotate: 90 },
-            { icon: 'fa-align-center', action: 'middle', title: 'Align Middle', rotate: 90 },
-            { icon: 'fa-align-right', action: 'bottom', title: 'Align Bottom', rotate: 90 }
-        ];
-
-        aligns.forEach(item => {
-            const btn = document.createElement('button');
-            btn.className = 'icon-btn';
-            btn.style.width = '24px';
-            btn.style.height = '24px';
-            btn.title = item.title;
-            btn.innerHTML = `<i class="fa-solid ${item.icon}" style="${item.rotate ? `transform: rotate(${item.rotate}deg)` : ''}"></i>`;
-            btn.onclick = () => store.dispatch('ALIGN_ELEMENTS', item.action);
-            alignRow.appendChild(btn);
-        });
-
-        this.container.appendChild(alignRow);
-
         // Distribution Row (Only if > 2 elements)
         if (selection.length > 2) {
             const distRow = document.createElement('div');
@@ -876,72 +871,7 @@ return {
             });
             
             this.container.appendChild(distRow);
-        } else {
-            alignRow.style.marginBottom = '16px';
         }
-
-        const { group, content } = this.createControlGroup('TRANSFORM');
-        
-        // Position Row (X, Y)
-        const posRow = document.createElement('div');
-        posRow.style.display = 'flex';
-        posRow.style.gap = '8px';
-        posRow.style.marginBottom = '8px';
-
-        // X Position
-        const xControl = new ScrubbableControl('X', props.x, (val) => {
-            this.updateProperty(selection, 'x', val);
-        });
-        posRow.appendChild(xControl.element);
-
-        // Y Position
-        const yControl = new ScrubbableControl('Y', props.y, (val) => {
-            this.updateProperty(selection, 'y', val);
-        });
-        posRow.appendChild(yControl.element);
-
-        content.appendChild(posRow);
-
-        // Size Row (W, H)
-        const sizeRow = document.createElement('div');
-        sizeRow.style.display = 'flex';
-        sizeRow.style.gap = '8px';
-        sizeRow.style.marginBottom = '8px';
-
-        // Width
-        const wControl = new ScrubbableControl('W', props.width, (val) => {
-            this.updateProperty(selection, 'width', Math.max(1, val));
-        }, { min: 1 });
-        sizeRow.appendChild(wControl.element);
-
-        // Height
-        const hControl = new ScrubbableControl('H', props.height, (val) => {
-            this.updateProperty(selection, 'height', Math.max(1, val));
-        }, { min: 1 });
-        sizeRow.appendChild(hControl.element);
-
-        content.appendChild(sizeRow);
-
-        // Rotation & Radius Row
-        const rotRow = document.createElement('div');
-        rotRow.style.display = 'flex';
-        rotRow.style.gap = '8px';
-        rotRow.style.marginBottom = '8px';
-        
-        const rotControl = new ScrubbableControl('°', props.rotation, (val) => {
-            this.updateProperty(selection, 'rotation', val % 360);
-        });
-        rotRow.appendChild(rotControl.element);
-        
-        // Corner Radius (Common for all)
-        const radiusControl = new ScrubbableControl('R', props.cornerRadius || 0, (val) => {
-            this.updateStyle(selection, 'radius', Math.max(0, val));
-        });
-        rotRow.appendChild(radiusControl.element);
-
-        content.appendChild(rotRow);
-
-        this.container.appendChild(group);
     }
 
     createLabelInputPair(labelText, inputElement) {

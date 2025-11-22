@@ -130,9 +130,10 @@ Create the building blocks in `src/ui/components/`.
 
 ### 7.1. Effects List
 - **Action**: Create `src/ui/properties/EffectsSection.js`.
+- **Specs**: `property-inspector-effects.md`.
 - **Details**:
     - List of effects (Drop Shadow, Blur).
-    - Effect Settings Flyout (or inline expansion for now).
+    - Effect Settings Flyout (Detailed Settings Modal).
 
 ---
 

@@ -34,5 +34,13 @@ export const Icons = {
     LINK_BROKEN: '<i class="fa-solid fa-link-slash"></i>',
     CORNER_RADIUS: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 3H8C10.7614 3 13 5.23858 13 8V13" stroke="currentColor" stroke-width="1.5"/></svg>',
     OPACITY: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="2" y="2" width="12" height="12" rx="2" stroke="currentColor" stroke-width="1.5"/><path d="M2 14L14 2" stroke="currentColor" stroke-width="1.5"/></svg>',
-    BLEND_MODE: '<i class="fa-solid fa-droplet"></i>'
+    BLEND_MODE: '<i class="fa-solid fa-droplet"></i>',
+
+    // Effects
+    STYLES: '<i class="fa-solid fa-border-all"></i>', // Grid/Four dots
+    EFFECT_SHADOW: '<i class="fa-regular fa-square"></i>', // Placeholder for shadow icon
+    EFFECT_BLUR: '<i class="fa-solid fa-bullseye"></i>', // Placeholder for blur icon
+    EFFECT_BG_BLUR: '<i class="fa-solid fa-chess-board"></i>',
+    GRID_3X3: '<i class="fa-solid fa-table-cells"></i>',
+    CLOSE: '<i class="fa-solid fa-xmark"></i>',
 };

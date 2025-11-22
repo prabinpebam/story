@@ -36,7 +36,6 @@
     align-items: center;
     justify-content: space-between;
     height: var(--row-height);
-    padding: 0 var(--spacing-3);
     cursor: pointer;
 }
 
@@ -46,8 +45,7 @@
     color: var(--color-text-primary);
 }
 
-.pi-section-content {
-    padding: 0 var(--spacing-3);
+.pi-section-content {    
     display: flex;
     flex-direction: column;
     gap: var(--spacing-row);

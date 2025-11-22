@@ -41,7 +41,7 @@
 .sidebar-content {
     flex: 1;
     overflow-y: auto;
-    padding: var(--spacing-md);
+    padding: var(--spacing-sm);
 }
 
 /* Main Stage */
