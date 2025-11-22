@@ -266,39 +266,43 @@ export class GradientTab {
         // Stops
         this.state.stops.forEach((stop, index) => {
             const handle = document.createElement('div');
-            handle.style.width = '12px';
-            handle.style.height = '12px';
-            handle.style.borderRadius = '50%';
+            handle.style.width = '16px';
+            handle.style.height = '16px';
+            handle.style.borderRadius = '50% 50% 0 50%';
             handle.style.border = '2px solid #fff';
             handle.style.boxShadow = '0 0 2px rgba(0,0,0,0.5)';
             handle.style.position = 'absolute';
-            handle.style.top = '6px';
+            handle.style.top = '12px';
             handle.style.left = `${stop.position}%`;
-            handle.style.transform = 'translate(-50%, -50%)';
+            handle.style.transform = 'translate(-50%, -85%) rotate(45deg)';
             handle.style.cursor = 'grab';
             handle.style.backgroundColor = stop.color;
             handle.style.zIndex = index === this.selectedStopIndex ? '10' : '1';
 
             if (index === this.selectedStopIndex) {
                 handle.style.borderColor = '#0055FF';
-                handle.style.transform = 'translate(-50%, -50%) scale(1.2)';
+                handle.style.transform = 'translate(-50%, -85%) rotate(45deg) scale(1.2)';
             }
 
+            // Drag Logic
             handle.addEventListener('mousedown', (e) => {
                 e.stopPropagation();
                 this.selectedStopIndex = index;
                 this.updateColorState();
                 
                 // Update selection visual without full re-render
-                const allHandles = container.querySelectorAll('div[style*="border-radius: 50%"]');
-                allHandles.forEach((h, i) => {
+                // We select by class or just assume children order. 
+                // Since we don't have classes, let's use the style property we know is unique enough or just iterate children.
+                // The container has the bar (child 0) and then handles.
+                const handles = Array.from(container.children).slice(1);
+                handles.forEach((h, i) => {
                     if (i === index) {
                         h.style.borderColor = '#0055FF';
-                        h.style.transform = 'translate(-50%, -50%) scale(1.2)';
+                        h.style.transform = 'translate(-50%, -85%) rotate(45deg) scale(1.2)';
                         h.style.zIndex = '10';
                     } else {
                         h.style.borderColor = '#fff';
-                        h.style.transform = 'translate(-50%, -50%)';
+                        h.style.transform = 'translate(-50%, -85%) rotate(45deg)';
                         h.style.zIndex = '1';
                     }
                 });
