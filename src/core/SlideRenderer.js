@@ -89,7 +89,10 @@ export class SlideRenderer {
             // Find Master or Layout
             const masters = state.masters;
             if (masters[id]) {
-                slide = masters[id];
+                slide = { ...masters[id] };
+                // Masters might not have explicit dimensions, default to FHD
+                if (!slide.width) slide.width = 1920;
+                if (!slide.height) slide.height = 1080;
             }
         } else {
             slide = state.slides[id];
@@ -898,6 +901,8 @@ export class SlideRenderer {
                 // It is a master theme
                 return {
                     ...item,
+                    width: item.width || 1920,
+                    height: item.height || 1080,
                     effectiveBackground: item.background || { type: 'solid', value: '#ffffff' },
                     effectiveElements: item.elements,
                     effectiveOrder: item.elementOrder || [],
@@ -928,6 +933,8 @@ export class SlideRenderer {
 
                 return {
                     ...item,
+                    width: item.width || 1920,
+                    height: item.height || 1080,
                     effectiveBackground,
                     effectiveElements,
                     effectiveOrder,
