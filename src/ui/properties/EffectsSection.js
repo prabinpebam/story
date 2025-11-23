@@ -7,12 +7,13 @@ import { Flyout } from '../components/Flyout.js';
 import { SegmentedControl } from '../components/SegmentedControl.js';
 import { Icons } from '../Icons.js';
 import { store } from '../../core/Store.js';
+import { EmptyState } from '../components/EmptyState.js';
 
 export class EffectsSection {
     constructor() {
         this.section = new Section({ 
             title: 'Effects',
-            collapsed: true,
+            collapsed: false,
             actions: [
                 { icon: Icons.STYLES, title: 'Effect Styles', onClick: () => {} },
                 { icon: Icons.PLUS, title: 'Add Effect', onClick: () => this.addEffect() }
@@ -66,15 +67,11 @@ export class EffectsSection {
 
         // Auto-collapse/expand based on content
         // If effects exist, expand. If not, collapse.
-        this.section.setCollapsed(!hasEffects);
+        // this.section.setCollapsed(!hasEffects); // User wants empty state visible
 
         if (!hasEffects) {
-             const hint = document.createElement('div');
-            hint.textContent = 'No effects';
-            hint.style.color = 'var(--text-tertiary)';
-            hint.style.fontSize = '11px';
-            hint.style.padding = 'var(--spacing-1) 0';
-            this.container.appendChild(hint);
+            const empty = new EmptyState('No effects');
+            this.container.appendChild(empty.element);
             return;
         }
 

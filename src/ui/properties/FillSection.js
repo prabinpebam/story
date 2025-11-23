@@ -6,6 +6,7 @@ import { Icons } from '../Icons.js';
 import { store } from '../../core/Store.js';
 import { FillFlyout } from '../components/FillFlyout/FillFlyout.js';
 import { BlendModes } from '../../core/constants/BlendModes.js';
+import { EmptyState } from '../components/EmptyState.js';
 
 export class FillSection {
     constructor() {
@@ -83,11 +84,10 @@ export class FillSection {
         }
 
         if (fills.length === 0) {
-            this.section.setCollapsed(true);
+            const empty = new EmptyState('No fill');
+            this.container.appendChild(empty.element);
             return;
         }
-        
-        this.section.setCollapsed(false);
 
         // Container for the list of fills
         const list = document.createElement('div');
@@ -530,17 +530,27 @@ export class FillSection {
 
     removeFill(element, index) {
         const style = element.style || {};
-        if (!style.fills) return; // Should not happen if we rendered rows
+        let fills = style.fills ? [...style.fills] : [];
+        
+        // Migration check
+        if (!style.fills && (style.backgroundColor || style.fillType)) {
+             fills = [{
+                type: style.fillType || 'solid',
+                value: style.fillValue || style.backgroundColor,
+                color: style.backgroundColor,
+                opacity: 100,
+                visible: style._fillEnabled !== false
+             }];
+        }
 
-        const newFills = [...style.fills];
-        newFills.splice(index, 1);
+        fills.splice(index, 1);
 
         store.dispatch('UPDATE_ELEMENT', {
             id: element.id,
             style: {
                 ...style,
-                fills: newFills,
-                backgroundColor: this.getCompositeColor(newFills)
+                fills: fills,
+                backgroundColor: this.getCompositeColor(fills)
             }
         });
     }

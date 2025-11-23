@@ -14,13 +14,7 @@ import { EffectsSection } from './properties/EffectsSection.js';
 import { ExportSection } from './properties/ExportSection.js';
 import { SlideSection } from './properties/SlideSection.js';
 import { LegacyTextSection } from './properties/legacy/LegacyTextSection.js';
-import { LegacyShapeSection } from './properties/legacy/LegacyShapeSection.js';
-import { LegacyImageSection } from './properties/legacy/LegacyImageSection.js';
-import { LegacyAnimationSection } from './properties/legacy/LegacyAnimationSection.js';
-import { LegacyEffectsSection } from './properties/legacy/LegacyEffectsSection.js';
-import { LegacyCommonSection } from './properties/legacy/LegacyCommonSection.js';
-import { LegacySlideSection } from './properties/legacy/LegacySlideSection.js';
-import { getActiveContainer, getCommonProperties } from './properties/legacy/LegacyUtils.js';
+import { getActiveContainer } from './properties/legacy/LegacyUtils.js';
 
 export class PropertyInspector {
     constructor(containerId) {
@@ -39,12 +33,6 @@ export class PropertyInspector {
         
         // Initialize Legacy Sections
         this.legacyTextSection = new LegacyTextSection(null, this.sectionStates);
-        this.legacyShapeSection = new LegacyShapeSection(null, this.sectionStates);
-        this.legacyImageSection = new LegacyImageSection(null, this.sectionStates);
-        this.legacyAnimationSection = new LegacyAnimationSection(null, this.sectionStates);
-        this.legacyEffectsSection = new LegacyEffectsSection(null, this.sectionStates);
-        this.legacyCommonSection = new LegacyCommonSection(null);
-        this.legacySlideSection = new LegacySlideSection(null, this.sectionStates);
 
         this.init();
     }
@@ -126,15 +114,8 @@ export class PropertyInspector {
 
         // Update container for legacy sections
         this.legacyTextSection.container = this.container;
-        this.legacyShapeSection.container = this.container;
-        this.legacyImageSection.container = this.container;
-        this.legacyAnimationSection.container = this.container;
-        this.legacyEffectsSection.container = this.container;
-        this.legacyCommonSection.container = this.container;
-        this.legacySlideSection.container = this.container;
 
         if (!selection || selection.length === 0) {
-            this.legacySlideSection.render(currentObject, mode);
             return;
         }
 
@@ -161,12 +142,6 @@ export class PropertyInspector {
         
         if (elements.length === 0) return;
 
-        // Calculate common properties
-        const commonProps = getCommonProperties(elements);
-
-        // Render Controls
-        this.legacyCommonSection.render(commonProps, selection);
-
         // Type specific properties (only if all same type)
         const firstType = elements[0].type;
         const allSameType = elements.every(el => el.type === firstType);
@@ -174,17 +149,7 @@ export class PropertyInspector {
         if (allSameType) {
             if (firstType === 'text') {
                 this.legacyTextSection.render(elements[0], selection);
-            } else if (firstType === 'rect') {
-                this.legacyShapeSection.render(elements[0], selection);
-            } else if (firstType === 'image') {
-                this.legacyImageSection.render(elements[0], selection);
             }
-        }
-
-        // Effects (Shadow) - Only for single selection for now
-        if (selection.length === 1) {
-            this.legacyEffectsSection.render(elements[0], selection);
-            this.legacyAnimationSection.render(elements[0], selection);
         }
     }
 

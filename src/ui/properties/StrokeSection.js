@@ -7,6 +7,7 @@ import { Icons } from '../Icons.js';
 import { store } from '../../core/Store.js';
 import { StrokeSettingsFlyout } from '../components/StrokeFlyout/StrokeSettingsFlyout.js';
 import { BlendModes } from '../../core/constants/BlendModes.js';
+import { EmptyState } from '../components/EmptyState.js';
 
 export class StrokeSection {
     constructor() {
@@ -74,8 +75,8 @@ export class StrokeSection {
         }
 
         if (strokes.length === 0) {
-            // Show empty state hint if desired, or just rely on header
-            // For now, let's just show nothing in the body
+            const empty = new EmptyState('No stroke');
+            this.container.appendChild(empty.element);
             return;
         }
 
