@@ -1282,6 +1282,43 @@ return {
     }
 
     createSVGGradient(id, gradientString) {
+        // Helper to parse stops
+        const parseStops = (str, gradEl) => {
+            // Regex to match color and position. 
+            // Matches: Hex, RGB/A, HSL/A, Named Colors
+            // Position: Matches integers and decimals with %
+            const stopRegex = /((?:#[0-9a-fA-F]{3,8})|(?:rgba?\([^)]+\))|(?:hsla?\([^)]+\))|(?:[a-zA-Z]+))\s+([\d.]+%)/g;
+            
+            let match;
+            while ((match = stopRegex.exec(str)) !== null) {
+                const color = match[1];
+                const offset = match[2];
+                const stop = document.createElementNS('http://www.w3.org/2000/svg', 'stop');
+                stop.setAttribute('offset', offset);
+                
+                if (color.startsWith('rgba')) {
+                    const parts = color.match(/rgba\(([\d\s,]+),([\d\s.]+)\)/);
+                    if (parts) {
+                        stop.setAttribute('stop-color', `rgb(${parts[1]})`);
+                        stop.setAttribute('stop-opacity', parts[2]);
+                    } else {
+                        stop.setAttribute('stop-color', color);
+                    }
+                } else if (color.startsWith('hsla')) {
+                     const parts = color.match(/hsla\(([\d\s,%]+),([\d\s.]+)\)/);
+                     if (parts) {
+                         stop.setAttribute('stop-color', `hsl(${parts[1]})`);
+                         stop.setAttribute('stop-opacity', parts[2]);
+                     } else {
+                         stop.setAttribute('stop-color', color);
+                     }
+                } else {
+                    stop.setAttribute('stop-color', color);
+                }
+                gradEl.appendChild(stop);
+            }
+        };
+
         // Handle Radial Gradient
         if (gradientString.startsWith('radial-gradient')) {
             const grad = document.createElementNS('http://www.w3.org/2000/svg', 'radialGradient');
@@ -1292,25 +1329,12 @@ return {
             grad.setAttribute('fx', '50%');
             grad.setAttribute('fy', '50%');
 
-            // Parse stops
-            const stopRegex = /(#[0-9a-fA-F]{3,8}|rgba?\([^)]+\))\s+(\d+%)/g;
-            let match;
-            while ((match = stopRegex.exec(gradientString)) !== null) {
-                const color = match[1];
-                const offset = match[2];
-                const stop = document.createElementNS('http://www.w3.org/2000/svg', 'stop');
-                stop.setAttribute('offset', offset);
-                stop.setAttribute('stop-color', color);
-                grad.appendChild(stop);
-            }
+            parseStops(gradientString, grad);
             return grad;
         }
 
-        // Handle Conic Gradient (Fallback to Linear for now as SVG 1.1 doesn't support it)
-        // Or we could try to approximate it, but that's complex.
-        // A better fallback might be the first color or a simple linear gradient.
+        // Handle Conic Gradient (Fallback to Linear)
         if (gradientString.startsWith('conic-gradient')) {
-             // Fallback: Create a linear gradient that at least shows the colors
              const grad = document.createElementNS('http://www.w3.org/2000/svg', 'linearGradient');
              grad.setAttribute('id', id);
              grad.setAttribute('x1', '0%');
@@ -1318,16 +1342,7 @@ return {
              grad.setAttribute('x2', '100%');
              grad.setAttribute('y2', '100%');
              
-             const stopRegex = /(#[0-9a-fA-F]{3,8}|rgba?\([^)]+\))\s+(\d+%)/g;
-             let match;
-             while ((match = stopRegex.exec(gradientString)) !== null) {
-                 const color = match[1];
-                 const offset = match[2];
-                 const stop = document.createElementNS('http://www.w3.org/2000/svg', 'stop');
-                 stop.setAttribute('offset', offset);
-                 stop.setAttribute('stop-color', color);
-                 grad.appendChild(stop);
-             }
+             parseStops(gradientString, grad);
              return grad;
         }
 
@@ -1339,33 +1354,13 @@ return {
         const angleMatch = gradientString.match(/(\d+)deg/);
         const angle = angleMatch ? parseInt(angleMatch[1]) : 90;
         
-        // Convert CSS angle (0deg = up, 90deg = right) to SVG coordinates
-        // CSS: 0deg is bottom->top. SVG: y2 < y1.
-        // CSS: 90deg is left->right. SVG: x2 > x1.
-        // Formula:
-        // x1 = 50% - 50% * sin(angle)
-        // y1 = 50% + 50% * cos(angle)
-        // x2 = 50% + 50% * sin(angle)
-        // y2 = 50% - 50% * cos(angle)
-        // Note: CSS angles are clockwise from top (0deg).
-        // Wait, standard CSS linear-gradient: 0deg is bottom to top. 90deg is left to right.
-        // So 0deg = (0,1) -> (0,0). 90deg = (0,0) -> (1,0).
-        
         const rad = (angle * Math.PI) / 180;
         
-        // Calculate vector
-        // 0deg: x=0, y=-1
-        // 90deg: x=1, y=0
-        // 180deg: x=0, y=1
-        // 270deg: x=-1, y=0
         const dx = Math.sin(rad);
         const dy = -Math.cos(rad);
         
-        // Map to 0..1 coordinates centered at 0.5, 0.5
-        // Start point
         const x1 = 0.5 - (dx / 2);
         const y1 = 0.5 - (dy / 2);
-        // End point
         const x2 = 0.5 + (dx / 2);
         const y2 = 0.5 + (dy / 2);
         
@@ -1374,17 +1369,7 @@ return {
         grad.setAttribute('x2', `${x2 * 100}%`);
         grad.setAttribute('y2', `${y2 * 100}%`);
         
-        // Parse stops
-        const stopRegex = /(#[0-9a-fA-F]{3,8}|rgba?\([^)]+\))\s+(\d+%)/g;
-        let match;
-        while ((match = stopRegex.exec(gradientString)) !== null) {
-            const color = match[1];
-            const offset = match[2];
-            const stop = document.createElementNS('http://www.w3.org/2000/svg', 'stop');
-            stop.setAttribute('offset', offset);
-            stop.setAttribute('stop-color', color);
-            grad.appendChild(stop);
-        }
+        parseStops(gradientString, grad);
         
         return grad;
     }

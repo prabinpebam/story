@@ -1,5 +1,6 @@
 import { Icons } from '../../Icons.js';
 import { IconButton } from '../IconButton.js';
+import { FillTypeSelector } from '../FillTypeSelector.js';
 import { SolidTab } from './SolidTab.js';
 import { GradientTab } from './GradientTab.js';
 import { ImageTab } from './ImageTab.js';
@@ -87,33 +88,12 @@ export class FillFlyout {
         modeRow.style.paddingBottom = '12px';
         modeRow.style.borderBottom = '1px solid #444';
 
-        const modes = [
-            { type: 'solid', icon: Icons.FILL_SOLID, title: 'Solid Color' },
-            { type: 'gradient', icon: Icons.FILL_GRADIENT, title: 'Gradient' },
-            { type: 'image', icon: Icons.FILL_IMAGE, title: 'Image' },
-            { type: 'video', icon: Icons.FILL_VIDEO, title: 'Video' },
-            { type: 'code', icon: Icons.FILL_CODE, title: 'Code' }
-        ];
-
-        const modeGroup = document.createElement('div');
-        modeGroup.style.display = 'flex';
-        modeGroup.style.gap = '2px';
-
-        modes.forEach(mode => {
-            const isActive = this.fill.type === mode.type;
-            const btn = new IconButton({
-                icon: mode.icon,
-                title: mode.title,
-                onClick: () => this.setMode(mode.type)
-            });
-            if (isActive) {
-                btn.element.style.color = '#FFFFFF';
-                btn.element.style.backgroundColor = '#444';
-            }
-            modeGroup.appendChild(btn.element);
+        const typeSelector = new FillTypeSelector({
+            activeType: this.fill.type,
+            onChange: (type) => this.setMode(type)
         });
 
-        modeRow.appendChild(modeGroup);
+        modeRow.appendChild(typeSelector.element);
         
         // Blend & Visibility (Right side of mode row)
         const extraGroup = document.createElement('div');

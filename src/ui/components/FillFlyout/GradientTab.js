@@ -262,6 +262,7 @@ export class GradientTab {
         
         // Click to add stop
         bar.addEventListener('mousedown', (e) => {
+            e.stopPropagation(); // Prevent flyout from closing
             if (e.target !== bar && e.target !== preview) return;
             const rect = bar.getBoundingClientRect();
             const x = e.clientX - rect.left;
@@ -323,7 +324,7 @@ export class GradientTab {
                 });
                 
                 // Update list selection visual
-                const listRows = this.stopsListContainer.querySelectorAll('div[style*="cursor: pointer"]');
+                const listRows = this.stopsListContainer.querySelectorAll('.stop-row');
                 listRows.forEach((row, i) => {
                     row.style.backgroundColor = i === index ? '#444' : 'transparent';
                 });
@@ -342,6 +343,19 @@ export class GradientTab {
                     handle.style.left = `${newPos}%`;
                     preview.style.background = this.getGradientString(true);
                     this.emitChange();
+
+                    // Update list input in realtime
+                    // We find the input by index. The list container has a header then the list div.
+                    // The list div has rows. Each row has a NumberInput.
+                    // The NumberInput structure is usually a wrapper div with an input inside.
+                    const listDiv = this.stopsListContainer.lastElementChild;
+                    if (listDiv && listDiv.children[index]) {
+                        const row = listDiv.children[index];
+                        const input = row.querySelector('input');
+                        if (input) {
+                            input.value = Math.round(newPos) + '%';
+                        }
+                    }
                 };
 
                 const upHandler = () => {
@@ -405,6 +419,7 @@ export class GradientTab {
 
         this.state.stops.forEach((stop, index) => {
             const row = document.createElement('div');
+            row.className = 'stop-row';
             row.style.display = 'flex';
             row.style.alignItems = 'center';
             row.style.gap = '8px';
@@ -509,7 +524,10 @@ export class GradientTab {
         let prefix = 'linear-gradient';
         let args = '';
 
-        const stopsStr = this.state.stops
+        // Sort stops for string generation to ensure smooth gradient
+        const sortedStops = [...this.state.stops].sort((a, b) => a.position - b.position);
+
+        const stopsStr = sortedStops
             .map(s => `${s.color} ${s.position}%`)
             .join(', ');
 
@@ -569,13 +587,34 @@ export class GradientTab {
                 stop.color = newColor;
                 this.updateColorState();
                 this.emitChange();
-                this.render();
+                
+                // Direct update of swatch in list
+                const listDiv = this.stopsListContainer.lastElementChild;
+                if (listDiv && listDiv.children[index]) {
+                    const row = listDiv.children[index];
+                    const swatch = row.querySelector('div[style*="background-color"]');
+                    if (swatch) swatch.style.backgroundColor = newColor;
+                }
+
+                // Direct update of handle on bar
+                const container = this.sliderContainer.firstElementChild;
+                if (container) {
+                    // children[0] is bar. children[1..N] are handles.
+                    const handle = container.children[index + 1];
+                    if (handle) handle.style.backgroundColor = newColor;
+                    
+                    // Update preview
+                    const bar = container.children[0];
+                    const preview = bar.firstElementChild;
+                    if (preview) preview.style.background = this.getGradientString(true);
+                }
             },
             onClose: () => {
                 if (this.activeColorPicker) {
                     this.activeColorPicker.destroy();
                     this.activeColorPicker = null;
                 }
+                this.render(); // Ensure final consistency
             }
         });
 

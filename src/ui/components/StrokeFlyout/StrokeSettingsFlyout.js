@@ -5,6 +5,7 @@ import { NumberInput } from '../NumberInput.js';
 import { TextInput } from '../TextInput.js';
 import { IconButton } from '../IconButton.js';
 import { Icons } from '../../Icons.js';
+import { FillTypeSelector } from '../FillTypeSelector.js';
 import { SolidTab } from '../FillFlyout/SolidTab.js';
 import { GradientTab } from '../FillFlyout/GradientTab.js';
 
@@ -77,36 +78,29 @@ export class StrokeSettingsFlyout {
         modeRow.style.borderBottom = '1px solid var(--color-border)';
         modeRow.style.paddingBottom = '8px';
 
-        const modes = [
-            { type: 'solid', icon: Icons.FILL_SOLID, title: 'Solid Color' },
-            { type: 'gradient', icon: Icons.FILL_GRADIENT, title: 'Gradient' }
-        ];
-
         let activeMode = this.stroke.type || 'solid'; // Default to solid if undefined
 
-        modes.forEach(mode => {
-            const btn = new IconButton({
-                icon: mode.icon,
-                title: mode.title,
-                onClick: () => {
-                    activeMode = mode.type;
-                    this.updateModeContent(modeContent, activeMode);
-                    // Update UI state of buttons
-                    modeRow.querySelectorAll('.icon-button').forEach(b => b.classList.remove('active'));
-                    btn.element.classList.add('active');
+        const typeSelector = new FillTypeSelector({
+            activeType: activeMode,
+            types: [
+                { type: 'solid', icon: Icons.FILL_SOLID, title: 'Solid Color' },
+                { type: 'gradient', icon: Icons.FILL_GRADIENT, title: 'Gradient' }
+            ],
+            onChange: (type) => {
+                activeMode = type;
+                this.updateModeContent(modeContent, activeMode);
 
-                    // Update Data Model immediately
-                    if (activeMode === 'gradient') {
-                        const val = this.stroke.value || 'linear-gradient(90deg, #000000 0%, #ffffff 100%)';
-                        this.onChange({ type: 'gradient', value: val });
-                    } else {
-                        this.onChange({ type: 'solid' });
-                    }
+                // Update Data Model immediately
+                if (activeMode === 'gradient') {
+                    const val = this.stroke.value || 'linear-gradient(90deg, #000000 0%, #ffffff 100%)';
+                    this.onChange({ type: 'gradient', value: val });
+                } else {
+                    this.onChange({ type: 'solid' });
                 }
-            });
-            if (mode.type === activeMode) btn.element.classList.add('active');
-            modeRow.appendChild(btn.element);
+            }
         });
+
+        modeRow.appendChild(typeSelector.element);
         container.appendChild(modeRow);
 
         // --- 3. Color Content (Solid/Gradient Tab) ---
