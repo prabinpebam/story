@@ -62,12 +62,12 @@ export const Icons = {
     SQUARE: '<i class="fa-regular fa-square"></i>',
     
     // Stroke Joins
-    JOIN_MITER: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 13V3H13" stroke="currentColor" stroke-width="1.5" stroke-linejoin="miter"/></svg>',
-    JOIN_ROUND: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 13V6C3 4.34315 4.34315 3 6 3H13" stroke="currentColor" stroke-width="1.5"/></svg>',
-    JOIN_BEVEL: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 13V5L5 3H13" stroke="currentColor" stroke-width="1.5" stroke-linejoin="bevel"/></svg>',
+    JOIN_MITER: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M13.5 2H2.5C2.224 2 2 2.224 2 2.5V13.5C2 13.776 2.224 14 2.5 14H10.5C10.776 14 11 13.776 11 13.5V11H13.5C13.776 11 14 10.776 14 10.5V2.5C14 2.224 13.776 2 13.5 2ZM3 13V3H13V6H8C8 5.449 7.551 5 7 5H6C5.449 5 5 5.449 5 6V7C5 7.551 5.449 8 6 8V13H3ZM6 7V6H7V7H6ZM13 10H10.5C10.224 10 10 10.224 10 10.5V13H7V8C7.551 8 8 7.551 8 7H13V10Z" fill="currentColor" /></svg>',
+    JOIN_ROUND: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M13.5 2H2.5C2.224 2 2 2.224 2 2.5V13.5C2 13.776 2.224 14 2.5 14H10.5C10.776 14 11 13.776 11 13.5V11H13.5C13.776 11 14 10.776 14 10.5V2.5C14 2.224 13.776 2 13.5 2ZM3 13V3H13V6H8C8 5.449 7.551 5 7 5H6C5.449 5 5 5.449 5 6V7C5 7.551 5.449 8 6 8V13H3ZM6 7V6H7V7H6ZM13 10H10.5C10.224 10 10 10.224 10 10.5V13H7V8C7.551 8 8 7.551 8 7H13V10Z" fill="currentColor" /></svg>',
+    JOIN_BEVEL: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M13.5 2H6.5C6.367 2 6.24 2.053 6.146 2.146L2.146 6.146C2.052 6.24 2 6.367 2 6.5V13.5C2 13.776 2.224 14 2.5 14H10.5C10.776 14 11 13.776 11 13.5V11H13.5C13.776 11 14 10.776 14 10.5V2.5C14 2.224 13.776 2 13.5 2ZM3 13V6.707L6.707 3H13V6H8C8 5.449 7.551 5 7 5H6C5.449 5 5 5.449 5 6V7C5 7.551 5.449 8 6 8V13H3ZM6 7V6H7V7H6ZM13 10H10.5C10.224 10 10 10.224 10 10.5V13H7V8C7.551 8 8 7.551 8 7H13V10Z" fill="currentColor" /></svg>',
 
     // Stroke Caps
-    CAP_BUTT: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 8H13" stroke="currentColor" stroke-width="4" stroke-linecap="butt"/></svg>',
-    CAP_ROUND: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 8H13" stroke="currentColor" stroke-width="4" stroke-linecap="round"/></svg>',
-    CAP_SQUARE: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 8H13" stroke="currentColor" stroke-width="4" stroke-linecap="square"/></svg>',
+    CAP_BUTT: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M13.5 2H2.5C2.224 2 2 2.224 2 2.5V5H3V3H13V7H4C4 6.449 3.551 6 3 6H2C1.449 6 1 6.449 1 7V8C1 8.551 1.449 9 2 9H3C3.551 9 4 8.551 4 8H13V12H3V10H2V12.5C2 12.776 2.224 13 2.5 13H13.5C13.776 13 14 12.776 14 12.5V2.5C14 2.224 13.776 2 13.5 2ZM3 8H2V7H3V8Z" fill="currentColor" /></svg>',
+    CAP_ROUND: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M13.5 2H6.5C3.467 2 1 4.467 1 7.5C1 10.533 3.467 13 6.5 13H13.5C13.776 13 14 12.776 14 12.5V2.5C14 2.224 13.776 2 13.5 2ZM13 12H6.5C4.019 12 2 9.981 2 7.5C2 5.019 4.019 3 6.5 3H13V7H8C8 6.449 7.551 6 7 6H6C5.449 6 5 6.449 5 7V8C5 8.551 5.449 9 6 9H7C7.551 9 8 8.551 8 8H13V12ZM6 8V7H7V8H6Z" fill="currentColor" /></svg>',
+    CAP_SQUARE: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M13.5 2H1.5C1.224 2 1 2.224 1 2.5V12.5C1 12.776 1.224 13 1.5 13H13.5C13.776 13 14 12.776 14 12.5V2.5C14 2.224 13.776 2 13.5 2ZM13 12H2V3H13V7H8C8 6.449 7.551 6 7 6H6C5.449 6 5 6.449 5 7V8C5 8.551 5.449 9 6 9H7C7.551 9 8 8.551 8 8H13V12ZM6 8V7H7V8H6Z" fill="currentColor" /></svg>',
 };

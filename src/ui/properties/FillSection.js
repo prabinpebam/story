@@ -219,13 +219,13 @@ export class FillSection {
         // 1. Color Swatch (Trigger for Flyout)
         const swatch = document.createElement('div');
         swatch.className = 'color-swatch-trigger';
-        swatch.style.width = '28px'; // Fixed width
+        swatch.style.width = '22px'; // Fixed width
         swatch.style.height = '100%';
         swatch.style.cursor = 'pointer';
         swatch.style.display = 'flex';
         swatch.style.alignItems = 'center';
         swatch.style.justifyContent = 'center';
-        swatch.style.borderRight = '1px solid #444';
+        // swatch.style.borderRight = '1px solid #444'; // Removed separator
         
         // Preview
         const preview = document.createElement('div');
@@ -271,7 +271,7 @@ export class FillSection {
         hexInput.style.color = '#ccc';
         hexInput.style.fontSize = '11px';
         hexInput.style.fontFamily = 'monospace';
-        hexInput.style.padding = '0 6px';
+        hexInput.style.padding = '0 2px';
         hexInput.spellcheck = false;
         
         if (fill.type === 'solid' || !fill.type) {
@@ -304,7 +304,7 @@ export class FillSection {
         // Separator
         const separator = document.createElement('div');
         separator.style.width = '1px';
-        separator.style.height = '100%';
+        separator.style.height = '12px'; // Reduced height
         separator.style.backgroundColor = '#444';
         combinedInput.appendChild(separator);
 
@@ -329,11 +329,11 @@ export class FillSection {
         });
         
         // Style opacity input to fit in group
-        opacityInput.element.style.width = '50px';
-        opacityInput.element.style.flex = '0 0 50px';
+        opacityInput.element.style.width = '40px'; // Reduced width
+        opacityInput.element.style.flex = '0 0 40px';
         opacityInput.element.style.border = 'none'; // Remove border
         opacityInput.element.style.background = 'transparent'; // Remove bg
-        opacityInput.element.querySelector('input').style.padding = '0 4px';
+        opacityInput.element.querySelector('input').style.padding = '0'; // Remove padding
         opacityInput.element.querySelector('input').style.textAlign = 'center';
         
         if (!fill.visible) {
@@ -362,7 +362,9 @@ export class FillSection {
                 this.openBlendModeMenu(btn, fill, index, element);
             }
         });
-        blendBtn.element.style.color = isNormalBlend ? '#666' : '#0055FF'; // Blue if active
+        if (!isNormalBlend) {
+            blendBtn.element.style.color = '#0055FF'; // Blue if active
+        }
         blendBtn.element.style.width = '24px'; // Compact
         blendBtn.element.style.height = '24px';
         blendBtn.element.style.padding = '0';

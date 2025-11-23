@@ -41,8 +41,10 @@ export class SegmentedControl {
             }
             
             btn.style.flex = '1';
-            btn.style.textAlign = 'center';
-            btn.style.padding = '4px 0';
+            btn.style.display = 'flex';
+            btn.style.alignItems = 'center';
+            btn.style.justifyContent = 'center';
+            btn.style.padding = '4px 8px';
             btn.style.fontSize = '11px';
             btn.style.cursor = 'pointer';
             btn.style.fontFamily = 'var(--font-mono)';
