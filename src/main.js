@@ -1,7 +1,8 @@
 import { store } from './core/Store.js';
 import { InputManager } from './core/InputManager.js';
 import { CanvasManager } from './core/CanvasManager.js';
-import { SlideRenderer } from './core/SlideRenderer.js';
+import { EditorRenderer } from './core/renderer/EditorRenderer.js';
+import { PresentationRenderer } from './core/renderer/PresentationRenderer.js';
 import { SlideList } from './ui/SlideList.js';
 import { LayerTree } from './ui/LayerTree.js';
 import { IconLibrary } from './ui/IconLibrary.js';
@@ -24,7 +25,9 @@ class App {
         // Initialize Components
         // Pass 'canvas-container' as the wrapper ID
         this.canvasManager = new CanvasManager('canvas-container');
-        this.slideRenderer = new SlideRenderer('slide-content');
+        this.currentRenderer = null;
+        this.setupRenderer('edit');
+        
         this.slideList = new SlideList('slide-list');
         this.layerTree = new LayerTree('layer-tree');
         this.iconLibrary = new IconLibrary('icon-library-content');
@@ -61,6 +64,22 @@ class App {
         });
     }
 
+    setupRenderer(mode) {
+        if (this.currentRenderer) {
+            this.currentRenderer.destroy();
+            this.currentRenderer = null;
+        }
+
+        const containerId = 'slide-content';
+        
+        if (mode === 'presentation') {
+            this.currentRenderer = new PresentationRenderer(containerId);
+        } else {
+            // 'edit' or 'master'
+            this.currentRenderer = new EditorRenderer(containerId);
+        }
+    }
+
     bindEvents() {
         // Settings Button
         const settingsBtn = document.getElementById('settings-btn');
@@ -86,6 +105,14 @@ class App {
 
         // Listen for mode changes to update UI
         store.on('mode-changed', (mode) => {
+            // Switch renderer if needed
+            const isPresentation = mode === 'presentation';
+            const wasPresentation = this.currentRenderer instanceof PresentationRenderer;
+            
+            if (isPresentation !== wasPresentation) {
+                 this.setupRenderer(mode);
+            }
+
             if (mode === 'master') {
                 editMasterBtn.classList.add('hidden');
                 closeMasterBtn.classList.remove('hidden');
