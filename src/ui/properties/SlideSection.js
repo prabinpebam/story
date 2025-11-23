@@ -4,10 +4,19 @@ import { NumberInput } from '../components/NumberInput.js';
 import { Dropdown } from '../components/Dropdown.js';
 import { Switch } from '../components/Switch.js';
 import { store } from '../../core/Store.js';
+import { FillSection } from './FillSection.js';
 
 export class SlideSection {
     constructor() {
         this.section = new Section({ title: 'Slide' });
+        
+        this.fillSection = new FillSection({
+            title: 'Slide Background',
+            manualVisibility: true,
+            getElement: (selection) => selection[0],
+            onUpdate: (fills, isTransient) => this.updateBackground(fills, isTransient)
+        });
+
         this.createContent();
     }
 
@@ -58,33 +67,8 @@ export class SlideSection {
         dimRow.appendChild(this.hInput.element);
         this.section.appendChild(dimRow);
 
-        // 5. Background Type
-        const bgRow = document.createElement('div');
-        bgRow.className = 'pi-row';
-        
-        const bgLabel = document.createElement('div');
-        bgLabel.className = 'pi-label';
-        bgLabel.textContent = 'Background';
-        
-        this.bgTypeSelect = new Dropdown({
-            options: [
-                { label: 'Inherited', value: 'inherited' },
-                { label: 'Solid', value: 'solid' },
-                { label: 'Gradient', value: 'gradient' },
-                { label: 'Image', value: 'image' },
-                { label: 'Code', value: 'code' }
-            ],
-            onChange: (val) => this.updateBackgroundType(val)
-        });
-        this.bgTypeSelect.element.style.flex = '1';
-
-        bgRow.appendChild(bgLabel);
-        bgRow.appendChild(this.bgTypeSelect.element);
-        this.section.appendChild(bgRow);
-        
-        // TODO: Add specific background controls (Solid, Gradient, etc.)
-        // For now, we rely on the legacy renderer for the complex background controls
-        // or we implement them in Phase 6 (Fill) and reuse components.
+        // 5. Background (FillSection) - Removed from here to avoid nesting. 
+        // It will be appended separately in PropertyInspector.
     }
 
     update(selection) {
@@ -141,8 +125,29 @@ export class SlideSection {
         this.hInput.setValue(currentObject.height, false);
 
         // 5. Background
-        const bg = currentObject.background || { type: 'inherited' };
-        this.bgTypeSelect.setValue(bg.type);
+        const bg = currentObject.background;
+        let fills = [];
+        
+        if (Array.isArray(bg)) {
+            fills = bg;
+        } else if (bg && bg.type !== 'inherited') {
+             fills = [{
+                 type: bg.type,
+                 value: bg.value,
+                 color: bg.value,
+                 opacity: 100,
+                 visible: true
+             }];
+        }
+        
+        const proxyElement = {
+            id: currentObject.id,
+            style: {
+                fills: fills
+            }
+        };
+        
+        this.fillSection.update([proxyElement]);
     }
 
     getActiveContainer(state) {
@@ -183,9 +188,12 @@ export class SlideSection {
         store.dispatch(action, { id, [prop]: Math.max(100, val) }, { skipHistory: isTransient });
     }
 
-    updateBackgroundType(type) {
-        // Logic to switch background type
-        // This might need to initialize default values for that type
-        console.log('Switch BG Type:', type);
+    updateBackground(fills, isTransient) {
+        const state = store.getState();
+        const mode = state.editor.mode;
+        const action = mode === 'master' ? 'UPDATE_MASTER' : 'UPDATE_SLIDE';
+        const id = mode === 'master' ? state.editor.activeMasterId : state.editor.activeSlideId;
+        
+        store.dispatch(action, { id, background: fills }, { skipHistory: isTransient });
     }
 }

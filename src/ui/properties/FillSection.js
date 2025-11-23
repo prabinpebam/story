@@ -9,9 +9,10 @@ import { BlendModes } from '../../core/constants/BlendModes.js';
 import { EmptyState } from '../components/EmptyState.js';
 
 export class FillSection {
-    constructor() {
+    constructor(options = {}) {
+        this.options = options;
         this.section = new Section({ 
-            title: 'Fill',
+            title: options.title || 'Fill',
             actions: [
                 { icon: Icons.PLUS, title: 'Add Fill', onClick: () => this.addFill() }
             ]
@@ -23,15 +24,27 @@ export class FillSection {
 
     update(selection) {
         if (!selection || selection.length === 0) {
-            this.section.element.style.display = 'none';
+            // If we are in "manual" mode (e.g. SlideSection), we might not use selection array
+            // but update() is usually called with selection.
+            // If this instance is controlled by SlideSection, it might call update([]) or update(null).
+            // We should let the parent control visibility if needed.
+            if (!this.options.manualVisibility) {
+                this.section.element.style.display = 'none';
+            }
             return;
         }
         
         this.section.element.style.display = 'block';
         this.selection = selection;
         
-        const state = store.getState();
-        const element = this.getElement(state, selection[0]);
+        // If custom getElement is provided
+        let element;
+        if (this.options.getElement) {
+            element = this.options.getElement(selection);
+        } else {
+            const state = store.getState();
+            element = this.getElement(state, selection[0]);
+        }
         
         if (element) {
             this.render(element);
@@ -479,8 +492,13 @@ export class FillSection {
     addFill() {
         if (!this.selection) return;
         
-        const state = store.getState();
-        const element = this.getElement(state, this.selection[0]);
+        let element;
+        if (this.options.getElement) {
+            element = this.options.getElement(this.selection);
+        } else {
+            const state = store.getState();
+            element = this.getElement(state, this.selection[0]);
+        }
         if (!element) return;
 
         const style = element.style || {};
@@ -510,24 +528,18 @@ export class FillSection {
             visible: true
         });
 
-        // Update store
-        // We also update legacy backgroundColor to the bottom-most visible fill for backward compatibility if needed,
-        // or we update the renderer to read 'fills'.
-        // For now, let's assume we update 'fills' and also set 'backgroundColor' to the composite or bottom one?
-        // Actually, to support multiple fills, the renderer MUST be updated.
-        // But for now, let's just save the structure.
-        
-        store.dispatch('UPDATE_ELEMENT', {
-            id: element.id,
-            style: {
-                ...style,
-                fills: fills,
-                // Legacy fallback: use the bottom-most visible fill or the top-most?
-                // Usually simple renderers use the first one.
-                // Let's set backgroundColor to the first visible fill's color for basic compatibility.
-                backgroundColor: this.getCompositeColor(fills)
-            }
-        });
+        if (this.options.onUpdate) {
+            this.options.onUpdate(fills, false);
+        } else {
+            store.dispatch('UPDATE_ELEMENT', {
+                id: element.id,
+                style: {
+                    ...style,
+                    fills: fills,
+                    backgroundColor: this.getCompositeColor(fills)
+                }
+            });
+        }
     }
 
     removeFill(element, index) {
@@ -547,14 +559,18 @@ export class FillSection {
 
         fills.splice(index, 1);
 
-        store.dispatch('UPDATE_ELEMENT', {
-            id: element.id,
-            style: {
-                ...style,
-                fills: fills,
-                backgroundColor: this.getCompositeColor(fills)
-            }
-        });
+        if (this.options.onUpdate) {
+            this.options.onUpdate(fills, false);
+        } else {
+            store.dispatch('UPDATE_ELEMENT', {
+                id: element.id,
+                style: {
+                    ...style,
+                    fills: fills,
+                    backgroundColor: this.getCompositeColor(fills)
+                }
+            });
+        }
     }
 
     updateFill(element, index, updates, isTransient = false) {
@@ -623,14 +639,18 @@ export class FillSection {
 
         fills[index] = fill;
 
-        store.dispatch('UPDATE_ELEMENT', {
-            id: element.id,
-            style: {
-                ...style,
-                fills: fills,
-                backgroundColor: this.getCompositeColor(fills)
-            }
-        }, { skipHistory: isTransient });
+        if (this.options.onUpdate) {
+            this.options.onUpdate(fills, isTransient);
+        } else {
+            store.dispatch('UPDATE_ELEMENT', {
+                id: element.id,
+                style: {
+                    ...style,
+                    fills: fills,
+                    backgroundColor: this.getCompositeColor(fills)
+                }
+            }, { skipHistory: isTransient });
+        }
     }
 
     reorderFills(element, fromIndex, toIndex) {
@@ -647,14 +667,18 @@ export class FillSection {
         
         newFills.splice(toIndex, 0, movedItem);
 
-        store.dispatch('UPDATE_ELEMENT', {
-            id: element.id,
-            style: {
-                ...style,
-                fills: newFills,
-                backgroundColor: this.getCompositeColor(newFills)
-            }
-        });
+        if (this.options.onUpdate) {
+            this.options.onUpdate(newFills, false);
+        } else {
+            store.dispatch('UPDATE_ELEMENT', {
+                id: element.id,
+                style: {
+                    ...style,
+                    fills: newFills,
+                    backgroundColor: this.getCompositeColor(newFills)
+                }
+            });
+        }
     }
 
     getCompositeColor(fills) {

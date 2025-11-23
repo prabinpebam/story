@@ -1,11 +1,13 @@
 import { ElementFactory } from './ElementFactory.js';
 import { CodeRunner } from '../effects/CodeRunner.js';
+import { MeshGradient } from '../effects/MeshGradient.js';
 
 export class SlideView {
     constructor(slideId) {
         this.slideId = slideId;
         this.elements = new Map(); // ID -> VisualElement
         this.domElement = null;
+        this.bgContainer = null;
         this.bgCodeRunner = null;
     }
 
@@ -18,6 +20,18 @@ export class SlideView {
         this.domElement.style.left = '0';
         // Dimensions will be set in update
         
+        this.bgContainer = document.createElement('div');
+        this.bgContainer.className = 'slide-background';
+        this.bgContainer.style.position = 'absolute';
+        this.bgContainer.style.top = '0';
+        this.bgContainer.style.left = '0';
+        this.bgContainer.style.width = '100%';
+        this.bgContainer.style.height = '100%';
+        this.bgContainer.style.zIndex = '0'; // Background at 0, elements at auto/higher
+        this.bgContainer.style.pointerEvents = 'none';
+        this.bgContainer.style.overflow = 'hidden';
+        this.domElement.appendChild(this.bgContainer);
+
         container.appendChild(this.domElement);
         return this.domElement;
     }
@@ -79,61 +93,71 @@ export class SlideView {
     }
 
     applyBackground(bg) {
-        const view = this.domElement;
-        
+        const container = this.bgContainer;
+        if (!container) return;
+
         // Clean up previous code runner
         if (this.bgCodeRunner) {
             this.bgCodeRunner.stop();
             this.bgCodeRunner = null;
         }
-
-        // Remove existing background canvas
-        const existingCanvas = view.querySelector('.bg-canvas');
-        if (existingCanvas) existingCanvas.remove();
-
-        // Reset background style
-        view.style.background = 'none';
-
-        if (!bg) bg = { type: 'solid', value: '#ffffff' };
-
-        if (bg.type === 'solid') {
-            view.style.background = bg.value;
-        } else if (bg.type === 'gradient') {
-            if (bg.value.startsWith('/* diamond|')) {
-                // TODO: Import renderDiamondGradient logic or move to utils
-                // For now, we skip diamond gradient or duplicate logic?
-                // I'll skip for now to keep it simple, or implement later.
-                // Actually, ShapeElement has it. I should move it to a util.
-                view.style.background = bg.value; // Fallback
-            } else {
-                view.style.background = bg.value;
-            }
-        } else if (bg.type === 'image') {
-            view.style.background = `url(${bg.value}) center/cover no-repeat`;
-        } else if (bg.type === 'code') {
-            const canvas = document.createElement('canvas');
-            canvas.className = 'bg-canvas';
-            
-            const w = parseInt(view.style.width) || 1920;
-            const h = parseInt(view.style.height) || 1080;
-            
-            canvas.width = w;
-            canvas.height = h;
-            canvas.style.width = '100%';
-            canvas.style.height = '100%';
-            canvas.style.position = 'absolute';
-            canvas.style.top = '0';
-            canvas.style.left = '0';
-            canvas.style.zIndex = '0'; 
-            
-            view.insertBefore(canvas, view.firstChild);
-
-            const runner = new CodeRunner(canvas);
-            runner.setCode(bg.value);
-            runner.play();
-            
-            this.bgCodeRunner = runner;
+        
+        // Clear container
+        container.innerHTML = '';
+        
+        let fills = [];
+        if (Array.isArray(bg)) {
+            fills = bg;
+        } else if (bg) {
+            fills = [bg];
+        } else {
+            fills = [{ type: 'solid', value: '#ffffff' }];
         }
+
+        fills.forEach((fill, index) => {
+            if (fill.visible === false) return;
+
+            const layer = document.createElement('div');
+            layer.className = 'bg-layer';
+            layer.style.position = 'absolute';
+            layer.style.top = '0';
+            layer.style.left = '0';
+            layer.style.width = '100%';
+            layer.style.height = '100%';
+            layer.style.zIndex = 100 + (fills.length - index);
+            layer.style.opacity = (fill.opacity !== undefined) ? fill.opacity / 100 : 1;
+            layer.style.mixBlendMode = fill.blendMode || 'normal';
+
+            if (fill.type === 'solid') {
+                layer.style.backgroundColor = fill.color || fill.value;
+            } else if (fill.type === 'gradient') {
+                layer.style.background = fill.value;
+            } else if (fill.type === 'image') {
+                layer.style.background = `url(${fill.value}) center/cover no-repeat`;
+            } else if (fill.type === 'mesh') {
+                 const canvas = document.createElement('canvas');
+                 canvas.style.width = '100%';
+                 canvas.style.height = '100%';
+                 layer.appendChild(canvas);
+                 const mesh = new MeshGradient(canvas);
+                 if (fill.meshColors) mesh.setColors(fill.meshColors);
+                 mesh.play();
+            } else if (fill.type === 'code') {
+                const canvas = document.createElement('canvas');
+                canvas.width = parseInt(this.domElement.style.width) || 1920;
+                canvas.height = parseInt(this.domElement.style.height) || 1080;
+                canvas.style.width = '100%';
+                canvas.style.height = '100%';
+                layer.appendChild(canvas);
+                
+                const runner = new CodeRunner(canvas);
+                runner.setCode(fill.code || fill.value);
+                runner.play();
+                this.bgCodeRunner = runner;
+            }
+
+            container.appendChild(layer);
+        });
     }
 
     unmount() {

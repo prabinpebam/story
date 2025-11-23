@@ -91,6 +91,7 @@ export class PropertyInspector {
             // No selection: Show Slide Properties
             this.slideSection.update(selection);
             this.container.appendChild(this.slideSection.section.element);
+            this.container.appendChild(this.slideSection.fillSection.section.element);
         }
 
         // Fallback to legacy for missing parts (or if we want to mix them)
