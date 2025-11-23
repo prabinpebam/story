@@ -9,6 +9,12 @@ import { StrokeSettingsFlyout } from '../components/StrokeFlyout/StrokeSettingsF
 import { BlendModes } from '../../core/constants/BlendModes.js';
 import { EmptyState } from '../components/EmptyState.js';
 
+// Module-level cache for last used values
+const LastUsed = {
+    solid: '#000000',
+    gradient: 'linear-gradient(90deg, #000000 0%, #ffffff 100%)'
+};
+
 export class StrokeSection {
     constructor() {
         this.section = new Section({ 
@@ -458,13 +464,25 @@ export class StrokeSection {
         }
 
         // Add new default stroke
-        strokes.unshift({ // Add to top (start of array)
-            color: '#000000',
-            width: 1,
-            opacity: 100,
-            position: 'center',
-            visible: true
-        });
+        const isFirst = strokes.length === 0;
+        
+        if (isFirst) {
+            strokes.unshift({
+                color: LastUsed.solid,
+                width: 1,
+                opacity: 100,
+                position: 'center',
+                visible: true
+            });
+        } else {
+            strokes.unshift({
+                color: '#000000',
+                width: 1,
+                opacity: 25,
+                position: 'center',
+                visible: true
+            });
+        }
 
         this.commitChanges(strokes);
     }
@@ -511,7 +529,39 @@ export class StrokeSection {
             }];
         }
 
-        strokes[index] = { ...strokes[index], ...updates };
+        const stroke = { ...strokes[index] };
+        
+        if (updates.type) {
+            stroke.type = updates.type;
+            if (updates.type === 'solid') {
+                stroke.color = LastUsed.solid;
+            } else if (updates.type === 'gradient') {
+                stroke.value = LastUsed.gradient;
+            }
+        }
+
+        if (updates.color) {
+            stroke.color = updates.color;
+            if (!stroke.type || stroke.type === 'solid') {
+                LastUsed.solid = updates.color;
+            }
+        }
+        
+        if (updates.value) {
+            stroke.value = updates.value;
+            if (stroke.type === 'gradient') {
+                LastUsed.gradient = updates.value;
+            }
+        }
+
+        // Apply other updates
+        Object.keys(updates).forEach(key => {
+            if (key !== 'type' && key !== 'color' && key !== 'value') {
+                stroke[key] = updates[key];
+            }
+        });
+
+        strokes[index] = stroke;
         this.commitChanges(strokes, isTransient);
     }
 

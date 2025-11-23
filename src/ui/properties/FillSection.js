@@ -8,6 +8,13 @@ import { FillFlyout } from '../components/FillFlyout/FillFlyout.js';
 import { BlendModes } from '../../core/constants/BlendModes.js';
 import { EmptyState } from '../components/EmptyState.js';
 
+// Module-level cache for last used values
+const LastUsed = {
+    solid: '#D9D9D9',
+    gradient: 'linear-gradient(90deg, #000000 0%, #ffffff 100%)',
+    code: '// Code here'
+};
+
 export class FillSection {
     constructor(options = {}) {
         this.options = options;
@@ -519,14 +526,29 @@ export class FillSection {
         }
 
         // Add new fill to TOP (index 0)
-        // Default: Black, 25% opacity
-        fills.unshift({
-            type: 'solid',
-            color: 'rgba(0, 0, 0, 0.25)',
-            value: 'rgba(0, 0, 0, 0.25)',
-            opacity: 25,
-            visible: true
-        });
+        // Default: Solid
+        // Color: Last used solid
+        // Opacity: 100% if first fill, 25% (Black) if subsequent
+        
+        const isFirst = fills.length === 0;
+        
+        if (isFirst) {
+            fills.unshift({
+                type: 'solid',
+                color: LastUsed.solid,
+                value: LastUsed.solid,
+                opacity: 100,
+                visible: true
+            });
+        } else {
+            fills.unshift({
+                type: 'solid',
+                color: '#000000',
+                value: '#000000',
+                opacity: 25,
+                visible: true
+            });
+        }
 
         if (this.options.onUpdate) {
             this.options.onUpdate(fills, false);
@@ -592,6 +614,15 @@ export class FillSection {
         
         if (updates.type) {
             fill.type = updates.type;
+            // Restore last used value for this type
+            if (updates.type === 'solid') {
+                fill.value = LastUsed.solid;
+                fill.color = LastUsed.solid;
+            } else if (updates.type === 'gradient') {
+                fill.value = LastUsed.gradient;
+            } else if (updates.type === 'code') {
+                fill.value = LastUsed.code;
+            }
         }
         
         if (updates.blendMode !== undefined) {
@@ -600,6 +631,7 @@ export class FillSection {
         
         if (updates.code !== undefined) {
             fill.code = updates.code;
+            LastUsed.code = updates.code;
         }
 
         if (updates.color) {
@@ -614,6 +646,9 @@ export class FillSection {
             // Only sync value to color if type is solid
             if (fill.type === 'solid') {
                 fill.value = fill.color;
+                // Update LastUsed (strip opacity for storage if needed, but hex is fine)
+                // Actually updates.color comes from ColorInput which is usually Hex.
+                LastUsed.solid = updates.color;
             }
         }
 
@@ -631,6 +666,9 @@ export class FillSection {
         // For non-solid types (gradient, image, etc), the value comes directly from updates
         if (fill.type !== 'solid' && updates.value !== undefined) {
             fill.value = updates.value;
+            if (fill.type === 'gradient') {
+                LastUsed.gradient = updates.value;
+            }
         }
 
         if (updates.visible !== undefined) {
