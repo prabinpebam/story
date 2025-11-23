@@ -50,13 +50,22 @@
 - [ ] **3.2 Verify Mode Switching**
     - Ensure `renderer.destroy()` is called before swapping.
     - Verify no DOM elements leak.
+- [ ] **3.3 Verify Master Mode**
+    - Ensure `EditorRenderer` correctly handles the `master` mode flag (or use a subclass `MasterRenderer` if logic diverges significantly).
+    - Verify default dimensions (1920x1080) are respected.
 
 ## Phase 4: Cleanup & Optimization
 **Goal**: Remove legacy code and optimize.
 
 - [ ] **4.1 Delete `src/core/SlideRenderer.js`**
     - Once fully replaced.
-- [ ] **4.2 Optimize `ShapeElement`**
+- [ ] **4.2 Clean up `CanvasManager.js`**
+    - Remove any legacy rendering logic that might have leaked here.
+    - Ensure it focuses ONLY on Input/Interaction.
+- [ ] **4.3 Clean up `main.js`**
+    - Remove imports of `SlideRenderer`.
+    - Remove any `renderEditMode` / `renderPresentationMode` helper functions that manually patched the DOM.
+- [ ] **4.4 Optimize `ShapeElement`**
     - Optimize SVG updates (don't rebuild if only color changed).
 
 ## Dependencies
@@ -66,3 +75,4 @@
 ## Risks
 *   **Z-Index Context**: Moving to separate components might mess up stacking contexts if not careful. We must ensure all `VisualElement` roots are siblings in the same container.
 *   **Event Listeners**: Ensure `unmount` removes all listeners to prevent memory leaks.
+*   **Legacy CSS**: Ensure `slide-view` and other CSS classes used by the old renderer are either migrated or cleaned up.
