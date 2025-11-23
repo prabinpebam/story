@@ -4,7 +4,7 @@
     --prop-bg-input: #383838;       /* Lighter input for contrast on dark panel */
     --prop-bg-input-hover: #444444;
     --prop-text-label: #B3B3B3;     /* Muted label */
-    --prop-border-radius: 2px;      /* Sharper corners for pro feel */
+    --prop-border-radius: 4px;      /* Sharper corners for pro feel */
     
     /* Spacing Overrides */
     --row-height: 32px;
@@ -97,6 +97,12 @@
     font-size: var(--font-size-md);
     outline: none;
     padding: 0;
+}
+
+/* Fix for double border on focus (overriding components.css) */
+.pi-input-group .pi-input:focus {
+    border-color: transparent;
+    background-color: transparent;
 }
 
 .pi-icon-btn {

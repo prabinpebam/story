@@ -27,7 +27,6 @@ export class NumberInput {
             const label = document.createElement('div');
             label.className = 'pi-label';
             label.innerHTML = this.options.label;
-            label.addEventListener('mousedown', (e) => this.handleScrubStart(e));
             container.appendChild(label);
         }
 
@@ -38,7 +37,6 @@ export class NumberInput {
         
         if (this.options.scrubbable) {
             this.input.style.cursor = 'ew-resize';
-            this.input.addEventListener('mousedown', (e) => this.handleInputMouseDown(e));
         }
 
         this.input.addEventListener('change', (e) => this.handleInputChange(e));
@@ -51,16 +49,20 @@ export class NumberInput {
 
         container.appendChild(this.input);
 
+        // Unified interaction handler
+        if (this.options.label || this.options.scrubbable) {
+            container.addEventListener('mousedown', (e) => this.handleMouseDown(e));
+        }
+
         return container;
     }
 
-    handleInputMouseDown(e) {
+    handleMouseDown(e) {
         if (e.button !== 0) return; // Only left click
 
-        // If already focused, allow default text interaction (cursor placement, text selection)
-        if (document.activeElement === this.input) return;
+        // If clicking directly on the input and it's already focused, let the browser handle text selection
+        if (e.target === this.input && document.activeElement === this.input) return;
 
-        // Prevent default to stop immediate focus/selection
         e.preventDefault();
 
         this.startX = e.clientX;
@@ -91,17 +93,17 @@ export class NumberInput {
         const upHandler = () => {
             if (this.isScrubbing) {
                 document.exitPointerLock();
+                // Final commit (not transient)
+                this.setValue(this.value, true, false);
                 store.dispatch('UI_INTERACTION_END');
+            } else {
+                // Clicked without dragging: Focus (which triggers Select All via focus listener)
+                this.input.focus();
             }
 
             this.isScrubbing = false;
             window.removeEventListener('mousemove', moveHandler);
             window.removeEventListener('mouseup', upHandler);
-            
-            if (!this.hasMoved) {
-                // Clicked without dragging: Focus (which triggers Select All via focus listener)
-                this.input.focus();
-            }
         };
 
         window.addEventListener('mousemove', moveHandler);
@@ -166,33 +168,7 @@ export class NumberInput {
         }
     }
 
-    handleScrubStart(e) {
-        this.isScrubbing = true;
-        this.startX = e.clientX;
-        this.startValue = this.value;
-        this.initialValue = this.value;
-        
-        store.dispatch('UI_INTERACTION_START');
-        this.input.requestPointerLock();
-        
-        const moveHandler = (e) => this.handleScrubMove(e);
-        const upHandler = () => {
-            document.exitPointerLock();
-            
-            // Final commit (not transient)
-            // We do this before ending interaction so the PI doesn't re-render twice
-            this.setValue(this.value, true, false);
 
-            store.dispatch('UI_INTERACTION_END');
-            
-            this.isScrubbing = false;
-            window.removeEventListener('mousemove', moveHandler);
-            window.removeEventListener('mouseup', upHandler);
-        };
-
-        window.addEventListener('mousemove', moveHandler);
-        window.addEventListener('mouseup', upHandler);
-    }
 
     handleScrubMove(e) {
         if (!this.isScrubbing) return;
