@@ -107,16 +107,44 @@ export class SlideRenderer {
         // Find old view
         const oldView = this.container.querySelector('.slide-view');
 
-        if (oldView && this.currentSlideId) {
+        // Check if we are just switching modes on the same slide
+        const isModeSwitchOnly = (this.currentSlideId === id && this.currentMode !== mode);
+
+        if (oldView && this.currentSlideId && !isModeSwitchOnly) {
             // Use the transition defined on the NEW slide (how it enters)
             const transitionType = slide.transition || 'fade';
             animationManager.transition(this.container, oldView, newView, transitionType).then(() => {
                 this.playEntranceAnimations(slide, newView);
             });
         } else {
-            this.container.innerHTML = ''; // Clear any garbage
+            // Force cleanup of everything in the container
+            this.container.innerHTML = '';
+            while (this.container.firstChild) {
+                this.container.removeChild(this.container.firstChild);
+            }
+            
+            // Also remove any potential ghost containers that might have been left outside
+            const ghosts = document.querySelectorAll('.ghost-container');
+            ghosts.forEach(g => g.remove());
+
             this.container.appendChild(newView);
             this.playEntranceAnimations(slide, newView);
+
+            // FIX: If we just switched to EDIT mode, force a re-render after a short delay
+            // This ensures that any layout/scaling artifacts from Presentation mode are cleared
+            // and the Edit view is rendered correctly in its final container state.
+            // We wait 200ms to allow CanvasManager.fitToView (100ms) to complete its transform.
+            if (mode === 'edit' && isModeSwitchOnly) {
+                setTimeout(() => {
+                    requestAnimationFrame(() => {
+                        // Double check we are still in edit mode and on the same slide
+                        const state = store.getState();
+                        if (state.editor.mode === 'edit' && state.editor.activeSlideId === id) {
+                            this.forceRerender(id, mode);
+                        }
+                    });
+                }, 200);
+            }
         }
 
         this.currentSlideId = id;
@@ -142,6 +170,26 @@ export class SlideRenderer {
         } else {
             this.buildElements = [];
         }
+    }
+
+    forceRerender(id, mode) {
+        const state = store.getState();
+        const slide = state.slides[id];
+        if (!slide) return;
+
+        // Clear container completely
+        this.container.innerHTML = '';
+        while (this.container.firstChild) {
+            this.container.removeChild(this.container.firstChild);
+        }
+        
+        // Re-create view
+        const newView = this.createSlideDOM(slide, mode);
+        this.container.appendChild(newView);
+        
+        // Redundant Update: Call updateCurrentSlide to ensure any state discrepancies 
+        // between creation and current state are resolved (this mimics the "click fixes it" behavior)
+        this.updateCurrentSlide();
     }
 
     playEntranceAnimations(slide, view) {
@@ -210,7 +258,22 @@ export class SlideRenderer {
         
         // Only select direct children to avoid removing nested group elements
         const existingEls = Array.from(view.children).filter(el => el.classList.contains('slide-element'));
-        const existingMap = new Map(existingEls.map(el => [el.id, el]));
+        
+        // Robust Map: Handle duplicates by keeping only the first occurrence in the map
+        // and marking duplicates for removal
+        const existingMap = new Map();
+        const duplicates = [];
+        
+        existingEls.forEach(el => {
+            if (existingMap.has(el.id)) {
+                duplicates.push(el);
+            } else {
+                existingMap.set(el.id, el);
+            }
+        });
+        
+        // Remove duplicates immediately
+        duplicates.forEach(el => el.remove());
         
         effectiveSlide.effectiveOrder.forEach(id => {
             const el = effectiveSlide.effectiveElements[id];
@@ -251,6 +314,14 @@ export class SlideRenderer {
     updateElementDOM(div, el, slide) {
         const state = store.getState();
         const isEditing = state.editor.editingElementId === el.id;
+
+        // Ensure we don't have any lingering stroke layers from previous renders/clones
+        // This is critical for mode switching where elements might be re-created or cloned
+        if (!div._strokeLayers) {
+            div._strokeLayers = [];
+            const orphans = Array.from(div.children).filter(c => c.classList.contains('stroke-layer'));
+            orphans.forEach(l => l.remove());
+        }
 
         // Update position, size, transform
         div.style.left = `${el.x}px`;
@@ -594,7 +665,12 @@ export class SlideRenderer {
                  div.style.outline = 'none';
                  
                  // Manage stroke layers
-                 if (!div._strokeLayers) div._strokeLayers = [];
+                 if (!div._strokeLayers) {
+                     div._strokeLayers = [];
+                     // Safety: Remove orphaned stroke layers (e.g. from cloning) to prevent duplicates
+                     const orphans = Array.from(div.children).filter(c => c.classList.contains('stroke-layer'));
+                     orphans.forEach(l => l.remove());
+                 }
                  
                  const strokes = el.style.strokes;
                  
@@ -735,12 +811,24 @@ export class SlideRenderer {
                      layer.remove();
                  }
                  
+                 // Double Safety: Remove any stroke layers that are not in our tracked list
+                 const trackedLayers = new Set(div._strokeLayers);
+                 Array.from(div.children).forEach(child => {
+                     if (child.classList.contains('stroke-layer') && !trackedLayers.has(child)) {
+                         child.remove();
+                     }
+                 });
+                 
              } else {
                  // Cleanup stroke layers if switching to legacy/none
                  if (div._strokeLayers) {
                      div._strokeLayers.forEach(l => l.remove());
                      div._strokeLayers = [];
                  }
+                 
+                 // Safety: Remove any remaining stroke layers (orphaned or from clone)
+                 const orphans = Array.from(div.children).filter(c => c.classList.contains('stroke-layer'));
+                 orphans.forEach(l => l.remove());
 
                  // Handle Stroke Alignment (Legacy)
                  const borderWidth = el.style?.borderWidth || 0;
@@ -1050,8 +1138,14 @@ export class SlideRenderer {
 
         const elements = slide.effectiveElements || slide.elements;
         const order = slide.effectiveOrder || slide.elementOrder;
+        
+        // Track rendered IDs to prevent duplicates if order array has duplicates
+        const renderedIds = new Set();
 
         order.forEach(elId => {
+            if (renderedIds.has(elId)) return;
+            renderedIds.add(elId);
+
             const el = elements[elId];
             if (el) {
                 const isEditing = elId === editingId;

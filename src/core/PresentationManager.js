@@ -162,6 +162,28 @@ export class PresentationManager {
             this.slideContainer.style.top = '';
             this.slideContainer.style.left = '';
         }
+
+        // Reset inner layers to neutral state (remove Presentation Mode transforms)
+        const contentLayer = document.getElementById('slide-content');
+        const backgroundLayer = document.getElementById('slide-background');
+        
+        if (contentLayer) {
+            contentLayer.style.transform = '';
+            contentLayer.style.transformOrigin = '';
+            contentLayer.style.width = '';
+            contentLayer.style.height = '';
+            contentLayer.style.top = '';
+            contentLayer.style.left = '';
+        }
+        
+        if (backgroundLayer) {
+            backgroundLayer.style.transform = '';
+            backgroundLayer.style.transformOrigin = '';
+            backgroundLayer.style.width = '';
+            backgroundLayer.style.height = '';
+            backgroundLayer.style.top = '';
+            backgroundLayer.style.left = '';
+        }
         
         this.laserPointer.stop();
     }

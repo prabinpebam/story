@@ -136,6 +136,7 @@ export class AnimationManager {
 
             // Ghost Container
             const ghostContainer = document.createElement('div');
+            ghostContainer.className = 'ghost-container';
             Object.assign(ghostContainer.style, {
                 position: 'absolute', top: '0', left: '0', width: '100%', height: '100%',
                 zIndex: '100', pointerEvents: 'none'
@@ -229,6 +230,12 @@ export class AnimationManager {
         
         } catch (e) {
             console.error("Animation error:", e);
+            // Ensure cleanup happens even on error
+            if (oldContent && oldContent.parentNode === container) {
+                container.removeChild(oldContent);
+            }
+            const ghostContainer = container.querySelector('.ghost-container'); // Add class to ghost container to find it
+            if (ghostContainer) ghostContainer.remove();
         } finally {
             this.isAnimating = false;
         }
