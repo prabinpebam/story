@@ -1,75 +1,83 @@
 # Undo/Redo System Specification
 
 ## 1. Overview
-This document outlines the strategy and implementation plan for adding robust Undo/Redo functionality to the application. The system will use a **Command Pattern** approach where every state-modifying action generates an inverse action that is stored in a history stack.
+This document outlines the strategy for implementing a robust and scalable Undo/Redo system using a **Snapshot Pattern** with **Structural Sharing**. We will use **Immer.js** to manage immutable state transitions efficiently. This approach simplifies complex operations, ensures atomic restores, and avoids the fragility of the Command Pattern.
 
 ## 2. Architecture
 
 ### 2.1 History Manager (`src/core/HistoryManager.js`)
-The existing `HistoryManager` class will be used to manage the undo and redo stacks.
-*   **Structure**: Stores objects of shape `{ undo: { type, payload }, redo: { type, payload } }`.
-*   **Capacity**: Limited to 50 steps (configurable) to manage memory.
-*   **Persistence**: History is transient and clears on page reload (for now).
+The `HistoryManager` maintains the timeline of state snapshots.
+*   **Structure**: Stores a stack of History Entries.
+    *   `undoStack`: Array of `{ state, meta }`.
+    *   `redoStack`: Array of `{ state, meta }`.
+*   **Adaptive Limits**:
+    *   **Count Limit**: Default 50 snapshots.
+    *   **Memory Limit**: (Future) Approximate memory usage (e.g., 200MB). Evict oldest if exceeded.
+*   **Eviction**: Oldest snapshots are discarded. Optional hook for flushing to disk/server before eviction.
 
 ### 2.2 Store Integration (`src/core/Store.js`)
-The `Store` class is the central point for state mutations. The `dispatch` method will be enhanced to:
-1.  **Intercept** undoable actions.
-2.  **Capture** the necessary state *before* the mutation occurs.
-3.  **Construct** the inverse action (Undo) and the forward action (Redo).
-4.  **Push** this pair to the `HistoryManager` if the action did not originate from a history operation (i.e., `!fromHistory`).
+The `Store` will use `immer` for all state updates.
+1.  **Immutable Transitions**: All handlers receive a `draft` state.
+2.  **Snapshot Capture**:
+    *   **Undoable Actions**: Push current state + metadata (selection, viewport) to `HistoryManager` *before* mutation.
+    *   **Transient Actions**: Update state without pushing to history (e.g., during drag).
+3.  **Restoration**: Replaces `this.state` with the snapshot and restores metadata.
 
-## 3. Undoable Actions & Inverse Logic
+## 3. Interaction Model
 
-The following table defines the mapping between user actions and their inverse operations.
+### 3.1 Discrete Actions
+Simple actions (e.g., `ADD_SLIDE`, `CHANGE_COLOR`) trigger a snapshot immediately.
 
-| Action Type | Payload | Inverse Action | Inverse Payload Logic |
-| :--- | :--- | :--- | :--- |
-| `ADD_SLIDE` | `{ id, ... }` | `DELETE_SLIDE` | `id` |
-| `DELETE_SLIDE` | `id` | `RESTORE_SLIDE` | `{ slideObject, index }` (Requires capturing slide state before delete) |
-| `DUPLICATE_SLIDE` | `sourceId` | `DELETE_SLIDE` | `newSlideId` (Need to capture the ID of the created slide) |
-| `REORDER_SLIDES` | `{ fromIndex, toIndex }` | `REORDER_SLIDES` | `{ fromIndex: toIndex, toIndex: fromIndex }` |
-| `ADD_ELEMENT` | `{ element }` | `REMOVE_ELEMENT` | `element.id` |
-| `REMOVE_ELEMENT` | `id` or `[ids]` | `RESTORE_ELEMENTS` | `{ elements: [objects], indices: [indices], parentIds: [ids] }` |
-| `UPDATE_ELEMENT` | `{ id, props }` | `UPDATE_ELEMENT` | `{ id, oldProps }` (Capture old values of changed props) |
-| `BATCH_UPDATE_ELEMENTS` | `[{ id, props }]` | `BATCH_UPDATE_ELEMENTS` | `[{ id, oldProps }]` |
-| `REORDER_ELEMENTS` | `{ id, targetIndex, ... }` | `REORDER_ELEMENTS` | `{ id, targetIndex: oldIndex, ... }` |
-| `TOGGLE_ELEMENT_LOCK` | `{ id }` | `TOGGLE_ELEMENT_LOCK` | `{ id }` |
-| `TOGGLE_ELEMENT_VISIBILITY`| `{ id }` | `TOGGLE_ELEMENT_VISIBILITY`| `{ id }` |
-| `PASTE_ELEMENTS` | `{ elements }` | `REMOVE_ELEMENT` | `[newElementIds]` |
-| `ALIGN_ELEMENTS` | `type` | `BATCH_UPDATE_ELEMENTS` | `[{ id, x, y }]` (Capture positions before align) |
+### 3.2 Hybrid / Continuous Interactions (Drag, Resize)
+To avoid spamming history during high-frequency updates:
+1.  **Interaction Start** (`mousedown`): Push current state to history. Mark "Interaction Active".
+2.  **Interaction Update** (`mousemove`): Update state (replace current head) *without* pushing new history.
+3.  **Interaction End** (`mouseup`): Finalize state. (Optional: Consolidate if needed, but usually the initial snapshot is sufficient to undo the whole drag).
 
-## 4. Implementation Plan
+## 4. State & Metadata
 
-### Phase 1: Infrastructure
-1.  **Verify `HistoryManager`**: Ensure it correctly handles stack limits and clearing redo stack on new actions.
-2.  **Enhance `Store.dispatch`**: Add the logic to check for `options.fromHistory`.
+### 4.1 The Snapshot
+The snapshot contains the core document model:
+*   `slides`
+*   `masterSlides`
+*   `theme`
 
-### Phase 2: Slide Operations
-1.  **`ADD_SLIDE`**: Capture the generated ID. Inverse: `DELETE_SLIDE`.
-2.  **`DELETE_SLIDE`**: Before deleting, clone the slide object and note its index. Inverse: `RESTORE_SLIDE` (New Action).
-3.  **`REORDER_SLIDES`**: Simple index swap.
+### 4.2 Metadata (Selection & Viewport)
+Selection and Viewport state are critical for UX but can be noisy if treated as document changes.
+*   **Strategy**: Store `selection` and `viewport` (camera) in the `meta` field of the History Entry.
+*   **Restore**: On Undo/Redo, restore the document state AND apply the saved selection/viewport.
+*   **Configurable**: Users generally expect to return to the exact view they had.
 
-### Phase 3: Element Operations
-1.  **`UPDATE_ELEMENT`**: This is the most frequent action.
-    *   **Logic**: Before applying `payload.props`, read `state.elements[id]` to get old values for those specific keys.
-    *   **Inverse**: `UPDATE_ELEMENT` with old values.
-2.  **`REMOVE_ELEMENT`**: Complex because elements can be in groups or root.
-    *   **Logic**: Recursively capture all deleted elements (if group), their parents, and their indices.
-    *   **Inverse**: `RESTORE_ELEMENTS` (New Action) which puts them back in the exact structure.
-3.  **`ADD_ELEMENT` / `PASTE_ELEMENTS`**: Inverse is simple delete.
-4.  **`ALIGN_ELEMENTS`**: Capture positions of all selected elements before alignment. Inverse is `BATCH_UPDATE_ELEMENTS`.
+## 5. Collaboration & External Resources
 
-### Phase 4: Batching & Transactions (Future)
-*   For continuous operations like dragging (Resize/Move), the UI currently dispatches `UPDATE_ELEMENT` continuously.
-*   **Strategy**: The UI must dispatch a `START_INTERACTION` and `END_INTERACTION` or similar.
-*   **Interim Solution**: Assume the UI calls a final `UPDATE_ELEMENT` at `mouseup`. We will treat every `UPDATE_ELEMENT` as a discrete undo step for now, or implement a simple debounce if needed. *Refinement: The UI likely already handles "final" updates or we can modify the tool to only dispatch the "commit" action on release.*
+### 5.1 Collaboration (Future)
+*   **Local Undo**: In a multiplayer environment, we cannot simply restore the global state (it would undo other users' work).
+*   **Strategy**: Maintain a *local* undo stack of operations. When undoing, apply the inverse of the local operation transformed against the current global state (OT/CRDT).
+*   **Current Scope**: Single-player snapshot restoration.
 
-## 5. New Actions Required
-To support the inverse logic, we need to implement these new action types in `Store.js`:
-*   `RESTORE_SLIDE`: Adds a slide back at a specific index.
-*   `RESTORE_ELEMENTS`: Adds elements back to their specific parents/indices.
-*   `BATCH_UPDATE_ELEMENTS`: Updates multiple elements in one go (atomic).
+### 5.2 External Resources
+*   **Assets**: Images/Videos should be stored as references (URLs/IDs), not binary blobs, within the snapshot.
+*   **Availability**: Ensure referenced assets are not deleted while they exist in the undo stack.
 
-## 6. Edge Cases
-*   **Selection State**: Ideally, Undo should restore the selection state to what it was. We can include `selectedElementIds` in the history payload or handle it separately.
-*   **External Resources**: If an image is deleted and the user Undoes, the image URL must still be valid.
+## 6. Scalability & Optimization
+
+### 6.1 Structural Sharing
+Using `immer` ensures that snapshots share memory for unchanged parts of the state tree.
+*   **Cost**: O(changes) rather than O(total_size).
+
+### 6.2 Large Binary Data
+*   **Rule**: Never store base64 strings or large buffers in the Redux/Immer state. Use an `AssetManager` and store IDs.
+
+## 7. Implementation Strategy
+
+### 7.1 Refactoring to Immutability
+*   Wrap `Store` logic with `produce` from `immer`.
+*   Handlers modify `draft`.
+
+### 7.2 New Actions
+*   `RESTORE_STATE`: Replaces root state.
+*   `START_INTERACTION` / `END_INTERACTION`: For batching.
+
+## 8. Plugin API
+*   Plugins must register "Undoable" actions.
+*   Plugins must ensure their state changes are captured within the main state tree or provide a mechanism to snapshot their external state.
