@@ -194,9 +194,9 @@ export class GradientTab {
                 step: 1,
                 units: '°',
                 scrubbable: true,
-                onChange: (val) => {
+                onChange: (val, isTransient) => {
                     this.state.angle = val;
-                    this.emitChange();
+                    this.emitChange(isTransient);
                 }
             });
             angleInput.element.style.width = '60px';
@@ -458,11 +458,11 @@ export class GradientTab {
                 value: Math.round(stop.position),
                 min: 0, max: 100, units: '%',
                 scrubbable: true,
-                onChange: (val) => {
+                onChange: (val, isTransient) => {
                     stop.position = val;
                     this.state.stops.sort((a, b) => a.position - b.position);
                     this.selectedStopIndex = this.state.stops.indexOf(stop);
-                    this.emitChange();
+                    this.emitChange(isTransient);
                     this.render();
                 }
             });
@@ -476,12 +476,12 @@ export class GradientTab {
                 value: Math.round(rgba.a * 100),
                 min: 0, max: 100, units: '%',
                 scrubbable: true,
-                onChange: (val) => {
+                onChange: (val, isTransient) => {
                     const currentRgba = ColorUtils.parseColor(stop.color);
                     const newColor = `rgba(${currentRgba.r}, ${currentRgba.g}, ${currentRgba.b}, ${val/100})`;
                     stop.color = newColor;
                     if (index === this.selectedStopIndex) this.updateColorState();
-                    this.emitChange();
+                    this.emitChange(isTransient);
                     this.render();
                 }
             });
@@ -554,12 +554,12 @@ export class GradientTab {
         return `${prefix}(${args})`;
     }
 
-    emitChange() {
+    emitChange(isTransient = false) {
         const val = this.getGradientString();
         this.onChange({
             value: val,
             type: 'gradient'
-        });
+        }, isTransient);
     }
 
     openColorPicker(target, stop, index) {

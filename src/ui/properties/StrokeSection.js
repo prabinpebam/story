@@ -269,8 +269,8 @@ export class StrokeSection {
         // Opacity Input
         const opacityInput = new NumberInput({
             value: stroke.opacity !== undefined ? stroke.opacity : 100,
-            onChange: (val) => {
-                this.updateStroke(index, { opacity: val });
+            onChange: (val, isTransient) => {
+                this.updateStroke(index, { opacity: val }, isTransient);
             },
             min: 0,
             max: 100,
@@ -355,7 +355,7 @@ export class StrokeSection {
         this.activeFlyout = new StrokeSettingsFlyout({
             trigger: trigger,
             stroke: stroke,
-            onChange: (updates) => this.updateStroke(index, updates),
+            onChange: (updates, isTransient) => this.updateStroke(index, updates, isTransient),
             onClose: () => {
                 this.activeFlyout = null;
             }
@@ -490,7 +490,7 @@ export class StrokeSection {
         this.commitChanges(strokes);
     }
 
-    updateStroke(index, updates) {
+    updateStroke(index, updates, isTransient = false) {
         const state = store.getState();
         const element = this.getElement(state, this.selection[0]);
         if (!element) return;
@@ -510,7 +510,7 @@ export class StrokeSection {
         }
 
         strokes[index] = { ...strokes[index], ...updates };
-        this.commitChanges(strokes);
+        this.commitChanges(strokes, isTransient);
     }
 
     reorderStrokes(element, fromIndex, toIndex) {
@@ -529,7 +529,7 @@ export class StrokeSection {
         this.commitChanges(newStrokes);
     }
 
-    commitChanges(strokes) {
+    commitChanges(strokes, isTransient = false) {
         const state = store.getState();
         const element = this.getElement(state, this.selection[0]);
         if (!element) return;
@@ -556,6 +556,6 @@ export class StrokeSection {
                 strokes: strokes,
                 ...legacyUpdates
             }
-        });
+        }, { skipHistory: isTransient });
     }
 }

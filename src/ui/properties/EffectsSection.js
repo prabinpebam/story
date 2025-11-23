@@ -275,8 +275,8 @@ export class EffectsSection {
         row1.style.display = 'flex';
         row1.style.gap = '8px';
         
-        const xInput = new NumberInput({ value: shadow.x, label: 'X', onChange: (v) => this.updateDropShadow('x', v) });
-        const yInput = new NumberInput({ value: shadow.y, label: 'Y', onChange: (v) => this.updateDropShadow('y', v) });
+        const xInput = new NumberInput({ value: shadow.x, label: 'X', onChange: (v, isTransient) => this.updateDropShadow('x', v, isTransient) });
+        const yInput = new NumberInput({ value: shadow.y, label: 'Y', onChange: (v, isTransient) => this.updateDropShadow('y', v, isTransient) });
         
         xInput.element.style.flex = '1';
         yInput.element.style.flex = '1';
@@ -290,8 +290,8 @@ export class EffectsSection {
         row2.style.display = 'flex';
         row2.style.gap = '8px';
         
-        const bInput = new NumberInput({ value: shadow.blur, label: 'Blur', min: 0, onChange: (v) => this.updateDropShadow('blur', v) });
-        const sInput = new NumberInput({ value: shadow.spread, label: 'Spread', onChange: (v) => this.updateDropShadow('spread', v) });
+        const bInput = new NumberInput({ value: shadow.blur, label: 'Blur', min: 0, onChange: (v, isTransient) => this.updateDropShadow('blur', v, isTransient) });
+        const sInput = new NumberInput({ value: shadow.spread, label: 'Spread', onChange: (v, isTransient) => this.updateDropShadow('spread', v, isTransient) });
         
         bInput.element.style.flex = '1';
         sInput.element.style.flex = '1';
@@ -308,7 +308,7 @@ export class EffectsSection {
 
         const colorInput = new ColorInput(
             shadow.color,
-            (v) => this.updateShadowColor(v)
+            (v, isTransient) => this.updateShadowColor(v, isTransient)
         );
         colorInput.element.style.flex = '1';
 
@@ -316,7 +316,7 @@ export class EffectsSection {
             value: this.getOpacityFromColor(shadow.color),
             label: '%', 
             min: 0, max: 100,
-            onChange: (v) => this.updateShadowOpacity(v)
+            onChange: (v, isTransient) => this.updateShadowOpacity(v, isTransient)
         });
         opacityInput.element.style.width = '60px';
 
@@ -386,7 +386,7 @@ export class EffectsSection {
             value: radiusValue,
             label: Icons.GRID_3X3, // Grid icon
             min: 0, 
-            onChange: (v) => this.updateBlur('radius', v) 
+            onChange: (v, isTransient) => this.updateBlur('radius', v, isTransient) 
         });
         content.appendChild(blurInput.element);
 
@@ -441,7 +441,7 @@ export class EffectsSection {
             value: radiusValue,
             label: Icons.GRID_3X3,
             min: 0, 
-            onChange: (v) => this.updateBackgroundBlur('radius', v) 
+            onChange: (v, isTransient) => this.updateBackgroundBlur('radius', v, isTransient) 
         });
         content.appendChild(blurInput.element);
 
@@ -478,16 +478,16 @@ export class EffectsSection {
         this.updateStyle(type, null);
     }
 
-    updateDropShadow(prop, value) {
+    updateDropShadow(prop, value, isTransient = false) {
         this.selection.forEach(id => {
             const state = store.getState();
             const el = this.getElement(state, id);
             const current = el.style?.dropShadow || {};
-            this.updateStyle('dropShadow', { ...current, [prop]: value });
+            this.updateStyle('dropShadow', { ...current, [prop]: value }, isTransient);
         });
     }
 
-    updateBlur(prop, value) {
+    updateBlur(prop, value, isTransient = false) {
         this.selection.forEach(id => {
             const state = store.getState();
             const el = this.getElement(state, id);
@@ -496,25 +496,25 @@ export class EffectsSection {
             if (typeof current === 'number') current = { radius: current, type: 'uniform' };
             else if (!current) current = { radius: 4, type: 'uniform' };
             
-            this.updateStyle('blur', { ...current, [prop]: value });
+            this.updateStyle('blur', { ...current, [prop]: value }, isTransient);
         });
     }
 
-    updateBackgroundBlur(prop, value) {
+    updateBackgroundBlur(prop, value, isTransient = false) {
         this.selection.forEach(id => {
             const state = store.getState();
             const el = this.getElement(state, id);
             const current = el.style?.backgroundBlur || {};
-            this.updateStyle('backgroundBlur', { ...current, [prop]: value });
+            this.updateStyle('backgroundBlur', { ...current, [prop]: value }, isTransient);
         });
     }
 
-    updateStyle(prop, value) {
+    updateStyle(prop, value, isTransient = false) {
         this.selection.forEach(id => {
             const state = store.getState();
             const el = this.getElement(state, id);
             const newStyle = { ...(el.style || {}), [prop]: value };
-            store.dispatch('UPDATE_ELEMENT', { id, style: newStyle });
+            store.dispatch('UPDATE_ELEMENT', { id, style: newStyle }, { skipHistory: isTransient });
         });
         // Force re-render if needed, though store subscription should handle it
         const state = store.getState();
@@ -610,17 +610,17 @@ export class EffectsSection {
         return color; // Fallback
     }
 
-    updateShadowOpacity(opacity) {
+    updateShadowOpacity(opacity, isTransient = false) {
         this.selection.forEach(id => {
             const state = store.getState();
             const el = this.getElement(state, id);
             const current = el.style?.dropShadow || {};
             const newColor = this.applyOpacityToColor(current.color || '#000000', opacity);
-            this.updateStyle('dropShadow', { ...current, color: newColor });
+            this.updateStyle('dropShadow', { ...current, color: newColor }, isTransient);
         });
     }
 
-    updateShadowColor(newBaseColor) {
+    updateShadowColor(newBaseColor, isTransient = false) {
         this.selection.forEach(id => {
             const state = store.getState();
             const el = this.getElement(state, id);
@@ -631,7 +631,7 @@ export class EffectsSection {
             // We want to preserve the current opacity
             const finalColor = this.applyOpacityToColor(newBaseColor, currentOpacity);
             
-            this.updateStyle('dropShadow', { ...current, color: finalColor });
+            this.updateStyle('dropShadow', { ...current, color: finalColor }, isTransient);
         });
     }
 

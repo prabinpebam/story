@@ -1,4 +1,5 @@
 import { store } from './Store.js';
+import { InputManager } from './InputManager.js';
 
 export class CanvasManager {
     constructor(containerId) {
@@ -1081,12 +1082,7 @@ export class CanvasManager {
         const state = store.getState();
         if (state.editor.mode === 'presentation') return;
 
-        // Ignore shortcuts if user is typing in an input field
-        if (e.target.tagName === 'INPUT' || 
-            e.target.tagName === 'TEXTAREA' || 
-            e.target.isContentEditable) {
-            return;
-        }
+        if (InputManager.shouldBlockShortcut(e)) return;
 
         // Check for Alt key for measurements
         if (e.key === 'Alt') {
@@ -1401,8 +1397,8 @@ export class CanvasManager {
         this.renderGizmos();
         
         // Draw Hover Effect
-        if (this.hoveredElementId && this.interactionState === 'IDLE') {
-             const state = store.getState();
+        if (this.hoveredElementId && this.interactionState === 'IDLE' && (!state.ui || !state.ui.isInteracting)) {
+             // const state = store.getState(); // Use outer state
              const { zoom, pan } = state.editor;
              const slide = this.getActiveContainer(state);
              // Don't draw hover if already selected
@@ -2033,6 +2029,10 @@ export class CanvasManager {
 
     renderGizmos() {
         const state = store.getState();
+
+        // Hide gizmos during interaction (e.g. scrubbing values)
+        if (state.ui && state.ui.isInteracting) return;
+
         const { selectedElementIds, zoom, pan } = state.editor;
         const slide = this.getActiveContainer(state);
 

@@ -65,6 +65,29 @@ export class ColorInput {
             hexInput.style.width = '100%';
             hexInput.style.outline = 'none';
             
+            let initialHexValue = this.value;
+
+            hexInput.onfocus = () => {
+                initialHexValue = this.value;
+            };
+
+            hexInput.onkeydown = (e) => {
+                if (e.key === 'Enter') {
+                    hexInput.blur();
+                    e.stopPropagation();
+                } else if (e.key === 'Escape') {
+                    // Revert
+                    swatch.style.backgroundColor = initialHexValue;
+                    nativeInput.value = initialHexValue;
+                    hexInput.value = initialHexValue.toUpperCase();
+                    this.onChange(initialHexValue); // Commit revert
+                    hexInput.blur();
+                    e.stopPropagation();
+                }
+                // Stop propagation for other keys to prevent global shortcuts while typing
+                e.stopPropagation();
+            };
+            
             hexInput.onchange = (e) => {
                 let val = e.target.value;
                 if (!val.startsWith('#')) val = '#' + val;
@@ -86,7 +109,12 @@ export class ColorInput {
             const val = e.target.value;
             swatch.style.backgroundColor = val;
             if (hexInput) hexInput.value = val.toUpperCase();
-            this.onChange(val);
+            this.onChange(val, true);
+        };
+
+        nativeInput.onchange = (e) => {
+            const val = e.target.value;
+            this.onChange(val, false);
         };
 
         container.appendChild(swatch);

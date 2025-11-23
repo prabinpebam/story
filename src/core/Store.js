@@ -6,6 +6,7 @@ import * as PresentationHandlers from './store/handlers/PresentationHandlers.js'
 import * as SlideHandlers from './store/handlers/SlideHandlers.js';
 import * as ElementHandlers from './store/handlers/ElementHandlers.js';
 import * as MasterHandlers from './store/handlers/MasterHandlers.js';
+import * as UIHandlers from './store/handlers/UIHandlers.js';
 
 class Store extends EventEmitter {
     constructor() {
@@ -80,7 +81,7 @@ class Store extends EventEmitter {
 
             // Element Handlers
             case 'ADD_ELEMENT': ElementHandlers.handleAddElement(this, payload); break;
-            case 'UPDATE_ELEMENT': ElementHandlers.handleUpdateElement(this, payload); break;
+            case 'UPDATE_ELEMENT': ElementHandlers.handleUpdateElement(this, payload, options); break;
             case 'REMOVE_ELEMENT': ElementHandlers.handleRemoveElement(this, payload); break;
             case 'DUPLICATE_ELEMENTS': ElementHandlers.handleDuplicateElements(this, payload); break;
             case 'PASTE_ELEMENTS': ElementHandlers.handlePasteElements(this, payload); break;
@@ -95,6 +96,10 @@ class Store extends EventEmitter {
             // Master Handlers
             case 'UPDATE_MASTER': MasterHandlers.handleUpdateMaster(this, payload); break;
             case 'UPDATE_THEME_SETTINGS': MasterHandlers.handleUpdateThemeSettings(this, payload, options); break;
+
+            // UI Handlers
+            case 'UI_INTERACTION_START': UIHandlers.handleUIInteractionStart(this); break;
+            case 'UI_INTERACTION_END': UIHandlers.handleUIInteractionEnd(this); break;
         }
     }
 

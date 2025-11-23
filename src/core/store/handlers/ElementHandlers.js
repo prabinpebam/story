@@ -1,3 +1,4 @@
+import { historyManager } from '../../HistoryManager.js';
 
 export function handleAddElement(store, payload) {
     const addContainer = store.getActiveContainer();
@@ -9,11 +10,26 @@ export function handleAddElement(store, payload) {
     }
 }
 
-export function handleUpdateElement(store, payload) {
+export function handleUpdateElement(store, payload, options = {}) {
     const container = store.getActiveContainer();
+    const { skipHistory, fromHistory } = options;
 
     if (container && container.elements[payload.id]) {
         const oldEl = container.elements[payload.id];
+        
+        // History Management
+        if (!skipHistory && !fromHistory) {
+            const oldProps = {};
+            Object.keys(payload).forEach(key => {
+                if (key !== 'id') oldProps[key] = oldEl[key];
+            });
+
+            historyManager.push({
+                undo: { type: 'UPDATE_ELEMENT', payload: { id: payload.id, ...oldProps } },
+                redo: { type: 'UPDATE_ELEMENT', payload: payload }
+            });
+        }
+
         const newEl = { ...oldEl, ...payload };
         container.elements[payload.id] = newEl;
 

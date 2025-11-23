@@ -46,12 +46,12 @@ export class SlideSection {
         
         this.wInput = new NumberInput({
             label: 'W',
-            onChange: (val) => this.updateDimension('width', val)
+            onChange: (val, isTransient) => this.updateDimension('width', val, isTransient)
         });
         
         this.hInput = new NumberInput({
             label: 'H',
-            onChange: (val) => this.updateDimension('height', val)
+            onChange: (val, isTransient) => this.updateDimension('height', val, isTransient)
         });
 
         dimRow.appendChild(this.wInput.element);
@@ -174,13 +174,13 @@ export class SlideSection {
         store.dispatch(action, { id, hideBackgroundGraphics: val });
     }
 
-    updateDimension(prop, val) {
+    updateDimension(prop, val, isTransient = false) {
         const state = store.getState();
         const mode = state.editor.mode;
         const action = mode === 'master' ? 'UPDATE_MASTER' : 'UPDATE_SLIDE';
         const id = mode === 'master' ? state.editor.activeMasterId : state.editor.activeSlideId;
         
-        store.dispatch(action, { id, [prop]: Math.max(100, val) });
+        store.dispatch(action, { id, [prop]: Math.max(100, val) }, { skipHistory: isTransient });
     }
 
     updateBackgroundType(type) {

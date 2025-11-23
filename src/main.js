@@ -1,4 +1,5 @@
 import { store } from './core/Store.js';
+import { InputManager } from './core/InputManager.js';
 import { CanvasManager } from './core/CanvasManager.js';
 import { SlideRenderer } from './core/SlideRenderer.js';
 import { SlideList } from './ui/SlideList.js';
@@ -98,6 +99,8 @@ class App {
 
         // Keyboard Shortcuts
         window.addEventListener('keydown', (e) => {
+            if (InputManager.shouldBlockShortcut(e)) return;
+
             const state = store.getState();
             if (state.editor.mode === 'presentation') return;
 

@@ -318,10 +318,10 @@ export class SolidTab {
             max: 100,
             units: '%',
             scrubbable: true,
-            onChange: (val) => {
+            onChange: (val, isTransient) => {
                 this.state.a = val;
                 this.updateAlphaHandlePos();
-                this.emitChange();
+                this.emitChange(isTransient);
             }
         });
         this.opacityInput.element.style.width = '60px';
@@ -405,7 +405,7 @@ export class SolidTab {
         this.hexInput.value = ColorUtils.rgbToHex(rgb.r, rgb.g, rgb.b).toUpperCase();
     }
 
-    emitChange() {
+    emitChange(isTransient = false) {
         const rgb = ColorUtils.hsbToRgb(this.state.h, this.state.s, this.state.b);
         const hex = ColorUtils.rgbToHex(rgb.r, rgb.g, rgb.b);
         
@@ -413,7 +413,7 @@ export class SolidTab {
             color: hex,
             opacity: Math.round(this.state.a),
             value: hex // For legacy support
-        });
+        }, isTransient);
     }
 
     async pickColor() {

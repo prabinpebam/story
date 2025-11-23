@@ -39,7 +39,12 @@ export class PropertyInspector {
 
     init() {
         this.render();
-        store.on('state-changed', () => this.render());
+        store.on('state-changed', (state) => {
+            // Don't re-render if we are in the middle of an interaction (like scrubbing)
+            // This prevents the input from being destroyed while dragging
+            if (state.ui && state.ui.isInteracting) return;
+            this.render();
+        });
         store.on('selection-changed', () => this.render());
     }
 

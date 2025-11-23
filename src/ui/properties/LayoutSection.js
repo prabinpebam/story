@@ -19,13 +19,13 @@ export class LayoutSection {
         this.wInput = new NumberInput({
             label: 'W',
             value: 0,
-            onChange: (val) => this.updateDimension('width', val)
+            onChange: (val, isTransient) => this.updateDimension('width', val, isTransient)
         });
 
         this.hInput = new NumberInput({
             label: 'H',
             value: 0,
-            onChange: (val) => this.updateDimension('height', val)
+            onChange: (val, isTransient) => this.updateDimension('height', val, isTransient)
         });
 
         // Constrain Button
@@ -75,7 +75,7 @@ export class LayoutSection {
         }
     }
 
-    updateDimension(prop, value) {
+    updateDimension(prop, value, isTransient = false) {
         const state = store.getState();
         const selection = state.editor.selectedElementIds;
         
@@ -92,7 +92,7 @@ export class LayoutSection {
                 }
             }
             
-            store.dispatch('UPDATE_ELEMENT', { id, ...updates });
+            store.dispatch('UPDATE_ELEMENT', { id, ...updates }, { skipHistory: isTransient });
         });
     }
 

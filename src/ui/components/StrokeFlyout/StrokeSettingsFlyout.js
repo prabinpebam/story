@@ -129,7 +129,7 @@ export class StrokeSettingsFlyout {
             label: 'W',
             scrubbable: true,
             width: '60px',
-            onChange: (val) => this.onChange({ width: val })
+            onChange: (val, isTransient) => this.onChange({ width: val }, isTransient)
         });
 
         const positionDropdown = new Dropdown({
@@ -238,7 +238,7 @@ export class StrokeSettingsFlyout {
             suffix: '°',
             scrubbable: true,
             width: '100%',
-            onChange: (val) => this.onChange({ miterLimit: val })
+            onChange: (val, isTransient) => this.onChange({ miterLimit: val }, isTransient)
         });
         miterRow.appendChild(miterInput.element);
         propsContainer.appendChild(miterRow);

@@ -21,6 +21,12 @@ export class TextInput {
         this.input.value = this.value;
         this.input.placeholder = this.options.placeholder;
         
+        let initialValue = this.value;
+
+        this.input.addEventListener('focus', () => {
+            initialValue = this.value;
+        });
+
         this.input.addEventListener('change', (e) => {
             this.value = e.target.value;
             this.options.onChange(this.value);
@@ -29,6 +35,14 @@ export class TextInput {
         this.input.addEventListener('keydown', (e) => {
             if (e.key === 'Enter') {
                 this.input.blur();
+                e.stopPropagation();
+            } else if (e.key === 'Escape') {
+                this.setValue(initialValue);
+                this.options.onChange(initialValue);
+                this.input.blur();
+                e.stopPropagation();
+            } else {
+                e.stopPropagation(); // Stop global shortcuts while typing
             }
         });
 

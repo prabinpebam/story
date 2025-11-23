@@ -1,3 +1,5 @@
+import { store } from '../../core/Store.js';
+
 export class NumberInput {
     constructor(options = {}) {
         this.options = {
@@ -42,6 +44,7 @@ export class NumberInput {
         this.input.addEventListener('change', (e) => this.handleInputChange(e));
         this.input.addEventListener('keydown', (e) => this.handleKeyDown(e));
         this.input.addEventListener('focus', () => {
+            this.initialValue = this.value; // Store initial value on focus
             if (!this.isScrubbing) this.input.select();
         });
         this.input.addEventListener('blur', () => this.handleBlur());
@@ -62,26 +65,36 @@ export class NumberInput {
 
         this.startX = e.clientX;
         this.startValue = this.value;
+        this.initialValue = this.value; // Store for revert
         this.hasMoved = false;
+        this.isScrubbing = false;
 
         const moveHandler = (e) => {
-            const deltaX = e.clientX - this.startX;
-            if (!this.hasMoved && Math.abs(deltaX) > 3) {
-                this.hasMoved = true;
-                this.isScrubbing = true;
-                document.body.style.cursor = 'ew-resize';
-                this.input.blur();
+            if (!this.isScrubbing) {
+                const deltaX = e.clientX - this.startX;
+                if (Math.abs(deltaX) > 3) {
+                    this.hasMoved = true;
+                    this.isScrubbing = true;
+                    
+                    store.dispatch('UI_INTERACTION_START');
+                    this.input.requestPointerLock();
+                    
+                    this.input.blur();
+                }
             }
 
             if (this.isScrubbing) {
-                e.preventDefault();
                 this.handleScrubMove(e);
             }
         };
 
         const upHandler = () => {
+            if (this.isScrubbing) {
+                document.exitPointerLock();
+                store.dispatch('UI_INTERACTION_END');
+            }
+
             this.isScrubbing = false;
-            document.body.style.cursor = '';
             window.removeEventListener('mousemove', moveHandler);
             window.removeEventListener('mouseup', upHandler);
             
@@ -95,7 +108,7 @@ export class NumberInput {
         window.addEventListener('mouseup', upHandler);
     }
 
-    setValue(newValue, notify = true) {
+    setValue(newValue, notify = true, isTransient = false) {
         let val = parseFloat(newValue);
         if (isNaN(val)) val = 0;
         
@@ -109,7 +122,7 @@ export class NumberInput {
         this.input.value = this.formatValue(val);
 
         if (notify && this.options.onChange) {
-            this.options.onChange(this.value);
+            this.options.onChange(this.value, isTransient);
         }
     }
 
@@ -133,11 +146,20 @@ export class NumberInput {
     handleKeyDown(e) {
         if (e.key === 'Enter') {
             this.input.blur();
+            e.stopPropagation();
+            return;
+        }
+
+        if (e.key === 'Escape') {
+            this.setValue(this.initialValue);
+            this.input.blur();
+            e.stopPropagation();
             return;
         }
 
         if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
             e.preventDefault();
+            e.stopPropagation();
             const step = e.shiftKey ? this.options.step * 10 : this.options.step;
             const delta = e.key === 'ArrowUp' ? step : -step;
             this.setValue(this.value + delta);
@@ -148,13 +170,22 @@ export class NumberInput {
         this.isScrubbing = true;
         this.startX = e.clientX;
         this.startValue = this.value;
+        this.initialValue = this.value;
         
-        document.body.style.cursor = 'ew-resize';
+        store.dispatch('UI_INTERACTION_START');
+        this.input.requestPointerLock();
         
         const moveHandler = (e) => this.handleScrubMove(e);
         const upHandler = () => {
+            document.exitPointerLock();
+            
+            // Final commit (not transient)
+            // We do this before ending interaction so the PI doesn't re-render twice
+            this.setValue(this.value, true, false);
+
+            store.dispatch('UI_INTERACTION_END');
+            
             this.isScrubbing = false;
-            document.body.style.cursor = '';
             window.removeEventListener('mousemove', moveHandler);
             window.removeEventListener('mouseup', upHandler);
         };
@@ -165,11 +196,11 @@ export class NumberInput {
 
     handleScrubMove(e) {
         if (!this.isScrubbing) return;
-        const deltaX = e.clientX - this.startX;
-        const step = e.shiftKey ? this.options.step * 10 : this.options.step; // Faster scrub with shift? Or maybe slower with Alt? Standard is usually Shift=Fast.
         
-        // Sensitivity: 1px = 1 step
-        const deltaValue = deltaX * step; 
-        this.setValue(this.startValue + deltaValue);
+        const deltaX = e.movementX;
+        const step = e.shiftKey ? this.options.step * 10 : (e.altKey ? this.options.step * 0.1 : this.options.step);
+        
+        const newValue = this.value + (deltaX * step);
+        this.setValue(newValue, true, true);
     }
 }

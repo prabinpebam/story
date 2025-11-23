@@ -31,36 +31,55 @@ export class MathInput {
         input.style.padding = '2px 0';
 
         // Events
-        input.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter') {
-                this.evaluateAndSubmit(input);
-                input.blur();
-            }
-            if (e.key === 'ArrowUp') {
-                e.preventDefault();
-                if (this.value !== 'Mixed') {
-                    this.increment(input, e.shiftKey ? 10 : 1);
-                }
-            }
-            if (e.key === 'ArrowDown') {
-                e.preventDefault();
-                if (this.value !== 'Mixed') {
-                    this.increment(input, e.shiftKey ? -10 : -1);
-                }
-            }
-        });
-
-        input.addEventListener('blur', () => {
-            this.evaluateAndSubmit(input);
-        });
+        let initialValue = this.value;
 
         input.addEventListener('focus', () => {
+            initialValue = this.value;
             input.select();
             if (input.value === 'Mixed') {
                 input.value = ''; // Clear on focus for easy typing
                 input.style.fontStyle = 'normal';
                 input.style.color = 'var(--color-text-primary)';
             }
+        });
+
+        input.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                this.evaluateAndSubmit(input);
+                input.blur();
+                e.stopPropagation();
+                return;
+            }
+            if (e.key === 'Escape') {
+                this.value = initialValue;
+                input.value = typeof initialValue === 'number' ? Math.round(initialValue * 100) / 100 : initialValue;
+                input.blur();
+                e.stopPropagation();
+                return;
+            }
+            if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                e.stopPropagation();
+                if (this.value !== 'Mixed') {
+                    this.increment(input, e.shiftKey ? 10 : 1);
+                }
+                return;
+            }
+            if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                e.stopPropagation();
+                if (this.value !== 'Mixed') {
+                    this.increment(input, e.shiftKey ? -10 : -1);
+                }
+                return;
+            }
+            
+            // Stop propagation for other keys to prevent global shortcuts while typing
+            e.stopPropagation();
+        });
+
+        input.addEventListener('blur', () => {
+            this.evaluateAndSubmit(input);
         });
 
         return input;

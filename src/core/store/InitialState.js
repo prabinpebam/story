@@ -1,4 +1,3 @@
-
 export const DEFAULT_MASTERS = {
     "theme-default": {
         id: "theme-default",
@@ -66,6 +65,9 @@ export function createInitialState() {
             modified: Date.now(),
             theme: "default-dark"
         },
+        ui: {
+            isInteracting: false
+        },
         editor: {
             mode: "edit", // 'edit', 'presentation', 'master'
             activeSlideId: "slide-1",
@@ -89,6 +91,10 @@ export function createInitialState() {
             whiteScreen: false,
             laserPointer: false,
             gridView: false
+        },
+        ui: {
+            isInteracting: false,
+            interactionType: null
         },
         masters: DEFAULT_MASTERS,
         slides: {

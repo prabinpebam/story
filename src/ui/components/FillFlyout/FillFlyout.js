@@ -161,10 +161,10 @@ export class FillFlyout {
         this.updateFill(updates);
     }
 
-    updateFill(updates) {
+    updateFill(updates, isTransient = false) {
         const oldType = this.fill.type;
         this.fill = { ...this.fill, ...updates };
-        this.onChange(this.fill);
+        this.onChange(this.fill, isTransient);
         
         // Only re-render if the type changed (e.g. solid -> gradient)
         // This prevents destroying the active tab while dragging sliders

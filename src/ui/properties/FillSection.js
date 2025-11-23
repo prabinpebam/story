@@ -318,8 +318,8 @@ export class FillSection {
 
         const opacityInput = new NumberInput({
             value: opacityVal,
-            onChange: (val) => {
-                this.updateFill(element, index, { opacity: val });
+            onChange: (val, isTransient) => {
+                this.updateFill(element, index, { opacity: val }, isTransient);
             },
             min: 0,
             max: 100,
@@ -555,7 +555,7 @@ export class FillSection {
         });
     }
 
-    updateFill(element, index, updates) {
+    updateFill(element, index, updates, isTransient = false) {
         const style = element.style || {};
         let fills = style.fills ? [...style.fills] : [];
         
@@ -628,7 +628,7 @@ export class FillSection {
                 fills: fills,
                 backgroundColor: this.getCompositeColor(fills)
             }
-        });
+        }, { skipHistory: isTransient });
     }
 
     reorderFills(element, fromIndex, toIndex) {
@@ -731,8 +731,8 @@ export class FillSection {
 
         const flyout = new FillFlyout({
             fill: fill,
-            onChange: (updates) => {
-                this.updateFill(element, index, updates);
+            onChange: (updates, isTransient) => {
+                this.updateFill(element, index, updates, isTransient);
             },
             onClose: () => {
                 if (this.activeFlyout) {

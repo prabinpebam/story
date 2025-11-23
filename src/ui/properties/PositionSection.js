@@ -49,13 +49,13 @@ export class PositionSection {
         this.xInput = new NumberInput({
             label: 'X',
             value: 0,
-            onChange: (val) => this.updateProperty('x', val)
+            onChange: (val, isTransient) => this.updateProperty('x', val, isTransient)
         });
 
         this.yInput = new NumberInput({
             label: 'Y',
             value: 0,
-            onChange: (val) => this.updateProperty('y', val)
+            onChange: (val, isTransient) => this.updateProperty('y', val, isTransient)
         });
 
         coordRow.appendChild(this.xInput.element);
@@ -70,7 +70,7 @@ export class PositionSection {
             label: '°', // Rotation symbol
             value: 0,
             units: '°',
-            onChange: (val) => this.updateProperty('rotation', val)
+            onChange: (val, isTransient) => this.updateProperty('rotation', val, isTransient)
         });
         
         // Wrap rotation input to take less space if needed, or let it flex
@@ -147,12 +147,12 @@ export class PositionSection {
         }
     }
 
-    updateProperty(prop, value) {
+    updateProperty(prop, value, isTransient = false) {
         const state = store.getState();
         const selection = state.editor.selectedElementIds;
         
         selection.forEach(id => {
-            store.dispatch('UPDATE_ELEMENT', { id, [prop]: value });
+            store.dispatch('UPDATE_ELEMENT', { id, [prop]: value }, { skipHistory: isTransient });
         });
     }
 

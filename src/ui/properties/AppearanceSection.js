@@ -26,7 +26,7 @@ export class AppearanceSection {
             units: '%',
             min: 0,
             max: 100,
-            onChange: (val) => this.updateProperty('opacity', val / 100)
+            onChange: (val, isTransient) => this.updateProperty('opacity', val / 100, isTransient)
         });
 
         // Blend Mode
@@ -69,7 +69,7 @@ export class AppearanceSection {
             label: 'Radius', // Or icon
             value: 0,
             min: 0,
-            onChange: (val) => this.updateProperty('borderRadius', val)
+            onChange: (val, isTransient) => this.updateProperty('borderRadius', val, isTransient)
         });
 
         radiusRow.appendChild(this.radiusInput.element);
@@ -118,12 +118,12 @@ export class AppearanceSection {
         }
     }
 
-    updateProperty(prop, value) {
+    updateProperty(prop, value, isTransient = false) {
         const state = store.getState();
         const selection = state.editor.selectedElementIds;
         
         selection.forEach(id => {
-            store.dispatch('UPDATE_ELEMENT', { id, [prop]: value });
+            store.dispatch('UPDATE_ELEMENT', { id, [prop]: value }, { skipHistory: isTransient });
         });
     }
 
