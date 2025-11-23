@@ -105,6 +105,20 @@
     background-color: transparent;
 }
 
+/* Select Dropdown Styling */
+select.pi-input {
+    appearance: none;
+    -webkit-appearance: none;
+    cursor: pointer;
+    padding-right: 24px; /* Space for arrow */
+}
+
+select.pi-input option {
+    background-color: var(--color-bg-panel);
+    color: var(--color-text-primary);
+    padding: 8px;
+}
+
 .pi-icon-btn {
     width: 28px;
     height: 28px;
