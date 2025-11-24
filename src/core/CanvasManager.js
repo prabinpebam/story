@@ -2123,7 +2123,7 @@ export class CanvasManager {
         const state = store.getState();
 
         // Hide gizmos during interaction (e.g. scrubbing values)
-        if (state.ui && state.ui.isInteracting) return;
+        // if (state.ui && state.ui.isInteracting) return;
 
         const { selectedElementIds, zoom, pan } = state.editor;
         const slide = this.getActiveContainer(state);
