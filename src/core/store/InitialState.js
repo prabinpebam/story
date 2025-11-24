@@ -80,7 +80,7 @@ export function createInitialState() {
             pan: { x: 0, y: 0 },
             gridEnabled: true,
             snapToGrid: true,
-            constrainProportions: true
+            constrainProportions: false
         },
         presentation: {
             isActive: false,

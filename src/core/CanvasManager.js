@@ -16,6 +16,7 @@ export class CanvasManager {
         // State for navigation & interaction
         this.interactionState = 'IDLE'; // IDLE, PANNING, DRAGGING, RESIZING
         this.isSpacePressed = false;
+        this.isShiftPressed = false;
         this.lastMouseX = 0;
         this.lastMouseY = 0;
         this.dragStart = { x: 0, y: 0 };
@@ -992,10 +993,21 @@ export class CanvasManager {
             const currentX = (this.dragCurrent.x - pan.x) / zoom;
             const currentY = (this.dragCurrent.y - pan.y) / zoom;
 
-            const x = Math.min(startX, currentX);
-            const y = Math.min(startY, currentY);
-            const width = Math.abs(currentX - startX);
-            const height = Math.abs(currentY - startY);
+            let x = Math.min(startX, currentX);
+            let y = Math.min(startY, currentY);
+            let width = Math.abs(currentX - startX);
+            let height = Math.abs(currentY - startY);
+
+            // Constrain proportions if Shift is held
+            if (e.shiftKey) {
+                const size = Math.max(width, height);
+                width = size;
+                height = size;
+                
+                // Adjust x/y based on drag direction to keep start point fixed
+                if (currentX < startX) x = startX - size;
+                if (currentY < startY) y = startY - size;
+            }
 
             // Minimum size check (prevent accidental clicks creating tiny elements)
             if (width > 5 && height > 5) {
@@ -1041,6 +1053,9 @@ export class CanvasManager {
                 
                 // Reset tool to select
                 store.dispatch('SET_ACTIVE_TOOL', 'select');
+
+                // Set constrain proportions based on creation method (Shift = Constrained)
+                store.dispatch('TOGGLE_CONSTRAIN_PROPORTIONS', e.shiftKey);
             }
         }
 
@@ -1173,6 +1188,10 @@ export class CanvasManager {
     handleKeyDown(e) {
         const state = store.getState();
         if (state.editor.mode === 'presentation') return;
+
+        if (e.key === 'Shift') {
+            this.isShiftPressed = true;
+        }
 
         if (InputManager.shouldBlockShortcut(e)) return;
 
@@ -1412,6 +1431,10 @@ export class CanvasManager {
     handleKeyUp(e) {
         const state = store.getState();
         if (state.editor.mode === 'presentation') return;
+
+        if (e.key === 'Shift') {
+            this.isShiftPressed = false;
+        }
 
         if (e.key === 'Alt') {
             this.measurementGuides = null;
@@ -2101,10 +2124,21 @@ export class CanvasManager {
         const { x: startX, y: startY } = this.dragStart;
         const { x: currX, y: currY } = this.dragCurrent;
 
-        const x = Math.min(startX, currX);
-        const y = Math.min(startY, currY);
-        const width = Math.abs(currX - startX);
-        const height = Math.abs(currY - startY);
+        let x = Math.min(startX, currX);
+        let y = Math.min(startY, currY);
+        let width = Math.abs(currX - startX);
+        let height = Math.abs(currY - startY);
+
+        // Constrain proportions if Shift is held
+        if (this.isShiftPressed) {
+            const size = Math.max(width, height);
+            width = size;
+            height = size;
+            
+            // Adjust x/y based on drag direction to keep start point fixed
+            if (currX < startX) x = startX - size;
+            if (currY < startY) y = startY - size;
+        }
 
         this.ctx.save();
         this.ctx.strokeStyle = '#0055FF';
