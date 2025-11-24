@@ -555,7 +555,9 @@ export class GradientTab {
     }
 
     emitChange(isTransient = false) {
-        const val = this.getGradientString();
+        // Emit the state object directly, not the CSS string
+        // This ensures the renderer receives the structured data it needs
+        const val = JSON.parse(JSON.stringify(this.state));
         this.onChange({
             value: val,
             type: 'gradient'

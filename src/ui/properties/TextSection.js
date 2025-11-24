@@ -324,6 +324,12 @@ export class TextSection {
              this.fillPreview.style.background = this.getGradientCss(fill.value);
              this.fillHexInput.value = 'Gradient';
              this.fillHexInput.disabled = true;
+        } else if (fill.type === 'code') {
+             this.fillPreview.style.background = '#000';
+             this.fillPreview.style.backgroundImage = 'linear-gradient(45deg, #333 25%, transparent 25%), linear-gradient(-45deg, #333 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #333 75%), linear-gradient(-45deg, transparent 75%, #333 75%)';
+             this.fillPreview.style.backgroundSize = '8px 8px';
+             this.fillHexInput.value = 'Code';
+             this.fillHexInput.disabled = true;
         } else {
              // Solid
              this.fillPreview.style.background = fill.value;
@@ -342,9 +348,16 @@ export class TextSection {
     }
 
     getGradientCss(gradient) {
+        const stops = gradient.stops.map(s => `${s.color} ${s.position}%`).join(', ');
+        
         if (gradient.type === 'linear') {
-            const stops = gradient.stops.map(s => `${s.color} ${s.position * 100}%`).join(', ');
-            return `linear-gradient(90deg, ${stops})`;
+            return `linear-gradient(${gradient.angle || 90}deg, ${stops})`;
+        } else if (gradient.type === 'radial') {
+            return `radial-gradient(circle, ${stops})`;
+        } else if (gradient.type === 'angular') {
+            return `conic-gradient(from ${gradient.angle || 0}deg at center, ${stops})`;
+        } else if (gradient.type === 'diamond') {
+            return `radial-gradient(circle, ${stops})`; // Fallback for diamond as CSS doesn't support it natively easily without mask
         }
         return 'linear-gradient(90deg, #000, #fff)';
     }
@@ -411,7 +424,14 @@ export class TextSection {
                 
                 if (updates.type && updates.type !== current.type) {
                     if (updates.type === 'solid') newFill.value = '#000000';
-                    if (updates.type === 'gradient') newFill.value = { type: 'linear', stops: [{color:'#000', position:0}, {color:'#fff', position:1}], angle: 90 };
+                    
+                    // Only set default if value is not provided in updates
+                    if (updates.type === 'gradient' && !updates.value) {
+                        newFill.value = { type: 'linear', stops: [{color:'#000', position:0}, {color:'#fff', position:100}], angle: 90 };
+                    }
+                    
+                    // For code, we leave value/code undefined so the renderer uses the default
+                    if (updates.type === 'code') delete newFill.code;
                 }
                 
                 if (updates.color && newFill.type === 'solid') {

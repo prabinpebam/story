@@ -258,7 +258,11 @@ export class FillSection {
              preview.style.backgroundImage = `url(${fill.value})`;
              preview.style.backgroundSize = 'cover';
         } else if (fill.type === 'gradient') {
-             preview.style.background = fill.value;
+             if (typeof fill.value === 'string') {
+                 preview.style.background = fill.value;
+             } else {
+                 preview.style.background = this.getGradientCss(fill.value);
+             }
         } else if (fill.type === 'code') {
              preview.style.backgroundColor = '#333';
              preview.innerHTML = '<i class="fa-solid fa-code" style="font-size: 10px; color: #fff;"></i>';
@@ -806,5 +810,21 @@ export class FillSection {
 
         flyout.open();
         this.activeFlyout = flyout;
+    }
+
+    getGradientCss(gradient) {
+        if (!gradient) return 'none';
+        const stops = gradient.stops.map(s => `${s.color} ${s.position}%`).join(', ');
+        
+        if (gradient.type === 'linear') {
+            return `linear-gradient(${gradient.angle}deg, ${stops})`;
+        } else if (gradient.type === 'radial') {
+             return `radial-gradient(circle, ${stops})`;
+        } else if (gradient.type === 'angular') {
+             return `conic-gradient(from ${gradient.angle || 0}deg at center, ${stops})`;
+        } else if (gradient.type === 'diamond') {
+             return `radial-gradient(circle, ${stops})`;
+        }
+        return 'none';
     }
 }

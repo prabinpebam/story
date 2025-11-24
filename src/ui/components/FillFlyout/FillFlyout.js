@@ -9,6 +9,16 @@ import { CodeTab } from './CodeTab.js';
 import { CodeRunner } from '../../../core/effects/CodeRunner.js';
 import { Flyout } from '../Flyout.js';
 
+// Module-level cache for last used gradient to preserve stops across types/sessions
+let LastUsedGradient = {
+    type: 'linear',
+    angle: 90,
+    stops: [
+        { color: '#000000', position: 0 },
+        { color: '#FFFFFF', position: 100 }
+    ]
+};
+
 export class FillFlyout extends Flyout {
     constructor(options = {}) {
         super(options);
@@ -150,7 +160,8 @@ export class FillFlyout extends Flyout {
             updates.color = '#000000';
             updates.value = '#000000';
         } else if (type === 'gradient') {
-            updates.value = 'linear-gradient(90deg, #000000 0%, #FFFFFF 100%)';
+            // Use last used gradient to preserve stops
+            updates.value = JSON.parse(JSON.stringify(LastUsedGradient));
         } else if (type === 'image') {
             updates.value = ''; // Empty image
         } else if (type === 'video') {
@@ -165,6 +176,15 @@ export class FillFlyout extends Flyout {
     updateFill(updates, isTransient = false) {
         const oldType = this.fill.type;
         this.fill = { ...this.fill, ...updates };
+        
+        // Update cache if it's a gradient
+        if (this.fill.type === 'gradient' && this.fill.value) {
+            // Ensure we store a clean object
+            if (typeof this.fill.value === 'object') {
+                LastUsedGradient = JSON.parse(JSON.stringify(this.fill.value));
+            }
+        }
+
         this.onChange(this.fill, isTransient);
         
         // Only re-render if the type changed (e.g. solid -> gradient)

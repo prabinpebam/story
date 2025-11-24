@@ -1,6 +1,7 @@
 import { VisualElement } from './VisualElement.js';
 import { StyleResolver } from '../../../utils/StyleResolver.js';
 import { store } from '../../Store.js';
+import { CodeRunner } from '../../effects/CodeRunner.js';
 
 export class TextElement extends VisualElement {
     mount(container) {
@@ -21,6 +22,10 @@ export class TextElement extends VisualElement {
     unmount() {
         if (this.resizeObserver) {
             this.resizeObserver.disconnect();
+        }
+        if (this.codeRunner) {
+            this.codeRunner.stop();
+            this.codeRunner = null;
         }
         super.unmount();
     }
@@ -201,6 +206,12 @@ export class TextElement extends VisualElement {
     }
 
     applyTextFill(div, fill) {
+        // Stop previous runner if exists
+        if (this.codeRunner && (!fill || fill.type !== 'code')) {
+            this.codeRunner.stop();
+            this.codeRunner = null;
+        }
+
         if (!fill) {
             // Fallback to black if no fill
             div.style.color = 'black';
@@ -226,15 +237,84 @@ export class TextElement extends VisualElement {
              div.style.webkitBackgroundClip = 'text';
              div.style.webkitTextFillColor = 'transparent';
              div.style.color = 'transparent';
+        } else if (fill.type === 'code') {
+            this.applyCodeFill(div, fill);
         }
     }
 
+    applyCodeFill(div, fill) {
+        if (!this.codeRunner) {
+            const canvas = document.createElement('canvas');
+            // Set resolution based on element size (or fixed high res)
+            // We need to update this if element resizes
+            canvas.width = div.offsetWidth || 100;
+            canvas.height = div.offsetHeight || 100;
+            
+            this.codeRunner = new CodeRunner(canvas);
+            
+            // Override draw to update div background
+            const originalRun = this.codeRunner.run.bind(this.codeRunner);
+            this.codeRunner.run = () => {
+                // We hook into the animation loop by wrapping the draw function?
+                // CodeRunner uses requestAnimationFrame calling this.drawFunction
+                // We can't easily hook into the loop without modifying CodeRunner.
+                // But CodeRunner.play() starts the loop.
+                // Let's just use a separate loop to sync?
+                // Or better: CodeRunner renders to canvas. We just need to sync canvas to div.
+                
+                // Start the runner
+                originalRun();
+                
+                // Start our sync loop
+                const sync = () => {
+                    if (!this.codeRunner || !this.codeRunner.isPlaying) return;
+                    
+                    // Update background from canvas
+                    // This is heavy!
+                    const dataUrl = canvas.toDataURL();
+                    div.style.backgroundImage = `url(${dataUrl})`;
+                    div.style.backgroundSize = '100% 100%';
+                    div.style.backgroundPosition = 'center';
+                    
+                    requestAnimationFrame(sync);
+                };
+                sync();
+            };
+        }
+        
+        // Update size if needed
+        if (this.codeRunner.canvas.width !== div.offsetWidth || this.codeRunner.canvas.height !== div.offsetHeight) {
+             this.codeRunner.resize(div.offsetWidth || 100, div.offsetHeight || 100);
+        }
+
+        // Set Code
+        if (this.codeRunner.userCode !== fill.code) {
+            this.codeRunner.setCode(fill.code || CodeRunner.DEFAULT_CODE);
+            this.codeRunner.play();
+        }
+        
+        // Apply CSS
+        div.style.webkitBackgroundClip = 'text';
+        div.style.webkitTextFillColor = 'transparent';
+        div.style.color = 'transparent';
+    }
+
     getGradientCss(gradient) {
+        const stops = gradient.stops.map(s => `${s.color} ${s.position}%`).join(', ');
+        
         if (gradient.type === 'linear') {
-            const stops = gradient.stops.map(s => `${s.color} ${s.position * 100}%`).join(', ');
             return `linear-gradient(${gradient.angle}deg, ${stops})`;
         } else if (gradient.type === 'radial') {
-             const stops = gradient.stops.map(s => `${s.color} ${s.position * 100}%`).join(', ');
+             return `radial-gradient(circle, ${stops})`;
+        } else if (gradient.type === 'angular') {
+             return `conic-gradient(from ${gradient.angle || 0}deg at center, ${stops})`;
+        } else if (gradient.type === 'diamond') {
+             // CSS doesn't have native diamond gradient. 
+             // We can approximate with a radial gradient or use a mask.
+             // For now, let's use a radial gradient as fallback or try a complex linear combo?
+             // Actually, diamond is often just a rotated square radial.
+             // But standard CSS radial is circle or ellipse.
+             // Let's stick to radial fallback for now to avoid breaking.
              return `radial-gradient(circle, ${stops})`;
         }
         return 'black';

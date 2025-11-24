@@ -71,9 +71,12 @@ export class PropertyInspector {
             this.textSection.update(selection);
             this.container.appendChild(this.textSection.section.element);
 
-            // 5. Fill Section
-            this.fillSection.update(selection);
-            this.container.appendChild(this.fillSection.section.element);
+            // 5. Fill Section (Hide for Text as it has its own control)
+            const isText = selection.length === 1 && this.getElement(state, selection[0])?.type === 'text';
+            if (!isText) {
+                this.fillSection.update(selection);
+                this.container.appendChild(this.fillSection.section.element);
+            }
 
             // 5. Stroke Section
             this.strokeSection.update(selection);
@@ -93,6 +96,17 @@ export class PropertyInspector {
             this.slideSection.update(selection);
             this.container.appendChild(this.slideSection.section.element);
             this.container.appendChild(this.slideSection.fillSection.section.element);
+        }
+    }
+
+    getElement(state, id) {
+        const mode = state.editor.mode;
+        if (mode === 'master') {
+            const master = state.masters[state.editor.activeMasterId];
+            return master?.elements[id];
+        } else {
+            const slide = state.slides[state.editor.activeSlideId];
+            return slide?.elements[id];
         }
     }
 }
