@@ -13,8 +13,7 @@ import { StrokeSection } from './properties/StrokeSection.js';
 import { EffectsSection } from './properties/EffectsSection.js';
 import { ExportSection } from './properties/ExportSection.js';
 import { SlideSection } from './properties/SlideSection.js';
-import { LegacyTextSection } from './properties/legacy/LegacyTextSection.js';
-import { getActiveContainer } from './properties/legacy/LegacyUtils.js';
+import { TextSection } from './properties/TextSection.js';
 
 export class PropertyInspector {
     constructor(containerId) {
@@ -25,15 +24,13 @@ export class PropertyInspector {
         this.positionSection = new PositionSection();
         this.layoutSection = new LayoutSection();
         this.appearanceSection = new AppearanceSection();
+        this.textSection = new TextSection();
         this.fillSection = new FillSection();
         this.strokeSection = new StrokeSection();
         this.effectsSection = new EffectsSection();
         this.exportSection = new ExportSection();
         this.slideSection = new SlideSection();
         
-        // Initialize Legacy Sections
-        this.legacyTextSection = new LegacyTextSection(null, this.sectionStates);
-
         this.init();
     }
 
@@ -70,7 +67,11 @@ export class PropertyInspector {
             this.appearanceSection.update(selection);
             this.container.appendChild(this.appearanceSection.section.element);
 
-            // 4. Fill Section
+            // 4. Typography Section (Text Only)
+            this.textSection.update(selection);
+            this.container.appendChild(this.textSection.section.element);
+
+            // 5. Fill Section
             this.fillSection.update(selection);
             this.container.appendChild(this.fillSection.section.element);
 
@@ -93,70 +94,5 @@ export class PropertyInspector {
             this.container.appendChild(this.slideSection.section.element);
             this.container.appendChild(this.slideSection.fillSection.section.element);
         }
-
-        // Fallback to legacy for missing parts (or if we want to mix them)
-        // For now, let's append a container for legacy stuff below the new stuff
-        const legacyContainer = document.createElement('div');
-        legacyContainer.className = 'legacy-properties';
-        this.container.appendChild(legacyContainer);
-        
-        // We need to temporarily hijack the container for renderLegacy to work on the sub-div
-        const originalContainer = this.container;
-        this.container = legacyContainer;
-        this.renderLegacy();
-        this.container = originalContainer;
     }
-
-    renderLegacy() {
-        const state = store.getState();
-        const selection = state.editor.selectedElementIds;
-        const mode = state.editor.mode;
-        
-        const currentObject = getActiveContainer(state);
-        
-        this.container.innerHTML = '';
-
-        if (!currentObject) return;
-
-        // Update container for legacy sections
-        this.legacyTextSection.container = this.container;
-
-        if (!selection || selection.length === 0) {
-            return;
-        }
-
-        // Get all selected elements
-        const elements = selection.map(id => {
-            if (currentObject.elements && currentObject.elements[id]) return currentObject.elements[id];
-            
-            if (mode === 'master') {
-                // If not found in current object (layout), check parent master
-                if (currentObject.type === 'layout' && currentObject.parentId) {
-                     const master = state.masters[currentObject.parentId];
-                     if (master && master.elements && master.elements[id]) {
-                         return master.elements[id];
-                     }
-                }
-            } else if (mode === 'edit') {
-                const effective = store.getEffectiveSlide(state.editor.activeSlideId);
-                if (effective && effective.effectiveElements && effective.effectiveElements[id]) {
-                    return effective.effectiveElements[id];
-                }
-            }
-            return null;
-        }).filter(el => el);
-        
-        if (elements.length === 0) return;
-
-        // Type specific properties (only if all same type)
-        const firstType = elements[0].type;
-        const allSameType = elements.every(el => el.type === firstType);
-
-        if (allSameType) {
-            if (firstType === 'text') {
-                this.legacyTextSection.render(elements[0], selection);
-            }
-        }
-    }
-
 }
