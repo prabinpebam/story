@@ -37,15 +37,6 @@ export const StyleResolver = {
             finalProps = { ...finalProps, ...globalStyles[element.styleId] };
         }
 
-        // Apply Element Overrides
-        // We iterate over keys in element to see what's explicitly set.
-        // We assume element properties override style properties.
-        Object.keys(element).forEach(key => {
-            if (element[key] !== undefined && element[key] !== null && key !== 'style') {
-                finalProps[key] = element[key];
-            }
-        });
-
         // Apply Legacy/Nested Style Overrides (for backward compatibility)
         if (element.style) {
              Object.keys(element.style).forEach(key => {
@@ -54,6 +45,15 @@ export const StyleResolver = {
                 }
             });
         }
+
+        // Apply Element Overrides
+        // We iterate over keys in element to see what's explicitly set.
+        // We assume element properties override style properties.
+        Object.keys(element).forEach(key => {
+            if (element[key] !== undefined && element[key] !== null && key !== 'style') {
+                finalProps[key] = element[key];
+            }
+        });
 
         // Handle Legacy Color Migration (if element has color string but no textFill)
         if (element.color && !element.textFill) {

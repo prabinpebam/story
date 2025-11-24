@@ -136,6 +136,7 @@ export class TypeSettingsFlyout extends Flyout {
         const pSpacingRow = this.createLabelRow('Paragraph Spacing');
         const pSpacingInput = new NumberInput({
             value: this.currentProps.paragraphSpacing || 0,
+            scrubbable: true,
             onChange: (val) => this.updateProp('paragraphSpacing', val)
         });
         pSpacingRow.appendChild(pSpacingInput.element);
@@ -145,6 +146,7 @@ export class TypeSettingsFlyout extends Flyout {
         const pIndentRow = this.createLabelRow('Paragraph Indentation');
         const pIndentInput = new NumberInput({
             value: this.currentProps.paragraphIndent || 0,
+            scrubbable: true,
             onChange: (val) => this.updateProp('paragraphIndent', val)
         });
         pIndentRow.appendChild(pIndentInput.element);
@@ -202,6 +204,7 @@ export class TypeSettingsFlyout extends Flyout {
             const listSpacingRow = this.createLabelRow('List Spacing');
             const listSpacingInput = new NumberInput({
                 value: this.currentProps.listSpacing || 0,
+                scrubbable: true,
                 onChange: (val) => this.updateProp('listSpacing', val)
             });
             listSpacingRow.appendChild(listSpacingInput.element);
@@ -223,6 +226,7 @@ export class TypeSettingsFlyout extends Flyout {
             const maxLinesInput = new NumberInput({
                 value: this.currentProps.maxLines || 1,
                 min: 1,
+                scrubbable: true,
                 onChange: (val) => this.updateProp('maxLines', val)
             });
             maxLinesRow.appendChild(maxLinesInput.element);

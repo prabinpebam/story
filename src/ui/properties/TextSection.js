@@ -49,6 +49,7 @@ export class TextSection {
         this.fontSizeInput = new NumberInput({
             value: 16,
             min: 1,
+            scrubbable: true,
             onChange: (val) => this.updateProperty('fontSize', val)
         });
 
