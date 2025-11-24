@@ -922,11 +922,14 @@ export class CanvasManager {
                 // Default properties based on type
                 if (activeTool === 'text') {
                     element.content = '<h2>Text</h2>';
-                    element.style = {
-                        fontSize: 32,
-                        fontFamily: 'Inter',
-                        color: '#000000'
-                    };
+                    // Flattened properties
+                    element.fontSize = 32;
+                    element.fontFamily = 'Inter';
+                    element.textFill = { type: 'solid', value: '#000000' };
+                    element.textAlign = 'left';
+                    element.lineHeight = 'auto';
+                    element.letterSpacing = 0;
+                    
                     // Auto-height for text usually, but let's respect drag for now or set min
                     element.height = Math.max(height, 50); 
                 } else if (activeTool === 'shape') {
@@ -1019,12 +1022,10 @@ export class CanvasManager {
                     height: 50,
                     rotation: 0,
                     content: `<i class="${iconClass}"></i>`,
-                    style: {
-                        fontSize: 48,
-                        color: '#000000',
-                        textAlign: 'center',
-                        fontFamily: 'Inter' // Reset font to ensure icon renders if it relies on global FA
-                    }
+                    fontSize: 48,
+                    textFill: { type: 'solid', value: '#000000' },
+                    textAlign: 'center',
+                    fontFamily: 'Inter'
                 });
                 store.dispatch('UPDATE_SELECTION', [id]);
                 return;

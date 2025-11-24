@@ -1,4 +1,5 @@
 import { VisualElement } from './VisualElement.js';
+import { StyleResolver } from '../../../utils/StyleResolver.js';
 
 export class TextElement extends VisualElement {
     update(newData) {
@@ -9,21 +10,91 @@ export class TextElement extends VisualElement {
         if (!div) return;
 
         // Content
-        // We check inequality to avoid resetting cursor position if this update comes from typing
         if (div.innerHTML !== el.content) {
              div.innerHTML = el.content;
         }
         
+        // Resolve Properties
+        const props = StyleResolver.getEffectiveTextProperties(el);
+
         // Typography
-        div.style.fontFamily = el.style?.fontFamily || 'Inter';
-        div.style.fontSize = `${el.style?.fontSize || 16}px`;
-        div.style.fontWeight = el.style?.fontWeight || '400';
-        div.style.lineHeight = el.style?.lineHeight || '1.2';
-        div.style.letterSpacing = `${el.style?.letterSpacing || 0}px`;
-        div.style.color = el.style?.color || 'black';
-        div.style.textAlign = el.style?.textAlign || 'left';
+        div.style.fontFamily = props.fontFamily;
+        div.style.fontSize = `${props.fontSize}px`;
+        div.style.fontWeight = props.fontWeight;
+        div.style.fontStyle = props.fontStyle;
+        div.style.lineHeight = props.computedLineHeight ? `${props.computedLineHeight}px` : 'normal';
+        
+        // Letter Spacing
+        if (typeof props.letterSpacing === 'string' && props.letterSpacing.endsWith('%')) {
+            const percent = parseFloat(props.letterSpacing);
+            div.style.letterSpacing = `${percent / 100}em`;
+        } else if (typeof props.letterSpacing === 'number') {
+             div.style.letterSpacing = `${props.letterSpacing}px`;
+        } else {
+             div.style.letterSpacing = props.letterSpacing;
+        }
+
+        div.style.textAlign = props.textAlign;
+        div.style.textDecoration = props.textDecoration;
+        div.style.textTransform = props.textTransform;
+        
+        // Vertical Align
+        div.style.display = 'flex';
+        div.style.flexDirection = 'column';
+        div.style.justifyContent = this.getJustifyContentForVerticalAlign(props.verticalAlign);
+        
+        // Text Fill
+        this.applyTextFill(div, props.textFill);
         
         this.applyEffects(div, el);
+    }
+
+    getJustifyContentForVerticalAlign(align) {
+        switch (align) {
+            case 'middle': return 'center';
+            case 'bottom': return 'flex-end';
+            case 'top': default: return 'flex-start';
+        }
+    }
+
+    applyTextFill(div, fill) {
+        if (!fill) {
+            // Fallback to black if no fill
+            div.style.color = 'black';
+            div.style.background = 'none';
+            div.style.webkitBackgroundClip = 'border-box';
+            div.style.webkitTextFillColor = 'currentcolor';
+            return;
+        }
+
+        if (fill.type === 'solid') {
+            div.style.color = fill.value;
+            div.style.background = 'none';
+            div.style.webkitBackgroundClip = 'border-box';
+            div.style.webkitTextFillColor = 'currentcolor';
+        } else if (fill.type === 'gradient') {
+            const gradientCss = this.getGradientCss(fill.value);
+            div.style.background = gradientCss;
+            div.style.webkitBackgroundClip = 'text';
+            div.style.webkitTextFillColor = 'transparent';
+            div.style.color = 'transparent'; 
+        } else if (fill.type === 'image') {
+             div.style.background = `url(${fill.value.src}) center / cover no-repeat`;
+             div.style.webkitBackgroundClip = 'text';
+             div.style.webkitTextFillColor = 'transparent';
+             div.style.color = 'transparent';
+        }
+    }
+
+    getGradientCss(gradient) {
+        if (gradient.type === 'linear') {
+            const stops = gradient.stops.map(s => `${s.color} ${s.position * 100}%`).join(', ');
+            return `linear-gradient(${gradient.angle}deg, ${stops})`;
+        } else if (gradient.type === 'radial') {
+             const stops = gradient.stops.map(s => `${s.color} ${s.position * 100}%`).join(', ');
+             return `radial-gradient(circle, ${stops})`;
+        }
+        return 'black';
     }
 
     applyEffects(div, el) {
