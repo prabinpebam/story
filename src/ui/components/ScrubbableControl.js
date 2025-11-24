@@ -1,4 +1,5 @@
 import { MathInput } from './MathInput.js';
+import { store } from '../../core/Store.js';
 
 export class ScrubbableControl {
     constructor(label, value, onChange, options = {}) {
@@ -58,11 +59,13 @@ export class ScrubbableControl {
         this.startValue = this.value;
         
         document.body.style.cursor = 'ew-resize';
+        store.dispatch('UI_INTERACTION_START');
         
         const moveHandler = (e) => this.handleDragMove(e);
         const upHandler = () => {
             this.isDragging = false;
             document.body.style.cursor = 'default';
+            store.dispatch('UI_INTERACTION_END');
             window.removeEventListener('mousemove', moveHandler);
             window.removeEventListener('mouseup', upHandler);
         };

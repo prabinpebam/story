@@ -7,7 +7,6 @@ import { store } from '../../core/Store.js';
 export class LayoutSection {
     constructor() {
         this.section = new Section({ title: 'Layout' });
-        this.constrainProportions = true; // Default to true
         this.createContent();
     }
 
@@ -29,10 +28,11 @@ export class LayoutSection {
         });
 
         // Constrain Button
+        const state = store.getState();
         this.constrainBtn = new IconButton({
             icon: Icons.LINK,
             title: 'Constrain Proportions',
-            isActive: this.constrainProportions,
+            isActive: state.editor.constrainProportions,
             onClick: () => this.toggleConstrain()
         });
 
@@ -54,6 +54,10 @@ export class LayoutSection {
         const state = store.getState();
         const elementId = selection[0];
         const element = this.getElement(state, elementId);
+
+        // Update Constrain Button State
+        this.constrainBtn.setActive(state.editor.constrainProportions);
+        this.constrainBtn.element.innerHTML = state.editor.constrainProportions ? Icons.LINK : Icons.LINK_BROKEN;
 
         if (element) {
             this.wInput.setValue(element.width, false);
@@ -78,11 +82,12 @@ export class LayoutSection {
     updateDimension(prop, value, isTransient = false) {
         const state = store.getState();
         const selection = state.editor.selectedElementIds;
+        const constrain = state.editor.constrainProportions;
         
         selection.forEach(id => {
             const updates = { [prop]: value };
             
-            if (this.constrainProportions && this.aspectRatio) {
+            if (constrain && this.aspectRatio) {
                 if (prop === 'width') {
                     updates.height = value / this.aspectRatio;
                     this.hInput.setValue(updates.height, false);
@@ -97,9 +102,7 @@ export class LayoutSection {
     }
 
     toggleConstrain() {
-        this.constrainProportions = !this.constrainProportions;
-        this.constrainBtn.setActive(this.constrainProportions);
-        this.constrainBtn.element.innerHTML = this.constrainProportions ? Icons.LINK : Icons.LINK_BROKEN;
+        store.dispatch('TOGGLE_CONSTRAIN_PROPORTIONS');
         
         // Update aspect ratio based on current values
         const state = store.getState();

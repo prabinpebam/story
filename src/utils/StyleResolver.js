@@ -1,4 +1,3 @@
-
 export const StyleResolver = {
     /**
      * Resolves the final text properties for an element.
@@ -21,7 +20,13 @@ export const StyleResolver = {
             textDecoration: 'none',
             textTransform: 'none',
             paragraphSpacing: 0,
-            paragraphIndent: 0
+            paragraphIndent: 0,
+            // New Typography Features
+            verticalTrim: 'standard',
+            listStyle: 'none',
+            listSpacing: 0,
+            truncate: false,
+            maxLines: 1
         };
 
         // Start with defaults

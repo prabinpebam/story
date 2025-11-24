@@ -88,14 +88,14 @@ export class TypeSettingsFlyout extends Flyout {
         
         // Decoration (Underline, Strikethrough)
         const underlineBtn = new IconButton({
-            icon: Icons.UNDERLINE, // Need to ensure this icon exists
+            icon: Icons.UNDERLINE,
             title: 'Underline',
             onClick: () => this.updateProp('textDecoration', this.currentProps.textDecoration === 'underline' ? 'none' : 'underline')
         });
         if (this.currentProps.textDecoration === 'underline') underlineBtn.element.classList.add('active');
 
         const strikeBtn = new IconButton({
-            icon: Icons.STRIKETHROUGH, // Need to ensure this icon exists
+            icon: Icons.STRIKETHROUGH,
             title: 'Strikethrough',
             onClick: () => this.updateProp('textDecoration', this.currentProps.textDecoration === 'line-through' ? 'none' : 'line-through')
         });
@@ -149,6 +149,85 @@ export class TypeSettingsFlyout extends Flyout {
         });
         pIndentRow.appendChild(pIndentInput.element);
         container.appendChild(pIndentRow);
+
+        // Vertical Trim
+        const vTrimRow = this.createLabelRow('Vertical Trim');
+        const vTrimDropdown = new Dropdown({
+            options: [
+                { label: 'Standard', value: 'standard' },
+                { label: 'Cap Height', value: 'capHeight' }
+            ],
+            value: this.currentProps.verticalTrim || 'standard',
+            onChange: (val) => this.updateProp('verticalTrim', val)
+        });
+        vTrimDropdown.element.style.width = '100px';
+        vTrimRow.appendChild(vTrimDropdown.element);
+        container.appendChild(vTrimRow);
+
+        // Lists
+        const listRow = this.createLabelRow('Lists');
+        const listControls = document.createElement('div');
+        listControls.style.display = 'flex';
+        listControls.style.gap = '4px';
+
+        const listNoneBtn = new IconButton({
+            icon: Icons.CLOSE, // Using Close as "None"
+            title: 'No List',
+            onClick: () => this.updateProp('listStyle', 'none')
+        });
+        if (!this.currentProps.listStyle || this.currentProps.listStyle === 'none') listNoneBtn.element.classList.add('active');
+
+        const listBulletBtn = new IconButton({
+            icon: Icons.LIST_BULLET,
+            title: 'Bullet List',
+            onClick: () => this.updateProp('listStyle', 'bullet')
+        });
+        if (this.currentProps.listStyle === 'bullet') listBulletBtn.element.classList.add('active');
+
+        const listNumberBtn = new IconButton({
+            icon: Icons.LIST_NUMBERED,
+            title: 'Numbered List',
+            onClick: () => this.updateProp('listStyle', 'numbered')
+        });
+        if (this.currentProps.listStyle === 'numbered') listNumberBtn.element.classList.add('active');
+
+        listControls.appendChild(listNoneBtn.element);
+        listControls.appendChild(listBulletBtn.element);
+        listControls.appendChild(listNumberBtn.element);
+        listRow.appendChild(listControls);
+        container.appendChild(listRow);
+
+        // List Spacing (only if list is active)
+        if (this.currentProps.listStyle && this.currentProps.listStyle !== 'none') {
+            const listSpacingRow = this.createLabelRow('List Spacing');
+            const listSpacingInput = new NumberInput({
+                value: this.currentProps.listSpacing || 0,
+                onChange: (val) => this.updateProp('listSpacing', val)
+            });
+            listSpacingRow.appendChild(listSpacingInput.element);
+            container.appendChild(listSpacingRow);
+        }
+
+        // Truncation
+        const truncRow = this.createLabelRow('Truncate text');
+        const truncSwitch = new Switch({
+            checked: this.currentProps.truncate || false,
+            onChange: (val) => this.updateProp('truncate', val)
+        });
+        truncRow.appendChild(truncSwitch.element);
+        container.appendChild(truncRow);
+
+        // Max Lines (only if truncation is active)
+        if (this.currentProps.truncate) {
+            const maxLinesRow = this.createLabelRow('Max Lines');
+            const maxLinesInput = new NumberInput({
+                value: this.currentProps.maxLines || 1,
+                min: 1,
+                onChange: (val) => this.updateProp('maxLines', val)
+            });
+            maxLinesRow.appendChild(maxLinesInput.element);
+            container.appendChild(maxLinesRow);
+        }
     }
 
     renderDetails(container) {

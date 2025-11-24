@@ -294,8 +294,12 @@ export class CanvasManager {
                 if (hit.type === 'handle') {
                     this.interactionState = 'RESIZING';
                     this.activeHandle = hit.handle;
+                    this.interactionAction = hit.action; // Store action (resize, rotate, radius)
                     this.dragStart = { x: mouseX, y: mouseY };
                     
+                    // Hide overlay during interaction
+                    store.dispatch('UI_INTERACTION_START');
+
                     const state = store.getState();
                     const slide = this.getActiveContainer(state);
 
@@ -330,6 +334,9 @@ export class CanvasManager {
 
                     this.interactionState = 'DRAGGING';
                     this.dragStart = { x: mouseX, y: mouseY };
+                    
+                    // Hide overlay during interaction
+                    store.dispatch('UI_INTERACTION_START');
                     
                     const state = store.getState();
                     const slide = this.getActiveContainer(state);
@@ -574,6 +581,7 @@ export class CanvasManager {
             
             if (this.initialSelectionBounds) {
                 // --- Multi-Selection Resize ---
+                // (Keep existing multi-selection resize logic for now)
                 const initialBounds = this.initialSelectionBounds;
                 const dx = (mouseX - this.dragStart.x) / zoom;
                 const dy = (mouseY - this.dragStart.y) / zoom;
@@ -586,7 +594,9 @@ export class CanvasManager {
                     localDy *= 2;
                 }
 
-                if (e.shiftKey && ['nw', 'ne', 'sw', 'se'].includes(this.activeHandle)) {
+                const shouldConstrain = state.editor.constrainProportions ? !e.shiftKey : e.shiftKey;
+
+                if (shouldConstrain && ['nw', 'ne', 'sw', 'se'].includes(this.activeHandle)) {
                     const ratio = initialBounds.width / initialBounds.height;
                     if (['nw', 'se'].includes(this.activeHandle)) {
                         const avg = (localDx + localDy * ratio) / 2;
@@ -667,14 +677,23 @@ export class CanvasManager {
                 });
 
             } else {
-                // --- Single Element Resize ---
+                // --- Single Element Interaction ---
                 const id = state.editor.selectedElementIds[0];
                 const initial = this.initialElementState;
                 
                 if (!initial || !id) return;
 
+                const dx = (mouseX - this.dragStart.x) / zoom;
+                const dy = (mouseY - this.dragStart.y) / zoom;
+
+                const rad = -(initial.rotation || 0) * Math.PI / 180;
+                const cos = Math.cos(rad);
+                const sin = Math.sin(rad);
+                let localDx = dx * cos - dy * sin;
+                let localDy = dx * sin + dy * cos;
+
                 // Handle Rotation
-                if (this.activeHandle === 'rot') {
+                if (this.interactionAction === 'rotate') {
                     const slide = store.getState().slides[store.getState().editor.activeSlideId];
                     
                     let absX = initial.x;
@@ -721,22 +740,42 @@ export class CanvasManager {
                     return;
                 }
 
-                const dx = (mouseX - this.dragStart.x) / zoom;
-                const dy = (mouseY - this.dragStart.y) / zoom;
+                // Handle Corner Radius
+                if (this.interactionAction === 'radius') {
+                    const corner = this.activeHandle.replace('radius-', '');
+                    let delta = 0;
+                    
+                    // Project local delta onto the diagonal vector pointing inwards
+                    switch (corner) {
+                        case 'nw': delta = (localDx + localDy) / 2; break;
+                        case 'ne': delta = (-localDx + localDy) / 2; break;
+                        case 'se': delta = (-localDx - localDy) / 2; break;
+                        case 'sw': delta = (localDx - localDy) / 2; break;
+                        default: delta = localDy; // Fallback
+                    }
 
-                const rad = -(initial.rotation || 0) * Math.PI / 180;
-                const cos = Math.cos(rad);
-                const sin = Math.sin(rad);
-                let localDx = dx * cos - dy * sin;
-                let localDy = dx * sin + dy * cos;
+                    let newRadius = (initial.borderRadius || 0) + delta;
+                    if (newRadius < 0) newRadius = 0;
+                    const maxR = Math.min(initial.width, initial.height) / 2;
+                    if (newRadius > maxR) newRadius = maxR;
+                    
+                    store.dispatch('UPDATE_ELEMENT', {
+                        id,
+                        borderRadius: newRadius
+                    });
+                    return;
+                }
 
+                // Handle Resize (Default)
                 const isCenterResize = e.altKey;
                 if (isCenterResize) {
                     localDx *= 2;
                     localDy *= 2;
                 }
 
-                if (e.shiftKey && ['nw', 'ne', 'sw', 'se'].includes(this.activeHandle)) {
+                const shouldConstrain = state.editor.constrainProportions ? !e.shiftKey : e.shiftKey;
+
+                if (shouldConstrain && ['nw', 'ne', 'sw', 'se'].includes(this.activeHandle)) {
                     const ratio = initial.width / initial.height;
                     
                     if (['nw', 'se'].includes(this.activeHandle)) {
@@ -847,7 +886,21 @@ export class CanvasManager {
         if (this.interactionState === 'IDLE') {
              const hit = this.hitTest(mouseX, mouseY);
              if (hit) {
-                 this.container.style.cursor = hit.type === 'handle' ? 'crosshair' : 'move';
+                 if (hit.type === 'handle') {
+                     if (hit.action === 'rotate') {
+                         // Rotate cursor
+                         // Calculate angle to determine cursor
+                         // For now simple alias
+                         this.container.style.cursor = 'alias'; // Or custom rotate cursor
+                     } else if (hit.action === 'radius') {
+                         this.container.style.cursor = 'default'; // Or custom radius cursor
+                     } else {
+                         this.container.style.cursor = 'crosshair'; // Resize
+                     }
+                 } else {
+                     this.container.style.cursor = 'move';
+                 }
+                 
                  if (hit.type === 'element') {
                      let targetId = hit.id;
                      
@@ -889,6 +942,10 @@ export class CanvasManager {
     handleMouseUp(e) {
         const state = store.getState();
         if (state.editor.mode === 'presentation') return;
+
+        if (this.interactionState === 'RESIZING' || this.interactionState === 'DRAGGING') {
+            store.dispatch('UI_INTERACTION_END');
+        }
 
         this.activeGuides = [];
         if (this.interactionState === 'CREATING') {
@@ -2046,10 +2103,13 @@ export class CanvasManager {
 
         if (selectedElementIds.length === 1) {
             const id = selectedElementIds[0];
+            const isEditing = state.editor.editingElementId === id;
+            
             const el = slide.elements[id];
             if (el) {
                 const absEl = this.getAbsoluteElement(el, slide);
-                this.drawSelectionBox(absEl, zoom);
+                // Draw box, but only draw handles if NOT editing
+                this.drawSelectionBox(absEl, zoom, !isEditing);
             }
         } else {
             // Multi-selection
@@ -2140,55 +2200,68 @@ export class CanvasManager {
         this.ctx.restore();
     }
 
-    drawSelectionBox(el, zoom) {
+    drawSelectionBox(el, zoom, showHandles = true) {
         const { x, y, width, height, rotation } = el;
         
         this.ctx.save();
-        // Translate to center of element to rotate
         this.ctx.translate(x + width / 2, y + height / 2);
         this.ctx.rotate((rotation || 0) * Math.PI / 180);
-        // Translate back to top-left relative to center
         this.ctx.translate(-width / 2, -height / 2);
 
-        // Draw Box
-        this.ctx.strokeStyle = '#0055FF'; // TE Blue
-        this.ctx.lineWidth = 1.5 / zoom;
+        // 1. Draw Bounding Box
+        this.ctx.strokeStyle = '#0055FF';
+        this.ctx.lineWidth = 1 / zoom; // Thin line
         this.ctx.strokeRect(0, 0, width, height);
 
-        // Draw Handles
-        const handleSize = 8 / zoom;
-        this.ctx.fillStyle = '#FFFFFF';
-        this.ctx.strokeStyle = '#0055FF';
-        this.ctx.lineWidth = 1 / zoom;
+        if (showHandles) {
+            const handleSize = 8 / zoom; // Size of resize handles
+            const radiusHandleSize = 8 / zoom; // Size of corner radius handles
+            const radiusHandleOffset = 12 / zoom; // Offset from corner
 
-        // Order: NW, N, NE, E, SE, S, SW, W
-        const handles = [
-            { x: 0, y: 0 }, 
-            { x: width / 2, y: 0 }, 
-            { x: width, y: 0 }, 
-            { x: width, y: height / 2 }, 
-            { x: width, y: height }, 
-            { x: width / 2, y: height }, 
-            { x: 0, y: height }, 
-            { x: 0, y: height / 2 } 
-        ];
+            this.ctx.fillStyle = '#FFFFFF';
+            this.ctx.strokeStyle = '#0055FF';
+            this.ctx.lineWidth = 1 / zoom;
 
-        handles.forEach(h => {
-            this.ctx.fillRect(h.x - handleSize / 2, h.y - handleSize / 2, handleSize, handleSize);
-            this.ctx.strokeRect(h.x - handleSize / 2, h.y - handleSize / 2, handleSize, handleSize);
-        });
+            // 2. Draw Resize Handles (8 points)
+            // Figma uses white squares with blue border
+            const handles = [
+                { x: 0, y: 0 }, // NW
+                { x: width / 2, y: 0 }, // N
+                { x: width, y: 0 }, // NE
+                { x: width, y: height / 2 }, // E
+                { x: width, y: height }, // SE
+                { x: width / 2, y: height }, // S
+                { x: 0, y: height }, // SW
+                { x: 0, y: height / 2 } // W
+            ];
 
-        // Rotation Handle
-        const rotHandleDist = 20 / zoom;
-        this.ctx.beginPath();
-        this.ctx.moveTo(width / 2, 0);
-        this.ctx.lineTo(width / 2, -rotHandleDist);
-        this.ctx.stroke();
-        
-        this.ctx.beginPath();
-        this.ctx.arc(width / 2, -rotHandleDist, handleSize / 2, 0, Math.PI * 2);
-        this.ctx.fill();
-        this.ctx.stroke();
+            handles.forEach(h => {
+                this.ctx.beginPath();
+                this.ctx.rect(h.x - handleSize / 2, h.y - handleSize / 2, handleSize, handleSize);
+                this.ctx.fill();
+                this.ctx.stroke();
+            });
+
+            // 3. Draw Corner Radius Handles (Inner Circles)
+            // Only draw if enough space
+            if (width > radiusHandleOffset * 3 && height > radiusHandleOffset * 3) {
+                const radiusHandles = [
+                    { x: radiusHandleOffset, y: radiusHandleOffset }, // NW
+                    { x: width - radiusHandleOffset, y: radiusHandleOffset }, // NE
+                    { x: width - radiusHandleOffset, y: height - radiusHandleOffset }, // SE
+                    { x: radiusHandleOffset, y: height - radiusHandleOffset } // SW
+                ];
+
+                this.ctx.beginPath();
+                radiusHandles.forEach(h => {
+                    this.ctx.moveTo(h.x + radiusHandleSize/2, h.y);
+                    this.ctx.arc(h.x, h.y, radiusHandleSize/2, 0, Math.PI * 2);
+                });
+                this.ctx.fillStyle = '#FFFFFF';
+                this.ctx.fill();
+                this.ctx.stroke();
+            }
+        }
 
         this.ctx.restore();
     }
@@ -2282,17 +2355,18 @@ export class CanvasManager {
             const el = slide.elements[id];
             if (el) {
                 const absEl = this.getAbsoluteElement(el, slide);
-                const handle = this.checkHandles(worldX, worldY, absEl, zoom);
-                if (handle) {
-                    return { type: 'handle', id, handle };
+                const result = this.checkHandlesV2(worldX, worldY, absEl, zoom);
+                if (result) {
+                    return { type: 'handle', id, ...result };
                 }
             }
         } else if (state.editor.selectedElementIds.length > 1) {
             const bounds = this.getSelectionBounds(slide, state.editor.selectedElementIds);
             if (bounds) {
-                const handle = this.checkHandles(worldX, worldY, bounds, zoom);
-                if (handle) {
-                    return { type: 'handle', id: 'multi-selection', handle };
+                // Multi-selection only supports resize for now
+                const result = this.checkHandlesV2(worldX, worldY, bounds, zoom);
+                if (result && result.action === 'resize') {
+                    return { type: 'handle', id: 'multi-selection', ...result };
                 }
             }
         }
@@ -2300,10 +2374,13 @@ export class CanvasManager {
         return null;
     }
 
-    checkHandles(wx, wy, el, zoom) {
+    checkHandlesV2(wx, wy, el, zoom) {
         const { x, y, width, height, rotation } = el;
         const handleSize = 8 / zoom;
-        const hitRadius = handleSize; 
+        const hitThreshold = handleSize / 2;
+        const rotationThreshold = 20 / zoom; // Distance outside corner to trigger rotation
+        const radiusHandleOffset = 12 / zoom;
+        const radiusHandleSize = 8 / zoom;
 
         // Transform point to local unrotated space relative to element center
         const cx = x + width / 2;
@@ -2319,6 +2396,7 @@ export class CanvasManager {
         const localX = (dx * cos - dy * sin) + width / 2; 
         const localY = (dx * sin + dy * cos) + height / 2;
 
+        // 1. Check Resize Handles
         const handles = {
             'nw': { x: 0, y: 0 },
             'n':  { x: width / 2, y: 0 },
@@ -2331,14 +2409,36 @@ export class CanvasManager {
         };
 
         for (const [key, h] of Object.entries(handles)) {
-            if (Math.abs(localX - h.x) <= hitRadius && Math.abs(localY - h.y) <= hitRadius) {
-                return key;
+            if (Math.abs(localX - h.x) <= hitThreshold && Math.abs(localY - h.y) <= hitThreshold) {
+                return { handle: key, action: 'resize' };
             }
         }
-        
-        const rotHandleDist = 20 / zoom;
-        if (Math.abs(localX - width / 2) <= hitRadius && Math.abs(localY - (-rotHandleDist)) <= hitRadius) {
-            return 'rot';
+
+        // 2. Check Corner Radius Handles (Inner)
+        if (width > radiusHandleOffset * 3 && height > radiusHandleOffset * 3) {
+             const rHandles = [
+                { x: radiusHandleOffset, y: radiusHandleOffset, id: 'nw' },
+                { x: width - radiusHandleOffset, y: radiusHandleOffset, id: 'ne' },
+                { x: width - radiusHandleOffset, y: height - radiusHandleOffset, id: 'se' },
+                { x: radiusHandleOffset, y: height - radiusHandleOffset, id: 'sw' }
+            ];
+            for (const h of rHandles) {
+                if (Math.abs(localX - h.x) <= radiusHandleSize/2 && Math.abs(localY - h.y) <= radiusHandleSize/2) {
+                    return { handle: `radius-${h.id}`, action: 'radius' };
+                }
+            }
+        }
+
+        // 3. Check Rotation (Outside Corners)
+        const corners = ['nw', 'ne', 'se', 'sw'];
+        for (const key of corners) {
+            const h = handles[key];
+            const dist = Math.sqrt(Math.pow(localX - h.x, 2) + Math.pow(localY - h.y, 2));
+            if (dist <= rotationThreshold) {
+                // We are near corner. Check if we are "outside"
+                // Simple heuristic: if dist > hitThreshold, it's rotation
+                return { handle: key, action: 'rotate' };
+            }
         }
 
         return null;

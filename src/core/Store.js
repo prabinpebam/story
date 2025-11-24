@@ -58,6 +58,7 @@ class Store extends EventEmitter {
             case 'UPDATE_VIEWPORT': EditorHandlers.handleUpdateViewport(this, payload); break;
             case 'UPDATE_SELECTION': EditorHandlers.handleUpdateSelection(this, payload); break;
             case 'TOGGLE_THEME': EditorHandlers.handleToggleTheme(this); break;
+            case 'TOGGLE_CONSTRAIN_PROPORTIONS': EditorHandlers.handleToggleConstrainProportions(this, payload); break;
 
             // Presentation Handlers
             case 'PRESENTATION_NEXT': PresentationHandlers.handlePresentationNext(this); break;

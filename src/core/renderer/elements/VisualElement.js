@@ -32,11 +32,28 @@ export class VisualElement {
     applyStyles(el) {
         const div = this.domElement;
         
-        div.style.left = `${el.x}px`;
-        div.style.top = `${el.y}px`;
+        // Calculate absolute position if parent exists
+        let x = el.x;
+        let y = el.y;
+        let rotation = el.rotation || 0;
+        
+        if (this.slideData && el.parentId) {
+            let parentId = el.parentId;
+            while (parentId) {
+                const parent = this.slideData.elements[parentId];
+                if (!parent) break;
+                x += parent.x;
+                y += parent.y;
+                rotation += (parent.rotation || 0);
+                parentId = parent.parentId;
+            }
+        }
+
+        div.style.left = `${x}px`;
+        div.style.top = `${y}px`;
         div.style.width = `${el.width}px`;
         div.style.height = `${el.height}px`;
-        div.style.transform = `rotate(${el.rotation || 0}deg)`;
+        div.style.transform = `rotate(${rotation}deg)`;
         div.style.opacity = (el.opacity !== undefined && el.opacity !== null) ? el.opacity : 1;
         div.style.zIndex = el.zIndex || 'auto';
         div.style.display = el.hidden ? 'none' : 'block';

@@ -79,7 +79,8 @@ export function createInitialState() {
             zoom: 1.0,
             pan: { x: 0, y: 0 },
             gridEnabled: true,
-            snapToGrid: true
+            snapToGrid: true,
+            constrainProportions: true
         },
         presentation: {
             isActive: false,

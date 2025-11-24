@@ -1,3 +1,5 @@
+import { store } from '../../core/Store.js';
+
 export class Knob {
     constructor(label, value, min, max, onChange) {
         this.label = label;
@@ -54,6 +56,7 @@ export class Knob {
             this.startY = e.clientY;
             this.startValue = this.value;
             document.body.style.cursor = 'ns-resize';
+            store.dispatch('UI_INTERACTION_START');
             
             const moveHandler = (ev) => {
                 if (!this.isDragging) return;
@@ -74,6 +77,7 @@ export class Knob {
             const upHandler = () => {
                 this.isDragging = false;
                 document.body.style.cursor = 'default';
+                store.dispatch('UI_INTERACTION_END');
                 window.removeEventListener('mousemove', moveHandler);
                 window.removeEventListener('mouseup', upHandler);
             };

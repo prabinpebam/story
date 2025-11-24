@@ -1,7 +1,74 @@
 import { VisualElement } from './VisualElement.js';
 import { StyleResolver } from '../../../utils/StyleResolver.js';
+import { store } from '../../Store.js';
 
 export class TextElement extends VisualElement {
+    mount(container) {
+        const el = super.mount(container);
+        
+        this.resizeObserver = new ResizeObserver(entries => {
+            for (let entry of entries) {
+                if (entry.target === this.domElement) {
+                    this.handleResize(entry);
+                }
+            }
+        });
+        this.resizeObserver.observe(this.domElement);
+        
+        return el;
+    }
+
+    unmount() {
+        if (this.resizeObserver) {
+            this.resizeObserver.disconnect();
+        }
+        super.unmount();
+    }
+
+    handleResize(entry) {
+        const state = store.getState();
+        // Don't update if we are dragging/resizing manually or interacting
+        if (state.ui && state.ui.isInteracting) return;
+
+        const el = this.data;
+        const resizing = el.style?.resizing || 'autoHeight';
+        
+        // Only sync if auto-sizing is enabled
+        if (resizing !== 'autoHeight' && resizing !== 'autoWidth') return;
+
+        let width, height;
+        if (entry.borderBoxSize && entry.borderBoxSize.length > 0) {
+            width = entry.borderBoxSize[0].inlineSize;
+            height = entry.borderBoxSize[0].blockSize;
+        } else {
+            width = entry.contentRect.width;
+            height = entry.contentRect.height;
+        }
+
+        const updates = {};
+        let changed = false;
+
+        if (resizing === 'autoHeight' && Math.abs(height - el.height) > 1) {
+            updates.height = height;
+            changed = true;
+        }
+        
+        // Prevent update loops by checking if we are already editing this element
+        // If we are editing, the blur handler will save the final size.
+        // But we want the selection box to update LIVE.
+        // CanvasManager draws based on store. So we DO need to update store.
+        // But updating store triggers render...
+        // TextElement.update() sets style.height.
+        // If we update store, TextElement.update() is called.
+        // It sets style.height = 'auto' (if autoHeight).
+        // DOM size remains same. ResizeObserver shouldn't fire again.
+        // So it should be safe.
+
+        if (changed) {
+            store.dispatch('UPDATE_ELEMENT', { id: el.id, ...updates });
+        }
+    }
+
     update(newData) {
         super.update(newData);
         const el = this.data;
@@ -9,10 +76,33 @@ export class TextElement extends VisualElement {
 
         if (!div) return;
 
+        // Ensure no padding/border/margin interferes with size calculations
+        div.style.padding = '0';
+        div.style.margin = '0';
+        div.style.border = 'none';
+        div.style.boxSizing = 'border-box';
+        div.style.overflow = 'visible'; // Allow text to be seen, but box is defined by ResizeObserver
+
         // Content
         if (div.innerHTML !== el.content) {
              div.innerHTML = el.content;
         }
+
+        // Aggressively reset children margins/padding on EVERY update
+        const resetChild = (child) => {
+            child.style.margin = '0';
+            child.style.padding = '0';
+            child.style.border = 'none';
+            child.style.outline = 'none';
+            child.style.verticalAlign = 'baseline';
+            
+            // List specific
+            if (child.tagName === 'UL' || child.tagName === 'OL') {
+                child.style.paddingLeft = '1.5em';
+            }
+        };
+
+        Array.from(div.children).forEach(resetChild);
         
         // Resolve Properties
         const props = StyleResolver.getEffectiveTextProperties(el);
@@ -39,11 +129,63 @@ export class TextElement extends VisualElement {
         div.style.textTransform = props.textTransform;
         div.style.textIndent = `${props.paragraphIndent || 0}px`;
         
-        // Vertical Align
-        div.style.display = 'flex';
-        div.style.flexDirection = 'column';
-        div.style.justifyContent = this.getJustifyContentForVerticalAlign(props.verticalAlign);
+        // Lists
+        if (props.listStyle && props.listStyle !== 'none') {
+            div.style.listStyleType = props.listStyle === 'bullet' ? 'disc' : 'decimal';
+            div.style.listStylePosition = 'inside'; // Or outside with padding
+            // For list spacing, we might need to target children or use line-height
+            // But without structure, it's hard.
+        } else {
+            div.style.listStyleType = 'none';
+        }
+
+        // Vertical Trim (Cap Height)
+        if (props.verticalTrim === 'capHeight') {
+            // This is a simplification. Real cap-height trim requires font metrics.
+            // We'll just tighten the line-height.
+            div.style.lineHeight = '1'; 
+        }
+
+        // Truncation
+        if (props.truncate) {
+            div.style.display = '-webkit-box';
+            div.style.webkitLineClamp = props.maxLines || 1;
+            div.style.webkitBoxOrient = 'vertical';
+            div.style.overflow = 'hidden';
+            div.style.textOverflow = 'ellipsis';
+        } else {
+            // Reset if not truncated (but keep flex for vertical align if needed?)
+            // Vertical Align uses flex. Truncation uses -webkit-box. They conflict.
+            // If truncated, vertical align might break.
+            // -webkit-box behaves like block/flex.
+            
+            if (!props.truncate) {
+                div.style.display = 'flex';
+                div.style.webkitLineClamp = 'unset';
+                div.style.webkitBoxOrient = 'unset';
+                div.style.overflow = 'visible';
+                div.style.textOverflow = 'clip';
+            }
+        }
         
+        // Vertical Align (Only if not truncated, or try to combine)
+        if (!props.truncate) {
+            div.style.display = 'flex';
+            div.style.flexDirection = 'column';
+            div.style.justifyContent = this.getJustifyContentForVerticalAlign(props.verticalAlign);
+        }
+        
+        // Auto Resize Override
+        // VisualElement sets fixed width/height. We override height if auto-sizing.
+        const resizing = el.style?.resizing || 'autoHeight';
+        if (resizing === 'autoHeight' && !props.truncate) {
+            div.style.height = 'auto';
+            div.style.minHeight = '1em'; // Prevent complete collapse
+            div.style.alignItems = 'flex-start'; // Ensure content aligns to top
+            div.style.display = 'flex';
+            div.style.flexDirection = 'column';
+        }
+
         // Text Fill
         this.applyTextFill(div, props.textFill);
         
@@ -126,10 +268,11 @@ export class TextElement extends VisualElement {
         if (isEditing) {
             if (!div.isContentEditable) {
                 div.contentEditable = true;
-                div.style.outline = '2px solid #0055FF';
+                // div.style.outline = '2px solid #0055FF'; // Removed: Canvas handles selection box now
+                div.style.outline = 'none';
                 div.style.cursor = 'text';
                 div.style.pointerEvents = 'auto';
-                div.focus();
+                div.focus({ preventScroll: true });
                 
                 // We need to import store to dispatch updates?
                 // Or pass a callback?

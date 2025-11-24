@@ -1,4 +1,3 @@
-
 export function handleSelectSlide(store, payload) {
     const { id: selectSlideId, multi } = payload;
     if (multi) {
@@ -90,4 +89,13 @@ export function handleUpdateSelection(store, payload) {
 export function handleToggleTheme(store) {
     store.state.theme = store.state.theme === 'light' ? 'dark' : 'light';
     store.emit('theme-change', store.state.theme);
+}
+
+export function handleToggleConstrainProportions(store, payload) {
+    if (typeof payload === 'boolean') {
+        store.state.editor.constrainProportions = payload;
+    } else {
+        store.state.editor.constrainProportions = !store.state.editor.constrainProportions;
+    }
+    store.emit('state-changed', store.state);
 }

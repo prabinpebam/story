@@ -43,9 +43,9 @@
 
 /* Viewport Controls */
 #viewport-controls {
-    position: absolute;
+    position: fixed;
     bottom: 24px;
-    right: 24px;
+    right: calc(24px + var(--sidebar-width));
     display: flex;
     gap: var(--spacing-2);
     background-color: var(--color-bg-panel);
@@ -90,6 +90,30 @@
 .icon-btn:hover {
     background-color: var(--color-bg-hover);
     color: var(--color-text-primary);
+}
+
+/* Text Element Content Reset */
+.slide-element h1, 
+.slide-element h2, 
+.slide-element h3, 
+.slide-element h4, 
+.slide-element h5, 
+.slide-element h6, 
+.slide-element p, 
+.slide-element ul, 
+.slide-element ol, 
+.slide-element li,
+.slide-element blockquote {
+    margin: 0;
+    padding: 0;
+    font-weight: inherit;
+    font-size: inherit;
+    line-height: inherit;
+    color: inherit;
+}
+
+.slide-element ul, .slide-element ol {
+    padding-left: 1.5em; /* Restore padding for lists */
 }
 
 /* Cursors */
