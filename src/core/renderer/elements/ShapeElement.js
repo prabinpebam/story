@@ -28,6 +28,7 @@ export class ShapeElement extends VisualElement {
                 div.innerHTML = ''; 
                 
                 const canvas = document.createElement('canvas');
+                canvas.className = 'mesh-canvas';
                 canvas.style.width = '100%';
                 canvas.style.height = '100%';
                 canvas.style.borderRadius = `${el.style?.radius || 0}px`;
@@ -47,6 +48,7 @@ export class ShapeElement extends VisualElement {
                 div.innerHTML = '';
 
                 const canvas = document.createElement('canvas');
+                canvas.className = 'code-canvas';
                 canvas.style.width = '100%';
                 canvas.style.height = '100%';
                 canvas.style.borderRadius = 'inherit';

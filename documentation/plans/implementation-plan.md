@@ -172,7 +172,7 @@ This document outlines the step-by-step implementation plan for "Story", a moder
 - [x] **Code Background:**
     - [x] Create the Code Editor interface (Monaco or simple textarea with highlighting).
     - [x] Implement the sandbox for rendering user-defined Canvas/JS code.
-    - [ ] **Fix:** Mouse interaction in Code Fill (currently static).
+    - [x] **Fix:** Mouse interaction in Code Fill (currently static).
 
 ### 6.2 AI Copilot Integration
 - [x] Build the Settings panel for API Key management.

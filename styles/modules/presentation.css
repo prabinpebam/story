@@ -66,6 +66,28 @@ body.mode-presentation #interaction-canvas {
     pointer-events: none;
 }
 
+/* Enable interaction for Code Fills in Presentation Mode */
+body.mode-presentation #canvas-container,
+body.mode-presentation #viewport,
+body.mode-presentation #slide-content {
+    pointer-events: auto !important;
+}
+
+/* Allow interaction with elements */
+body.mode-presentation .slide-element {
+    pointer-events: none; /* Default to none so clicks pass through to background if needed */
+}
+
+/* Only enable for interactive elements */
+body.mode-presentation .slide-element:has(.code-canvas) {
+    pointer-events: auto !important;
+}
+
+body.mode-presentation .code-canvas {
+    pointer-events: auto !important;
+    cursor: default;
+}
+
 /* Laser Pointer Canvas */
 #laser-canvas {
     position: fixed;

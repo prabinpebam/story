@@ -343,8 +343,13 @@ export class CodeRunner {
     
     _handleMouseMove(e) {
         const rect = this.canvas.getBoundingClientRect();
-        this.mouse.x = e.clientX - rect.left;
-        this.mouse.y = e.clientY - rect.top;
+        
+        // Calculate scale factors (canvas internal resolution vs displayed size)
+        const scaleX = this.canvas.width / rect.width;
+        const scaleY = this.canvas.height / rect.height;
+
+        this.mouse.x = (e.clientX - rect.left) * scaleX;
+        this.mouse.y = (e.clientY - rect.top) * scaleY;
         
         // Update canvas properties for user access
         this.canvas.mouseX = this.mouse.x;
