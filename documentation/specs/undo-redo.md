@@ -29,18 +29,17 @@ The `Store` will use `immer` for all state updates.
 Simple actions (e.g., `ADD_SLIDE`, `CHANGE_COLOR`) trigger a snapshot immediately.
 
 ### 3.2 Hybrid / Continuous Interactions (Drag, Resize)
-To avoid spamming history during high-frequency updates:
+**Critical Requirement**: To avoid spamming history during high-frequency updates, we must implement interaction batching *before* enabling the snapshot system.
 1.  **Interaction Start** (`mousedown`): Push current state to history. Mark "Interaction Active".
 2.  **Interaction Update** (`mousemove`): Update state (replace current head) *without* pushing new history.
-3.  **Interaction End** (`mouseup`): Finalize state. (Optional: Consolidate if needed, but usually the initial snapshot is sufficient to undo the whole drag).
+3.  **Interaction End** (`mouseup`): Finalize state.
 
 ## 4. State & Metadata
 
-### 4.1 The Snapshot
-The snapshot contains the core document model:
-*   `slides`
-*   `masterSlides`
-*   `theme`
+### 4.1 The Snapshot (Completeness)
+The snapshot contains the core document model (`slides`, `masterSlides`, `theme`).
+*   **Advantage**: Because we snapshot the entire state tree, we do **not** need to exhaustively track individual attributes. If a new property is added to a slide (e.g., `rotationZ`), it is automatically included in the snapshot without code changes.
+*   **Scope**: Any data *inside* the Store's state tree is safe. Data *outside* (e.g., component local state, DOM state) is not.
 
 ### 4.2 Metadata (Selection & Viewport)
 Selection and Viewport state are critical for UX but can be noisy if treated as document changes.
@@ -55,9 +54,11 @@ Selection and Viewport state are critical for UX but can be noisy if treated as 
 *   **Strategy**: Maintain a *local* undo stack of operations. When undoing, apply the inverse of the local operation transformed against the current global state (OT/CRDT).
 *   **Current Scope**: Single-player snapshot restoration.
 
-### 5.2 External Resources
+### 5.2 External Resources (Assets)
 *   **Assets**: Images/Videos should be stored as references (URLs/IDs), not binary blobs, within the snapshot.
-*   **Availability**: Ensure referenced assets are not deleted while they exist in the undo stack.
+*   **Lifecycle Safety**:
+    *   **Problem**: If a user deletes an image, and we delete the blob/URL, hitting "Undo" will result in a missing image.
+    *   **Solution**: Implement **Reference Counting** or a "Soft Delete" policy. Assets should strictly *never* be deleted from the Asset Manager as long as they exist in the Undo/Redo stack.
 
 ## 6. Scalability & Optimization
 

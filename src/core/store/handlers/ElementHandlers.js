@@ -1,35 +1,26 @@
-import { historyManager } from '../../HistoryManager.js';
 
-export function handleAddElement(store, payload) {
-    const addContainer = store.getActiveContainer();
+function getActiveContainer(draft) {
+    if (draft.editor.mode === 'master') {
+        return draft.masters[draft.editor.activeMasterId];
+    } else {
+        return draft.slides[draft.editor.activeSlideId];
+    }
+}
+
+export function handleAddElement(draft, payload) {
+    const addContainer = getActiveContainer(draft);
 
     if (addContainer) {
         addContainer.elements[payload.id] = payload;
         addContainer.elementOrder.push(payload.id);
-        store.emit('state-changed', store.state);
     }
 }
 
-export function handleUpdateElement(store, payload, options = {}) {
-    const container = store.getActiveContainer();
-    const { skipHistory, fromHistory } = options;
+export function handleUpdateElement(draft, payload) {
+    const container = getActiveContainer(draft);
 
     if (container && container.elements[payload.id]) {
         const oldEl = container.elements[payload.id];
-        
-        // History Management
-        if (!skipHistory && !fromHistory) {
-            const oldProps = {};
-            Object.keys(payload).forEach(key => {
-                if (key !== 'id') oldProps[key] = oldEl[key];
-            });
-
-            historyManager.push({
-                undo: { type: 'UPDATE_ELEMENT', payload: { id: payload.id, ...oldProps } },
-                redo: { type: 'UPDATE_ELEMENT', payload: payload }
-            });
-        }
-
         const newEl = { ...oldEl, ...payload };
         container.elements[payload.id] = newEl;
 
@@ -78,13 +69,12 @@ export function handleUpdateElement(store, payload, options = {}) {
                 parentId = parent.parentId;
             }
         }
-
-        store.emit('state-changed', store.state);
     }
 }
 
-export function handleRemoveElement(store, payload) {
-    const rSlide = store.getActiveContainer();
+
+export function handleRemoveElement(draft, payload) {
+    const rSlide = getActiveContainer(draft);
     
     if (!rSlide) return;
     
@@ -120,17 +110,15 @@ export function handleRemoveElement(store, payload) {
         delete rSlide.elements[id];
     });
     
-    store.state.editor.selectedElementIds = store.state.editor.selectedElementIds.filter(id => !allIdsToDelete.has(id));
-    
-    store.emit('state-changed', store.state);
+    draft.editor.selectedElementIds = draft.editor.selectedElementIds.filter(id => !allIdsToDelete.has(id));
 }
 
-export function handleDuplicateElements(store, payload) {
-    const dSlide = store.getActiveContainer();
+export function handleDuplicateElements(draft, payload) {
+    const dSlide = getActiveContainer(draft);
     
     if (!dSlide) return;
 
-    const idsToDuplicate = payload.ids || store.state.editor.selectedElementIds;
+    const idsToDuplicate = payload.ids || draft.editor.selectedElementIds;
     const offset = payload.offset || false;
 
     const newSelectedIds = [];
@@ -195,12 +183,11 @@ export function handleDuplicateElements(store, payload) {
         }
     });
 
-    store.state.editor.selectedElementIds = newSelectedIds;
-    store.emit('state-changed', store.state);
+    draft.editor.selectedElementIds = newSelectedIds;
 }
 
-export function handlePasteElements(store, payload) {
-    const pContainer = store.getActiveContainer();
+export function handlePasteElements(draft, payload) {
+    const pContainer = getActiveContainer(draft);
     if (!pContainer || !payload.elements || payload.elements.length === 0) return;
 
     const pastedIds = [];
@@ -218,16 +205,15 @@ export function handlePasteElements(store, payload) {
         pastedIds.push(newId);
     });
 
-    store.state.editor.selectedElementIds = pastedIds;
-    store.emit('state-changed', store.state);
+    draft.editor.selectedElementIds = pastedIds;
 }
 
-export function handleReorderElements(store, payload) {
+export function handleReorderElements(draft, payload) {
     const { slideId: reorderContainerId, elementId, targetParentId, targetIndex } = payload;
     
-    let slide = store.state.slides[reorderContainerId];
+    let slide = draft.slides[reorderContainerId];
     if (!slide) {
-        slide = store.state.masters[reorderContainerId];
+        slide = draft.masters[reorderContainerId];
     }
     
     if (!slide) return;
@@ -259,14 +245,12 @@ export function handleReorderElements(store, payload) {
         slide.elementOrder.splice(safeIndex, 0, elementId);
         element.parentId = null;
     }
-    
-    store.emit('state-changed', store.state);
 }
 
-export function handleAlignElements(store, payload) {
+export function handleAlignElements(draft, payload) {
     const alignType = payload;
-    const currentS = store.state.slides[store.state.editor.activeSlideId];
-    const selectedIds = store.state.editor.selectedElementIds;
+    const currentS = draft.slides[draft.editor.activeSlideId];
+    const selectedIds = draft.editor.selectedElementIds;
     
     if (!currentS || selectedIds.length === 0) return;
 
@@ -311,14 +295,12 @@ export function handleAlignElements(store, payload) {
                 break;
         }
     });
-    
-    store.emit('state-changed', store.state);
 }
 
-export function handleDistributeElements(store, payload) {
+export function handleDistributeElements(draft, payload) {
     const distType = payload;
-    const sDist = store.state.slides[store.state.editor.activeSlideId];
-    const selDistIds = store.state.editor.selectedElementIds;
+    const sDist = draft.slides[draft.editor.activeSlideId];
+    const selDistIds = draft.editor.selectedElementIds;
     
     if (!sDist || selDistIds.length < 3) return;
 
@@ -370,37 +352,33 @@ export function handleDistributeElements(store, payload) {
             el.y = currentY;
         });
     }
-    
-    store.emit('state-changed', store.state);
 }
 
-export function handleToggleElementLock(store, payload) {
-    const sLock = store.getActiveContainer();
+export function handleToggleElementLock(draft, payload) {
+    const sLock = getActiveContainer(draft);
 
     if (sLock && sLock.elements[payload.id]) {
         const el = sLock.elements[payload.id];
         el.locked = !el.locked;
-        store.emit('state-changed', store.state);
     }
 }
 
-export function handleToggleElementVisibility(store, payload) {
-    const sVis = store.getActiveContainer();
+export function handleToggleElementVisibility(draft, payload) {
+    const sVis = getActiveContainer(draft);
 
     if (sVis && sVis.elements[payload.id]) {
         const el = sVis.elements[payload.id];
         el.hidden = !el.hidden;
-        store.emit('state-changed', store.state);
     }
 }
 
-export function handleGroupElements(store) {
+export function handleGroupElements(draft) {
     // TODO: Implement grouping
 }
 
-export function handleInstantiatePlaceholder(store, payload) {
+export function handleInstantiatePlaceholder(draft, payload) {
     const { placeholderId, element } = payload;
-    const slide = store.getActiveContainer();
+    const slide = getActiveContainer(draft);
     if (!slide) return;
 
     const newEl = { ...element };
@@ -409,11 +387,9 @@ export function handleInstantiatePlaceholder(store, payload) {
 
     slide.elements[newEl.id] = newEl;
     
-    store.state.editor.selectedElementIds = [newEl.id];
+    draft.editor.selectedElementIds = [newEl.id];
     
     if (newEl.type === 'text') {
-        store.state.editor.editingElementId = newEl.id;
+        draft.editor.editingElementId = newEl.id;
     }
-    
-    store.emit('state-changed', store.state);
 }

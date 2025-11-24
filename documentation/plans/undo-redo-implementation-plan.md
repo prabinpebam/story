@@ -6,13 +6,13 @@ We will migrate from the current **Mutable/Command** pattern to an **Immutable/S
 ## Phase 1: Infrastructure Setup
 **Goal**: Install dependencies and prepare the Store for hybrid operation.
 
-- [ ] **1.1 Install Immer**
-    - Run `npm install immer` (or ensure it is available).
-- [ ] **1.2 Update Store.js for Hybrid Dispatch**
+- [x] **1.1 Install Immer**
+    - Since we are not using a bundler, download `immer.umd.js` to `src/vendor/` or use a CDN import map.
+- [x] **1.2 Update Store.js for Hybrid Dispatch**
     - Import `produce` from `immer`.
     - Refactor `dispatch` to support a "New Way" (Immer) and "Old Way" (Mutation).
     - *Note*: We will not enable Undo/Redo yet, just state updates.
-- [ ] **1.3 Create SnapshotHistoryManager**
+- [x] **1.3 Create SnapshotHistoryManager**
     - Create `src/core/HistoryManagerV2.js`.
     - Implement `push(state, meta)`, `undo()`, `redo()`.
     - Implement `maxSize` (e.g., 50).
@@ -24,16 +24,16 @@ We will migrate from the current **Mutable/Command** pattern to an **Immutable/S
 *Risk*: Logic errors during translation.
 *Verification*: Test each feature set immediately after migration.
 
-- [ ] **2.1 Migrate SlideHandlers** (`ADD_SLIDE`, `DELETE_SLIDE`, etc.)
+- [x] **2.1 Migrate SlideHandlers** (`ADD_SLIDE`, `DELETE_SLIDE`, etc.)
     - Refactor functions in `SlideHandlers.js` to accept `(draft, payload)`.
     - Update `Store.js` cases to use `this.state = produce(this.state, draft => Handler(draft, payload))`.
-- [ ] **2.2 Migrate MasterHandlers** (`UPDATE_MASTER`, etc.)
+- [x] **2.2 Migrate MasterHandlers** (`UPDATE_MASTER`, etc.)
     - Refactor `MasterHandlers.js`.
     - Update `Store.js`.
-- [ ] **2.3 Migrate ElementHandlers** (`ADD_ELEMENT`, `UPDATE_ELEMENT`, etc.)
+- [x] **2.3 Migrate ElementHandlers** (`ADD_ELEMENT`, `UPDATE_ELEMENT`, etc.)
     - Refactor `ElementHandlers.js`.
     - *Critical*: Ensure complex logic like `remapContent` is correctly adapted to Immer drafts.
-- [ ] **2.4 Migrate Editor/UI Handlers**
+- [x] **2.4 Migrate Editor/UI Handlers**
     - Refactor `EditorHandlers.js`, `UIHandlers.js`, `PresentationHandlers.js`.
     - Update `Store.js`.
 
@@ -42,25 +42,28 @@ We will migrate from the current **Mutable/Command** pattern to an **Immutable/S
 
 *Dependencies*: All handlers must be migrated to Immer (Phase 2 complete).
 
-- [ ] **3.1 Integrate HistoryManagerV2**
+- [ ] **3.1 Implement Transient Updates (Interaction Batching)**
+    - *Critical*: Must be done before enabling history to prevent "drag spam".
+    - Implement `START_INTERACTION` (snapshots state).
+    - Ensure `UPDATE_ELEMENT` does *not* snapshot if an interaction is active.
+    - Implement `END_INTERACTION` (finalizes state).
+- [ ] **3.2 Integrate HistoryManagerV2**
     - Replace `HistoryManager.js` with `HistoryManagerV2.js`.
-- [ ] **3.2 Implement Snapshot Capture**
+- [ ] **3.3 Implement Snapshot Capture**
     - In `Store.js`, define `UNDOABLE_ACTIONS` set.
     - Before calling `produce` for an undoable action, push `current state` + `meta` (selection) to History.
-- [ ] **3.3 Implement RESTORE_STATE**
+- [ ] **3.4 Implement RESTORE_STATE**
     - Create a handler that simply returns the payload (the snapshot) as the new state.
     - Handle `meta` restoration (Selection, Viewport).
-- [ ] **3.4 Wire Undo/Redo Actions**
+- [ ] **3.5 Wire Undo/Redo Actions**
     - Update `UNDO` case: Pop from History -> Dispatch `RESTORE_STATE`.
     - Update `REDO` case: Pop from Redo Stack -> Dispatch `RESTORE_STATE`.
 
 ## Phase 4: Optimization & Cleanup
-**Goal**: Handle high-frequency updates (Drag/Drop) and clean up legacy code.
+**Goal**: Clean up legacy code and optimize asset handling.
 
-- [ ] **4.1 Transient Updates**
-    - Implement `START_INTERACTION` (snapshots state).
-    - Ensure `UPDATE_ELEMENT` does *not* snapshot if an interaction is active.
-    - Implement `END_INTERACTION` (finalizes state, maybe consolidates).
+- [ ] **4.1 Asset Lifecycle Safety**
+    - Ensure `AssetManager` does not delete assets that might be referenced in the history stack.
 - [ ] **4.2 Cleanup**
     - Remove any legacy Command Pattern code from handlers.
     - Remove unused imports.

@@ -1,5 +1,7 @@
 import { EventEmitter } from './Events.js';
 import { historyManager } from './HistoryManager.js';
+import { historyManagerV2 } from './HistoryManagerV2.js';
+import { produce } from '../vendor/immer.js';
 import { createInitialState } from './store/InitialState.js';
 import * as EditorHandlers from './store/handlers/EditorHandlers.js';
 import * as PresentationHandlers from './store/handlers/PresentationHandlers.js';
@@ -12,6 +14,24 @@ class Store extends EventEmitter {
     constructor() {
         super();
         this.state = createInitialState();
+    }
+
+    /**
+     * Create a snapshot of the current state
+     * @param {string} description - Optional description for debugging
+     */
+    snapshot(description = 'Unknown Action') {
+        historyManagerV2.push(this.state, { description });
+    }
+
+    /**
+     * Restore state from a snapshot
+     * @param {Object} newState 
+     */
+    restoreState(newState) {
+        this.state = newState;
+        this.emit('state-changed', this.state);
+        this.emit('STATE_RESTORED');
     }
 
     /**
@@ -32,7 +52,12 @@ class Store extends EventEmitter {
 
         switch (type) {
             case 'UNDO':
-                if (historyManager.canUndo()) {
+                if (historyManagerV2.canUndo()) {
+                    const previous = historyManagerV2.undo(this.state);
+                    if (previous) {
+                        this.restoreState(previous.state);
+                    }
+                } else if (historyManager.canUndo()) {
                     const entry = historyManager.undo();
                     historyManager.addRedo(entry);
                     this.dispatch(entry.undo.type, entry.undo.payload, { fromHistory: true });
@@ -40,7 +65,12 @@ class Store extends EventEmitter {
                 break;
 
             case 'REDO':
-                if (historyManager.canRedo()) {
+                if (historyManagerV2.canRedo()) {
+                    const next = historyManagerV2.redo(this.state);
+                    if (next) {
+                        this.restoreState(next.state);
+                    }
+                } else if (historyManager.canRedo()) {
                     const entry = historyManager.redo();
                     historyManager.addUndo(entry);
                     this.dispatch(entry.redo.type, entry.redo.payload, { fromHistory: true });
@@ -48,59 +78,147 @@ class Store extends EventEmitter {
                 break;
 
             // Editor Handlers
-            case 'SELECT_SLIDE': EditorHandlers.handleSelectSlide(this, payload); break;
-            case 'DESELECT_SLIDES': EditorHandlers.handleDeselectSlides(this); break;
-            case 'SET_ACTIVE_SLIDE': EditorHandlers.handleSetActiveSlide(this, payload); break;
-            case 'SET_ACTIVE_MASTER': EditorHandlers.handleSetActiveMaster(this, payload); break;
-            case 'SET_ACTIVE_TOOL': EditorHandlers.handleSetActiveTool(this, payload); break;
-            case 'SET_MODE': EditorHandlers.handleSetMode(this, payload); break;
-            case 'SET_EDITING_ELEMENT': EditorHandlers.handleSetEditingElement(this, payload); break;
-            case 'UPDATE_VIEWPORT': EditorHandlers.handleUpdateViewport(this, payload); break;
-            case 'UPDATE_SELECTION': EditorHandlers.handleUpdateSelection(this, payload); break;
-            case 'TOGGLE_THEME': EditorHandlers.handleToggleTheme(this); break;
-            case 'TOGGLE_CONSTRAIN_PROPORTIONS': EditorHandlers.handleToggleConstrainProportions(this, payload); break;
+            case 'SELECT_SLIDE': 
+            case 'DESELECT_SLIDES': 
+            case 'SET_ACTIVE_SLIDE': 
+            case 'SET_ACTIVE_MASTER': 
+            case 'SET_ACTIVE_TOOL': 
+            case 'SET_MODE': 
+            case 'SET_EDITING_ELEMENT': 
+            case 'UPDATE_VIEWPORT': 
+            case 'UPDATE_SELECTION': 
+            case 'TOGGLE_THEME': 
+            case 'TOGGLE_CONSTRAIN_PROPORTIONS':
+                this.state = produce(this.state, draft => {
+                    switch(type) {
+                        case 'SELECT_SLIDE': EditorHandlers.handleSelectSlide(draft, payload); break;
+                        case 'DESELECT_SLIDES': EditorHandlers.handleDeselectSlides(draft); break;
+                        case 'SET_ACTIVE_SLIDE': EditorHandlers.handleSetActiveSlide(draft, payload); break;
+                        case 'SET_ACTIVE_MASTER': EditorHandlers.handleSetActiveMaster(draft, payload); break;
+                        case 'SET_ACTIVE_TOOL': EditorHandlers.handleSetActiveTool(draft, payload); break;
+                        case 'SET_MODE': EditorHandlers.handleSetMode(draft, payload); break;
+                        case 'SET_EDITING_ELEMENT': EditorHandlers.handleSetEditingElement(draft, payload); break;
+                        case 'UPDATE_VIEWPORT': EditorHandlers.handleUpdateViewport(draft, payload); break;
+                        case 'UPDATE_SELECTION': EditorHandlers.handleUpdateSelection(draft, payload); break;
+                        case 'TOGGLE_THEME': EditorHandlers.handleToggleTheme(draft); break;
+                        case 'TOGGLE_CONSTRAIN_PROPORTIONS': EditorHandlers.handleToggleConstrainProportions(draft, payload); break;
+                    }
+                });
+                
+                this.emit('state-changed', this.state);
+                
+                if (type === 'SET_MODE') this.emit('mode-changed', payload);
+                if (type === 'UPDATE_VIEWPORT') this.emit('viewport-changed', { pan: this.state.editor.pan, zoom: this.state.editor.zoom });
+                if (type === 'UPDATE_SELECTION') this.emit('selection-changed', this.state.editor.selectedElementIds);
+                if (type === 'TOGGLE_THEME') this.emit('theme-change', this.state.theme);
+                break;
 
             // Presentation Handlers
-            case 'PRESENTATION_NEXT': PresentationHandlers.handlePresentationNext(this); break;
-            case 'PRESENTATION_PREV': PresentationHandlers.handlePresentationPrev(this); break;
-            case 'PRESENTATION_GOTO': PresentationHandlers.handlePresentationGoto(this, payload); break;
-            case 'NEXT_BUILD': PresentationHandlers.handleNextBuild(this); break;
-            case 'PREV_BUILD': PresentationHandlers.handlePrevBuild(this); break;
-            case 'SET_BUILD_COUNT': PresentationHandlers.handleSetBuildCount(this, payload); break;
-            case 'TOGGLE_LASER': PresentationHandlers.handleToggleLaser(this); break;
-            case 'TOGGLE_BLACK_SCREEN': PresentationHandlers.handleToggleBlackScreen(this); break;
-            case 'TOGGLE_WHITE_SCREEN': PresentationHandlers.handleToggleWhiteScreen(this); break;
-            case 'TOGGLE_GRID_VIEW': PresentationHandlers.handleToggleGridView(this); break;
+            case 'PRESENTATION_NEXT': 
+            case 'PRESENTATION_PREV': 
+            case 'PRESENTATION_GOTO': 
+            case 'NEXT_BUILD': 
+            case 'PREV_BUILD': 
+            case 'SET_BUILD_COUNT': 
+            case 'TOGGLE_LASER': 
+            case 'TOGGLE_BLACK_SCREEN': 
+            case 'TOGGLE_WHITE_SCREEN': 
+            case 'TOGGLE_GRID_VIEW':
+                this.state = produce(this.state, draft => {
+                    switch(type) {
+                        case 'PRESENTATION_NEXT': PresentationHandlers.handlePresentationNext(draft); break;
+                        case 'PRESENTATION_PREV': PresentationHandlers.handlePresentationPrev(draft); break;
+                        case 'PRESENTATION_GOTO': PresentationHandlers.handlePresentationGoto(draft, payload); break;
+                        case 'NEXT_BUILD': PresentationHandlers.handleNextBuild(draft); break;
+                        case 'PREV_BUILD': PresentationHandlers.handlePrevBuild(draft); break;
+                        case 'SET_BUILD_COUNT': PresentationHandlers.handleSetBuildCount(draft, payload); break;
+                        case 'TOGGLE_LASER': PresentationHandlers.handleToggleLaser(draft); break;
+                        case 'TOGGLE_BLACK_SCREEN': PresentationHandlers.handleToggleBlackScreen(draft); break;
+                        case 'TOGGLE_WHITE_SCREEN': PresentationHandlers.handleToggleWhiteScreen(draft); break;
+                        case 'TOGGLE_GRID_VIEW': PresentationHandlers.handleToggleGridView(draft); break;
+                    }
+                });
+                this.emit('state-changed', this.state);
+                break;
 
             // Slide Handlers
-            case 'ADD_SLIDE': SlideHandlers.handleAddSlide(this); break;
-            case 'DELETE_SLIDE': SlideHandlers.handleDeleteSlide(this, payload); break;
-            case 'DUPLICATE_SLIDE': SlideHandlers.handleDuplicateSlide(this, payload); break;
-            case 'PASTE_SLIDE': SlideHandlers.handlePasteSlide(this, payload); break;
-            case 'REORDER_SLIDES': SlideHandlers.handleReorderSlides(this, payload); break;
-            case 'UPDATE_SLIDE': SlideHandlers.handleUpdateSlide(this, payload, options); break;
+            case 'ADD_SLIDE': 
+            case 'DELETE_SLIDE': 
+            case 'DUPLICATE_SLIDE': 
+            case 'PASTE_SLIDE': 
+            case 'REORDER_SLIDES': 
+            case 'UPDATE_SLIDE': 
+                this.snapshot(type);
+                this.state = produce(this.state, draft => {
+                    switch(type) {
+                        case 'ADD_SLIDE': SlideHandlers.handleAddSlide(draft); break;
+                        case 'DELETE_SLIDE': SlideHandlers.handleDeleteSlide(draft, payload); break;
+                        case 'DUPLICATE_SLIDE': SlideHandlers.handleDuplicateSlide(draft, payload); break;
+                        case 'PASTE_SLIDE': SlideHandlers.handlePasteSlide(draft, payload); break;
+                        case 'REORDER_SLIDES': SlideHandlers.handleReorderSlides(draft, payload); break;
+                        case 'UPDATE_SLIDE': SlideHandlers.handleUpdateSlide(draft, payload); break;
+                    }
+                });
+                this.emit('state-changed', this.state);
+                break;
 
             // Element Handlers
-            case 'ADD_ELEMENT': ElementHandlers.handleAddElement(this, payload); break;
-            case 'UPDATE_ELEMENT': ElementHandlers.handleUpdateElement(this, payload, options); break;
-            case 'REMOVE_ELEMENT': ElementHandlers.handleRemoveElement(this, payload); break;
-            case 'DUPLICATE_ELEMENTS': ElementHandlers.handleDuplicateElements(this, payload); break;
-            case 'PASTE_ELEMENTS': ElementHandlers.handlePasteElements(this, payload); break;
-            case 'REORDER_ELEMENTS': ElementHandlers.handleReorderElements(this, payload); break;
-            case 'ALIGN_ELEMENTS': ElementHandlers.handleAlignElements(this, payload); break;
-            case 'DISTRIBUTE_ELEMENTS': ElementHandlers.handleDistributeElements(this, payload); break;
-            case 'TOGGLE_ELEMENT_LOCK': ElementHandlers.handleToggleElementLock(this, payload); break;
-            case 'TOGGLE_ELEMENT_VISIBILITY': ElementHandlers.handleToggleElementVisibility(this, payload); break;
-            case 'GROUP_ELEMENTS': ElementHandlers.handleGroupElements(this); break;
-            case 'INSTANTIATE_PLACEHOLDER': ElementHandlers.handleInstantiatePlaceholder(this, payload); break;
+            case 'ADD_ELEMENT': 
+            case 'UPDATE_ELEMENT': 
+            case 'REMOVE_ELEMENT': 
+            case 'DUPLICATE_ELEMENTS': 
+            case 'PASTE_ELEMENTS': 
+            case 'REORDER_ELEMENTS': 
+            case 'ALIGN_ELEMENTS': 
+            case 'DISTRIBUTE_ELEMENTS': 
+            case 'TOGGLE_ELEMENT_LOCK': 
+            case 'TOGGLE_ELEMENT_VISIBILITY': 
+            case 'GROUP_ELEMENTS': 
+            case 'INSTANTIATE_PLACEHOLDER': 
+                this.snapshot(type);
+                this.state = produce(this.state, draft => {
+                    switch(type) {
+                        case 'ADD_ELEMENT': ElementHandlers.handleAddElement(draft, payload); break;
+                        case 'UPDATE_ELEMENT': ElementHandlers.handleUpdateElement(draft, payload); break;
+                        case 'REMOVE_ELEMENT': ElementHandlers.handleRemoveElement(draft, payload); break;
+                        case 'DUPLICATE_ELEMENTS': ElementHandlers.handleDuplicateElements(draft, payload); break;
+                        case 'PASTE_ELEMENTS': ElementHandlers.handlePasteElements(draft, payload); break;
+                        case 'REORDER_ELEMENTS': ElementHandlers.handleReorderElements(draft, payload); break;
+                        case 'ALIGN_ELEMENTS': ElementHandlers.handleAlignElements(draft, payload); break;
+                        case 'DISTRIBUTE_ELEMENTS': ElementHandlers.handleDistributeElements(draft, payload); break;
+                        case 'TOGGLE_ELEMENT_LOCK': ElementHandlers.handleToggleElementLock(draft, payload); break;
+                        case 'TOGGLE_ELEMENT_VISIBILITY': ElementHandlers.handleToggleElementVisibility(draft, payload); break;
+                        case 'GROUP_ELEMENTS': ElementHandlers.handleGroupElements(draft); break;
+                        case 'INSTANTIATE_PLACEHOLDER': ElementHandlers.handleInstantiatePlaceholder(draft, payload); break;
+                    }
+                });
+                this.emit('state-changed', this.state);
+                break;
 
             // Master Handlers
-            case 'UPDATE_MASTER': MasterHandlers.handleUpdateMaster(this, payload); break;
-            case 'UPDATE_THEME_SETTINGS': MasterHandlers.handleUpdateThemeSettings(this, payload, options); break;
+            case 'UPDATE_MASTER': 
+            case 'UPDATE_THEME_SETTINGS':
+                this.snapshot(type);
+                this.state = produce(this.state, draft => {
+                    switch(type) {
+                        case 'UPDATE_MASTER': MasterHandlers.handleUpdateMaster(draft, payload); break;
+                        case 'UPDATE_THEME_SETTINGS': MasterHandlers.handleUpdateThemeSettings(draft, payload); break;
+                    }
+                });
+                this.emit('state-changed', this.state);
+                break;
 
             // UI Handlers
-            case 'UI_INTERACTION_START': UIHandlers.handleUIInteractionStart(this); break;
-            case 'UI_INTERACTION_END': UIHandlers.handleUIInteractionEnd(this); break;
+            case 'UI_INTERACTION_START': 
+            case 'UI_INTERACTION_END':
+                this.state = produce(this.state, draft => {
+                    switch(type) {
+                        case 'UI_INTERACTION_START': UIHandlers.handleUIInteractionStart(draft); break;
+                        case 'UI_INTERACTION_END': UIHandlers.handleUIInteractionEnd(draft); break;
+                    }
+                });
+                this.emit('state-changed', this.state);
+                break;
         }
     }
 

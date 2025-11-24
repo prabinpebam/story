@@ -1,72 +1,62 @@
 
-export function handlePresentationNext(store) {
-    if (store.state.presentation.currentSlideIndex < store.state.slideOrder.length - 1) {
-        store.state.presentation.currentSlideIndex++;
-        store.state.presentation.buildIndex = -1;
-        store.state.presentation.buildCount = 0;
-        store.state.editor.activeSlideId = store.state.slideOrder[store.state.presentation.currentSlideIndex];
-        store.emit('state-changed', store.state);
+export function handlePresentationNext(draft) {
+    if (draft.presentation.currentSlideIndex < draft.slideOrder.length - 1) {
+        draft.presentation.currentSlideIndex++;
+        draft.presentation.buildIndex = -1;
+        draft.presentation.buildCount = 0;
+        draft.editor.activeSlideId = draft.slideOrder[draft.presentation.currentSlideIndex];
     }
 }
 
-export function handlePresentationPrev(store) {
-    if (store.state.presentation.currentSlideIndex > 0) {
-        store.state.presentation.currentSlideIndex--;
-        store.state.presentation.buildIndex = -1;
-        store.state.presentation.buildCount = 0;
-        store.state.editor.activeSlideId = store.state.slideOrder[store.state.presentation.currentSlideIndex];
-        store.emit('state-changed', store.state);
+export function handlePresentationPrev(draft) {
+    if (draft.presentation.currentSlideIndex > 0) {
+        draft.presentation.currentSlideIndex--;
+        draft.presentation.buildIndex = -1;
+        draft.presentation.buildCount = 0;
+        draft.editor.activeSlideId = draft.slideOrder[draft.presentation.currentSlideIndex];
     }
 }
 
-export function handlePresentationGoto(store, payload) {
+export function handlePresentationGoto(draft, payload) {
     const gotoIndex = payload;
-    if (gotoIndex >= 0 && gotoIndex < store.state.slideOrder.length) {
-        store.state.presentation.currentSlideIndex = gotoIndex;
-        store.state.presentation.buildIndex = -1;
-        store.state.presentation.buildCount = 0;
-        store.state.editor.activeSlideId = store.state.slideOrder[gotoIndex];
-        store.emit('state-changed', store.state);
+    if (gotoIndex >= 0 && gotoIndex < draft.slideOrder.length) {
+        draft.presentation.currentSlideIndex = gotoIndex;
+        draft.presentation.buildIndex = -1;
+        draft.presentation.buildCount = 0;
+        draft.editor.activeSlideId = draft.slideOrder[gotoIndex];
     }
 }
 
-export function handleNextBuild(store) {
-    if (store.state.presentation.buildIndex < store.state.presentation.buildCount - 1) {
-        store.state.presentation.buildIndex++;
-        store.emit('state-changed', store.state);
+export function handleNextBuild(draft) {
+    if (draft.presentation.buildIndex < draft.presentation.buildCount - 1) {
+        draft.presentation.buildIndex++;
     }
 }
 
-export function handlePrevBuild(store) {
-    if (store.state.presentation.buildIndex > -1) {
-        store.state.presentation.buildIndex--;
-        store.emit('state-changed', store.state);
+export function handlePrevBuild(draft) {
+    if (draft.presentation.buildIndex > -1) {
+        draft.presentation.buildIndex--;
     }
 }
 
-export function handleSetBuildCount(store, payload) {
-    store.state.presentation.buildCount = payload;
-    store.emit('state-changed', store.state);
+export function handleSetBuildCount(draft, payload) {
+    draft.presentation.buildCount = payload;
 }
 
-export function handleToggleLaser(store) {
-    store.state.presentation.laserPointer = !store.state.presentation.laserPointer;
-    store.emit('state-changed', store.state);
+export function handleToggleLaser(draft) {
+    draft.presentation.laserPointer = !draft.presentation.laserPointer;
 }
 
-export function handleToggleBlackScreen(store) {
-    store.state.presentation.blackScreen = !store.state.presentation.blackScreen;
-    store.state.presentation.whiteScreen = false;
-    store.emit('state-changed', store.state);
+export function handleToggleBlackScreen(draft) {
+    draft.presentation.blackScreen = !draft.presentation.blackScreen;
+    draft.presentation.whiteScreen = false;
 }
 
-export function handleToggleWhiteScreen(store) {
-    store.state.presentation.whiteScreen = !store.state.presentation.whiteScreen;
-    store.state.presentation.blackScreen = false;
-    store.emit('state-changed', store.state);
+export function handleToggleWhiteScreen(draft) {
+    draft.presentation.whiteScreen = !draft.presentation.whiteScreen;
+    draft.presentation.blackScreen = false;
 }
 
-export function handleToggleGridView(store) {
-    store.state.presentation.gridView = !store.state.presentation.gridView;
-    store.emit('state-changed', store.state);
+export function handleToggleGridView(draft) {
+    draft.presentation.gridView = !draft.presentation.gridView;
 }

@@ -1,10 +1,8 @@
 
-export function handleUIInteractionStart(store) {
-    store.state.ui.isInteracting = true;
-    store.emit('state-changed', store.state);
+export function handleUIInteractionStart(draft) {
+    draft.ui.isInteracting = true;
 }
 
-export function handleUIInteractionEnd(store) {
-    store.state.ui.isInteracting = false;
-    store.emit('state-changed', store.state);
+export function handleUIInteractionEnd(draft) {
+    draft.ui.isInteracting = false;
 }

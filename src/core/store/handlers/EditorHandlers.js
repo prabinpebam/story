@@ -1,101 +1,87 @@
-export function handleSelectSlide(store, payload) {
+export function handleSelectSlide(draft, payload) {
     const { id: selectSlideId, multi } = payload;
     if (multi) {
-        const index = store.state.editor.selectedSlideIds.indexOf(selectSlideId);
+        const index = draft.editor.selectedSlideIds.indexOf(selectSlideId);
         if (index === -1) {
-            store.state.editor.selectedSlideIds.push(selectSlideId);
+            draft.editor.selectedSlideIds.push(selectSlideId);
         } else {
-            store.state.editor.selectedSlideIds.splice(index, 1);
+            draft.editor.selectedSlideIds.splice(index, 1);
         }
     } else {
-        store.state.editor.selectedSlideIds = [selectSlideId];
-    }
-    store.emit('state-changed', store.state);
-}
-
-export function handleDeselectSlides(store) {
-    store.state.editor.selectedSlideIds = [];
-    store.emit('state-changed', store.state);
-}
-
-export function handleSetActiveSlide(store, payload) {
-    if (store.state.slides[payload]) {
-        store.state.editor.activeSlideId = payload;
-        store.emit('state-changed', store.state);
+        draft.editor.selectedSlideIds = [selectSlideId];
     }
 }
 
-export function handleSetActiveMaster(store, payload) {
-    if (store.state.masters[payload]) {
-        store.state.editor.activeMasterId = payload;
-        store.emit('state-changed', store.state);
+export function handleDeselectSlides(draft) {
+    draft.editor.selectedSlideIds = [];
+}
+
+export function handleSetActiveSlide(draft, payload) {
+    if (draft.slides[payload]) {
+        draft.editor.activeSlideId = payload;
     }
 }
 
-export function handleSetActiveTool(store, payload) {
-    store.state.editor.activeTool = payload;
+export function handleSetActiveMaster(draft, payload) {
+    if (draft.masters[payload]) {
+        draft.editor.activeMasterId = payload;
+    }
+}
+
+export function handleSetActiveTool(draft, payload) {
+    draft.editor.activeTool = payload;
     if (payload !== 'select') {
-        store.state.editor.selectedElementIds = [];
-        store.state.editor.editingElementId = null;
+        draft.editor.selectedElementIds = [];
+        draft.editor.editingElementId = null;
     }
-    store.emit('state-changed', store.state);
 }
 
-export function handleSetMode(store, payload) {
-    store.state.editor.mode = payload;
+export function handleSetMode(draft, payload) {
+    draft.editor.mode = payload;
     
-    if (payload === 'master' && !store.state.editor.activeMasterId) {
-        const firstMaster = Object.keys(store.state.masters)[0];
+    if (payload === 'master' && !draft.editor.activeMasterId) {
+        const firstMaster = Object.keys(draft.masters)[0];
         if (firstMaster) {
-            store.state.editor.activeMasterId = firstMaster;
+            draft.editor.activeMasterId = firstMaster;
         }
     }
 
     if (payload === 'presentation') {
-        store.state.presentation.isActive = true;
-        store.state.presentation.buildIndex = -1;
-        store.state.presentation.buildCount = 0;
-        const currentIndex = store.state.slideOrder.indexOf(store.state.editor.activeSlideId);
-        store.state.presentation.currentSlideIndex = currentIndex !== -1 ? currentIndex : 0;
+        draft.presentation.isActive = true;
+        draft.presentation.buildIndex = -1;
+        draft.presentation.buildCount = 0;
+        const currentIndex = draft.slideOrder.indexOf(draft.editor.activeSlideId);
+        draft.presentation.currentSlideIndex = currentIndex !== -1 ? currentIndex : 0;
     } else {
-        store.state.presentation.isActive = false;
-        store.state.presentation.laserPointer = false;
-        store.state.presentation.blackScreen = false;
-        store.state.presentation.whiteScreen = false;
-        store.state.presentation.gridView = false;
+        draft.presentation.isActive = false;
+        draft.presentation.laserPointer = false;
+        draft.presentation.blackScreen = false;
+        draft.presentation.whiteScreen = false;
+        draft.presentation.gridView = false;
     }
-
-    store.emit('state-changed', store.state);
-    store.emit('mode-changed', payload);
 }
 
-export function handleSetEditingElement(store, payload) {
-    store.state.editor.editingElementId = payload;
-    store.emit('state-changed', store.state);
+export function handleSetEditingElement(draft, payload) {
+    draft.editor.editingElementId = payload;
 }
 
-export function handleUpdateViewport(store, payload) {
-    store.state.editor.pan = payload.pan || store.state.editor.pan;
-    store.state.editor.zoom = payload.zoom || store.state.editor.zoom;
-    store.emit('viewport-changed', { pan: store.state.editor.pan, zoom: store.state.editor.zoom });
+export function handleUpdateViewport(draft, payload) {
+    draft.editor.pan = payload.pan || draft.editor.pan;
+    draft.editor.zoom = payload.zoom || draft.editor.zoom;
 }
 
-export function handleUpdateSelection(store, payload) {
-    store.state.editor.selectedElementIds = payload;
-    store.emit('state-changed', store.state);
-    store.emit('selection-changed', store.state.editor.selectedElementIds);
+export function handleUpdateSelection(draft, payload) {
+    draft.editor.selectedElementIds = payload;
 }
 
-export function handleToggleTheme(store) {
-    store.state.theme = store.state.theme === 'light' ? 'dark' : 'light';
-    store.emit('theme-change', store.state.theme);
+export function handleToggleTheme(draft) {
+    draft.theme = draft.theme === 'light' ? 'dark' : 'light';
 }
 
-export function handleToggleConstrainProportions(store, payload) {
+export function handleToggleConstrainProportions(draft, payload) {
     if (typeof payload === 'boolean') {
-        store.state.editor.constrainProportions = payload;
+        draft.editor.constrainProportions = payload;
     } else {
-        store.state.editor.constrainProportions = !store.state.editor.constrainProportions;
+        draft.editor.constrainProportions = !draft.editor.constrainProportions;
     }
-    store.emit('state-changed', store.state);
 }
