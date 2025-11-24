@@ -131,7 +131,7 @@ export class SlideView {
             if (fill.type === 'solid') {
                 layer.style.backgroundColor = fill.color || fill.value;
             } else if (fill.type === 'gradient') {
-                layer.style.background = fill.value;
+                layer.style.background = this.getGradientCss(fill.value);
             } else if (fill.type === 'image') {
                 layer.style.background = `url(${fill.value}) center/cover no-repeat`;
             } else if (fill.type === 'mesh') {
@@ -158,6 +158,25 @@ export class SlideView {
 
             container.appendChild(layer);
         });
+    }
+
+    getGradientCss(gradient) {
+        if (!gradient) return 'none';
+        // Handle legacy string case
+        if (typeof gradient === 'string') return gradient;
+
+        const stops = gradient.stops.map(s => `${s.color} ${s.position}%`).join(', ');
+        
+        if (gradient.type === 'linear') {
+            return `linear-gradient(${gradient.angle}deg, ${stops})`;
+        } else if (gradient.type === 'radial') {
+             return `radial-gradient(circle, ${stops})`;
+        } else if (gradient.type === 'angular') {
+             return `conic-gradient(from ${gradient.angle || 0}deg at center, ${stops})`;
+        } else if (gradient.type === 'diamond') {
+             return `radial-gradient(circle, ${stops})`;
+        }
+        return 'none';
     }
 
     unmount() {
