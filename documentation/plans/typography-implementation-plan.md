@@ -21,29 +21,40 @@ This plan outlines the steps to implement the new Typography features in the Pro
     -   Define "Auto" Line Height logic: If `lineHeight` is `null` or `'auto'`, return `fontSize * 1.2` (or font-metric based value).
 
 ## Phase 1: Core Typography UI & Architecture
-**Goal:** Update the main `TextSection` to match the new visual design and prepare architecture for Text Styles.
+**Goal:** Update the main `TextSection` to match the new visual design, support complex Text Fills, and prepare architecture for Text Styles.
 
 1.  **Data Model & Architecture:**
     -   Define `TextStyle` schema (id, name, properties).
     -   Update `TextElement` schema to include optional `styleId`.
+    -   **Text Fill Schema:** Update `color` property to `textFill` object: `{ type: 'solid' | 'gradient' | 'image' | 'video' | 'code', value: ... }`. Handle migration of legacy string colors to `{ type: 'solid', value: color }`.
     -   Implement a `StyleResolver` utility: `getEffectiveTextProperties(element, globalStyles)`. This ensures that if we add styles later, the renderer and UI don't need major refactoring—they just ask the resolver for the final values.
 2.  **Refactor `TextSection.js` Layout:**
     -   **Row 0 (New):** Text Style Selector (Dropdown) + Action Menu (Detach/Edit).
     -   **Row 1:** Font Family (Dropdown), Font Style (Dropdown), Font Size (Input).
-    -   **Row 2:** Line Height (Input with Icon), Letter Spacing (Input with Icon).
-    -   **Row 3:** Alignment Icons (Left, Center, Right, Top, Middle, Bottom) + Type Settings Button.
-3.  **Update Components:**
+    -   **Row 2:** **Text Fill** (Swatch + Input) - Reusing `FillFlyout` logic.
+    -   **Row 3:** Line Height (Input with Icon), Letter Spacing (Input with Icon).
+    -   **Row 4:** Alignment Icons (Left, Center, Right, Top, Middle, Bottom) + Type Settings Button.
+3.  **Text Fill Integration:**
+    -   Adapt `FillSection` logic to work for a single layer.
+    -   Reuse `FillFlyout` component.
+    -   Ensure the swatch opens the flyout and updates the `textFill` property.
+4.  **Update Components:**
     -   **Font Family:** Ensure `Dropdown` supports the visual style (light gray box).
     -   **Font Style:** Add `fontStyle` / `fontWeight` mapping logic.
     -   **Line Height:** Update `NumberInput` or wrapper to support "Auto" value (display "Auto" when value is null/undefined or specific keyword).
     -   **Letter Spacing:** Update `NumberInput` to support `%` units.
     -   **Alignment:** Add `verticalAlign` property support (Top, Middle, Bottom).
-4.  **Data Model:**
-    -   Ensure `UPDATE_ELEMENT` action supports `verticalAlign`.
+5.  **Rendering Update:**
+    -   Update the text renderer to support complex fills.
+    -   **Canvas:** Use `ctx.fillStyle` with patterns/gradients.
+    -   **DOM/CSS:** Use `background-image` with `background-clip: text` and `text-fill-color: transparent`.
+6.  **Data Model:**
+    -   Ensure `UPDATE_ELEMENT` action supports `verticalAlign` and `textFill`.
 
 **Validation:**
 -   Select a text element.
 -   Verify Font Family/Style/Size changes update the text.
+-   Verify Text Fill supports Solid, Gradient, Image, etc.
 -   Verify Line Height "Auto" works.
 -   Verify Alignment icons update the text position.
 -   Verify Style Selector is present (even if empty/default).

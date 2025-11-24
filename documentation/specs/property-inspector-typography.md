@@ -18,15 +18,14 @@ When a style is applied, changing any typography property (e.g., Font Size) crea
 -   **Reset:** A "Reset to Style" button appears to revert changes.
 -   **Detach:** A "Detach Style" option allows breaking the link to the style, keeping current values as independent properties.
 
-## 2. Font Family, Style, Size, and Color
+## 2. Font Family, Style, Size, and Fill
 
 | UI Element | Functionality | UI Design |
 | :--- | :--- | :--- |
 | **Font Family** | **Font Family:** Selects the typeface (font) to be used for the text. Default: **Inter**. | A **dropdown menu** showing the currently selected font family name in a light gray box, with a chevron/down arrow on the right. |
 | **Font Style** | **Font Style/Weight:** Selects the specific style or weight of the chosen font family (e.g., Regular, Bold, Semibold, Italic). Default: **Regular**. | A **dropdown menu** showing the currently selected style/weight in a light gray box, with a chevron/down arrow on the right. |
 | **Font Size** | **Font Size:** Sets the size of the text (in points or pixels). Default: **12**. | A text **input field** showing the font size, typically with a chevron/down arrow to indicate that it can be a dropdown for quick selection or a direct input field for custom values. |
-| **Text Color** | **Color:** Sets the fill color of the text characters. | A **color swatch** and **hex input** (similar to the Fill section). |
-| **Text Color** | **Color:** Sets the fill color of the text characters. | A **color swatch** and **hex input** (similar to the Fill section). |
+| **Text Fill** | **Text Fill:** Sets the fill of the text characters. Supports **Solid, Gradient, Image, Video, and Code** fills. (Single fill layer only). | A **swatch** (triggering the standard **Fill Flyout**) and **value input**. Uses the same UI component as the Fill section but restricted to one layer. |
 
 ## 3. Spacing
 
