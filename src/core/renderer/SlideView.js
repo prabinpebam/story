@@ -9,6 +9,7 @@ export class SlideView {
         this.domElement = null;
         this.bgContainer = null;
         this.bgCodeRunner = null;
+        this.lastBgConfig = null;
     }
 
     mount(container) {
@@ -95,6 +96,22 @@ export class SlideView {
     applyBackground(bg) {
         const container = this.bgContainer;
         if (!container) return;
+
+        // Optimization: Don't rebuild if background hasn't changed
+        const currentConfigStr = JSON.stringify(bg);
+        const lastConfigStr = JSON.stringify(this.lastBgConfig);
+
+        if (currentConfigStr === lastConfigStr) {
+            // If we have a code runner, ensure it's resized correctly
+            if (this.bgCodeRunner) {
+                const w = parseInt(this.domElement.style.width) || 1920;
+                const h = parseInt(this.domElement.style.height) || 1080;
+                this.bgCodeRunner.resize(w, h);
+            }
+            return;
+        }
+
+        this.lastBgConfig = bg ? JSON.parse(JSON.stringify(bg)) : bg;
 
         // Clean up previous code runner
         if (this.bgCodeRunner) {
