@@ -854,6 +854,33 @@ export class CanvasManager {
                         break;
                 }
 
+                // Side Handle Constraint Logic
+                if (shouldConstrain && ['n', 's', 'e', 'w'].includes(this.activeHandle)) {
+                    const ratio = initial.width / initial.height;
+                    
+                    if (['e', 'w'].includes(this.activeHandle)) {
+                        // Width is the driver, update Height
+                        const targetHeight = newWidth / ratio;
+                        const deltaHeight = targetHeight - newHeight;
+                        newHeight = targetHeight;
+                        
+                        // Center vertically (Local Y shift)
+                        const shift = rotateBack(0, -deltaHeight / 2);
+                        newX += shift.x;
+                        newY += shift.y;
+                    } else {
+                        // Height is the driver, update Width
+                        const targetWidth = newHeight * ratio;
+                        const deltaWidth = targetWidth - newWidth;
+                        newWidth = targetWidth;
+                        
+                        // Center horizontally (Local X shift)
+                        const shift = rotateBack(-deltaWidth / 2, 0);
+                        newX += shift.x;
+                        newY += shift.y;
+                    }
+                }
+
                 if (newWidth < 10) newWidth = 10;
                 if (newHeight < 10) newHeight = 10;
 
@@ -2115,8 +2142,9 @@ export class CanvasManager {
             const el = slide.elements[id];
             if (el) {
                 const absEl = this.getAbsoluteElement(el, slide);
-                // Draw box, but only draw handles if NOT editing
-                this.drawSelectionBox(absEl, zoom, !isEditing);
+                // Draw box, but only draw handles if NOT editing and NOT resizing text
+                const isResizingText = this.interactionState === 'RESIZING' && el.type === 'text';
+                this.drawSelectionBox(absEl, zoom, !isEditing && !isResizingText);
             }
         } else {
             // Multi-selection
