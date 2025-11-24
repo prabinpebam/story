@@ -233,7 +233,8 @@ export class ShapeElement extends VisualElement {
                  const gradientValue = stroke.value || 'linear-gradient(90deg, #000000 0%, #ffffff 100%)';
 
                  if (isGradient && gradientValue) {
-                     const valueHash = gradientValue.split('').reduce((a,b)=>{a=((a<<5)-a)+b.charCodeAt(0);return a&a},0);
+                     const valueString = typeof gradientValue === 'string' ? gradientValue : JSON.stringify(gradientValue);
+                     const valueHash = valueString.split('').reduce((a,b)=>{a=((a<<5)-a)+b.charCodeAt(0);return a&a},0);
                      const gradId = `stroke-grad-${el.id}-${index}-${valueHash}`;
                      
                      let defs = layer.querySelector('defs');
@@ -411,24 +412,48 @@ export class ShapeElement extends VisualElement {
     }
 
     createSVGGradient(id, value) {
-        // Simple parser for linear-gradient(angle, stop1, stop2...)
-        // This is a simplified version, robust parsing is complex
         const grad = document.createElementNS('http://www.w3.org/2000/svg', 'linearGradient');
         grad.id = id;
         
-        // Extract angle
         let angle = 90;
-        let stopsStr = value;
-        const match = value.match(/linear-gradient\(([^,]+),(.+)\)/);
-        if (match) {
-            const angleStr = match[1].trim();
-            if (angleStr.includes('deg')) {
-                angle = parseFloat(angleStr);
+        let stops = [];
+
+        if (typeof value === 'object' && value.type) {
+            // Handle structured gradient object
+            angle = value.angle || 90;
+            stops = value.stops || [];
+        } else {
+            // Legacy string parsing
+            let stopsStr = value;
+            const match = value.match(/linear-gradient\(([^,]+),(.+)\)/);
+            if (match) {
+                const angleStr = match[1].trim();
+                if (angleStr.includes('deg')) {
+                    angle = parseFloat(angleStr);
+                }
+                stopsStr = match[2];
             }
-            stopsStr = match[2];
+            
+            // Parse stops (very basic)
+            stops = stopsStr.split(',').map(s => {
+                const parts = s.trim().split(' ');
+                return {
+                    color: parts[0],
+                    position: parseFloat(parts[1] || '0')
+                };
+            });
         }
         
         // Convert angle to x1,y1,x2,y2
+        // SVG linearGradient coordinates are relative to the bounding box
+        // 0 deg = Bottom to Top (in CSS) -> but here we need to map CSS angle to SVG coords
+        // CSS 90deg = Left to Right
+        // SVG x1=0, y1=0, x2=1, y2=0 is Left to Right
+        
+        // Standard conversion from CSS angle to SVG gradient coordinates
+        // angle is in degrees, 0 is up, 90 is right (CSS standard)
+        // We need to convert this to start/end points on the unit square
+        
         const rad = (angle - 90) * Math.PI / 180;
         const x1 = 50 + 50 * Math.cos(rad);
         const y1 = 50 + 50 * Math.sin(rad);
@@ -440,15 +465,10 @@ export class ShapeElement extends VisualElement {
         grad.setAttribute('x2', `${x2}%`);
         grad.setAttribute('y2', `${y2}%`);
         
-        // Parse stops (very basic)
-        const stops = stopsStr.split(',').map(s => s.trim());
         stops.forEach(s => {
-            const parts = s.split(' ');
-            const color = parts[0];
-            const offset = parts[1] || '0%';
             const stop = document.createElementNS('http://www.w3.org/2000/svg', 'stop');
-            stop.setAttribute('offset', offset);
-            stop.setAttribute('stop-color', color);
+            stop.setAttribute('offset', `${s.position}%`);
+            stop.setAttribute('stop-color', s.color);
             grad.appendChild(stop);
         });
         
