@@ -37,6 +37,7 @@ export class TextElement extends VisualElement {
         div.style.textAlign = props.textAlign;
         div.style.textDecoration = props.textDecoration;
         div.style.textTransform = props.textTransform;
+        div.style.textIndent = `${props.paragraphIndent || 0}px`;
         
         // Vertical Align
         div.style.display = 'flex';

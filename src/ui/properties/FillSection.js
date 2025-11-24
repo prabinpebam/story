@@ -789,75 +789,22 @@ export class FillSection {
             if (typeof this.activeFlyout.destroy === 'function') {
                 this.activeFlyout.destroy();
             }
-            this.activeFlyout.element.remove();
+            this.activeFlyout.close();
             this.activeFlyout = null;
         }
 
         const flyout = new FillFlyout({
+            trigger: targetElement,
             fill: fill,
             onChange: (updates, isTransient) => {
                 this.updateFill(element, index, updates, isTransient);
             },
             onClose: () => {
-                if (this.activeFlyout) {
-                    if (typeof this.activeFlyout.destroy === 'function') {
-                        this.activeFlyout.destroy();
-                    }
-                    this.activeFlyout.element.remove();
-                    this.activeFlyout = null;
-                }
+                this.activeFlyout = null;
             }
         });
 
-        document.body.appendChild(flyout.element);
-        
-        // Position
-        const rect = targetElement.getBoundingClientRect();
-        const flyoutRect = flyout.element.getBoundingClientRect();
-        const viewportWidth = window.innerWidth;
-        const viewportHeight = window.innerHeight;
-        const gap = 12;
-
-        // Default to left of the target
-        let left = rect.left - flyoutRect.width - gap;
-        let top = rect.top;
-        
-        // Horizontal positioning
-        if (left < 0) {
-            // Try right side
-            const rightPos = rect.right + gap;
-            if (rightPos + flyoutRect.width <= viewportWidth) {
-                left = rightPos;
-            } else {
-                // Clamp to viewport
-                left = Math.max(gap, Math.min(left, viewportWidth - flyoutRect.width - gap));
-            }
-        }
-
-        // Vertical positioning
-        if (top + flyoutRect.height > viewportHeight) {
-            top = viewportHeight - flyoutRect.height - gap;
-        }
-        if (top < gap) {
-            top = gap;
-        }
-
-        flyout.element.style.left = `${left}px`;
-        flyout.element.style.top = `${top}px`;
-        
+        flyout.open();
         this.activeFlyout = flyout;
-
-        // Close on click outside
-        const closeHandler = (e) => {
-            if (this.activeFlyout && !this.activeFlyout.element.contains(e.target) && !targetElement.contains(e.target)) {
-                if (typeof this.activeFlyout.destroy === 'function') {
-                    this.activeFlyout.destroy();
-                }
-                this.activeFlyout.element.remove();
-                this.activeFlyout = null;
-                document.removeEventListener('mousedown', closeHandler);
-            }
-        };
-        setTimeout(() => document.addEventListener('mousedown', closeHandler), 0);
     }
 }

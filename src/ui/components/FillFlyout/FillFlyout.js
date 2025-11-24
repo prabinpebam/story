@@ -7,23 +7,24 @@ import { ImageTab } from './ImageTab.js';
 import { VideoTab } from './VideoTab.js';
 import { CodeTab } from './CodeTab.js';
 import { CodeRunner } from '../../../core/effects/CodeRunner.js';
+import { Flyout } from '../Flyout.js';
 
-export class FillFlyout {
+export class FillFlyout extends Flyout {
     constructor(options = {}) {
-        this.options = options;
+        super(options);
+        
         this.onChange = options.onChange || (() => {});
-        this.onClose = options.onClose || (() => {});
+        // onClose is handled by Flyout base class via options.onClose
+        
         this.fill = options.fill || { type: 'solid', color: '#000000', opacity: 100 };
         
-        this.element = document.createElement('div');
-        this.element.className = 'fill-flyout';
-        this.element.style.position = 'absolute';
+        // Apply specific styles for FillFlyout
+        this.element.className = 'fill-flyout ui-flyout';
         this.element.style.width = '240px';
         this.element.style.backgroundColor = '#2C2C2C';
         this.element.style.borderRadius = '8px';
         this.element.style.boxShadow = '0 8px 24px rgba(0,0,0,0.5)';
         this.element.style.padding = '12px';
-        this.element.style.zIndex = '10000';
         this.element.style.display = 'flex';
         this.element.style.flexDirection = 'column';
         this.element.style.gap = '12px';
@@ -71,7 +72,7 @@ export class FillFlyout {
         actions.style.gap = '4px';
 
         const addBtn = new IconButton({ icon: Icons.PLUS, title: 'Create Style', onClick: () => {} });
-        const closeBtn = new IconButton({ icon: Icons.CLOSE, title: 'Close', onClick: () => this.onClose() });
+        const closeBtn = new IconButton({ icon: Icons.CLOSE, title: 'Close', onClick: () => this.close() });
 
         actions.appendChild(addBtn.element);
         actions.appendChild(closeBtn.element);
@@ -177,5 +178,7 @@ export class FillFlyout {
         if (this.currentTabInstance && typeof this.currentTabInstance.destroy === 'function') {
             this.currentTabInstance.destroy();
         }
+        // Call parent close/destroy if needed, but Flyout.close() removes element
     }
 }
+

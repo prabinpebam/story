@@ -16,6 +16,10 @@ export const Icons = {
     PLUS: '<i class="fa-solid fa-plus"></i>',
     MINUS: '<i class="fa-solid fa-minus"></i>',
     
+    // Text Decoration
+    UNDERLINE: '<i class="fa-solid fa-underline"></i>',
+    STRIKETHROUGH: '<i class="fa-solid fa-strikethrough"></i>',
+    
     // Alignment
     ALIGN_LEFT: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="2" y="3" width="2" height="10" fill="currentColor"/><rect x="6" y="5" width="8" height="2" fill="currentColor"/><rect x="6" y="9" width="6" height="2" fill="currentColor"/></svg>',
     ALIGN_CENTER: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="7" y="3" width="2" height="10" fill="currentColor"/><rect x="3" y="5" width="10" height="2" fill="currentColor"/><rect x="4" y="9" width="8" height="2" fill="currentColor"/></svg>',

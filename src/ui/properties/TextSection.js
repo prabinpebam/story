@@ -7,6 +7,7 @@ import { store } from '../../core/Store.js';
 import { StyleResolver } from '../../utils/StyleResolver.js';
 import FontManager from '../../core/FontManager.js';
 import { FillFlyout } from '../components/FillFlyout/FillFlyout.js';
+import { TypeSettingsFlyout } from '../components/TypeSettingsFlyout.js';
 import { ColorUtils } from '../../utils/ColorUtils.js';
 
 export class TextSection {
@@ -124,14 +125,43 @@ export class TextSection {
         
         const settingsBtn = new IconButton({
             icon: Icons.SETTINGS,
-            onClick: () => {
-                console.log('Open Type Settings');
+            onClick: (e) => {
+                const btn = e.target.closest('button') || e.target;
+                this.openTypeSettings(btn);
             }
         });
 
         alignRow.appendChild(alignGroup);
         alignRow.appendChild(settingsBtn.element);
         this.section.appendChild(alignRow);
+    }
+
+    openTypeSettings(target) {
+        if (this.activeFlyout) {
+            this.activeFlyout.close();
+            this.activeFlyout = null;
+        }
+
+        const state = store.getState();
+        const selection = state.editor.selectedElementIds;
+        const el = this.getElement(state, selection[0]);
+        const props = StyleResolver.getEffectiveTextProperties(el);
+
+        const flyout = new TypeSettingsFlyout({
+            trigger: target,
+            props: props,
+            onChange: (updates) => {
+                Object.keys(updates).forEach(key => {
+                    this.updateProperty(key, updates[key]);
+                });
+            },
+            onClose: () => {
+                this.activeFlyout = null;
+            }
+        });
+
+        flyout.open();
+        this.activeFlyout = flyout;
     }
 
     createFillControl() {
@@ -367,11 +397,12 @@ export class TextSection {
 
     openFillFlyout(target) {
         if (this.activeFlyout) {
-            this.activeFlyout.element.remove();
+            this.activeFlyout.close();
             this.activeFlyout = null;
         }
 
         const flyout = new FillFlyout({
+            trigger: target,
             fill: this.currentTextFill || { type: 'solid', value: '#000000' },
             onChange: (updates, isTransient) => {
                 const current = this.currentTextFill || { type: 'solid', value: '#000000' };
@@ -389,35 +420,11 @@ export class TextSection {
                 this.updateTextFill(newFill);
             },
             onClose: () => {
-                if (this.activeFlyout) {
-                    this.activeFlyout.element.remove();
-                    this.activeFlyout = null;
-                }
+                this.activeFlyout = null;
             }
         });
 
-        document.body.appendChild(flyout.element);
-        
-        const rect = target.getBoundingClientRect();
-        const flyoutRect = flyout.element.getBoundingClientRect();
-        
-        let left = rect.left - flyoutRect.width - 10;
-        let top = rect.top;
-        
-        if (left < 0) left = rect.right + 10;
-        
-        flyout.element.style.left = `${left}px`;
-        flyout.element.style.top = `${top}px`;
-        
+        flyout.open();
         this.activeFlyout = flyout;
-        
-        const closeHandler = (e) => {
-            if (this.activeFlyout && !this.activeFlyout.element.contains(e.target) && !target.contains(e.target)) {
-                this.activeFlyout.element.remove();
-                this.activeFlyout = null;
-                document.removeEventListener('mousedown', closeHandler);
-            }
-        };
-        setTimeout(() => document.addEventListener('mousedown', closeHandler), 0);
     }
 }

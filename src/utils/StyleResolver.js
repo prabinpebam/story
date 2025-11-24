@@ -19,7 +19,9 @@ export const StyleResolver = {
             textAlign: 'left',
             verticalAlign: 'top',
             textDecoration: 'none',
-            textTransform: 'none'
+            textTransform: 'none',
+            paragraphSpacing: 0,
+            paragraphIndent: 0
         };
 
         // Start with defaults
