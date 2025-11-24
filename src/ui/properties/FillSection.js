@@ -813,17 +813,34 @@ export class FillSection {
         
         // Position
         const rect = targetElement.getBoundingClientRect();
-        // Position to the left of the target, aligned top
-        // Or if not enough space, position right?
-        // Property inspector is usually on the right side of screen.
-        // So flyout should be to the left.
-        const flyoutWidth = 240; // From spec
-        let left = rect.left - flyoutWidth - 12;
+        const flyoutRect = flyout.element.getBoundingClientRect();
+        const viewportWidth = window.innerWidth;
+        const viewportHeight = window.innerHeight;
+        const gap = 12;
+
+        // Default to left of the target
+        let left = rect.left - flyoutRect.width - gap;
         let top = rect.top;
         
-        // Boundary checks
-        if (left < 10) left = rect.right + 12; // Flip to right if no space on left
-        if (top + 400 > window.innerHeight) top = window.innerHeight - 400; // Simple bottom check
+        // Horizontal positioning
+        if (left < 0) {
+            // Try right side
+            const rightPos = rect.right + gap;
+            if (rightPos + flyoutRect.width <= viewportWidth) {
+                left = rightPos;
+            } else {
+                // Clamp to viewport
+                left = Math.max(gap, Math.min(left, viewportWidth - flyoutRect.width - gap));
+            }
+        }
+
+        // Vertical positioning
+        if (top + flyoutRect.height > viewportHeight) {
+            top = viewportHeight - flyoutRect.height - gap;
+        }
+        if (top < gap) {
+            top = gap;
+        }
 
         flyout.element.style.left = `${left}px`;
         flyout.element.style.top = `${top}px`;

@@ -49,19 +49,36 @@ export class Flyout {
         
         const rect = this.options.trigger.getBoundingClientRect();
         const flyoutRect = this.element.getBoundingClientRect();
+        const viewportWidth = window.innerWidth;
+        const viewportHeight = window.innerHeight;
+        const gap = 8;
         
         let top = rect.top;
-        let left = rect.left - flyoutRect.width - 8; // Default to left
+        let left = rect.left - flyoutRect.width - gap; // Default to left
         
-        // Simple boundary check (very basic)
+        // Horizontal positioning
+        // Check if left side has enough space
         if (left < 0) {
-            // Flip to right
-            left = rect.right + 8;
+            // Try right side
+            const rightPos = rect.right + gap;
+            if (rightPos + flyoutRect.width <= viewportWidth) {
+                left = rightPos;
+            } else {
+                // Neither fits perfectly, stick to the side with more space or clamp
+                // If left < 0, clamp to 0? But then it overlaps trigger?
+                // Let's just clamp to viewport
+                left = Math.max(0, Math.min(left, viewportWidth - flyoutRect.width));
+            }
         }
-        
-        // Adjust top if it goes off screen
-        if (top + flyoutRect.height > window.innerHeight) {
-            top = window.innerHeight - flyoutRect.height - 8;
+
+        // Vertical positioning
+        // Check if it goes off bottom
+        if (top + flyoutRect.height > viewportHeight) {
+            top = viewportHeight - flyoutRect.height - gap;
+        }
+        // Check if it goes off top
+        if (top < 0) {
+            top = gap;
         }
 
         this.element.style.top = `${top}px`;

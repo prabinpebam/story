@@ -622,13 +622,31 @@ export class GradientTab {
         this.activeColorPicker = picker;
 
         // Position adjustments
-        // If not enough space on left, try right
-        if (left < 10) {
-            left = rect.right + gap;
+        const pickerRect = picker.element.getBoundingClientRect();
+        const viewportWidth = window.innerWidth;
+        const viewportHeight = window.innerHeight;
+        
+        // Recalculate left based on actual width
+        left = rect.left - pickerRect.width - gap;
+
+        // Horizontal positioning
+        if (left < 0) {
+            // Try right side
+            const rightPos = rect.right + gap;
+            if (rightPos + pickerRect.width <= viewportWidth) {
+                left = rightPos;
+            } else {
+                // Clamp
+                left = Math.max(gap, Math.min(left, viewportWidth - pickerRect.width - gap));
+            }
         }
         
-        if (top + 300 > window.innerHeight) {
-            top = window.innerHeight - 300 - 10;
+        // Vertical positioning
+        if (top + pickerRect.height > viewportHeight) {
+            top = viewportHeight - pickerRect.height - gap;
+        }
+        if (top < gap) {
+            top = gap;
         }
 
         picker.element.style.left = `${left}px`;
