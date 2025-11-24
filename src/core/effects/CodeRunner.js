@@ -206,90 +206,36 @@ export class CodeRunner {
         const h = this.canvas.height;
         const ctx = this.ctx;
 
-        // Solid black background
-        ctx.fillStyle = '#000000';
+        // Matrix Rain Effect
+        // Semi-transparent black to create trails
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.05)';
         ctx.fillRect(0, 0, w, h);
 
-        const fontSize = 12;
+        const fontSize = 14;
         ctx.font = `${fontSize}px monospace`;
-        const speed = 1; 
-        const trailLength = 15;
-        const numCols = Math.floor(w / fontSize);
-
-        // Initialize drops if needed
-        if (!this._matrixDrops) {
-            this._matrixDrops = [];
-            // Initial population - Reduced density (was 0.2)
-            for (let i = 0; i < numCols; i++) {
-                if (Math.random() > 0.05) {
-                    this._matrixDrops.push({
-                        col: i,
-                        y: Math.random() * h
-                    });
-                }
-            }
-        }
-
-        // Update positions & Remove off-screen
-        for (let i = this._matrixDrops.length - 1; i >= 0; i--) {
-            this._matrixDrops[i].y += speed;
-            // Remove if trail is off screen
-            if (this._matrixDrops[i].y - (trailLength * fontSize) > h) {
-                this._matrixDrops.splice(i, 1);
-            }
-        }
-
-        // Spawn new drops - Reduced frequency
-        // Was 2 attempts at 0.1 prob (~0.2/frame). Now 1 attempt at 0.05 prob (~0.05/frame)
-        if (Math.random() > 0.95) { 
-             const col = Math.floor(Math.random() * numCols);
-             // Check if this column is clear at the top
-             const isClear = !this._matrixDrops.some(d => d.col === col && d.y < (trailLength * fontSize + fontSize));
-             
-             if (isClear) {
-                 this._matrixDrops.push({ col, y: 0 });
-             }
-        }
-
-        // Draw Trails (Green, Linear Fade)
-        this._matrixDrops.forEach(drop => {
-            const x = drop.col * fontSize;
-            const y = drop.y;
-            
-            for (let j = 1; j < trailLength; j++) {
-                const trailY = y - (j * fontSize);
-                const snappedY = Math.floor(trailY / fontSize) * fontSize;
-                
-                if (snappedY < -fontSize || snappedY > h) continue;
-
-                const charCode = 0x30A0 + ((x + snappedY) * 33) % 96;
-                const char = String.fromCharCode(charCode);
-                
-                // Linear fade from 1.0 to 0.0
-                const opacity = 1 - (j / trailLength);
-                ctx.fillStyle = `rgba(36, 215, 102, ${opacity})`;
-                ctx.fillText(char, x, snappedY);
-            }
-        });
-
-        // Draw Heads (White + Glow)
-        ctx.save();
-        ctx.fillStyle = '#FFFFFF';
-        ctx.shadowColor = 'rgba(255, 255, 255, 0.8)';
-        ctx.shadowBlur = 8;
+        const columns = Math.floor(w / fontSize);
         
-        this._matrixDrops.forEach(drop => {
-            const x = drop.col * fontSize;
-            const y = drop.y;
-            const snappedY = Math.floor(y / fontSize) * fontSize;
-            
-            if (snappedY < -fontSize || snappedY > h) return;
+        const glyphs = 'アァカサタナハマヤャラワガザダバパイィキシチニヒミリヰギジヂビピウゥクスツヌフムユュルグズブヅプエェケセテネヘメレヱゲゼデベペオォコソトノホモヨョロヲゴゾドボポヴッンABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
 
-            const charCode = 0x30A0 + ((x + snappedY) * 33) % 96;
-            const char = String.fromCharCode(charCode);
-            ctx.fillText(char, x, snappedY);
-        });
-        ctx.restore();
+        // Initialize drops
+        if (!this.drops || this.drops.length !== columns) {
+            this.drops = [];
+            for (let x = 0; x < columns; x++) {
+                this.drops[x] = 1;
+            }
+        }
+
+        ctx.fillStyle = '#0F0'; // Green text
+        for (let i = 0; i < this.drops.length; i++) {
+            const text = glyphs.charAt(Math.floor(Math.random() * glyphs.length));
+            ctx.fillText(text, i * fontSize, this.drops[i] * fontSize);
+
+            // Reset drop to top randomly after it crosses bottom
+            if (this.drops[i] * fontSize > h && Math.random() > 0.975) {
+                this.drops[i] = 0;
+            }
+            this.drops[i]++;
+        }
 
         // Error Box - Static, Smaller, Classy
         const boxW = 140;
