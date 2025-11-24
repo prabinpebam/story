@@ -2142,9 +2142,15 @@ export class CanvasManager {
             const el = slide.elements[id];
             if (el) {
                 const absEl = this.getAbsoluteElement(el, slide);
-                // Draw box, but only draw handles if NOT editing and NOT resizing text
-                const isResizingText = this.interactionState === 'RESIZING' && el.type === 'text';
-                this.drawSelectionBox(absEl, zoom, !isEditing && !isResizingText);
+                
+                const isText = el.type === 'text';
+                const isResizing = this.interactionState === 'RESIZING';
+                const isUIInteracting = state.ui && state.ui.isInteracting;
+                
+                // Hide handles if editing text, or if resizing text (via drag or UI scrub)
+                const hideHandles = isEditing || (isText && (isResizing || isUIInteracting));
+
+                this.drawSelectionBox(absEl, zoom, !hideHandles);
             }
         } else {
             // Multi-selection
