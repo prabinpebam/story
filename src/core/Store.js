@@ -1,6 +1,5 @@
 import { EventEmitter } from './Events.js';
 import { historyManager } from './HistoryManager.js';
-import { historyManagerV2 } from './HistoryManagerV2.js';
 import { produce } from '../vendor/immer.js';
 import { createInitialState } from './store/InitialState.js';
 import * as EditorHandlers from './store/handlers/EditorHandlers.js';
@@ -14,6 +13,7 @@ class Store extends EventEmitter {
     constructor() {
         super();
         this.state = createInitialState();
+        this.isInteracting = false;
     }
 
     /**
@@ -21,7 +21,9 @@ class Store extends EventEmitter {
      * @param {string} description - Optional description for debugging
      */
     snapshot(description = 'Unknown Action') {
-        historyManagerV2.push(this.state, { description });
+        if (!this.isInteracting) {
+            historyManager.push(this.state, { description });
+        }
     }
 
     /**
@@ -52,28 +54,20 @@ class Store extends EventEmitter {
 
         switch (type) {
             case 'UNDO':
-                if (historyManagerV2.canUndo()) {
-                    const previous = historyManagerV2.undo(this.state);
+                if (historyManager.canUndo()) {
+                    const previous = historyManager.undo(this.state);
                     if (previous) {
                         this.restoreState(previous.state);
                     }
-                } else if (historyManager.canUndo()) {
-                    const entry = historyManager.undo();
-                    historyManager.addRedo(entry);
-                    this.dispatch(entry.undo.type, entry.undo.payload, { fromHistory: true });
                 }
                 break;
 
             case 'REDO':
-                if (historyManagerV2.canRedo()) {
-                    const next = historyManagerV2.redo(this.state);
+                if (historyManager.canRedo()) {
+                    const next = historyManager.redo(this.state);
                     if (next) {
                         this.restoreState(next.state);
                     }
-                } else if (historyManager.canRedo()) {
-                    const entry = historyManager.redo();
-                    historyManager.addUndo(entry);
-                    this.dispatch(entry.redo.type, entry.redo.payload, { fromHistory: true });
                 }
                 break;
 
@@ -206,6 +200,21 @@ class Store extends EventEmitter {
                     }
                 });
                 this.emit('state-changed', this.state);
+                break;
+
+            // Interaction Handlers
+            case 'START_INTERACTION':
+                this.snapshot('Interaction Start');
+                this.isInteracting = true;
+                break;
+
+            case 'END_INTERACTION':
+                this.isInteracting = false;
+                // Optional: Snapshot at end if we want to ensure the final state is saved
+                // But usually we snapshot BEFORE the change. 
+                // If we snapshot here, it would be the state AFTER the interaction.
+                // The next action will snapshot the state BEFORE it happens, which is this state.
+                // So we don't strictly need to snapshot here unless we want a "checkpoint".
                 break;
 
             // UI Handlers

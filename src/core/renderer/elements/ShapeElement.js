@@ -124,17 +124,23 @@ export class ShapeElement extends VisualElement {
                         }
 
                         const existingCanvas = layer.querySelector('.bg-canvas');
-                        if (existingCanvas && (!fill.value || !fill.value.startsWith('/* diamond|'))) {
+                        
+                        let fillValue = fill.value;
+                        if (fill.type === 'gradient') {
+                            fillValue = this.resolveGradientValue(fill.value);
+                        }
+
+                        if (existingCanvas && (!fillValue || !fillValue.startsWith('/* diamond|'))) {
                             existingCanvas.remove();
                         }
                         
                         if (fill.type === 'solid') {
                             layer.style.backgroundColor = fill.color;
                         } else if (fill.type === 'gradient') {
-                            if (fill.value.startsWith('/* diamond|')) {
-                                this.renderDiamondGradient(layer, el.width, el.height, fill.value);
+                            if (fillValue.startsWith('/* diamond|')) {
+                                this.renderDiamondGradient(layer, el.width, el.height, fillValue);
                             } else {
-                                layer.style.background = fill.value;
+                                layer.style.background = fillValue;
                             }
                         } else if (fill.type === 'image') {
                             layer.style.backgroundImage = `url(${fill.value})`;
@@ -449,6 +455,28 @@ export class ShapeElement extends VisualElement {
         return grad;
     }
 
+    resolveGradientValue(fillValue) {
+        if (typeof fillValue === 'string') return fillValue;
+        if (typeof fillValue === 'object' && fillValue.type) {
+            const { type, angle, stops } = fillValue;
+            const sortedStops = [...stops].sort((a, b) => a.position - b.position);
+            const stopsStr = sortedStops.map(s => `${s.color} ${s.position}%`).join(', ');
+
+            if (type === 'linear') {
+                return `linear-gradient(${angle}deg, ${stopsStr})`;
+            } else if (type === 'radial') {
+                return `radial-gradient(circle at center, ${stopsStr})`;
+            } else if (type === 'angular') {
+                return `conic-gradient(from ${angle}deg at center, ${stopsStr})`;
+            } else if (type === 'diamond') {
+                 const metaStops = sortedStops.map(s => `${s.color}@${s.position/100}`).join(';');
+                 const meta = `/* diamond|${angle}|${metaStops} */`;
+                 return `${meta} radial-gradient(circle at center, ${stopsStr})`;
+            }
+        }
+        return '';
+    }
+
     renderDiamondGradient(container, width, height, fillValue) {
         const existing = container.querySelector('.bg-canvas');
         if (existing) existing.remove();
@@ -471,7 +499,9 @@ export class ShapeElement extends VisualElement {
             const stopsStr = parts[1] || '';
             const stops = stopsStr.split(';').map(s => {
                 const [color, pos] = s.split('@');
-                return { color, position: parseFloat(pos) };
+                let position = parseFloat(pos);
+                if (position > 1) position /= 100;
+                return { color, position };
             }).filter(s => s.color && !isNaN(s.position));
             
             // Draw Diamond

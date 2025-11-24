@@ -297,6 +297,9 @@ export class CanvasManager {
                     this.interactionAction = hit.action; // Store action (resize, rotate, radius)
                     this.dragStart = { x: mouseX, y: mouseY };
                     
+                    // Start Interaction Batching
+                    store.dispatch('START_INTERACTION');
+
                     // Hide overlay during interaction
                     store.dispatch('UI_INTERACTION_START');
 
@@ -387,6 +390,9 @@ export class CanvasManager {
                         const el = activeContainer ? activeContainer.elements[id] : null;
                         if (el) this.initialElementState[id] = { ...el };
                     });
+
+                    // Start Interaction Batching
+                    store.dispatch('START_INTERACTION');
                 }
             } else {
                 // Clicked on empty space -> Start Marquee Selection
@@ -944,6 +950,7 @@ export class CanvasManager {
         if (state.editor.mode === 'presentation') return;
 
         if (this.interactionState === 'RESIZING' || this.interactionState === 'DRAGGING') {
+            store.dispatch('END_INTERACTION');
             store.dispatch('UI_INTERACTION_END');
         }
 

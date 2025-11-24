@@ -48,7 +48,16 @@ export class GradientTab {
             ]
         };
 
-        if (!value || typeof value !== 'string') return defaultGradient;
+        if (!value) return defaultGradient;
+
+        if (typeof value === 'object') {
+            if (value.stops && Array.isArray(value.stops)) {
+                return JSON.parse(JSON.stringify(value));
+            }
+            return defaultGradient;
+        }
+
+        if (typeof value !== 'string') return defaultGradient;
 
         try {
             // Check for Diamond metadata

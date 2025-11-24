@@ -42,31 +42,33 @@ We will migrate from the current **Mutable/Command** pattern to an **Immutable/S
 
 *Dependencies*: All handlers must be migrated to Immer (Phase 2 complete).
 
-- [ ] **3.1 Implement Transient Updates (Interaction Batching)**
+- [x] **3.1 Implement Transient Updates (Interaction Batching)**
     - *Critical*: Must be done before enabling history to prevent "drag spam".
     - Implement `START_INTERACTION` (snapshots state).
     - Ensure `UPDATE_ELEMENT` does *not* snapshot if an interaction is active.
     - Implement `END_INTERACTION` (finalizes state).
-- [ ] **3.2 Integrate HistoryManagerV2**
+- [x] **3.2 Integrate HistoryManagerV2**
     - Replace `HistoryManager.js` with `HistoryManagerV2.js`.
-- [ ] **3.3 Implement Snapshot Capture**
+- [x] **3.3 Implement Snapshot Capture**
     - In `Store.js`, define `UNDOABLE_ACTIONS` set.
     - Before calling `produce` for an undoable action, push `current state` + `meta` (selection) to History.
-- [ ] **3.4 Implement RESTORE_STATE**
+- [x] **3.4 Implement RESTORE_STATE**
     - Create a handler that simply returns the payload (the snapshot) as the new state.
     - Handle `meta` restoration (Selection, Viewport).
-- [ ] **3.5 Wire Undo/Redo Actions**
+- [x] **3.5 Wire Undo/Redo Actions**
     - Update `UNDO` case: Pop from History -> Dispatch `RESTORE_STATE`.
     - Update `REDO` case: Pop from Redo Stack -> Dispatch `RESTORE_STATE`.
 
 ## Phase 4: Optimization & Cleanup
 **Goal**: Clean up legacy code and optimize asset handling.
 
-- [ ] **4.1 Asset Lifecycle Safety**
+- [x] **4.1 Asset Lifecycle Safety**
     - Ensure `AssetManager` does not delete assets that might be referenced in the history stack.
-- [ ] **4.2 Cleanup**
+    - *Note*: Assets are stored as Base64 strings in the state, so no external file management is needed.
+- [x] **4.2 Cleanup**
     - Remove any legacy Command Pattern code from handlers.
     - Remove unused imports.
+    - Replaced `HistoryManager.js` with `HistoryManagerV2.js` (renamed to `HistoryManager.js`).
 
 ## Risks & Dependencies
 *   **Risk**: `this` context in handlers.
