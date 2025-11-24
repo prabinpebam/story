@@ -33,6 +33,15 @@ This section controls the geometric dimensions of the selected object.
     - **Disabled**: W and H change independently.
     - **State**: Visual indication when active (e.g., darker background or accent color).
 
+### Text-Specific Layout Parameters
+When a text object is selected, the Layout section includes additional resizing controls.
+
+| UI Element | Functionality | UI Design |
+| :--- | :--- | :--- |
+| **Auto Width** | **Auto Width:** The width of the text box automatically adjusts to fit the content horizontally. | An **icon** showing a vertical bar on the left with a horizontal arrow pointing right. |
+| **Auto Height** | **Auto Height:** The height of the text box automatically adjusts to fit the content vertically. | An **icon** showing a centered vertical bar with horizontal lines above and below. |
+| **Fixed Size** | **Fixed Size:** The width and height of the text box are fixed, as determined by the W and H values. | An **icon** showing three horizontal lines, implying a fixed container. |
+
 ## 2. Appearance Section
 This section manages opacity, corner radius, and high-level visibility/blending settings.
 
