@@ -5,6 +5,8 @@ import { Dropdown } from '../components/Dropdown.js';
 import { Switch } from '../components/Switch.js';
 import { store } from '../../core/Store.js';
 import { FillSection } from './FillSection.js';
+import { panelManager } from '../PanelManager.js';
+import { ICONS } from '../Icons.js';
 
 export class SlideSection {
     constructor() {
@@ -67,7 +69,46 @@ export class SlideSection {
         dimRow.appendChild(this.hInput.element);
         this.section.appendChild(dimRow);
 
-        // 5. Background (FillSection) - Removed from here to avoid nesting. 
+        // 5. Theme Button Row
+        this.themeRow = document.createElement('div');
+        this.themeRow.className = 'pi-row';
+        this.themeRow.style.cssText = 'margin-top: var(--spacing-2); padding-top: var(--spacing-2); border-top: 1px solid var(--color-border);';
+        
+        const themeLabel = document.createElement('div');
+        themeLabel.style.cssText = 'flex: 1; font-size: var(--font-size-sm); color: var(--color-text-secondary);';
+        themeLabel.textContent = 'Theme';
+        this.themeRow.appendChild(themeLabel);
+        
+        const themeBtn = document.createElement('button');
+        themeBtn.className = 'theme-manager-btn';
+        themeBtn.innerHTML = `${ICONS.PALETTE || '<i class="fa-solid fa-palette"></i>'} <span>Colors</span>`;
+        themeBtn.title = 'Open Color Theme Manager (Ctrl+Shift+C)';
+        themeBtn.style.cssText = `
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            padding: 4px 8px;
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-sm);
+            background: var(--color-bg-well);
+            color: var(--color-text-primary);
+            font-size: var(--font-size-sm);
+            cursor: pointer;
+            transition: background 0.15s;
+        `;
+        themeBtn.addEventListener('mouseenter', () => {
+            themeBtn.style.background = 'var(--color-bg-hover)';
+        });
+        themeBtn.addEventListener('mouseleave', () => {
+            themeBtn.style.background = 'var(--color-bg-well)';
+        });
+        themeBtn.addEventListener('click', () => {
+            panelManager.toggle('color-theme-manager');
+        });
+        this.themeRow.appendChild(themeBtn);
+        this.section.appendChild(this.themeRow);
+
+        // 6. Background (FillSection) - Removed from here to avoid nesting. 
         // It will be appended separately in PropertyInspector.
     }
 

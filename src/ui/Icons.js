@@ -59,6 +59,11 @@ export const Icons = {
     GRID_3X3: '<i class="fa-solid fa-table-cells"></i>',
     CLOSE: '<i class="fa-solid fa-xmark"></i>',
 
+    // Theme & Style Management
+    PALETTE: '<i class="fa-solid fa-palette"></i>',
+    FONT: '<i class="fa-solid fa-font"></i>',
+    SWATCHES: '<i class="fa-solid fa-swatchbook"></i>',
+
     // Fill Types
     FILL_SOLID: '<i class="fa-solid fa-square"></i>',
     FILL_GRADIENT: '<i class="fa-solid fa-square-poll-horizontal"></i>', // Approximation
