@@ -88,21 +88,140 @@ When the user types a trigger followed by a `Space`, the line automatically conv
 
 ## 6. Layout & Resizing
 
-Text elements have three distinct resizing behaviors that interact with editing.
+Text elements have three distinct sizing modes that determine how the bounding box responds to content changes.
 
-### 6.1 Auto Width (Grow Horizontal)
-- **Behavior**: The text box width expands as the user types. No line wrapping occurs unless a manual line break (`Enter` or `Shift+Enter`) is inserted.
-- **Visuals**: Resize handles are usually hidden or distinct to indicate auto-width.
-- **Interaction**: Manually resizing the width switches the mode to **Fixed Size**.
+### 6.1 Sizing Modes
 
-### 6.2 Auto Height (Grow Vertical)
-- **Behavior**: The text box has a fixed width. Text wraps automatically when it hits the right edge. The height expands to fit the content.
-- **Interaction**: Manually resizing the height switches the mode to **Fixed Size**.
+#### Auto Size (Grow in Both Directions)
+- **Behavior**: Both width and height automatically adjust to fit the text content. No line wrapping occurs unless a manual line break (`Enter` or `Shift+Enter`) is inserted.
+- **Use Case**: Labels, headings, short text that should always fit its content.
+- **Handle Behavior**: Dragging any resize handle converts the element to **Fixed Size** mode.
 
-### 6.3 Fixed Size
-- **Behavior**: Both width and height are fixed.
-- **Overflow**: Text that exceeds the bounds is either clipped or visible but outside the box (depending on "Clip Content" setting).
-- **Visuals**: Often indicated by a red overflow marker if text is hidden.
+#### Fixed Width (Grow Vertical Only)
+- **Behavior**: The text box has a fixed width. Text wraps automatically when it reaches the right edge. The height expands or contracts to fit the content.
+- **Use Case**: Paragraphs, body text, constrained layouts.
+- **Handle Behavior**: 
+  - Dragging **width handles** (left, right, corners) adjusts width while staying in Fixed Width mode.
+  - Dragging **height-only handles** (top, bottom center) converts to **Fixed Size** mode.
+
+#### Fixed Size
+- **Behavior**: Both width and height are fixed and do not change with content.
+- **Overflow**: Text that exceeds the bounds remains visible but extends beyond the bounding box. The bounding box defines the "official" size for layout purposes.
+- **Use Case**: Constrained areas, overlay text, precise layouts.
+
+### 6.2 Alignment-Based Anchor Points
+
+When a text element is in **Auto Size** or **Fixed Width** mode and the content changes (typing, deleting, style changes), the bounding box must resize. The **anchor point** that remains fixed during this resize is determined by the text alignment settings.
+
+#### Horizontal Anchor (determined by Text Align)
+
+| Text Align | Anchor Point | Resize Behavior |
+|------------|--------------|-----------------|
+| **Left** | Left edge | Box grows/shrinks rightward. Left edge stays fixed. |
+| **Center** | Horizontal center | Box grows/shrinks equally from both sides. Center point stays fixed. |
+| **Right** | Right edge | Box grows/shrinks leftward. Right edge stays fixed. |
+
+**Visual Example (Auto Size, typing "Hello" → "Hello World"):**
+```
+Left Aligned:                 Center Aligned:               Right Aligned:
+┌──────┐                          ┌──────┐                        ┌──────┐
+│Hello │  →  ┌───────────┐    │Hello │  →  ┌───────────┐    │Hello │  →  ┌───────────┐
+└──────┘     │Hello World│        └──────┘     │Hello World│        └──────┘     │Hello World│
+             └───────────┘                     └───────────┘                     └───────────┘
+[Left fixed]                  [Center fixed]              [Right fixed]
+```
+
+#### Vertical Anchor (determined by Vertical Align)
+
+| Vertical Align | Anchor Point | Resize Behavior |
+|----------------|--------------|-----------------|
+| **Top** | Top edge | Box grows/shrinks downward. Top edge stays fixed. |
+| **Middle** | Vertical center | Box grows/shrinks equally from top and bottom. Center point stays fixed. |
+| **Bottom** | Bottom edge | Box grows/shrinks upward. Bottom edge stays fixed. |
+
+**Visual Example (Fixed Width, adding a second line):**
+```
+Top Aligned:          Middle Aligned:        Bottom Aligned:
+┌─────────┐           ┌─────────┐            ┌─────────┐
+│ Line 1  │           │ Line 1  │            │ Line 1  │
+└─────────┘           └─────────┘            └─────────┘
+     ↓                     ↓                      ↓
+┌─────────┐              ┌─────────┐         ┌─────────┐
+│ Line 1  │              │ Line 1  │         │ Line 1  │
+│ Line 2  │              │ Line 2  │         │ Line 2  │
+└─────────┘              └─────────┘         └─────────┘
+[Top fixed]          [Center fixed]       [Bottom fixed]
+```
+
+#### Combined Anchor Points (9-Point Grid)
+
+The combination of horizontal and vertical alignment creates a 9-point anchor grid:
+
+```
+┌─────────────────────────────────┐
+│  TL        TC        TR         │
+│  (L+T)     (C+T)     (R+T)      │
+│                                 │
+│  ML        MC        MR         │
+│  (L+M)     (C+M)     (R+M)      │
+│                                 │
+│  BL        BC        BR         │
+│  (L+B)     (C+B)     (R+B)      │
+└─────────────────────────────────┘
+```
+
+| Horizontal | Vertical | Anchor | Common Use |
+|------------|----------|--------|------------|
+| Left | Top | Top-Left (TL) | Default behavior, standard text flow |
+| Center | Top | Top-Center (TC) | Centered headings |
+| Right | Top | Top-Right (TR) | Right-aligned labels |
+| Left | Middle | Middle-Left (ML) | Vertically centered left text |
+| Center | Middle | Middle-Center (MC) | Centered callouts, badges |
+| Right | Middle | Middle-Right (MR) | Right-aligned vertically centered |
+| Left | Bottom | Bottom-Left (BL) | Bottom-anchored left text |
+| Center | Bottom | Bottom-Center (BC) | Footer text, captions |
+| Right | Bottom | Bottom-Right (BR) | Bottom-right anchored labels |
+
+### 6.3 Implementation Notes
+
+#### During Text Editing (Edit Mode)
+- Resize calculations happen in real-time as the user types.
+- The DOM element position must update immediately to maintain the anchor point.
+- Store updates are deferred until editing ends (blur) to avoid disrupting the editing session.
+- A live event system (`element-live-resize`) communicates dimension and position changes to the selection overlay.
+
+#### Position Calculation
+When content changes cause a size change:
+```
+newX = originalX - (widthDelta × horizontalFactor)
+newY = originalY - (heightDelta × verticalFactor)
+
+Where:
+- horizontalFactor: 0 (left), 0.5 (center), 1 (right)
+- verticalFactor: 0 (top), 0.5 (middle), 1 (bottom)
+- widthDelta: newWidth - originalWidth
+- heightDelta: newHeight - originalHeight
+```
+
+#### Mode Switching via Resize Handles
+When the user manually resizes a text element using handles:
+
+| Current Mode | Handle Type | Result |
+|--------------|-------------|--------|
+| Auto Size | Width handles (L, R, corners) | → Fixed Width |
+| Auto Size | Any handle | → Fixed Size (if not width-only) |
+| Fixed Width | Height handles (T, B center) | → Fixed Size |
+| Fixed Width | Width handles | Stays Fixed Width |
+| Fixed Size | Any handle | Stays Fixed Size |
+
+### 6.4 Visual Indicators
+
+- **Mode Icons**: The Property Inspector displays distinct icons for each mode:
+  - **Auto Size**: Arrows pointing outward in both directions
+  - **Fixed Width**: Horizontal constraint with vertical arrows
+  - **Fixed Size**: Fully constrained box icon
+
+- **Resize Handles**: Handle appearance may differ based on mode to indicate which dimensions are auto vs. fixed.
 
 ## 7. Advanced Input Handling
 

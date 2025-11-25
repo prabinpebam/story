@@ -91,7 +91,7 @@ export class CanvasManager {
 
         // Listen for live resize events during text editing (for real-time bounding box updates)
         store.on('element-live-resize', (data) => {
-            this.liveResizeData = data; // { id, width, height }
+            this.liveResizeData = data; // { id, width, height, x?, y? }
         });
 
         // Clear live resize data when editing ends
@@ -936,14 +936,26 @@ export class CanvasManager {
                     height: newHeight
                 };
 
-                // If resizing a text element, switch to fixed mode
+                // If resizing a text element, update the resizing mode appropriately
                 const slide = this.getActiveContainer(state);
                 const element = slide?.elements[id];
                 if (element?.type === 'text') {
                     const currentResizing = element.style?.resizing;
-                    if (currentResizing !== 'fixed') {
+                    
+                    // Determine what mode to switch to based on which handle is being used
+                    // Width handles (e, w) -> fixedWidth (keeps auto height)
+                    // Other handles (corners, n, s) -> fixed (both dimensions fixed)
+                    const isWidthOnlyHandle = ['e', 'w'].includes(this.activeHandle);
+                    
+                    if (currentResizing === 'autoSize') {
+                        // Auto Size -> fixedWidth if using width handle, else fixed
+                        const newMode = isWidthOnlyHandle ? 'fixedWidth' : 'fixed';
+                        updatePayload.style = { ...element.style, resizing: newMode };
+                    } else if (currentResizing === 'fixedWidth' && !isWidthOnlyHandle) {
+                        // Fixed Width -> fixed if using corner/height handles
                         updatePayload.style = { ...element.style, resizing: 'fixed' };
                     }
+                    // If already fixed, no change needed
                 }
 
                 store.dispatch('UPDATE_ELEMENT', updatePayload);
@@ -2246,7 +2258,10 @@ export class CanvasManager {
                     absEl = {
                         ...absEl,
                         width: this.liveResizeData.width,
-                        height: this.liveResizeData.height
+                        height: this.liveResizeData.height,
+                        // Also use live position if available (for alignment-based anchoring)
+                        x: this.liveResizeData.x !== undefined ? this.liveResizeData.x : absEl.x,
+                        y: this.liveResizeData.y !== undefined ? this.liveResizeData.y : absEl.y
                     };
                 }
                 

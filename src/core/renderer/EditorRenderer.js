@@ -120,11 +120,28 @@ export class EditorRenderer extends BaseRenderer {
             content: content
         };
 
-        // Handle Auto Resize - save final dimensions for auto-sizing modes
+        // Handle Auto Resize - save final dimensions and position for auto-sizing modes
         const resizing = el.data.style?.resizing || 'fixedWidth';
         if (resizing === 'autoSize' || resizing === 'fixedWidth') {
             updates.width = div.offsetWidth;
             updates.height = div.offsetHeight;
+            
+            // Also save the live position if it was updated during editing
+            // (for alignment-based anchor point adjustments)
+            if (el._liveX !== undefined) {
+                updates.x = el._liveX;
+            }
+            if (el._liveY !== undefined) {
+                updates.y = el._liveY;
+            }
+            
+            // Clear all live values
+            el._liveX = undefined;
+            el._liveY = undefined;
+            el._liveWidth = undefined;
+            el._liveHeight = undefined;
+            el._livePosition = null;
+            el._liveDimensions = null;
         }
 
         store.dispatch('UPDATE_ELEMENT', updates);

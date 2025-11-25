@@ -38,9 +38,19 @@ When a text object is selected, the Layout section includes additional resizing 
 
 | UI Element | Functionality | UI Design |
 | :--- | :--- | :--- |
-| **Auto Width** | **Auto Width:** The width of the text box automatically adjusts to fit the content horizontally. | An **icon** showing a vertical bar on the left with a horizontal arrow pointing right. |
-| **Auto Height** | **Auto Height:** The height of the text box automatically adjusts to fit the content vertically. | An **icon** showing a centered vertical bar with horizontal lines above and below. |
-| **Fixed Size** | **Fixed Size:** The width and height of the text box are fixed, as determined by the W and H values. | An **icon** showing three horizontal lines, implying a fixed container. |
+| **Auto Size** | **Auto Size:** Both width and height automatically adjust to fit the text content. The anchor point for resizing is determined by the text alignment settings (see Alignment-Based Anchoring below). | An **icon** showing arrows pointing outward in both horizontal and vertical directions, indicating growth in all directions. |
+| **Fixed Width** | **Fixed Width:** The width is fixed; height automatically adjusts to fit wrapped content. Horizontal anchor is determined by text-align setting. | An **icon** showing a horizontal constraint bar with vertical arrows, indicating fixed width but flexible height. |
+| **Fixed Size** | **Fixed Size:** Both width and height are fixed as specified by W and H values. Text may overflow the bounds. | An **icon** showing a fully constrained box with fixed dimensions. |
+
+#### Alignment-Based Anchoring
+When a text element resizes automatically (in Auto Size or Fixed Width mode), the **anchor point** that remains fixed is determined by the text alignment:
+
+- **Horizontal Anchor**: Set by Text Align (Left → left edge fixed, Center → center fixed, Right → right edge fixed)
+- **Vertical Anchor**: Set by Vertical Align (Top → top edge fixed, Middle → center fixed, Bottom → bottom edge fixed)
+
+This creates a 9-point anchor grid. For example, center-aligned text with top vertical alignment will resize symmetrically left/right while the top edge stays fixed.
+
+See **Text Editing Interaction Specification § 6.2** for detailed behavior.
 
 ## 2. Appearance Section
 This section manages opacity, corner radius, and high-level visibility/blending settings.

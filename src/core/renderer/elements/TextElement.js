@@ -55,37 +55,110 @@ export class TextElement extends VisualElement {
             height = entry.contentRect.height;
         }
 
+        // Use live values if available (during editing), otherwise use store values
+        const currentWidth = this._liveWidth !== undefined ? this._liveWidth : el.width;
+        const currentHeight = this._liveHeight !== undefined ? this._liveHeight : el.height;
+        const currentX = this._liveX !== undefined ? this._liveX : el.x;
+        const currentY = this._liveY !== undefined ? this._liveY : el.y;
+
         const updates = {};
         let changed = false;
 
         // Fixed Width: width is fixed, height auto-adjusts to content
-        if (resizing === 'fixedWidth' && Math.abs(height - el.height) > 1) {
+        if (resizing === 'fixedWidth' && Math.abs(height - currentHeight) > 1) {
             updates.height = height;
             changed = true;
         }
         
         // Auto Size: both width and height auto-adjust to content
         if (resizing === 'autoSize') {
-            if (Math.abs(width - el.width) > 1) {
+            if (Math.abs(width - currentWidth) > 1) {
                 updates.width = width;
                 changed = true;
             }
-            if (Math.abs(height - el.height) > 1) {
+            if (Math.abs(height - currentHeight) > 1) {
                 updates.height = height;
                 changed = true;
             }
         }
 
         if (changed) {
+            // Calculate position adjustment based on text alignment
+            // This ensures the anchor point respects the alignment setting
+            // Use same precedence as StyleResolver: element root props override style props
+            const textAlign = el.textAlign || el.style?.textAlign || 'left';
+            const verticalAlign = el.verticalAlign || el.style?.verticalAlign || 'top';
+            
+            // Calculate horizontal factor based on text alignment
+            // Left = 0 (anchor left, grow right)
+            // Center = 0.5 (anchor center, grow both sides)
+            // Right = 1 (anchor right, grow left)
+            let horizontalFactor = 0;
+            if (textAlign === 'center') {
+                horizontalFactor = 0.5;
+            } else if (textAlign === 'right') {
+                horizontalFactor = 1;
+            }
+            
+            // Calculate vertical factor based on vertical alignment
+            // Top = 0 (anchor top, grow down)
+            // Middle = 0.5 (anchor middle, grow both directions)
+            // Bottom = 1 (anchor bottom, grow up)
+            let verticalFactor = 0;
+            if (verticalAlign === 'middle') {
+                verticalFactor = 0.5;
+            } else if (verticalAlign === 'bottom') {
+                verticalFactor = 1;
+            }
+            
+            // Calculate new position based on alignment factors
+            let newX = currentX;
+            let newY = currentY;
+            
+            if (updates.width !== undefined) {
+                const widthDelta = updates.width - currentWidth;
+                newX = currentX - (widthDelta * horizontalFactor);
+            }
+            
+            if (updates.height !== undefined) {
+                const heightDelta = updates.height - currentHeight;
+                newY = currentY - (heightDelta * verticalFactor);
+            }
+            
+            // Calculate final dimensions
+            const finalWidth = updates.width !== undefined ? updates.width : currentWidth;
+            const finalHeight = updates.height !== undefined ? updates.height : currentHeight;
+            
             if (isEditing) {
-                // While editing, store live dimensions on the element for CanvasManager to read
-                // This avoids triggering a full re-render cycle that breaks editing
-                this._liveDimensions = { width, height };
+                // While editing, we need to update the DOM position directly
+                // because we can't dispatch to store (would break editing focus)
+                const div = this.domElement;
+                if (div) {
+                    div.style.left = `${newX}px`;
+                    div.style.top = `${newY}px`;
+                }
+                
+                // Store live dimensions and position for subsequent resize calculations
+                this._liveWidth = finalWidth;
+                this._liveHeight = finalHeight;
+                this._liveX = newX;
+                this._liveY = newY;
+                
                 // Dispatch a lightweight event for the selection box to update
-                store.emit('element-live-resize', { id: el.id, width, height });
+                store.emit('element-live-resize', { 
+                    id: el.id, 
+                    width: finalWidth, 
+                    height: finalHeight, 
+                    x: newX, 
+                    y: newY 
+                });
             } else {
                 // Not editing - safe to update store
-                store.dispatch('UPDATE_ELEMENT', { id: el.id, ...updates });
+                const storeUpdates = { id: el.id, ...updates };
+                // Only include position if it changed
+                if (newX !== el.x) storeUpdates.x = newX;
+                if (newY !== el.y) storeUpdates.y = newY;
+                store.dispatch('UPDATE_ELEMENT', storeUpdates);
             }
         }
     }
@@ -96,6 +169,17 @@ export class TextElement extends VisualElement {
         const div = this.domElement;
 
         if (!div) return;
+
+        // If we're editing and have live position/dimensions, restore them after super.update()
+        // (super.update overwrites position from store data, but we need live values during editing)
+        if (div.isContentEditable) {
+            if (this._liveX !== undefined) {
+                div.style.left = `${this._liveX}px`;
+            }
+            if (this._liveY !== undefined) {
+                div.style.top = `${this._liveY}px`;
+            }
+        }
 
         // Ensure no padding/border/margin interferes with size calculations
         div.style.padding = '0';
@@ -224,7 +308,7 @@ export class TextElement extends VisualElement {
             div.style.height = `${el.height}px`;
             div.style.whiteSpace = 'pre-wrap'; // Allow text to wrap
             div.style.wordWrap = 'break-word';
-            div.style.overflow = 'hidden'; // Hide overflow in fixed mode
+            div.style.overflow = 'visible'; // Allow text to overflow visible (user requested)
         }
 
         // Text Fill
@@ -382,6 +466,13 @@ export class TextElement extends VisualElement {
         if (!div) return;
 
         if (isEditing) {
+            // Clear any stale live values when entering edit mode
+            // This ensures we start fresh from the store values
+            this._liveX = undefined;
+            this._liveY = undefined;
+            this._liveWidth = undefined;
+            this._liveHeight = undefined;
+            
             if (!div.isContentEditable) {
                 div.contentEditable = true;
                 div.style.outline = 'none';
@@ -411,6 +502,12 @@ export class TextElement extends VisualElement {
                 }
             }
         } else {
+            // Clear live values when exiting edit mode
+            this._liveX = undefined;
+            this._liveY = undefined;
+            this._liveWidth = undefined;
+            this._liveHeight = undefined;
+            
             if (div.isContentEditable) {
                 div.contentEditable = false;
                 div.style.outline = 'none';
