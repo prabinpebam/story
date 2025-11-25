@@ -164,7 +164,7 @@ export class SlideList {
                 
                 if (el.type === 'rect') {
                      elDiv.style.background = el.style?.backgroundColor || '#ccc';
-                } else if (el.type === 'placeholder') {
+                } else if (el.type === 'placeholder' || el.isPlaceholder) {
                     // Dotted border for placeholders
                     elDiv.style.border = '1px dashed #999';
                     elDiv.style.background = 'rgba(0,0,0,0.05)';
@@ -313,11 +313,15 @@ export class SlideList {
                             } else {
                                 elDiv.style.background = el.style?.backgroundColor || '#ccc';
                             }
+                        } else if (el.isPlaceholder) {
+                            // Dotted border for placeholders
+                            elDiv.style.border = '1px dashed #999';
+                            elDiv.style.background = 'rgba(0,0,0,0.05)';
                         } else {
                             elDiv.style.background = 'rgba(0,0,0,0.1)';
                         }
 
-                        if (el.type === 'text') {
+                        if (el.type === 'text' && !el.isPlaceholder) {
                             elDiv.style.border = '1px solid rgba(0,0,0,0.2)';
                         }
                         preview.appendChild(elDiv);

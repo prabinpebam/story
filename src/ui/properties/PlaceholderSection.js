@@ -3,7 +3,7 @@ import { store } from '../../core/Store.js';
 import { Icons } from '../Icons.js';
 
 /**
- * PlaceholderSection - Placeholder Toolbar/Palette for Layout Masters
+ * PlaceholderSection - Placeholder Palette for Layout Masters
  * 
  * This section appears in the Property Inspector when:
  * - Mode is 'master'
@@ -11,11 +11,10 @@ import { Icons } from '../Icons.js';
  * 
  * UX Model:
  * - Displays a grid of all available placeholder types
- * - Users can DRAG a placeholder type onto the canvas to place it
- * - Users can CLICK a placeholder type to enter "draw mode" and draw a rectangle
- * - Placeholder types that are already placed (and limited to 1) are disabled
- * - Some types allow multiple instances (e.g., Text, Picture, Media)
- * - Some types are limited to one per layout (e.g., Title, Subtitle)
+ * - CLICK adds placeholder at default location immediately
+ * - DRAG onto canvas places at drop location
+ * - Limited types (Title, Subtitle, Content) disabled after placed
+ * - Unlimited types (Text, Picture, Media) show count badge
  */
 export class PlaceholderSection {
     constructor() {
@@ -35,24 +34,11 @@ export class PlaceholderSection {
         ];
         
         this.placedCounts = {}; // Track how many of each type are placed
-        this.activeDrawType = null; // Currently selected type for drawing
         
         this.createContent();
     }
 
     createContent() {
-        // Instructions
-        this.instructions = document.createElement('div');
-        this.instructions.className = 'placeholder-instructions';
-        this.instructions.style.cssText = `
-            font-size: var(--font-size-xs);
-            color: var(--color-text-tertiary);
-            margin-bottom: var(--spacing-2);
-            line-height: 1.4;
-        `;
-        this.instructions.textContent = 'Drag onto canvas or click to draw';
-        this.section.appendChild(this.instructions);
-
         // Grid container for placeholder types
         this.gridContainer = document.createElement('div');
         this.gridContainer.className = 'placeholder-palette';
@@ -69,47 +55,6 @@ export class PlaceholderSection {
             const item = this.createPaletteItem(type);
             this.paletteItems[type.id] = item;
             this.gridContainer.appendChild(item.element);
-        });
-
-        // Active draw mode indicator
-        this.drawModeIndicator = document.createElement('div');
-        this.drawModeIndicator.className = 'draw-mode-indicator';
-        this.drawModeIndicator.style.cssText = `
-            display: none;
-            margin-top: var(--spacing-2);
-            padding: 8px;
-            background: var(--color-accent-bg);
-            border: 1px solid var(--color-accent);
-            border-radius: var(--radius-sm);
-            font-size: var(--font-size-sm);
-            color: var(--color-accent);
-            text-align: center;
-        `;
-        this.section.appendChild(this.drawModeIndicator);
-
-        // Cancel button for draw mode
-        this.cancelBtn = document.createElement('button');
-        this.cancelBtn.textContent = 'Cancel (Esc)';
-        this.cancelBtn.style.cssText = `
-            display: none;
-            margin-top: var(--spacing-1);
-            padding: 4px 8px;
-            width: 100%;
-            border: 1px solid var(--color-border);
-            border-radius: var(--radius-sm);
-            background: var(--color-bg-well);
-            color: var(--color-text-secondary);
-            font-size: var(--font-size-xs);
-            cursor: pointer;
-        `;
-        this.cancelBtn.addEventListener('click', () => this.cancelDrawMode());
-        this.section.appendChild(this.cancelBtn);
-
-        // Listen for escape key to cancel draw mode
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape' && this.activeDrawType) {
-                this.cancelDrawMode();
-            }
         });
     }
 
@@ -128,10 +73,11 @@ export class PlaceholderSection {
             background: var(--color-bg-well);
             border: 1px solid var(--color-border);
             border-radius: var(--radius-sm);
-            cursor: grab;
+            cursor: pointer;
             transition: all 0.15s;
             min-height: 52px;
             position: relative;
+            user-select: none;
         `;
 
         // Icon
@@ -209,16 +155,16 @@ export class PlaceholderSection {
         });
 
         element.addEventListener('mouseleave', () => {
-            if (!element.classList.contains('disabled') && !element.classList.contains('active')) {
+            if (!element.classList.contains('disabled')) {
                 element.style.background = 'var(--color-bg-well)';
                 element.style.borderColor = 'var(--color-border)';
             }
         });
 
-        // Click to enter draw mode
+        // Click to add placeholder at default location
         element.addEventListener('click', () => {
             if (!element.classList.contains('disabled')) {
-                this.enterDrawMode(type);
+                this.addPlaceholder(type);
             }
         });
 
@@ -258,20 +204,7 @@ export class PlaceholderSection {
                     element.classList.remove('disabled');
                     element.draggable = true;
                     element.style.opacity = '1';
-                    element.style.cursor = 'grab';
-                }
-            },
-            setActive: (active) => {
-                if (active) {
-                    element.classList.add('active');
-                    element.style.background = 'var(--color-accent-bg)';
-                    element.style.borderColor = 'var(--color-accent)';
-                } else {
-                    element.classList.remove('active');
-                    if (!element.classList.contains('disabled')) {
-                        element.style.background = 'var(--color-bg-well)';
-                        element.style.borderColor = 'var(--color-border)';
-                    }
+                    element.style.cursor = 'pointer';
                 }
             },
             updateBadge: (count) => {
@@ -288,32 +221,158 @@ export class PlaceholderSection {
         };
     }
 
-    enterDrawMode(type) {
-        // Clear any previous active state
-        Object.values(this.paletteItems).forEach(item => item.setActive(false));
-        
-        this.activeDrawType = type;
-        this.paletteItems[type.id].setActive(true);
-        
-        // Show indicator
-        this.drawModeIndicator.innerHTML = `Drawing: <strong>${type.label}</strong> — Click and drag on canvas`;
-        this.drawModeIndicator.style.display = 'block';
-        this.cancelBtn.style.display = 'block';
-        
-        // Set the tool to placeholder draw mode
-        store.dispatch('SET_ACTIVE_TOOL', { tool: 'placeholder', placeholderType: type.id });
+    /**
+     * Add a placeholder at the default location for its type
+     */
+    addPlaceholder(type) {
+        const state = store.getState();
+        const layoutId = state.editor.activeMasterId;
+        const layout = state.masters[layoutId];
+
+        if (!layout || layout.type !== 'layout') return;
+
+        // Generate unique ID
+        const existingCount = Object.values(layout.elements || {})
+            .filter(el => el.placeholderType === type.id).length;
+        const newId = `placeholder-${type.id}-${Date.now()}`;
+
+        // Get default position and size for this type
+        const defaults = this.getPlaceholderDefaults(type.id, layout);
+
+        const newPlaceholder = {
+            id: newId,
+            type: 'text',
+            isPlaceholder: true,
+            placeholderType: type.id,
+            content: this.getPlaceholderContent(type.id),
+            x: defaults.x,
+            y: defaults.y,
+            width: defaults.width,
+            height: defaults.height,
+            rotation: 0,
+            opacity: 1,
+            style: defaults.style
+        };
+
+        // Dispatch action to add element to master
+        store.dispatch('ADD_ELEMENT_TO_MASTER', { 
+            masterId: layoutId, 
+            element: newPlaceholder 
+        });
+
+        // Select the new placeholder
+        setTimeout(() => {
+            store.dispatch('SET_SELECTION', { elementIds: [newId] });
+        }, 50);
     }
 
-    cancelDrawMode() {
-        if (this.activeDrawType) {
-            this.paletteItems[this.activeDrawType.id].setActive(false);
-        }
-        this.activeDrawType = null;
-        this.drawModeIndicator.style.display = 'none';
-        this.cancelBtn.style.display = 'none';
-        
-        // Return to select tool
-        store.dispatch('SET_ACTIVE_TOOL', { tool: 'select' });
+    /**
+     * Get default position, size, and style for a placeholder type
+     */
+    getPlaceholderDefaults(typeId, layout) {
+        const slideWidth = layout.width || 1920;
+        const slideHeight = layout.height || 1080;
+        const margin = 100;
+
+        const defaults = {
+            title: {
+                x: margin,
+                y: 80,
+                width: slideWidth - margin * 2,
+                height: 120,
+                style: {
+                    fontSize: 72,
+                    textAlign: 'center',
+                    verticalAlign: 'middle',
+                    color: 'var(--theme-text-primary, #333333)',
+                    fontFamily: 'var(--theme-font-heading, Inter)',
+                    fontWeight: '700'
+                }
+            },
+            subtitle: {
+                x: margin,
+                y: 220,
+                width: slideWidth - margin * 2,
+                height: 80,
+                style: {
+                    fontSize: 32,
+                    textAlign: 'center',
+                    verticalAlign: 'middle',
+                    color: 'var(--theme-text-secondary, #666666)',
+                    fontFamily: 'var(--theme-font-body, Inter)',
+                    fontWeight: '400'
+                }
+            },
+            body: {
+                x: margin,
+                y: 320,
+                width: slideWidth - margin * 2,
+                height: slideHeight - 420,
+                style: {
+                    fontSize: 24,
+                    textAlign: 'left',
+                    verticalAlign: 'top',
+                    color: 'var(--theme-text-primary, #333333)',
+                    fontFamily: 'var(--theme-font-body, Inter)',
+                    fontWeight: '400'
+                }
+            },
+            text: {
+                x: margin + Math.random() * 200,
+                y: 350 + Math.random() * 100,
+                width: 400,
+                height: 150,
+                style: {
+                    fontSize: 18,
+                    textAlign: 'left',
+                    verticalAlign: 'top',
+                    color: 'var(--theme-text-primary, #333333)',
+                    fontFamily: 'var(--theme-font-body, Inter)',
+                    fontWeight: '400'
+                }
+            },
+            picture: {
+                x: slideWidth / 2 - 200 + Math.random() * 50,
+                y: slideHeight / 2 - 150 + Math.random() * 50,
+                width: 400,
+                height: 300,
+                style: {
+                    fontSize: 16,
+                    textAlign: 'center',
+                    verticalAlign: 'middle',
+                    color: 'var(--theme-text-secondary, #666666)'
+                }
+            },
+            media: {
+                x: slideWidth / 2 - 240 + Math.random() * 50,
+                y: slideHeight / 2 - 135 + Math.random() * 50,
+                width: 480,
+                height: 270,
+                style: {
+                    fontSize: 16,
+                    textAlign: 'center',
+                    verticalAlign: 'middle',
+                    color: 'var(--theme-text-secondary, #666666)'
+                }
+            }
+        };
+
+        return defaults[typeId] || defaults.text;
+    }
+
+    /**
+     * Get the default placeholder content/prompt text
+     */
+    getPlaceholderContent(typeId) {
+        const contents = {
+            title: '<h1 style="margin:0;font-size:inherit;font-weight:inherit;">Click to add title</h1>',
+            subtitle: '<p style="margin:0;">Click to add subtitle</p>',
+            body: '<p style="margin:0;">Click to add text</p>',
+            text: '<p style="margin:0;">Click to add text</p>',
+            picture: '<p style="margin:0;opacity:0.5;">🖼️ Click to add picture</p>',
+            media: '<p style="margin:0;opacity:0.5;">▶️ Click to add media</p>'
+        };
+        return contents[typeId] || '<p style="margin:0;">Click to add content</p>';
     }
 
     update(selection) {
@@ -334,16 +393,6 @@ export class PlaceholderSection {
         
         // Update palette item states
         this.updatePaletteStates();
-        
-        // Check if current tool is still placeholder mode
-        const activeTool = state.editor.activeTool;
-        if (activeTool !== 'placeholder' && this.activeDrawType) {
-            // Tool changed externally, clear our draw mode state
-            this.paletteItems[this.activeDrawType.id].setActive(false);
-            this.activeDrawType = null;
-            this.drawModeIndicator.style.display = 'none';
-            this.cancelBtn.style.display = 'none';
-        }
     }
 
     updatePlacedCounts(layout) {
@@ -382,25 +431,5 @@ export class PlaceholderSection {
             // Update badge for unlimited types
             item.updateBadge(count);
         });
-    }
-
-    /**
-     * Called when a placeholder is successfully drawn/dropped
-     * Can be called by CanvasManager after placement
-     */
-    onPlaceholderPlaced(placeholderType) {
-        // For limited types, auto-cancel draw mode after placement
-        const typeConfig = this.placeholderTypes.find(t => t.id === placeholderType);
-        if (typeConfig && typeConfig.maxCount !== Infinity) {
-            this.cancelDrawMode();
-        }
-        
-        // Force update to refresh states
-        const state = store.getState();
-        const activeMaster = state.masters[state.editor.activeMasterId];
-        if (activeMaster) {
-            this.updatePlacedCounts(activeMaster);
-            this.updatePaletteStates();
-        }
     }
 }

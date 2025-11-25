@@ -114,7 +114,19 @@ export class LayerTree {
         icon.style.textAlign = 'center';
         icon.style.marginRight = '8px';
         
-        if (el.type === 'text') icon.className = 'fa-solid fa-font';
+        // Determine icon based on type and placeholder status
+        if (el.isPlaceholder) {
+            // Placeholder-specific icons based on placeholderType
+            switch (el.placeholderType) {
+                case 'title': icon.className = 'fa-solid fa-heading'; break;
+                case 'subtitle': icon.className = 'fa-solid fa-h'; break;
+                case 'body': icon.className = 'fa-solid fa-paragraph'; break;
+                case 'text': icon.className = 'fa-solid fa-font'; break;
+                case 'picture': icon.className = 'fa-regular fa-image'; break;
+                case 'media': icon.className = 'fa-solid fa-play'; break;
+                default: icon.className = 'fa-regular fa-square-dashed'; break;
+            }
+        } else if (el.type === 'text') icon.className = 'fa-solid fa-font';
         else if (el.type === 'rect') icon.className = 'fa-regular fa-square';
         else if (el.type === 'circle') icon.className = 'fa-regular fa-circle';
         else if (el.type === 'image') icon.className = 'fa-regular fa-image';
@@ -131,7 +143,18 @@ export class LayerTree {
         
         let displayName = el.name;
         if (!displayName) {
-            if (el.type === 'text') {
+            if (el.isPlaceholder && el.placeholderType) {
+                // Placeholder display name
+                const placeholderNames = {
+                    title: 'Title Placeholder',
+                    subtitle: 'Subtitle Placeholder',
+                    body: 'Body Placeholder',
+                    text: 'Text Placeholder',
+                    picture: 'Picture Placeholder',
+                    media: 'Media Placeholder'
+                };
+                displayName = placeholderNames[el.placeholderType] || 'Placeholder';
+            } else if (el.type === 'text') {
                 const temp = document.createElement('div');
                 temp.innerHTML = el.content;
                 displayName = temp.textContent || 'Text';

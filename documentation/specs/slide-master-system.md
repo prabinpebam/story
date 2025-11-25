@@ -466,11 +466,9 @@ Old Layout: "Title and Content"          New Layout: "Two Content"
 │ [Delete Layout]             │
 ├─────────────────────────────┤
 │ PLACEHOLDERS (Palette)      │
-│ Drag to canvas or click     │
-│ to draw                     │
 │ ┌─────┬─────┬─────┐         │
 │ │ H1  │ H2  │  ¶  │         │
-│ │Title│Subt │Cont │         │
+│ │Title│Subt │Body │         │
 │ │ ✓   │     │     │         │
 │ ├─────┼─────┼─────┤         │
 │ │  T  │ 🖼  │  ▶  │         │
@@ -491,21 +489,17 @@ The Placeholders section in the Property Inspector functions as a **toolbar/pale
 ```
 ┌─────────────────────────────┐
 │ PLACEHOLDERS                │
-│ Drag onto canvas or click   │
-│ to draw                     │
 ├─────────────────────────────┤
 │ ┌─────┐ ┌─────┐ ┌─────┐    │
 │ │ H1  │ │ H2  │ │  ¶  │    │
-│ │Title│ │Subt │ │Cont │    │
+│ │Title│ │Subt │ │Body │    │
+│ │  ✓  │ │     │ │     │    │
 │ └─────┘ └─────┘ └─────┘    │
 │ ┌─────┐ ┌─────┐ ┌─────┐    │
 │ │  T  │ │ 🖼  │ │  ▶  │    │
 │ │Text │ │Pict │ │Media│    │
+│ │     │ │ (2) │ │     │    │
 │ └─────┘ └─────┘ └─────┘    │
-├─────────────────────────────┤
-│ Drawing: Title — Click and  │
-│ drag on canvas              │
-│ [Cancel (Esc)]              │
 └─────────────────────────────┘
 ```
 
@@ -515,7 +509,7 @@ The Placeholders section in the Property Inspector functions as a **toolbar/pale
 |------|------|-----------|-------------|
 | **Title** | H1 | 1 | Main slide title |
 | **Subtitle** | H2 | 1 | Secondary title |
-| **Content** | ¶ | 1 | Main content area |
+| **Body** | ¶ | 1 | Main body/content area |
 | **Text** | T | ∞ | Generic text box |
 | **Picture** | 🖼 | ∞ | Image placeholder |
 | **Media** | ▶ | ∞ | Video/audio placeholder |
@@ -524,39 +518,42 @@ The Placeholders section in the Property Inspector functions as a **toolbar/pale
 
 **Adding a Placeholder:**
 
-1. **Drag and Drop:**
+1. **Click to Add:**
+   - Click a placeholder type in the palette
+   - Placeholder is immediately created at a default position
+   - Each type has a predefined default position and size
+   - Placeholder is selected after creation for immediate repositioning
+
+2. **Drag and Drop:**
    - Drag a placeholder type from the palette
    - Drop onto the canvas at desired location
-   - Placeholder is created with default size
+   - Placeholder is created with default size at drop position
    - Can immediately resize/reposition
 
-2. **Click to Draw:**
-   - Click a placeholder type to enter "draw mode"
-   - Cursor changes to crosshair
-   - Click and drag on canvas to draw rectangle
-   - Placeholder fills the drawn area
-   - Press Escape to cancel draw mode
+**Default Positions:**
+| Type | Default Position |
+|------|-----------------|
+| Title | Centered horizontally, upper third |
+| Subtitle | Centered horizontally, below title |
+| Body | Centered, middle of slide |
+| Text | Centered, middle of slide |
+| Picture | Centered, middle of slide |
+| Media | Centered, middle of slide |
 
 **Visual States:**
 
 | State | Appearance | Behavior |
 |-------|------------|----------|
-| **Available** | Normal, draggable | Can drag or click to draw |
-| **Placed (Limited)** | Checkmark overlay, disabled | Cannot add more (max 1) |
+| **Available** | Normal, clickable/draggable | Can click or drag to add |
+| **Placed (Limited)** | Checkmark overlay, dimmed | Cannot add more (max 1) |
 | **Placed (Unlimited)** | Count badge | Shows how many exist |
-| **Active (Drawing)** | Highlighted border | Currently in draw mode |
 | **Hover** | Border highlight | Visual feedback |
-
-**Draw Mode Indicator:**
-- Shows below the palette when a type is selected
-- Displays: "Drawing: [Type] — Click and drag on canvas"
-- Cancel button: "Cancel (Esc)"
 
 #### Constraints
 
-- **Title, Subtitle, Content**: Limited to 1 per layout. Once placed, the palette item is disabled with a checkmark.
-- **Text, Picture, Media**: Unlimited. A count badge shows how many exist.
-- **Switching Layouts**: Exiting master mode or switching layouts cancels draw mode.
+- **Title, Subtitle, Body**: Limited to 1 per layout. Once placed, the palette item shows a checkmark and is disabled.
+- **Text, Picture, Media**: Unlimited. A count badge shows how many exist on the current layout.
+- All placeholders can be repositioned and resized after creation.
 
 ### 5.7 Placeholder Properties (When Selected)
 ```
