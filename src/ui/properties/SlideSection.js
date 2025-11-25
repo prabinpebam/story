@@ -6,7 +6,7 @@ import { Switch } from '../components/Switch.js';
 import { store } from '../../core/Store.js';
 import { FillSection } from './FillSection.js';
 import { panelManager } from '../PanelManager.js';
-import { ICONS } from '../Icons.js';
+import { Icons } from '../Icons.js';
 
 export class SlideSection {
     constructor() {
@@ -85,7 +85,7 @@ export class SlideSection {
         
         const colorBtn = document.createElement('button');
         colorBtn.className = 'theme-manager-btn';
-        colorBtn.innerHTML = `${ICONS.PALETTE || '<i class="fa-solid fa-palette"></i>'} <span>Colors</span>`;
+        colorBtn.innerHTML = `${Icons.PALETTE || '<i class="fa-solid fa-palette"></i>'} <span>Colors</span>`;
         colorBtn.title = 'Open Color Theme Manager (Ctrl+Shift+C)';
         colorBtn.style.cssText = `
             display: flex;
@@ -113,7 +113,7 @@ export class SlideSection {
         
         const typoBtn = document.createElement('button');
         typoBtn.className = 'theme-manager-btn';
-        typoBtn.innerHTML = `${ICONS.TYPOGRAPHY || '<i class="fa-solid fa-font"></i>'} <span>Fonts</span>`;
+        typoBtn.innerHTML = `${Icons.FONT || '<i class="fa-solid fa-font"></i>'} <span>Fonts</span>`;
         typoBtn.title = 'Open Typography Style Manager (Ctrl+Shift+T)';
         typoBtn.style.cssText = `
             display: flex;
