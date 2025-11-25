@@ -13,7 +13,7 @@ export class LayoutSection {
     }
 
     createContent() {
-        // Layout Mode Row (Auto Width / Auto Height / Fixed) - Only shown for text elements
+        // Layout Mode Row (Auto Size / Fixed Width / Fixed Size) - Only shown for text elements
         this.layoutModeRow = document.createElement('div');
         this.layoutModeRow.className = 'pi-row';
         this.layoutModeRow.style.display = 'none'; // Hidden by default
@@ -21,9 +21,9 @@ export class LayoutSection {
         this.layoutModeRow.style.marginBottom = '8px';
 
         const layoutModes = [
-            { icon: Icons.TEXT_AUTO_WIDTH, value: 'autoWidth', title: 'Auto Width' },
-            { icon: Icons.TEXT_AUTO_HEIGHT, value: 'autoHeight', title: 'Auto Height' },
-            { icon: Icons.TEXT_FIXED, value: 'fixed', title: 'Fixed Size' }
+            { icon: Icons.TEXT_AUTO_SIZE, value: 'autoSize', title: 'Auto Size' },
+            { icon: Icons.TEXT_FIXED_WIDTH, value: 'fixedWidth', title: 'Fixed Width' },
+            { icon: Icons.TEXT_FIXED_SIZE, value: 'fixed', title: 'Fixed Size' }
         ];
 
         this.layoutButtons = layoutModes.map(mode => {
@@ -90,13 +90,13 @@ export class LayoutSection {
     }
 
     updateInputStates(resizingMode) {
-        // autoWidth: W is auto (disabled), H is manual (enabled)
-        // autoHeight: W is manual (enabled), H is auto (disabled)
+        // autoSize: Both W and H are auto (disabled)
+        // fixedWidth: W is manual (enabled), H is auto (disabled)
         // fixed: Both W and H are manual (enabled)
-        if (resizingMode === 'autoWidth') {
+        if (resizingMode === 'autoSize') {
             this.wInput.setDisabled(true);
-            this.hInput.setDisabled(false);
-        } else if (resizingMode === 'autoHeight') {
+            this.hInput.setDisabled(true);
+        } else if (resizingMode === 'fixedWidth') {
             this.wInput.setDisabled(false);
             this.hInput.setDisabled(true);
         } else {
@@ -135,7 +135,7 @@ export class LayoutSection {
 
             if (this.isTextElement) {
                 // Update layout mode button states
-                const currentMode = element.style?.resizing || 'autoHeight';
+                const currentMode = element.style?.resizing || 'fixedWidth';
                 this.layoutButtons.forEach(({ btn, value }) => {
                     btn.setActive(value === currentMode);
                 });

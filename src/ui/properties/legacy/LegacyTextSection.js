@@ -236,10 +236,10 @@ export class LegacyTextSection {
 
         // Resizing Segmented Control
         const resizingControl = new SegmentedControl([
-            { label: 'Auto Width', value: 'autoWidth', icon: 'fa-arrows-left-right' },
-            { label: 'Auto Height', value: 'autoHeight', icon: 'fa-arrows-up-down' },
+            { label: 'Auto Size', value: 'autoSize', icon: 'fa-arrows-left-right' },
+            { label: 'Fixed Width', value: 'fixedWidth', icon: 'fa-arrows-up-down' },
             { label: 'Fixed Size', value: 'fixed', icon: 'fa-expand' }
-        ], style.resizing || 'autoHeight', (val) => {
+        ], style.resizing || 'fixedWidth', (val) => {
             updateStyle(selection, 'resizing', val);
         });
         content.appendChild(resizingControl.element);

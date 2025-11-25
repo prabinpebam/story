@@ -120,9 +120,9 @@ export class EditorRenderer extends BaseRenderer {
             content: content
         };
 
-        // Handle Auto Resize
-        const resizing = el.data.style?.resizing || 'autoHeight';
-        if (resizing === 'autoWidth' || resizing === 'autoHeight') {
+        // Handle Auto Resize - save final dimensions for auto-sizing modes
+        const resizing = el.data.style?.resizing || 'fixedWidth';
+        if (resizing === 'autoSize' || resizing === 'fixedWidth') {
             updates.width = div.offsetWidth;
             updates.height = div.offsetHeight;
         }

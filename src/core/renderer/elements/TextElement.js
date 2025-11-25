@@ -41,7 +41,7 @@ export class TextElement extends VisualElement {
         const isEditing = state.editor.editingElementId === this.data.id;
 
         const el = this.data;
-        const resizing = el.style?.resizing || 'autoHeight';
+        const resizing = el.style?.resizing || 'fixedWidth';
         
         // Only sync if auto-sizing is enabled (not fixed)
         if (resizing === 'fixed') return;
@@ -58,16 +58,22 @@ export class TextElement extends VisualElement {
         const updates = {};
         let changed = false;
 
-        // Auto Height: width is fixed, height auto-adjusts to content
-        if (resizing === 'autoHeight' && Math.abs(height - el.height) > 1) {
+        // Fixed Width: width is fixed, height auto-adjusts to content
+        if (resizing === 'fixedWidth' && Math.abs(height - el.height) > 1) {
             updates.height = height;
             changed = true;
         }
         
-        // Auto Width: height is fixed, width auto-adjusts to content
-        if (resizing === 'autoWidth' && Math.abs(width - el.width) > 1) {
-            updates.width = width;
-            changed = true;
+        // Auto Size: both width and height auto-adjust to content
+        if (resizing === 'autoSize') {
+            if (Math.abs(width - el.width) > 1) {
+                updates.width = width;
+                changed = true;
+            }
+            if (Math.abs(height - el.height) > 1) {
+                updates.height = height;
+                changed = true;
+            }
         }
 
         if (changed) {
@@ -193,22 +199,23 @@ export class TextElement extends VisualElement {
         
         // Auto Resize Mode Override
         // VisualElement sets fixed width/height from element data. We override based on resizing mode.
-        const resizing = el.style?.resizing || 'autoHeight';
+        const resizing = el.style?.resizing || 'fixedWidth';
         
-        if (resizing === 'autoHeight' && !props.truncate) {
-            // Auto Height: Width is fixed (from element data), height auto-adjusts to content
+        if (resizing === 'fixedWidth' && !props.truncate) {
+            // Fixed Width: Width is fixed (from element data), height auto-adjusts to content
             div.style.width = `${el.width}px`;
             div.style.height = 'auto';
             div.style.minHeight = '1em'; // Prevent complete collapse
             div.style.whiteSpace = 'pre-wrap'; // Allow text to wrap within fixed width
             div.style.wordWrap = 'break-word';
             div.style.overflow = 'visible';
-        } else if (resizing === 'autoWidth') {
-            // Auto Width: Height is fixed (from element data), width auto-adjusts to content
+        } else if (resizing === 'autoSize') {
+            // Auto Size: Both width and height auto-adjust to content
             div.style.width = 'auto';
             div.style.minWidth = '1em'; // Prevent complete collapse
             div.style.maxWidth = 'none';
-            div.style.height = `${el.height}px`;
+            div.style.height = 'auto';
+            div.style.minHeight = '1em';
             div.style.whiteSpace = 'nowrap'; // Single line, width expands
             div.style.overflow = 'visible';
         } else {
