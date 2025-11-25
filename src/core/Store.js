@@ -105,6 +105,7 @@ class Store extends EventEmitter {
                 if (type === 'UPDATE_VIEWPORT') this.emit('viewport-changed', { pan: this.state.editor.pan, zoom: this.state.editor.zoom });
                 if (type === 'UPDATE_SELECTION') this.emit('selection-changed', this.state.editor.selectedElementIds);
                 if (type === 'TOGGLE_THEME') this.emit('theme-change', this.state.theme);
+                if (type === 'SET_EDITING_ELEMENT') this.emit('editing-changed', this.state.editor.editingElementId);
                 break;
 
             // Presentation Handlers

@@ -116,6 +116,20 @@
     padding-left: 1.5em; /* Restore padding for lists */
 }
 
+/* Text Editing Styles */
+.slide-element[contenteditable="true"] {
+    caret-color: #000000;
+    outline: none !important;
+}
+
+.slide-element[contenteditable="true"]::selection {
+    background: rgba(24, 160, 251, 0.3);
+}
+
+.slide-element[contenteditable="true"] *::selection {
+    background: rgba(24, 160, 251, 0.3);
+}
+
 /* Cursors */
 body.cursor-select #interaction-canvas { cursor: default; }
 body.cursor-hand #interaction-canvas { cursor: grab; }

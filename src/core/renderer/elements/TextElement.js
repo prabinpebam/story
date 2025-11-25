@@ -34,12 +34,16 @@ export class TextElement extends VisualElement {
         const state = store.getState();
         // Don't update if we are dragging/resizing manually or interacting
         if (state.ui && state.ui.isInteracting) return;
+        
+        // Don't dispatch updates while editing - let the blur handler save final size
+        // This prevents re-renders during typing which can cause focus issues
+        if (state.editor.editingElementId === this.data.id) return;
 
         const el = this.data;
         const resizing = el.style?.resizing || 'autoHeight';
         
-        // Only sync if auto-sizing is enabled
-        if (resizing !== 'autoHeight' && resizing !== 'autoWidth') return;
+        // Only sync if auto-sizing is enabled (not fixed)
+        if (resizing === 'fixed') return;
 
         let width, height;
         if (entry.borderBoxSize && entry.borderBoxSize.length > 0) {
@@ -53,21 +57,17 @@ export class TextElement extends VisualElement {
         const updates = {};
         let changed = false;
 
+        // Auto Height: width is fixed, height auto-adjusts to content
         if (resizing === 'autoHeight' && Math.abs(height - el.height) > 1) {
             updates.height = height;
             changed = true;
         }
         
-        // Prevent update loops by checking if we are already editing this element
-        // If we are editing, the blur handler will save the final size.
-        // But we want the selection box to update LIVE.
-        // CanvasManager draws based on store. So we DO need to update store.
-        // But updating store triggers render...
-        // TextElement.update() sets style.height.
-        // If we update store, TextElement.update() is called.
-        // It sets style.height = 'auto' (if autoHeight).
-        // DOM size remains same. ResizeObserver shouldn't fire again.
-        // So it should be safe.
+        // Auto Width: height is fixed, width auto-adjusts to content
+        if (resizing === 'autoWidth' && Math.abs(width - el.width) > 1) {
+            updates.width = width;
+            changed = true;
+        }
 
         if (changed) {
             store.dispatch('UPDATE_ELEMENT', { id: el.id, ...updates });
@@ -88,8 +88,9 @@ export class TextElement extends VisualElement {
         div.style.boxSizing = 'border-box';
         div.style.overflow = 'visible'; // Allow text to be seen, but box is defined by ResizeObserver
 
-        // Content
-        if (div.innerHTML !== el.content) {
+        // Content - only update if not currently being edited
+        // When editing, the user's changes are in the DOM and we don't want to overwrite them
+        if (!div.isContentEditable && div.innerHTML !== el.content) {
              div.innerHTML = el.content;
         }
 
@@ -180,15 +181,33 @@ export class TextElement extends VisualElement {
             div.style.justifyContent = this.getJustifyContentForVerticalAlign(props.verticalAlign);
         }
         
-        // Auto Resize Override
-        // VisualElement sets fixed width/height. We override height if auto-sizing.
+        // Auto Resize Mode Override
+        // VisualElement sets fixed width/height from element data. We override based on resizing mode.
         const resizing = el.style?.resizing || 'autoHeight';
+        
         if (resizing === 'autoHeight' && !props.truncate) {
+            // Auto Height: Width is fixed (from element data), height auto-adjusts to content
+            div.style.width = `${el.width}px`;
             div.style.height = 'auto';
             div.style.minHeight = '1em'; // Prevent complete collapse
-            div.style.alignItems = 'flex-start'; // Ensure content aligns to top
-            div.style.display = 'flex';
-            div.style.flexDirection = 'column';
+            div.style.whiteSpace = 'pre-wrap'; // Allow text to wrap within fixed width
+            div.style.wordWrap = 'break-word';
+            div.style.overflow = 'visible';
+        } else if (resizing === 'autoWidth') {
+            // Auto Width: Height is fixed (from element data), width auto-adjusts to content
+            div.style.width = 'auto';
+            div.style.minWidth = '1em'; // Prevent complete collapse
+            div.style.maxWidth = 'none';
+            div.style.height = `${el.height}px`;
+            div.style.whiteSpace = 'nowrap'; // Single line, width expands
+            div.style.overflow = 'visible';
+        } else {
+            // Fixed: Both width and height are fixed from element data
+            div.style.width = `${el.width}px`;
+            div.style.height = `${el.height}px`;
+            div.style.whiteSpace = 'pre-wrap'; // Allow text to wrap
+            div.style.wordWrap = 'break-word';
+            div.style.overflow = 'hidden'; // Hide overflow in fixed mode
         }
 
         // Text Fill
@@ -341,24 +360,44 @@ export class TextElement extends VisualElement {
         }
     }
 
-    setEditing(isEditing) {
+    setEditing(isEditing, selectionType = null, clickPosition = null) {
         const div = this.domElement;
+        console.log('[DEBUG] TextElement.setEditing called:', isEditing, 'selectionType:', selectionType, 'clickPosition:', clickPosition);
+        console.log('[DEBUG] div:', div, 'div.isContentEditable:', div?.isContentEditable);
         if (!div) return;
 
         if (isEditing) {
             if (!div.isContentEditable) {
+                console.log('[DEBUG] Setting contentEditable = true');
                 div.contentEditable = true;
-                // div.style.outline = '2px solid #0055FF'; // Removed: Canvas handles selection box now
                 div.style.outline = 'none';
                 div.style.cursor = 'text';
                 div.style.pointerEvents = 'auto';
                 div.focus({ preventScroll: true });
+                console.log('[DEBUG] Called focus(), document.activeElement:', document.activeElement);
                 
-                // We need to import store to dispatch updates?
-                // Or pass a callback?
-                // VisualElement shouldn't depend on store ideally.
-                // But for now, let's dispatch custom event on the element?
-                // Or just import store.
+                // Handle initial selection based on selectionType
+                if (selectionType === 'all') {
+                    // Select all text when entering via Enter key
+                    console.log('[DEBUG] Calling selectAllText()');
+                    this.selectAllText();
+                } else if (selectionType === 'caret' && clickPosition) {
+                    // Place caret at click position (double-click)
+                    console.log('[DEBUG] Calling placeCaretAtPosition()');
+                    this.placeCaretAtPosition(clickPosition.clientX, clickPosition.clientY);
+                }
+                
+                // Add keyboard listener for Escape and Cmd+Enter to exit edit mode
+                if (!this._keydownHandler) {
+                    this._keydownHandler = (e) => this.handleEditKeyDown(e);
+                    div.addEventListener('keydown', this._keydownHandler);
+                }
+                
+                // Add input listener for list auto-formatting
+                if (!this._inputHandler) {
+                    this._inputHandler = (e) => this.handleInput(e);
+                    div.addEventListener('input', this._inputHandler);
+                }
             }
         } else {
             if (div.isContentEditable) {
@@ -366,7 +405,242 @@ export class TextElement extends VisualElement {
                 div.style.outline = 'none';
                 div.style.cursor = 'default';
                 div.blur();
+                
+                // Remove keyboard listener
+                if (this._keydownHandler) {
+                    div.removeEventListener('keydown', this._keydownHandler);
+                    this._keydownHandler = null;
+                }
+                
+                // Remove input listener
+                if (this._inputHandler) {
+                    div.removeEventListener('input', this._inputHandler);
+                    this._inputHandler = null;
+                }
             }
+        }
+    }
+
+    selectAllText() {
+        const div = this.domElement;
+        if (!div) return;
+        
+        // Use setTimeout to ensure focus is complete before selecting
+        setTimeout(() => {
+            const selection = window.getSelection();
+            const range = document.createRange();
+            range.selectNodeContents(div);
+            selection.removeAllRanges();
+            selection.addRange(range);
+        }, 0);
+    }
+
+    placeCaretAtPosition(clientX, clientY) {
+        const div = this.domElement;
+        if (!div) return;
+        
+        console.log('[DEBUG] placeCaretAtPosition - clientX:', clientX, 'clientY:', clientY);
+        
+        // Use setTimeout to ensure focus is complete before placing caret
+        setTimeout(() => {
+            console.log('[DEBUG] placeCaretAtPosition setTimeout fired');
+            console.log('[DEBUG] document.activeElement:', document.activeElement);
+            
+            // Temporarily disable pointer-events on the interaction canvas
+            // so caretRangeFromPoint can "see through" to the text element
+            const canvas = document.getElementById('interaction-canvas');
+            let originalPointerEvents = null;
+            if (canvas) {
+                originalPointerEvents = canvas.style.pointerEvents;
+                canvas.style.pointerEvents = 'none';
+            }
+            
+            // Use caretRangeFromPoint (standard) or caretPositionFromPoint (Firefox)
+            let range;
+            if (document.caretRangeFromPoint) {
+                range = document.caretRangeFromPoint(clientX, clientY);
+                console.log('[DEBUG] caretRangeFromPoint result:', range);
+                // Verify the range is within our text element
+                if (range && !div.contains(range.commonAncestorContainer)) {
+                    console.log('[DEBUG] Range not in text element, using fallback');
+                    range = null;
+                }
+            } else if (document.caretPositionFromPoint) {
+                const pos = document.caretPositionFromPoint(clientX, clientY);
+                console.log('[DEBUG] caretPositionFromPoint result:', pos);
+                if (pos && div.contains(pos.offsetNode)) {
+                    range = document.createRange();
+                    range.setStart(pos.offsetNode, pos.offset);
+                    range.collapse(true);
+                }
+            }
+            
+            // Restore pointer-events on canvas
+            if (canvas && originalPointerEvents !== null) {
+                canvas.style.pointerEvents = originalPointerEvents;
+            }
+            
+            if (range) {
+                const selection = window.getSelection();
+                selection.removeAllRanges();
+                selection.addRange(range);
+                console.log('[DEBUG] Selection set with range');
+            } else {
+                // Fallback: place caret at end of text
+                console.log('[DEBUG] No valid range found, using fallback - placing caret at end');
+                const selection = window.getSelection();
+                const textRange = document.createRange();
+                textRange.selectNodeContents(div);
+                textRange.collapse(false); // Collapse to end
+                selection.removeAllRanges();
+                selection.addRange(textRange);
+            }
+        }, 0);
+    }
+
+    handleEditKeyDown(e) {
+        // Escape or Cmd/Ctrl+Enter to exit edit mode
+        if (e.key === 'Escape' || (e.key === 'Enter' && (e.metaKey || e.ctrlKey))) {
+            e.preventDefault();
+            e.stopPropagation();
+            store.dispatch('SET_EDITING_ELEMENT', null);
+            // Keep the element selected
+            return;
+        }
+        
+        // Handle Tab for list indentation
+        if (e.key === 'Tab') {
+            const selection = window.getSelection();
+            const node = selection.anchorNode;
+            const li = node?.nodeType === Node.TEXT_NODE 
+                ? node.parentElement?.closest('li') 
+                : node?.closest?.('li');
+            
+            if (li) {
+                e.preventDefault();
+                e.stopPropagation();
+                if (e.shiftKey) {
+                    // Outdent
+                    document.execCommand('outdent');
+                } else {
+                    // Indent
+                    document.execCommand('indent');
+                }
+            }
+            return;
+        }
+        
+        // Handle Enter key - for regular text, let browser handle it (creates newline)
+        // Only intercept Enter in specific cases (lists)
+        if (e.key === 'Enter' && !e.shiftKey && !e.metaKey && !e.ctrlKey) {
+            const selection = window.getSelection();
+            const node = selection.anchorNode;
+            const li = node?.nodeType === Node.TEXT_NODE 
+                ? node.parentElement?.closest('li') 
+                : node?.closest?.('li');
+            
+            if (li) {
+                const isEmpty = li.textContent.trim() === '';
+                
+                if (isEmpty) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    // Exit list by removing empty li and inserting a line break after the list
+                    const list = li.closest('ul, ol');
+                    if (list) {
+                        li.remove();
+                        // If list is now empty, remove it too
+                        if (list.children.length === 0) {
+                            list.remove();
+                        }
+                        // Place cursor after the list
+                        const br = document.createElement('br');
+                        if (list.parentNode) {
+                            list.parentNode.insertBefore(br, list.nextSibling);
+                            const range = document.createRange();
+                            range.setStartAfter(br);
+                            range.collapse(true);
+                            selection.removeAllRanges();
+                            selection.addRange(range);
+                        }
+                    }
+                    return;
+                }
+                // If li is not empty, let browser handle Enter (creates new li)
+            }
+            // For regular text (not in list), let browser handle Enter (creates newline)
+            // Do NOT call e.preventDefault() here - we want the default behavior
+            e.stopPropagation(); // But stop propagation to prevent global handlers from interfering
+        }
+    }
+
+    handleInput(e) {
+        // Auto-detect list patterns at the start of a line
+        const selection = window.getSelection();
+        if (!selection.rangeCount) return;
+        
+        const range = selection.getRangeAt(0);
+        const node = range.startContainer;
+        
+        // Get the current line content
+        const lineContent = this.getCurrentLineContent(node, range.startOffset);
+        if (!lineContent) return;
+        
+        // Check for bullet list patterns: "- " or "* " at start of line
+        if (/^[-*]\s$/.test(lineContent.text)) {
+            this.convertToList('ul', lineContent);
+            return;
+        }
+        
+        // Check for numbered list pattern: "1. " at start of line
+        if (/^\d+\.\s$/.test(lineContent.text)) {
+            this.convertToList('ol', lineContent);
+            return;
+        }
+    }
+
+    getCurrentLineContent(node, offset) {
+        // Find the text content from the start of the current line to the cursor
+        if (node.nodeType !== Node.TEXT_NODE) return null;
+        
+        const textContent = node.textContent;
+        const beforeCursor = textContent.substring(0, offset);
+        
+        // Find the last newline before cursor (or start of text)
+        const lastNewline = beforeCursor.lastIndexOf('\n');
+        const lineStart = lastNewline === -1 ? 0 : lastNewline + 1;
+        const lineText = beforeCursor.substring(lineStart);
+        
+        return {
+            text: lineText,
+            node: node,
+            lineStart: lineStart,
+            cursorOffset: offset
+        };
+    }
+
+    convertToList(listType, lineContent) {
+        const { node, lineStart, cursorOffset } = lineContent;
+        const selection = window.getSelection();
+        
+        // Remove the pattern from the text
+        const patternLength = cursorOffset - lineStart;
+        
+        // Select the pattern text
+        const range = document.createRange();
+        range.setStart(node, lineStart);
+        range.setEnd(node, cursorOffset);
+        selection.removeAllRanges();
+        selection.addRange(range);
+        
+        // Delete the pattern
+        document.execCommand('delete');
+        
+        // Insert list using execCommand
+        if (listType === 'ul') {
+            document.execCommand('insertUnorderedList');
+        } else {
+            document.execCommand('insertOrderedList');
         }
     }
 }

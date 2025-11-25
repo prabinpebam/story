@@ -179,4 +179,10 @@ export class NumberInput {
         const newValue = this.value + (deltaX * step);
         this.setValue(newValue, true, true);
     }
+
+    setDisabled(disabled) {
+        this.input.disabled = disabled;
+        this.element.style.opacity = disabled ? '0.5' : '1';
+        this.element.style.pointerEvents = disabled ? 'none' : 'auto';
+    }
 }

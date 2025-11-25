@@ -7,10 +7,37 @@ import { store } from '../../core/Store.js';
 export class LayoutSection {
     constructor() {
         this.section = new Section({ title: 'Layout' });
+        this.layoutButtons = [];
+        this.isTextElement = false;
         this.createContent();
     }
 
     createContent() {
+        // Layout Mode Row (Auto Width / Auto Height / Fixed) - Only shown for text elements
+        this.layoutModeRow = document.createElement('div');
+        this.layoutModeRow.className = 'pi-row';
+        this.layoutModeRow.style.display = 'none'; // Hidden by default
+        this.layoutModeRow.style.gap = '2px';
+        this.layoutModeRow.style.marginBottom = '8px';
+
+        const layoutModes = [
+            { icon: Icons.TEXT_AUTO_WIDTH, value: 'autoWidth', title: 'Auto Width' },
+            { icon: Icons.TEXT_AUTO_HEIGHT, value: 'autoHeight', title: 'Auto Height' },
+            { icon: Icons.TEXT_FIXED, value: 'fixed', title: 'Fixed Size' }
+        ];
+
+        this.layoutButtons = layoutModes.map(mode => {
+            const btn = new IconButton({
+                icon: mode.icon,
+                title: mode.title,
+                onClick: () => this.updateLayoutMode(mode.value)
+            });
+            this.layoutModeRow.appendChild(btn.element);
+            return { btn, value: mode.value };
+        });
+
+        this.section.appendChild(this.layoutModeRow);
+
         // W / H Row
         const dimRow = document.createElement('div');
         dimRow.className = 'pi-row';
@@ -43,6 +70,42 @@ export class LayoutSection {
         this.section.appendChild(dimRow);
     }
 
+    updateLayoutMode(value) {
+        const state = store.getState();
+        const selection = state.editor.selectedElementIds;
+        
+        selection.forEach(id => {
+            const el = this.getElement(state, id);
+            if (el && el.type === 'text') {
+                // Update the resizing mode
+                store.dispatch('UPDATE_ELEMENT', { 
+                    id, 
+                    style: { ...el.style, resizing: value }
+                });
+            }
+        });
+
+        // Update input enabled states
+        this.updateInputStates(value);
+    }
+
+    updateInputStates(resizingMode) {
+        // autoWidth: W is auto (disabled), H is manual (enabled)
+        // autoHeight: W is manual (enabled), H is auto (disabled)
+        // fixed: Both W and H are manual (enabled)
+        if (resizingMode === 'autoWidth') {
+            this.wInput.setDisabled(true);
+            this.hInput.setDisabled(false);
+        } else if (resizingMode === 'autoHeight') {
+            this.wInput.setDisabled(false);
+            this.hInput.setDisabled(true);
+        } else {
+            // fixed or undefined
+            this.wInput.setDisabled(false);
+            this.hInput.setDisabled(false);
+        }
+    }
+
     update(selection) {
         if (!selection || selection.length === 0) {
             this.section.element.style.display = 'none';
@@ -65,6 +128,25 @@ export class LayoutSection {
             
             // Store aspect ratio for constraint logic
             this.aspectRatio = element.width / element.height;
+
+            // Show layout mode buttons only for text elements
+            this.isTextElement = element.type === 'text';
+            this.layoutModeRow.style.display = this.isTextElement ? 'flex' : 'none';
+
+            if (this.isTextElement) {
+                // Update layout mode button states
+                const currentMode = element.style?.resizing || 'autoHeight';
+                this.layoutButtons.forEach(({ btn, value }) => {
+                    btn.setActive(value === currentMode);
+                });
+
+                // Update W/H input enabled states based on mode
+                this.updateInputStates(currentMode);
+            } else {
+                // Non-text elements: enable both inputs
+                this.wInput.setDisabled(false);
+                this.hInput.setDisabled(false);
+            }
         }
     }
 

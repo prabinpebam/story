@@ -75,6 +75,8 @@ export function createInitialState() {
             selectedSlideIds: [], // IDs of selected slides (for operations)
             selectedElementIds: [],
             editingElementId: null, // ID of element currently being edited (text)
+            editModeSelectionType: null, // 'all' | 'caret' | null - how text should be selected on edit mode entry
+            textEditClickPosition: null, // { clientX, clientY } - click position for caret placement
             activeTool: "select", // 'select', 'text', 'rect', 'circle', 'hand'
             zoom: 1.0,
             pan: { x: 0, y: 0 },

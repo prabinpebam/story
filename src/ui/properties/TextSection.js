@@ -15,6 +15,7 @@ export class TextSection {
         this.section = new Section({ title: 'Typography' });
         this.createContent();
         this.activeFlyout = null;
+        this.pendingStyles = {}; // Styles to apply to next typed character
     }
 
     createContent() {
@@ -387,12 +388,142 @@ export class TextSection {
     updateProperty(prop, value) {
         const state = store.getState();
         const selection = state.editor.selectedElementIds;
+        const editingElementId = state.editor.editingElementId;
+        
+        // If we're editing a text element, check for text selection
+        if (editingElementId && selection.includes(editingElementId)) {
+            const textSelection = window.getSelection();
+            
+            if (textSelection && !textSelection.isCollapsed) {
+                // Apply style to selected text range only
+                this.applyInlineStyle(prop, value);
+                return;
+            } else {
+                // No selection (caret only) - store as pending style for next typed character
+                // For now, still apply to element (future: queue for next input)
+            }
+        }
+        
+        // Apply to whole element
         selection.forEach(id => {
             store.dispatch('UPDATE_ELEMENT', { id, [prop]: value });
         });
     }
 
+    applyInlineStyle(prop, value) {
+        // Map property names to CSS and execCommand equivalents
+        const selection = window.getSelection();
+        if (!selection || selection.isCollapsed) return;
+        
+        // Save current selection
+        const range = selection.getRangeAt(0);
+        
+        switch (prop) {
+            case 'fontWeight':
+                if (value === '700' || value === 'bold') {
+                    document.execCommand('bold');
+                } else if (value === '400' || value === 'normal') {
+                    // Check if currently bold, then toggle off
+                    if (document.queryCommandState('bold')) {
+                        document.execCommand('bold');
+                    }
+                }
+                break;
+                
+            case 'fontStyle':
+                if (value === 'italic') {
+                    document.execCommand('italic');
+                } else {
+                    if (document.queryCommandState('italic')) {
+                        document.execCommand('italic');
+                    }
+                }
+                break;
+                
+            case 'textDecoration':
+                if (value === 'underline') {
+                    document.execCommand('underline');
+                } else if (value === 'line-through') {
+                    document.execCommand('strikeThrough');
+                }
+                break;
+                
+            case 'fontSize':
+                // Wrap selection in span with font-size
+                this.wrapSelectionWithStyle('font-size', value + 'px');
+                break;
+                
+            case 'fontFamily':
+                // Use execCommand for font name
+                document.execCommand('fontName', false, value);
+                break;
+                
+            case 'color':
+            case 'textFill':
+                // Apply color to selection
+                const colorValue = typeof value === 'object' ? value.value : value;
+                document.execCommand('foreColor', false, colorValue);
+                break;
+                
+            default:
+                // For other properties, wrap in span
+                const cssProp = this.toCssProperty(prop);
+                if (cssProp) {
+                    this.wrapSelectionWithStyle(cssProp, value);
+                }
+        }
+        
+        // Restore selection
+        selection.removeAllRanges();
+        selection.addRange(range);
+    }
+
+    wrapSelectionWithStyle(cssProp, cssValue) {
+        const selection = window.getSelection();
+        if (!selection || selection.isCollapsed) return;
+        
+        const range = selection.getRangeAt(0);
+        const span = document.createElement('span');
+        span.style[this.toCamelCase(cssProp)] = cssValue;
+        
+        try {
+            range.surroundContents(span);
+        } catch (e) {
+            // surroundContents fails if selection crosses element boundaries
+            // Fallback: extract and wrap
+            const contents = range.extractContents();
+            span.appendChild(contents);
+            range.insertNode(span);
+        }
+    }
+
+    toCssProperty(jsProp) {
+        // Convert camelCase to kebab-case
+        return jsProp.replace(/([A-Z])/g, '-$1').toLowerCase();
+    }
+
+    toCamelCase(cssProp) {
+        // Convert kebab-case to camelCase
+        return cssProp.replace(/-([a-z])/g, (g) => g[1].toUpperCase());
+    }
+
     updateTextFill(newFill) {
+        const state = store.getState();
+        const editingElementId = state.editor.editingElementId;
+        const selection = state.editor.selectedElementIds;
+        
+        // If we're editing and have a text selection, apply color inline
+        if (editingElementId && selection.includes(editingElementId)) {
+            const textSelection = window.getSelection();
+            
+            if (textSelection && !textSelection.isCollapsed && newFill.type === 'solid') {
+                // Apply color to selected text only
+                document.execCommand('foreColor', false, newFill.value);
+                return;
+            }
+        }
+        
+        // Apply to whole element
         this.updateProperty('textFill', newFill);
     }
     

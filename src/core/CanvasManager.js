@@ -99,14 +99,32 @@ export class CanvasManager {
     }
 
     bindEvents() {
+        console.log('[DEBUG] bindEvents called');
+        console.log('[DEBUG] this.canvas:', this.canvas);
+        console.log('[DEBUG] this.container:', this.container);
+        
+        // DEBUG: Window-level dblclick to see if any dblclick happens
+        window.addEventListener('dblclick', (e) => {
+            console.log('[DEBUG] WINDOW dblclick - target:', e.target, 'id:', e.target?.id);
+        });
+        
         // Wheel Zoom
         this.container.addEventListener('wheel', (e) => this.handleWheel(e), { passive: false });
 
         // Panning (MouseDown)
         this.container.addEventListener('mousedown', (e) => this.handleMouseDown(e));
         
-        // Double Click (Edit Text)
-        this.container.addEventListener('dblclick', (e) => this.handleDoubleClick(e));
+        // Double Click (Edit Text) - Listen on CONTAINER since canvas may not receive events
+        this.container.addEventListener('dblclick', (e) => {
+            console.log('[DEBUG] container dblclick event fired! target:', e.target);
+            this.handleDoubleClick(e);
+        });
+        
+        // Also listen on canvas just in case
+        this.canvas.addEventListener('dblclick', (e) => {
+            console.log('[DEBUG] canvas dblclick event fired!');
+            this.handleDoubleClick(e);
+        });
         
         // Drag and Drop (Images)
         this.container.addEventListener('dragover', (e) => {
@@ -259,6 +277,12 @@ export class CanvasManager {
     handleMouseDown(e) {
         const state = store.getState();
         if (state.editor.mode === 'presentation') return;
+        
+        // If currently editing a text element, don't interfere with mouse events
+        // (clicks inside the text element should be handled by the contenteditable)
+        if (state.editor.editingElementId) {
+            return;
+        }
 
         // Deselect slides on any canvas interaction
         store.dispatch('DESELECT_SLIDES');
@@ -907,13 +931,26 @@ export class CanvasManager {
                     newY -= (newCenterY - oldCenterY);
                 }
 
-                store.dispatch('UPDATE_ELEMENT', {
+                // Build the update object
+                const updatePayload = {
                     id,
                     x: newX,
                     y: newY,
                     width: newWidth,
                     height: newHeight
-                });
+                };
+
+                // If resizing a text element, switch to fixed mode
+                const slide = this.getActiveContainer(state);
+                const element = slide?.elements[id];
+                if (element?.type === 'text') {
+                    const currentResizing = element.style?.resizing;
+                    if (currentResizing !== 'fixed') {
+                        updatePayload.style = { ...element.style, resizing: 'fixed' };
+                    }
+                }
+
+                store.dispatch('UPDATE_ELEMENT', updatePayload);
             }
         }
         
@@ -1072,22 +1109,48 @@ export class CanvasManager {
     }
 
     handleDoubleClick(e) {
+        // Guard against being called twice (we have listeners on both container and canvas)
+        if (this._lastDblClickTime && Date.now() - this._lastDblClickTime < 100) {
+            console.log('[DEBUG] handleDoubleClick - skipping duplicate');
+            return;
+        }
+        this._lastDblClickTime = Date.now();
+        
+        console.log('[DEBUG] handleDoubleClick fired', e.target);
         const state = store.getState();
-        if (state.editor.mode === 'presentation') return;
+        if (state.editor.mode === 'presentation') {
+            console.log('[DEBUG] Blocked: presentation mode');
+            return;
+        }
+        
+        // Skip if already editing an element
+        if (state.editor.editingElementId) {
+            console.log('[DEBUG] Blocked: already editing', state.editor.editingElementId);
+            return;
+        }
 
         const rect = this.container.getBoundingClientRect();
         const mouseX = e.clientX - rect.left;
         const mouseY = e.clientY - rect.top;
+        console.log('[DEBUG] Mouse position:', mouseX, mouseY);
 
         const hit = this.hitTest(mouseX, mouseY);
+        console.log('[DEBUG] hitTest result:', hit);
 
         if (hit && hit.type === 'element') {
             const container = this.getActiveContainer(state);
             const element = container ? container.elements[hit.id] : null;
+            console.log('[DEBUG] element:', element);
 
             if (element) {
                 if (element.type === 'text') {
-                    store.dispatch('SET_EDITING_ELEMENT', hit.id);
+                    console.log('[DEBUG] Dispatching SET_EDITING_ELEMENT for text');
+                    // Double-click enters with caret at click position
+                    store.dispatch('SET_EDITING_ELEMENT', { 
+                        id: hit.id, 
+                        selectionType: 'caret',
+                        clickPosition: { clientX: e.clientX, clientY: e.clientY }
+                    });
                 } else {
                     // Double click to "enter" group (Deep Select)
                     // hit.id is already the deep element from hitTestRecursive
@@ -1212,6 +1275,20 @@ export class CanvasManager {
             
             this.isSpacePressed = true;
             this.container.style.cursor = 'grab';
+        }
+
+        // Enter to edit text element (select all text)
+        if (e.key === 'Enter' && !e.ctrlKey && !e.metaKey && !e.shiftKey) {
+            const state = store.getState();
+            if (!state.editor.editingElementId && state.editor.selectedElementIds.length === 1) {
+                const container = this.getActiveContainer(state);
+                const el = container ? container.elements[state.editor.selectedElementIds[0]] : null;
+                if (el && el.type === 'text') {
+                    e.preventDefault();
+                    // Enter key enters edit mode with all text selected
+                    store.dispatch('SET_EDITING_ELEMENT', { id: el.id, selectionType: 'all' });
+                }
+            }
         }
 
         // Duplicate (Ctrl+D or Cmd+D)
@@ -1458,6 +1535,9 @@ export class CanvasManager {
         const rect = this.container.getBoundingClientRect();
         this.canvas.width = rect.width;
         this.canvas.height = rect.height;
+        // Ensure CSS size matches canvas size to avoid scaling issues
+        this.canvas.style.width = `${rect.width}px`;
+        this.canvas.style.height = `${rect.height}px`;
         // Force a re-render or viewport update if needed
     }
 

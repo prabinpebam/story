@@ -62,7 +62,16 @@ export function handleSetMode(draft, payload) {
 }
 
 export function handleSetEditingElement(draft, payload) {
-    draft.editor.editingElementId = payload;
+    // Payload can be just an id string, or an object { id, selectionType, clickPosition }
+    if (typeof payload === 'object' && payload !== null) {
+        draft.editor.editingElementId = payload.id;
+        draft.editor.editModeSelectionType = payload.selectionType || null;
+        draft.editor.textEditClickPosition = payload.clickPosition || null;
+    } else {
+        draft.editor.editingElementId = payload;
+        draft.editor.editModeSelectionType = null;
+        draft.editor.textEditClickPosition = null;
+    }
 }
 
 export function handleUpdateViewport(draft, payload) {
