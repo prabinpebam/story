@@ -230,10 +230,30 @@ export class TextElement extends VisualElement {
              div.style.letterSpacing = props.letterSpacing;
         }
 
+        // Small Caps (special case of textTransform)
+        if (props.textTransform === 'small-caps') {
+            div.style.fontVariant = 'small-caps';
+            div.style.textTransform = 'none';
+        } else {
+            div.style.fontVariant = 'normal';
+            div.style.textTransform = props.textTransform;
+        }
+
         div.style.textAlign = props.textAlign;
         div.style.textDecoration = props.textDecoration;
-        div.style.textTransform = props.textTransform;
         div.style.textIndent = `${props.paragraphIndent || 0}px`;
+
+        // OpenType Features
+        const fontFeatures = this.buildFontFeatureSettings(props.opentypeFeatures);
+        if (fontFeatures) {
+            div.style.fontFeatureSettings = fontFeatures;
+        }
+
+        // Variable Font Axes
+        const fontVariation = this.buildFontVariationSettings(props.variableAxes);
+        if (fontVariation) {
+            div.style.fontVariationSettings = fontVariation;
+        }
         
         // Lists
         if (props.listStyle && props.listStyle !== 'none') {
@@ -741,5 +761,84 @@ export class TextElement extends VisualElement {
         } else {
             document.execCommand('insertOrderedList');
         }
+    }
+
+    /**
+     * Build CSS font-feature-settings string from OpenType feature object
+     */
+    buildFontFeatureSettings(features) {
+        if (!features) return null;
+        
+        const settings = [];
+        
+        // Ligatures
+        if (features.liga === false) {
+            settings.push('"liga" 0');
+        }
+        if (features.dlig === true) {
+            settings.push('"dlig" 1');
+        }
+        if (features.calt === false) {
+            settings.push('"calt" 0');
+        }
+        
+        // Figure styles
+        if (features.figureStyle === 'lnum') {
+            settings.push('"lnum" 1');
+        } else if (features.figureStyle === 'onum') {
+            settings.push('"onum" 1');
+        }
+        
+        // Figure spacing
+        if (features.figureSpacing === 'pnum') {
+            settings.push('"pnum" 1');
+        } else if (features.figureSpacing === 'tnum') {
+            settings.push('"tnum" 1');
+        }
+        
+        // Fractions
+        if (features.fractions === 'frac') {
+            settings.push('"frac" 1');
+        } else if (features.fractions === 'afrc') {
+            settings.push('"afrc" 1');
+        }
+        
+        // Position
+        if (features.position === 'sups') {
+            settings.push('"sups" 1');
+        } else if (features.position === 'subs') {
+            settings.push('"subs" 1');
+        } else if (features.position === 'ordn') {
+            settings.push('"ordn" 1');
+        }
+        
+        // Stylistic sets
+        if (features.stylisticSet && features.stylisticSet > 0 && features.stylisticSet <= 20) {
+            const ssTag = `ss${features.stylisticSet.toString().padStart(2, '0')}`;
+            settings.push(`"${ssTag}" 1`);
+        }
+        
+        return settings.length > 0 ? settings.join(', ') : null;
+    }
+
+    /**
+     * Build CSS font-variation-settings string from variable axes object
+     */
+    buildFontVariationSettings(axes) {
+        if (!axes || Object.keys(axes).length === 0) return null;
+        
+        const settings = [];
+        
+        // Standard registered axes
+        if (axes.wght !== undefined) settings.push(`"wght" ${axes.wght}`);
+        if (axes.wdth !== undefined) settings.push(`"wdth" ${axes.wdth}`);
+        if (axes.slnt !== undefined) settings.push(`"slnt" ${axes.slnt}`);
+        if (axes.ital !== undefined) settings.push(`"ital" ${axes.ital}`);
+        if (axes.opsz !== undefined) settings.push(`"opsz" ${axes.opsz}`);
+        
+        // Custom axes (like GRAD for grade)
+        if (axes.GRAD !== undefined) settings.push(`"GRAD" ${axes.GRAD}`);
+        
+        return settings.length > 0 ? settings.join(', ') : null;
     }
 }

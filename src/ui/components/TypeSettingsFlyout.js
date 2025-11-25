@@ -109,11 +109,20 @@ export class TypeSettingsFlyout extends Flyout {
 
         // Case Row
         const row2 = this.createRow();
+        const caseLabel = document.createElement('span');
+        caseLabel.textContent = 'Case';
+        caseLabel.style.fontSize = '11px';
+        caseLabel.style.color = '#888';
+        caseLabel.style.marginRight = '8px';
+        caseLabel.style.minWidth = '30px';
+        row2.appendChild(caseLabel);
+        
         const cases = [
             { label: 'Aa', value: 'none', title: 'Normal' },
             { label: 'AA', value: 'uppercase', title: 'Uppercase' },
             { label: 'aa', value: 'lowercase', title: 'Lowercase' },
-            { label: 'A a', value: 'capitalize', title: 'Capitalize' }
+            { label: 'Aa', value: 'capitalize', title: 'Capitalize', style: 'font-variant: normal' },
+            { label: 'ᴀᴀ', value: 'small-caps', title: 'Small Caps' }
         ];
         
         cases.forEach(c => {
@@ -126,6 +135,9 @@ export class TypeSettingsFlyout extends Flyout {
             btn.style.borderRadius = '4px';
             btn.style.color = this.currentProps.textTransform === c.value ? '#FFF' : '#888';
             btn.style.backgroundColor = this.currentProps.textTransform === c.value ? '#444' : 'transparent';
+            if (c.value === 'small-caps') {
+                btn.style.fontVariant = 'small-caps';
+            }
             
             btn.onclick = () => this.updateProp('textTransform', c.value);
             row2.appendChild(btn);
@@ -235,17 +247,297 @@ export class TypeSettingsFlyout extends Flyout {
     }
 
     renderDetails(container) {
-        container.textContent = 'Advanced OpenType features coming soon.';
-        container.style.color = '#888';
-        container.style.fontSize = '11px';
-        container.style.padding = '12px';
+        // Initialize opentype features if not present
+        if (!this.currentProps.opentypeFeatures) {
+            this.currentProps.opentypeFeatures = {};
+        }
+
+        // Section: Numerals
+        const numeralsSection = this.createSectionHeader('Numerals');
+        container.appendChild(numeralsSection);
+
+        // Figure Style
+        const figureStyleRow = this.createLabelRow('Figure Style');
+        const figureStyleDropdown = new Dropdown({
+            options: [
+                { label: 'Default', value: 'default' },
+                { label: 'Lining', value: 'lnum' },
+                { label: 'Old Style', value: 'onum' }
+            ],
+            value: this.currentProps.opentypeFeatures.figureStyle || 'default',
+            onChange: (val) => this.updateOpenType('figureStyle', val)
+        });
+        figureStyleDropdown.element.style.width = '100px';
+        figureStyleRow.appendChild(figureStyleDropdown.element);
+        container.appendChild(figureStyleRow);
+
+        // Figure Spacing
+        const figureSpacingRow = this.createLabelRow('Figure Spacing');
+        const figureSpacingDropdown = new Dropdown({
+            options: [
+                { label: 'Default', value: 'default' },
+                { label: 'Proportional', value: 'pnum' },
+                { label: 'Tabular', value: 'tnum' }
+            ],
+            value: this.currentProps.opentypeFeatures.figureSpacing || 'default',
+            onChange: (val) => this.updateOpenType('figureSpacing', val)
+        });
+        figureSpacingDropdown.element.style.width = '100px';
+        figureSpacingRow.appendChild(figureSpacingDropdown.element);
+        container.appendChild(figureSpacingRow);
+
+        // Fractions
+        const fractionsRow = this.createLabelRow('Fractions');
+        const fractionsDropdown = new Dropdown({
+            options: [
+                { label: 'Off', value: 'off' },
+                { label: 'Diagonal', value: 'frac' },
+                { label: 'Stacked', value: 'afrc' }
+            ],
+            value: this.currentProps.opentypeFeatures.fractions || 'off',
+            onChange: (val) => this.updateOpenType('fractions', val)
+        });
+        fractionsDropdown.element.style.width = '100px';
+        fractionsRow.appendChild(fractionsDropdown.element);
+        container.appendChild(fractionsRow);
+
+        // Section: Ligatures
+        const ligaturesSection = this.createSectionHeader('Ligatures');
+        container.appendChild(ligaturesSection);
+
+        // Standard Ligatures
+        const ligaRow = this.createLabelRow('Standard (fi, fl)');
+        const ligaSwitch = new Switch({
+            checked: this.currentProps.opentypeFeatures.liga !== false, // Default on
+            onChange: (val) => this.updateOpenType('liga', val)
+        });
+        ligaRow.appendChild(ligaSwitch.element);
+        container.appendChild(ligaRow);
+
+        // Discretionary Ligatures
+        const dligRow = this.createLabelRow('Discretionary');
+        const dligSwitch = new Switch({
+            checked: this.currentProps.opentypeFeatures.dlig === true,
+            onChange: (val) => this.updateOpenType('dlig', val)
+        });
+        dligRow.appendChild(dligSwitch.element);
+        container.appendChild(dligRow);
+
+        // Contextual Alternates
+        const caltRow = this.createLabelRow('Contextual Alternates');
+        const caltSwitch = new Switch({
+            checked: this.currentProps.opentypeFeatures.calt !== false, // Default on
+            onChange: (val) => this.updateOpenType('calt', val)
+        });
+        caltRow.appendChild(caltSwitch.element);
+        container.appendChild(caltRow);
+
+        // Section: Stylistic Sets
+        const stylisticSection = this.createSectionHeader('Stylistic Sets');
+        container.appendChild(stylisticSection);
+
+        // Stylistic Sets (ss01-ss20 are common)
+        const ssRow = this.createLabelRow('Set Number');
+        const ssInput = new NumberInput({
+            value: this.currentProps.opentypeFeatures.stylisticSet || 0,
+            min: 0,
+            max: 20,
+            step: 1,
+            onChange: (val) => this.updateOpenType('stylisticSet', val)
+        });
+        ssInput.element.style.width = '60px';
+        ssRow.appendChild(ssInput.element);
+        
+        const ssHint = document.createElement('span');
+        ssHint.textContent = '(0 = off)';
+        ssHint.style.fontSize = '10px';
+        ssHint.style.color = '#666';
+        ssHint.style.marginLeft = '8px';
+        ssRow.appendChild(ssHint);
+        container.appendChild(ssRow);
+
+        // Section: Position
+        const positionSection = this.createSectionHeader('Position');
+        container.appendChild(positionSection);
+
+        const positionRow = this.createLabelRow('Vertical Position');
+        const positionDropdown = new Dropdown({
+            options: [
+                { label: 'Normal', value: 'normal' },
+                { label: 'Superscript', value: 'sups' },
+                { label: 'Subscript', value: 'subs' },
+                { label: 'Ordinal', value: 'ordn' }
+            ],
+            value: this.currentProps.opentypeFeatures.position || 'normal',
+            onChange: (val) => this.updateOpenType('position', val)
+        });
+        positionDropdown.element.style.width = '100px';
+        positionRow.appendChild(positionDropdown.element);
+        container.appendChild(positionRow);
+    }
+
+    updateOpenType(feature, value) {
+        const features = { ...this.currentProps.opentypeFeatures, [feature]: value };
+        this.currentProps.opentypeFeatures = features;
+        this.onChange({ opentypeFeatures: features });
+    }
+
+    createSectionHeader(title) {
+        const header = document.createElement('div');
+        header.textContent = title;
+        header.style.fontSize = '11px';
+        header.style.fontWeight = '600';
+        header.style.color = '#AAA';
+        header.style.marginTop = '12px';
+        header.style.marginBottom = '8px';
+        header.style.borderBottom = '1px solid #444';
+        header.style.paddingBottom = '4px';
+        return header;
     }
 
     renderVariable(container) {
-        container.textContent = 'Variable font axes coming soon.';
-        container.style.color = '#888';
-        container.style.fontSize = '11px';
-        container.style.padding = '12px';
+        // Initialize variable font settings if not present
+        if (!this.currentProps.variableAxes) {
+            this.currentProps.variableAxes = {};
+        }
+
+        // Info text
+        const infoText = document.createElement('div');
+        infoText.style.fontSize = '11px';
+        infoText.style.color = '#888';
+        infoText.style.marginBottom = '12px';
+        infoText.style.lineHeight = '1.4';
+        infoText.textContent = 'Variable fonts allow fine-tuning of weight, width, and other axes. Controls below work with fonts that support these features.';
+        container.appendChild(infoText);
+
+        // Weight axis (wght) - most common
+        const weightRow = this.createLabelRow('Weight');
+        const weightSlider = this.createSlider({
+            min: 100,
+            max: 900,
+            value: this.currentProps.variableAxes.wght || 400,
+            onChange: (val) => this.updateVariableAxis('wght', val)
+        });
+        weightRow.appendChild(weightSlider);
+        container.appendChild(weightRow);
+
+        // Width axis (wdth)
+        const widthRow = this.createLabelRow('Width');
+        const widthSlider = this.createSlider({
+            min: 50,
+            max: 200,
+            value: this.currentProps.variableAxes.wdth || 100,
+            onChange: (val) => this.updateVariableAxis('wdth', val)
+        });
+        widthRow.appendChild(widthSlider);
+        container.appendChild(widthRow);
+
+        // Slant axis (slnt)
+        const slantRow = this.createLabelRow('Slant');
+        const slantSlider = this.createSlider({
+            min: -15,
+            max: 0,
+            value: this.currentProps.variableAxes.slnt || 0,
+            onChange: (val) => this.updateVariableAxis('slnt', val)
+        });
+        slantRow.appendChild(slantSlider);
+        container.appendChild(slantRow);
+
+        // Italic axis (ital)
+        const italicRow = this.createLabelRow('Italic');
+        const italicSlider = this.createSlider({
+            min: 0,
+            max: 1,
+            step: 0.1,
+            value: this.currentProps.variableAxes.ital || 0,
+            onChange: (val) => this.updateVariableAxis('ital', val)
+        });
+        italicRow.appendChild(italicSlider);
+        container.appendChild(italicRow);
+
+        // Optical Size (opsz)
+        const opszRow = this.createLabelRow('Optical Size');
+        const opszSlider = this.createSlider({
+            min: 8,
+            max: 144,
+            value: this.currentProps.variableAxes.opsz || 14,
+            onChange: (val) => this.updateVariableAxis('opsz', val)
+        });
+        opszRow.appendChild(opszSlider);
+        container.appendChild(opszRow);
+
+        // Grade (GRAD) - some fonts support this
+        const gradeRow = this.createLabelRow('Grade');
+        const gradeSlider = this.createSlider({
+            min: -200,
+            max: 150,
+            value: this.currentProps.variableAxes.GRAD || 0,
+            onChange: (val) => this.updateVariableAxis('GRAD', val)
+        });
+        gradeRow.appendChild(gradeSlider);
+        container.appendChild(gradeRow);
+
+        // Reset button
+        const resetBtn = document.createElement('button');
+        resetBtn.textContent = 'Reset to Defaults';
+        resetBtn.style.marginTop = '16px';
+        resetBtn.style.padding = '6px 12px';
+        resetBtn.style.fontSize = '11px';
+        resetBtn.style.border = '1px solid #555';
+        resetBtn.style.borderRadius = '4px';
+        resetBtn.style.background = 'transparent';
+        resetBtn.style.color = '#AAA';
+        resetBtn.style.cursor = 'pointer';
+        resetBtn.style.width = '100%';
+        resetBtn.onmouseenter = () => resetBtn.style.backgroundColor = '#444';
+        resetBtn.onmouseleave = () => resetBtn.style.backgroundColor = 'transparent';
+        resetBtn.onclick = () => {
+            this.currentProps.variableAxes = {};
+            this.onChange({ variableAxes: {} });
+            this.render();
+        };
+        container.appendChild(resetBtn);
+    }
+
+    createSlider({ min, max, value, step = 1, onChange }) {
+        const wrapper = document.createElement('div');
+        wrapper.style.display = 'flex';
+        wrapper.style.alignItems = 'center';
+        wrapper.style.gap = '8px';
+        wrapper.style.flex = '1';
+
+        const slider = document.createElement('input');
+        slider.type = 'range';
+        slider.min = min;
+        slider.max = max;
+        slider.step = step;
+        slider.value = value;
+        slider.style.flex = '1';
+        slider.style.accentColor = 'var(--color-accent, #18A0FB)';
+        slider.style.height = '4px';
+
+        const valueDisplay = document.createElement('span');
+        valueDisplay.textContent = value;
+        valueDisplay.style.fontSize = '11px';
+        valueDisplay.style.color = '#AAA';
+        valueDisplay.style.minWidth = '35px';
+        valueDisplay.style.textAlign = 'right';
+
+        slider.oninput = (e) => {
+            const val = parseFloat(e.target.value);
+            valueDisplay.textContent = val;
+            onChange(val);
+        };
+
+        wrapper.appendChild(slider);
+        wrapper.appendChild(valueDisplay);
+        return wrapper;
+    }
+
+    updateVariableAxis(axis, value) {
+        const axes = { ...this.currentProps.variableAxes, [axis]: value };
+        this.currentProps.variableAxes = axes;
+        this.onChange({ variableAxes: axes });
     }
 
     createRow() {

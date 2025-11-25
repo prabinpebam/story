@@ -26,7 +26,20 @@ export const StyleResolver = {
             listStyle: 'none',
             listSpacing: 0,
             truncate: false,
-            maxLines: 1
+            maxLines: 1,
+            // OpenType Features
+            opentypeFeatures: {
+                liga: true,      // Standard ligatures (default on)
+                calt: true,      // Contextual alternates (default on)
+                dlig: false,     // Discretionary ligatures
+                figureStyle: 'default',
+                figureSpacing: 'default',
+                fractions: 'off',
+                position: 'normal',
+                stylisticSet: 0
+            },
+            // Variable Font Axes
+            variableAxes: {}
         };
 
         // Start with defaults
