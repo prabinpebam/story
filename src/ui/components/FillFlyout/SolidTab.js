@@ -2,6 +2,7 @@ import { NumberInput } from '../NumberInput.js';
 import { IconButton } from '../IconButton.js';
 import { Icons } from '../../Icons.js';
 import { ColorUtils } from '../../../utils/ColorUtils.js';
+import { ThemeSwatches } from '../ThemeSwatches.js';
 
 export class SolidTab {
     constructor(options = {}) {
@@ -330,7 +331,37 @@ export class SolidTab {
         inputRow.appendChild(this.opacityInput.element);
         this.element.appendChild(inputRow);
 
-        // 4. Swatch Palette
+        // 4. Theme Swatches
+        this.themeSwatches = new ThemeSwatches({
+            onColorSelect: (color) => {
+                const rgb = ColorUtils.hexToRgb(color);
+                if (rgb) {
+                    const hsb = ColorUtils.rgbToHsb(rgb.r, rgb.g, rgb.b);
+                    this.state.h = hsb.h;
+                    this.state.s = hsb.s;
+                    this.state.b = hsb.b;
+                    this.updateUI();
+                    this.emitChange();
+                }
+            },
+            showPresetSelector: true,
+            columns: 6
+        });
+        this.element.appendChild(this.themeSwatches.element);
+
+        // 5. Default Swatch Palette
+        const swatchesLabel = document.createElement('div');
+        swatchesLabel.textContent = 'Default Colors';
+        swatchesLabel.style.cssText = `
+            font-size: 10px;
+            font-weight: 500;
+            color: var(--color-text-secondary, #888);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-top: 4px;
+        `;
+        this.element.appendChild(swatchesLabel);
+
         const swatches = document.createElement('div');
         swatches.style.display = 'grid';
         swatches.style.gridTemplateColumns = 'repeat(8, 1fr)';
