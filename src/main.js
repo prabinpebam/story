@@ -13,6 +13,8 @@ import { PresentationManager } from './core/PresentationManager.js';
 import { SettingsModal } from './ui/SettingsModal.js';
 import { GridView } from './ui/GridView.js';
 import { HUD } from './ui/HUD.js';
+import { panelManager } from './ui/PanelManager.js';
+import { ColorThemeManager } from './ui/panels/ColorThemeManager.js';
 
 class App {
     constructor() {
@@ -37,6 +39,12 @@ class App {
         this.settingsModal = new SettingsModal();
         this.gridView = new GridView('presentation-grid-view');
         this.hud = new HUD('presentation-hud');
+
+        // Initialize Panels
+        this.colorThemeManager = new ColorThemeManager();
+        panelManager.register('color-theme-manager', this.colorThemeManager, {
+            shortcut: 'ctrl+shift+c'
+        });
 
         this.bindEvents();
         
