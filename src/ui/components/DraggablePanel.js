@@ -4,7 +4,7 @@
  * Used as a base class for Color Theme Manager, Typography Style Manager, etc.
  */
 
-import { ICONS } from '../Icons.js';
+import { Icons } from '../Icons.js';
 
 export class DraggablePanel {
     constructor(options = {}) {
@@ -132,13 +132,13 @@ export class DraggablePanel {
         
         // Minimize button
         if (this.options.minimizable) {
-            const minimizeBtn = this.createHeaderButton(ICONS.MINUS || '−', 'Minimize', () => this.toggleMinimize());
+            const minimizeBtn = this.createHeaderButton(Icons.MINUS || '−', 'Minimize', () => this.toggleMinimize());
             buttons.appendChild(minimizeBtn);
         }
         
         // Close button
         if (this.options.closable) {
-            const closeBtn = this.createHeaderButton(ICONS.CLOSE || '×', 'Close', () => this.close());
+            const closeBtn = this.createHeaderButton(Icons.CLOSE || '×', 'Close', () => this.close());
             buttons.appendChild(closeBtn);
         }
         
