@@ -462,37 +462,103 @@ Old Layout: "Title and Content"          New Layout: "Two Content"
 │ ☑ Date                      │
 │ ☑ Slide Number              │
 │                             │
-│ Placeholders                │
-│ [+ Add Placeholder]         │
-│ • Title                     │
-│ • Content                   │
-│                             │
 │ [Rename...]                 │
 │ [Delete Layout]             │
+├─────────────────────────────┤
+│ PLACEHOLDERS (Palette)      │
+│ Drag to canvas or click     │
+│ to draw                     │
+│ ┌─────┬─────┬─────┐         │
+│ │ H1  │ H2  │  ¶  │         │
+│ │Title│Subt │Cont │         │
+│ │ ✓   │     │     │         │
+│ ├─────┼─────┼─────┤         │
+│ │  T  │ 🖼  │  ▶  │         │
+│ │Text │Pict │Media│         │
+│ │     │ (2) │     │         │
+│ └─────┴─────┴─────┘         │
+│                             │
+│ ✓ = already placed (1 max)  │
+│ (n) = count (unlimited)     │
 └─────────────────────────────┘
 ```
 
-### 5.6 Placeholder Editing
+### 5.6 Placeholder Palette (Toolbar)
 
-**Insert Placeholder Menu:**
+The Placeholders section in the Property Inspector functions as a **toolbar/palette** for adding placeholders to Layout Masters.
+
+#### Visual Layout
 ```
-┌─────────────────────┐
-│ Insert Placeholder  │
-├─────────────────────┤
-│ ▸ Content           │
-│ ▸ Text              │
-│ ▸ Picture           │
-│ ▸ Media             │
-│ ───────────────────│
-│ ▸ Date              │
-│ ▸ Footer            │
-│ ▸ Slide Number      │
-└─────────────────────┘
+┌─────────────────────────────┐
+│ PLACEHOLDERS                │
+│ Drag onto canvas or click   │
+│ to draw                     │
+├─────────────────────────────┤
+│ ┌─────┐ ┌─────┐ ┌─────┐    │
+│ │ H1  │ │ H2  │ │  ¶  │    │
+│ │Title│ │Subt │ │Cont │    │
+│ └─────┘ └─────┘ └─────┘    │
+│ ┌─────┐ ┌─────┐ ┌─────┐    │
+│ │  T  │ │ 🖼  │ │  ▶  │    │
+│ │Text │ │Pict │ │Media│    │
+│ └─────┘ └─────┘ └─────┘    │
+├─────────────────────────────┤
+│ Drawing: Title — Click and  │
+│ drag on canvas              │
+│ [Cancel (Esc)]              │
+└─────────────────────────────┘
 ```
 
-*Note: Table placeholder will be added when table support is implemented.*
+#### Placeholder Types
 
-**Placeholder Properties:**
+| Type | Icon | Max Count | Description |
+|------|------|-----------|-------------|
+| **Title** | H1 | 1 | Main slide title |
+| **Subtitle** | H2 | 1 | Secondary title |
+| **Content** | ¶ | 1 | Main content area |
+| **Text** | T | ∞ | Generic text box |
+| **Picture** | 🖼 | ∞ | Image placeholder |
+| **Media** | ▶ | ∞ | Video/audio placeholder |
+
+#### Interaction Model
+
+**Adding a Placeholder:**
+
+1. **Drag and Drop:**
+   - Drag a placeholder type from the palette
+   - Drop onto the canvas at desired location
+   - Placeholder is created with default size
+   - Can immediately resize/reposition
+
+2. **Click to Draw:**
+   - Click a placeholder type to enter "draw mode"
+   - Cursor changes to crosshair
+   - Click and drag on canvas to draw rectangle
+   - Placeholder fills the drawn area
+   - Press Escape to cancel draw mode
+
+**Visual States:**
+
+| State | Appearance | Behavior |
+|-------|------------|----------|
+| **Available** | Normal, draggable | Can drag or click to draw |
+| **Placed (Limited)** | Checkmark overlay, disabled | Cannot add more (max 1) |
+| **Placed (Unlimited)** | Count badge | Shows how many exist |
+| **Active (Drawing)** | Highlighted border | Currently in draw mode |
+| **Hover** | Border highlight | Visual feedback |
+
+**Draw Mode Indicator:**
+- Shows below the palette when a type is selected
+- Displays: "Drawing: [Type] — Click and drag on canvas"
+- Cancel button: "Cancel (Esc)"
+
+#### Constraints
+
+- **Title, Subtitle, Content**: Limited to 1 per layout. Once placed, the palette item is disabled with a checkmark.
+- **Text, Picture, Media**: Unlimited. A count badge shows how many exist.
+- **Switching Layouts**: Exiting master mode or switching layouts cancels draw mode.
+
+### 5.7 Placeholder Properties (When Selected)
 ```
 ┌─────────────────────────────┐
 │ PLACEHOLDER                 │
