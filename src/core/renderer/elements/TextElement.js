@@ -601,8 +601,9 @@ export class TextElement extends VisualElement {
         if (e.key === 'Escape' || (e.key === 'Enter' && (e.metaKey || e.ctrlKey))) {
             e.preventDefault();
             e.stopPropagation();
-            store.dispatch('SET_EDITING_ELEMENT', null);
-            // Keep the element selected
+            // Blur the element - this triggers the blur handler which saves content/dimensions
+            // and dispatches SET_EDITING_ELEMENT(null)
+            this.domElement.blur();
             return;
         }
         
