@@ -221,3 +221,63 @@ export function handleUpdateTextStyle(draft, payload) {
         themeMaster.themeSettings.textStyles[styleId][property] = value;
     }
 }
+
+// ========================================
+// ELEMENT MANAGEMENT FOR MASTERS
+// ========================================
+
+/**
+ * Add an element (typically a placeholder) to a master/layout.
+ * @param {Object} draft - Immer draft state
+ * @param {Object} payload - { masterId: string, element: Object }
+ */
+export function handleAddElementToMaster(draft, payload) {
+    const { masterId, element } = payload;
+    const master = draft.masters[masterId];
+    
+    if (master && element && element.id) {
+        // Initialize elements object if needed
+        if (!master.elements) {
+            master.elements = {};
+        }
+        if (!master.elementOrder) {
+            master.elementOrder = [];
+        }
+        
+        // Add element
+        master.elements[element.id] = element;
+        
+        // Add to element order if not already present
+        if (!master.elementOrder.includes(element.id)) {
+            master.elementOrder.push(element.id);
+        }
+    }
+}
+
+/**
+ * Delete an element from a master/layout.
+ * @param {Object} draft - Immer draft state
+ * @param {Object} payload - { masterId: string, elementId: string }
+ */
+export function handleDeleteElementFromMaster(draft, payload) {
+    const { masterId, elementId } = payload;
+    const master = draft.masters[masterId];
+    
+    if (master && master.elements && master.elements[elementId]) {
+        // Remove from elements
+        delete master.elements[elementId];
+        
+        // Remove from element order
+        if (master.elementOrder) {
+            const index = master.elementOrder.indexOf(elementId);
+            if (index > -1) {
+                master.elementOrder.splice(index, 1);
+            }
+        }
+        
+        // Clear selection if this element was selected
+        if (draft.editor.selectedElementIds?.includes(elementId)) {
+            draft.editor.selectedElementIds = draft.editor.selectedElementIds.filter(id => id !== elementId);
+        }
+    }
+}

@@ -226,6 +226,8 @@ class Store extends EventEmitter {
                         case 'RESET_THEME_FONTS': MasterHandlers.handleResetThemeFonts(draft, payload); break;
                         case 'UPDATE_THEME_FONT': MasterHandlers.handleUpdateThemeFont(draft, payload); break;
                         case 'UPDATE_TEXT_STYLE': MasterHandlers.handleUpdateTextStyle(draft, payload); break;
+                        case 'ADD_ELEMENT_TO_MASTER': MasterHandlers.handleAddElementToMaster(draft, payload); break;
+                        case 'DELETE_ELEMENT_FROM_MASTER': MasterHandlers.handleDeleteElementFromMaster(draft, payload); break;
                     }
                 });
                 this.emit('state-changed', this.state);

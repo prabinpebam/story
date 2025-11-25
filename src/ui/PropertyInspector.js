@@ -14,6 +14,7 @@ import { EffectsSection } from './properties/EffectsSection.js';
 import { ExportSection } from './properties/ExportSection.js';
 import { SlideSection } from './properties/SlideSection.js';
 import { TextSection } from './properties/TextSection.js';
+import { PlaceholderSection } from './properties/PlaceholderSection.js';
 
 export class PropertyInspector {
     constructor(containerId) {
@@ -30,6 +31,7 @@ export class PropertyInspector {
         this.effectsSection = new EffectsSection();
         this.exportSection = new ExportSection();
         this.slideSection = new SlideSection();
+        this.placeholderSection = new PlaceholderSection();
         
         this.init();
     }
@@ -96,6 +98,10 @@ export class PropertyInspector {
             this.slideSection.update(selection);
             this.container.appendChild(this.slideSection.section.element);
             this.container.appendChild(this.slideSection.fillSection.section.element);
+            
+            // Show Placeholder Section when in master mode with a layout selected
+            this.placeholderSection.update(selection);
+            this.container.appendChild(this.placeholderSection.section.element);
         }
     }
 
