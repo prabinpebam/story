@@ -399,11 +399,12 @@ export class ColorThemeManager extends DraggablePanel {
         label.title = role.description;
         row.appendChild(label);
         
-        // Color input
-        const colorInput = new ColorInput({
-            value: this.getCurrentColorValue(role.id),
-            onChange: (color) => this.updateColor(role.id, color)
-        });
+        // Color input - ColorInput takes (value, onChange, options) as positional args
+        const colorInput = new ColorInput(
+            this.getCurrentColorValue(role.id),
+            (color) => this.updateColor(role.id, color),
+            { showHex: true }
+        );
         colorInput.element.style.width = '80px';
         row.appendChild(colorInput.element);
         
