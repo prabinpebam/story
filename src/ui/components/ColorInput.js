@@ -120,7 +120,29 @@ export class ColorInput {
         container.appendChild(swatch);
         if (hexInput) container.appendChild(hexInput);
         container.appendChild(nativeInput);
+        
+        // Store references for setValue
+        this._swatch = swatch;
+        this._hexInput = hexInput;
+        this._nativeInput = nativeInput;
 
         return container;
+    }
+    
+    /**
+     * Set the color value programmatically
+     * @param {string} value - Hex color value
+     */
+    setValue(value) {
+        this.value = value || '#000000';
+        if (this._swatch) {
+            this._swatch.style.backgroundColor = this.value;
+        }
+        if (this._hexInput) {
+            this._hexInput.value = this.value.toUpperCase();
+        }
+        if (this._nativeInput) {
+            this._nativeInput.value = this.value;
+        }
     }
 }
