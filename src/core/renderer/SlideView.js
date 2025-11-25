@@ -46,6 +46,20 @@ export class SlideView {
         if (slideData.themeSettings) {
             const { colors, fonts } = slideData.themeSettings;
             if (colors) {
+                // 12-color theme schema
+                if (colors.background1) this.domElement.style.setProperty('--theme-background1', colors.background1);
+                if (colors.background2) this.domElement.style.setProperty('--theme-background2', colors.background2);
+                if (colors.text1) this.domElement.style.setProperty('--theme-text1', colors.text1);
+                if (colors.text2) this.domElement.style.setProperty('--theme-text2', colors.text2);
+                if (colors.accent1) this.domElement.style.setProperty('--theme-accent1', colors.accent1);
+                if (colors.accent2) this.domElement.style.setProperty('--theme-accent2', colors.accent2);
+                if (colors.accent3) this.domElement.style.setProperty('--theme-accent3', colors.accent3);
+                if (colors.accent4) this.domElement.style.setProperty('--theme-accent4', colors.accent4);
+                if (colors.accent5) this.domElement.style.setProperty('--theme-accent5', colors.accent5);
+                if (colors.accent6) this.domElement.style.setProperty('--theme-accent6', colors.accent6);
+                if (colors.hyperlink) this.domElement.style.setProperty('--theme-hyperlink', colors.hyperlink);
+                if (colors.followedHyperlink) this.domElement.style.setProperty('--theme-followed-hyperlink', colors.followedHyperlink);
+                // Legacy aliases for backwards compatibility
                 if (colors.accent) this.domElement.style.setProperty('--theme-accent', colors.accent);
                 if (colors.textPrimary) this.domElement.style.setProperty('--theme-text-primary', colors.textPrimary);
                 if (colors.textSecondary) this.domElement.style.setProperty('--theme-text-secondary', colors.textSecondary);

@@ -738,7 +738,14 @@ export class TextSection {
         // Resolve CSS variable references to actual values
         const resolved = {};
         const fonts = theme?.themeSettings?.fonts || { heading: 'Inter', body: 'Inter' };
-        const colors = theme?.themeSettings?.colors || { textPrimary: '#333333', textSecondary: '#888888' };
+        const colors = theme?.themeSettings?.colors || { 
+            text1: '#333333', 
+            text2: '#666666',
+            textPrimary: '#333333', 
+            textSecondary: '#666666',
+            accent1: '#18A0FB',
+            accent: '#18A0FB'
+        };
         
         for (const [key, value] of Object.entries(style)) {
             if (key === 'id' || key === 'name') continue;
@@ -750,10 +757,14 @@ export class TextSection {
                     .replace('var(--theme-font-body)', fonts.body);
                 resolved[key] = resolved_value;
             } else if (typeof value === 'object' && value?.type === 'solid') {
-                // Resolve color variables in textFill
+                // Resolve color variables in textFill (support both old and new schema)
                 let colorValue = value.value
-                    .replace('var(--theme-text-primary)', colors.textPrimary)
-                    .replace('var(--theme-text-secondary)', colors.textSecondary);
+                    .replace('var(--theme-text1)', colors.text1 || colors.textPrimary)
+                    .replace('var(--theme-text2)', colors.text2 || colors.textSecondary)
+                    .replace('var(--theme-text-primary)', colors.textPrimary || colors.text1)
+                    .replace('var(--theme-text-secondary)', colors.textSecondary || colors.text2)
+                    .replace('var(--theme-accent1)', colors.accent1 || colors.accent)
+                    .replace('var(--theme-accent)', colors.accent || colors.accent1);
                 resolved[key] = { ...value, value: colorValue };
             } else {
                 resolved[key] = value;

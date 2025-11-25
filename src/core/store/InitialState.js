@@ -8,9 +8,26 @@ export const DEFAULT_MASTERS = {
         elementOrder: [],
         themeSettings: {
             colors: {
+                // Background Colors
+                background1: "#FFFFFF",
+                background2: "#F5F5F5",
+                // Text Colors
+                text1: "#333333",
+                text2: "#666666",
+                // Accent Colors
+                accent1: "#18A0FB",
+                accent2: "#7B61FF",
+                accent3: "#1BC47D",
+                accent4: "#F24822",
+                accent5: "#FFBE0B",
+                accent6: "#FF006E",
+                // Link Colors
+                hyperlink: "#0066CC",
+                followedHyperlink: "#954F72",
+                // Legacy aliases (for backwards compatibility)
                 accent: "#18A0FB",
                 textPrimary: "#333333",
-                textSecondary: "#888888"
+                textSecondary: "#666666"
             },
             fonts: { heading: "Inter", body: "Inter" },
             // Text Styles for consistent typography across the presentation

@@ -111,16 +111,45 @@ export const StyleResolver = {
         
         const fonts = theme?.themeSettings?.fonts || { heading: 'Inter', body: 'Inter' };
         const colors = theme?.themeSettings?.colors || { 
+            // 12-color schema defaults
+            background1: '#FFFFFF',
+            background2: '#F5F5F5',
+            text1: '#333333',
+            text2: '#666666',
+            accent1: '#18A0FB',
+            accent2: '#7B61FF',
+            accent3: '#1BC47D',
+            accent4: '#F24822',
+            accent5: '#FFBE0B',
+            accent6: '#FF006E',
+            hyperlink: '#0066CC',
+            followedHyperlink: '#954F72',
+            // Legacy aliases
             textPrimary: '#333333', 
-            textSecondary: '#888888',
+            textSecondary: '#666666',
             accent: '#18A0FB'
         };
         
         return value
+            // Font variables
             .replace('var(--theme-font-heading)', fonts.heading)
             .replace('var(--theme-font-body)', fonts.body)
-            .replace('var(--theme-text-primary)', colors.textPrimary)
-            .replace('var(--theme-text-secondary)', colors.textSecondary)
-            .replace('var(--theme-accent)', colors.accent);
+            // 12-color schema variables
+            .replace('var(--theme-background1)', colors.background1 || '#FFFFFF')
+            .replace('var(--theme-background2)', colors.background2 || '#F5F5F5')
+            .replace('var(--theme-text1)', colors.text1 || '#333333')
+            .replace('var(--theme-text2)', colors.text2 || '#666666')
+            .replace('var(--theme-accent1)', colors.accent1 || '#18A0FB')
+            .replace('var(--theme-accent2)', colors.accent2 || '#7B61FF')
+            .replace('var(--theme-accent3)', colors.accent3 || '#1BC47D')
+            .replace('var(--theme-accent4)', colors.accent4 || '#F24822')
+            .replace('var(--theme-accent5)', colors.accent5 || '#FFBE0B')
+            .replace('var(--theme-accent6)', colors.accent6 || '#FF006E')
+            .replace('var(--theme-hyperlink)', colors.hyperlink || '#0066CC')
+            .replace('var(--theme-followed-hyperlink)', colors.followedHyperlink || '#954F72')
+            // Legacy variables (backwards compatibility)
+            .replace('var(--theme-text-primary)', colors.textPrimary || colors.text1 || '#333333')
+            .replace('var(--theme-text-secondary)', colors.textSecondary || colors.text2 || '#666666')
+            .replace('var(--theme-accent)', colors.accent || colors.accent1 || '#18A0FB');
     }
 };
