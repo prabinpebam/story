@@ -216,6 +216,8 @@ class Store extends EventEmitter {
             case 'RESET_THEME_FONTS':
             case 'UPDATE_THEME_FONT':
             case 'UPDATE_TEXT_STYLE':
+            case 'ADD_ELEMENT_TO_MASTER':
+            case 'DELETE_ELEMENT_FROM_MASTER':
                 this.snapshot(type);
                 this.state = produce(this.state, draft => {
                     switch(type) {
