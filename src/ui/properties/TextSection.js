@@ -16,9 +16,69 @@ export class TextSection {
         this.createContent();
         this.activeFlyout = null;
         this.pendingStyles = {}; // Styles to apply to next typed character
+        this.currentStyleId = null; // Track current text style
+        this.hasStyleOverrides = false; // Track if style has local overrides
     }
 
     createContent() {
+        // 0. Text Style Selector Row (New)
+        const styleRow = document.createElement('div');
+        styleRow.className = 'pi-row pi-style-row';
+        styleRow.style.display = 'flex';
+        styleRow.style.gap = '4px';
+        styleRow.style.marginBottom = '8px';
+
+        // Style Dropdown
+        this.styleDropdown = new Dropdown({
+            options: this.getTextStyleOptions(),
+            value: '',
+            placeholder: 'No Style',
+            onChange: (val) => this.applyTextStyle(val)
+        });
+        this.styleDropdown.element.style.flex = '1';
+        styleRow.appendChild(this.styleDropdown.element);
+
+        // Style Action Menu Button (Edit/Detach)
+        this.styleMenuBtn = new IconButton({
+            icon: Icons.MORE,
+            title: 'Style Options',
+            onClick: (e) => this.openStyleMenu(e)
+        });
+        this.styleMenuBtn.element.style.visibility = 'hidden'; // Hidden when no style
+        styleRow.appendChild(this.styleMenuBtn.element);
+
+        this.section.appendChild(styleRow);
+
+        // Style Override Indicator
+        this.overrideIndicator = document.createElement('div');
+        this.overrideIndicator.className = 'pi-style-override';
+        this.overrideIndicator.style.display = 'none';
+        this.overrideIndicator.style.fontSize = '10px';
+        this.overrideIndicator.style.color = '#888';
+        this.overrideIndicator.style.marginBottom = '8px';
+        this.overrideIndicator.style.display = 'flex';
+        this.overrideIndicator.style.justifyContent = 'space-between';
+        this.overrideIndicator.style.alignItems = 'center';
+        
+        const overrideText = document.createElement('span');
+        overrideText.textContent = 'Style has local overrides';
+        this.overrideIndicator.appendChild(overrideText);
+        
+        const resetBtn = document.createElement('button');
+        resetBtn.textContent = 'Reset';
+        resetBtn.style.fontSize = '10px';
+        resetBtn.style.padding = '2px 6px';
+        resetBtn.style.border = '1px solid #555';
+        resetBtn.style.borderRadius = '3px';
+        resetBtn.style.background = 'transparent';
+        resetBtn.style.color = '#888';
+        resetBtn.style.cursor = 'pointer';
+        resetBtn.onclick = () => this.resetToStyle();
+        this.overrideIndicator.appendChild(resetBtn);
+        
+        this.overrideIndicator.style.display = 'none';
+        this.section.appendChild(this.overrideIndicator);
+
         // 1. Font Family & Style & Size
         const fontRow = document.createElement('div');
         fontRow.className = 'pi-row';
@@ -272,6 +332,24 @@ export class TextSection {
 
         this.section.element.style.display = 'block';
         const el = textElements[0];
+        
+        // Update style dropdown options (in case theme changed)
+        this.styleDropdown.setOptions(this.getTextStyleOptions());
+        
+        // Handle Text Style
+        this.currentStyleId = el.styleId || null;
+        
+        // Check for style overrides
+        if (this.currentStyleId) {
+            const themeId = this.getActiveThemeId(state);
+            const theme = state.masters[themeId];
+            const style = theme?.themeSettings?.textStyles?.[this.currentStyleId];
+            this.hasStyleOverrides = this.checkForStyleOverrides(el, style);
+        } else {
+            this.hasStyleOverrides = false;
+        }
+        
+        this.updateStyleUI();
         
         // Use StyleResolver to get effective properties
         const props = StyleResolver.getEffectiveTextProperties(el);
@@ -578,5 +656,224 @@ export class TextSection {
 
         flyout.open();
         this.activeFlyout = flyout;
+    }
+
+    // Text Style Methods
+    getTextStyleOptions() {
+        const state = store.getState();
+        const themeId = this.getActiveThemeId(state);
+        const theme = state.masters[themeId];
+        const textStyles = theme?.themeSettings?.textStyles || {};
+        
+        const options = [{ label: 'No Style', value: '' }];
+        
+        Object.values(textStyles).forEach(style => {
+            options.push({
+                label: style.name,
+                value: style.id
+            });
+        });
+        
+        // Add divider and action options
+        options.push({ divider: true });
+        options.push({ label: '+ Create Style...', value: '__create__', action: true });
+        
+        return options;
+    }
+
+    getActiveThemeId(state) {
+        // Find the theme master (type === 'theme')
+        const masters = state.masters;
+        for (const id in masters) {
+            if (masters[id].type === 'theme') {
+                return id;
+            }
+        }
+        return 'theme-default';
+    }
+
+    applyTextStyle(styleId) {
+        if (styleId === '__create__') {
+            // Future: Open create style dialog
+            console.log('Create style dialog - coming soon');
+            return;
+        }
+        
+        const state = store.getState();
+        const selection = state.editor.selectedElementIds;
+        
+        if (styleId === '') {
+            // Detach style - just remove styleId, keep current properties
+            selection.forEach(id => {
+                store.dispatch('UPDATE_ELEMENT', { id, styleId: null });
+            });
+            this.currentStyleId = null;
+            this.updateStyleUI();
+            return;
+        }
+        
+        // Get the style definition
+        const themeId = this.getActiveThemeId(state);
+        const theme = state.masters[themeId];
+        const style = theme?.themeSettings?.textStyles?.[styleId];
+        
+        if (!style) return;
+        
+        // Apply style properties to selected elements
+        selection.forEach(id => {
+            const styleProps = this.resolveStyleVariables(style, theme);
+            store.dispatch('UPDATE_ELEMENT', { 
+                id, 
+                styleId: styleId,
+                ...styleProps
+            });
+        });
+        
+        this.currentStyleId = styleId;
+        this.hasStyleOverrides = false;
+        this.updateStyleUI();
+    }
+
+    resolveStyleVariables(style, theme) {
+        // Resolve CSS variable references to actual values
+        const resolved = {};
+        const fonts = theme?.themeSettings?.fonts || { heading: 'Inter', body: 'Inter' };
+        const colors = theme?.themeSettings?.colors || { textPrimary: '#333333', textSecondary: '#888888' };
+        
+        for (const [key, value] of Object.entries(style)) {
+            if (key === 'id' || key === 'name') continue;
+            
+            if (typeof value === 'string') {
+                // Resolve font variables
+                let resolved_value = value
+                    .replace('var(--theme-font-heading)', fonts.heading)
+                    .replace('var(--theme-font-body)', fonts.body);
+                resolved[key] = resolved_value;
+            } else if (typeof value === 'object' && value?.type === 'solid') {
+                // Resolve color variables in textFill
+                let colorValue = value.value
+                    .replace('var(--theme-text-primary)', colors.textPrimary)
+                    .replace('var(--theme-text-secondary)', colors.textSecondary);
+                resolved[key] = { ...value, value: colorValue };
+            } else {
+                resolved[key] = value;
+            }
+        }
+        
+        return resolved;
+    }
+
+    openStyleMenu(e) {
+        // Simple context menu for style actions
+        const existingMenu = document.querySelector('.style-action-menu');
+        if (existingMenu) existingMenu.remove();
+        
+        const menu = document.createElement('div');
+        menu.className = 'style-action-menu';
+        menu.style.position = 'fixed';
+        menu.style.backgroundColor = '#2C2C2C';
+        menu.style.border = '1px solid #444';
+        menu.style.borderRadius = '4px';
+        menu.style.padding = '4px 0';
+        menu.style.zIndex = '10000';
+        menu.style.minWidth = '120px';
+        
+        const rect = e.target.getBoundingClientRect();
+        menu.style.top = (rect.bottom + 4) + 'px';
+        menu.style.left = rect.left + 'px';
+        
+        const actions = [
+            { label: 'Edit Style...', action: () => this.editStyle() },
+            { label: 'Detach Style', action: () => this.detachStyle() },
+            { label: 'Reset to Style', action: () => this.resetToStyle() }
+        ];
+        
+        actions.forEach(({ label, action }) => {
+            const item = document.createElement('div');
+            item.textContent = label;
+            item.style.padding = '6px 12px';
+            item.style.fontSize = '12px';
+            item.style.cursor = 'pointer';
+            item.style.color = '#CCC';
+            item.onmouseenter = () => item.style.backgroundColor = '#444';
+            item.onmouseleave = () => item.style.backgroundColor = 'transparent';
+            item.onclick = () => {
+                menu.remove();
+                action();
+            };
+            menu.appendChild(item);
+        });
+        
+        document.body.appendChild(menu);
+        
+        // Close on click outside
+        const closeHandler = (e) => {
+            if (!menu.contains(e.target)) {
+                menu.remove();
+                document.removeEventListener('mousedown', closeHandler);
+            }
+        };
+        setTimeout(() => document.addEventListener('mousedown', closeHandler), 0);
+    }
+
+    editStyle() {
+        // Future: Open typography style manager to edit the current style
+        console.log('Edit style - Typography Style Manager coming soon');
+    }
+
+    detachStyle() {
+        const state = store.getState();
+        const selection = state.editor.selectedElementIds;
+        
+        // Remove styleId but keep all current properties
+        selection.forEach(id => {
+            store.dispatch('UPDATE_ELEMENT', { id, styleId: null });
+        });
+        
+        this.currentStyleId = null;
+        this.hasStyleOverrides = false;
+        this.updateStyleUI();
+    }
+
+    resetToStyle() {
+        if (!this.currentStyleId) return;
+        
+        // Re-apply the style to reset overrides
+        this.applyTextStyle(this.currentStyleId);
+    }
+
+    updateStyleUI() {
+        // Update dropdown value
+        this.styleDropdown.setValue(this.currentStyleId || '', false);
+        
+        // Show/hide style menu button
+        this.styleMenuBtn.element.style.visibility = this.currentStyleId ? 'visible' : 'hidden';
+        
+        // Show/hide override indicator
+        this.overrideIndicator.style.display = (this.currentStyleId && this.hasStyleOverrides) ? 'flex' : 'none';
+    }
+
+    checkForStyleOverrides(element, style) {
+        if (!style) return false;
+        
+        const state = store.getState();
+        const themeId = this.getActiveThemeId(state);
+        const theme = state.masters[themeId];
+        const resolvedStyle = this.resolveStyleVariables(style, theme);
+        
+        // Check if any style property differs from element
+        for (const key of Object.keys(resolvedStyle)) {
+            if (key === 'id' || key === 'name') continue;
+            
+            const styleVal = resolvedStyle[key];
+            const elemVal = element[key];
+            
+            // Simple comparison (could be more sophisticated for objects)
+            if (JSON.stringify(styleVal) !== JSON.stringify(elemVal)) {
+                return true;
+            }
+        }
+        
+        return false;
     }
 }

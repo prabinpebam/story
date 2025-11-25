@@ -124,5 +124,10 @@ This plan outlines the steps to implement the new Typography features in the Pro
 -   **Font Loading:** Variable fonts and specific font families need to be loaded in the environment.
 -   **Component Reusability:** `NumberInput` might need enhancements for "Auto" and mixed units.
 
+## Related Documents
+
+- **Typography Style Manager Implementation Plan:** See `typography-style-manager-implementation-plan.md` for the theme-level font pairing system (theme fonts, text styles, font presets). This plan handles individual text element styling, while the Typography Style Manager handles global/theme-level typography definitions.
+- **Slide Master Implementation Plan:** See `slide-master-implementation-plan.md` for how typography integrates with the master slide system.
+
 ## Next Steps
 -   Start with **Phase 1**.

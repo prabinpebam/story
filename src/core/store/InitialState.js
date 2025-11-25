@@ -12,7 +12,91 @@ export const DEFAULT_MASTERS = {
                 textPrimary: "#333333",
                 textSecondary: "#888888"
             },
-            fonts: { heading: "Inter", body: "Inter" }
+            fonts: { heading: "Inter", body: "Inter" },
+            // Text Styles for consistent typography across the presentation
+            textStyles: {
+                "title": {
+                    id: "title",
+                    name: "Title",
+                    fontFamily: "var(--theme-font-heading)",
+                    fontSize: 72,
+                    fontWeight: "700",
+                    lineHeight: 1.1,
+                    letterSpacing: "-1%",
+                    textFill: { type: "solid", value: "var(--theme-text-primary)" }
+                },
+                "subtitle": {
+                    id: "subtitle",
+                    name: "Subtitle",
+                    fontFamily: "var(--theme-font-body)",
+                    fontSize: 32,
+                    fontWeight: "400",
+                    lineHeight: 1.3,
+                    letterSpacing: "0%",
+                    textFill: { type: "solid", value: "var(--theme-text-secondary)" }
+                },
+                "heading1": {
+                    id: "heading1",
+                    name: "Heading 1",
+                    fontFamily: "var(--theme-font-heading)",
+                    fontSize: 48,
+                    fontWeight: "700",
+                    lineHeight: 1.2,
+                    letterSpacing: "-0.5%",
+                    textFill: { type: "solid", value: "var(--theme-text-primary)" }
+                },
+                "heading2": {
+                    id: "heading2",
+                    name: "Heading 2",
+                    fontFamily: "var(--theme-font-heading)",
+                    fontSize: 36,
+                    fontWeight: "600",
+                    lineHeight: 1.25,
+                    letterSpacing: "0%",
+                    textFill: { type: "solid", value: "var(--theme-text-primary)" }
+                },
+                "body": {
+                    id: "body",
+                    name: "Body",
+                    fontFamily: "var(--theme-font-body)",
+                    fontSize: 18,
+                    fontWeight: "400",
+                    lineHeight: 1.5,
+                    letterSpacing: "0%",
+                    textFill: { type: "solid", value: "var(--theme-text-primary)" }
+                },
+                "bodySmall": {
+                    id: "bodySmall",
+                    name: "Body Small",
+                    fontFamily: "var(--theme-font-body)",
+                    fontSize: 14,
+                    fontWeight: "400",
+                    lineHeight: 1.5,
+                    letterSpacing: "0%",
+                    textFill: { type: "solid", value: "var(--theme-text-secondary)" }
+                },
+                "caption": {
+                    id: "caption",
+                    name: "Caption",
+                    fontFamily: "var(--theme-font-body)",
+                    fontSize: 12,
+                    fontWeight: "400",
+                    lineHeight: 1.4,
+                    letterSpacing: "0.5%",
+                    textFill: { type: "solid", value: "var(--theme-text-secondary)" }
+                },
+                "label": {
+                    id: "label",
+                    name: "Label",
+                    fontFamily: "var(--theme-font-body)",
+                    fontSize: 11,
+                    fontWeight: "500",
+                    lineHeight: 1.3,
+                    letterSpacing: "2%",
+                    textTransform: "uppercase",
+                    textFill: { type: "solid", value: "var(--theme-text-secondary)" }
+                }
+            }
         }
     },
     "layout-title": {

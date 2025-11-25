@@ -3,6 +3,7 @@ export class Dropdown {
         this.options = {
             options: [], // Array of { label, value }
             value: null,
+            placeholder: '', // Placeholder text when no value
             onChange: () => {},
             ...options
         };
@@ -53,7 +54,15 @@ export class Dropdown {
 
     updateTriggerText() {
         const selectedOption = this.options.options.find(o => o.value === this.value);
-        this.trigger.textContent = selectedOption ? selectedOption.label : '';
+        if (selectedOption) {
+            this.trigger.textContent = selectedOption.label;
+            this.trigger.style.color = 'var(--color-text-primary)';
+        } else if (this.options.placeholder) {
+            this.trigger.textContent = this.options.placeholder;
+            this.trigger.style.color = 'var(--color-text-secondary)';
+        } else {
+            this.trigger.textContent = '';
+        }
     }
 
     toggle() {
@@ -87,36 +96,48 @@ export class Dropdown {
         this.menu.style.width = rect.width + 'px'; // Match width
 
         this.options.options.forEach(opt => {
+            // Handle divider
+            if (opt.divider) {
+                const divider = document.createElement('div');
+                divider.style.height = '1px';
+                divider.style.backgroundColor = 'var(--color-border)';
+                divider.style.margin = '4px 0';
+                this.menu.appendChild(divider);
+                return;
+            }
+            
             const item = document.createElement('div');
             item.textContent = opt.label;
             item.style.padding = '6px 8px';
             item.style.fontSize = 'var(--font-size-sm)';
-            item.style.color = 'var(--color-text-primary)';
+            item.style.color = opt.action ? 'var(--color-accent)' : 'var(--color-text-primary)';
             item.style.cursor = 'pointer';
             item.style.borderRadius = '2px';
             item.style.fontFamily = 'var(--font-ui)';
 
-            if (opt.value === this.value) {
+            if (opt.value === this.value && !opt.action) {
                 item.style.backgroundColor = 'var(--color-bg-active)';
                 item.style.color = 'var(--color-accent)';
             }
 
             item.addEventListener('mouseenter', () => {
-                if (opt.value !== this.value) {
+                if (opt.value !== this.value || opt.action) {
                     item.style.backgroundColor = 'var(--color-bg-hover)';
                 }
             });
             
             item.addEventListener('mouseleave', () => {
-                if (opt.value !== this.value) {
+                if (opt.value !== this.value || opt.action) {
                     item.style.backgroundColor = 'transparent';
                 }
             });
 
             item.addEventListener('click', (e) => {
                 e.stopPropagation();
-                this.setValue(opt.value);
-                this.options.onChange(this.value);
+                if (!opt.action) {
+                    this.setValue(opt.value);
+                }
+                this.options.onChange(opt.value);
                 this.close();
             });
 
@@ -152,7 +173,7 @@ export class Dropdown {
         window.removeEventListener('resize', this.handleScroll);
     }
 
-    setValue(newValue) {
+    setValue(newValue, triggerCallback = true) {
         this.value = newValue;
         this.updateTriggerText();
     }
