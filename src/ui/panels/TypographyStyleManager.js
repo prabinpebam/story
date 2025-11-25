@@ -8,7 +8,7 @@ import { SegmentedControl } from '../components/SegmentedControl.js';
 import { Dropdown } from '../components/Dropdown.js';
 import { store } from '../../core/Store.js';
 import { FONT_PRESETS, FONT_CATEGORIES, AVAILABLE_FONTS, getPresetsByCategory, searchPresets, getFontsByCategory } from '../../core/constants/FontPresets.js';
-import { fontManager } from '../../core/FontManager.js';
+import fontManager from '../../core/FontManager.js';
 
 /**
  * Text style definitions for the Custom tab
