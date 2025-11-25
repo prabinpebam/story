@@ -15,6 +15,7 @@ import { GridView } from './ui/GridView.js';
 import { HUD } from './ui/HUD.js';
 import { panelManager } from './ui/PanelManager.js';
 import { ColorThemeManager } from './ui/panels/ColorThemeManager.js';
+import { TypographyStyleManager } from './ui/panels/TypographyStyleManager.js';
 
 class App {
     constructor() {
@@ -44,6 +45,11 @@ class App {
         this.colorThemeManager = new ColorThemeManager();
         panelManager.register('color-theme-manager', this.colorThemeManager, {
             shortcut: 'ctrl+shift+c'
+        });
+        
+        this.typographyStyleManager = new TypographyStyleManager();
+        panelManager.register('typography-style-manager', this.typographyStyleManager, {
+            shortcut: 'ctrl+shift+t'
         });
 
         this.bindEvents();

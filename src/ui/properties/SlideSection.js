@@ -79,11 +79,15 @@ export class SlideSection {
         themeLabel.textContent = 'Theme';
         this.themeRow.appendChild(themeLabel);
         
-        const themeBtn = document.createElement('button');
-        themeBtn.className = 'theme-manager-btn';
-        themeBtn.innerHTML = `${ICONS.PALETTE || '<i class="fa-solid fa-palette"></i>'} <span>Colors</span>`;
-        themeBtn.title = 'Open Color Theme Manager (Ctrl+Shift+C)';
-        themeBtn.style.cssText = `
+        // Button container for Colors and Typography
+        const btnContainer = document.createElement('div');
+        btnContainer.style.cssText = 'display: flex; gap: var(--spacing-1);';
+        
+        const colorBtn = document.createElement('button');
+        colorBtn.className = 'theme-manager-btn';
+        colorBtn.innerHTML = `${ICONS.PALETTE || '<i class="fa-solid fa-palette"></i>'} <span>Colors</span>`;
+        colorBtn.title = 'Open Color Theme Manager (Ctrl+Shift+C)';
+        colorBtn.style.cssText = `
             display: flex;
             align-items: center;
             gap: 4px;
@@ -96,16 +100,46 @@ export class SlideSection {
             cursor: pointer;
             transition: background 0.15s;
         `;
-        themeBtn.addEventListener('mouseenter', () => {
-            themeBtn.style.background = 'var(--color-bg-hover)';
+        colorBtn.addEventListener('mouseenter', () => {
+            colorBtn.style.background = 'var(--color-bg-hover)';
         });
-        themeBtn.addEventListener('mouseleave', () => {
-            themeBtn.style.background = 'var(--color-bg-well)';
+        colorBtn.addEventListener('mouseleave', () => {
+            colorBtn.style.background = 'var(--color-bg-well)';
         });
-        themeBtn.addEventListener('click', () => {
+        colorBtn.addEventListener('click', () => {
             panelManager.toggle('color-theme-manager');
         });
-        this.themeRow.appendChild(themeBtn);
+        btnContainer.appendChild(colorBtn);
+        
+        const typoBtn = document.createElement('button');
+        typoBtn.className = 'theme-manager-btn';
+        typoBtn.innerHTML = `${ICONS.TYPOGRAPHY || '<i class="fa-solid fa-font"></i>'} <span>Fonts</span>`;
+        typoBtn.title = 'Open Typography Style Manager (Ctrl+Shift+T)';
+        typoBtn.style.cssText = `
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            padding: 4px 8px;
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-sm);
+            background: var(--color-bg-well);
+            color: var(--color-text-primary);
+            font-size: var(--font-size-sm);
+            cursor: pointer;
+            transition: background 0.15s;
+        `;
+        typoBtn.addEventListener('mouseenter', () => {
+            typoBtn.style.background = 'var(--color-bg-hover)';
+        });
+        typoBtn.addEventListener('mouseleave', () => {
+            typoBtn.style.background = 'var(--color-bg-well)';
+        });
+        typoBtn.addEventListener('click', () => {
+            panelManager.toggle('typography-style-manager');
+        });
+        btnContainer.appendChild(typoBtn);
+        
+        this.themeRow.appendChild(btnContainer);
         this.section.appendChild(this.themeRow);
 
         // 6. Background (FillSection) - Removed from here to avoid nesting. 
