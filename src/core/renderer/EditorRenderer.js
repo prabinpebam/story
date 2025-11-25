@@ -110,7 +110,7 @@ export class EditorRenderer extends BaseRenderer {
         
         if (isEmptyContent) {
             // Delete the element if it's empty
-            store.dispatch('DELETE_ELEMENT', el.data.id);
+            store.dispatch('REMOVE_ELEMENT', el.data.id);
             store.dispatch('SET_EDITING_ELEMENT', null);
             return;
         }

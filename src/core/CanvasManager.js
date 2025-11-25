@@ -24,6 +24,7 @@ export class CanvasManager {
         this.activeHandle = null;
         this.hoveredElementId = null;
         this.isRendering = false;
+        this.liveResizeData = null; // Live dimensions during text editing
 
         this.init();
     }
@@ -85,6 +86,18 @@ export class CanvasManager {
             if (state.editor.mode === 'presentation') return;
             if (this.interactionState === 'IDLE' && !this.isSpacePressed) {
                 this.container.style.cursor = state.editor.activeTool === 'hand' ? 'grab' : 'default';
+            }
+        });
+
+        // Listen for live resize events during text editing (for real-time bounding box updates)
+        store.on('element-live-resize', (data) => {
+            this.liveResizeData = data; // { id, width, height }
+        });
+
+        // Clear live resize data when editing ends
+        store.on('editing-changed', (editingId) => {
+            if (!editingId) {
+                this.liveResizeData = null;
             }
         });
 
@@ -2226,7 +2239,16 @@ export class CanvasManager {
             
             const el = slide.elements[id];
             if (el) {
-                const absEl = this.getAbsoluteElement(el, slide);
+                let absEl = this.getAbsoluteElement(el, slide);
+                
+                // Use live dimensions during editing for real-time bounding box updates
+                if (isEditing && this.liveResizeData && this.liveResizeData.id === id) {
+                    absEl = {
+                        ...absEl,
+                        width: this.liveResizeData.width,
+                        height: this.liveResizeData.height
+                    };
+                }
                 
                 const isText = el.type === 'text';
                 const isResizing = this.interactionState === 'RESIZING';

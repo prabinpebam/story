@@ -32,12 +32,13 @@ export class TextElement extends VisualElement {
 
     handleResize(entry) {
         const state = store.getState();
-        // Don't update if we are dragging/resizing manually or interacting
+        // Don't update if we are dragging/resizing manually or interacting via UI (e.g., scrubbing)
         if (state.ui && state.ui.isInteracting) return;
         
-        // Don't dispatch updates while editing - let the blur handler save final size
-        // This prevents re-renders during typing which can cause focus issues
-        if (state.editor.editingElementId === this.data.id) return;
+        // Don't dispatch store updates while editing - this causes re-renders that break typing.
+        // Instead, we emit a custom event that CanvasManager can listen to for live bounding box updates.
+        // The blur handler will save the final dimensions to the store.
+        const isEditing = state.editor.editingElementId === this.data.id;
 
         const el = this.data;
         const resizing = el.style?.resizing || 'autoHeight';
@@ -70,7 +71,16 @@ export class TextElement extends VisualElement {
         }
 
         if (changed) {
-            store.dispatch('UPDATE_ELEMENT', { id: el.id, ...updates });
+            if (isEditing) {
+                // While editing, store live dimensions on the element for CanvasManager to read
+                // This avoids triggering a full re-render cycle that breaks editing
+                this._liveDimensions = { width, height };
+                // Dispatch a lightweight event for the selection box to update
+                store.emit('element-live-resize', { id: el.id, width, height });
+            } else {
+                // Not editing - safe to update store
+                store.dispatch('UPDATE_ELEMENT', { id: el.id, ...updates });
+            }
         }
     }
 

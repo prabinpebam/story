@@ -83,6 +83,20 @@ class Store extends EventEmitter {
             case 'UPDATE_SELECTION': 
             case 'TOGGLE_THEME': 
             case 'TOGGLE_CONSTRAIN_PROPORTIONS':
+                // Handle interaction state for text editing (prevents multiple history entries)
+                if (type === 'SET_EDITING_ELEMENT') {
+                    const isEnteringEditMode = payload && (typeof payload === 'string' || payload.id);
+                    const isExitingEditMode = !payload || (typeof payload === 'object' && payload.id === null);
+                    
+                    if (isEnteringEditMode && !this.isInteracting) {
+                        // Create snapshot before entering edit mode
+                        this.snapshot('Enter Text Edit');
+                        this.isInteracting = true;
+                    } else if (isExitingEditMode && this.isInteracting) {
+                        this.isInteracting = false;
+                    }
+                }
+                
                 this.state = produce(this.state, draft => {
                     switch(type) {
                         case 'SELECT_SLIDE': EditorHandlers.handleSelectSlide(draft, payload); break;
