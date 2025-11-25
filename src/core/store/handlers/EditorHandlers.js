@@ -29,11 +29,25 @@ export function handleSetActiveMaster(draft, payload) {
 }
 
 export function handleSetActiveTool(draft, payload) {
-    draft.editor.activeTool = payload;
-    if (payload !== 'select') {
+    // Payload can be:
+    // - Simple string: 'select', 'text', 'rect', etc.
+    // - Object with tool and options: { tool: 'placeholder', placeholderType: 'title' }
+    if (typeof payload === 'object' && payload.tool) {
+        draft.editor.activeTool = payload.tool;
+        draft.editor.activeToolOptions = payload;
+    } else {
+        draft.editor.activeTool = payload;
+        draft.editor.activeToolOptions = null;
+    }
+    
+    if (draft.editor.activeTool !== 'select') {
         draft.editor.selectedElementIds = [];
         draft.editor.editingElementId = null;
     }
+}
+
+export function handleSetDragPlaceholder(draft, payload) {
+    draft.editor.dragPlaceholderType = payload?.type || null;
 }
 
 export function handleSetMode(draft, payload) {

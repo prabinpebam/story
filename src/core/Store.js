@@ -77,6 +77,7 @@ class Store extends EventEmitter {
             case 'SET_ACTIVE_SLIDE': 
             case 'SET_ACTIVE_MASTER': 
             case 'SET_ACTIVE_TOOL': 
+            case 'SET_DRAG_PLACEHOLDER':
             case 'SET_MODE': 
             case 'SET_EDITING_ELEMENT': 
             case 'UPDATE_VIEWPORT': 
@@ -104,6 +105,7 @@ class Store extends EventEmitter {
                         case 'SET_ACTIVE_SLIDE': EditorHandlers.handleSetActiveSlide(draft, payload); break;
                         case 'SET_ACTIVE_MASTER': EditorHandlers.handleSetActiveMaster(draft, payload); break;
                         case 'SET_ACTIVE_TOOL': EditorHandlers.handleSetActiveTool(draft, payload); break;
+                        case 'SET_DRAG_PLACEHOLDER': EditorHandlers.handleSetDragPlaceholder(draft, payload); break;
                         case 'SET_MODE': EditorHandlers.handleSetMode(draft, payload); break;
                         case 'SET_EDITING_ELEMENT': EditorHandlers.handleSetEditingElement(draft, payload); break;
                         case 'UPDATE_VIEWPORT': EditorHandlers.handleUpdateViewport(draft, payload); break;
