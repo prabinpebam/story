@@ -5,6 +5,8 @@ The **Color Theme Manager** is a draggable, resizable flyout panel that allows u
 
 **Panel Type:** Draggable, Resizable Flyout Panel
 
+> **📖 User Experience Guide**: For a comprehensive understanding of how users should think about and use the Color Theme system, see the [Design System UX Guide](./design-system-ux-guide.md).
+
 ---
 
 ## 1. Entry Points (Information Architecture)
@@ -467,6 +469,7 @@ presentation: {
 ---
 
 ## 12. Related Documents
+- [Design System UX Guide](./design-system-ux-guide.md) - Mental model and user experience
 - [Color Picker UI](./color-picker-ui.md)
 - [Slide Master System](./slide-master-system.md)
 - [UI Design System](./ui-design-system.md)

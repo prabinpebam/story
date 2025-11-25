@@ -5,6 +5,8 @@ The **Typography Style Manager** is a draggable, resizable flyout panel that all
 
 **Panel Type:** Draggable, Resizable Flyout Panel
 
+> **📖 User Experience Guide**: For a comprehensive understanding of how users should think about and use the Typography Style system, see the [Design System UX Guide](./design-system-ux-guide.md).
+
 ---
 
 ## 1. Entry Points (Information Architecture)
@@ -627,7 +629,9 @@ async function loadFont(family, weight) {
 ---
 
 ## 13. Related Documents
+- [Design System UX Guide](./design-system-ux-guide.md) - Mental model and user experience
 - [Property Inspector: Typography](./property-inspector-typography.md)
 - [Slide Master System](./slide-master-system.md)
 - [UI Design System](./ui-design-system.md)
+- [Color Theme Manager](./color-theme-manager.md)
 - [Color Theme Manager](./color-theme-manager.md)
