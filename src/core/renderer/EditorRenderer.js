@@ -51,13 +51,10 @@ export class EditorRenderer extends BaseRenderer {
         const clickPosition = state.editor.textEditClickPosition;
         const view = this.activeSlideViews.get(this.currentSlideId);
         
-        console.log('[DEBUG] renderOverlay - editingId:', editingId, 'selectionType:', selectionType);
-        
         if (view) {
             view.elements.forEach(el => {
                 if (el.setEditing) {
                     if (el.data.id === editingId) {
-                        console.log('[DEBUG] Calling setEditing(true) on', el.data.id);
                         el.setEditing(true, selectionType, clickPosition);
                         
                         if (!el.domElement._hasBlurListener) {

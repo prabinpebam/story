@@ -362,28 +362,22 @@ export class TextElement extends VisualElement {
 
     setEditing(isEditing, selectionType = null, clickPosition = null) {
         const div = this.domElement;
-        console.log('[DEBUG] TextElement.setEditing called:', isEditing, 'selectionType:', selectionType, 'clickPosition:', clickPosition);
-        console.log('[DEBUG] div:', div, 'div.isContentEditable:', div?.isContentEditable);
         if (!div) return;
 
         if (isEditing) {
             if (!div.isContentEditable) {
-                console.log('[DEBUG] Setting contentEditable = true');
                 div.contentEditable = true;
                 div.style.outline = 'none';
                 div.style.cursor = 'text';
                 div.style.pointerEvents = 'auto';
                 div.focus({ preventScroll: true });
-                console.log('[DEBUG] Called focus(), document.activeElement:', document.activeElement);
                 
                 // Handle initial selection based on selectionType
                 if (selectionType === 'all') {
                     // Select all text when entering via Enter key
-                    console.log('[DEBUG] Calling selectAllText()');
                     this.selectAllText();
                 } else if (selectionType === 'caret' && clickPosition) {
                     // Place caret at click position (double-click)
-                    console.log('[DEBUG] Calling placeCaretAtPosition()');
                     this.placeCaretAtPosition(clickPosition.clientX, clickPosition.clientY);
                 }
                 
@@ -439,13 +433,8 @@ export class TextElement extends VisualElement {
         const div = this.domElement;
         if (!div) return;
         
-        console.log('[DEBUG] placeCaretAtPosition - clientX:', clientX, 'clientY:', clientY);
-        
         // Use setTimeout to ensure focus is complete before placing caret
         setTimeout(() => {
-            console.log('[DEBUG] placeCaretAtPosition setTimeout fired');
-            console.log('[DEBUG] document.activeElement:', document.activeElement);
-            
             // Temporarily disable pointer-events on the interaction canvas
             // so caretRangeFromPoint can "see through" to the text element
             const canvas = document.getElementById('interaction-canvas');
@@ -459,15 +448,12 @@ export class TextElement extends VisualElement {
             let range;
             if (document.caretRangeFromPoint) {
                 range = document.caretRangeFromPoint(clientX, clientY);
-                console.log('[DEBUG] caretRangeFromPoint result:', range);
                 // Verify the range is within our text element
                 if (range && !div.contains(range.commonAncestorContainer)) {
-                    console.log('[DEBUG] Range not in text element, using fallback');
                     range = null;
                 }
             } else if (document.caretPositionFromPoint) {
                 const pos = document.caretPositionFromPoint(clientX, clientY);
-                console.log('[DEBUG] caretPositionFromPoint result:', pos);
                 if (pos && div.contains(pos.offsetNode)) {
                     range = document.createRange();
                     range.setStart(pos.offsetNode, pos.offset);
@@ -484,10 +470,8 @@ export class TextElement extends VisualElement {
                 const selection = window.getSelection();
                 selection.removeAllRanges();
                 selection.addRange(range);
-                console.log('[DEBUG] Selection set with range');
             } else {
                 // Fallback: place caret at end of text
-                console.log('[DEBUG] No valid range found, using fallback - placing caret at end');
                 const selection = window.getSelection();
                 const textRange = document.createRange();
                 textRange.selectNodeContents(div);

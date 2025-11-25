@@ -99,32 +99,15 @@ export class CanvasManager {
     }
 
     bindEvents() {
-        console.log('[DEBUG] bindEvents called');
-        console.log('[DEBUG] this.canvas:', this.canvas);
-        console.log('[DEBUG] this.container:', this.container);
-        
-        // DEBUG: Window-level dblclick to see if any dblclick happens
-        window.addEventListener('dblclick', (e) => {
-            console.log('[DEBUG] WINDOW dblclick - target:', e.target, 'id:', e.target?.id);
-        });
-        
         // Wheel Zoom
         this.container.addEventListener('wheel', (e) => this.handleWheel(e), { passive: false });
 
         // Panning (MouseDown)
         this.container.addEventListener('mousedown', (e) => this.handleMouseDown(e));
         
-        // Double Click (Edit Text) - Listen on CONTAINER since canvas may not receive events
-        this.container.addEventListener('dblclick', (e) => {
-            console.log('[DEBUG] container dblclick event fired! target:', e.target);
-            this.handleDoubleClick(e);
-        });
-        
-        // Also listen on canvas just in case
-        this.canvas.addEventListener('dblclick', (e) => {
-            console.log('[DEBUG] canvas dblclick event fired!');
-            this.handleDoubleClick(e);
-        });
+        // Double Click (Edit Text) - Listen on both container and canvas
+        this.container.addEventListener('dblclick', (e) => this.handleDoubleClick(e));
+        this.canvas.addEventListener('dblclick', (e) => this.handleDoubleClick(e));
         
         // Drag and Drop (Images)
         this.container.addEventListener('dragover', (e) => {
@@ -1111,40 +1094,28 @@ export class CanvasManager {
     handleDoubleClick(e) {
         // Guard against being called twice (we have listeners on both container and canvas)
         if (this._lastDblClickTime && Date.now() - this._lastDblClickTime < 100) {
-            console.log('[DEBUG] handleDoubleClick - skipping duplicate');
             return;
         }
         this._lastDblClickTime = Date.now();
         
-        console.log('[DEBUG] handleDoubleClick fired', e.target);
         const state = store.getState();
-        if (state.editor.mode === 'presentation') {
-            console.log('[DEBUG] Blocked: presentation mode');
-            return;
-        }
+        if (state.editor.mode === 'presentation') return;
         
         // Skip if already editing an element
-        if (state.editor.editingElementId) {
-            console.log('[DEBUG] Blocked: already editing', state.editor.editingElementId);
-            return;
-        }
+        if (state.editor.editingElementId) return;
 
         const rect = this.container.getBoundingClientRect();
         const mouseX = e.clientX - rect.left;
         const mouseY = e.clientY - rect.top;
-        console.log('[DEBUG] Mouse position:', mouseX, mouseY);
 
         const hit = this.hitTest(mouseX, mouseY);
-        console.log('[DEBUG] hitTest result:', hit);
 
         if (hit && hit.type === 'element') {
             const container = this.getActiveContainer(state);
             const element = container ? container.elements[hit.id] : null;
-            console.log('[DEBUG] element:', element);
 
             if (element) {
                 if (element.type === 'text') {
-                    console.log('[DEBUG] Dispatching SET_EDITING_ELEMENT for text');
                     // Double-click enters with caret at click position
                     store.dispatch('SET_EDITING_ELEMENT', { 
                         id: hit.id, 
