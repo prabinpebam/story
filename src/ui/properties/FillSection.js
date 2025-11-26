@@ -158,18 +158,19 @@ export class FillSection {
         row.style.cssText = `
             display: flex;
             align-items: center;
-            gap: 4px;
-            height: 28px;
+            gap: 6px;
+            height: 24px;
             opacity: ${isActive ? '1' : '0.6'};
+            padding-left: 18px;
         `;
 
-        // Color swatch / preview
+        // Color swatch / preview (16x16 to match theme swatches)
         const swatch = document.createElement('div');
         swatch.style.cssText = `
-            width: 28px;
-            height: 28px;
-            border-radius: var(--radius-sm);
-            border: 1px solid var(--color-border);
+            width: 16px;
+            height: 16px;
+            border-radius: 2px;
+            border: 1px solid rgba(0,0,0,0.1);
             flex-shrink: 0;
         `;
         
