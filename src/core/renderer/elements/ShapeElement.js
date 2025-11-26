@@ -1,10 +1,79 @@
 import { VisualElement } from './VisualElement.js';
 import { CodeRunner } from '../../effects/CodeRunner.js';
+import { store } from '../../Store.js';
 
 export class ShapeElement extends VisualElement {
     constructor(data) {
         super(data);
         this.shadowEl = null;
+    }
+    
+    /**
+     * Calculate world-space bounds for an element, accounting for parent transforms
+     * Used for CodeRunner mouse hit testing
+     * @param {Object} el - Element data
+     * @returns {Object} bounds with x, y, width, height, rotation, cx, cy
+     */
+    _getWorldBounds(el) {
+        const state = store.getState();
+        const slide = state.editor.mode === 'master' 
+            ? state.masters[state.editor.activeMasterId]
+            : state.slides[state.editor.activeSlideId];
+        
+        if (!slide) {
+            return {
+                x: el.x,
+                y: el.y,
+                width: el.width,
+                height: el.height,
+                rotation: el.rotation || 0,
+                cx: el.x + el.width / 2,
+                cy: el.y + el.height / 2
+            };
+        }
+        
+        let accX = el.x;
+        let accY = el.y;
+        let accRotation = el.rotation || 0;
+        
+        // Walk up parent chain
+        let parentId = el.parentId;
+        while (parentId) {
+            const parent = slide.elements ? slide.elements[parentId] : null;
+            if (!parent) break;
+            
+            // Parent rotation affects child position
+            if (parent.rotation) {
+                const rad = parent.rotation * Math.PI / 180;
+                const cos = Math.cos(rad);
+                const sin = Math.sin(rad);
+                
+                // Rotate child position around parent center
+                const pcx = parent.width / 2;
+                const pcy = parent.height / 2;
+                const dx = accX - pcx;
+                const dy = accY - pcy;
+                
+                accX = dx * cos - dy * sin + pcx + parent.x;
+                accY = dx * sin + dy * cos + pcy + parent.y;
+                accRotation += parent.rotation;
+            } else {
+                accX += parent.x;
+                accY += parent.y;
+            }
+            
+            parentId = parent.parentId;
+        }
+        
+        return {
+            x: accX,
+            y: accY,
+            width: el.width,
+            height: el.height,
+            rotation: accRotation,
+            cx: accX + el.width / 2,
+            cy: accY + el.height / 2
+        };
     }
 
     update(newData) {
@@ -20,6 +89,9 @@ export class ShapeElement extends VisualElement {
     }
 
     applyFills(div, el) {
+        // Calculate world bounds for CodeRunner mouse support
+        const worldBounds = this._getWorldBounds(el);
+        
         // Handle Code Fill (includes mesh gradient preset)
         if (el.style?.fillType === 'code') {
             if (!div._codeRunner) {
@@ -45,6 +117,9 @@ export class ShapeElement extends VisualElement {
                 div._codeRunner.setCode(codeToRun);
             }
             div._codeRunner.resize(el.width, el.height);
+            
+            // Set element bounds for mouse hit testing
+            div._codeRunner.setElementBounds(worldBounds);
 
         } else {
             this.clearComplexFills(div);
@@ -97,6 +172,8 @@ export class ShapeElement extends VisualElement {
                             layer._codeRunner.setCode(code);
                         }
                         layer._codeRunner.resize(el.width, el.height);
+                        // Set element bounds for mouse interaction (uses same worldBounds as primary fill)
+                        layer._codeRunner.setElementBounds(worldBounds);
                     } else {
                         if (layer._codeRunner) {
                             layer._codeRunner.stop();

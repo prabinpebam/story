@@ -1,3 +1,5 @@
+import { mouseStateManager } from '../MouseStateManager.js';
+
 export class CodeRunner {
     constructor(canvas) {
         this.canvas = canvas;
@@ -9,16 +11,168 @@ export class CodeRunner {
         this.drawFunction = null;
         this.startTime = 0;
         
-        // Mouse state
-        this.mouse = { x: 0, y: 0, down: false };
-        this._handleMouseMove = this._handleMouseMove.bind(this);
-        this._handleMouseDown = this._handleMouseDown.bind(this);
-        this._handleMouseUp = this._handleMouseUp.bind(this);
+        // Guard against zombie instances
+        this.isDestroyed = false;
         
-        // Attach mouse event listeners
-        this.canvas.addEventListener('mousemove', this._handleMouseMove);
-        this.canvas.addEventListener('mousedown', this._handleMouseDown);
-        this.canvas.addEventListener('mouseup', this._handleMouseUp);
+        // MouseStateManager subscription
+        this.unsubscribeMouse = null;
+        
+        // Element bounds for hit testing (set by ShapeElement/SlideView)
+        this.elementBounds = null;
+        
+        // Enhanced mouse state
+        this.mouse = {
+            // Position relative to this canvas (0 to width/height)
+            x: 0,
+            y: 0,
+            
+            // Normalized position (0 to 1)
+            nx: 0.5,
+            ny: 0.5,
+            
+            // Previous frame position (for trails)
+            px: 0,
+            py: 0,
+            
+            // Button state
+            isDown: false,
+            wasDown: false,
+            
+            // Single-frame events
+            pressed: false,   // True only on frame of click
+            released: false,  // True only on frame of release
+            
+            // Velocity (pixels per second)
+            vx: 0,
+            vy: 0,
+            
+            // Distance from center (0 to 1, useful for radial effects)
+            distFromCenter: 0,
+            
+            // Angle from center (radians)
+            angleFromCenter: 0,
+            
+            // Is mouse over this element?
+            isOver: false
+        };
+        
+        // Legacy: Keep old property for backward compatibility
+        // (Old code may use: this.mouse.down instead of this.mouse.isDown)
+        Object.defineProperty(this.mouse, 'down', {
+            get: () => this.mouse.isDown,
+            set: (v) => { this.mouse.isDown = v; }
+        });
+    }
+    
+    /**
+     * Set the bounds of the element containing this canvas (in world/slide coordinates)
+     * Used for hit testing to determine if mouse is over this element
+     * @param {Object} bounds - { x, y, width, height, rotation?, cx?, cy? }
+     */
+    setElementBounds(bounds) {
+        this.elementBounds = bounds;
+    }
+    
+    /**
+     * Check if a world-space point is inside a potentially rotated element
+     * @private
+     */
+    _isPointInRotatedBounds(worldX, worldY, bounds) {
+        if (!bounds.rotation) {
+            // Fast path: no rotation, simple AABB check
+            return (
+                worldX >= bounds.x &&
+                worldX <= bounds.x + bounds.width &&
+                worldY >= bounds.y &&
+                worldY <= bounds.y + bounds.height
+            );
+        }
+        
+        // Rotate the point around the element center (inverse rotation)
+        const rad = -bounds.rotation * Math.PI / 180;
+        const cos = Math.cos(rad);
+        const sin = Math.sin(rad);
+        
+        // Use provided center or calculate it
+        const cx = bounds.cx !== undefined ? bounds.cx : bounds.x + bounds.width / 2;
+        const cy = bounds.cy !== undefined ? bounds.cy : bounds.y + bounds.height / 2;
+        
+        // Translate point to origin (element center)
+        const dx = worldX - cx;
+        const dy = worldY - cy;
+        
+        // Apply inverse rotation
+        const localX = dx * cos - dy * sin + cx;
+        const localY = dx * sin + dy * cos + cy;
+        
+        // Now check against unrotated AABB
+        return (
+            localX >= bounds.x &&
+            localX <= bounds.x + bounds.width &&
+            localY >= bounds.y &&
+            localY <= bounds.y + bounds.height
+        );
+    }
+    
+    /**
+     * Update mouse state from MouseStateManager broadcast
+     * @param {Object} globalState - State from MouseStateManager
+     * @private
+     */
+    _updateMouseState(globalState) {
+        if (!this.isPlaying || !this.elementBounds || this.isDestroyed) return;
+        
+        const bounds = this.elementBounds;
+        
+        // Check if mouse is over this element (with rotation support)
+        this.mouse.isOver = this._isPointInRotatedBounds(
+            globalState.worldX,
+            globalState.worldY,
+            bounds
+        );
+        
+        // Store previous position
+        this.mouse.px = this.mouse.x;
+        this.mouse.py = this.mouse.y;
+        this.mouse.wasDown = this.mouse.isDown;
+        
+        // Calculate local position (relative to element)
+        const localX = globalState.worldX - bounds.x;
+        const localY = globalState.worldY - bounds.y;
+        
+        // Scale to canvas resolution
+        const scaleX = this.canvas.width / bounds.width;
+        const scaleY = this.canvas.height / bounds.height;
+        
+        this.mouse.x = localX * scaleX;
+        this.mouse.y = localY * scaleY;
+        
+        // Normalized (0-1)
+        this.mouse.nx = Math.max(0, Math.min(1, localX / bounds.width));
+        this.mouse.ny = Math.max(0, Math.min(1, localY / bounds.height));
+        
+        // Velocity (scaled to canvas space)
+        this.mouse.vx = globalState.velocityX * scaleX;
+        this.mouse.vy = globalState.velocityY * scaleY;
+        
+        // Button state - only register clicks when over element
+        this.mouse.isDown = globalState.isDown && this.mouse.isOver;
+        this.mouse.pressed = globalState.clicked && this.mouse.isOver;
+        this.mouse.released = globalState.released; // Released can happen anywhere
+        
+        // Distance and angle from center
+        const cx = this.canvas.width / 2;
+        const cy = this.canvas.height / 2;
+        const dx = this.mouse.x - cx;
+        const dy = this.mouse.y - cy;
+        const maxDist = Math.max(cx, cy);
+        this.mouse.distFromCenter = Math.sqrt(dx * dx + dy * dy) / maxDist;
+        this.mouse.angleFromCenter = Math.atan2(dy, dx);
+        
+        // Update legacy canvas properties for backward compatibility
+        this.canvas.mouseX = this.mouse.x;
+        this.canvas.mouseY = this.mouse.y;
+        this.canvas.isMouseDown = this.mouse.isDown;
     }
 
     setCode(code) {
@@ -30,16 +184,17 @@ export class CodeRunner {
     }
 
     play() {
-        if (this.isPlaying) return;
+        if (this.isPlaying || this.isDestroyed) return;
         this.isPlaying = true;
         
-        // Attach listeners
-        this.canvas.addEventListener('mousemove', this._handleMouseMove);
-        this.canvas.addEventListener('mousedown', this._handleMouseDown);
-        this.canvas.addEventListener('mouseup', this._handleMouseUp);
-        this.canvas.addEventListener('mouseleave', this._handleMouseUp);
+        // Subscribe to MouseStateManager
+        if (!this.unsubscribeMouse) {
+            this.unsubscribeMouse = mouseStateManager.subscribe(
+                (state) => this._updateMouseState(state)
+            );
+        }
         
-        // Initialize mouse props on canvas
+        // Initialize mouse props on canvas (legacy)
         this.canvas.mouseX = this.canvas.width / 2;
         this.canvas.mouseY = this.canvas.height / 2;
         this.canvas.isMouseDown = false;
@@ -50,11 +205,11 @@ export class CodeRunner {
     stop() {
         this.isPlaying = false;
         
-        // Remove listeners
-        this.canvas.removeEventListener('mousemove', this._handleMouseMove);
-        this.canvas.removeEventListener('mousedown', this._handleMouseDown);
-        this.canvas.removeEventListener('mouseup', this._handleMouseUp);
-        this.canvas.removeEventListener('mouseleave', this._handleMouseUp);
+        // Unsubscribe from MouseStateManager
+        if (this.unsubscribeMouse) {
+            this.unsubscribeMouse();
+            this.unsubscribeMouse = null;
+        }
 
         if (this.animationFrame) {
             cancelAnimationFrame(this.animationFrame);
@@ -69,6 +224,15 @@ export class CodeRunner {
         }
         this.cleanup = null;
         this.drawFunction = null;
+    }
+    
+    /**
+     * Full cleanup - call when element is removed
+     */
+    destroy() {
+        this.stop();
+        this.isDestroyed = true;
+        this.elementBounds = null;
     }
 
     resize(w, h) {
@@ -104,18 +268,21 @@ export class CodeRunner {
 
         try {
             // Create a safe-ish scope
-            // We provide: ctx, canvas, width, height, time
+            // We provide: ctx, canvas, width, height, time, mouse
             // User defines: draw(time) or setup()/draw()
             
             let func;
             let result;
             let success = false;
+            
+            // Reference to mouse for closure
+            const mouse = this.mouse;
 
             // Attempt 1: Try to interpret as an object literal or expression returning an object
             // This handles cases like: { draw: function(t) { ... } }
             try {
-                func = new Function('ctx', 'canvas', 'width', 'height', 'time', `return (${this.userCode}\n);`);
-                result = func(this.ctx, this.canvas, this.canvas.width, this.canvas.height, 0);
+                func = new Function('ctx', 'canvas', 'width', 'height', 'time', 'mouse', `return (${this.userCode}\n);`);
+                result = func(this.ctx, this.canvas, this.canvas.width, this.canvas.height, 0, mouse);
                 if (result && typeof result.draw === 'function') {
                     success = true;
                 }
@@ -127,13 +294,13 @@ export class CodeRunner {
             // This handles cases like: function draw(t) { ... } or explicit return { ... }
             if (!success) {
                 try {
-                    func = new Function('ctx', 'canvas', 'width', 'height', 'time', `
+                    func = new Function('ctx', 'canvas', 'width', 'height', 'time', 'mouse', `
                         ${this.userCode}
                         // Return a cleanup function if needed, or an object with draw method
                         if (typeof draw === 'function') return { draw };
                         return null;
                     `);
-                    result = func(this.ctx, this.canvas, this.canvas.width, this.canvas.height, 0);
+                    result = func(this.ctx, this.canvas, this.canvas.width, this.canvas.height, 0, mouse);
                 } catch (e) {
                     console.error('Compilation error in user code:', e);
                     this.startErrorState();
@@ -144,6 +311,15 @@ export class CodeRunner {
             // console.log('CodeRunner: Execution result', result);
             
             if (result && typeof result.draw === 'function') {
+                // Call init() if it exists to initialize state
+                if (typeof result.init === 'function') {
+                    try {
+                        result.init.call(result);
+                    } catch (e) {
+                        console.error('Error in init function:', e);
+                    }
+                }
+                
                 // Bind draw to the result object so 'this' works inside draw
                 this.drawFunction = result.draw.bind(result);
                 this.startTime = Date.now();
@@ -156,6 +332,9 @@ export class CodeRunner {
                     
                     // Reset transform before draw
                     this.ctx.setTransform(1, 0, 0, 1, 0, 0);
+                    
+                    // Reset single-frame mouse flags after they've been consumed
+                    // (They persist for one frame so user code can detect them)
                     
                     try {
                         this.drawFunction(time);
@@ -284,34 +463,6 @@ export class CodeRunner {
         ctx.fillText('CODE ERROR', 45, 20);
 
         ctx.restore();
-    }
-
-    
-    _handleMouseMove(e) {
-        const rect = this.canvas.getBoundingClientRect();
-        
-        // Calculate scale factors (canvas internal resolution vs displayed size)
-        const scaleX = this.canvas.width / rect.width;
-        const scaleY = this.canvas.height / rect.height;
-
-        this.mouse.x = (e.clientX - rect.left) * scaleX;
-        this.mouse.y = (e.clientY - rect.top) * scaleY;
-        
-        // Update canvas properties for user access
-        this.canvas.mouseX = this.mouse.x;
-        this.canvas.mouseY = this.mouse.y;
-    }
-
-    _handleMouseDown(e) {
-        this.mouse.down = true;
-        this.canvas.isMouseDown = true;
-        this._handleMouseMove(e); // Update pos
-    }
-
-    _handleMouseUp(e) {
-        this.mouse.down = false;
-        this.canvas.isMouseDown = false;
-        this._handleMouseMove(e); // Update pos
     }
 
     static get DEFAULT_CODE() {

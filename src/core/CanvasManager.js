@@ -5,6 +5,7 @@ import { GeometryUtils } from './canvas/GeometryUtils.js';
 import { HitTesting } from './canvas/HitTesting.js';
 import { SnappingSystem } from './canvas/SnappingSystem.js';
 import { GizmoRenderer } from './canvas/GizmoRenderer.js';
+import { mouseStateManager } from './MouseStateManager.js';
 
 /**
  * CanvasManager - Main orchestrator for canvas interactions
@@ -278,6 +279,12 @@ export class CanvasManager {
         const state = store.getState();
         if (state.editor.mode === 'presentation') return;
         
+        // Broadcast mouse down to CodeFill canvases
+        const rect = this.container.getBoundingClientRect();
+        const mouseX = e.clientX - rect.left;
+        const mouseY = e.clientY - rect.top;
+        this._broadcastMouseState(mouseX, mouseY, e, state, true);
+        
         if (state.editor.editingElementId) {
             return;
         }
@@ -432,6 +439,9 @@ export class CanvasManager {
         const rect = this.container.getBoundingClientRect();
         const mouseX = e.clientX - rect.left;
         const mouseY = e.clientY - rect.top;
+        
+        // Broadcast mouse state to CodeFill canvases
+        this._broadcastMouseState(mouseX, mouseY, e, state);
         
         switch (this.interactionState) {
             case 'CREATING':
@@ -1021,6 +1031,12 @@ export class CanvasManager {
         const state = store.getState();
         if (state.editor.mode === 'presentation') return;
 
+        // Broadcast mouse up to CodeFill canvases
+        const rect = this.container.getBoundingClientRect();
+        const mouseX = e.clientX - rect.left;
+        const mouseY = e.clientY - rect.top;
+        this._broadcastMouseState(mouseX, mouseY, e, state, false);
+
         if (this.interactionState === 'RESIZING' || this.interactionState === 'DRAGGING') {
             store.dispatch('END_INTERACTION');
             store.dispatch('UI_INTERACTION_END');
@@ -1042,6 +1058,64 @@ export class CanvasManager {
 
         this.activeHandle = null;
         this.initialElementState = {};
+    }
+
+    /**
+     * Broadcast mouse state to CodeFill canvases via MouseStateManager
+     * @param {number} mouseX - Mouse X in screen space
+     * @param {number} mouseY - Mouse Y in screen space
+     * @param {MouseEvent} e - Original mouse event
+     * @param {Object} state - Current app state
+     * @param {boolean|undefined} isDown - Force isDown state (for mousedown/mouseup)
+     * @private
+     */
+    _broadcastMouseState(mouseX, mouseY, e, state, isDown) {
+        // Don't broadcast during text editing
+        if (state.editor.editingElementId) {
+            return;
+        }
+        
+        // Don't broadcast if an input field is focused
+        if (InputManager.isInputActive()) {
+            return;
+        }
+        
+        const { zoom, pan } = state.editor;
+        
+        // Calculate world coordinates (slide space)
+        const worldX = (mouseX - pan.x) / zoom;
+        const worldY = (mouseY - pan.y) / zoom;
+        
+        // Determine isDown state
+        // During DRAGGING/RESIZING, suppress button state to prevent CodeFill interference
+        const isSuppressed = this.interactionState === 'DRAGGING' || 
+                            this.interactionState === 'RESIZING' ||
+                            this.interactionState === 'PANNING' ||
+                            this.interactionState === 'CREATING' ||
+                            this.interactionState === 'SELECTING';
+        
+        let buttonDown;
+        if (isDown !== undefined) {
+            // Explicit from mousedown/mouseup
+            buttonDown = isDown;
+        } else {
+            // From mousemove - check e.buttons
+            buttonDown = (e.buttons & 1) === 1; // Left button
+        }
+        
+        // Update suppression state
+        mouseStateManager.setSuppressed(isSuppressed);
+        
+        // Broadcast state
+        mouseStateManager.update({
+            screenX: mouseX,
+            screenY: mouseY,
+            worldX,
+            worldY,
+            isDown: isSuppressed ? false : buttonDown,
+            button: e.button,
+            timestamp: performance.now()
+        });
     }
 
     _handleCreationComplete(e, state) {

@@ -98,7 +98,7 @@ export class CodeTab {
 
     handlePresetSelect(preset) {
         // Apply preset code and switch to custom tab
-        this.fill.code = preset.code;
+        // Note: Don't modify this.fill directly as it may be frozen
         this.onChange({ code: preset.code });
         this.activeSubTab = 'custom';
         this.render();

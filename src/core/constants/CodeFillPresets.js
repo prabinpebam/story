@@ -358,6 +358,352 @@ export const CODEFILL_PRESETS = [
         }
     }
 };`
+    },
+    // ===== INTERACTIVE PRESETS (Mouse-Reactive) =====
+    {
+        id: 'mouse-trail',
+        name: 'Mouse Trail',
+        description: 'Glowing particles follow your cursor with trailing effect',
+        category: 'interactive',
+        code: `return {
+    init: function() {
+        this.particles = [];
+        this.maxParticles = 50;
+    },
+    draw: function(t) {
+        const w = canvas.width;
+        const h = canvas.height;
+        
+        // Fade previous frame
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
+        ctx.fillRect(0, 0, w, h);
+        
+        // Add new particle at mouse position if moving
+        if (mouse.isOver && (mouse.vx !== 0 || mouse.vy !== 0)) {
+            this.particles.push({
+                x: mouse.x,
+                y: mouse.y,
+                vx: (Math.random() - 0.5) * 2,
+                vy: (Math.random() - 0.5) * 2,
+                life: 1,
+                hue: (t * 50) % 360,
+                size: 5 + Math.random() * 10
+            });
+        }
+        
+        // Limit particles
+        while (this.particles.length > this.maxParticles) {
+            this.particles.shift();
+        }
+        
+        // Update and draw particles
+        for (let i = this.particles.length - 1; i >= 0; i--) {
+            const p = this.particles[i];
+            p.x += p.vx;
+            p.y += p.vy;
+            p.life -= 0.02;
+            p.size *= 0.98;
+            
+            if (p.life <= 0) {
+                this.particles.splice(i, 1);
+                continue;
+            }
+            
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+            ctx.fillStyle = \`hsla(\${p.hue}, 100%, 60%, \${p.life})\`;
+            ctx.fill();
+        }
+        
+        // Draw cursor glow
+        if (mouse.isOver) {
+            const gradient = ctx.createRadialGradient(mouse.x, mouse.y, 0, mouse.x, mouse.y, 30);
+            gradient.addColorStop(0, \`hsla(\${(t * 50) % 360}, 100%, 70%, 0.8)\`);
+            gradient.addColorStop(1, 'transparent');
+            ctx.fillStyle = gradient;
+            ctx.beginPath();
+            ctx.arc(mouse.x, mouse.y, 30, 0, Math.PI * 2);
+            ctx.fill();
+        }
+    }
+};`
+    },
+    {
+        id: 'click-ripple',
+        name: 'Click Ripple',
+        description: 'Beautiful ripples expand from each click location',
+        category: 'interactive',
+        code: `return {
+    init: function() {
+        this.ripples = [];
+    },
+    draw: function(t) {
+        const w = canvas.width;
+        const h = canvas.height;
+        
+        // Dark background with slight fade
+        ctx.fillStyle = 'rgba(10, 10, 20, 0.15)';
+        ctx.fillRect(0, 0, w, h);
+        
+        // Add new ripple on click
+        if (mouse.pressed) {
+            this.ripples.push({
+                x: mouse.x,
+                y: mouse.y,
+                radius: 0,
+                maxRadius: Math.max(w, h) * 0.6,
+                hue: Math.random() * 360,
+                birth: t
+            });
+        }
+        
+        // Draw and update ripples
+        for (let i = this.ripples.length - 1; i >= 0; i--) {
+            const r = this.ripples[i];
+            const age = t - r.birth;
+            r.radius = age * 200;
+            
+            if (r.radius > r.maxRadius) {
+                this.ripples.splice(i, 1);
+                continue;
+            }
+            
+            const alpha = 1 - (r.radius / r.maxRadius);
+            
+            // Draw multiple rings
+            for (let ring = 0; ring < 3; ring++) {
+                const ringRadius = r.radius - ring * 15;
+                if (ringRadius > 0) {
+                    ctx.beginPath();
+                    ctx.arc(r.x, r.y, ringRadius, 0, Math.PI * 2);
+                    ctx.strokeStyle = \`hsla(\${r.hue + ring * 20}, 80%, 60%, \${alpha * 0.6})\`;
+                    ctx.lineWidth = 3 - ring;
+                    ctx.stroke();
+                }
+            }
+        }
+        
+        // Ambient glow at cursor
+        if (mouse.isOver) {
+            const gradient = ctx.createRadialGradient(mouse.x, mouse.y, 0, mouse.x, mouse.y, 50);
+            gradient.addColorStop(0, 'rgba(100, 150, 255, 0.3)');
+            gradient.addColorStop(1, 'transparent');
+            ctx.fillStyle = gradient;
+            ctx.beginPath();
+            ctx.arc(mouse.x, mouse.y, 50, 0, Math.PI * 2);
+            ctx.fill();
+        }
+    }
+};`
+    },
+    {
+        id: 'magnetic-field',
+        name: 'Magnetic Field',
+        description: 'Field lines are attracted to cursor position',
+        category: 'interactive',
+        code: `return {
+    init: function() {
+        this.particles = [];
+        const count = 100;
+        for (let i = 0; i < count; i++) {
+            this.particles.push({
+                x: Math.random() * canvas.width,
+                y: Math.random() * canvas.height,
+                baseX: Math.random() * canvas.width,
+                baseY: Math.random() * canvas.height,
+                size: 2 + Math.random() * 3
+            });
+        }
+    },
+    draw: function(t) {
+        const w = canvas.width;
+        const h = canvas.height;
+        
+        // Dark background
+        ctx.fillStyle = 'rgba(5, 5, 15, 0.2)';
+        ctx.fillRect(0, 0, w, h);
+        
+        const mouseX = mouse.isOver ? mouse.x : w / 2;
+        const mouseY = mouse.isOver ? mouse.y : h / 2;
+        const attraction = mouse.isDown ? 0.15 : 0.05;
+        
+        // Update and draw particles
+        for (const p of this.particles) {
+            // Attraction to mouse
+            const dx = mouseX - p.x;
+            const dy = mouseY - p.y;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            const force = Math.min(attraction / (dist * 0.01 + 0.1), 5);
+            
+            p.x += dx * force * 0.02;
+            p.y += dy * force * 0.02;
+            
+            // Spring back to base position
+            p.x += (p.baseX - p.x) * 0.01;
+            p.y += (p.baseY - p.y) * 0.01;
+            
+            // Draw particle
+            const alpha = 0.5 + 0.5 * (1 - Math.min(dist / 300, 1));
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+            ctx.fillStyle = \`rgba(100, 180, 255, \${alpha})\`;
+            ctx.fill();
+            
+            // Draw line to mouse if close
+            if (dist < 200 && mouse.isOver) {
+                ctx.beginPath();
+                ctx.moveTo(p.x, p.y);
+                ctx.lineTo(mouseX, mouseY);
+                ctx.strokeStyle = \`rgba(100, 180, 255, \${0.1 * (1 - dist / 200)})\`;
+                ctx.lineWidth = 1;
+                ctx.stroke();
+            }
+        }
+        
+        // Mouse glow
+        if (mouse.isOver) {
+            const glowSize = mouse.isDown ? 40 : 20;
+            const gradient = ctx.createRadialGradient(mouseX, mouseY, 0, mouseX, mouseY, glowSize);
+            gradient.addColorStop(0, 'rgba(150, 200, 255, 0.8)');
+            gradient.addColorStop(1, 'transparent');
+            ctx.fillStyle = gradient;
+            ctx.beginPath();
+            ctx.arc(mouseX, mouseY, glowSize, 0, Math.PI * 2);
+            ctx.fill();
+        }
+    }
+};`
+    },
+    {
+        id: 'paint-brush',
+        name: 'Paint Brush',
+        description: 'Draw colorful strokes by clicking and dragging',
+        category: 'interactive',
+        code: `return {
+    init: function() {
+        this.lastX = null;
+        this.lastY = null;
+        this.hue = 0;
+    },
+    draw: function(t) {
+        const w = canvas.width;
+        const h = canvas.height;
+        
+        // Initial fill on first frame
+        if (this.lastX === null) {
+            ctx.fillStyle = '#0a0a15';
+            ctx.fillRect(0, 0, w, h);
+        }
+        
+        // Draw when mouse is down and moving
+        if (mouse.isDown && mouse.isOver) {
+            if (this.lastX !== null) {
+                ctx.beginPath();
+                ctx.moveTo(this.lastX, this.lastY);
+                ctx.lineTo(mouse.x, mouse.y);
+                
+                // Dynamic line width based on velocity
+                const speed = Math.sqrt(mouse.vx * mouse.vx + mouse.vy * mouse.vy);
+                const lineWidth = Math.max(2, 30 - speed * 0.05);
+                
+                ctx.lineWidth = lineWidth;
+                ctx.lineCap = 'round';
+                ctx.strokeStyle = \`hsl(\${this.hue}, 80%, 60%)\`;
+                ctx.stroke();
+                
+                // Glow effect
+                ctx.lineWidth = lineWidth * 2;
+                ctx.strokeStyle = \`hsla(\${this.hue}, 80%, 60%, 0.3)\`;
+                ctx.stroke();
+                
+                this.hue = (this.hue + 1) % 360;
+            }
+            this.lastX = mouse.x;
+            this.lastY = mouse.y;
+        } else {
+            this.lastX = null;
+            this.lastY = null;
+        }
+        
+        // Cursor indicator
+        if (mouse.isOver) {
+            ctx.beginPath();
+            ctx.arc(mouse.x, mouse.y, mouse.isDown ? 8 : 5, 0, Math.PI * 2);
+            ctx.fillStyle = \`hsl(\${this.hue}, 80%, 70%)\`;
+            ctx.fill();
+        }
+    }
+};`
+    },
+    {
+        id: 'gravity-balls',
+        name: 'Gravity Balls',
+        description: 'Bouncing balls attracted to your cursor',
+        category: 'interactive',
+        code: `return {
+    init: function() {
+        this.balls = [];
+        for (let i = 0; i < 20; i++) {
+            this.balls.push({
+                x: Math.random() * canvas.width,
+                y: Math.random() * canvas.height,
+                vx: (Math.random() - 0.5) * 5,
+                vy: (Math.random() - 0.5) * 5,
+                radius: 10 + Math.random() * 20,
+                hue: Math.random() * 360
+            });
+        }
+    },
+    draw: function(t) {
+        const w = canvas.width;
+        const h = canvas.height;
+        
+        // Clear with fade
+        ctx.fillStyle = 'rgba(10, 10, 25, 0.3)';
+        ctx.fillRect(0, 0, w, h);
+        
+        const gravityX = mouse.isOver ? mouse.x : w / 2;
+        const gravityY = mouse.isOver ? mouse.y : h / 2;
+        const gravityStrength = mouse.isDown ? 0.5 : 0.1;
+        
+        for (const ball of this.balls) {
+            // Gravity towards mouse
+            const dx = gravityX - ball.x;
+            const dy = gravityY - ball.y;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            
+            ball.vx += (dx / dist) * gravityStrength;
+            ball.vy += (dy / dist) * gravityStrength;
+            
+            // Apply velocity
+            ball.x += ball.vx;
+            ball.y += ball.vy;
+            
+            // Friction
+            ball.vx *= 0.98;
+            ball.vy *= 0.98;
+            
+            // Bounce off walls
+            if (ball.x < ball.radius) { ball.x = ball.radius; ball.vx *= -0.8; }
+            if (ball.x > w - ball.radius) { ball.x = w - ball.radius; ball.vx *= -0.8; }
+            if (ball.y < ball.radius) { ball.y = ball.radius; ball.vy *= -0.8; }
+            if (ball.y > h - ball.radius) { ball.y = h - ball.radius; ball.vy *= -0.8; }
+            
+            // Draw ball
+            const gradient = ctx.createRadialGradient(
+                ball.x - ball.radius * 0.3, ball.y - ball.radius * 0.3, 0,
+                ball.x, ball.y, ball.radius
+            );
+            gradient.addColorStop(0, \`hsl(\${ball.hue}, 80%, 70%)\`);
+            gradient.addColorStop(1, \`hsl(\${ball.hue}, 80%, 30%)\`);
+            
+            ctx.beginPath();
+            ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2);
+            ctx.fillStyle = gradient;
+            ctx.fill();
+        }
+    }
+};`
     }
 ];
 

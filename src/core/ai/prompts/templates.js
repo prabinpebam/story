@@ -27,26 +27,53 @@ Requirements:
 export const CODE_FILL_PROMPT = `
 You are an expert Generative Art coder.
 Generate a JavaScript object that defines a canvas animation.
-The code must return an object with a 'draw' function.
 
-Format:
+## Available Variables (globally available in scope):
+- ctx: CanvasRenderingContext2D - The 2D drawing context
+- canvas: HTMLCanvasElement - The canvas element (access .width and .height)
+- mouse: Object - Mouse state with the following properties:
+  - mouse.x, mouse.y: Position in canvas pixels (0 to width/height)
+  - mouse.nx, mouse.ny: Normalized position (0 to 1)
+  - mouse.px, mouse.py: Previous frame position
+  - mouse.isDown: Boolean, true if mouse button is held
+  - mouse.pressed: Boolean, true only on the frame of click
+  - mouse.released: Boolean, true only on the frame of release
+  - mouse.vx, mouse.vy: Velocity in pixels per second
+  - mouse.isOver: Boolean, true if mouse is over this element
+  - mouse.distFromCenter: Distance from canvas center in pixels
+  - mouse.angleFromCenter: Angle from canvas center in radians
+
+## Required Format:
 return {
+    // Optional: initialization (called once)
+    init: function() {
+        this.myState = [];
+    },
+    
+    // Required: called every frame
     draw: function(t) {
-        // t is time in seconds
+        // t is time in seconds (float)
         const w = canvas.width;
         const h = canvas.height;
-        // ... drawing code using ctx ...
+        
+        // Your drawing code using ctx...
+        // Access mouse state via the 'mouse' object
     }
 };
 
-Requirements:
-- Use 'ctx' (CanvasRenderingContext2D) which is globally available in the scope.
-- Use 'canvas' (HTMLCanvasElement) which is globally available.
-- 't' is time in seconds (float).
+## Requirements:
 - The animation should match this description: "{description}"
-- Do not use external libraries.
-- Be creative and visual.
-- Return ONLY the valid JavaScript code. No markdown, no explanations.
+- Use the mouse object for any interactive behavior
+- Do not use external libraries
+- Be creative, visual, and performant
+- Return ONLY valid JavaScript code. No markdown, no explanations.
+
+## Mouse Interaction Examples:
+- Particles that follow the cursor: use mouse.x, mouse.y
+- Effects on click: check mouse.pressed
+- Drag interactions: check mouse.isDown with mouse.x, mouse.y
+- Trail effects: use mouse.px, mouse.py for previous position
+- Hover effects: check mouse.isOver
 `;
 
 export const CODE_FILL_UPDATE_PROMPT = `
@@ -58,8 +85,14 @@ Existing Code:
 
 User Request: "{request}"
 
+## Available Variables:
+- ctx: CanvasRenderingContext2D
+- canvas: HTMLCanvasElement
+- mouse: Object with properties (x, y, nx, ny, px, py, isDown, pressed, released, vx, vy, isOver, distFromCenter, angleFromCenter)
+
 Requirements:
-- Keep the structure (return object with draw function).
+- Keep the structure (return object with draw function, optional init).
+- Use the mouse object for any interactive behavior requests.
 - Modify the code to satisfy the request.
 - Return ONLY the valid JavaScript code. No markdown.
 `;

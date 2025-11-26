@@ -1,5 +1,6 @@
 import { store } from './Store.js';
 import { LaserPointer } from './LaserPointer.js';
+import { mouseStateManager } from './MouseStateManager.js';
 
 export class PresentationManager {
     constructor() {
@@ -7,6 +8,14 @@ export class PresentationManager {
         this.appContainer = document.getElementById('app');
         this.slideContainer = document.getElementById('viewport'); // The container that holds the slide
         this.laserPointer = new LaserPointer('laser-canvas');
+        
+        // Cache for presentation mode coordinate calculation
+        this._presentationScale = 1;
+        this._presentationOffsetX = 0;
+        this._presentationOffsetY = 0;
+        this._slideWidth = 1920;
+        this._slideHeight = 1080;
+        
         this.init();
     }
 
@@ -120,6 +129,57 @@ export class PresentationManager {
                 this.laserPointer.addPoint(e.clientX, e.clientY);
             }
         });
+        
+        // Mouse events for CodeFill in presentation mode
+        document.addEventListener('mousemove', (e) => {
+            this._broadcastPresentationMouse(e, undefined);
+        });
+        
+        document.addEventListener('mousedown', (e) => {
+            this._broadcastPresentationMouse(e, true);
+        });
+        
+        document.addEventListener('mouseup', (e) => {
+            this._broadcastPresentationMouse(e, false);
+        });
+    }
+    
+    /**
+     * Broadcast mouse state to CodeFill canvases in presentation mode
+     * @param {MouseEvent} e - Mouse event
+     * @param {boolean|undefined} isDown - Force isDown state
+     * @private
+     */
+    _broadcastPresentationMouse(e, isDown) {
+        const state = store.getState();
+        if (state.editor.mode !== 'presentation') return;
+        
+        // Don't broadcast if overlays are showing (black/white screen)
+        if (state.presentation.blackScreen || state.presentation.whiteScreen) return;
+        
+        // Calculate world coordinates using cached scale/offset
+        const worldX = (e.clientX - this._presentationOffsetX) / this._presentationScale;
+        const worldY = (e.clientY - this._presentationOffsetY) / this._presentationScale;
+        
+        // Determine button state
+        let buttonDown;
+        if (isDown !== undefined) {
+            buttonDown = isDown;
+        } else {
+            buttonDown = (e.buttons & 1) === 1;
+        }
+        
+        // Broadcast - never suppressed in presentation mode
+        mouseStateManager.setSuppressed(false);
+        mouseStateManager.update({
+            screenX: e.clientX,
+            screenY: e.clientY,
+            worldX,
+            worldY,
+            isDown: buttonDown,
+            button: e.button,
+            timestamp: performance.now()
+        });
     }
 
     startPresentation() {
@@ -211,6 +271,14 @@ export class PresentationManager {
             const scaleX = windowWidth / slideWidth;
             const scaleY = windowHeight / slideHeight;
             const scale = Math.min(scaleX, scaleY);
+            
+            // Cache values for mouse coordinate calculation
+            this._presentationScale = scale;
+            this._slideWidth = slideWidth;
+            this._slideHeight = slideHeight;
+            // Calculate offset (slide is centered)
+            this._presentationOffsetX = (windowWidth - slideWidth * scale) / 2;
+            this._presentationOffsetY = (windowHeight - slideHeight * scale) / 2;
 
             // Apply Transform
             // We need to center the slide

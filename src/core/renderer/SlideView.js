@@ -120,6 +120,8 @@ export class SlideView {
                 const w = parseInt(this.domElement.style.width) || 1920;
                 const h = parseInt(this.domElement.style.height) || 1080;
                 this.bgCodeRunner.resize(w, h);
+                // Update bounds on resize
+                this.bgCodeRunner.setElementBounds({ x: 0, y: 0, width: w, height: h, rotation: 0 });
             }
             return;
         }
@@ -165,15 +167,20 @@ export class SlideView {
             } else if (fill.type === 'image') {
                 layer.style.background = `url(${fill.value}) center/cover no-repeat`;
             } else if (fill.type === 'code') {
+                const w = parseInt(this.domElement.style.width) || 1920;
+                const h = parseInt(this.domElement.style.height) || 1080;
+                
                 const canvas = document.createElement('canvas');
-                canvas.width = parseInt(this.domElement.style.width) || 1920;
-                canvas.height = parseInt(this.domElement.style.height) || 1080;
+                canvas.width = w;
+                canvas.height = h;
                 canvas.style.width = '100%';
                 canvas.style.height = '100%';
                 layer.appendChild(canvas);
                 
                 const runner = new CodeRunner(canvas);
                 runner.setCode(fill.code || fill.value);
+                // Set element bounds for mouse interaction - slide background covers full slide
+                runner.setElementBounds({ x: 0, y: 0, width: w, height: h, rotation: 0 });
                 runner.play();
                 this.bgCodeRunner = runner;
             }
