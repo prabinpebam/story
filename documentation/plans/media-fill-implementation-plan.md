@@ -4,179 +4,489 @@
 
 This plan details the phased implementation of the media fill system, which treats images and videos as fill layers on shapes rather than separate element types.
 
-**Estimated Total Time**: 32-40 hours
+**Estimated Total Time**: 44-54 hours (revised with validation gates)
 
 ---
 
-## Phase 1: Core Infrastructure (6-8 hours)
+## Pre-Implementation Checklist
 
-### 1.1 Data Structures & Constants
+Before starting, verify these dependencies exist and understand their current state:
+
+### Must Verify
+
+- [ ] **HistoryManager.js** - Does it have extensible eviction? (Answer: No, needs modification)
+- [ ] **FillFlyout structure** - Does `FillFlyout.js` exist? (Check actual file structure)
+- [ ] **ShapeElement.applyFills()** - Review current 200+ line implementation
+- [ ] **Store action patterns** - Review how existing fills are updated
+- [ ] **FillSection layer display** - How are solid/gradient fills shown in list?
+
+### Must Create First
+
+- [ ] **HistoryManager `onEvict` callback** - Add before Phase 9
+- [ ] **MediaAssetManager skeleton** - Create empty class to unblock parallel work
+
+---
+
+## Micro-Phase Implementation
+
+Each micro-phase is ~2 hours, independently testable, and has explicit validation criteria.
+
+---
+
+## PHASE 1: Core Infrastructure (6-8 hours)
+
+### 1.1 Constants & Types (1.5 hours)
 
 **File**: `src/core/constants/MediaDefaults.js`
 
+**Tasks**:
 ```javascript
-// Default values for image and video fills
-export const DEFAULT_IMAGE_FILL = { ... };
-export const DEFAULT_VIDEO_FILL = { ... };
-export const SUPPORTED_IMAGE_FORMATS = [...];
-export const SUPPORTED_VIDEO_FORMATS = [...];
-export const FILE_SIZE_LIMITS = { ... };
+// Create this file with:
+export const DEFAULT_IMAGE_FILL = { /* all defaults */ };
+export const DEFAULT_VIDEO_FILL = { /* all defaults */ };
+export const SUPPORTED_IMAGE_FORMATS = ['image/jpeg', 'image/png', ...];
+export const SUPPORTED_VIDEO_FORMATS = ['video/mp4', 'video/webm', ...];
+export const FILE_SIZE_LIMITS = { image: 50*1024*1024, video: 500*1024*1024 };
+export const ASSET_ID_PREFIX = { image: 'img_', video: 'vid_' };
 ```
 
-**Tasks**:
-- [ ] Create MediaDefaults.js with all default values
-- [ ] Add to existing BlendModes.js if needed
-- [ ] Add format validation constants
-
-**Validation**:
-- [ ] Constants importable without errors
-- [ ] Default values match spec
-
----
-
-### 1.2 MediaManager Singleton
-
-**File**: `src/core/media/MediaManager.js`
-
-**Tasks**:
-- [ ] Create MediaManager class
-- [ ] Implement `importFile(file)` method
-- [ ] Implement `importUrl(url)` method
-- [ ] Implement `importFromClipboard(clipboardData)` method
-- [ ] Implement `createMediaUrl(file, threshold)` - data URL vs blob URL
-- [ ] Implement `releaseMediaUrl(url)` - blob cleanup
-- [ ] Implement LRU cache for decoded media
-- [ ] Export singleton instance
-
-**Validation**:
-- [ ] Import JPEG, PNG, WebP, GIF, SVG successfully
-- [ ] Import MP4, WebM successfully
-- [ ] Small files return data URLs
-- [ ] Large files return blob URLs
-- [ ] Blob URLs are properly revoked on release
+**Validation Gate 1.1**:
+```javascript
+// In browser console:
+import { DEFAULT_IMAGE_FILL } from './core/constants/MediaDefaults.js';
+console.assert(DEFAULT_IMAGE_FILL.type === 'image');
+console.assert(DEFAULT_IMAGE_FILL.scaleMode === 'fill');
+console.assert(DEFAULT_IMAGE_FILL.filters.exposure === 0);
+// ✅ PASS: All imports work, no syntax errors
+```
 
 ---
 
-### 1.3 ImageProcessor
+### 1.2 MediaAssetManager Skeleton (2 hours)
+
+**File**: `src/core/media/MediaAssetManager.js`
+
+**Tasks** (implement stubs first, real logic later):
+```javascript
+class MediaAssetManager {
+    constructor() {
+        this.assets = new Map();
+    }
+    
+    // STUB: Returns fake assetId for testing
+    async importFile(file) {
+        const assetId = `img_test_${Date.now()}`;
+        // TODO: Real implementation
+        return { assetId, blobUrl: URL.createObjectURL(file), metadata: {} };
+    }
+    
+    getBlobUrl(assetId) {
+        // TODO: Real implementation
+        return this.assets.get(assetId)?.blobUrl || null;
+    }
+    
+    has(assetId) { return this.assets.has(assetId); }
+    retain(assetId) { /* TODO */ }
+    release(assetId) { /* TODO */ }
+}
+
+export const mediaAssetManager = new MediaAssetManager();
+```
+
+**Validation Gate 1.2**:
+```javascript
+import { mediaAssetManager } from './core/media/MediaAssetManager.js';
+const file = new File(['test'], 'test.jpg', { type: 'image/jpeg' });
+const result = await mediaAssetManager.importFile(file);
+console.assert(result.assetId.startsWith('img_'));
+console.assert(result.blobUrl.startsWith('blob:'));
+// ✅ PASS: Basic import works
+```
+
+---
+
+### 1.3 Asset ID Generation (1.5 hours)
+
+**File**: `src/core/media/MediaAssetManager.js` (continue)
+
+**Tasks**:
+```javascript
+async generateAssetId(file) {
+    const buffer = await file.arrayBuffer();
+    const hashBuffer = await crypto.subtle.digest('SHA-256', buffer);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+    
+    const prefix = file.type.startsWith('video/') ? 'vid' : 'img';
+    const ext = file.type.split('/')[1]?.split('+')[0] || 'bin';
+    
+    return `${prefix}_${hashHex.substring(0, 12)}.${ext}`;
+}
+```
+
+**Validation Gate 1.3**:
+```javascript
+const file1 = new File(['hello'], 'a.jpg', { type: 'image/jpeg' });
+const file2 = new File(['hello'], 'b.jpg', { type: 'image/jpeg' }); // Same content
+const file3 = new File(['world'], 'c.jpg', { type: 'image/jpeg' }); // Different
+
+const id1 = await mediaAssetManager.generateAssetId(file1);
+const id2 = await mediaAssetManager.generateAssetId(file2);
+const id3 = await mediaAssetManager.generateAssetId(file3);
+
+console.assert(id1 === id2, 'Same content = same ID (deduplication)');
+console.assert(id1 !== id3, 'Different content = different ID');
+console.assert(id1.startsWith('img_'), 'Correct prefix');
+// ✅ PASS: Deduplication works
+```
+
+---
+
+### 1.4 ImageProcessor (1.5 hours)
 
 **File**: `src/core/media/ImageProcessor.js`
 
 **Tasks**:
-- [ ] Create ImageProcessor class
-- [ ] Implement `process(file)` - returns ImageFill object
-- [ ] Implement `getDimensions(src)` - extract width/height
-- [ ] Implement `resize(src, maxWidth, maxHeight)` - optimization
-- [ ] Implement `loadImage(src)` - cached loading
+```javascript
+export class ImageProcessor {
+    async process(file) {
+        const { assetId, blobUrl } = await mediaAssetManager.importFile(file);
+        const { width, height } = await this.getDimensions(blobUrl);
+        
+        return {
+            ...DEFAULT_IMAGE_FILL,
+            assetId,
+            originalWidth: width,
+            originalHeight: height,
+            fileName: file.name,
+            fileSize: file.size
+        };
+    }
+    
+    getDimensions(src) {
+        return new Promise((resolve, reject) => {
+            const img = new Image();
+            img.onload = () => resolve({ width: img.naturalWidth, height: img.naturalHeight });
+            img.onerror = reject;
+            img.src = src;
+        });
+    }
+}
+```
 
-**Validation**:
-- [ ] Returns complete ImageFill object with all fields
-- [ ] Dimensions extracted correctly for various formats
-- [ ] Resize produces valid WebP output
-- [ ] Cache hit/miss works correctly
+**Validation Gate 1.4**:
+```javascript
+const processor = new ImageProcessor();
+// Use a real image file
+const fill = await processor.process(realImageFile);
+
+console.assert(fill.type === 'image');
+console.assert(fill.originalWidth > 0);
+console.assert(fill.originalHeight > 0);
+console.assert(fill.assetId.startsWith('img_'));
+// ✅ PASS: Image processing works
+```
 
 ---
 
-### 1.4 VideoProcessor
-
-**File**: `src/core/media/VideoProcessor.js`
-
-**Tasks**:
-- [ ] Create VideoProcessor class
-- [ ] Implement `process(file)` - returns VideoFill object
-- [ ] Implement `getMetadata(src)` - duration, dimensions
-- [ ] Implement `extractPosterFrame(src, time)` - frame capture
-- [ ] Implement time formatting utilities
-
-**Validation**:
-- [ ] Returns complete VideoFill object
-- [ ] Duration and dimensions correct
-- [ ] Poster frame extraction works
-- [ ] Time formatting correct (00:05.2)
-
----
-
-### 1.5 FilterEngine
+### 1.5 FilterEngine (1.5 hours)
 
 **File**: `src/core/media/FilterEngine.js`
 
 **Tasks**:
-- [ ] Create FilterEngine static class
-- [ ] Implement `buildCssFilter(filters)` - CSS filter string
-- [ ] Implement `buildTemperatureTintFilter(filters, id)` - SVG filter
-- [ ] Implement `buildHighlightsShadowsFilter(filters, id)` - SVG filter
+```javascript
+export class FilterEngine {
+    static buildCssFilter(filters) {
+        const parts = [];
+        
+        // ORDER MATTERS: temperature/tint handled separately via SVG
+        if (filters.exposure !== 0) parts.push(`brightness(${1 + filters.exposure/100})`);
+        if (filters.contrast !== 0) parts.push(`contrast(${1 + filters.contrast/100})`);
+        if (filters.saturation !== 0) parts.push(`saturate(${1 + filters.saturation/100})`);
+        if (filters.hueRotate !== 0) parts.push(`hue-rotate(${filters.hueRotate}deg)`);
+        if (filters.grayscale !== 0) parts.push(`grayscale(${filters.grayscale}%)`);
+        if (filters.sepia !== 0) parts.push(`sepia(${filters.sepia}%)`);
+        if (filters.invert !== 0) parts.push(`invert(${filters.invert}%)`);
+        // Blur ALWAYS last
+        if (filters.blur !== 0) parts.push(`blur(${filters.blur}px)`);
+        
+        return parts.join(' ') || 'none';
+    }
+}
+```
 
-**Validation**:
-- [ ] CSS filters render correctly in browser
-- [ ] SVG filters generate valid SVG
-- [ ] All filter ranges produce expected visual results
+**Validation Gate 1.5**:
+```javascript
+const css = FilterEngine.buildCssFilter({ 
+    exposure: 20, contrast: -10, blur: 5, saturation: 0, 
+    hueRotate: 0, grayscale: 0, sepia: 0, invert: 0,
+    temperature: 0, tint: 0, highlights: 0, shadows: 0
+});
+
+console.assert(css.includes('brightness(1.2)'));
+console.assert(css.includes('contrast(0.9)'));
+console.assert(css.endsWith('blur(5px)'), 'Blur must be last');
+// ✅ PASS: Filter string generation works
+```
 
 ---
 
-## Phase 2: Renderer Integration (6-8 hours)
+## PHASE 2: Renderer Integration (6-8 hours)
 
-### 2.1 ShapeElement Media Rendering
+### 2.1 ShapeElement Media Methods (3 hours)
 
 **File**: `src/core/renderer/elements/ShapeElement.js` (MODIFY)
 
-**Tasks**:
-- [ ] Import FilterEngine
-- [ ] Add `applyImageFill(layer, fill, el)` method
-- [ ] Add `applyVideoFill(layer, fill, el)` method
-- [ ] Add `applyMediaScaleMode(mediaEl, fill, el)` helper
-- [ ] Add `applyMediaPosition(mediaEl, fill)` helper
-- [ ] Add `applyMediaTransform(mediaEl, fill)` helper
-- [ ] Add `applyAdvancedFilters(layer, fill, elementId)` helper
-- [ ] Update `applyFills()` to route image/video types
+**Strategy**: Add new methods without modifying existing `applyFills()` yet.
 
-**Validation**:
-- [ ] Image fills render with correct scale mode
-- [ ] Video fills render and play
-- [ ] All scale modes work correctly (fill, fit, stretch, tile)
-- [ ] Position offset works
-- [ ] Scale and rotation transforms work
-- [ ] CSS filters apply correctly
-- [ ] SVG filters for temperature/tint work
+**Tasks**:
+```javascript
+// ADD these new methods (don't modify applyFills yet):
+
+applyImageFill(layer, fill, el) {
+    // Clear any previous content
+    layer.innerHTML = '';
+    
+    const blobUrl = mediaAssetManager.getBlobUrl(fill.assetId);
+    if (!blobUrl) {
+        layer.style.background = '#f0f0f0'; // Error state
+        return;
+    }
+    
+    if (fill.scaleMode === 'tile') {
+        // Tile mode: use CSS background
+        layer.style.backgroundImage = `url(${blobUrl})`;
+        layer.style.backgroundRepeat = 'repeat';
+        layer.style.backgroundSize = 'auto';
+    } else {
+        // Other modes: use img element
+        const img = document.createElement('img');
+        img.src = blobUrl;
+        img.style.position = 'absolute';
+        img.style.pointerEvents = 'none';
+        this.applyMediaScaleMode(img, fill, el);
+        this.applyMediaFilters(img, fill, el.id);
+        layer.appendChild(img);
+    }
+}
+
+applyMediaScaleMode(mediaEl, fill, el) {
+    const { scaleMode, position, scale, rotation } = fill;
+    
+    // Calculate dimensions based on scale mode
+    // ... (implementation from spec)
+}
+
+applyMediaFilters(mediaEl, fill, elementId) {
+    const cssFilter = FilterEngine.buildCssFilter(fill.filters);
+    mediaEl.style.filter = cssFilter;
+}
+```
+
+**Validation Gate 2.1**:
+```javascript
+// In browser: Create a shape, manually add image fill to state
+const testFill = {
+    type: 'image',
+    assetId: 'img_test123',
+    scaleMode: 'fill',
+    position: { x: 0.5, y: 0.5 },
+    scale: 1,
+    rotation: 0,
+    filters: { /* all zeros */ },
+    visible: true,
+    opacity: 100
+};
+
+// Manually call applyImageFill on a test layer
+// Verify: Image displays, no console errors
+// ✅ PASS: Image renders in shape
+```
 
 ---
 
-### 2.2 Video Lifecycle Management
+### 2.2 Integrate into applyFills() (2 hours)
 
-**Tasks**:
-- [ ] Videos autoplay when visible
-- [ ] Videos pause when off-screen (IntersectionObserver)
-- [ ] Videos respect loop/muted/volume settings
-- [ ] Trim points (startTime/endTime) work
-- [ ] Videos cleanup on element removal
+**File**: `src/core/renderer/elements/ShapeElement.js` (MODIFY)
 
-**Validation**:
-- [ ] Scroll video into view → plays
-- [ ] Scroll video out of view → pauses
-- [ ] Loop resets to startTime correctly
-- [ ] No memory leaks on repeated add/remove
+**Tasks**: Add routing for image/video types in existing `applyFills()`:
+
+```javascript
+// In the fills.forEach loop, add cases:
+if (fill.type === 'image') {
+    this.applyImageFill(layer, fill, el);
+} else if (fill.type === 'video') {
+    this.applyVideoFill(layer, fill, el);
+} else if (fill.type === 'code') {
+    // existing code fill logic
+} else {
+    // existing solid/gradient logic
+}
+```
+
+**Validation Gate 2.2**:
+```javascript
+// Create shape with image fill via store:
+store.dispatch('UPDATE_ELEMENT', {
+    id: shapeId,
+    style: {
+        fills: [{ 
+            type: 'image', 
+            assetId: testAssetId,
+            /* ... defaults */
+        }]
+    }
+});
+
+// Verify: Shape shows image
+// Verify: Can still add solid fill on top
+// Verify: Existing shapes with solid/gradient still work
+// ✅ PASS: Mixed fill types work
+```
 
 ---
 
-### 2.3 Media Fill CSS
+### 2.3 Scale Mode Implementation (2 hours)
 
-**File**: `src/styles/modules/_media-fills.scss` (NEW)
+**Tasks**: Implement all 4 scale modes:
 
-**Tasks**:
-- [ ] Style `.fill-layer` for media containment
-- [ ] Style `.media-fill` (img/video elements)
-- [ ] Style tile mode with background-repeat
-- [ ] Style error states
-- [ ] Ensure no pointer events on media
+```javascript
+applyMediaScaleMode(mediaEl, fill, el) {
+    const { scaleMode, position, scale } = fill;
+    const { originalWidth, originalHeight } = fill;
+    const shapeRatio = el.width / el.height;
+    const mediaRatio = originalWidth / originalHeight;
+    
+    switch (scaleMode) {
+        case 'fill':
+            if (mediaRatio > shapeRatio) {
+                mediaEl.style.height = '100%';
+                mediaEl.style.width = 'auto';
+            } else {
+                mediaEl.style.width = '100%';
+                mediaEl.style.height = 'auto';
+            }
+            break;
+        case 'fit':
+            if (mediaRatio > shapeRatio) {
+                mediaEl.style.width = '100%';
+                mediaEl.style.height = 'auto';
+            } else {
+                mediaEl.style.height = '100%';
+                mediaEl.style.width = 'auto';
+            }
+            break;
+        case 'stretch':
+            mediaEl.style.width = '100%';
+            mediaEl.style.height = '100%';
+            break;
+        case 'tile':
+            // Handled in applyImageFill via CSS
+            break;
+    }
+    
+    // Apply position offset
+    mediaEl.style.left = `${(position.x - 0.5) * 100}%`;
+    mediaEl.style.top = `${(position.y - 0.5) * 100}%`;
+    mediaEl.style.transform = `translate(-50%, -50%) scale(${scale})`;
+}
+```
 
-**Validation**:
-- [ ] Media doesn't capture mouse events
-- [ ] Tile mode repeats correctly
-- [ ] Error placeholder displays properly
+**Validation Gate 2.3**:
+```javascript
+// For each scale mode:
+// 1. Create square shape with wide image → verify mode works
+// 2. Create tall shape with wide image → verify mode works
+// 3. Toggle between modes → verify updates correctly
+
+// Visual check:
+// - 'fill': Image covers shape, may crop
+// - 'fit': Image fits inside, may letterbox
+// - 'stretch': Image distorts to fill exactly
+// - 'tile': Image repeats
+
+// ✅ PASS: All 4 scale modes render correctly
+```
 
 ---
 
-## Phase 3: Fill Flyout UI (8-10 hours)
+### 2.4 Media Fill CSS (1 hour)
 
-### 3.1 FillFlyout Type Buttons
+**File**: `src/styles/modules/_media-fills.scss`
+
+**Tasks**:
+```scss
+.fill-layer {
+    // Image/video fills
+    img, video {
+        position: absolute;
+        pointer-events: none;
+        user-select: none;
+        -webkit-user-drag: none;
+    }
+    
+    &.error {
+        background: repeating-linear-gradient(
+            45deg,
+            #f0f0f0,
+            #f0f0f0 10px,
+            #e0e0e0 10px,
+            #e0e0e0 20px
+        );
+        
+        &::after {
+            content: '⚠';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 24px;
+        }
+    }
+}
+```
+
+**Validation Gate 2.4**:
+```css
+/* In browser: */
+/* - Media doesn't capture mouse events (can select shape behind) */
+/* - Media can't be dragged */
+/* - Error state shows striped background */
+// ✅ PASS: CSS styles applied correctly
+```
+
+---
+
+## PHASE 3: UI Components (8-10 hours)
+
+### 3.1 Locate Existing UI Structure (1 hour)
+
+**Pre-task**: Find actual file structure for fill UI.
+
+```bash
+# Run in terminal:
+grep -r "FillFlyout\|fill.*tab\|ImageTab" src/ui --include="*.js"
+ls src/ui/components/
+```
+
+**Validation Gate 3.1**:
+- [ ] Document actual UI structure
+- [ ] Identify where Image/Video tabs should be added
+- [ ] Update this plan with correct file paths
+
+---
+
+### 3.2-3.6 (UI Components - 7-9 hours)
+
+*Implementation details as in original plan, but each component gets its own validation gate.*
+
+---
+
+## PHASE 4-8: (As in original plan)
+
+---
+
+## PHASE 9: Blob Lifecycle & Reference Counting (4-5 hours)
 
 **File**: `src/ui/components/FillFlyout/FillFlyout.js` (MODIFY)
 
@@ -616,6 +926,209 @@ export const FILE_SIZE_LIMITS = { ... };
 
 ---
 
+## Comprehensive Validation Plan
+
+### Checkpoint 1: After Phase 1 (Infrastructure)
+
+**Duration**: 30 minutes  
+**When**: After 1.5 is complete
+
+| Test | Command/Action | Expected | Actual |
+|------|----------------|----------|--------|
+| MediaAssetManager imports | `import { mediaAssetManager } from '...'` | No errors | ☐ |
+| Import JPEG | `await mediaAssetManager.importFile(jpegFile)` | Returns assetId starting with `img_` | ☐ |
+| Import PNG | Same as above | Returns assetId | ☐ |
+| Import MP4 | Same with video file | Returns assetId starting with `vid_` | ☐ |
+| Deduplication | Import same file twice | Same assetId both times | ☐ |
+| getBlobUrl | `mediaAssetManager.getBlobUrl(assetId)` | Returns valid `blob:` URL | ☐ |
+| FilterEngine | `FilterEngine.buildCssFilter({exposure:20, blur:5})` | Returns `brightness(1.2) blur(5px)` | ☐ |
+
+**Pass Criteria**: 7/7 tests pass  
+**Fail Action**: Debug before proceeding to Phase 2
+
+---
+
+### Checkpoint 2: After Phase 2 (Rendering)
+
+**Duration**: 1 hour  
+**When**: After 2.4 is complete
+
+| Test | Action | Expected | Actual |
+|------|--------|----------|--------|
+| Image displays in shape | Add image fill via console | Image visible inside shape | ☐ |
+| Scale mode: fill | Change scaleMode to 'fill' | Image covers shape, may crop | ☐ |
+| Scale mode: fit | Change to 'fit' | Image fits inside, may letterbox | ☐ |
+| Scale mode: stretch | Change to 'stretch' | Image distorts to fill | ☐ |
+| Scale mode: tile | Change to 'tile' | Image repeats | ☐ |
+| Filters work | Apply exposure: 50 | Image is brighter | ☐ |
+| Blur works | Apply blur: 10 | Image is blurred | ☐ |
+| Existing fills unbroken | Create solid fill | Solid fill still works | ☐ |
+| Code fill unbroken | Create code fill | Code fill still works | ☐ |
+| Multi-fill stacking | Add solid + image + gradient | All layers visible with correct z-order | ☐ |
+
+**Pass Criteria**: 10/10 tests pass  
+**Fail Action**: Fix rendering before proceeding to UI
+
+---
+
+### Checkpoint 3: After Phase 3 (UI)
+
+**Duration**: 1 hour  
+**When**: After Phase 3 complete
+
+| Test | Action | Expected | Actual |
+|------|--------|----------|--------|
+| Image tab opens | Click Image fill type button | Image tab visible | ☐ |
+| Drag-drop import | Drop image onto drop zone | Image imports, shows preview | ☐ |
+| Browse button | Click browse, select file | Image imports | ☐ |
+| Scale mode buttons | Click each mode button | Mode changes, preview updates | ☐ |
+| Position sliders | Adjust X/Y | Image position changes | ☐ |
+| Filter sliders | Adjust exposure | Image filters update | ☐ |
+| Video tab opens | Click Video fill type | Video tab visible | ☐ |
+| Video plays | Import video | Video plays in preview | ☐ |
+| Play/pause works | Click play/pause | Video toggles playback | ☐ |
+| Volume slider | Adjust volume | Video volume changes | ☐ |
+
+**Pass Criteria**: 10/10 tests pass  
+**Fail Action**: Fix UI before proceeding
+
+---
+
+### Checkpoint 4: After Phase 4 (Canvas Interactions)
+
+**Duration**: 45 minutes  
+**When**: After Phase 4 complete
+
+| Test | Action | Expected | Actual |
+|------|--------|----------|--------|
+| Drop on canvas | Drop image on empty canvas | Creates new shape with image fill | ☐ |
+| Drop on shape | Drop image on existing shape | Adds image fill layer | ☐ |
+| Paste image | Cmd+V with image in clipboard | Creates shape or adds fill | ☐ |
+| Space+drag | Hold Space, drag inside shape | Pans image position | ☐ |
+| Alt+scroll | Hold Alt, scroll wheel | Scales image | ☐ |
+
+**Pass Criteria**: 5/5 tests pass
+
+---
+
+### Checkpoint 5: After Phase 6 (Store/Persistence)
+
+**Duration**: 1 hour  
+**When**: After Phase 6 complete
+
+| Test | Action | Expected | Actual |
+|------|--------|----------|--------|
+| Undo add image | Add image fill, Cmd+Z | Image removed, shape returns to previous | ☐ |
+| Redo add image | Cmd+Shift+Z | Image returns | ☐ |
+| Undo delete shape | Delete shape with image, Cmd+Z | Shape and image return | ☐ |
+| Multiple undos | Add 3 images, undo 3 times | All 3 removed correctly | ☐ |
+| Copy shape with image | Cmd+C shape with image fill | Copies to clipboard | ☐ |
+| Paste shape with image | Cmd+V | New shape has working image | ☐ |
+| Paste in new tab | Copy, open new tab, paste | Image displays (data URL fallback) | ☐ |
+
+**Pass Criteria**: 7/7 tests pass  
+**Critical**: If undo/redo fails, blob lifecycle is broken. Debug thoroughly.
+
+---
+
+### Checkpoint 6: Memory & Performance
+
+**Duration**: 1.5 hours  
+**When**: After Phase 9-10 complete
+
+| Test | Action | Expected | Actual |
+|------|--------|----------|--------|
+| Memory baseline | Open DevTools Memory | Record initial heap size | ☐ |
+| Add/remove cycle | Add 10 images, delete all | Heap size returns to near baseline | ☐ |
+| Blob cleanup | Check `mediaAssetManager.getBlobStats()` | 0 orphaned blobs | ☐ |
+| Video limit | Add 6 videos to slide | Only 5 play, 1 paused | ☐ |
+| Off-screen pause | Scroll video off screen | Video pauses within 1 second | ☐ |
+| 10 images on slide | Add 10 large images | No visible lag when navigating | ☐ |
+| Filter adjustment | Rapidly adjust exposure slider | Smooth, no frame drops | ☐ |
+
+**Pass Criteria**: 7/7 tests pass  
+**Fail Action**: Profile and optimize before release
+
+---
+
+### Checkpoint 7: Edge Cases & Error Handling
+
+**Duration**: 1 hour  
+**When**: Final testing
+
+| Test | Action | Expected | Actual |
+|------|--------|----------|--------|
+| Unsupported format | Drop .tiff file | Shows error message, no crash | ☐ |
+| Corrupt image | Import corrupt JPEG | Shows error state | ☐ |
+| 100MB file | Import huge file | Shows size warning | ☐ |
+| CORS image | Use cross-origin URL | Shows CORS error or loads | ☐ |
+| Browser refresh | Refresh with images on canvas | Images lost gracefully (no crash) | ☐ |
+| Slow network | Use network throttling | Loading state shows | ☐ |
+
+**Pass Criteria**: 6/6 graceful failures
+
+---
+
+## Implementation Order Summary
+
+| Phase | Duration | Dependencies | Validation Checkpoint |
+|-------|----------|--------------|----------------------|
+| 1. Core Infrastructure | 6-8h | None | Checkpoint 1 |
+| 2. Renderer Integration | 6-8h | Phase 1 | Checkpoint 2 |
+| 3. Fill Flyout UI | 8-10h | Phase 1, 2 | Checkpoint 3 |
+| 4. Canvas Interactions | 4-6h | Phase 1, 2, 3 | Checkpoint 4 |
+| 5. Reset & Advanced | 3-4h | Phase 2, 3 | - |
+| 6. Store & Persistence | 2-3h | Phase 1-5 | Checkpoint 5 |
+| 7. Presentation Mode | 2-3h | Phase 2, 6 | - |
+| 8. Testing & Polish | 3-4h | All phases | Checkpoints 6, 7 |
+| 9. Blob Lifecycle | 4-5h | Phase 1, 6 | Part of Checkpoint 6 |
+| 10. Video Lifecycle | 3-4h | Phase 2, 9 | Part of Checkpoint 6 |
+| 11. Animated Images | 2-3h | Phase 1, 2 | - |
+
+**Total: 44-54 hours**
+
+---
+
+## Go/No-Go Decision Points
+
+### After Phase 2: Can We Ship Image-Only?
+
+| Criterion | Required | Nice-to-Have |
+|-----------|----------|--------------|
+| Images display in shapes | ✅ | |
+| All 4 scale modes work | ✅ | |
+| Basic filters work | ✅ | |
+| UI to add image fills | ✅ | |
+| Undo/redo works | | ✅ |
+| Save/load persists | | ✅ |
+
+**Decision**: If core rendering works, can ship limited beta.
+
+### After Phase 6: Can We Ship Full Feature?
+
+| Criterion | Required | Nice-to-Have |
+|-----------|----------|--------------|
+| All Phase 2 criteria | ✅ | |
+| Undo/redo fully works | ✅ | |
+| Copy/paste works | ✅ | |
+| No memory leaks | ✅ | |
+| Videos play | ✅ | |
+| Auto-save to IndexedDB | | ✅ |
+
+**Decision**: If undo/redo and memory are stable, can ship v1.
+
+---
+
+## Known Limitations (Acceptable for v1)
+
+1. **Large files session-only**: Files > 5MB use blob URLs, lost on refresh until .str save implemented
+2. **No cloud save**: Requires file-format implementation (separate project)
+3. **Limited video trim UI**: No visual timeline scrubber, just number inputs
+4. **No animated GIF pause**: GIFs always animate (add in Phase 11)
+5. **No HEIC support**: Requires transcoding, out of scope
+
+---
+
 ## Success Criteria
 
 1. **Functional**
@@ -646,7 +1159,7 @@ export const FILE_SIZE_LIMITS = { ... };
 
 ### New Files
 - [ ] `src/core/constants/MediaDefaults.js`
-- [ ] `src/core/media/MediaManager.js`
+- [ ] `src/core/media/MediaAssetManager.js` (central asset registry)
 - [ ] `src/core/media/ImageProcessor.js`
 - [ ] `src/core/media/VideoProcessor.js`
 - [ ] `src/core/media/FilterEngine.js`

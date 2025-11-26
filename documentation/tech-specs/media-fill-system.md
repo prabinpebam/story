@@ -4,6 +4,8 @@
 
 The media fill system extends the existing multi-fill architecture to support images and videos as first-class fill types. Media fills render via HTML `<img>` and `<video>` elements positioned absolutely within fill layer divs.
 
+> **Important:** For asset storage and persistence details, see [Media Asset Integration](./media-asset-integration.md).
+
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │                     ShapeElement                            │
@@ -30,6 +32,17 @@ The media fill system extends the existing multi-fill architecture to support im
 
 ## Data Structures
 
+### Asset Reference Strategy
+
+Media fills reference assets through the `MediaAssetManager` rather than storing URLs directly:
+
+| Property | At Runtime | In Saved .str File |
+|----------|------------|-------------------|
+| `assetId` | `"img_abc123..."` | `"img_abc123..."` |
+| `assetPath` | _(not present)_ | `"assets/images/img_abc123.jpg"` |
+
+The renderer calls `mediaAssetManager.getBlobUrl(fill.assetId)` to get a renderable URL.
+
 ### Image Fill Schema
 
 ```javascript
@@ -39,15 +52,16 @@ The media fill system extends the existing multi-fill architecture to support im
  * @property {boolean} visible - Layer visibility
  * @property {number} opacity - 0-100
  * @property {string} blendMode - CSS blend mode
- * @property {string} src - Data URL, Blob URL, or HTTP URL
+ * @property {string} assetId - Reference to MediaAssetManager (e.g., "img_abc123...")
+ * @property {string} [assetPath] - Only in saved files (e.g., "assets/images/...")
  * @property {string} [alt] - Alt text for accessibility
  * @property {'fill'|'fit'|'stretch'|'tile'} scaleMode
  * @property {{x: number, y: number}} position - Normalized 0-1
  * @property {number} scale - Additional scale multiplier (default 1)
  * @property {number} rotation - Degrees
  * @property {ImageFilters} filters - Adjustment filters
- * @property {number} originalWidth - Source image width
- * @property {number} originalHeight - Source image height
+ * @property {number} originalWidth - Source image width (cached from asset)
+ * @property {number} originalHeight - Source image height (cached from asset)
  * @property {string} [fileName] - Original filename for reference
  * @property {number} [fileSize] - Original file size in bytes
  */
@@ -78,16 +92,15 @@ The media fill system extends the existing multi-fill architecture to support im
  * @property {boolean} visible
  * @property {number} opacity - 0-100
  * @property {string} blendMode
- * @property {string} src - Blob URL or HTTP URL
+ * @property {string} assetId - Reference to MediaAssetManager (e.g., "vid_abc123...")
+ * @property {string} [assetPath] - Only in saved files (e.g., "assets/videos/...")
  * @property {'fill'|'fit'|'stretch'|'tile'} scaleMode
  * @property {{x: number, y: number}} position
  * @property {number} scale
  * @property {number} rotation
  * @property {ImageFilters} filters - Same as image
- * @property {number} originalWidth
- * @property {number} originalHeight
- * @property {string} [fileName]
- * @property {number} [fileSize]
+ * @property {number} originalWidth - Cached from asset
+ * @property {number} originalHeight - Cached from asset
  * 
  * // Video-specific properties
  * @property {number} playbackRate - 0.25 to 4
@@ -98,9 +111,9 @@ The media fill system extends the existing multi-fill architecture to support im
  * @property {number} startTime - Trim start (seconds)
  * @property {number|null} endTime - Trim end (null = full)
  * @property {number} currentTime - Playback position
- * @property {number} duration - Total duration (read from video)
+ * @property {number} duration - Total duration (cached from asset)
  * @property {number} posterFrame - Timestamp for poster
- * @property {string} [posterSrc] - Generated poster image data URL
+ * @property {string} [posterAssetId] - Poster frame as separate image asset
  */
 ```
 
@@ -2033,6 +2046,140 @@ function migrateImageElement(imageEl) {
 2. **File validation**: Check MIME types, not just extensions
 3. **Size limits**: Enforce per-file and per-project limits
 4. **Blob URL cleanup**: Prevent memory leaks
+
+---
+
+## Risk Analysis
+
+### Critical Risks (Must Address Before Implementation)
+
+| Risk | Severity | Likelihood | Impact | Mitigation |
+|------|----------|------------|--------|------------|
+| **Blob URL orphaning** | Critical | High | Memory leak, browser crash | Reference counting + history integration (Phase 9) |
+| **HistoryManager not extendable** | Critical | Medium | Blobs released prematurely, broken undo | Current HistoryManager lacks eviction callbacks - must add `onEvict` hook |
+| **ShapeElement.applyFills() complexity** | High | High | Bugs, performance issues | Current method is 200+ lines - extract media handling into separate methods |
+| **Store has no media-specific actions** | High | Certain | No proper state management for media | Must add `IMPORT_MEDIA_FILL`, `UPDATE_MEDIA_FILL` actions |
+
+### Major Risks (Address During Implementation)
+
+| Risk | Severity | Likelihood | Impact | Mitigation |
+|------|----------|------------|--------|------------|
+| **Video autoplay blocked** | High | High | Silent failure, bad UX | Always start muted, add visible play button, detect autoplay policy |
+| **Large file hangs browser** | High | Medium | UI freeze during import | Use Web Workers for hashing, show progress indicator, async chunked processing |
+| **Filter performance** | Medium | High | Laggy UI during adjustments | Debounce filter updates (150ms), use lower resolution preview during drag |
+| **Concurrent videos overwhelm GPU** | High | Medium | Frame drops, crashes | Enforce max 5 playing videos, use IntersectionObserver for visibility |
+| **FillSection not designed for media** | Medium | Certain | Poor UX, layout issues | Current FillSection shows color swatches - need new preview component |
+
+### Moderate Risks (Monitor)
+
+| Risk | Severity | Likelihood | Impact | Mitigation |
+|------|----------|------------|--------|------------|
+| **CORS blocks remote images** | Medium | Medium | Can't use external URLs | Show clear error, offer download-and-reimport flow |
+| **SVG filters slow on Firefox** | Medium | Low | Poor filter performance | Test on Firefox early, have CSS-only fallback |
+| **Presentation mode video sync** | Medium | Medium | Videos out of sync on slide change | Explicit `onSlideEnter`/`onSlideExit` lifecycle hooks |
+| **Animated GIF detection** | Low | Low | Static GIF treated as animated | Check GIF frame count in header, not just extension |
+
+### Architecture Risks (Design Issues)
+
+| Risk | Description | Recommendation |
+|------|-------------|----------------|
+| **Dual identity: MediaManager vs MediaAssetManager** | Specs mention both names | Standardize on `MediaAssetManager` everywhere |
+| **`src` vs `assetId` confusion** | Some places still reference `src` | Rename all internal references to `assetId` |
+| **No asset loading states** | Fill has no `loading`/`error`/`ready` state | Add `assetState: 'pending' | 'loading' | 'ready' | 'error'` |
+| **FillFlyout doesn't exist** | Implementation plan assumes FillFlyout.js | Need to check actual UI structure first |
+
+---
+
+## Dependency Analysis
+
+### Internal Dependencies (Must Exist)
+
+| Dependency | Status | Required By | Notes |
+|------------|--------|-------------|-------|
+| `HistoryManager.js` | ✅ Exists | Phase 9 | Needs `onEvict` callback extension |
+| `Store.js` | ✅ Exists | Phase 6 | Needs new action handlers |
+| `ShapeElement.js` | ✅ Exists | Phase 2 | Complex 620-line file, careful modification needed |
+| `FillSection.js` | ✅ Exists | Phase 3 | Needs media preview capability |
+| `EventEmitter` | ✅ Exists | Phase 1 | MediaAssetManager extends this |
+| `CanvasManager.js` | ❓ Unknown | Phase 4 | Need to verify structure |
+| `PresentationManager.js` | ❓ Unknown | Phase 7 | Need to verify structure |
+
+### External Dependencies (NPM/CDN)
+
+| Dependency | Purpose | Size | Alternative |
+|------------|---------|------|-------------|
+| **JSZip** | .str file bundling | 95KB | fflate (30KB) |
+| **idb** (optional) | IndexedDB wrapper | 10KB | Native IndexedDB |
+| **None required for MVP** | - | - | All APIs are native |
+
+### Browser API Dependencies
+
+| API | Usage | Support | Fallback |
+|-----|-------|---------|----------|
+| `URL.createObjectURL` | Blob URLs | 98%+ | Data URLs (slower) |
+| `FileReader` | Data URL conversion | 98%+ | None needed |
+| `IntersectionObserver` | Video visibility | 95%+ | Always play (memory cost) |
+| `SubtleCrypto.digest` | SHA-256 hashing | 95%+ | Simple string hash |
+| `createImageBitmap` | Fast image decode | 93%+ | HTMLImageElement |
+| `OffscreenCanvas` | Worker rendering | 92%+ | Main thread only |
+| `requestVideoFrameCallback` | Frame sync | 85%+ | requestAnimationFrame |
+
+### Feature Dependencies (Order Matters)
+
+```
+MediaAssetManager ──┬──► ImageProcessor
+                    ├──► VideoProcessor
+                    └──► FilterEngine
+                            │
+                            ▼
+                    ShapeElement.applyFills()
+                            │
+                            ▼
+                    FillSection/ImageTab/VideoTab (UI)
+                            │
+                            ▼
+                    CanvasManager (drag-drop, paste)
+                            │
+                            ▼
+                    Store integration (undo-safe)
+                            │
+                            ▼
+                    HistoryManager extension (blob tracking)
+                            │
+                            ▼
+                    IndexedDB persistence (auto-save)
+                            │
+                            ▼
+                    FileWriter/FileReader (.str format)
+```
+
+---
+
+## What This Might Break
+
+### High Risk of Breaking
+
+| Feature | How It Might Break | Detection | Prevention |
+|---------|-------------------|-----------|------------|
+| **Existing fills** | New fill types confuse renderer | Existing fills show blank | Type guards: `if (fill.type !== 'image' && fill.type !== 'video')` route to existing code |
+| **Copy/paste elements** | Clipboard doesn't understand assetId | Paste fails or loses images | Convert to data URL before clipboard write |
+| **Undo/redo** | Blob revoked while in history | Undo shows broken image | Never revoke while in undo/redo stack |
+| **Save/export (future)** | Blob URLs serialized as strings | Load shows broken images | Must convert assetId → path before save |
+
+### Medium Risk
+
+| Feature | How It Might Break | Prevention |
+|---------|-------------------|------------|
+| **Selection/bounding boxes** | Media elements have different interaction model | Use existing VisualElement selection logic |
+| **Presentation mode** | Videos don't sync with slides | Add slide lifecycle hooks |
+| **Code fill coexistence** | Code fill + image fill in same shape | Each fill layer independent, already works |
+
+### Low Risk
+
+| Feature | How It Might Break | Prevention |
+|---------|-------------------|------------|
+| **Theme switching** | N/A - media not theme-dependent | None needed |
+| **Grid view** | Thumbnails show blob URLs | Use canvas snapshot for thumbnails |
 
 ---
 

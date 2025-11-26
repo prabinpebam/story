@@ -499,6 +499,112 @@ const MIGRATIONS = {
 
 ---
 
+## MVP Strategy: Media Before Full Persistence
+
+To enable media fill development before full `.str` file support, use this phased approach:
+
+### MVP Phase 1: Inline Data URLs (Works Now)
+
+For images < 2MB, store as data URLs directly in state:
+
+```javascript
+// In fill object (works with current JSON state)
+{
+    type: 'image',
+    assetId: 'img_abc123',
+    inlineDataUrl: 'data:image/jpeg;base64,...',  // Stored in state
+    // ... other properties
+}
+```
+
+- ✅ Works with existing save/load (JSON stringify)
+- ✅ Copy/paste works automatically
+- ✅ Undo/redo works automatically
+- ❌ Large files will bloat state
+- ❌ Not suitable for videos
+
+### MVP Phase 2: Hybrid (Recommended)
+
+```javascript
+// MediaAssetManager with hybrid storage
+class MediaAssetManager {
+    async importFile(file) {
+        const assetId = await this.generateAssetId(file);
+        
+        if (file.size < 2 * 1024 * 1024) {
+            // Small: convert to data URL, store inline
+            const dataUrl = await this.fileToDataUrl(file);
+            this.assets.set(assetId, {
+                id: assetId,
+                dataUrl,  // Persists with state
+                blob: null,
+                category: 'image'
+            });
+        } else {
+            // Large: store blob, session-only until proper save
+            const blobUrl = URL.createObjectURL(file);
+            this.assets.set(assetId, {
+                id: assetId,
+                dataUrl: null,
+                blob: file,
+                blobUrl,
+                category: file.type.startsWith('video/') ? 'video' : 'image'
+            });
+        }
+        
+        return { assetId, ... };
+    }
+
+    getBlobUrl(assetId) {
+        const entry = this.assets.get(assetId);
+        if (entry.dataUrl) return entry.dataUrl;  // Works as src
+        if (entry.blobUrl) return entry.blobUrl;
+        // Create blob URL if needed
+        entry.blobUrl = URL.createObjectURL(entry.blob);
+        return entry.blobUrl;
+    }
+
+    // For state serialization
+    getInlineDataForState(assetId) {
+        const entry = this.assets.get(assetId);
+        return entry?.dataUrl || null;  // Only small files
+    }
+}
+```
+
+### MVP Phase 3: IndexedDB Persistence
+
+Add IndexedDB to persist large files across sessions:
+
+```javascript
+// On import of large file
+await db.assets.put({ id: assetId, blob: file, metadata: {...} });
+
+// On load
+for (const asset of await db.assets.toArray()) {
+    mediaAssetManager.loadFromDb(asset);
+}
+```
+
+### MVP Phase 4: Full .str Support
+
+Finally implement FileWriter/FileReader to bundle everything.
+
+### What Media Fills Need from Storage
+
+| Capability | MVP 1 | MVP 2 | MVP 3 | Full |
+|------------|-------|-------|-------|------|
+| Small images work | ✅ | ✅ | ✅ | ✅ |
+| Large images work | ❌ | ⚠️ Session | ✅ | ✅ |
+| Videos work | ❌ | ⚠️ Session | ✅ | ✅ |
+| Survives refresh | ✅ | ⚠️ Small only | ✅ | ✅ |
+| Saves to file | ✅ | ⚠️ Small only | ❌ | ✅ |
+| Portable .str file | ❌ | ❌ | ❌ | ✅ |
+
+**Recommendation**: Implement MVP Phase 2 first. This allows full media fill UI/UX development with the limitation that large files are session-only.
+
+---
+
 ## Open Questions
 
 1. **Compression**: Use DEFLATE or store uncompressed for faster access?
@@ -511,8 +617,8 @@ const MIGRATIONS = {
 
 ## Next Steps
 
-1. Detail the manifest.json and presentation.json schemas
-2. Design the AssetManager class
+1. ~~Detail the manifest.json and presentation.json schemas~~
+2. ~~Design the AssetManager class~~ → See [Media Asset Integration](../tech-specs/media-asset-integration.md)
 3. Prototype File System Access API integration
 4. Evaluate ZIP library options (JSZip, fflate)
 5. Plan IndexedDB schema
