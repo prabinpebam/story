@@ -3,6 +3,7 @@ import { Icons } from '../../Icons.js';
 import { NumberInput } from '../NumberInput.js';
 import { ColorUtils } from '../../../utils/ColorUtils.js';
 import { ColorPickerFlyout } from './ColorPickerFlyout.js';
+import { Dropdown } from '../Dropdown.js';
 
 export class GradientTab {
     constructor(options = {}) {
@@ -168,31 +169,24 @@ export class GradientTab {
     renderTopBar() {
         this.topBar.innerHTML = '';
 
-        // Type Select
-        const typeSelect = document.createElement('select');
-        typeSelect.style.flex = '1';
-        typeSelect.style.backgroundColor = '#383838';
-        typeSelect.style.color = '#FFF';
-        typeSelect.style.border = 'none';
-        typeSelect.style.borderRadius = '4px';
-        typeSelect.style.padding = '4px';
-        typeSelect.style.fontSize = '11px';
-        typeSelect.style.height = '24px';
-        
-        ['linear', 'radial', 'angular', 'diamond'].forEach(t => {
-            const opt = document.createElement('option');
-            opt.value = t;
-            opt.textContent = t.charAt(0).toUpperCase() + t.slice(1);
-            if (t === this.state.type) opt.selected = true;
-            typeSelect.appendChild(opt);
+        // Type Dropdown
+        const typeDropdown = new Dropdown({
+            options: [
+                { label: 'Linear', value: 'linear' },
+                { label: 'Radial', value: 'radial' },
+                { label: 'Angular', value: 'angular' },
+                { label: 'Diamond', value: 'diamond' }
+            ],
+            value: this.state.type,
+            onChange: (value) => {
+                this.state.type = value;
+                this.emitChange();
+                this.render(); // Full render needed for angle input visibility
+            }
         });
-
-        typeSelect.onchange = (e) => {
-            this.state.type = e.target.value;
-            this.emitChange();
-            this.render(); // Full render needed for angle input visibility
-        };
-        this.topBar.appendChild(typeSelect);
+        typeDropdown.element.style.flex = '1';
+        typeDropdown.element.style.height = '24px';
+        this.topBar.appendChild(typeDropdown.element);
 
         // Angle Input
         if (this.state.type === 'linear' || this.state.type === 'angular' || this.state.type === 'diamond') {

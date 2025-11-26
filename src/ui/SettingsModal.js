@@ -1,4 +1,5 @@
 import { aiService } from '../core/ai/AIService.js';
+import { Dropdown } from './components/Dropdown.js';
 
 export class SettingsModal {
     constructor() {
@@ -93,17 +94,17 @@ export class SettingsModal {
     renderAIContent() {
         // Provider
         const providerGroup = this.createFormGroup('Provider');
-        this.providerSelect = document.createElement('select');
-        this.providerSelect.className = 'form-control';
-        ['openai', 'anthropic', 'azure'].forEach(p => {
-            const opt = document.createElement('option');
-            opt.value = p;
-            opt.text = p.charAt(0).toUpperCase() + p.slice(1);
-            if (aiService.config.provider === p) opt.selected = true;
-            this.providerSelect.appendChild(opt);
+        this.providerDropdown = new Dropdown({
+            options: [
+                { label: 'OpenAI', value: 'openai' },
+                { label: 'Anthropic', value: 'anthropic' },
+                { label: 'Azure', value: 'azure' }
+            ],
+            value: aiService.config.provider || 'openai',
+            onChange: () => this.updateAIFieldsVisibility()
         });
-        this.providerSelect.onchange = () => this.updateAIFieldsVisibility();
-        providerGroup.appendChild(this.providerSelect);
+        this.providerDropdown.element.style.height = '32px';
+        providerGroup.appendChild(this.providerDropdown.element);
         this.body.appendChild(providerGroup);
 
         // API Key
@@ -173,13 +174,13 @@ export class SettingsModal {
     }
 
     updateAIFieldsVisibility() {
-        const isAzure = this.providerSelect.value === 'azure';
+        const isAzure = this.providerDropdown.value === 'azure';
         this.azureContainer.style.display = isAzure ? 'block' : 'none';
     }
 
     saveAISettings() {
         aiService.configure({ 
-            provider: this.providerSelect.value,
+            provider: this.providerDropdown.value,
             apiKey: this.apiKeyInput.value,
             model: this.modelInput.value,
             endpoint: this.endpointInput.value,
@@ -193,25 +194,25 @@ export class SettingsModal {
         // Dark Mode Toggle
         const group = this.createFormGroup('Theme');
         
-        const select = document.createElement('select');
-        select.className = 'form-control';
-        select.innerHTML = `
-            <option value="light">Light</option>
-            <option value="dark">Dark</option>
-        `;
-        select.value = document.body.classList.contains('theme-dark') ? 'dark' : 'light';
-        
-        select.onchange = (e) => {
-            if (e.target.value === 'dark') {
-                document.body.classList.add('theme-dark');
-                localStorage.setItem('theme', 'dark');
-            } else {
-                document.body.classList.remove('theme-dark');
-                localStorage.setItem('theme', 'light');
+        const themeDropdown = new Dropdown({
+            options: [
+                { label: 'Light', value: 'light' },
+                { label: 'Dark', value: 'dark' }
+            ],
+            value: document.body.classList.contains('theme-dark') ? 'dark' : 'light',
+            onChange: (value) => {
+                if (value === 'dark') {
+                    document.body.classList.add('theme-dark');
+                    localStorage.setItem('theme', 'dark');
+                } else {
+                    document.body.classList.remove('theme-dark');
+                    localStorage.setItem('theme', 'light');
+                }
             }
-        };
+        });
+        themeDropdown.element.style.height = '32px';
 
-        group.appendChild(select);
+        group.appendChild(themeDropdown.element);
         this.body.appendChild(group);
     }
 
