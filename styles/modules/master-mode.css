@@ -9,6 +9,7 @@ body.mode-master #app::after {
     border: 4px solid #F24822; /* Orange Border */
     pointer-events: none; /* Let clicks pass through */
     z-index: 9999; /* Ensure it sits on top of everything */
+    border-radius: 10px;
 }
 
 body.mode-master .logo::after {
