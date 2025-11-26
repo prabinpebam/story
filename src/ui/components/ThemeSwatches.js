@@ -82,8 +82,8 @@ export class ThemeSwatches {
         // Swatches grid
         this.swatchGrid = document.createElement('div');
         this.swatchGrid.style.cssText = `
-            display: flex;
-            flex-wrap: wrap;
+            display: grid;
+            grid-template-columns: repeat(${this.options.columns}, 1fr);
             gap: 4px;
         `;
         this.element.appendChild(this.swatchGrid);
@@ -169,13 +169,13 @@ export class ThemeSwatches {
     createSwatch(color, tooltip) {
         const swatch = document.createElement('div');
         swatch.style.cssText = `
-            width: 16px;
-            height: 16px;
+            width: 100%;
+            padding-bottom: 100%;
             background-color: ${color};
-            border-radius: 2px;
+            border-radius: 4px;
             cursor: pointer;
-            border: 1px solid rgba(0,0,0,0.1);
-            flex-shrink: 0;
+            border: 1px solid rgba(255,255,255,0.1);
+            position: relative;
             transition: transform 0.1s ease, box-shadow 0.1s ease;
         `;
         swatch.title = `${tooltip}: ${color}`;
