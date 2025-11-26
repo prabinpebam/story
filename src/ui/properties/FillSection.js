@@ -658,11 +658,9 @@ export class FillSection {
 
         if (updates.opacity !== undefined) {
             fill.opacity = updates.opacity;
-            // Re-bake opacity into color string
-            fill.color = this.applyOpacity(fill.color, fill.opacity);
-            
-            // Only sync value to color if type is solid
-            if (fill.type === 'solid') {
+            // Re-bake opacity into color string (only for solid fills)
+            if (fill.type === 'solid' && fill.color) {
+                fill.color = this.applyOpacity(fill.color, fill.opacity);
                 fill.value = fill.color;
             }
         }
