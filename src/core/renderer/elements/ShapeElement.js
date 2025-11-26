@@ -208,7 +208,13 @@ export class ShapeElement extends VisualElement {
                         } else if (fill.type === 'video' && fill.assetId) {
                             // New media fill system for video
                             this.applyVideoFill(layer, fill, el);
-                        } else if (fill.type === 'image') {
+                        } else if (fill.type === 'image' && !fill.assetId) {
+                            // Image fill with no asset - show placeholder
+                            this.applyMediaPlaceholder(layer, 'image');
+                        } else if (fill.type === 'video' && !fill.assetId) {
+                            // Video fill with no asset - show placeholder
+                            this.applyMediaPlaceholder(layer, 'video');
+                        } else if (fill.type === 'image' && fill.value) {
                             // Legacy image fill using direct URL
                             layer.style.backgroundImage = `url(${fill.value})`;
                             layer.style.backgroundSize = fill.scaleMode || 'cover';
@@ -251,6 +257,56 @@ export class ShapeElement extends VisualElement {
         }
     }
 
+    /**
+     * Apply placeholder for empty media fills
+     * @param {HTMLElement} layer - Fill layer element
+     * @param {'image'|'video'} mediaType - Type of media
+     */
+    applyMediaPlaceholder(layer, mediaType) {
+        // Clear any existing media content
+        this.clearMediaLayer(layer);
+        
+        // Apply placeholder background
+        layer.style.backgroundColor = '#3a3a3a';
+        layer.style.backgroundImage = 'none';
+        
+        // Check if placeholder already exists
+        let placeholder = layer.querySelector('.media-placeholder');
+        if (!placeholder) {
+            placeholder = document.createElement('div');
+            placeholder.className = 'media-placeholder';
+            placeholder.style.cssText = `
+                position: absolute;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                color: #888;
+                font-size: 12px;
+                text-align: center;
+                pointer-events: none;
+                user-select: none;
+            `;
+            layer.appendChild(placeholder);
+        }
+        
+        // Set icon and message based on type
+        const icon = mediaType === 'video' 
+            ? '<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="4" width="20" height="16" rx="2"/><polygon points="10 8 16 12 10 16" fill="currentColor" stroke="none"/></svg>'
+            : '<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5" fill="currentColor"/><path d="M21 15l-5-5L5 21"/></svg>';
+        
+        const message = mediaType === 'video' ? 'No video' : 'No image';
+        
+        placeholder.innerHTML = `
+            <div style="margin-bottom: 8px; opacity: 0.6;">${icon}</div>
+            <div style="opacity: 0.8;">${message}</div>
+        `;
+    }
+
     // ─────────────────────────────────────────────────────────────
     // Media Fill Methods (Image & Video)
     // ─────────────────────────────────────────────────────────────
@@ -266,12 +322,14 @@ export class ShapeElement extends VisualElement {
         const src = mediaAssetManager.getRenderableUrl(fill.assetId);
         
         if (!src) {
-            // Asset not found - show error state
-            layer.classList.add('media-fill-error');
-            layer.style.background = 'repeating-linear-gradient(45deg, #f0f0f0, #f0f0f0 10px, #e0e0e0 10px, #e0e0e0 20px)';
+            // Asset not found - show placeholder
+            this.applyMediaPlaceholder(layer, 'image');
             return;
         }
         
+        // Remove placeholder if present
+        const placeholder = layer.querySelector('.media-placeholder');
+        if (placeholder) placeholder.remove();
         layer.classList.remove('media-fill-error');
         
         // Handle tile mode separately (uses CSS background)
@@ -320,11 +378,14 @@ export class ShapeElement extends VisualElement {
         const src = mediaAssetManager.getRenderableUrl(fill.assetId);
         
         if (!src) {
-            layer.classList.add('media-fill-error');
-            layer.style.background = 'repeating-linear-gradient(45deg, #f0f0f0, #f0f0f0 10px, #e0e0e0 10px, #e0e0e0 20px)';
+            // Asset not found - show placeholder
+            this.applyMediaPlaceholder(layer, 'video');
             return;
         }
         
+        // Remove placeholder if present
+        const placeholder = layer.querySelector('.media-placeholder');
+        if (placeholder) placeholder.remove();
         layer.classList.remove('media-fill-error');
         
         // Clear any existing content (except video)
