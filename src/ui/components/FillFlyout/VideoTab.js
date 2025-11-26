@@ -190,13 +190,13 @@ export class VideoTab {
         opacityLabel.style.width = '60px';
 
         const opacityInput = new NumberInput({
-            value: Math.round((this.fill.opacity ?? 1) * 100),
+            value: this.fill.opacity ?? 100,
             min: 0,
             max: 100,
             step: 1,
             suffix: '%',
             onChange: (value) => {
-                this.fill.opacity = value / 100;
+                this.fill.opacity = value;
                 this.emitChange();
             }
         });
@@ -321,13 +321,13 @@ export class VideoTab {
             label.style.width = '70px';
 
             const input = new NumberInput({
-                value: this.fill.adjustments?.[adj.key] ?? adj.default,
+                value: this.fill.filters?.[adj.key] ?? adj.default,
                 min: adj.min,
                 max: adj.max,
                 step: 1,
                 onChange: (value) => {
-                    if (!this.fill.adjustments) this.fill.adjustments = {};
-                    this.fill.adjustments[adj.key] = value;
+                    if (!this.fill.filters) this.fill.filters = {};
+                    this.fill.filters[adj.key] = value;
                     this.emitChange();
                 }
             });
@@ -352,7 +352,7 @@ export class VideoTab {
     async handleVideoFile(file) {
         try {
             const asset = await mediaAssetManager.importFile(file);
-            this.fill.assetId = asset.id;
+            this.fill.assetId = asset.assetId;
             this.emitChange();
             this.render();
         } catch (error) {

@@ -679,6 +679,23 @@ export class FillSection {
             fill.visible = updates.visible;
         }
 
+        // Handle media fill properties (image/video)
+        if (updates.assetId !== undefined) {
+            fill.assetId = updates.assetId;
+        }
+        if (updates.scaleMode !== undefined) {
+            fill.scaleMode = updates.scaleMode;
+        }
+        if (updates.position !== undefined) {
+            fill.position = updates.position;
+        }
+        if (updates.filters !== undefined) {
+            fill.filters = updates.filters;
+        }
+        if (updates.playback !== undefined) {
+            fill.playback = updates.playback;
+        }
+
         fills[index] = fill;
 
         if (this.options.onUpdate) {

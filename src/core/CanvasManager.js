@@ -1295,11 +1295,12 @@ export class CanvasManager {
             
             const fillData = isVideo ? {
                 type: 'video',
-                assetId: asset.id,
+                assetId: asset.assetId,
                 scaleMode: 'fill',
                 position: { x: 0.5, y: 0.5 },
-                opacity: 1,
-                adjustments: {},
+                opacity: 100,
+                visible: true,
+                filters: {},
                 playback: {
                     autoplay: false,
                     loop: true,
@@ -1308,16 +1309,30 @@ export class CanvasManager {
                 }
             } : {
                 type: 'image',
-                assetId: asset.id,
+                assetId: asset.assetId,
                 scaleMode: 'fill',
                 position: { x: 0.5, y: 0.5 },
-                opacity: 1,
-                adjustments: {}
+                opacity: 100,
+                visible: true,
+                filters: {}
             };
+            
+            // Get current element to preserve existing style
+            const state = store.getState();
+            const container = this.getActiveContainer(state);
+            const element = container?.elements[elementId];
+            const currentStyle = element?.style || {};
+            
+            // Replace first fill or add as first fill
+            const currentFills = currentStyle.fills || [];
+            const newFills = [fillData, ...currentFills.slice(1)];
             
             store.dispatch('UPDATE_ELEMENT', {
                 id: elementId,
-                fill: fillData
+                style: {
+                    ...currentStyle,
+                    fills: newFills
+                }
             });
         } catch (error) {
             console.error('Failed to apply media fill:', error);
@@ -1373,7 +1388,7 @@ export class CanvasManager {
     async createVideoElement(file, worldX, worldY) {
         try {
             const asset = await mediaAssetManager.importFile(file);
-            const blobUrl = mediaAssetManager.getBlobUrl(asset.id);
+            const blobUrl = mediaAssetManager.getBlobUrl(asset.assetId);
             
             // Get video dimensions
             const video = document.createElement('video');
@@ -1410,18 +1425,21 @@ export class CanvasManager {
                 width,
                 height,
                 rotation: 0,
-                fill: {
-                    type: 'video',
-                    assetId: asset.id,
-                    scaleMode: 'fill',
-                    position: { x: 0.5, y: 0.5 },
-                    opacity: 1,
-                    playback: {
-                        autoplay: true,
-                        loop: true,
-                        muted: true,
-                        showControls: false
-                    }
+                style: {
+                    fills: [{
+                        type: 'video',
+                        assetId: asset.assetId,
+                        scaleMode: 'fill',
+                        position: { x: 0.5, y: 0.5 },
+                        opacity: 100,
+                        visible: true,
+                        playback: {
+                            autoplay: true,
+                            loop: true,
+                            muted: true,
+                            showControls: false
+                        }
+                    }]
                 },
                 stroke: { type: 'none' }
             });
