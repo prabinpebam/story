@@ -6,6 +6,8 @@ import { HitTesting } from './canvas/HitTesting.js';
 import { SnappingSystem } from './canvas/SnappingSystem.js';
 import { GizmoRenderer } from './canvas/GizmoRenderer.js';
 import { mouseStateManager } from './MouseStateManager.js';
+import { mediaAssetManager } from './media/MediaAssetManager.js';
+import { SUPPORTED_IMAGE_FORMATS, SUPPORTED_VIDEO_FORMATS } from './constants/MediaDefaults.js';
 
 /**
  * CanvasManager - Main orchestrator for canvas interactions
@@ -1235,7 +1237,7 @@ export class CanvasManager {
                 
                 store.dispatch('ADD_ELEMENT', {
                     id,
-                    type: 'text',
+                    type: 'icon',
                     x: worldX - 25,
                     y: worldY - 25,
                     width: 50,
@@ -1254,48 +1256,223 @@ export class CanvasManager {
             }
         }
 
-        // Handle Image Drop
+        // Handle Media Drop (Image/Video)
         if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
             const file = e.dataTransfer.files[0];
-            if (file.type.startsWith('image/')) {
-                const reader = new FileReader();
-                reader.onload = (event) => {
-                    const img = new Image();
-                    img.onload = () => {
-                        let width = img.width;
-                        let height = img.height;
-                        const maxSize = 800;
-                        
-                        if (width > maxSize || height > maxSize) {
-                            const ratio = width / height;
-                            if (width > height) {
-                                width = maxSize;
-                                height = maxSize / ratio;
-                            } else {
-                                height = maxSize;
-                                width = maxSize * ratio;
-                            }
-                        }
-
-                        const id = `image-${Date.now()}`;
-                        store.dispatch('ADD_ELEMENT', {
-                            id,
-                            type: 'image',
-                            x: worldX - width / 2,
-                            y: worldY - height / 2,
-                            width,
-                            height,
-                            rotation: 0,
-                            src: event.target.result,
-                            style: {}
-                        });
-                        
-                        store.dispatch('UPDATE_SELECTION', [id]);
-                    };
-                    img.src = event.target.result;
-                };
-                reader.readAsDataURL(file);
+            const isImage = SUPPORTED_IMAGE_FORMATS.some(fmt => file.type === fmt || file.name.toLowerCase().endsWith(fmt.split('/')[1]));
+            const isVideo = SUPPORTED_VIDEO_FORMATS.some(fmt => file.type === fmt || file.name.toLowerCase().endsWith(fmt.split('/')[1]));
+            
+            if (isImage || isVideo) {
+                // Check if dropping onto a selected shape
+                const selectedIds = state.editor.selectedElementIds || [];
+                const container = this.getActiveContainer(state);
+                
+                if (selectedIds.length === 1 && container) {
+                    const targetElement = container.elements[selectedIds[0]];
+                    // Only apply as fill to shapes (not images or text)
+                    if (targetElement && targetElement.type === 'shape') {
+                        this.applyMediaFillToElement(file, selectedIds[0], isVideo);
+                        return;
+                    }
+                }
+                
+                // Otherwise create a new element
+                if (isImage) {
+                    this.createImageElement(file, worldX, worldY);
+                } else if (isVideo) {
+                    this.createVideoElement(file, worldX, worldY);
+                }
             }
+        }
+    }
+
+    /**
+     * Apply media file as fill to an existing shape element
+     */
+    async applyMediaFillToElement(file, elementId, isVideo = false) {
+        try {
+            const asset = await mediaAssetManager.importFile(file);
+            
+            const fillData = isVideo ? {
+                type: 'video',
+                assetId: asset.id,
+                scaleMode: 'fill',
+                position: { x: 0.5, y: 0.5 },
+                opacity: 1,
+                adjustments: {},
+                playback: {
+                    autoplay: false,
+                    loop: true,
+                    muted: true,
+                    showControls: false
+                }
+            } : {
+                type: 'image',
+                assetId: asset.id,
+                scaleMode: 'fill',
+                position: { x: 0.5, y: 0.5 },
+                opacity: 1,
+                adjustments: {}
+            };
+            
+            store.dispatch('UPDATE_ELEMENT', {
+                id: elementId,
+                fill: fillData
+            });
+        } catch (error) {
+            console.error('Failed to apply media fill:', error);
+        }
+    }
+
+    /**
+     * Create a new image element from dropped file
+     */
+    createImageElement(file, worldX, worldY) {
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            const img = new Image();
+            img.onload = () => {
+                let width = img.width;
+                let height = img.height;
+                const maxSize = 800;
+                
+                if (width > maxSize || height > maxSize) {
+                    const ratio = width / height;
+                    if (width > height) {
+                        width = maxSize;
+                        height = maxSize / ratio;
+                    } else {
+                        height = maxSize;
+                        width = maxSize * ratio;
+                    }
+                }
+
+                const id = `image-${Date.now()}`;
+                store.dispatch('ADD_ELEMENT', {
+                    id,
+                    type: 'image',
+                    x: worldX - width / 2,
+                    y: worldY - height / 2,
+                    width,
+                    height,
+                    rotation: 0,
+                    src: event.target.result,
+                    style: {}
+                });
+                
+                store.dispatch('UPDATE_SELECTION', [id]);
+            };
+            img.src = event.target.result;
+        };
+        reader.readAsDataURL(file);
+    }
+
+    /**
+     * Create a new video element from dropped file
+     */
+    async createVideoElement(file, worldX, worldY) {
+        try {
+            const asset = await mediaAssetManager.importFile(file);
+            const blobUrl = mediaAssetManager.getBlobUrl(asset.id);
+            
+            // Get video dimensions
+            const video = document.createElement('video');
+            video.preload = 'metadata';
+            
+            await new Promise((resolve, reject) => {
+                video.onloadedmetadata = resolve;
+                video.onerror = reject;
+                video.src = blobUrl;
+            });
+            
+            let width = video.videoWidth;
+            let height = video.videoHeight;
+            const maxSize = 800;
+            
+            if (width > maxSize || height > maxSize) {
+                const ratio = width / height;
+                if (width > height) {
+                    width = maxSize;
+                    height = maxSize / ratio;
+                } else {
+                    height = maxSize;
+                    width = maxSize * ratio;
+                }
+            }
+
+            const id = `video-${Date.now()}`;
+            store.dispatch('ADD_ELEMENT', {
+                id,
+                type: 'shape',
+                shape: 'rectangle',
+                x: worldX - width / 2,
+                y: worldY - height / 2,
+                width,
+                height,
+                rotation: 0,
+                fill: {
+                    type: 'video',
+                    assetId: asset.id,
+                    scaleMode: 'fill',
+                    position: { x: 0.5, y: 0.5 },
+                    opacity: 1,
+                    playback: {
+                        autoplay: true,
+                        loop: true,
+                        muted: true,
+                        showControls: false
+                    }
+                },
+                stroke: { type: 'none' }
+            });
+            
+            store.dispatch('UPDATE_SELECTION', [id]);
+        } catch (error) {
+            console.error('Failed to create video element:', error);
+        }
+    }
+
+    /**
+     * Handle clipboard paste for images (screenshots, copied images)
+     */
+    async handleClipboardPaste(e, state) {
+        try {
+            const clipboardItems = await navigator.clipboard.read();
+            
+            for (const item of clipboardItems) {
+                // Check for image types
+                const imageType = item.types.find(type => type.startsWith('image/'));
+                if (imageType) {
+                    e.preventDefault();
+                    
+                    const blob = await item.getType(imageType);
+                    const file = new File([blob], `pasted-image-${Date.now()}.png`, { type: imageType });
+                    
+                    // Check if we should apply as fill to selected shape
+                    const selectedIds = state.editor.selectedElementIds || [];
+                    const container = this.getActiveContainer(state);
+                    
+                    if (selectedIds.length === 1 && container) {
+                        const targetElement = container.elements[selectedIds[0]];
+                        if (targetElement && targetElement.type === 'shape') {
+                            await this.applyMediaFillToElement(file, selectedIds[0], false);
+                            return;
+                        }
+                    }
+                    
+                    // Otherwise create a new image element at center of viewport
+                    const { zoom, pan } = state.editor;
+                    const rect = this.container.getBoundingClientRect();
+                    const centerX = (rect.width / 2 - pan.x) / zoom;
+                    const centerY = (rect.height / 2 - pan.y) / zoom;
+                    
+                    this.createImageElement(file, centerX, centerY);
+                    return;
+                }
+            }
+        } catch (error) {
+            // Clipboard API not supported or permission denied - fall through to normal paste
+            console.debug('Clipboard read not available:', error.message);
         }
     }
 
@@ -1367,6 +1544,9 @@ export class CanvasManager {
         // Paste (Ctrl+V)
         if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'v') {
             if (!state.editor.editingElementId) {
+                // Handle clipboard paste for images (screenshots, copied images)
+                this.handleClipboardPaste(e, state);
+                
                 if (window.elementClipboard) {
                     e.preventDefault();
                     try {
