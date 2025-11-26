@@ -441,6 +441,9 @@ export class FillSection {
         menu.style.maxHeight = '300px';
         menu.style.overflowY = 'auto';
         menu.style.fontFamily = 'sans-serif';
+        
+        // Prevent clicks/scroll inside menu from closing it
+        menu.addEventListener('mousedown', (e) => e.stopPropagation());
 
         BlendModes.forEach(({ id: mode, label }) => {
             const item = document.createElement('div');

@@ -89,6 +89,9 @@ export class Dropdown {
         this.menu.style.maxHeight = '200px';
         this.menu.style.overflowY = 'auto';
         
+        // Prevent clicks inside menu from triggering outside click handler
+        this.menu.addEventListener('mousedown', (e) => e.stopPropagation());
+        
         // Position
         const rect = this.element.getBoundingClientRect();
         this.menu.style.top = (rect.bottom + 4) + 'px';
@@ -153,12 +156,20 @@ export class Dropdown {
             }
         };
         
-        // Close on scroll/resize to prevent floating menu
-        this.handleScroll = () => this.close();
+        // Close on scroll OUTSIDE the menu (not inside)
+        this.handleScroll = (e) => {
+            // Don't close if scrolling inside the menu
+            if (this.menu && this.menu.contains(e.target)) {
+                return;
+            }
+            this.close();
+        };
+        
+        this.handleResize = () => this.close();
 
         document.addEventListener('mousedown', this.handleOutsideClick);
         window.addEventListener('scroll', this.handleScroll, true);
-        window.addEventListener('resize', this.handleScroll);
+        window.addEventListener('resize', this.handleResize);
     }
 
     close() {
@@ -170,7 +181,7 @@ export class Dropdown {
         }
         document.removeEventListener('mousedown', this.handleOutsideClick);
         window.removeEventListener('scroll', this.handleScroll, true);
-        window.removeEventListener('resize', this.handleScroll);
+        window.removeEventListener('resize', this.handleResize);
     }
 
     setValue(newValue, triggerCallback = true) {
