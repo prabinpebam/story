@@ -200,3 +200,70 @@ select.pi-input option {
     text-overflow: ellipsis;
     white-space: nowrap;
 }
+
+/* Layout Selector Button */
+.layout-trigger-btn {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 6px 10px;
+    background: var(--color-bg-well);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    color: var(--color-text-primary);
+    font-size: var(--font-size-sm);
+    cursor: pointer;
+    transition: all 0.15s;
+}
+
+.layout-trigger-btn:hover {
+    background: var(--color-bg-hover);
+    border-color: var(--color-border-hover);
+}
+
+.layout-trigger-btn::after {
+    content: '';
+    width: 0;
+    height: 0;
+    border-left: 4px solid transparent;
+    border-right: 4px solid transparent;
+    border-top: 4px solid var(--color-text-secondary);
+    margin-left: 8px;
+}
+
+/* Layout Flyout */
+.layout-flyout-content {
+    padding: 12px;
+    min-width: 200px;
+}
+
+.layout-flyout-title {
+    font-size: var(--font-size-sm);
+    font-weight: 500;
+    color: var(--color-text-primary);
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--color-border);
+}
+
+.layout-flyout-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+}
+
+.layout-flyout-grid .layout-thumbnail {
+    padding: 8px;
+}
+
+.layout-flyout-grid .layout-preview {
+    width: 80px;
+    height: 45px;
+}
+
+.layout-flyout-grid .layout-label {
+    font-size: 10px;
+    max-width: 80px;
+}
+

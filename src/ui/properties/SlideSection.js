@@ -3,6 +3,7 @@ import { TextInput } from '../components/TextInput.js';
 import { NumberInput } from '../components/NumberInput.js';
 import { Dropdown } from '../components/Dropdown.js';
 import { Switch } from '../components/Switch.js';
+import { Flyout } from '../components/Flyout.js';
 import { store } from '../../core/Store.js';
 import { FillSection } from './FillSection.js';
 import { panelManager } from '../PanelManager.js';
@@ -11,6 +12,7 @@ import { Icons } from '../Icons.js';
 export class SlideSection {
     constructor() {
         this.section = new Section({ title: 'Slide' });
+        this.layoutFlyout = null;
         
         this.fillSection = new FillSection({
             title: 'Slide Background',
@@ -33,34 +35,34 @@ export class SlideSection {
         this.nameRow.appendChild(this.nameInput.element);
         this.section.appendChild(this.nameRow);
 
-        // 2. Layout Picker (Slide Mode)
+        // 2. Layout Picker (Slide Mode) - Using flyout
         this.layoutRow = document.createElement('div');
         this.layoutRow.className = 'pi-row';
-        this.layoutSelect = new Dropdown({
-            onChange: (val) => this.updateLayout(val)
-        });
-        this.layoutRow.appendChild(this.layoutSelect.element);
-        this.section.appendChild(this.layoutRow);
-
-        // 2b. Layout label and Thumbnail Grid (visual picker)
-        this.layoutLabelRow = document.createElement('div');
-        this.layoutLabelRow.className = 'pi-row';
-        this.layoutLabelRow.style.cssText = 'margin-bottom: 4px;';
+        this.layoutRow.style.cssText = 'flex-direction: column; align-items: stretch; gap: 4px;';
+        
+        // Layout label
         const layoutLabel = document.createElement('span');
         layoutLabel.style.cssText = 'font-size: var(--font-size-sm); color: var(--color-text-secondary);';
         layoutLabel.textContent = 'Layout';
-        this.layoutLabelRow.appendChild(layoutLabel);
-        this.section.appendChild(this.layoutLabelRow);
+        this.layoutRow.appendChild(layoutLabel);
         
-        this.layoutGridRow = document.createElement('div');
-        this.layoutGridRow.className = 'layout-grid';
-        this.layoutGridRow.style.cssText = `
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 8px;
-            margin-bottom: var(--spacing-2);
-        `;
-        this.section.appendChild(this.layoutGridRow);
+        // Layout trigger button (shows current layout)
+        this.layoutTrigger = document.createElement('button');
+        this.layoutTrigger.className = 'layout-trigger-btn';
+        this.layoutTrigger.addEventListener('click', () => this.openLayoutFlyout());
+        this.layoutRow.appendChild(this.layoutTrigger);
+        
+        // Hidden dropdown for value storage
+        this.layoutSelect = new Dropdown({
+            onChange: (val) => this.updateLayout(val)
+        });
+        this.layoutSelect.element.style.display = 'none';
+        this.layoutRow.appendChild(this.layoutSelect.element);
+        
+        this.section.appendChild(this.layoutRow);
+
+        // Remove old grid rows - no longer needed inline
+        // (flyout will contain the grid)
 
         // 3. Hide Graphics Toggle
         this.hideGraphicsRow = document.createElement('div');
@@ -195,23 +197,24 @@ export class SlideSection {
 
         // 2. Layout Picker (Slide only)
         if (mode !== 'master') {
-            // Hide the dropdown, use visual grid instead
-            this.layoutRow.style.display = 'none';
-            this.layoutLabelRow.style.display = 'flex';
-            this.layoutGridRow.style.display = 'grid';
+            this.layoutRow.style.display = 'flex';
             
-            // Populate layouts
+            // Update layout options for hidden dropdown
             const layouts = Object.values(state.masters).filter(m => m.type === 'layout');
             const options = layouts.map(l => ({ label: l.name, value: l.id }));
             this.layoutSelect.setOptions(options);
             this.layoutSelect.setValue(currentObject.layoutId);
             
-            // Update layout thumbnail grid
-            this.updateLayoutGrid(layouts, currentObject.layoutId, state);
+            // Update trigger button text with current layout name
+            const currentLayout = layouts.find(l => l.id === currentObject.layoutId);
+            this.layoutTrigger.textContent = currentLayout ? currentLayout.name : 'Select Layout';
+            
+            // Store current state for flyout
+            this.currentLayouts = layouts;
+            this.currentLayoutId = currentObject.layoutId;
+            this.currentState = state;
         } else {
             this.layoutRow.style.display = 'none';
-            this.layoutLabelRow.style.display = 'none';
-            this.layoutGridRow.style.display = 'none';
         }
 
         // 3. Hide Graphics
@@ -301,9 +304,25 @@ export class SlideSection {
         store.dispatch(action, { id, background: fills }, { skipHistory: isTransient });
     }
     
-    updateLayoutGrid(layouts, currentLayoutId, state) {
-        // Clear existing thumbnails
-        this.layoutGridRow.innerHTML = '';
+    openLayoutFlyout() {
+        // Create flyout content
+        const content = document.createElement('div');
+        content.className = 'layout-flyout-content';
+        
+        // Title
+        const title = document.createElement('div');
+        title.className = 'layout-flyout-title';
+        title.textContent = 'Select Layout';
+        content.appendChild(title);
+        
+        // Grid container
+        const grid = document.createElement('div');
+        grid.className = 'layout-flyout-grid';
+        
+        // Populate with layouts
+        const layouts = this.currentLayouts || [];
+        const currentLayoutId = this.currentLayoutId;
+        const state = this.currentState;
         
         layouts.forEach(layout => {
             const thumbnail = document.createElement('div');
@@ -311,7 +330,7 @@ export class SlideSection {
             thumbnail.dataset.layoutId = layout.id;
             thumbnail.title = layout.name;
             
-            // Create mini preview canvas
+            // Create preview
             const preview = document.createElement('div');
             preview.className = 'layout-preview';
             
@@ -322,8 +341,8 @@ export class SlideSection {
                         const placeholder = document.createElement('div');
                         placeholder.className = 'layout-placeholder';
                         
-                        // Scale down to thumbnail size (assume 1920x1080 -> ~60x34)
-                        const scale = 60 / 1920;
+                        // Scale down to thumbnail size
+                        const scale = 80 / 1920;
                         placeholder.style.left = (el.x * scale) + 'px';
                         placeholder.style.top = (el.y * scale) + 'px';
                         placeholder.style.width = (el.width * scale) + 'px';
@@ -336,7 +355,7 @@ export class SlideSection {
             
             thumbnail.appendChild(preview);
             
-            // Add label
+            // Label
             const label = document.createElement('div');
             label.className = 'layout-label';
             label.textContent = layout.name;
@@ -347,10 +366,31 @@ export class SlideSection {
                 if (layout.id !== currentLayoutId) {
                     this.layoutSelect.setValue(layout.id);
                     this.updateLayout(layout.id);
+                    // Update button text
+                    this.layoutTrigger.textContent = layout.name;
+                }
+                // Close flyout
+                if (this.layoutFlyout) {
+                    this.layoutFlyout.close();
                 }
             });
             
-            this.layoutGridRow.appendChild(thumbnail);
+            grid.appendChild(thumbnail);
         });
+        
+        content.appendChild(grid);
+        
+        // Create or update flyout
+        if (this.layoutFlyout) {
+            this.layoutFlyout.close();
+        }
+        
+        this.layoutFlyout = new Flyout({
+            trigger: this.layoutTrigger,
+            content: content,
+            position: 'left'
+        });
+        
+        this.layoutFlyout.open();
     }
 }
