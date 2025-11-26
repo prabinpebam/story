@@ -40,8 +40,97 @@
 
 .sidebar-content {
     flex: 1;
+    overflow: hidden;
+    padding: 0;
+}
+
+/* Accordion Panel Styles */
+.accordion-section {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    overflow: hidden;
+}
+
+.accordion-section.collapsed {
+    flex: 0 0 auto !important;
+}
+
+.accordion-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    background: var(--color-bg-panel);
+    border-bottom: 1px solid var(--color-border);
+    cursor: pointer;
+    user-select: none;
+    flex-shrink: 0;
+}
+
+.accordion-header:hover {
+    background: var(--color-bg-hover);
+}
+
+.accordion-chevron {
+    font-size: 10px;
+    color: var(--color-text-secondary);
+    width: 12px;
+    text-align: center;
+    transition: transform 0.15s ease;
+}
+
+.accordion-title {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--color-text-secondary);
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+}
+
+.accordion-content {
+    flex: 1;
     overflow-y: auto;
+    overflow-x: hidden;
+    min-height: 0;
+}
+
+.accordion-section.collapsed .accordion-content {
+    display: none !important;
+}
+
+/* Panel Resizer */
+.panel-resizer {
+    height: 4px;
+    background: var(--color-border);
+    cursor: row-resize;
+    flex-shrink: 0;
+    position: relative;
+}
+
+.panel-resizer:hover,
+.panel-resizer:active {
+    background: var(--color-accent);
+}
+
+.panel-resizer::before {
+    content: '';
+    position: absolute;
+    top: -4px;
+    bottom: -4px;
+    left: 0;
+    right: 0;
+}
+
+/* Adjust nested containers */
+#slide-list,
+#layer-tree {
     padding: var(--spacing-sm);
+}
+
+#slide-list .section-title,
+#layer-tree .section-title {
+    display: none; /* Hide the old section titles, we use accordion headers now */
 }
 
 /* Main Stage */
