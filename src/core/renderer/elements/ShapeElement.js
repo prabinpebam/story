@@ -1,5 +1,4 @@
 import { VisualElement } from './VisualElement.js';
-import { MeshGradient } from '../../effects/MeshGradient.js';
 import { CodeRunner } from '../../effects/CodeRunner.js';
 
 export class ShapeElement extends VisualElement {
@@ -21,28 +20,8 @@ export class ShapeElement extends VisualElement {
     }
 
     applyFills(div, el) {
-        // Handle Mesh Gradient
-        if (el.style?.fillType === 'mesh') {
-            if (!div._meshGradient) {
-                this.clearComplexFills(div);
-                div.innerHTML = ''; 
-                
-                const canvas = document.createElement('canvas');
-                canvas.className = 'mesh-canvas';
-                canvas.style.width = '100%';
-                canvas.style.height = '100%';
-                canvas.style.borderRadius = `${el.style?.radius || 0}px`;
-                div.appendChild(canvas);
-                const mesh = new MeshGradient(canvas);
-                div._meshGradient = mesh;
-                mesh.play();
-            }
-            if (el.style.meshColors) {
-                div._meshGradient.setColors(el.style.meshColors);
-            }
-        } 
-        // Handle Code Fill
-        else if (el.style?.fillType === 'code') {
+        // Handle Code Fill (includes mesh gradient preset)
+        if (el.style?.fillType === 'code') {
             if (!div._codeRunner) {
                 this.clearComplexFills(div);
                 div.innerHTML = '';
@@ -179,11 +158,6 @@ export class ShapeElement extends VisualElement {
     }
 
     clearComplexFills(div) {
-        if (div._meshGradient) {
-            div._meshGradient.stop();
-            delete div._meshGradient;
-            div.innerHTML = '';
-        }
         if (div._codeRunner) {
             div._codeRunner.stop();
             delete div._codeRunner;
@@ -551,9 +525,6 @@ export class ShapeElement extends VisualElement {
 
     unmount() {
         if (this.domElement) {
-             if (this.domElement._meshGradient) {
-                 this.domElement._meshGradient.stop();
-             }
              if (this.domElement._codeRunner) {
                  this.domElement._codeRunner.stop();
              }

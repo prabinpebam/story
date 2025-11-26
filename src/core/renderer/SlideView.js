@@ -1,6 +1,5 @@
 import { ElementFactory } from './ElementFactory.js';
 import { CodeRunner } from '../effects/CodeRunner.js';
-import { MeshGradient } from '../effects/MeshGradient.js';
 
 export class SlideView {
     constructor(slideId) {
@@ -165,14 +164,6 @@ export class SlideView {
                 layer.style.background = this.getGradientCss(fill.value);
             } else if (fill.type === 'image') {
                 layer.style.background = `url(${fill.value}) center/cover no-repeat`;
-            } else if (fill.type === 'mesh') {
-                 const canvas = document.createElement('canvas');
-                 canvas.style.width = '100%';
-                 canvas.style.height = '100%';
-                 layer.appendChild(canvas);
-                 const mesh = new MeshGradient(canvas);
-                 if (fill.meshColors) mesh.setColors(fill.meshColors);
-                 mesh.play();
             } else if (fill.type === 'code') {
                 const canvas = document.createElement('canvas');
                 canvas.width = parseInt(this.domElement.style.width) || 1920;
