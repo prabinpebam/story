@@ -77,8 +77,21 @@ export class BaseRenderer {
                 const masterId = item.parentId;
                 const master = masters[masterId];
                 
-                const effectiveElements = { ...master.elements, ...item.elements };
-                const effectiveOrder = [...(master.elementOrder || []), ...(item.elementOrder || [])];
+                // Mark master elements as inherited/locked
+                const effectiveElements = {};
+                const effectiveOrder = [];
+                
+                // Master elements first (bottom layer, locked)
+                (master.elementOrder || []).forEach(elId => {
+                    effectiveElements[elId] = { ...master.elements[elId], isLocked: true, source: 'theme' };
+                    effectiveOrder.push(elId);
+                });
+                
+                // Layout elements on top (editable)
+                (item.elementOrder || []).forEach(elId => {
+                    effectiveElements[elId] = { ...item.elements[elId], source: 'layout' };
+                    effectiveOrder.push(elId);
+                });
                 
                 let effectiveBackground = item.background;
                 if (!effectiveBackground || effectiveBackground.type === 'inherited') {

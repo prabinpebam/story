@@ -317,7 +317,7 @@ export class SlideSection {
             
             // Draw placeholder representations
             if (layout.elements) {
-                layout.elements.forEach(el => {
+                Object.values(layout.elements).forEach(el => {
                     if (el.isPlaceholder) {
                         const placeholder = document.createElement('div');
                         placeholder.className = 'layout-placeholder';

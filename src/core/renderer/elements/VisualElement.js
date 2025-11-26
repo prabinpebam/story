@@ -54,7 +54,23 @@ export class VisualElement {
         div.style.width = `${el.width}px`;
         div.style.height = `${el.height}px`;
         div.style.transform = `rotate(${rotation}deg)`;
-        div.style.opacity = (el.opacity !== undefined && el.opacity !== null) ? el.opacity : 1;
+        
+        // Handle inherited/locked elements - they should appear dimmed
+        // source: 'theme' or 'layout' means inherited, source: 'slide' means editable
+        const isInherited = el.isLocked || el.source === 'theme' || el.source === 'layout';
+        const baseOpacity = (el.opacity !== undefined && el.opacity !== null) ? el.opacity : 1;
+        
+        // Apply 50% opacity to inherited elements for visual distinction
+        if (isInherited) {
+            div.style.opacity = baseOpacity * 0.5;
+            div.style.pointerEvents = 'none'; // Can't interact with inherited elements
+            div.classList.add('inherited-element');
+        } else {
+            div.style.opacity = baseOpacity;
+            div.style.pointerEvents = 'auto';
+            div.classList.remove('inherited-element');
+        }
+        
         div.style.zIndex = el.zIndex || 'auto';
         div.style.display = el.hidden ? 'none' : 'block';
         div.style.mixBlendMode = el.blendMode || 'normal';
