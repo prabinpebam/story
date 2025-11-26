@@ -103,7 +103,7 @@ export class PropertyInspector {
         } else {
             // No selection: Show Slide Properties
             this.slideSection.update(selection);
-            this.container.appendChild(this.slideSection.section.element);
+            this.container.appendChild(this.slideSection.element);
             this.container.appendChild(this.slideSection.fillSection.section.element);
             
             // Show Placeholder Section when in master mode with a layout selected

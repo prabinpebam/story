@@ -10,11 +10,14 @@ import { Icons } from '../Icons.js';
 
 export class SlideSection {
     constructor() {
-        this.section = new Section({ title: 'Slide' });
+        // Container for all slide-related sections (no outer wrapper section)
+        this.element = document.createElement('div');
+        this.element.className = 'slide-properties';
+        
         this.layoutFlyout = null;
         
         this.fillSection = new FillSection({
-            title: 'Slide Background',
+            title: 'Background',
             manualVisibility: true,
             getElement: (selection) => selection[0],
             onUpdate: (fills, isTransient) => this.updateBackground(fills, isTransient)
@@ -24,26 +27,24 @@ export class SlideSection {
     }
 
     createContent() {
-        // 1. Name (Master Mode)
+        // 1. Name Row (Master Mode only) - standalone, no section
         this.nameRow = document.createElement('div');
         this.nameRow.className = 'pi-row';
+        this.nameRow.style.padding = '0 var(--spacing-2)';
         this.nameInput = new TextInput({
             placeholder: 'Name',
             onChange: (val) => this.updateName(val)
         });
         this.nameRow.appendChild(this.nameInput.element);
-        this.section.appendChild(this.nameRow);
+        this.element.appendChild(this.nameRow);
 
-        // 2. Layout Picker (Slide Mode) - Using flyout
+        // 2. Layout Section (Slide Mode)
+        this.layoutSection = new Section({ title: 'Layout' });
+        
+        // Layout picker row
         this.layoutRow = document.createElement('div');
         this.layoutRow.className = 'pi-row';
         this.layoutRow.style.cssText = 'flex-direction: column; align-items: stretch; gap: 4px;';
-        
-        // Layout label
-        const layoutLabel = document.createElement('span');
-        layoutLabel.style.cssText = 'font-size: var(--font-size-sm); color: var(--color-text-secondary);';
-        layoutLabel.textContent = 'Layout';
-        this.layoutRow.appendChild(layoutLabel);
         
         // Layout trigger button (shows current layout)
         this.layoutTrigger = document.createElement('button');
@@ -58,9 +59,9 @@ export class SlideSection {
         this.layoutSelect.element.style.display = 'none';
         this.layoutRow.appendChild(this.layoutSelect.element);
         
-        this.section.appendChild(this.layoutRow);
+        this.layoutSection.appendChild(this.layoutRow);
 
-        // 3. Dimensions
+        // Dimensions row (inside Layout section)
         const dimRow = document.createElement('div');
         dimRow.className = 'pi-row';
         
@@ -76,32 +77,19 @@ export class SlideSection {
 
         dimRow.appendChild(this.wInput.element);
         dimRow.appendChild(this.hInput.element);
-        this.section.appendChild(dimRow);
+        this.layoutSection.appendChild(dimRow);
+        
+        this.element.appendChild(this.layoutSection.element);
 
-        // 4. Theme Section
+        // 3. Theme Section
         this.createThemeSection();
 
-        // 5. Background (FillSection) - Appended separately in PropertyInspector
+        // 4. Background (FillSection) - Appended separately in PropertyInspector
     }
 
     createThemeSection() {
-        // Theme container with divider
-        this.themeSection = document.createElement('div');
-        this.themeSection.className = 'slide-theme-section';
-        this.themeSection.style.cssText = `
-            margin-top: var(--spacing-2);
-            padding-top: var(--spacing-2);
-            border-top: 1px solid var(--color-border);
-            display: flex;
-            flex-direction: column;
-            gap: var(--spacing-2);
-        `;
-
-        // Theme header
-        const themeHeader = document.createElement('div');
-        themeHeader.style.cssText = 'font-size: var(--font-size-sm); color: var(--color-text-secondary); font-weight: 500;';
-        themeHeader.textContent = 'Theme';
-        this.themeSection.appendChild(themeHeader);
+        // Theme as a proper pi-section
+        this.themeSection = new Section({ title: 'Theme' });
 
         // Colors Row
         this.colorsRow = this.createThemeRow({
@@ -121,7 +109,7 @@ export class SlideSection {
         });
         this.themeSection.appendChild(this.typographyRow.element);
 
-        this.section.appendChild(this.themeSection);
+        this.element.appendChild(this.themeSection.element);
     }
 
     createThemeRow(options) {
@@ -317,13 +305,13 @@ export class SlideSection {
     }
 
     update(selection) {
-        // This section is shown when NO selection exists (or explicit slide selection)
+        // This is shown when NO selection exists (or explicit slide selection)
         if (selection && selection.length > 0) {
-            this.section.element.style.display = 'none';
+            this.element.style.display = 'none';
             return;
         }
         
-        this.section.element.style.display = 'block';
+        this.element.style.display = 'block';
         
         const state = store.getState();
         const mode = state.editor.mode;
@@ -331,11 +319,7 @@ export class SlideSection {
 
         if (!currentObject) return;
 
-        // Update Title
-        this.section.options.title = mode === 'master' ? 'Master / Layout' : 'Slide';
-        this.section.element.querySelector('.pi-section-title').textContent = this.section.options.title;
-
-        // 1. Name (Master only)
+        // 1. Name (Master only) - show standalone row
         if (mode === 'master') {
             this.nameRow.style.display = 'flex';
             this.nameInput.setValue(currentObject.name || '');
@@ -343,8 +327,10 @@ export class SlideSection {
             this.nameRow.style.display = 'none';
         }
 
-        // 2. Layout Picker (Slide only)
+        // 2. Layout Section (Slide only) - update title based on mode
         if (mode !== 'master') {
+            this.layoutSection.element.style.display = 'block';
+            this.layoutSection.element.querySelector('.pi-section-title').textContent = 'Layout';
             this.layoutRow.style.display = 'flex';
             
             // Update layout options for hidden dropdown
@@ -362,6 +348,9 @@ export class SlideSection {
             this.currentLayoutId = currentObject.layoutId;
             this.currentState = state;
         } else {
+            // In master mode, show as "Dimensions" section (no layout picker)
+            this.layoutSection.element.style.display = 'block';
+            this.layoutSection.element.querySelector('.pi-section-title').textContent = 'Dimensions';
             this.layoutRow.style.display = 'none';
         }
 
