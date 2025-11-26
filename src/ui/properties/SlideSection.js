@@ -42,7 +42,16 @@ export class SlideSection {
         this.layoutRow.appendChild(this.layoutSelect.element);
         this.section.appendChild(this.layoutRow);
 
-        // 2b. Layout Thumbnail Grid (visual picker)
+        // 2b. Layout label and Thumbnail Grid (visual picker)
+        this.layoutLabelRow = document.createElement('div');
+        this.layoutLabelRow.className = 'pi-row';
+        this.layoutLabelRow.style.cssText = 'margin-bottom: 4px;';
+        const layoutLabel = document.createElement('span');
+        layoutLabel.style.cssText = 'font-size: var(--font-size-sm); color: var(--color-text-secondary);';
+        layoutLabel.textContent = 'Layout';
+        this.layoutLabelRow.appendChild(layoutLabel);
+        this.section.appendChild(this.layoutLabelRow);
+        
         this.layoutGridRow = document.createElement('div');
         this.layoutGridRow.className = 'layout-grid';
         this.layoutGridRow.style.cssText = `
@@ -186,7 +195,9 @@ export class SlideSection {
 
         // 2. Layout Picker (Slide only)
         if (mode !== 'master') {
-            this.layoutRow.style.display = 'flex';
+            // Hide the dropdown, use visual grid instead
+            this.layoutRow.style.display = 'none';
+            this.layoutLabelRow.style.display = 'flex';
             this.layoutGridRow.style.display = 'grid';
             
             // Populate layouts
@@ -199,6 +210,7 @@ export class SlideSection {
             this.updateLayoutGrid(layouts, currentObject.layoutId, state);
         } else {
             this.layoutRow.style.display = 'none';
+            this.layoutLabelRow.style.display = 'none';
             this.layoutGridRow.style.display = 'none';
         }
 

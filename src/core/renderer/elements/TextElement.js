@@ -185,6 +185,9 @@ export class TextElement extends VisualElement {
         const state = store.getState();
         const isMasterMode = state.editor.mode === 'master';
         const isPlaceholder = el.isPlaceholder === true;
+        
+        // Check if placeholder still has default prompt text (not yet filled with actual content)
+        const isEmptyPlaceholder = isPlaceholder && el.content && el.content.includes('Click to add');
 
         // Ensure no padding/border/margin interferes with size calculations
         div.style.padding = '0';
@@ -196,8 +199,13 @@ export class TextElement extends VisualElement {
         if (isPlaceholder && isMasterMode) {
             div.style.border = '2px dashed var(--color-accent, #18A0FB)';
             div.style.padding = '8px'; // Add padding inside the dashed border
+        } else if (isEmptyPlaceholder) {
+            // Empty placeholder on slide - show dashed border and dim the text
+            div.style.border = '1px dashed rgba(255, 255, 255, 0.3)';
+            div.style.opacity = '0.5';
         } else {
             div.style.border = 'none';
+            div.style.opacity = '1';
         }
 
         // Content - only update if not currently being edited
