@@ -17,6 +17,7 @@
 #sidebar-right {
     border-right: none;
     border-left: 1px solid var(--color-border);
+    padding: 0 6px;
 }
 
 .sidebar-header {
