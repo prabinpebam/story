@@ -1,0 +1,202 @@
+/**
+ * Media Fills - Styles for Image and Video Fill Layers
+ * 
+ * Styles for media elements (img/video) used as fill layers in shapes.
+ */
+
+/* ─────────────────────────────────────────────────────────────
+   Media Fill Base Styles
+   ───────────────────────────────────────────────────────────── */
+
+.fill-layer {
+    /* Ensure proper containment for media */
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    border-radius: inherit;
+}
+
+/* Media elements within fill layers */
+.fill-layer img.media-fill,
+.fill-layer video.media-fill {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    user-select: none;
+    -webkit-user-drag: none;
+    object-fit: cover;
+}
+
+/* Prevent video controls from showing */
+.fill-layer video.media-fill::-webkit-media-controls {
+    display: none !important;
+}
+
+.fill-layer video.media-fill::-webkit-media-controls-panel {
+    display: none !important;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Error States
+   ───────────────────────────────────────────────────────────── */
+
+.fill-layer.media-fill-error {
+    background: repeating-linear-gradient(
+        45deg,
+        var(--color-surface-secondary, #f0f0f0),
+        var(--color-surface-secondary, #f0f0f0) 10px,
+        var(--color-border, #e0e0e0) 10px,
+        var(--color-border, #e0e0e0) 20px
+    ) !important;
+}
+
+.fill-layer.media-fill-error::after {
+    content: '⚠';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 24px;
+    opacity: 0.5;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Loading States
+   ───────────────────────────────────────────────────────────── */
+
+.fill-layer.media-fill-loading {
+    background: var(--color-surface-secondary, #f5f5f5);
+}
+
+.fill-layer.media-fill-loading::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 24px;
+    height: 24px;
+    margin: -12px 0 0 -12px;
+    border: 2px solid var(--color-border, #ddd);
+    border-top-color: var(--color-primary, #0066cc);
+    border-radius: 50%;
+    animation: media-fill-spin 0.8s linear infinite;
+}
+
+@keyframes media-fill-spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* ─────────────────────────────────────────────────────────────
+   SVG Filter Definitions Container
+   ───────────────────────────────────────────────────────────── */
+
+svg.media-filter-defs {
+    position: absolute;
+    width: 0;
+    height: 0;
+    overflow: hidden;
+    pointer-events: none;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Video-Specific Styles
+   ───────────────────────────────────────────────────────────── */
+
+/* Ensure videos don't show native controls in fill context */
+.fill-layer video.media-fill {
+    /* Hide poster frame border that some browsers add */
+    background: transparent;
+}
+
+/* Video paused indicator (optional - can be enabled via class) */
+.fill-layer.video-paused::before {
+    content: '▶';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 32px;
+    color: white;
+    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+    opacity: 0.7;
+    pointer-events: none;
+    z-index: 10;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Tile Mode Styles
+   ───────────────────────────────────────────────────────────── */
+
+.fill-layer[data-scale-mode="tile"] {
+    background-repeat: repeat;
+    background-size: auto;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Animation Control (for animated GIFs)
+   ───────────────────────────────────────────────────────────── */
+
+.fill-layer.animation-paused img.media-fill {
+    /* Pause GIF animation by converting to static frame */
+    /* Note: This requires canvas-based approach for true pause */
+    animation-play-state: paused;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Scale Mode Visual Hints (for editing mode)
+   ───────────────────────────────────────────────────────────── */
+
+/* These classes can be added during editing to show scale mode visually */
+.fill-layer[data-scale-mode="fit"] {
+    /* Fit mode may show letterboxing - darken background */
+    background-color: rgba(0, 0, 0, 0.05);
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Presentation Mode Overrides
+   ───────────────────────────────────────────────────────────── */
+
+.presentation-mode .fill-layer video.media-fill {
+    /* Ensure smooth playback in presentation */
+    will-change: transform;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   High DPI / Retina Optimizations
+   ───────────────────────────────────────────────────────────── */
+
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+    .fill-layer img.media-fill,
+    .fill-layer video.media-fill {
+        /* Enable high-quality rendering on retina displays */
+        image-rendering: -webkit-optimize-contrast;
+    }
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Print Styles
+   ───────────────────────────────────────────────────────────── */
+
+@media print {
+    .fill-layer video.media-fill {
+        /* Show poster frame for videos when printing */
+        background: var(--color-surface-secondary, #f5f5f5);
+    }
+    
+    .fill-layer video.media-fill::after {
+        content: '🎬';
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        font-size: 24px;
+    }
+}

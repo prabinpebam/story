@@ -1,6 +1,8 @@
 import { VisualElement } from './VisualElement.js';
 import { CodeRunner } from '../../effects/CodeRunner.js';
 import { store } from '../../Store.js';
+import { mediaAssetManager } from '../../media/MediaAssetManager.js';
+import { FilterEngine } from '../../media/FilterEngine.js';
 
 export class ShapeElement extends VisualElement {
     constructor(data) {
@@ -200,7 +202,14 @@ export class ShapeElement extends VisualElement {
                             } else {
                                 layer.style.background = fillValue;
                             }
+                        } else if (fill.type === 'image' && fill.assetId) {
+                            // New media fill system using assetId
+                            this.applyImageFill(layer, fill, el);
+                        } else if (fill.type === 'video' && fill.assetId) {
+                            // New media fill system for video
+                            this.applyVideoFill(layer, fill, el);
                         } else if (fill.type === 'image') {
+                            // Legacy image fill using direct URL
                             layer.style.backgroundImage = `url(${fill.value})`;
                             layer.style.backgroundSize = fill.scaleMode || 'cover';
                             layer.style.backgroundPosition = 'center';
@@ -240,6 +249,322 @@ export class ShapeElement extends VisualElement {
             delete div._codeRunner;
             div.innerHTML = '';
         }
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // Media Fill Methods (Image & Video)
+    // ─────────────────────────────────────────────────────────────
+
+    /**
+     * Apply image fill to a layer
+     * @param {HTMLElement} layer - Fill layer element
+     * @param {Object} fill - Image fill properties
+     * @param {Object} el - Element data
+     */
+    applyImageFill(layer, fill, el) {
+        // Get renderable URL from asset manager
+        const src = mediaAssetManager.getRenderableUrl(fill.assetId);
+        
+        if (!src) {
+            // Asset not found - show error state
+            layer.classList.add('media-fill-error');
+            layer.style.background = 'repeating-linear-gradient(45deg, #f0f0f0, #f0f0f0 10px, #e0e0e0 10px, #e0e0e0 20px)';
+            return;
+        }
+        
+        layer.classList.remove('media-fill-error');
+        
+        // Handle tile mode separately (uses CSS background)
+        if (fill.scaleMode === 'tile') {
+            this.applyTiledImageFill(layer, fill, src);
+            return;
+        }
+        
+        // Clear any existing content
+        this.clearMediaLayer(layer);
+        
+        // Create img element
+        let img = layer.querySelector('img.media-fill');
+        if (!img) {
+            img = document.createElement('img');
+            img.className = 'media-fill';
+            img.style.position = 'absolute';
+            img.style.pointerEvents = 'none';
+            img.style.userSelect = 'none';
+            img.draggable = false;
+            layer.appendChild(img);
+        }
+        
+        // Set source
+        if (img.src !== src) {
+            img.src = src;
+        }
+        
+        // Apply scale mode positioning
+        this.applyMediaScaleMode(img, fill, el);
+        
+        // Apply position offset
+        this.applyMediaPosition(img, fill);
+        
+        // Apply filters
+        this.applyMediaFilters(layer, img, fill, el.id);
+    }
+
+    /**
+     * Apply video fill to a layer
+     * @param {HTMLElement} layer - Fill layer element
+     * @param {Object} fill - Video fill properties
+     * @param {Object} el - Element data
+     */
+    applyVideoFill(layer, fill, el) {
+        const src = mediaAssetManager.getRenderableUrl(fill.assetId);
+        
+        if (!src) {
+            layer.classList.add('media-fill-error');
+            layer.style.background = 'repeating-linear-gradient(45deg, #f0f0f0, #f0f0f0 10px, #e0e0e0 10px, #e0e0e0 20px)';
+            return;
+        }
+        
+        layer.classList.remove('media-fill-error');
+        
+        // Clear any existing content (except video)
+        this.clearMediaLayer(layer, 'video');
+        
+        // Create or get video element
+        let video = layer.querySelector('video.media-fill');
+        if (!video) {
+            video = document.createElement('video');
+            video.className = 'media-fill';
+            video.style.position = 'absolute';
+            video.style.pointerEvents = 'none';
+            video.playsInline = true;
+            layer.appendChild(video);
+        }
+        
+        // Set source if changed
+        if (video.src !== src) {
+            video.src = src;
+        }
+        
+        // Apply video properties
+        video.muted = fill.muted !== false;
+        video.loop = fill.loop !== false;
+        video.playbackRate = fill.playbackRate || 1;
+        video.volume = fill.volume || 0;
+        
+        // Handle autoplay
+        if (fill.autoplay !== false && video.paused) {
+            video.play().catch(() => {
+                // Autoplay blocked - common in browsers
+                console.debug('Video autoplay blocked, user interaction required');
+            });
+        }
+        
+        // Apply scale mode positioning
+        this.applyMediaScaleMode(video, fill, el);
+        
+        // Apply position offset
+        this.applyMediaPosition(video, fill);
+        
+        // Apply filters
+        this.applyMediaFilters(layer, video, fill, el.id);
+    }
+
+    /**
+     * Apply tiled image fill using CSS background
+     * @param {HTMLElement} layer
+     * @param {Object} fill
+     * @param {string} src
+     */
+    applyTiledImageFill(layer, fill, src) {
+        // Clear any img/video elements
+        this.clearMediaLayer(layer);
+        
+        // Use CSS background for tiling
+        layer.style.backgroundImage = `url(${src})`;
+        layer.style.backgroundRepeat = 'repeat';
+        layer.style.backgroundSize = 'auto';
+        
+        // Apply position as background-position
+        const posX = ((fill.position?.x || 0.5) - 0.5) * 100;
+        const posY = ((fill.position?.y || 0.5) - 0.5) * 100;
+        layer.style.backgroundPosition = `${50 + posX}% ${50 + posY}%`;
+        
+        // Apply scale via background-size if scale != 1
+        if (fill.scale && fill.scale !== 1) {
+            layer.style.backgroundSize = `${fill.scale * 100}%`;
+        }
+        
+        // Apply filters to the layer itself
+        const { filterValue, svgFilter } = FilterEngine.getFilterStyle(fill.filters || {}, `tile-${Date.now()}`);
+        layer.style.filter = filterValue;
+        
+        // Insert SVG filter if needed
+        if (svgFilter) {
+            this.insertSvgFilter(layer, svgFilter);
+        }
+    }
+
+    /**
+     * Apply scale mode to media element
+     * @param {HTMLElement} mediaEl - img or video element
+     * @param {Object} fill - Fill properties
+     * @param {Object} el - Element data (for dimensions)
+     */
+    applyMediaScaleMode(mediaEl, fill, el) {
+        const scaleMode = fill.scaleMode || 'fill';
+        const originalWidth = fill.originalWidth || el.width;
+        const originalHeight = fill.originalHeight || el.height;
+        const shapeRatio = el.width / el.height;
+        const mediaRatio = originalWidth / originalHeight;
+        
+        // Reset styles
+        mediaEl.style.width = '';
+        mediaEl.style.height = '';
+        mediaEl.style.objectFit = '';
+        
+        switch (scaleMode) {
+            case 'fill':
+                // Cover entire shape, may crop
+                mediaEl.style.width = '100%';
+                mediaEl.style.height = '100%';
+                mediaEl.style.objectFit = 'cover';
+                break;
+                
+            case 'fit':
+                // Fit inside shape, may letterbox
+                mediaEl.style.width = '100%';
+                mediaEl.style.height = '100%';
+                mediaEl.style.objectFit = 'contain';
+                break;
+                
+            case 'stretch':
+                // Stretch to fill exactly
+                mediaEl.style.width = '100%';
+                mediaEl.style.height = '100%';
+                mediaEl.style.objectFit = 'fill';
+                break;
+                
+            case 'tile':
+                // Handled separately in applyTiledImageFill
+                break;
+                
+            default:
+                mediaEl.style.width = '100%';
+                mediaEl.style.height = '100%';
+                mediaEl.style.objectFit = 'cover';
+        }
+    }
+
+    /**
+     * Apply position offset and transforms to media element
+     * @param {HTMLElement} mediaEl
+     * @param {Object} fill
+     */
+    applyMediaPosition(mediaEl, fill) {
+        const x = fill.position?.x ?? 0.5;
+        const y = fill.position?.y ?? 0.5;
+        const scale = fill.scale || 1;
+        const rotation = fill.rotation || 0;
+        
+        // Position is normalized 0-1 where 0.5 is center
+        // Convert to percentage offset from center
+        const offsetX = (x - 0.5) * 100;
+        const offsetY = (y - 0.5) * 100;
+        
+        // Use object-position for positioning within the container
+        mediaEl.style.objectPosition = `${50 + offsetX}% ${50 + offsetY}%`;
+        
+        // Apply scale and rotation via transform
+        const transforms = [];
+        if (scale !== 1) {
+            transforms.push(`scale(${scale})`);
+        }
+        if (rotation !== 0) {
+            transforms.push(`rotate(${rotation}deg)`);
+        }
+        
+        mediaEl.style.transform = transforms.length > 0 ? transforms.join(' ') : '';
+    }
+
+    /**
+     * Apply filters to media element
+     * @param {HTMLElement} layer - Container layer
+     * @param {HTMLElement} mediaEl - img or video element
+     * @param {Object} fill - Fill properties with filters
+     * @param {string} elementId - For unique SVG filter ID
+     */
+    applyMediaFilters(layer, mediaEl, fill, elementId) {
+        const filters = fill.filters || {};
+        
+        // Get combined filter style
+        const { filterValue, svgFilter } = FilterEngine.getFilterStyle(filters, `media-${elementId}`);
+        
+        // Apply to media element
+        mediaEl.style.filter = filterValue;
+        
+        // Insert SVG filter definition if needed
+        if (svgFilter) {
+            this.insertSvgFilter(layer, svgFilter);
+        } else {
+            // Remove any existing SVG filter
+            const existingSvg = layer.querySelector('svg.media-filter-defs');
+            if (existingSvg) existingSvg.remove();
+        }
+    }
+
+    /**
+     * Insert SVG filter definition into layer
+     * @param {HTMLElement} layer
+     * @param {string} svgFilter - SVG filter markup
+     */
+    insertSvgFilter(layer, svgFilter) {
+        // Remove existing
+        const existing = layer.querySelector('svg.media-filter-defs');
+        if (existing) existing.remove();
+        
+        // Create new SVG container for filter defs
+        const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        svg.setAttribute('class', 'media-filter-defs');
+        svg.style.position = 'absolute';
+        svg.style.width = '0';
+        svg.style.height = '0';
+        svg.style.overflow = 'hidden';
+        
+        // Parse and append filter
+        const temp = document.createElement('div');
+        temp.innerHTML = `<svg>${svgFilter}</svg>`;
+        const filterEl = temp.querySelector('filter');
+        if (filterEl) {
+            const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+            defs.appendChild(document.importNode(filterEl, true));
+            svg.appendChild(defs);
+            layer.insertBefore(svg, layer.firstChild);
+        }
+    }
+
+    /**
+     * Clear media elements from layer
+     * @param {HTMLElement} layer
+     * @param {string} keepType - Optional: 'img' or 'video' to keep
+     */
+    clearMediaLayer(layer, keepType = null) {
+        // Clear background styles
+        layer.style.backgroundImage = '';
+        layer.style.backgroundRepeat = '';
+        layer.style.backgroundSize = '';
+        layer.style.backgroundPosition = '';
+        
+        // Remove media elements (except keepType)
+        const mediaEls = layer.querySelectorAll('img.media-fill, video.media-fill');
+        mediaEls.forEach(el => {
+            if (keepType && el.tagName.toLowerCase() === keepType) return;
+            el.remove();
+        });
+        
+        // Remove SVG filter defs
+        const svgDefs = layer.querySelector('svg.media-filter-defs');
+        if (svgDefs) svgDefs.remove();
     }
 
     applyStrokes(div, el) {
