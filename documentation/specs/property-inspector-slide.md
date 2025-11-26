@@ -78,18 +78,35 @@ A `pi-section` with title "Theme". Contains two clickable rows.
 ---
 
 ## 4. Background Section
-A `pi-section` with title "Background". Uses the standard FillSection component.
+A `pi-section` with title "Background". Uses the standard FillSection component with inheritance support.
 
-- **Type Selector**: Dropdown with options: `Inherited`, `Solid`, `Gradient`, `Image`, `Video`, `Code`.
-- *Note*: "Inherited" is default for Slides/Layouts. "Theme" masters cannot inherit.
+### Inheritance Behavior
+- **Slides** inherit background from their Layout, which inherits from the Theme Master.
+- **Layouts** inherit background from the Theme Master.
+- **Theme Master** defines the base background (no inheritance).
+
+### Display States
+
+1. **No Override (Inherited)**:
+   - Shows the inherited fill with an "Inherited" badge.
+   - The inherited fill is fully visible and interactive for reference.
+   - Removing all fills reverts to inherited state.
+
+2. **Has Override**:
+   - Shows the slide's own fill(s) as editable rows.
+   - Below the override fills, shows a divider and the inherited fill (dimmed) as reference.
+   - The inherited fill display reminds users what the fallback is.
+
+3. **Theme Master**:
+   - No inheritance indicator (it IS the source).
+   - If no fill is set, shows empty state.
 
 ### Background Controls (Per Type)
-- **Inherited**: No controls. Shows "Using background from [Parent Name]".
-- **Solid**: Color Swatch + Hex Input.
-- **Gradient**: Gradient Editor (Same as Fill).
-- **Image**: Image Picker + Scale Mode (Same as Fill).
+- **Solid**: Color Swatch + Hex Input + Opacity.
+- **Gradient**: Gradient Editor (Same as Element Fill).
+- **Image**: Image Picker + Scale Mode.
 - **Video**: Video Picker + Playback controls.
-- **Code**: AI Generator + Code Editor (Same as Fill).
+- **Code**: AI Generator + Code Editor.
 
 ---
 

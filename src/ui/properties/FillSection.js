@@ -103,24 +103,118 @@ export class FillSection {
             }
         }
 
-        if (fills.length === 0) {
-            const empty = new EmptyState('No fill');
-            this.container.appendChild(empty.element);
-            return;
-        }
-
         // Container for the list of fills
         const list = document.createElement('div');
         list.style.display = 'flex';
         list.style.flexDirection = 'column';
         list.style.gap = '8px';
         
-        fills.forEach((fill, index) => {
-            const row = this.createFillRow(element, fill, index, fills);
-            list.appendChild(row);
-        });
+        // Check for inherited fill (for slide/master backgrounds)
+        const inheritedFill = element.inheritedFill;
+        const hasOwnBackground = element.hasOwnBackground;
+        
+        if (fills.length === 0 && inheritedFill) {
+            // No override fills - show inherited fill as active (but marked as inherited)
+            const inheritedRow = this.createInheritedFillRow(inheritedFill, true);
+            list.appendChild(inheritedRow);
+        } else if (fills.length === 0) {
+            // No fills and no inherited - show empty state
+            const empty = new EmptyState('No fill');
+            this.container.appendChild(empty.element);
+            return;
+        } else {
+            // Has override fills - show them
+            fills.forEach((fill, index) => {
+                const row = this.createFillRow(element, fill, index, fills);
+                list.appendChild(row);
+            });
+            
+            // Also show inherited fill at the bottom as reference (if available)
+            if (inheritedFill) {
+                const divider = document.createElement('div');
+                divider.style.cssText = `
+                    height: 1px;
+                    background: var(--color-border);
+                    margin: 4px 0;
+                `;
+                list.appendChild(divider);
+                
+                const inheritedRow = this.createInheritedFillRow(inheritedFill, false);
+                list.appendChild(inheritedRow);
+            }
+        }
         
         this.container.appendChild(list);
+    }
+
+    /**
+     * Create a row showing an inherited fill (read-only, with visual indicator)
+     * @param {Object} fill - The inherited fill object
+     * @param {boolean} isActive - Whether this is the active fill (no override exists)
+     */
+    createInheritedFillRow(fill, isActive) {
+        const row = document.createElement('div');
+        row.className = 'pi-row inherited-fill-row';
+        row.style.cssText = `
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            height: 28px;
+            opacity: ${isActive ? '1' : '0.6'};
+        `;
+
+        // Color swatch / preview
+        const swatch = document.createElement('div');
+        swatch.style.cssText = `
+            width: 28px;
+            height: 28px;
+            border-radius: var(--radius-sm);
+            border: 1px solid var(--color-border);
+            flex-shrink: 0;
+        `;
+        
+        if (fill.type === 'solid') {
+            swatch.style.background = fill.color || fill.value || '#D9D9D9';
+        } else if (fill.type === 'gradient') {
+            swatch.style.background = fill.value || 'linear-gradient(90deg, #000 0%, #fff 100%)';
+        } else if (fill.type === 'image') {
+            swatch.style.background = `url(${fill.value}) center/cover no-repeat`;
+        } else {
+            swatch.style.background = '#D9D9D9';
+        }
+        row.appendChild(swatch);
+
+        // Label container
+        const labelContainer = document.createElement('div');
+        labelContainer.style.cssText = 'flex: 1; display: flex; align-items: center; gap: 6px;';
+        
+        // Type label
+        const typeLabel = document.createElement('span');
+        typeLabel.style.cssText = `
+            font-size: var(--font-size-sm);
+            color: var(--color-text-secondary);
+            text-transform: capitalize;
+        `;
+        typeLabel.textContent = fill.type || 'Solid';
+        labelContainer.appendChild(typeLabel);
+        
+        row.appendChild(labelContainer);
+
+        // Inherited badge
+        const badge = document.createElement('span');
+        badge.style.cssText = `
+            font-size: 9px;
+            padding: 2px 4px;
+            border-radius: 2px;
+            text-transform: uppercase;
+            font-weight: 500;
+            background: var(--color-bg-active);
+            color: var(--color-text-secondary);
+        `;
+        badge.textContent = 'Inherited';
+        row.appendChild(badge);
+
+        return row;
     }
 
     createFillRow(element, fill, index, allFills) {

@@ -377,14 +377,80 @@ export class SlideSection {
              }];
         }
         
+        // Get inherited background for display
+        const inheritedBg = this.getInheritedBackground(state, currentObject);
+        
         const proxyElement = {
             id: currentObject.id,
             style: {
                 fills: fills
-            }
+            },
+            // Pass inherited info to FillSection
+            inheritedFill: inheritedBg,
+            hasOwnBackground: bg !== null && bg !== undefined && (Array.isArray(bg) ? bg.length > 0 : bg.type !== 'inherited')
         };
         
         this.fillSection.update([proxyElement]);
+    }
+
+    /**
+     * Resolve the inherited background from layout or master
+     */
+    getInheritedBackground(state, currentObject) {
+        const mode = state.editor.mode;
+        
+        if (mode === 'master') {
+            // Masters don't inherit (except layouts from theme master)
+            const master = currentObject;
+            if (master.type === 'layout' && master.parentId) {
+                const themeMaster = state.masters[master.parentId];
+                if (themeMaster && themeMaster.background) {
+                    return this.normalizeFill(themeMaster.background);
+                }
+            }
+            return null;
+        } else {
+            // Slides inherit from layout, which may inherit from theme master
+            const slide = currentObject;
+            const layout = state.masters[slide.layoutId];
+            
+            if (layout) {
+                // Check if layout has its own background
+                if (layout.background && layout.background.type !== 'inherited') {
+                    return this.normalizeFill(layout.background);
+                }
+                
+                // Otherwise, get from theme master
+                if (layout.parentId) {
+                    const themeMaster = state.masters[layout.parentId];
+                    if (themeMaster && themeMaster.background) {
+                        return this.normalizeFill(themeMaster.background);
+                    }
+                }
+            }
+            return null;
+        }
+    }
+
+    /**
+     * Normalize background object to a fill object format
+     */
+    normalizeFill(bg) {
+        if (!bg) return null;
+        
+        if (Array.isArray(bg)) {
+            // If it's already an array, return the first visible fill
+            const visible = bg.find(f => f.visible !== false);
+            return visible || bg[0] || null;
+        }
+        
+        return {
+            type: bg.type || 'solid',
+            value: bg.value,
+            color: bg.value,
+            opacity: 100,
+            visible: true
+        };
     }
 
     getActiveContainer(state) {
@@ -422,7 +488,10 @@ export class SlideSection {
         const action = mode === 'master' ? 'UPDATE_MASTER' : 'UPDATE_SLIDE';
         const id = mode === 'master' ? state.editor.activeMasterId : state.editor.activeSlideId;
         
-        store.dispatch(action, { id, background: fills }, { skipHistory: isTransient });
+        // If fills is empty, set to null to inherit from parent
+        const background = (fills && fills.length > 0) ? fills : null;
+        
+        store.dispatch(action, { id, background }, { skipHistory: isTransient });
     }
     
     openLayoutFlyout() {
