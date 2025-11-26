@@ -21,6 +21,10 @@ export class PropertyInspector {
         this.container = document.getElementById(containerId);
         this.sectionStates = {}; // Persist section collapse state
         
+        // Get the sidebar header for title updates
+        this.sidebar = this.container.closest('.sidebar');
+        this.headerTitle = this.sidebar?.querySelector('.sidebar-header .header-title');
+        
         // Initialize Sections
         this.positionSection = new PositionSection();
         this.layoutSection = new LayoutSection();
@@ -52,6 +56,9 @@ export class PropertyInspector {
         
         const state = store.getState();
         const selection = state.editor.selectedElementIds;
+        
+        // Update header title
+        this.updateHeaderTitle(state, selection);
         
         // Clear container
         this.container.innerHTML = '';
@@ -114,5 +121,48 @@ export class PropertyInspector {
             const slide = state.slides[state.editor.activeSlideId];
             return slide?.elements[id];
         }
+    }
+    
+    updateHeaderTitle(state, selection) {
+        if (!this.headerTitle) return;
+        
+        if (selection && selection.length > 0) {
+            if (selection.length === 1) {
+                // Single selection: show element name or type
+                const element = this.getElement(state, selection[0]);
+                if (element) {
+                    // Use element name if available, otherwise use type
+                    const name = element.name || this.getTypeName(element.type);
+                    this.headerTitle.textContent = name;
+                } else {
+                    this.headerTitle.textContent = 'Properties';
+                }
+            } else {
+                // Multiple selection
+                this.headerTitle.textContent = `${selection.length} Objects`;
+            }
+        } else {
+            // No selection: show Slide or Master/Layout
+            const mode = state.editor.mode;
+            if (mode === 'master') {
+                const master = state.masters[state.editor.activeMasterId];
+                this.headerTitle.textContent = master?.name || 'Master';
+            } else {
+                this.headerTitle.textContent = 'Slide';
+            }
+        }
+    }
+    
+    getTypeName(type) {
+        const typeNames = {
+            'rectangle': 'Rectangle',
+            'ellipse': 'Ellipse',
+            'text': 'Text',
+            'image': 'Image',
+            'line': 'Line',
+            'group': 'Group',
+            'frame': 'Frame'
+        };
+        return typeNames[type] || 'Object';
     }
 }
