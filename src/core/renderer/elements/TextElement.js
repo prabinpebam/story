@@ -181,12 +181,24 @@ export class TextElement extends VisualElement {
             }
         }
 
+        // Check if this is a placeholder in master mode
+        const state = store.getState();
+        const isMasterMode = state.editor.mode === 'master';
+        const isPlaceholder = el.isPlaceholder === true;
+
         // Ensure no padding/border/margin interferes with size calculations
         div.style.padding = '0';
         div.style.margin = '0';
-        div.style.border = 'none';
         div.style.boxSizing = 'border-box';
         div.style.overflow = 'visible'; // Allow text to be seen, but box is defined by ResizeObserver
+
+        // Placeholder visual indicator - dashed border in master mode
+        if (isPlaceholder && isMasterMode) {
+            div.style.border = '2px dashed var(--color-accent, #18A0FB)';
+            div.style.padding = '8px'; // Add padding inside the dashed border
+        } else {
+            div.style.border = 'none';
+        }
 
         // Content - only update if not currently being edited
         // When editing, the user's changes are in the DOM and we don't want to overwrite them

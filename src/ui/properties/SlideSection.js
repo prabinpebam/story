@@ -42,6 +42,17 @@ export class SlideSection {
         this.layoutRow.appendChild(this.layoutSelect.element);
         this.section.appendChild(this.layoutRow);
 
+        // 2b. Layout Thumbnail Grid (visual picker)
+        this.layoutGridRow = document.createElement('div');
+        this.layoutGridRow.className = 'layout-grid';
+        this.layoutGridRow.style.cssText = `
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+            margin-bottom: var(--spacing-2);
+        `;
+        this.section.appendChild(this.layoutGridRow);
+
         // 3. Hide Graphics Toggle
         this.hideGraphicsRow = document.createElement('div');
         this.hideGraphicsRow.style.marginBottom = 'var(--spacing-2)';
@@ -176,13 +187,19 @@ export class SlideSection {
         // 2. Layout Picker (Slide only)
         if (mode !== 'master') {
             this.layoutRow.style.display = 'flex';
+            this.layoutGridRow.style.display = 'grid';
+            
             // Populate layouts
             const layouts = Object.values(state.masters).filter(m => m.type === 'layout');
             const options = layouts.map(l => ({ label: l.name, value: l.id }));
             this.layoutSelect.setOptions(options);
             this.layoutSelect.setValue(currentObject.layoutId);
+            
+            // Update layout thumbnail grid
+            this.updateLayoutGrid(layouts, currentObject.layoutId, state);
         } else {
             this.layoutRow.style.display = 'none';
+            this.layoutGridRow.style.display = 'none';
         }
 
         // 3. Hide Graphics
@@ -270,5 +287,58 @@ export class SlideSection {
         const id = mode === 'master' ? state.editor.activeMasterId : state.editor.activeSlideId;
         
         store.dispatch(action, { id, background: fills }, { skipHistory: isTransient });
+    }
+    
+    updateLayoutGrid(layouts, currentLayoutId, state) {
+        // Clear existing thumbnails
+        this.layoutGridRow.innerHTML = '';
+        
+        layouts.forEach(layout => {
+            const thumbnail = document.createElement('div');
+            thumbnail.className = 'layout-thumbnail' + (layout.id === currentLayoutId ? ' selected' : '');
+            thumbnail.dataset.layoutId = layout.id;
+            thumbnail.title = layout.name;
+            
+            // Create mini preview canvas
+            const preview = document.createElement('div');
+            preview.className = 'layout-preview';
+            
+            // Draw placeholder representations
+            if (layout.elements) {
+                layout.elements.forEach(el => {
+                    if (el.isPlaceholder) {
+                        const placeholder = document.createElement('div');
+                        placeholder.className = 'layout-placeholder';
+                        
+                        // Scale down to thumbnail size (assume 1920x1080 -> ~60x34)
+                        const scale = 60 / 1920;
+                        placeholder.style.left = (el.x * scale) + 'px';
+                        placeholder.style.top = (el.y * scale) + 'px';
+                        placeholder.style.width = (el.width * scale) + 'px';
+                        placeholder.style.height = (el.height * scale) + 'px';
+                        
+                        preview.appendChild(placeholder);
+                    }
+                });
+            }
+            
+            thumbnail.appendChild(preview);
+            
+            // Add label
+            const label = document.createElement('div');
+            label.className = 'layout-label';
+            label.textContent = layout.name;
+            thumbnail.appendChild(label);
+            
+            // Click handler
+            thumbnail.addEventListener('click', () => {
+                if (layout.id !== currentLayoutId) {
+                    this.layoutSelect.setValue(layout.id);
+                    this.updateLayout(layout.id);
+                }
+            });
+            
+            this.layoutGridRow.appendChild(thumbnail);
+        });
     }
 }

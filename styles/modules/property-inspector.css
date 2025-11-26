@@ -142,3 +142,61 @@ select.pi-input option {
     background-color: var(--color-bg-active);
     color: var(--color-accent);
 }
+
+/* Layout Thumbnail Grid */
+.layout-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    padding: 4px 0;
+}
+
+.layout-thumbnail {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    padding: 4px;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: background-color 0.15s;
+}
+
+.layout-thumbnail:hover {
+    background-color: var(--color-bg-hover);
+}
+
+.layout-thumbnail.selected {
+    background-color: var(--color-bg-active);
+}
+
+.layout-thumbnail.selected .layout-preview {
+    border-color: var(--color-accent);
+}
+
+.layout-preview {
+    position: relative;
+    width: 60px;
+    height: 34px;
+    background-color: var(--color-bg-panel);
+    border: 1px solid var(--color-border);
+    border-radius: 2px;
+    overflow: hidden;
+}
+
+.layout-placeholder {
+    position: absolute;
+    border: 1px dashed var(--color-text-tertiary);
+    border-radius: 1px;
+    background-color: rgba(255, 255, 255, 0.05);
+}
+
+.layout-label {
+    font-size: 9px;
+    color: var(--color-text-secondary);
+    text-align: center;
+    max-width: 60px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}

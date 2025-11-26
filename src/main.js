@@ -145,6 +145,7 @@ class App {
             const state = store.getState();
             if (state.editor.mode === 'presentation') return;
 
+            // Undo/Redo
             if ((e.ctrlKey || e.metaKey) && e.key === 'z') {
                 e.preventDefault();
                 if (e.shiftKey) {
@@ -156,6 +157,17 @@ class App {
             if ((e.ctrlKey || e.metaKey) && e.key === 'y') {
                 e.preventDefault();
                 store.dispatch('REDO');
+            }
+
+            // Toggle Master Mode (Shift + Ctrl/Cmd + M)
+            if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === 'm') {
+                e.preventDefault();
+                const currentMode = state.editor.mode;
+                if (currentMode === 'master') {
+                    store.dispatch('SET_MODE', 'edit');
+                } else if (currentMode === 'edit') {
+                    store.dispatch('SET_MODE', 'master');
+                }
             }
         });
     }
