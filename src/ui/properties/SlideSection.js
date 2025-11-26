@@ -2,7 +2,6 @@ import { Section } from '../components/Section.js';
 import { TextInput } from '../components/TextInput.js';
 import { NumberInput } from '../components/NumberInput.js';
 import { Dropdown } from '../components/Dropdown.js';
-import { Switch } from '../components/Switch.js';
 import { Flyout } from '../components/Flyout.js';
 import { store } from '../../core/Store.js';
 import { FillSection } from './FillSection.js';
@@ -61,19 +60,7 @@ export class SlideSection {
         
         this.section.appendChild(this.layoutRow);
 
-        // Remove old grid rows - no longer needed inline
-        // (flyout will contain the grid)
-
-        // 3. Hide Graphics Toggle
-        this.hideGraphicsRow = document.createElement('div');
-        this.hideGraphicsRow.style.marginBottom = 'var(--spacing-2)';
-        this.hideGraphicsSwitch = new Switch('Hide Background Graphics', false, (val) => {
-            this.updateHideGraphics(val);
-        });
-        this.hideGraphicsRow.appendChild(this.hideGraphicsSwitch.element);
-        this.section.appendChild(this.hideGraphicsRow);
-
-        // 4. Dimensions
+        // 3. Dimensions
         const dimRow = document.createElement('div');
         dimRow.className = 'pi-row';
         
@@ -91,81 +78,242 @@ export class SlideSection {
         dimRow.appendChild(this.hInput.element);
         this.section.appendChild(dimRow);
 
-        // 5. Theme Button Row
-        this.themeRow = document.createElement('div');
-        this.themeRow.className = 'pi-row';
-        this.themeRow.style.cssText = 'margin-top: var(--spacing-2); padding-top: var(--spacing-2); border-top: 1px solid var(--color-border);';
-        
-        const themeLabel = document.createElement('div');
-        themeLabel.style.cssText = 'flex: 1; font-size: var(--font-size-sm); color: var(--color-text-secondary);';
-        themeLabel.textContent = 'Theme';
-        this.themeRow.appendChild(themeLabel);
-        
-        // Button container for Colors and Typography
-        const btnContainer = document.createElement('div');
-        btnContainer.style.cssText = 'display: flex; gap: var(--spacing-1);';
-        
-        const colorBtn = document.createElement('button');
-        colorBtn.className = 'theme-manager-btn';
-        colorBtn.innerHTML = `${Icons.PALETTE || '<i class="fa-solid fa-palette"></i>'} <span>Colors</span>`;
-        colorBtn.title = 'Open Color Theme Manager (Ctrl+Shift+C)';
-        colorBtn.style.cssText = `
-            display: flex;
-            align-items: center;
-            gap: 4px;
-            padding: 4px 8px;
-            border: 1px solid var(--color-border);
-            border-radius: var(--radius-sm);
-            background: var(--color-bg-well);
-            color: var(--color-text-primary);
-            font-size: var(--font-size-sm);
-            cursor: pointer;
-            transition: background 0.15s;
-        `;
-        colorBtn.addEventListener('mouseenter', () => {
-            colorBtn.style.background = 'var(--color-bg-hover)';
-        });
-        colorBtn.addEventListener('mouseleave', () => {
-            colorBtn.style.background = 'var(--color-bg-well)';
-        });
-        colorBtn.addEventListener('click', () => {
-            panelManager.toggle('color-theme-manager');
-        });
-        btnContainer.appendChild(colorBtn);
-        
-        const typoBtn = document.createElement('button');
-        typoBtn.className = 'theme-manager-btn';
-        typoBtn.innerHTML = `${Icons.FONT || '<i class="fa-solid fa-font"></i>'} <span>Fonts</span>`;
-        typoBtn.title = 'Open Typography Style Manager (Ctrl+Shift+T)';
-        typoBtn.style.cssText = `
-            display: flex;
-            align-items: center;
-            gap: 4px;
-            padding: 4px 8px;
-            border: 1px solid var(--color-border);
-            border-radius: var(--radius-sm);
-            background: var(--color-bg-well);
-            color: var(--color-text-primary);
-            font-size: var(--font-size-sm);
-            cursor: pointer;
-            transition: background 0.15s;
-        `;
-        typoBtn.addEventListener('mouseenter', () => {
-            typoBtn.style.background = 'var(--color-bg-hover)';
-        });
-        typoBtn.addEventListener('mouseleave', () => {
-            typoBtn.style.background = 'var(--color-bg-well)';
-        });
-        typoBtn.addEventListener('click', () => {
-            panelManager.toggle('typography-style-manager');
-        });
-        btnContainer.appendChild(typoBtn);
-        
-        this.themeRow.appendChild(btnContainer);
-        this.section.appendChild(this.themeRow);
+        // 4. Theme Section
+        this.createThemeSection();
 
-        // 6. Background (FillSection) - Removed from here to avoid nesting. 
-        // It will be appended separately in PropertyInspector.
+        // 5. Background (FillSection) - Appended separately in PropertyInspector
+    }
+
+    createThemeSection() {
+        // Theme container with divider
+        this.themeSection = document.createElement('div');
+        this.themeSection.className = 'slide-theme-section';
+        this.themeSection.style.cssText = `
+            margin-top: var(--spacing-2);
+            padding-top: var(--spacing-2);
+            border-top: 1px solid var(--color-border);
+            display: flex;
+            flex-direction: column;
+            gap: var(--spacing-2);
+        `;
+
+        // Theme header
+        const themeHeader = document.createElement('div');
+        themeHeader.style.cssText = 'font-size: var(--font-size-sm); color: var(--color-text-secondary); font-weight: 500;';
+        themeHeader.textContent = 'Theme';
+        this.themeSection.appendChild(themeHeader);
+
+        // Colors Row
+        this.colorsRow = this.createThemeRow({
+            label: 'Colors',
+            icon: Icons.PALETTE || '<i class="fa-solid fa-palette"></i>',
+            onClick: () => panelManager.toggle('color-theme-manager'),
+            onReset: () => this.resetColors()
+        });
+        this.themeSection.appendChild(this.colorsRow.element);
+
+        // Typography Row
+        this.typographyRow = this.createThemeRow({
+            label: 'Typography',
+            icon: Icons.FONT || '<i class="fa-solid fa-font"></i>',
+            onClick: () => panelManager.toggle('typography-style-manager'),
+            onReset: () => this.resetTypography()
+        });
+        this.themeSection.appendChild(this.typographyRow.element);
+
+        this.section.appendChild(this.themeSection);
+    }
+
+    createThemeRow(options) {
+        const row = document.createElement('div');
+        row.className = 'theme-property-row';
+        row.style.cssText = `
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-2);
+            padding: 6px 8px;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            transition: background 0.15s;
+        `;
+        row.addEventListener('mouseenter', () => {
+            row.style.background = 'var(--color-bg-hover)';
+        });
+        row.addEventListener('mouseleave', () => {
+            row.style.background = 'transparent';
+        });
+        row.addEventListener('click', (e) => {
+            if (!e.target.closest('.theme-reset-btn')) {
+                options.onClick();
+            }
+        });
+
+        // Icon
+        const icon = document.createElement('span');
+        icon.innerHTML = options.icon;
+        icon.style.cssText = 'color: var(--color-text-secondary); width: 16px; display: flex; align-items: center; justify-content: center;';
+        row.appendChild(icon);
+
+        // Label
+        const label = document.createElement('span');
+        label.className = 'theme-row-label';
+        label.style.cssText = 'font-size: var(--font-size-sm); color: var(--color-text-primary); flex-shrink: 0;';
+        label.textContent = options.label;
+        row.appendChild(label);
+
+        // Preview container (will be populated by update)
+        const preview = document.createElement('div');
+        preview.className = 'theme-row-preview';
+        preview.style.cssText = 'flex: 1; display: flex; align-items: center; justify-content: flex-end; gap: 4px;';
+        row.appendChild(preview);
+
+        // Inheritance badge
+        const badge = document.createElement('span');
+        badge.className = 'theme-inheritance-badge';
+        badge.style.cssText = `
+            font-size: 9px;
+            padding: 2px 4px;
+            border-radius: 2px;
+            text-transform: uppercase;
+            font-weight: 500;
+            display: none;
+        `;
+        row.appendChild(badge);
+
+        // Reset button
+        const resetBtn = document.createElement('button');
+        resetBtn.className = 'theme-reset-btn';
+        resetBtn.innerHTML = '<i class="fa-solid fa-xmark"></i>';
+        resetBtn.title = 'Reset to inherited';
+        resetBtn.style.cssText = `
+            width: 18px;
+            height: 18px;
+            border: none;
+            background: transparent;
+            color: var(--color-text-secondary);
+            cursor: pointer;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            border-radius: 2px;
+            font-size: 10px;
+        `;
+        resetBtn.addEventListener('mouseenter', () => {
+            resetBtn.style.background = 'var(--color-bg-active)';
+            resetBtn.style.color = 'var(--color-text-primary)';
+        });
+        resetBtn.addEventListener('mouseleave', () => {
+            resetBtn.style.background = 'transparent';
+            resetBtn.style.color = 'var(--color-text-secondary)';
+        });
+        resetBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            options.onReset();
+        });
+        row.appendChild(resetBtn);
+
+        return { element: row, preview, badge, resetBtn };
+    }
+
+    updateThemeDisplay() {
+        const state = store.getState();
+        const currentObject = this.getActiveContainer(state);
+        if (!currentObject) return;
+
+        // Get theme master for inherited values
+        const themeMaster = Object.values(state.masters).find(m => m.type === 'theme');
+        if (!themeMaster || !themeMaster.themeSettings) return;
+
+        const themeColors = themeMaster.themeSettings.colors || {};
+        const themeFonts = themeMaster.themeSettings.fonts || {};
+
+        // Check if slide has overrides
+        const hasColorOverride = currentObject.colorOverride !== undefined;
+        const hasTypoOverride = currentObject.typographyOverride !== undefined;
+
+        // Update Colors Row
+        this.updateColorsPreview(themeColors, hasColorOverride);
+
+        // Update Typography Row
+        this.updateTypographyPreview(themeFonts, hasTypoOverride);
+    }
+
+    updateColorsPreview(colors, isOverride) {
+        const preview = this.colorsRow.preview;
+        preview.innerHTML = '';
+
+        // Show accent color swatches (up to 6)
+        const accentColors = [
+            colors.accent1, colors.accent2, colors.accent3,
+            colors.accent4, colors.accent5, colors.accent6
+        ].filter(Boolean);
+
+        accentColors.slice(0, 6).forEach(color => {
+            const swatch = document.createElement('div');
+            swatch.style.cssText = `
+                width: 16px;
+                height: 16px;
+                border-radius: 2px;
+                background: ${color};
+                border: 1px solid rgba(0,0,0,0.1);
+            `;
+            preview.appendChild(swatch);
+        });
+
+        // Update badge and reset button
+        this.updateInheritanceUI(this.colorsRow, isOverride);
+    }
+
+    updateTypographyPreview(fonts, isOverride) {
+        const preview = this.typographyRow.preview;
+        preview.innerHTML = '';
+
+        // Show font names
+        const fontLabel = document.createElement('span');
+        fontLabel.style.cssText = 'font-size: 11px; color: var(--color-text-secondary);';
+        fontLabel.textContent = `${fonts.heading || 'Inter'} / ${fonts.body || 'Inter'}`;
+        preview.appendChild(fontLabel);
+
+        // Update badge and reset button
+        this.updateInheritanceUI(this.typographyRow, isOverride);
+    }
+
+    updateInheritanceUI(row, isOverride) {
+        const { badge, resetBtn } = row;
+        
+        if (isOverride) {
+            badge.textContent = 'Override';
+            badge.style.display = 'inline-block';
+            badge.style.background = 'var(--color-accent)';
+            badge.style.color = 'white';
+            resetBtn.style.display = 'flex';
+        } else {
+            badge.textContent = 'Inherited';
+            badge.style.display = 'inline-block';
+            badge.style.background = 'var(--color-bg-active)';
+            badge.style.color = 'var(--color-text-secondary)';
+            resetBtn.style.display = 'none';
+        }
+    }
+
+    resetColors() {
+        const state = store.getState();
+        const mode = state.editor.mode;
+        const action = mode === 'master' ? 'UPDATE_MASTER' : 'UPDATE_SLIDE';
+        const id = mode === 'master' ? state.editor.activeMasterId : state.editor.activeSlideId;
+        
+        store.dispatch(action, { id, colorOverride: undefined });
+        this.updateThemeDisplay();
+    }
+
+    resetTypography() {
+        const state = store.getState();
+        const mode = state.editor.mode;
+        const action = mode === 'master' ? 'UPDATE_MASTER' : 'UPDATE_SLIDE';
+        const id = mode === 'master' ? state.editor.activeMasterId : state.editor.activeSlideId;
+        
+        store.dispatch(action, { id, typographyOverride: undefined });
+        this.updateThemeDisplay();
     }
 
     update(selection) {
@@ -217,19 +365,12 @@ export class SlideSection {
             this.layoutRow.style.display = 'none';
         }
 
-        // 3. Hide Graphics
-        if ((mode === 'master' && currentObject.type === 'layout') || mode === 'edit') {
-            this.hideGraphicsRow.style.display = 'block';
-            // Update switch value (need to add setValue to Switch component or recreate)
-            // For now, let's assume we can recreate or update manually
-            // this.hideGraphicsSwitch.setValue(currentObject.hideBackgroundGraphics);
-        } else {
-            this.hideGraphicsRow.style.display = 'none';
-        }
-
-        // 4. Dimensions
+        // 3. Dimensions
         this.wInput.setValue(currentObject.width, false);
         this.hInput.setValue(currentObject.height, false);
+
+        // 4. Theme Display
+        this.updateThemeDisplay();
 
         // 5. Background
         const bg = currentObject.background;
@@ -275,15 +416,6 @@ export class SlideSection {
         const state = store.getState();
         const id = state.editor.activeSlideId;
         store.dispatch('UPDATE_SLIDE', { id, layoutId });
-    }
-
-    updateHideGraphics(val) {
-        const state = store.getState();
-        const mode = state.editor.mode;
-        const action = mode === 'master' ? 'UPDATE_MASTER' : 'UPDATE_SLIDE';
-        const id = mode === 'master' ? state.editor.activeMasterId : state.editor.activeSlideId;
-        
-        store.dispatch(action, { id, hideBackgroundGraphics: val });
     }
 
     updateDimension(prop, val, isTransient = false) {
