@@ -345,7 +345,7 @@ export class SolidTab {
                 }
             },
             showPresetSelector: true,
-            columns: 6
+            columns: 8
         });
         this.element.appendChild(this.themeSwatches.element);
 
