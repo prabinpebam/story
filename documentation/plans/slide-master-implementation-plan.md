@@ -1,6 +1,8 @@
-# Slide Master System Implementation Plan (v2)
+# Slide Master System Implementation Plan (v3)
 
 This comprehensive plan details the implementation of the enhanced Slide Master System with full Color Theme Manager and Typography Style Manager integration, as specified in the updated specs.
+
+**Last Updated:** November 26, 2025
 
 ---
 
@@ -12,7 +14,7 @@ This comprehensive plan details the implementation of the enhanced Slide Master 
 
 ---
 
-## Previously Completed (v1)
+## ✅ Completed (v1 Foundation)
 
 The following phases from the original implementation are complete and provide the foundation:
 
@@ -24,80 +26,242 @@ The following phases from the original implementation are complete and provide t
 
 ---
 
-## Recently Completed (v2)
+## ✅ Completed (v2 Theme Panels)
 
 - [x] **Phase 11.1:** Expand Theme Color Schema to 12 colors
 - [x] **Phase 12.1:** DraggablePanel Component
 - [x] **Phase 12.2:** PanelManager Service
-- [x] **Phase 13 (Color Theme Manager):** Phases 1-3 complete
+- [x] **Phase 13 (Color Theme Manager):** Complete
   - ColorPresets.js with 20 presets
   - Store actions (APPLY_COLOR_PRESET, RESET_THEME_COLORS, UPDATE_THEME_COLOR)
   - ColorThemeManager.js panel with Presets, Custom, AI tabs
   - Registered in main.js with Ctrl+Shift+C shortcut
+- [x] **Phase 14 (Typography Style Manager):** Complete
+  - FontPresets.js with typography presets
+  - TypographyStyleManager.js panel with Fonts, Styles tabs
+  - Registered in main.js with Ctrl+Shift+T shortcut
 
 ---
 
-## Current State Analysis
+## ✅ Completed (v3 Core Features - Current Session)
 
-### What Exists
-1. **Store:** `masters` object, `MasterHandlers.js`, `SET_ACTIVE_MASTER`, `SET_MODE`
-2. **Initial State:** Basic master/layout structure, placeholders, basic theme settings
-3. **UI:** `SlideSection.js` with layout picker, `FillSection.js` with Fill System
-4. **Rendering:** Inheritance-aware rendering, CSS variable injection
-
-### What Needs Enhancement
-1. **Data Model:** Expand to full 10-color schema, full typography styles
-2. **Fill System Integration:** Background inheritance via Fill System array format
-3. **Theme Panels:** Color Theme Manager and Typography Style Manager as draggable panels
-4. **Placeholder System:** Enhanced types, editing workflow
-5. **Entry Points:** Multiple access points for theme panels
+- [x] **PlaceholderSection v3:** Simplified click-to-add placeholders at default positions
+- [x] **Store Routing Fix:** ADD_ELEMENT_TO_MASTER and DELETE_ELEMENT_FROM_MASTER properly routed
+- [x] **9 Built-in Layouts:** Title Slide, Title and Content, Section Header, Two Content, Comparison, Title Only, Blank, Content with Caption, Picture with Caption
+- [x] **Placeholder Visual Styling:** Dashed border in master mode (TextElement.js)
+- [x] **Empty Placeholder Styling:** Dimmed prompt text with dashed border on slides
+- [x] **Master Mode Keyboard Shortcut:** Shift+Ctrl/Cmd+M to toggle master mode
+- [x] **Visual Layout Picker:** Thumbnail grid in SlideSection with mini-previews
+- [x] **Content Remapping:** Intelligent remapping when changing layouts (mappingId, type match, overflow)
+- [x] **Inherited Elements Dimming:** Master/layout elements shown at 50% opacity on child containers
+- [x] **Left Panel Accordion:** Collapsible Slides/Layers sections with draggable resizer
 
 ---
 
-## Phase 11: Data Model Enhancement
-**Goal:** Update schemas to match the comprehensive spec.
+## 🔲 Remaining Implementation
 
-### 11.1 Expand Theme Color Schema
-**Estimated Time:** 2-3 hours  
-**Risk Level:** Medium (affects existing presentations)
+### Phase 15: Master/Layout Management Actions
+**Goal:** Complete CRUD operations for masters and layouts
+**Priority:** High
+**Estimated Time:** 4-6 hours
 
-**Tasks:**
-1. **Update `InitialState.js`:**
-   ```javascript
-   themeSettings: {
-     colors: {
-       background1: "#FFFFFF",
-       background2: "#F5F5F5",
-       text1: "#333333",
-       text2: "#666666",
-       accent1: "#18A0FB",
-       accent2: "#7B61FF",
-       accent3: "#1BC47D",
-       accent4: "#F24822",
-       accent5: "#FFBE0B",
-       accent6: "#FF006E",
-       hyperlink: "#0066CC",
-       followedHyperlink: "#954F72"
-     },
-     fonts: {
-       heading: { family: "Inter", weight: "700", fallback: "system-ui, sans-serif" },
-       body: { family: "Inter", weight: "400", fallback: "system-ui, sans-serif" }
-     }
-   }
-   ```
+#### 15.1 Add New Layout
+- [ ] Add "+" button to create new blank layout
+- [ ] Store action: `ADD_LAYOUT` - creates layout under current theme master
+- [ ] Default name: "Custom Layout 1", "Custom Layout 2", etc.
+- [ ] New layout should be selected after creation
 
-2. **Create Migration Utility:**
-   - File: `src/core/utils/StateMigration.js` (new)
-   - Detect old 3-color format, migrate to 12-color format
-   - Preserve existing values, add defaults for new ones
+#### 15.2 Duplicate Master/Layout
+- [ ] Right-click context menu on thumbnails
+- [ ] Store action: `DUPLICATE_MASTER` - deep copies master with all layouts
+- [ ] Store action: `DUPLICATE_LAYOUT` - copies layout with new ID
+- [ ] Append "(Copy)" to duplicated name
 
-3. **Update CSS Variable Injection:**
-   - File: `src/core/renderer/SlideRenderer.js`
-   - Inject all 12 color variables
-   - Inject font variables with fallbacks
+#### 15.3 Delete Master/Layout
+- [ ] Store action: `DELETE_LAYOUT` with validation
+- [ ] Cannot delete last layout in a master
+- [ ] Warning dialog if layout is in use by slides
+- [ ] Reassign affected slides to another layout
+- [ ] Store action: `DELETE_MASTER` (future - low priority)
 
-**Validation Checklist:**
-- [ ] App loads without errors with existing data
+#### 15.4 Rename Master/Layout
+- [ ] Double-click or F2 to rename in thumbnail panel
+- [ ] Inline text editing with Enter to confirm, Escape to cancel
+- [ ] Store action: `RENAME_MASTER` / already have UPDATE_MASTER
+
+---
+
+### Phase 16: Context Menu System
+**Goal:** Add right-click context menus throughout the app
+**Priority:** Medium
+**Estimated Time:** 6-8 hours
+
+#### 16.1 Create ContextMenu Component
+- [ ] New file: `src/ui/components/ContextMenu.js`
+- [ ] Positioned at click location
+- [ ] Closes on click outside or Escape
+- [ ] Supports nested submenus (optional)
+- [ ] Keyboard navigation (arrow keys)
+
+#### 16.2 Slide Thumbnail Context Menu
+- [ ] Actions: Duplicate, Delete, Add New Slide, Edit Slide Master
+- [ ] "Edit Slide Master" jumps to master mode with that slide's layout selected
+
+#### 16.3 Master/Layout Thumbnail Context Menu
+- [ ] Actions: Duplicate, Delete, Rename, Add Layout (on master only)
+- [ ] Disabled states for protected actions
+
+#### 16.4 Layer Tree Context Menu
+- [ ] Actions: Duplicate, Delete, Lock/Unlock, Group, Ungroup
+- [ ] Bring to Front, Send to Back, Bring Forward, Send Backward
+
+---
+
+### Phase 17: Placeholder Editing Workflow
+**Goal:** Implement full placeholder interaction on slides
+**Priority:** Medium
+**Estimated Time:** 4-6 hours
+
+#### 17.1 Click-to-Edit Placeholders on Slides
+- [ ] Clicking empty placeholder activates text editing mode
+- [ ] Placeholder prompt text is replaced with cursor
+- [ ] Content saves to slide's elements (not master)
+
+#### 17.2 Reset Placeholder
+- [ ] "Reset to Placeholder" option in context menu
+- [ ] Clears content, returns to empty placeholder state
+- [ ] Removes slide-level element, shows layout placeholder again
+
+#### 17.3 Visual States
+- [ ] Empty: Dashed border, prompt text, 50% opacity ✅
+- [ ] Focused: Solid border, cursor blinking
+- [ ] Filled: Normal element appearance, no dashed border
+
+---
+
+### Phase 18: Master Elements Visibility Controls
+**Goal:** Per-layout control over master element visibility
+**Priority:** Medium
+**Estimated Time:** 3-4 hours
+
+#### 18.1 Master Elements Checkboxes
+- [ ] In Layout property inspector: checkboxes for each master element type
+- [ ] Logo, Footer, Date, Slide Number visibility toggles
+- [ ] Stored as `hiddenMasterElements: ['footer', 'date']` on layout
+
+#### 18.2 Hide Background Graphics Option
+- [ ] Toggle to hide all master background elements
+- [ ] Applies to both layout and individual slides
+- [ ] Already partially implemented - verify working
+
+---
+
+### Phase 19: Slide Properties Enhancement
+**Goal:** Complete slide property inspector per spec
+**Priority:** Low
+**Estimated Time:** 2-3 hours
+
+#### 19.1 Reset Slide Button
+- [ ] Clears all slide-level content
+- [ ] Returns all placeholders to empty state
+- [ ] Confirmation dialog: "This will clear all content. Continue?"
+
+#### 19.2 Edit Master Button
+- [ ] Quick jump to master mode from slide properties
+- [ ] Opens master mode with current slide's layout selected
+
+---
+
+### Phase 20: Banner and Watermark Indicators
+**Goal:** Visual indicators when editing masters/layouts
+**Priority:** Low
+**Estimated Time:** 2-3 hours
+
+#### 20.1 Editing Banner
+- [ ] "Editing: [Master/Layout Name]" banner at top of canvas
+- [ ] Subtle, non-intrusive styling
+- [ ] Click to see which slides use this layout
+
+#### 20.2 Watermark
+- [ ] Subtle "MASTER" or "LAYOUT" watermark on canvas
+- [ ] Low opacity, doesn't interfere with editing
+- [ ] Optional/configurable
+
+---
+
+### Phase 21: Advanced Features (Future)
+**Goal:** Enhanced features for power users
+**Priority:** Low
+**Estimated Time:** Variable
+
+#### 21.1 Multiple Slide Masters
+- [ ] Support multiple theme masters in one presentation
+- [ ] Different themes for different sections
+- [ ] "Apply to All" vs "Apply to Section" options
+
+#### 21.2 Master Templates Library
+- [ ] Save custom masters as templates
+- [ ] Import/export masters between presentations
+- [ ] Built-in template gallery
+
+#### 21.3 Animation Masters
+- [ ] Define default animations on master
+- [ ] Entrance/exit effects inherited by slides
+
+---
+
+## Current State Summary
+
+### Fully Working ✅
+1. Master mode toggle (Edit Master / Close Master buttons + keyboard shortcut)
+2. Slide master and layout structure in store
+3. 9 built-in layouts with proper placeholders
+4. Placeholder creation in master mode (click palette to add)
+5. Visual layout picker with thumbnails
+6. Background inheritance via Fill System
+7. Theme color management (Color Theme Manager panel)
+8. Typography style management (Typography Style Manager panel)
+9. Content remapping when changing layouts
+10. Inherited elements shown dimmed (50% opacity)
+11. Accordion-style left panel with collapsible sections
+
+### Partially Working 🟡
+1. Placeholder editing on slides (basic - needs click-to-edit flow)
+2. Master element visibility (hideBackgroundGraphics exists)
+3. Layer tree for masters (works, may need refinement)
+
+### Not Yet Implemented 🔲
+1. Add/Duplicate/Delete layouts
+2. Context menus (right-click)
+3. Reset placeholder / Reset slide
+4. Per-element master visibility toggles
+5. Editing banner/watermark indicators
+6. Inline rename for masters/layouts
+
+---
+
+## Recommended Next Steps
+
+1. **Phase 15.1-15.3** - Add/Duplicate/Delete layout actions (high value)
+2. **Phase 16.1-16.2** - Context menu for slides (improves UX significantly)
+3. **Phase 17.1** - Click-to-edit placeholders on slides (core workflow)
+4. **Phase 18.1** - Master element visibility checkboxes
+
+---
+
+## Files Modified in Current Session
+
+- `src/core/Store.js` - Fixed action routing
+- `src/core/store/InitialState.js` - 9 layout masters
+- `src/core/store/handlers/SlideHandlers.js` - Content remapping
+- `src/core/renderer/elements/TextElement.js` - Placeholder styling
+- `src/core/renderer/elements/VisualElement.js` - Inherited element dimming
+- `src/core/renderer/BaseRenderer.js` - Mark inherited elements
+- `src/main.js` - Master mode shortcut, LeftPanel init
+- `src/ui/LeftPanel.js` - New accordion panel component
+- `src/ui/properties/SlideSection.js` - Layout thumbnail grid
+- `styles/modules/layout.css` - Accordion styles
+- `styles/modules/property-inspector.css` - Layout thumbnail styles
 - [ ] New color variables are available in CSS
 - [ ] Old presentations migrate correctly
 - [ ] No visual regressions on existing slides
