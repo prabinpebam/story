@@ -59,8 +59,14 @@ export class ImageTab {
                 removeBtn.style.justifyContent = 'center';
                 removeBtn.style.cursor = 'pointer';
                 removeBtn.innerHTML = Icons.CLOSE;
-                removeBtn.querySelector('svg').style.width = '12px';
-                removeBtn.querySelector('svg').style.height = '12px';
+                const svgEl = removeBtn.querySelector('svg');
+                if (svgEl) {
+                    svgEl.style.width = '12px';
+                    svgEl.style.height = '12px';
+                } else {
+                    removeBtn.style.fontSize = '12px';
+                    removeBtn.style.color = '#fff';
+                }
                 removeBtn.addEventListener('click', (e) => {
                     e.stopPropagation();
                     this.clearImage();
