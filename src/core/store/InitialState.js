@@ -129,22 +129,202 @@ export const DEFAULT_MASTERS = {
                 isPlaceholder: true,
                 placeholderType: "title",
                 content: "<h1>Click to add title</h1>",
-                x: 192, y: 300, width: 1536, height: 200, // Centered with margins
+                x: 192, y: 340, width: 1536, height: 200,
                 rotation: 0, opacity: 1,
-                style: { fontSize: 72, textAlign: "center", color: "var(--theme-text-primary, #333333)", fontFamily: "var(--theme-font-heading, Inter)", fontWeight: "700" }
+                style: { fontSize: 72, textAlign: "center", verticalAlign: "middle", color: "var(--theme-text-primary, #333333)", fontFamily: "var(--theme-font-heading, Inter)", fontWeight: "700" }
             },
             "placeholder-subtitle": {
                 id: "placeholder-subtitle",
                 type: "text",
                 isPlaceholder: true,
                 placeholderType: "subtitle",
-                content: "<h2>Click to add subtitle</h2>",
-                x: 192, y: 550, width: 1536, height: 100,
+                content: "<p>Click to add subtitle</p>",
+                x: 192, y: 560, width: 1536, height: 80,
                 rotation: 0, opacity: 1,
-                style: { fontSize: 32, textAlign: "center", color: "var(--theme-text-secondary, #888888)", fontFamily: "var(--theme-font-body, Inter)", fontWeight: "400" }
+                style: { fontSize: 32, textAlign: "center", verticalAlign: "middle", color: "var(--theme-text-secondary, #666666)", fontFamily: "var(--theme-font-body, Inter)", fontWeight: "400" }
             }
         },
         elementOrder: ["placeholder-title", "placeholder-subtitle"]
+    },
+    "layout-title-content": {
+        id: "layout-title-content",
+        type: "layout",
+        parentId: "theme-default",
+        name: "Title and Content",
+        background: null,
+        elements: {
+            "placeholder-title": {
+                id: "placeholder-title",
+                type: "text",
+                isPlaceholder: true,
+                placeholderType: "title",
+                content: "<h1>Click to add title</h1>",
+                x: 100, y: 60, width: 1720, height: 100,
+                rotation: 0, opacity: 1,
+                style: { fontSize: 44, textAlign: "left", verticalAlign: "middle", color: "var(--theme-text-primary, #333333)", fontFamily: "var(--theme-font-heading, Inter)", fontWeight: "700" }
+            },
+            "placeholder-body": {
+                id: "placeholder-body",
+                type: "text",
+                isPlaceholder: true,
+                placeholderType: "body",
+                content: "<p>Click to add text</p>",
+                x: 100, y: 200, width: 1720, height: 780,
+                rotation: 0, opacity: 1,
+                style: { fontSize: 24, textAlign: "left", verticalAlign: "top", color: "var(--theme-text-primary, #333333)", fontFamily: "var(--theme-font-body, Inter)", fontWeight: "400" }
+            }
+        },
+        elementOrder: ["placeholder-title", "placeholder-body"]
+    },
+    "layout-section-header": {
+        id: "layout-section-header",
+        type: "layout",
+        parentId: "theme-default",
+        name: "Section Header",
+        background: null,
+        elements: {
+            "placeholder-title": {
+                id: "placeholder-title",
+                type: "text",
+                isPlaceholder: true,
+                placeholderType: "title",
+                content: "<h1>Click to add title</h1>",
+                x: 100, y: 380, width: 1720, height: 150,
+                rotation: 0, opacity: 1,
+                style: { fontSize: 60, textAlign: "left", verticalAlign: "middle", color: "var(--theme-text-primary, #333333)", fontFamily: "var(--theme-font-heading, Inter)", fontWeight: "700" }
+            },
+            "placeholder-subtitle": {
+                id: "placeholder-subtitle",
+                type: "text",
+                isPlaceholder: true,
+                placeholderType: "subtitle",
+                content: "<p>Click to add subtitle</p>",
+                x: 100, y: 550, width: 1720, height: 80,
+                rotation: 0, opacity: 1,
+                style: { fontSize: 28, textAlign: "left", verticalAlign: "top", color: "var(--theme-text-secondary, #666666)", fontFamily: "var(--theme-font-body, Inter)", fontWeight: "400" }
+            }
+        },
+        elementOrder: ["placeholder-title", "placeholder-subtitle"]
+    },
+    "layout-two-content": {
+        id: "layout-two-content",
+        type: "layout",
+        parentId: "theme-default",
+        name: "Two Content",
+        background: null,
+        elements: {
+            "placeholder-title": {
+                id: "placeholder-title",
+                type: "text",
+                isPlaceholder: true,
+                placeholderType: "title",
+                content: "<h1>Click to add title</h1>",
+                x: 100, y: 60, width: 1720, height: 100,
+                rotation: 0, opacity: 1,
+                style: { fontSize: 44, textAlign: "left", verticalAlign: "middle", color: "var(--theme-text-primary, #333333)", fontFamily: "var(--theme-font-heading, Inter)", fontWeight: "700" }
+            },
+            "placeholder-left": {
+                id: "placeholder-left",
+                type: "text",
+                isPlaceholder: true,
+                placeholderType: "body",
+                content: "<p>Click to add text</p>",
+                x: 100, y: 200, width: 830, height: 780,
+                rotation: 0, opacity: 1,
+                style: { fontSize: 20, textAlign: "left", verticalAlign: "top", color: "var(--theme-text-primary, #333333)", fontFamily: "var(--theme-font-body, Inter)", fontWeight: "400" }
+            },
+            "placeholder-right": {
+                id: "placeholder-right",
+                type: "text",
+                isPlaceholder: true,
+                placeholderType: "text",
+                content: "<p>Click to add text</p>",
+                x: 990, y: 200, width: 830, height: 780,
+                rotation: 0, opacity: 1,
+                style: { fontSize: 20, textAlign: "left", verticalAlign: "top", color: "var(--theme-text-primary, #333333)", fontFamily: "var(--theme-font-body, Inter)", fontWeight: "400" }
+            }
+        },
+        elementOrder: ["placeholder-title", "placeholder-left", "placeholder-right"]
+    },
+    "layout-comparison": {
+        id: "layout-comparison",
+        type: "layout",
+        parentId: "theme-default",
+        name: "Comparison",
+        background: null,
+        elements: {
+            "placeholder-title": {
+                id: "placeholder-title",
+                type: "text",
+                isPlaceholder: true,
+                placeholderType: "title",
+                content: "<h1>Click to add title</h1>",
+                x: 100, y: 60, width: 1720, height: 100,
+                rotation: 0, opacity: 1,
+                style: { fontSize: 44, textAlign: "left", verticalAlign: "middle", color: "var(--theme-text-primary, #333333)", fontFamily: "var(--theme-font-heading, Inter)", fontWeight: "700" }
+            },
+            "placeholder-left-header": {
+                id: "placeholder-left-header",
+                type: "text",
+                isPlaceholder: true,
+                placeholderType: "text",
+                content: "<p>Click to add heading</p>",
+                x: 100, y: 200, width: 830, height: 60,
+                rotation: 0, opacity: 1,
+                style: { fontSize: 28, textAlign: "left", verticalAlign: "middle", color: "var(--theme-text-primary, #333333)", fontFamily: "var(--theme-font-heading, Inter)", fontWeight: "600" }
+            },
+            "placeholder-left-content": {
+                id: "placeholder-left-content",
+                type: "text",
+                isPlaceholder: true,
+                placeholderType: "text",
+                content: "<p>Click to add text</p>",
+                x: 100, y: 280, width: 830, height: 700,
+                rotation: 0, opacity: 1,
+                style: { fontSize: 20, textAlign: "left", verticalAlign: "top", color: "var(--theme-text-primary, #333333)", fontFamily: "var(--theme-font-body, Inter)", fontWeight: "400" }
+            },
+            "placeholder-right-header": {
+                id: "placeholder-right-header",
+                type: "text",
+                isPlaceholder: true,
+                placeholderType: "text",
+                content: "<p>Click to add heading</p>",
+                x: 990, y: 200, width: 830, height: 60,
+                rotation: 0, opacity: 1,
+                style: { fontSize: 28, textAlign: "left", verticalAlign: "middle", color: "var(--theme-text-primary, #333333)", fontFamily: "var(--theme-font-heading, Inter)", fontWeight: "600" }
+            },
+            "placeholder-right-content": {
+                id: "placeholder-right-content",
+                type: "text",
+                isPlaceholder: true,
+                placeholderType: "text",
+                content: "<p>Click to add text</p>",
+                x: 990, y: 280, width: 830, height: 700,
+                rotation: 0, opacity: 1,
+                style: { fontSize: 20, textAlign: "left", verticalAlign: "top", color: "var(--theme-text-primary, #333333)", fontFamily: "var(--theme-font-body, Inter)", fontWeight: "400" }
+            }
+        },
+        elementOrder: ["placeholder-title", "placeholder-left-header", "placeholder-left-content", "placeholder-right-header", "placeholder-right-content"]
+    },
+    "layout-title-only": {
+        id: "layout-title-only",
+        type: "layout",
+        parentId: "theme-default",
+        name: "Title Only",
+        background: null,
+        elements: {
+            "placeholder-title": {
+                id: "placeholder-title",
+                type: "text",
+                isPlaceholder: true,
+                placeholderType: "title",
+                content: "<h1>Click to add title</h1>",
+                x: 100, y: 60, width: 1720, height: 100,
+                rotation: 0, opacity: 1,
+                style: { fontSize: 44, textAlign: "left", verticalAlign: "middle", color: "var(--theme-text-primary, #333333)", fontFamily: "var(--theme-font-heading, Inter)", fontWeight: "700" }
+            }
+        },
+        elementOrder: ["placeholder-title"]
     },
     "layout-blank": {
         id: "layout-blank",
@@ -154,6 +334,86 @@ export const DEFAULT_MASTERS = {
         background: null,
         elements: {},
         elementOrder: []
+    },
+    "layout-content-caption": {
+        id: "layout-content-caption",
+        type: "layout",
+        parentId: "theme-default",
+        name: "Content with Caption",
+        background: null,
+        elements: {
+            "placeholder-title": {
+                id: "placeholder-title",
+                type: "text",
+                isPlaceholder: true,
+                placeholderType: "title",
+                content: "<h1>Click to add title</h1>",
+                x: 100, y: 60, width: 1720, height: 100,
+                rotation: 0, opacity: 1,
+                style: { fontSize: 44, textAlign: "left", verticalAlign: "middle", color: "var(--theme-text-primary, #333333)", fontFamily: "var(--theme-font-heading, Inter)", fontWeight: "700" }
+            },
+            "placeholder-body": {
+                id: "placeholder-body",
+                type: "text",
+                isPlaceholder: true,
+                placeholderType: "body",
+                content: "<p>Click to add text</p>",
+                x: 100, y: 200, width: 1300, height: 780,
+                rotation: 0, opacity: 1,
+                style: { fontSize: 24, textAlign: "left", verticalAlign: "top", color: "var(--theme-text-primary, #333333)", fontFamily: "var(--theme-font-body, Inter)", fontWeight: "400" }
+            },
+            "placeholder-caption": {
+                id: "placeholder-caption",
+                type: "text",
+                isPlaceholder: true,
+                placeholderType: "text",
+                content: "<p>Click to add caption</p>",
+                x: 1440, y: 200, width: 380, height: 780,
+                rotation: 0, opacity: 1,
+                style: { fontSize: 14, textAlign: "left", verticalAlign: "top", color: "var(--theme-text-secondary, #666666)", fontFamily: "var(--theme-font-body, Inter)", fontWeight: "400" }
+            }
+        },
+        elementOrder: ["placeholder-title", "placeholder-body", "placeholder-caption"]
+    },
+    "layout-picture-caption": {
+        id: "layout-picture-caption",
+        type: "layout",
+        parentId: "theme-default",
+        name: "Picture with Caption",
+        background: null,
+        elements: {
+            "placeholder-title": {
+                id: "placeholder-title",
+                type: "text",
+                isPlaceholder: true,
+                placeholderType: "title",
+                content: "<h1>Click to add title</h1>",
+                x: 100, y: 60, width: 1720, height: 100,
+                rotation: 0, opacity: 1,
+                style: { fontSize: 44, textAlign: "left", verticalAlign: "middle", color: "var(--theme-text-primary, #333333)", fontFamily: "var(--theme-font-heading, Inter)", fontWeight: "700" }
+            },
+            "placeholder-picture": {
+                id: "placeholder-picture",
+                type: "text",
+                isPlaceholder: true,
+                placeholderType: "picture",
+                content: "<p style='opacity:0.5;text-align:center;'>🖼️ Click to add picture</p>",
+                x: 100, y: 200, width: 1300, height: 780,
+                rotation: 0, opacity: 1,
+                style: { fontSize: 24, textAlign: "center", verticalAlign: "middle", color: "var(--theme-text-secondary, #666666)", fontFamily: "var(--theme-font-body, Inter)", fontWeight: "400", backgroundColor: "rgba(0,0,0,0.03)" }
+            },
+            "placeholder-caption": {
+                id: "placeholder-caption",
+                type: "text",
+                isPlaceholder: true,
+                placeholderType: "text",
+                content: "<p>Click to add caption</p>",
+                x: 1440, y: 200, width: 380, height: 780,
+                rotation: 0, opacity: 1,
+                style: { fontSize: 14, textAlign: "left", verticalAlign: "top", color: "var(--theme-text-secondary, #666666)", fontFamily: "var(--theme-font-body, Inter)", fontWeight: "400" }
+            }
+        },
+        elementOrder: ["placeholder-title", "placeholder-picture", "placeholder-caption"]
     }
 };
 
