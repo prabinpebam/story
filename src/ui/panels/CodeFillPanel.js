@@ -628,7 +628,7 @@ export class CodeFillPanel extends DraggablePanel {
         const container = document.createElement('div');
         container.className = 'cfp-custom-tab cfp-tab-content';
         
-        // Canvas preview area
+        // Canvas preview area with overlaid controls
         const previewSection = document.createElement('div');
         previewSection.className = 'cfp-preview-section';
         
@@ -638,21 +638,19 @@ export class CodeFillPanel extends DraggablePanel {
         this.previewCanvas.height = 180;
         previewSection.appendChild(this.previewCanvas);
         
-        container.appendChild(previewSection);
-        
-        // Playback controls
+        // Playback controls (overlaid on preview)
         const playbackControls = document.createElement('div');
         playbackControls.className = 'cfp-playback-controls';
         
         this.playPauseBtn = document.createElement('button');
         this.playPauseBtn.className = 'cfp-control-btn';
-        this.playPauseBtn.innerHTML = Icons.PLAY || '▶';
+        this.playPauseBtn.innerHTML = '<i class="fa-solid fa-play"></i>';
         this.playPauseBtn.title = 'Play/Pause';
         this.playPauseBtn.onclick = () => this.togglePlayback();
         
         this.resetBtn = document.createElement('button');
         this.resetBtn.className = 'cfp-control-btn';
-        this.resetBtn.innerHTML = Icons.RESET || '↻';
+        this.resetBtn.innerHTML = '<i class="fa-solid fa-rotate-left"></i>';
         this.resetBtn.title = 'Reset';
         this.resetBtn.onclick = () => this.resetPlayback();
         
@@ -664,7 +662,9 @@ export class CodeFillPanel extends DraggablePanel {
         playbackControls.appendChild(this.resetBtn);
         playbackControls.appendChild(this.errorIndicator);
         
-        container.appendChild(playbackControls);
+        previewSection.appendChild(playbackControls);
+        
+        container.appendChild(previewSection);
         
         // AI Generation Section (always visible, prominently displayed)
         const aiSection = this.createAISection();
@@ -899,10 +899,10 @@ export class CodeFillPanel extends DraggablePanel {
         if (!this.runner) return;
         
         if (this.runner.isPlaying) {
-            this.playPauseBtn.innerHTML = Icons.PAUSE || '⏸';
+            this.playPauseBtn.innerHTML = '<i class="fa-solid fa-pause"></i>';
             this.playPauseBtn.title = 'Pause';
         } else {
-            this.playPauseBtn.innerHTML = Icons.PLAY || '▶';
+            this.playPauseBtn.innerHTML = '<i class="fa-solid fa-play"></i>';
             this.playPauseBtn.title = 'Play';
         }
     }
@@ -912,11 +912,11 @@ export class CodeFillPanel extends DraggablePanel {
         
         if (this.runner.hasError) {
             this.errorIndicator.className = 'cfp-error-indicator error';
-            this.errorIndicator.innerHTML = `⚠ ${this.runner.errorMessage || 'Error'}`;
+            this.errorIndicator.innerHTML = `<i class="fa-solid fa-triangle-exclamation"></i> Error`;
             this.errorIndicator.title = this.runner.errorMessage || 'Code execution error';
         } else {
             this.errorIndicator.className = 'cfp-error-indicator success';
-            this.errorIndicator.innerHTML = '✓ No errors';
+            this.errorIndicator.innerHTML = '✓';
             this.errorIndicator.title = 'Code is valid';
         }
     }

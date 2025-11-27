@@ -357,6 +357,7 @@
 /* Preview Section */
 .cfp-preview-section {
     flex-shrink: 0;
+    position: relative;
 }
 
 .cfp-preview-canvas {
@@ -372,53 +373,70 @@
     margin: 0 auto;
 }
 
-/* Playback Controls */
+/* Playback Controls - Overlaid on preview */
 .cfp-playback-controls {
+    position: absolute;
+    bottom: var(--spacing-2);
+    left: 50%;
+    transform: translateX(-50%);
     display: flex;
     align-items: center;
-    gap: var(--spacing-2);
-    flex-shrink: 0;
+    gap: var(--spacing-1);
+    padding: var(--spacing-1);
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(4px);
+    border-radius: var(--radius-md);
+    opacity: 0;
+    transition: opacity var(--duration-normal);
+}
+
+.cfp-preview-section:hover .cfp-playback-controls {
+    opacity: 1;
+}
+
+/* Keep visible when there's an error */
+.cfp-playback-controls:has(.cfp-error-indicator.error) {
+    opacity: 1;
 }
 
 .cfp-control-btn {
-    width: 32px;
-    height: 32px;
+    width: 28px;
+    height: 28px;
     display: flex;
     align-items: center;
     justify-content: center;
-    background: var(--color-bg-tertiary);
-    border: 1px solid var(--color-border);
+    background: rgba(255, 255, 255, 0.1);
+    border: none;
     border-radius: var(--radius-sm);
-    color: var(--color-text-primary);
+    color: rgba(255, 255, 255, 0.9);
     cursor: pointer;
-    transition: var(--transition-normal);
+    transition: all var(--duration-fast);
 }
 
 .cfp-control-btn:hover {
-    background: var(--color-bg-hover);
-    border-color: var(--color-border-hover);
+    background: rgba(255, 255, 255, 0.2);
+    color: #fff;
 }
 
-.cfp-control-btn svg {
-    width: var(--icon-size-md);
-    height: var(--icon-size-md);
+.cfp-control-btn svg,
+.cfp-control-btn i {
+    font-size: 12px;
 }
 
 .cfp-error-indicator {
-    flex: 1;
     font-size: var(--font-size-xs);
-    padding: var(--spacing-1) var(--spacing-2);
+    padding: var(--spacing-0-5) var(--spacing-2);
     border-radius: var(--radius-sm);
-    text-align: right;
+    white-space: nowrap;
 }
 
 .cfp-error-indicator.success {
-    color: var(--color-success);
+    color: rgba(74, 222, 128, 0.9);
 }
 
 .cfp-error-indicator.error {
-    color: var(--color-error);
-    background: rgba(239, 68, 68, 0.1);
+    color: #fff;
+    background: rgba(239, 68, 68, 0.8);
 }
 
 /* Code Editor Section */
