@@ -22,7 +22,6 @@ export class SegmentedControl {
         container.style.border = '1px solid var(--color-border)';
         container.style.borderRadius = '2px';
         container.style.overflow = 'hidden';
-        container.style.marginBottom = '8px';
         container.style.width = '100%';
 
         this.options.forEach((opt, index) => {

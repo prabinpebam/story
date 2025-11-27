@@ -122,7 +122,6 @@ export class FillFlyout extends Flyout {
 
         // 3. Content Area
         const content = document.createElement('div');
-        content.style.marginTop = '12px';
         
         let TabComponent;
         switch (this.fill.type) {
