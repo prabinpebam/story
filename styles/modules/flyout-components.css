@@ -760,6 +760,16 @@
     height: var(--icon-size-sm);
 }
 
+/* Code Tab Header (SegmentedControl container) */
+.code-tab-header {
+    margin-bottom: var(--spacing-2);
+}
+
+.code-tab-header .segmented-control,
+.code-tab-header > div {
+    margin-bottom: 0;
+}
+
 .code-tab-content {
     display: flex;
     flex-direction: column;
@@ -1006,17 +1016,18 @@
 .preset-card {
     display: flex;
     flex-direction: column;
-    border-radius: var(--radius-md);
+    border-radius: var(--radius-sm);
     overflow: hidden;
     cursor: pointer;
     background: var(--color-bg-input);
-    transition: transform 0.15s ease, box-shadow 0.15s ease;
+    border: 2px solid transparent;
+    transition: border-color var(--duration-fast);
     position: relative;
+    padding: 0;
 }
 
 .preset-card:hover {
-    transform: scale(1.02);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    border-color: var(--color-border-hover);
 }
 
 .preset-preview {
@@ -1025,6 +1036,7 @@
     padding-top: 75%; /* 4:3 aspect ratio */
     background: var(--color-bg-app);
     overflow: hidden;
+    border-radius: var(--radius-xs);
 }
 
 .preset-preview canvas {
@@ -1033,6 +1045,7 @@
     left: 0;
     width: 100%;
     height: 100%;
+    border-radius: var(--radius-xs);
 }
 
 .preset-info {
@@ -1077,7 +1090,7 @@
     position: fixed;
     z-index: var(--z-tooltip);
     background: var(--color-bg-elevated);
-    border-radius: var(--radius-lg);
+    border-radius: var(--radius-md);
     box-shadow: var(--shadow-xl);
     overflow: hidden;
     pointer-events: none;
@@ -1086,8 +1099,8 @@
 
 .preset-tooltip canvas {
     display: block;
-    width: var(--panel-width-md);
-    height: 160px;
+    width: 100%;
+    height: auto;
 }
 
 .preset-tooltip-info {
@@ -1163,7 +1176,7 @@
 .presets-grid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    gap: var(--spacing-2);
+    gap: var(--spacing-1);
 }
 
 .presets-empty-state {

@@ -418,11 +418,11 @@ export class FillSection {
         });
         
         // Style opacity input to fit in group
-        opacityInput.element.style.width = '40px'; // Reduced width
-        opacityInput.element.style.flex = '0 0 40px';
-        opacityInput.element.style.border = 'none'; // Remove border
-        opacityInput.element.style.background = 'transparent'; // Remove bg
-        opacityInput.element.querySelector('input').style.padding = '0'; // Remove padding
+        opacityInput.element.style.width = '50px';
+        opacityInput.element.style.flex = '0 0 50px';
+        opacityInput.element.style.border = 'none';
+        opacityInput.element.style.background = 'transparent';
+        opacityInput.element.querySelector('input').style.padding = '0';
         opacityInput.element.querySelector('input').style.textAlign = 'center';
         
         if (!fill.visible) {

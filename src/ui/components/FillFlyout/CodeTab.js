@@ -6,6 +6,7 @@ import { CODE_FILL_PROMPT, CODE_FILL_UPDATE_PROMPT, PROMPT_REFINEMENT_PROMPT } f
 import { PresetsTab } from './PresetsTab.js';
 import { PresetManager } from '../../../core/services/PresetManager.js';
 import { CodeFillPanel } from '../../panels/CodeFillPanel.js';
+import { SegmentedControl } from '../SegmentedControl.js';
 
 export class CodeTab {
     constructor(options = {}) {
@@ -26,34 +27,21 @@ export class CodeTab {
         this.element.innerHTML = '';
         this.destroySubComponents();
 
-        // Open Panel button
-        const openPanelRow = document.createElement('div');
-        openPanelRow.className = 'code-open-panel-row';
+        // Tab control using SegmentedControl (same as dedicated panel)
+        const tabContainer = document.createElement('div');
+        tabContainer.className = 'code-tab-header';
         
-        const openPanelBtn = document.createElement('button');
-        openPanelBtn.className = 'code-open-panel-btn';
-        openPanelBtn.innerHTML = `${Icons.EXTERNAL || '↗'} Open Panel`;
-        openPanelBtn.title = 'Open dedicated Code Fill Panel (Ctrl+Shift+K)';
-        openPanelBtn.onclick = () => {
-            CodeFillPanel.open();
-        };
+        this.tabControl = new SegmentedControl({
+            options: [
+                { value: 'presets', label: 'Presets' },
+                { value: 'custom', label: 'Custom' }
+            ],
+            value: this.activeSubTab,
+            onChange: (tab) => this.switchSubTab(tab)
+        });
         
-        openPanelRow.appendChild(openPanelBtn);
-        this.element.appendChild(openPanelRow);
-
-        // Sub-tabs header
-        const tabsHeader = document.createElement('div');
-        tabsHeader.className = 'flyout-tabs';
-
-        const presetsTabBtn = this.createTabButton('Presets', this.activeSubTab === 'presets');
-        presetsTabBtn.onclick = () => this.switchSubTab('presets');
-
-        const customTabBtn = this.createTabButton('Custom', this.activeSubTab === 'custom');
-        customTabBtn.onclick = () => this.switchSubTab('custom');
-
-        tabsHeader.appendChild(presetsTabBtn);
-        tabsHeader.appendChild(customTabBtn);
-        this.element.appendChild(tabsHeader);
+        tabContainer.appendChild(this.tabControl.element);
+        this.element.appendChild(tabContainer);
 
         // Content area
         const content = document.createElement('div');
@@ -66,13 +54,6 @@ export class CodeTab {
         }
 
         this.element.appendChild(content);
-    }
-
-    createTabButton(label, isActive) {
-        const btn = document.createElement('button');
-        btn.textContent = label;
-        btn.className = 'flyout-tab' + (isActive ? ' active' : '');
-        return btn;
     }
 
     switchSubTab(tab) {

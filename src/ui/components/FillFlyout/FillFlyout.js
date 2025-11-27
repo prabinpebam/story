@@ -8,6 +8,7 @@ import { VideoTab } from './VideoTab.js';
 import { CodeTab } from './CodeTab.js';
 import { CodeRunner } from '../../../core/effects/CodeRunner.js';
 import { Flyout } from '../Flyout.js';
+import { CodeFillPanel } from '../../panels/CodeFillPanel.js';
 
 // Module-level cache for last used gradient to preserve stops across types/sessions
 let LastUsedGradient = {
@@ -106,18 +107,17 @@ export class FillFlyout extends Flyout {
 
         modeRow.appendChild(typeSelector.element);
         
-        // Blend & Visibility (Right side of mode row)
-        const extraGroup = document.createElement('div');
-        extraGroup.style.display = 'flex';
-        extraGroup.style.gap = '2px';
+        // Open Panel button for code fills (icon only)
+        if (this.fill.type === 'code') {
+            const openPanelBtn = new IconButton({ 
+                icon: Icons.EXTERNAL || '↗', 
+                title: 'Open Code Fill Panel (Ctrl+Shift+K)',
+                onClick: () => CodeFillPanel.open()
+            });
+            openPanelBtn.element.style.marginLeft = 'auto';
+            modeRow.appendChild(openPanelBtn.element);
+        }
         
-        const blendBtn = new IconButton({ icon: Icons.BLEND_MODE, title: 'Blend Mode' });
-        const visBtn = new IconButton({ icon: Icons.VISIBLE, title: 'Visibility' }); // TODO: Sync with fill.visible
-        
-        extraGroup.appendChild(blendBtn.element);
-        extraGroup.appendChild(visBtn.element);
-        
-        modeRow.appendChild(extraGroup);
         this.element.appendChild(modeRow);
 
         // 3. Content Area

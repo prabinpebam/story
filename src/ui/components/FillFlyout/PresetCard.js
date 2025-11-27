@@ -28,7 +28,7 @@ export class PresetCard {
     render() {
         this.element.innerHTML = '';
 
-        // Preview container (4:3 aspect ratio)
+        // Preview container (4:3 aspect ratio) - no labels, just the canvas
         const previewContainer = document.createElement('div');
         previewContainer.className = 'preset-preview';
 
@@ -47,30 +47,8 @@ export class PresetCard {
         this.startThrottledAnimation();
 
         this.element.appendChild(previewContainer);
-
-        // Info row
-        const infoRow = document.createElement('div');
-        infoRow.className = 'preset-info';
-
-        // Name
-        const name = document.createElement('span');
-        name.textContent = this.preset.name;
-        name.className = 'preset-name';
-        infoRow.appendChild(name);
-
-        // Options button (only for user presets)
-        if (this.preset.category === 'user') {
-            const optionsBtn = document.createElement('button');
-            optionsBtn.innerHTML = '⋮';
-            optionsBtn.className = 'preset-options-btn';
-            optionsBtn.onclick = (e) => {
-                e.stopPropagation();
-                this.showOptionsMenu(e);
-            };
-            infoRow.appendChild(optionsBtn);
-        }
-
-        this.element.appendChild(infoRow);
+        
+        // No info row - labels removed to save space
     }
 
     bindEvents() {
@@ -155,10 +133,17 @@ export class PresetCard {
         this.tooltip = document.createElement('div');
         this.tooltip.className = 'preset-tooltip';
 
-        // Large preview canvas
+        // Get card dimensions to match tooltip size
+        const cardRect = this.element.getBoundingClientRect();
+        const tooltipWidth = Math.max(cardRect.width * 2, 160); // At least 2x card size or 160px
+        const tooltipHeight = tooltipWidth * 0.75; // 4:3 aspect ratio
+
+        // Large preview canvas that matches tooltip size
         const previewCanvas = document.createElement('canvas');
-        previewCanvas.width = 240;
-        previewCanvas.height = 160;
+        previewCanvas.width = tooltipWidth;
+        previewCanvas.height = tooltipHeight;
+        previewCanvas.style.width = tooltipWidth + 'px';
+        previewCanvas.style.height = tooltipHeight + 'px';
         this.tooltip.appendChild(previewCanvas);
 
         // Initialize preview runner
@@ -184,22 +169,31 @@ export class PresetCard {
 
         this.tooltip.appendChild(info);
 
-        // Position tooltip
+        // Position tooltip centered above the card
         const rect = this.element.getBoundingClientRect();
-        let left = rect.right + 10;
-        let top = rect.top;
+        let left = rect.left + (rect.width / 2) - (tooltipWidth / 2);
+        let top = rect.top - tooltipHeight - 10 - 40; // 40px for info section
 
-        // Keep within viewport
-        if (left + 250 > window.innerWidth) {
-            left = rect.left - 260;
+        // Keep within viewport - if no room above, show to the right
+        if (top < 10) {
+            left = rect.right + 10;
+            top = rect.top;
+            
+            // If no room on right, show on left
+            if (left + tooltipWidth > window.innerWidth - 10) {
+                left = rect.left - tooltipWidth - 10;
+            }
         }
-        if (top + 200 > window.innerHeight) {
-            top = window.innerHeight - 210;
+        
+        // Keep within horizontal bounds
+        if (left < 10) left = 10;
+        if (left + tooltipWidth > window.innerWidth - 10) {
+            left = window.innerWidth - tooltipWidth - 10;
         }
-        if (top < 10) top = 10;
 
         this.tooltip.style.left = `${left}px`;
         this.tooltip.style.top = `${top}px`;
+        this.tooltip.style.width = `${tooltipWidth}px`;
 
         document.body.appendChild(this.tooltip);
     }
