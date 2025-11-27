@@ -5,6 +5,7 @@
 Presentation mode has unique performance requirements compared to edit mode. Users expect **zero-delay transitions**, **instant navigation**, and **seamless media playback**. This document specifies the intelligent pre-caching system that makes this possible.
 
 **Related Specifications:**
+- [Memory Management](./memory-management.md) - Memory budgets and multi-tab coordination
 - [Presentation Mode](./presentation-mode.md) - Core presentation mode behavior
 - [Animation & Transitions](./animation-transitions.md) - Transition types and timing
 - [Progressive Loading](./progressive-loading.md) - General loading strategy

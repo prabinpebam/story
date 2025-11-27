@@ -4,6 +4,11 @@
 
 Progressive loading enables users to start viewing and interacting with presentations before the entire file is loaded. This is critical for large files (50MB+) to avoid UI freezing and provide a responsive experience.
 
+**Related Specifications:**
+- [Memory Management](./memory-management.md) - Memory budgets and optimization
+- [Asset Management](./asset-management.md) - Cache layer architecture
+- [Presentation Mode Caching](./presentation-mode-caching.md) - Presentation-specific loading
+
 ---
 
 ## Loading Phases
