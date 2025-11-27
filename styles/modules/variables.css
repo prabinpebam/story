@@ -111,6 +111,7 @@
     --font-weight-medium: 500;
     --font-weight-semibold: 600;
     --font-weight-bold: 700;
+    --font-weight-black: 900;
     
     /* Line Heights */
     --line-height-tight: 1.2;
@@ -127,8 +128,11 @@
        SPACING TOKENS (4px base grid)
        ------------------------------------------------------------------------- */
     --spacing-0: 0;
+    --spacing-0-5: 2px;                /* Half step */
     --spacing-1: 4px;
+    --spacing-1-5: 6px;                /* 1.5 step */
     --spacing-2: 8px;
+    --spacing-2-5: 10px;               /* 2.5 step */
     --spacing-3: 12px;
     --spacing-4: 16px;
     --spacing-5: 20px;
@@ -147,6 +151,126 @@
     --panel-max-width: 400px;
     
     /* -------------------------------------------------------------------------
+       EXTENDED FONT SIZE TOKENS (for display text)
+       ------------------------------------------------------------------------- */
+    --font-size-3xl: 20px;             /* Large headers */
+    --font-size-4xl: 24px;             /* Display text */
+    --font-size-5xl: 32px;             /* Hero text */
+    --font-size-6xl: 48px;             /* Jumbo text */
+    
+    /* -------------------------------------------------------------------------
+       ICON SIZE TOKENS
+       ------------------------------------------------------------------------- */
+    --icon-size-xs: 12px;              /* Micro icons, indicators */
+    --icon-size-sm: 14px;              /* Small inline icons */
+    --icon-size-md: 16px;              /* Default icon size */
+    --icon-size-lg: 20px;              /* Emphasized icons */
+    --icon-size-xl: 24px;              /* Large icons, buttons */
+    --icon-size-2xl: 32px;             /* Hero icons, empty states */
+    
+    /* -------------------------------------------------------------------------
+       OPACITY TOKENS
+       ------------------------------------------------------------------------- */
+    --opacity-0: 0;
+    --opacity-5: 0.05;
+    --opacity-10: 0.1;
+    --opacity-20: 0.2;
+    --opacity-40: 0.4;
+    --opacity-50: 0.5;
+    --opacity-60: 0.6;
+    --opacity-70: 0.7;
+    --opacity-80: 0.8;
+    --opacity-90: 0.9;
+    --opacity-100: 1;
+    
+    /* Semantic Opacity Aliases */
+    --opacity-disabled: var(--opacity-40);
+    --opacity-placeholder: var(--opacity-60);
+    --opacity-muted: var(--opacity-50);
+    --opacity-hover-overlay: var(--opacity-10);
+    
+    /* -------------------------------------------------------------------------
+       BORDER WIDTH TOKENS
+       ------------------------------------------------------------------------- */
+    --border-width-0: 0;
+    --border-width-1: 1px;
+    --border-width-2: 2px;
+    --border-width-4: 4px;
+    
+    /* -------------------------------------------------------------------------
+       CONTROL SIZE TOKENS (touch targets, buttons)
+       ------------------------------------------------------------------------- */
+    --control-size-xs: 20px;           /* Micro controls */
+    --control-size-sm: 24px;           /* Compact controls */
+    --control-size-md: 28px;           /* Default controls */
+    --control-size-lg: 32px;           /* Comfortable controls */
+    --control-size-xl: 40px;           /* Large controls, toolbar */
+    --control-size-2xl: 48px;          /* Extra large, primary actions */
+    
+    /* -------------------------------------------------------------------------
+       THUMBNAIL/PREVIEW SIZE TOKENS
+       ------------------------------------------------------------------------- */
+    --thumbnail-xs: 32px;
+    --thumbnail-sm: 48px;
+    --thumbnail-md: 64px;
+    --thumbnail-lg: 80px;
+    --thumbnail-xl: 120px;
+    
+    /* Thumbnail width/height (for aspect ratio layouts) */
+    --thumbnail-width-sm: 60px;
+    --thumbnail-width-md: 72px;
+    --thumbnail-width-lg: 80px;
+    --thumbnail-width-xl: 120px;
+    --thumbnail-height-sm: 34px;
+    --thumbnail-height-md: 40px;
+    --thumbnail-height-lg: 45px;
+    --thumbnail-height-xl: 68px;
+    
+    /* -------------------------------------------------------------------------
+       PANEL/CONTAINER WIDTH TOKENS
+       ------------------------------------------------------------------------- */
+    --panel-width-sm: 200px;
+    --panel-width-md: 240px;
+    --panel-width-lg: 280px;
+    --panel-width-xl: 320px;
+    --panel-width-2xl: 400px;
+    
+    /* Flyout widths */
+    --flyout-width-sm: 200px;
+    --flyout-width-md: 280px;
+    --flyout-width-lg: 340px;
+    --flyout-width-xl: 400px;
+    
+    /* -------------------------------------------------------------------------
+       INPUT WIDTH TOKENS
+       ------------------------------------------------------------------------- */
+    --input-width-xs: 40px;            /* Tiny inputs (opacity, single digit) */
+    --input-width-sm: 60px;            /* Small inputs (percentages) */
+    --input-width-md: 80px;            /* Default inputs */
+    --input-width-lg: 120px;           /* Wide inputs */
+    --input-width-xl: 160px;           /* Extra wide inputs */
+    
+    /* -------------------------------------------------------------------------
+       DURATION TOKENS (for animations)
+       ------------------------------------------------------------------------- */
+    --duration-instant: 0ms;
+    --duration-fast: 100ms;
+    --duration-normal: 150ms;
+    --duration-moderate: 200ms;
+    --duration-slow: 250ms;
+    --duration-slower: 300ms;
+    --duration-slowest: 400ms;
+    
+    /* -------------------------------------------------------------------------
+       EASING TOKENS
+       ------------------------------------------------------------------------- */
+    --ease-linear: linear;
+    --ease-in: ease-in;
+    --ease-out: ease-out;
+    --ease-in-out: ease-in-out;
+    --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+    
+    /* -------------------------------------------------------------------------
        BORDER RADIUS TOKENS
        ------------------------------------------------------------------------- */
     --radius-xs: 2px;
@@ -160,6 +284,7 @@
     /* -------------------------------------------------------------------------
        SHADOW TOKENS
        ------------------------------------------------------------------------- */
+    --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.15);
     --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
     --shadow-md: 0 4px 8px rgba(0, 0, 0, 0.3);
     --shadow-lg: 0 8px 16px rgba(0, 0, 0, 0.3);

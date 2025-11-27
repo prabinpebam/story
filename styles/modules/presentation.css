@@ -139,10 +139,10 @@ body.laser-active * {
     z-index: 10001; /* Above overlays */
     display: flex;
     flex-direction: column;
-    padding: 40px;
+    padding: var(--spacing-10);
     box-sizing: border-box;
     backdrop-filter: blur(10px);
-    transition: opacity 0.3s ease;
+    transition: var(--transition-normal);
 }
 
 #presentation-grid-view.hidden {
@@ -155,13 +155,13 @@ body.laser-active * {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 40px;
+    margin-bottom: var(--spacing-10);
     color: white;
 }
 
 .grid-header h2 {
-    font-size: 24px;
-    font-weight: 500;
+    font-size: var(--font-size-5xl);
+    font-weight: var(--font-weight-medium);
     margin: 0;
 }
 
@@ -170,7 +170,7 @@ body.laser-active * {
     grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
     gap: var(--spacing-8);
     overflow-y: auto;
-    padding-bottom: 40px;
+    padding-bottom: var(--spacing-10);
 }
 
 .grid-slide-item {
@@ -188,8 +188,8 @@ body.laser-active * {
 .slide-preview {
     aspect-ratio: 16/9;
     background-color: #333;
-    border-radius: 8px;
-    border: 2px solid transparent;
+    border-radius: var(--radius-md);
+    border: var(--border-width-2) solid transparent;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -203,14 +203,14 @@ body.laser-active * {
 }
 
 .slide-number {
-    font-size: 48px;
-    font-weight: 700;
+    font-size: var(--font-size-6xl);
+    font-weight: var(--font-weight-bold);
     color: rgba(255, 255, 255, 0.1);
 }
 
 .slide-title {
     color: #ccc;
-    font-size: 14px;
+    font-size: var(--font-size-md);
     text-align: center;
     white-space: nowrap;
     overflow: hidden;
@@ -219,23 +219,23 @@ body.laser-active * {
 
 .grid-slide-item.active .slide-title {
     color: white;
-    font-weight: 500;
+    font-weight: var(--font-weight-medium);
 }
 
 /* HUD (Heads-Up Display) */
 #presentation-hud {
     position: fixed;
-    bottom: 32px;
+    bottom: var(--spacing-8);
     left: 50%;
     transform: translateX(-50%);
     z-index: 10002; /* Above everything */
-    transition: opacity 0.3s ease, transform 0.3s ease;
+    transition: var(--transition-normal);
 }
 
 #presentation-hud.hidden {
     opacity: 0;
     pointer-events: none;
-    transform: translateX(-50%) translateY(20px);
+    transform: translateX(-50%) translateY(var(--spacing-5));
 }
 
 .hud-controls {
@@ -244,15 +244,15 @@ body.laser-active * {
     gap: var(--spacing-2);
     background-color: rgba(30, 30, 30, 0.8);
     backdrop-filter: blur(10px);
-    padding: 8px 16px;
-    border-radius: 32px;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    padding: var(--spacing-2) var(--spacing-4);
+    border-radius: var(--radius-2xl);
+    box-shadow: var(--shadow-lg);
     border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .hud-btn {
-    width: 40px;
-    height: 40px;
+    width: var(--control-size-xl);
+    height: var(--control-size-xl);
     border-radius: 50%;
     border: none;
     background: transparent;
@@ -261,8 +261,8 @@ body.laser-active * {
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 16px;
-    transition: all 0.2s ease;
+    font-size: var(--font-size-lg);
+    transition: var(--transition-normal);
 }
 
 .hud-btn:hover {
@@ -283,7 +283,7 @@ body.laser-active * {
 
 .hud-divider {
     width: 1px;
-    height: 24px;
+    height: var(--spacing-6);
     background-color: rgba(255, 255, 255, 0.1);
-    margin: 0 4px;
+    margin: 0 var(--spacing-1);
 }

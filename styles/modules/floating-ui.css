@@ -1,34 +1,34 @@
 /* Floating Toolbar */
 #floating-toolbar {
     position: fixed;
-    bottom: 24px;
+    bottom: var(--spacing-6);
     left: 50%;
     transform: translateX(-50%);
-    height: 48px;
+    height: var(--control-size-2xl);
     background-color: var(--color-bg-panel);
     border: 1px solid var(--color-border);
-    border-radius: 14px;
+    border-radius: var(--radius-xl);
     display: flex;
     align-items: center;
-    padding: 0 6px;
+    padding: 0 var(--spacing-1-5);
     gap: var(--spacing-1);
-    box-shadow: 0 4px 24px rgba(0,0,0,0.15);
+    box-shadow: var(--shadow-lg);
     z-index: 2000;
 }
 
 #floating-toolbar .tool-btn {
-    width: 36px;
-    height: 36px;
-    border-radius: 8px;
+    width: var(--control-size-xl);
+    height: var(--control-size-xl);
+    border-radius: var(--radius-md);
     display: flex;
     align-items: center;
     justify-content: center;
     padding: 0;
     border: none;
     color: var(--color-text-primary);
-    font-size: 16px;
+    font-size: var(--font-size-lg);
     background: transparent;
-    transition: all 0.2s ease;
+    transition: var(--transition-normal);
 }
 
 #floating-toolbar .tool-btn:hover {
@@ -42,9 +42,9 @@
 
 #floating-toolbar .divider {
     width: 1px;
-    height: 20px;
+    height: var(--spacing-5);
     background-color: var(--color-border);
-    margin: 0 4px;
+    margin: 0 var(--spacing-1);
 }
 
 /* Floating Panels */
@@ -63,7 +63,7 @@
     background-color: var(--color-bg-panel);
     border: 1px solid var(--color-border);
     border-radius: var(--radius-md);
-    box-shadow: 0 4px 24px rgba(0,0,0,0.2);
+    box-shadow: var(--shadow-lg);
     pointer-events: auto;
     display: flex;
     flex-direction: column;
@@ -79,12 +79,12 @@
     bottom: 80px;
     left: 50%;
     transform: translateX(-50%);
-    width: 340px;
-    height: 400px;
+    width: var(--flyout-width-lg);
+    height: var(--panel-width-xl);
 }
 
 .panel-header {
-    height: 32px;
+    height: var(--control-size-lg);
     display: flex;
     align-items: center;
     justify-content: space-between;

@@ -6,7 +6,7 @@
     justify-content: center;
     overflow: hidden;
     background-image: radial-gradient(var(--color-grid-dot) 1px, transparent 1px);
-    background-size: 20px 20px;
+    background-size: var(--spacing-5) var(--spacing-5);
     position: relative; /* Critical for absolute positioning of children */
 }
 
@@ -44,15 +44,15 @@
 /* Viewport Controls */
 #viewport-controls {
     position: fixed;
-    bottom: 24px;
-    right: calc(24px + var(--sidebar-width));
+    bottom: var(--spacing-6);
+    right: calc(var(--spacing-6) + var(--sidebar-width));
     display: flex;
     gap: var(--spacing-2);
     background-color: var(--color-bg-panel);
     padding: var(--spacing-1);
     border-radius: var(--radius-md);
     border: 1px solid var(--color-border);
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    box-shadow: var(--shadow-sm);
     z-index: 1000;
 }
 
@@ -68,7 +68,7 @@
     font-family: var(--font-mono);
     font-size: var(--font-size-xs);
     color: var(--color-text-secondary);
-    min-width: 32px;
+    min-width: var(--control-size-lg);
     text-align: center;
 }
 
@@ -77,14 +77,14 @@
     border: none;
     color: var(--color-text-secondary);
     cursor: pointer;
-    padding: 4px;
+    padding: var(--spacing-1);
     border-radius: var(--radius-sm);
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 24px;
-    height: 24px;
-    transition: all 0.1s ease;
+    width: var(--control-size-md);
+    height: var(--control-size-md);
+    transition: var(--transition-fast);
 }
 
 .icon-btn:hover {

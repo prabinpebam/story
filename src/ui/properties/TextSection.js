@@ -24,9 +24,6 @@ export class TextSection {
         // 0. Text Style Selector Row (New)
         const styleRow = document.createElement('div');
         styleRow.className = 'pi-row pi-style-row';
-        styleRow.style.display = 'flex';
-        styleRow.style.gap = '4px';
-        styleRow.style.marginBottom = '8px';
 
         // Style Dropdown
         this.styleDropdown = new Dropdown({
@@ -52,13 +49,6 @@ export class TextSection {
         // Style Override Indicator
         this.overrideIndicator = document.createElement('div');
         this.overrideIndicator.className = 'pi-style-override';
-        this.overrideIndicator.style.display = 'none';
-        this.overrideIndicator.style.fontSize = 'var(--font-size-xs)';
-        this.overrideIndicator.style.color = 'var(--color-text-secondary)';
-        this.overrideIndicator.style.marginBottom = '8px';
-        this.overrideIndicator.style.display = 'flex';
-        this.overrideIndicator.style.justifyContent = 'space-between';
-        this.overrideIndicator.style.alignItems = 'center';
         
         const overrideText = document.createElement('span');
         overrideText.textContent = 'Style has local overrides';
@@ -66,13 +56,7 @@ export class TextSection {
         
         const resetBtn = document.createElement('button');
         resetBtn.textContent = 'Reset';
-        resetBtn.style.fontSize = 'var(--font-size-xs)';
-        resetBtn.style.padding = '2px 6px';
-        resetBtn.style.border = '1px solid var(--color-border)';
-        resetBtn.style.borderRadius = 'var(--radius-xs)';
-        resetBtn.style.background = 'transparent';
-        resetBtn.style.color = 'var(--color-text-secondary)';
-        resetBtn.style.cursor = 'pointer';
+        resetBtn.className = 'reset-btn';
         resetBtn.onclick = () => this.resetToStyle();
         this.overrideIndicator.appendChild(resetBtn);
         

@@ -136,7 +136,9 @@ export class Dropdown {
         
         this.handleResize = () => this.close();
 
-        document.addEventListener('mousedown', this.handleOutsideClick);
+        // Use capture phase to ensure we receive the event before stopPropagation
+        // can prevent it from bubbling (e.g., FillFlyout stops propagation)
+        document.addEventListener('mousedown', this.handleOutsideClick, true);
         window.addEventListener('scroll', this.handleScroll, true);
         window.addEventListener('resize', this.handleResize);
     }
@@ -148,7 +150,8 @@ export class Dropdown {
             this.menu.remove();
             this.menu = null;
         }
-        document.removeEventListener('mousedown', this.handleOutsideClick);
+        // Must match the capture phase used in addEventListener
+        document.removeEventListener('mousedown', this.handleOutsideClick, true);
         window.removeEventListener('scroll', this.handleScroll, true);
         window.removeEventListener('resize', this.handleResize);
     }

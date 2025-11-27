@@ -34,8 +34,8 @@
 }
 
 .pi-section-title {
-    font-size: 13px;
-    font-weight: 600;
+    font-size: var(--font-size-lg);
+    font-weight: var(--font-weight-semibold);
     color: var(--color-text-primary);
 }
 
@@ -77,7 +77,7 @@
 .pi-label {
     color: var(--prop-text-label);
     font-size: var(--font-size-sm);
-    margin-right: 4px;
+    margin-right: var(--spacing-1);
     cursor: ew-resize;
     user-select: none;
 }
@@ -104,18 +104,18 @@ select.pi-input {
     appearance: none;
     -webkit-appearance: none;
     cursor: pointer;
-    padding-right: 24px; /* Space for arrow */
+    padding-right: var(--spacing-6); /* Space for arrow */
 }
 
 select.pi-input option {
     background-color: var(--color-bg-panel);
     color: var(--color-text-primary);
-    padding: 8px;
+    padding: var(--spacing-2);
 }
 
 .pi-icon-btn {
-    width: 28px;
-    height: 28px;
+    width: var(--control-size-sm);
+    height: var(--control-size-sm);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -142,7 +142,7 @@ select.pi-input option {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
     gap: var(--spacing-2);
-    padding: 4px 0;
+    padding: var(--spacing-1) 0;
 }
 
 .layout-thumbnail {
@@ -150,7 +150,7 @@ select.pi-input option {
     flex-direction: column;
     align-items: center;
     gap: var(--spacing-1);
-    padding: 4px;
+    padding: var(--spacing-1);
     border-radius: var(--radius-sm);
     cursor: pointer;
     transition: background-color 0.15s;
@@ -170,11 +170,11 @@ select.pi-input option {
 
 .layout-preview {
     position: relative;
-    width: 60px;
-    height: 34px;
+    width: var(--input-width-sm);
+    height: var(--thumbnail-height-sm);
     background-color: var(--color-bg-panel);
     border: 1px solid var(--color-border);
-    border-radius: 2px;
+    border-radius: var(--radius-xs);
     overflow: hidden;
 }
 
@@ -186,10 +186,10 @@ select.pi-input option {
 }
 
 .layout-label {
-    font-size: 9px;
+    font-size: var(--font-size-2xs);
     color: var(--color-text-secondary);
     text-align: center;
-    max-width: 60px;
+    max-width: var(--input-width-sm);
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -201,14 +201,14 @@ select.pi-input option {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 6px 10px;
+    padding: var(--spacing-1-5) var(--spacing-2-5);
     background: var(--color-bg-well);
     border: 1px solid var(--color-border);
     border-radius: var(--radius-sm);
     color: var(--color-text-primary);
     font-size: var(--font-size-sm);
     cursor: pointer;
-    transition: all 0.15s;
+    transition: var(--transition-normal);
 }
 
 .layout-trigger-btn:hover {
@@ -220,24 +220,24 @@ select.pi-input option {
     content: '';
     width: 0;
     height: 0;
-    border-left: 4px solid transparent;
-    border-right: 4px solid transparent;
-    border-top: 4px solid var(--color-text-secondary);
-    margin-left: 8px;
+    border-left: var(--spacing-1) solid transparent;
+    border-right: var(--spacing-1) solid transparent;
+    border-top: var(--spacing-1) solid var(--color-text-secondary);
+    margin-left: var(--spacing-2);
 }
 
 /* Layout Flyout */
 .layout-flyout-content {
-    padding: 12px;
-    min-width: 200px;
+    padding: var(--spacing-3);
+    min-width: var(--panel-width-sm);
 }
 
 .layout-flyout-title {
     font-size: var(--font-size-sm);
-    font-weight: 500;
+    font-weight: var(--font-weight-medium);
     color: var(--color-text-primary);
-    margin-bottom: 12px;
-    padding-bottom: 8px;
+    margin-bottom: var(--spacing-3);
+    padding-bottom: var(--spacing-2);
     border-bottom: 1px solid var(--color-border);
 }
 
@@ -248,16 +248,106 @@ select.pi-input option {
 }
 
 .layout-flyout-grid .layout-thumbnail {
-    padding: 8px;
+    padding: var(--spacing-2);
 }
 
 .layout-flyout-grid .layout-preview {
-    width: 80px;
-    height: 45px;
+    width: var(--thumbnail-width-lg);
+    height: var(--thumbnail-height-lg);
 }
 
 .layout-flyout-grid .layout-label {
-    font-size: 10px;
-    max-width: 80px;
+    font-size: var(--font-size-xs);
+    max-width: var(--thumbnail-width-lg);
+}
+
+/* ===========================================
+   Property Inspector Utility Classes
+   These replace common JS inline styles
+   =========================================== */
+
+/* Style Row Pattern */
+.pi-style-row {
+    display: flex;
+    gap: var(--spacing-1);
+    margin-bottom: var(--spacing-2);
+}
+
+/* Style Override Indicator */
+.pi-style-override {
+    display: none;
+    font-size: var(--font-size-xs);
+    color: var(--color-text-secondary);
+    margin-bottom: var(--spacing-2);
+    justify-content: space-between;
+    align-items: center;
+}
+
+.pi-style-override.visible {
+    display: flex;
+}
+
+.pi-style-override .reset-btn {
+    font-size: var(--font-size-xs);
+    padding: var(--spacing-0-5) var(--spacing-1-5);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-xs);
+    background: transparent;
+    color: var(--color-text-secondary);
+    cursor: pointer;
+}
+
+.pi-style-override .reset-btn:hover {
+    background: var(--color-bg-hover);
+    color: var(--color-text-primary);
+}
+
+/* Grid Row Layouts */
+.pi-grid-row {
+    display: grid;
+    gap: var(--spacing-2);
+}
+
+.pi-grid-row.cols-2-1-1 {
+    grid-template-columns: 2fr 1fr 1fr;
+}
+
+.pi-grid-row.cols-1-1 {
+    grid-template-columns: 1fr 1fr;
+}
+
+.pi-grid-row.cols-3 {
+    grid-template-columns: repeat(3, 1fr);
+}
+
+/* Fill Row Pattern */
+.pi-fill-row {
+    margin-top: var(--spacing-2);
+    display: flex;
+    align-items: center;
+    height: var(--control-size-sm);
+}
+
+/* Align Row Pattern */
+.pi-align-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+/* Button Group */
+.pi-btn-group {
+    display: flex;
+    gap: var(--spacing-0-5);
+}
+
+/* Combined Input */
+.pi-combined-input {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    overflow: hidden;
 }
 

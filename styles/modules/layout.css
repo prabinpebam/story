@@ -17,7 +17,7 @@
 #sidebar-right {
     border-right: none;
     border-left: 1px solid var(--color-border);
-    padding: 0 6px;
+    padding: 0 var(--spacing-1-5);
 }
 
 .sidebar-header {
@@ -33,7 +33,7 @@
 }
 
 .sidebar-header .header-title {
-    font-weight: 500;
+    font-weight: var(--font-weight-medium);
     font-size: var(--font-size-sm);
     color: var(--color-text-primary);
     white-space: nowrap;
@@ -42,7 +42,7 @@
 }
 
 .logo {
-    font-weight: 900;
+    font-weight: var(--font-weight-black);
     font-size: var(--font-size-lg);
     color: var(--color-text-primary); /* Clean look */
     letter-spacing: -0.5px;
@@ -70,7 +70,7 @@
     display: flex;
     align-items: center;
     gap: var(--spacing-2);
-    padding: 8px 12px;
+    padding: var(--spacing-2) var(--spacing-3);
     background: var(--color-bg-panel);
     border-bottom: 1px solid var(--color-border);
     cursor: pointer;
@@ -83,16 +83,16 @@
 }
 
 .accordion-chevron {
-    font-size: 10px;
+    font-size: var(--font-size-xs);
     color: var(--color-text-secondary);
-    width: 12px;
+    width: var(--spacing-3);
     text-align: center;
     transition: transform 0.15s ease;
 }
 
 .accordion-title {
-    font-size: 11px;
-    font-weight: 600;
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-semibold);
     color: var(--color-text-secondary);
     letter-spacing: 0.5px;
     text-transform: uppercase;
@@ -111,7 +111,7 @@
 
 /* Panel Resizer */
 .panel-resizer {
-    height: 4px;
+    height: var(--spacing-1);
     background: var(--color-border);
     cursor: row-resize;
     flex-shrink: 0;
@@ -126,8 +126,8 @@
 .panel-resizer::before {
     content: '';
     position: absolute;
-    top: -4px;
-    bottom: -4px;
+    top: calc(-1 * var(--spacing-1));
+    bottom: calc(-1 * var(--spacing-1));
     left: 0;
     right: 0;
 }
