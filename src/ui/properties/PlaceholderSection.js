@@ -41,12 +41,8 @@ export class PlaceholderSection {
     createContent() {
         // Grid container for placeholder types
         this.gridContainer = document.createElement('div');
-        this.gridContainer.className = 'placeholder-palette';
-        this.gridContainer.style.cssText = `
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 6px;
-        `;
+        this.gridContainer.className = 'placeholder-palette placeholder-grid';
+        // CSS handles: display: grid; grid-template-columns: repeat(3, 1fr); gap
         this.section.appendChild(this.gridContainer);
 
         // Create palette items
@@ -60,86 +56,34 @@ export class PlaceholderSection {
 
     createPaletteItem(type) {
         const element = document.createElement('div');
-        element.className = 'placeholder-palette-item';
+        element.className = 'placeholder-palette-item placeholder-item';
         element.dataset.type = type.id;
         element.draggable = true;
         element.title = type.description;
-        element.style.cssText = `
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            padding: 8px 4px;
-            background: var(--color-bg-well);
-            border: 1px solid var(--color-border);
-            border-radius: var(--radius-sm);
-            cursor: pointer;
-            transition: all 0.15s;
-            min-height: 52px;
-            position: relative;
-            user-select: none;
-        `;
+        // CSS handles: flex, padding, background, border, border-radius, cursor, transition
 
         // Icon
         const icon = document.createElement('div');
         icon.className = 'placeholder-icon';
         icon.textContent = type.icon;
-        icon.style.cssText = `
-            font-size: 16px;
-            margin-bottom: 2px;
-            line-height: 1;
-        `;
+        // CSS handles: font-size, margin-bottom
 
         // Label
         const label = document.createElement('div');
         label.className = 'placeholder-label';
         label.textContent = type.label;
-        label.style.cssText = `
-            font-size: 9px;
-            color: var(--color-text-secondary);
-            text-align: center;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            max-width: 100%;
-        `;
+        // CSS handles: font-size, color, text-align, overflow
 
         // Count badge (for types that allow multiple)
         const badge = document.createElement('div');
-        badge.className = 'placeholder-badge';
-        badge.style.cssText = `
-            display: none;
-            position: absolute;
-            top: -4px;
-            right: -4px;
-            width: 16px;
-            height: 16px;
-            background: var(--color-accent);
-            color: white;
-            border-radius: 50%;
-            font-size: 9px;
-            line-height: 16px;
-            text-align: center;
-        `;
+        badge.className = 'placeholder-badge placeholder-count-badge';
+        badge.style.display = 'none'; // Dynamic visibility
 
         // Checkmark overlay for placed items (limited types)
         const checkmark = document.createElement('div');
         checkmark.className = 'placeholder-checkmark';
         checkmark.innerHTML = '✓';
-        checkmark.style.cssText = `
-            display: none;
-            position: absolute;
-            top: 2px;
-            right: 2px;
-            width: 14px;
-            height: 14px;
-            background: var(--color-success, #1BC47D);
-            color: white;
-            border-radius: 50%;
-            font-size: 10px;
-            line-height: 14px;
-            text-align: center;
-        `;
+        checkmark.style.display = 'none'; // Dynamic visibility
 
         element.appendChild(icon);
         element.appendChild(label);

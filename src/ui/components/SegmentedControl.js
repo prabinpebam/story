@@ -57,8 +57,8 @@ export class SegmentedControl {
 
             const updateState = () => {
                 if (this.selectedValue === opt.value) {
-                    btn.style.backgroundColor = 'var(--color-text-primary)';
-                    btn.style.color = 'var(--color-bg-app)';
+                    btn.style.backgroundColor = 'var(--color-accent)';
+                    btn.style.color = 'var(--color-text-on-accent)';
                 } else {
                     btn.style.backgroundColor = 'transparent';
                     btn.style.color = 'var(--color-text-primary)';
@@ -73,8 +73,8 @@ export class SegmentedControl {
                 Array.from(container.children).forEach((child, i) => {
                     const option = this.options[i];
                     if (this.selectedValue === option.value) {
-                        child.style.backgroundColor = 'var(--color-text-primary)';
-                        child.style.color = 'var(--color-bg-app)';
+                        child.style.backgroundColor = 'var(--color-accent)';
+                        child.style.color = 'var(--color-text-on-accent)';
                     } else {
                         child.style.backgroundColor = 'transparent';
                         child.style.color = 'var(--color-text-primary)';

@@ -31,9 +31,9 @@ export class FillFlyout extends Flyout {
         // Apply specific styles for FillFlyout
         this.element.className = 'fill-flyout ui-flyout';
         this.element.style.width = '240px';
-        this.element.style.backgroundColor = '#2C2C2C';
-        this.element.style.borderRadius = '8px';
-        this.element.style.boxShadow = '0 8px 24px rgba(0,0,0,0.5)';
+        this.element.style.backgroundColor = 'var(--color-bg-elevated)';
+        this.element.style.borderRadius = 'var(--radius-lg)';
+        this.element.style.boxShadow = 'var(--shadow-2xl)';
         this.element.style.padding = '12px';
         this.element.style.display = 'flex';
         this.element.style.flexDirection = 'column';
@@ -62,15 +62,15 @@ export class FillFlyout extends Flyout {
         
         const customTab = document.createElement('div');
         customTab.textContent = 'Custom';
-        customTab.style.fontSize = '11px';
-        customTab.style.fontWeight = '600';
-        customTab.style.color = '#FFFFFF';
+        customTab.style.fontSize = 'var(--font-size-sm)';
+        customTab.style.fontWeight = 'var(--font-weight-semibold)';
+        customTab.style.color = 'var(--color-text-primary)';
         customTab.style.cursor = 'pointer';
         
         const librariesTab = document.createElement('div');
         librariesTab.textContent = 'Libraries';
-        librariesTab.style.fontSize = '11px';
-        librariesTab.style.color = '#888888';
+        librariesTab.style.fontSize = 'var(--font-size-sm)';
+        librariesTab.style.color = 'var(--color-text-secondary)';
         librariesTab.style.cursor = 'pointer';
 
         tabs.appendChild(customTab);
@@ -97,7 +97,7 @@ export class FillFlyout extends Flyout {
         modeRow.style.justifyContent = 'space-between';
         modeRow.style.alignItems = 'center';
         modeRow.style.paddingBottom = '12px';
-        modeRow.style.borderBottom = '1px solid #444';
+        modeRow.style.borderBottom = '1px solid var(--color-border)';
 
         const typeSelector = new FillTypeSelector({
             activeType: this.fill.type,

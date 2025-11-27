@@ -132,11 +132,7 @@ export class FillSection {
             // Also show inherited fill at the bottom as reference (if available)
             if (inheritedFill) {
                 const divider = document.createElement('div');
-                divider.style.cssText = `
-                    height: 1px;
-                    background: var(--color-border);
-                    margin: 4px 0;
-                `;
+                divider.className = 'inherited-fill-divider';
                 list.appendChild(divider);
                 
                 const inheritedRow = this.createInheritedFillRow(inheritedFill, false);
@@ -154,25 +150,11 @@ export class FillSection {
      */
     createInheritedFillRow(fill, isActive) {
         const row = document.createElement('div');
-        row.className = 'pi-row inherited-fill-row';
-        row.style.cssText = `
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            height: 24px;
-            opacity: ${isActive ? '1' : '0.6'};
-            padding-left: 18px;
-        `;
+        row.className = 'pi-row inherited-fill-row' + (isActive ? '' : ' inactive');
 
         // Color swatch / preview (16x16 to match theme swatches)
         const swatch = document.createElement('div');
-        swatch.style.cssText = `
-            width: 16px;
-            height: 16px;
-            border-radius: 2px;
-            border: 1px solid rgba(0,0,0,0.1);
-            flex-shrink: 0;
-        `;
+        swatch.className = 'inherited-fill-swatch';
         
         if (fill.type === 'solid') {
             swatch.style.background = fill.color || fill.value || '#D9D9D9';
@@ -187,15 +169,11 @@ export class FillSection {
 
         // Label container
         const labelContainer = document.createElement('div');
-        labelContainer.style.cssText = 'flex: 1; display: flex; align-items: center; gap: 6px;';
+        labelContainer.className = 'inherited-fill-label';
         
         // Type label
         const typeLabel = document.createElement('span');
-        typeLabel.style.cssText = `
-            font-size: var(--font-size-sm);
-            color: var(--color-text-secondary);
-            text-transform: capitalize;
-        `;
+        typeLabel.className = 'inherited-fill-type';
         typeLabel.textContent = fill.type || 'Solid';
         labelContainer.appendChild(typeLabel);
         
@@ -203,15 +181,7 @@ export class FillSection {
 
         // Inherited badge
         const badge = document.createElement('span');
-        badge.style.cssText = `
-            font-size: 9px;
-            padding: 2px 4px;
-            border-radius: 2px;
-            text-transform: uppercase;
-            font-weight: 500;
-            background: var(--color-bg-active);
-            color: var(--color-text-secondary);
-        `;
+        badge.className = 'inherited-fill-badge';
         badge.textContent = 'Inherited';
         row.appendChild(badge);
 
@@ -230,7 +200,7 @@ export class FillSection {
         // Drag Handle
         const dragHandle = document.createElement('div');
         dragHandle.innerHTML = Icons.DRAG_HANDLE;
-        dragHandle.style.color = '#666';
+        dragHandle.style.color = 'var(--color-text-tertiary)';
         dragHandle.style.cursor = 'grab';
         dragHandle.style.fontSize = '12px';
         dragHandle.style.display = 'flex';
@@ -269,11 +239,11 @@ export class FillSection {
             const midY = rect.top + rect.height / 2;
             
             if (e.clientY < midY) {
-                row.style.borderTop = '2px solid #0055FF';
+                row.style.borderTop = '2px solid var(--color-accent)';
                 row.style.borderBottom = 'none';
             } else {
                 row.style.borderTop = 'none';
-                row.style.borderBottom = '2px solid #0055FF';
+                row.style.borderBottom = '2px solid var(--color-accent)';
             }
         });
 
@@ -325,11 +295,11 @@ export class FillSection {
         combinedInput.style.flex = '1';
         combinedInput.style.display = 'flex';
         combinedInput.style.alignItems = 'center';
-        combinedInput.style.border = '1px solid #444';
-        combinedInput.style.borderRadius = '4px';
+        combinedInput.style.border = '1px solid var(--color-border)';
+        combinedInput.style.borderRadius = 'var(--radius-sm)';
         combinedInput.style.height = '24px';
         combinedInput.style.overflow = 'hidden';
-        combinedInput.style.backgroundColor = '#262626'; // Match input bg
+        combinedInput.style.backgroundColor = 'var(--color-bg-input)';
 
         // 1. Color Swatch (Trigger for Flyout)
         const swatch = document.createElement('div');
@@ -359,11 +329,11 @@ export class FillSection {
                  preview.style.background = this.getGradientCss(fill.value);
              }
         } else if (fill.type === 'code') {
-             preview.style.backgroundColor = '#333';
-             preview.innerHTML = '<i class="fa-solid fa-code" style="font-size: 10px; color: #fff;"></i>';
+             preview.style.backgroundColor = 'var(--color-surface-tertiary)';
+             preview.innerHTML = '<i class="fa-solid fa-code" style="font-size: 10px; color: var(--color-text-primary);"></i>';
         } else if (fill.type === 'video') {
-             preview.style.backgroundColor = '#333';
-             preview.innerHTML = '<i class="fa-solid fa-play" style="font-size: 10px; color: #fff;"></i>';
+             preview.style.backgroundColor = 'var(--color-surface-tertiary)';
+             preview.innerHTML = '<i class="fa-solid fa-play" style="font-size: 10px; color: var(--color-text-primary);"></i>';
         } else {
              preview.style.backgroundColor = fill.color || fill.value || '#000000';
         }
@@ -387,7 +357,7 @@ export class FillSection {
         hexInput.style.minWidth = '0';
         hexInput.style.border = 'none';
         hexInput.style.background = 'transparent';
-        hexInput.style.color = '#ccc';
+        hexInput.style.color = 'var(--color-text-secondary)';
         hexInput.style.fontSize = '11px';
         hexInput.style.fontFamily = 'monospace';
         hexInput.style.padding = '0 2px';
@@ -424,7 +394,7 @@ export class FillSection {
         const separator = document.createElement('div');
         separator.style.width = '1px';
         separator.style.height = '12px'; // Reduced height
-        separator.style.backgroundColor = '#444';
+        separator.style.backgroundColor = 'var(--color-border)';
         combinedInput.appendChild(separator);
 
         // Opacity Input
@@ -482,7 +452,7 @@ export class FillSection {
             }
         });
         if (!isNormalBlend) {
-            blendBtn.element.style.color = '#0055FF'; // Blue if active
+            blendBtn.element.style.color = 'var(--color-accent)'; // Blue if active
         }
         blendBtn.element.style.width = '24px'; // Compact
         blendBtn.element.style.height = '24px';
@@ -526,16 +496,16 @@ export class FillSection {
         // Create a simple dropdown menu
         const menu = document.createElement('div');
         menu.style.position = 'fixed';
-        menu.style.zIndex = '10000';
-        menu.style.backgroundColor = '#2C2C2C';
-        menu.style.border = '1px solid #444';
-        menu.style.borderRadius = '4px';
+        menu.style.zIndex = 'var(--z-popover)';
+        menu.style.backgroundColor = 'var(--menu-bg)';
+        menu.style.border = '1px solid var(--color-border)';
+        menu.style.borderRadius = 'var(--radius-sm)';
         menu.style.padding = '4px 0';
-        menu.style.boxShadow = '0 4px 12px rgba(0,0,0,0.5)';
+        menu.style.boxShadow = 'var(--shadow-floating)';
         menu.style.width = '140px';
         menu.style.maxHeight = '300px';
         menu.style.overflowY = 'auto';
-        menu.style.fontFamily = 'sans-serif';
+        menu.style.fontFamily = 'var(--font-ui)';
         
         // Prevent clicks/scroll inside menu from closing it
         menu.addEventListener('mousedown', (e) => e.stopPropagation());
@@ -544,20 +514,20 @@ export class FillSection {
             const item = document.createElement('div');
             item.textContent = label;
             item.style.padding = '6px 12px';
-            item.style.fontSize = '12px';
-            item.style.color = '#ccc';
+            item.style.fontSize = 'var(--font-size-md)';
+            item.style.color = 'var(--color-text-primary)';
             item.style.cursor = 'pointer';
             item.style.display = 'flex';
             item.style.alignItems = 'center';
             item.style.justifyContent = 'space-between';
 
             if ((fill.blendMode || 'normal') === mode) {
-                item.style.backgroundColor = '#0055FF';
-                item.style.color = '#fff';
+                item.style.backgroundColor = 'var(--color-accent)';
+                item.style.color = 'var(--color-text-on-accent)';
             }
 
             item.onmouseenter = () => {
-                if ((fill.blendMode || 'normal') !== mode) item.style.backgroundColor = '#383838';
+                if ((fill.blendMode || 'normal') !== mode) item.style.backgroundColor = 'var(--color-bg-hover)';
             };
             item.onmouseleave = () => {
                 if ((fill.blendMode || 'normal') !== mode) item.style.backgroundColor = 'transparent';

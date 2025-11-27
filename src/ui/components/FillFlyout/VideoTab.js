@@ -10,9 +10,7 @@ export class VideoTab {
         this.onChange = options.onChange || (() => {});
         
         this.element = document.createElement('div');
-        this.element.style.display = 'flex';
-        this.element.style.flexDirection = 'column';
-        this.element.style.gap = '12px';
+        this.element.className = 'flyout-content';
         
         this.render();
     }
@@ -22,17 +20,7 @@ export class VideoTab {
 
         // 1. Video Preview / Upload Area
         const previewArea = document.createElement('div');
-        previewArea.style.width = '100%';
-        previewArea.style.height = '120px';
-        previewArea.style.borderRadius = '4px';
-        previewArea.style.backgroundColor = '#1a1a1a';
-        previewArea.style.border = '1px dashed #555';
-        previewArea.style.display = 'flex';
-        previewArea.style.alignItems = 'center';
-        previewArea.style.justifyContent = 'center';
-        previewArea.style.cursor = 'pointer';
-        previewArea.style.overflow = 'hidden';
-        previewArea.style.position = 'relative';
+        previewArea.className = 'media-preview-area';
 
         if (this.fill.assetId) {
             // Show video preview
@@ -40,9 +28,6 @@ export class VideoTab {
             if (blobUrl) {
                 const video = document.createElement('video');
                 video.src = blobUrl;
-                video.style.maxWidth = '100%';
-                video.style.maxHeight = '100%';
-                video.style.objectFit = 'contain';
                 video.muted = true;
                 video.loop = true;
                 
@@ -57,42 +42,18 @@ export class VideoTab {
                 
                 // Play indicator overlay
                 const playOverlay = document.createElement('div');
-                playOverlay.style.position = 'absolute';
-                playOverlay.style.top = '50%';
-                playOverlay.style.left = '50%';
-                playOverlay.style.transform = 'translate(-50%, -50%)';
-                playOverlay.style.width = '32px';
-                playOverlay.style.height = '32px';
-                playOverlay.style.borderRadius = '50%';
-                playOverlay.style.backgroundColor = 'rgba(0,0,0,0.5)';
-                playOverlay.style.display = 'flex';
-                playOverlay.style.alignItems = 'center';
-                playOverlay.style.justifyContent = 'center';
-                playOverlay.style.pointerEvents = 'none';
+                playOverlay.className = 'media-play-overlay';
                 playOverlay.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="white"><polygon points="5 3 19 12 5 21"/></svg>`;
                 previewArea.appendChild(playOverlay);
                 
                 // Remove button overlay
-                const removeBtn = document.createElement('div');
-                removeBtn.style.position = 'absolute';
-                removeBtn.style.top = '4px';
-                removeBtn.style.right = '4px';
-                removeBtn.style.width = '20px';
-                removeBtn.style.height = '20px';
-                removeBtn.style.borderRadius = '50%';
-                removeBtn.style.backgroundColor = 'rgba(0,0,0,0.7)';
-                removeBtn.style.display = 'flex';
-                removeBtn.style.alignItems = 'center';
-                removeBtn.style.justifyContent = 'center';
-                removeBtn.style.cursor = 'pointer';
+                const removeBtn = document.createElement('button');
+                removeBtn.className = 'media-remove-btn';
                 removeBtn.innerHTML = Icons.CLOSE;
                 const svgEl = removeBtn.querySelector('svg');
                 if (svgEl) {
                     svgEl.style.width = '12px';
                     svgEl.style.height = '12px';
-                } else {
-                    removeBtn.style.fontSize = '12px';
-                    removeBtn.style.color = '#fff';
                 }
                 removeBtn.addEventListener('click', (e) => {
                     e.stopPropagation();
@@ -103,16 +64,15 @@ export class VideoTab {
         } else {
             // Show upload prompt
             const uploadPrompt = document.createElement('div');
-            uploadPrompt.style.textAlign = 'center';
-            uploadPrompt.style.color = '#888';
+            uploadPrompt.className = 'media-upload-prompt';
             
             const icon = document.createElement('div');
+            icon.className = 'icon';
             icon.innerHTML = `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><polygon points="10 8 16 12 10 16" fill="currentColor" stroke="none"/></svg>`;
-            icon.style.marginBottom = '8px';
             
             const text = document.createElement('div');
+            text.className = 'text';
             text.textContent = 'Click or drop video';
-            text.style.fontSize = '11px';
             
             uploadPrompt.appendChild(icon);
             uploadPrompt.appendChild(text);
@@ -134,14 +94,14 @@ export class VideoTab {
         previewArea.addEventListener('click', () => fileInput.click());
         previewArea.addEventListener('dragover', (e) => {
             e.preventDefault();
-            previewArea.style.borderColor = '#007AFF';
+            previewArea.classList.add('drag-over');
         });
         previewArea.addEventListener('dragleave', () => {
-            previewArea.style.borderColor = '#555';
+            previewArea.classList.remove('drag-over');
         });
         previewArea.addEventListener('drop', (e) => {
             e.preventDefault();
-            previewArea.style.borderColor = '#555';
+            previewArea.classList.remove('drag-over');
             if (e.dataTransfer.files.length > 0) {
                 this.handleVideoFile(e.dataTransfer.files[0]);
             }
@@ -152,8 +112,7 @@ export class VideoTab {
 
         // 2. Scale Mode Selector
         const scaleModeRow = document.createElement('div');
-        scaleModeRow.style.display = 'flex';
-        scaleModeRow.style.gap = '4px';
+        scaleModeRow.className = 'scale-mode-row';
 
         const scaleModes = [
             { value: 'fill', label: 'Fill', title: 'Fill (cover entire shape)' },
@@ -165,14 +124,7 @@ export class VideoTab {
             const btn = document.createElement('button');
             btn.textContent = mode.label;
             btn.title = mode.title;
-            btn.style.flex = '1';
-            btn.style.padding = '6px 8px';
-            btn.style.fontSize = '10px';
-            btn.style.border = 'none';
-            btn.style.borderRadius = '4px';
-            btn.style.cursor = 'pointer';
-            btn.style.backgroundColor = this.fill.scaleMode === mode.value ? '#007AFF' : '#3a3a3a';
-            btn.style.color = '#fff';
+            btn.className = 'scale-mode-btn' + (this.fill.scaleMode === mode.value ? ' active' : '');
             btn.addEventListener('click', () => this.setScaleMode(mode.value));
             scaleModeRow.appendChild(btn);
         });
@@ -185,15 +137,11 @@ export class VideoTab {
 
         // 4. Opacity Control
         const opacityRow = document.createElement('div');
-        opacityRow.style.display = 'flex';
-        opacityRow.style.alignItems = 'center';
-        opacityRow.style.gap = '8px';
+        opacityRow.className = 'flyout-row';
 
         const opacityLabel = document.createElement('span');
+        opacityLabel.className = 'flyout-label';
         opacityLabel.textContent = 'Opacity';
-        opacityLabel.style.fontSize = '11px';
-        opacityLabel.style.color = '#aaa';
-        opacityLabel.style.width = '60px';
 
         const opacityInput = new NumberInput({
             value: this.fill.opacity ?? 100,
@@ -219,16 +167,11 @@ export class VideoTab {
 
     createPlaybackSection() {
         const section = document.createElement('div');
-        section.style.display = 'flex';
-        section.style.flexDirection = 'column';
-        section.style.gap = '8px';
-        section.style.borderTop = '1px solid #444';
-        section.style.paddingTop = '12px';
+        section.className = 'collapsible-section expanded';
 
         const label = document.createElement('span');
+        label.className = 'flyout-label';
         label.textContent = 'Playback';
-        label.style.fontSize = '11px';
-        label.style.color = '#aaa';
         section.appendChild(label);
 
         const playback = this.fill.playback || {};
@@ -245,22 +188,15 @@ export class VideoTab {
         optionsGrid.style.display = 'grid';
         optionsGrid.style.gridTemplateColumns = '1fr 1fr';
         optionsGrid.style.gap = '6px';
+        optionsGrid.style.marginTop = '8px';
 
         options.forEach(opt => {
             const row = document.createElement('label');
-            row.style.display = 'flex';
-            row.style.alignItems = 'center';
-            row.style.gap = '6px';
-            row.style.cursor = 'pointer';
-            row.style.fontSize = '10px';
-            row.style.color = '#ccc';
+            row.className = 'checkbox-row';
 
             const checkbox = document.createElement('input');
             checkbox.type = 'checkbox';
             checkbox.checked = playback[opt.key] ?? opt.default;
-            checkbox.style.width = '12px';
-            checkbox.style.height = '12px';
-            checkbox.style.accentColor = '#007AFF';
             
             checkbox.addEventListener('change', () => {
                 if (!this.fill.playback) this.fill.playback = {};
@@ -279,34 +215,24 @@ export class VideoTab {
 
     createAdjustmentsSection() {
         const section = document.createElement('div');
-        section.style.borderTop = '1px solid #444';
-        section.style.paddingTop = '12px';
-        section.style.marginTop = '4px';
+        section.className = 'collapsible-section' + (this.adjustmentsExpanded ? ' expanded' : '');
 
         const header = document.createElement('div');
-        header.style.display = 'flex';
-        header.style.justifyContent = 'space-between';
-        header.style.alignItems = 'center';
-        header.style.cursor = 'pointer';
-        header.style.marginBottom = '8px';
+        header.className = 'collapsible-header';
 
         const title = document.createElement('span');
+        title.className = 'collapsible-title';
         title.textContent = 'Adjustments';
-        title.style.fontSize = '11px';
-        title.style.color = '#aaa';
 
         const arrow = document.createElement('span');
-        arrow.textContent = this.adjustmentsExpanded ? '▼' : '▶';
-        arrow.style.fontSize = '8px';
-        arrow.style.color = '#666';
+        arrow.className = 'collapsible-arrow';
+        arrow.textContent = '▶';
 
         header.appendChild(title);
         header.appendChild(arrow);
 
         const content = document.createElement('div');
-        content.style.display = this.adjustmentsExpanded ? 'flex' : 'none';
-        content.style.flexDirection = 'column';
-        content.style.gap = '8px';
+        content.className = 'collapsible-content';
 
         const adjustments = [
             { key: 'brightness', label: 'Brightness', min: -100, max: 100, default: 0 },
@@ -316,15 +242,11 @@ export class VideoTab {
 
         adjustments.forEach(adj => {
             const row = document.createElement('div');
-            row.style.display = 'flex';
-            row.style.alignItems = 'center';
-            row.style.gap = '8px';
+            row.className = 'flyout-row';
 
             const label = document.createElement('span');
+            label.className = 'flyout-label flyout-label-wide';
             label.textContent = adj.label;
-            label.style.fontSize = '10px';
-            label.style.color = '#888';
-            label.style.width = '70px';
 
             const input = new NumberInput({
                 value: this.fill.filters?.[adj.key] ?? adj.default,
@@ -346,8 +268,7 @@ export class VideoTab {
 
         header.addEventListener('click', () => {
             this.adjustmentsExpanded = !this.adjustmentsExpanded;
-            arrow.textContent = this.adjustmentsExpanded ? '▼' : '▶';
-            content.style.display = this.adjustmentsExpanded ? 'flex' : 'none';
+            section.classList.toggle('expanded', this.adjustmentsExpanded);
         });
 
         section.appendChild(header);

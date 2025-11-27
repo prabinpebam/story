@@ -168,7 +168,7 @@ body.laser-active * {
 .grid-content {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-    gap: 32px;
+    gap: var(--spacing-8);
     overflow-y: auto;
     padding-bottom: 40px;
 }
@@ -176,7 +176,7 @@ body.laser-active * {
 .grid-slide-item {
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: var(--spacing-3);
     cursor: pointer;
     transition: transform 0.2s ease;
 }
@@ -241,7 +241,7 @@ body.laser-active * {
 .hud-controls {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: var(--spacing-2);
     background-color: rgba(30, 30, 30, 0.8);
     backdrop-filter: blur(10px);
     padding: 8px 16px;

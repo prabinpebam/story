@@ -18,8 +18,8 @@ button:hover {
 }
 
 button.active {
-    background-color: var(--color-text-primary);
-    color: var(--color-bg-app);
+    background-color: var(--color-accent);
+    color: var(--color-text-on-accent);
 }
 
 .action-btn {

@@ -95,9 +95,9 @@ export class ExportSection {
                     { label: '512h', value: '512h' }
                 ],
                 value: preset.scale,
+                size: 'sm',
                 onChange: (val) => this.updatePreset(index, 'scale', val)
             });
-            scaleSelect.element.style.flex = '0 0 70px';
 
             // Suffix (Optional, maybe hidden or small)
             const suffixInput = new TextInput({
@@ -117,9 +117,9 @@ export class ExportSection {
                     { label: 'WEBP', value: 'webp' }
                 ],
                 value: preset.format,
+                size: 'sm',
                 onChange: (val) => this.updatePreset(index, 'format', val)
             });
-            formatSelect.element.style.flex = '0 0 70px';
 
             // Remove Button
             const removeBtn = new IconButton({

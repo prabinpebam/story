@@ -10,17 +10,11 @@ export class ColorPickerFlyout {
         this.color = options.color || '#000000';
         
         this.element = document.createElement('div');
-        this.element.className = 'color-picker-flyout';
+        this.element.className = 'color-picker-flyout ui-flyout';
         this.element.style.position = 'absolute';
         this.element.style.width = '240px';
-        this.element.style.backgroundColor = '#2C2C2C';
-        this.element.style.borderRadius = '8px';
-        this.element.style.boxShadow = '0 8px 24px rgba(0,0,0,0.5)';
         this.element.style.padding = '12px';
         this.element.style.zIndex = '10001'; // Higher than FillFlyout
-        this.element.style.display = 'flex';
-        this.element.style.flexDirection = 'column';
-        this.element.style.gap = '12px';
 
         // Prevent clicks from closing
         this.element.addEventListener('mousedown', (e) => e.stopPropagation());
@@ -35,13 +29,14 @@ export class ColorPickerFlyout {
         header.style.display = 'flex';
         header.style.justifyContent = 'space-between';
         header.style.alignItems = 'center';
-        header.style.marginBottom = '4px';
+        header.style.marginBottom = '8px';
 
         const title = document.createElement('div');
+        title.className = 'flyout-title';
         title.textContent = 'Color';
-        title.style.fontSize = '11px';
-        title.style.fontWeight = '600';
-        title.style.color = '#FFFFFF';
+        title.style.marginBottom = '0';
+        title.style.paddingBottom = '0';
+        title.style.borderBottom = 'none';
         header.appendChild(title);
         
         const closeBtn = new IconButton({ 

@@ -10,11 +10,6 @@ export class TypeSettingsFlyout extends Flyout {
         super(options);
         
         this.element.className = 'type-settings-flyout ui-flyout';
-        this.element.style.width = '280px';
-        this.element.style.backgroundColor = '#2C2C2C';
-        this.element.style.display = 'flex';
-        this.element.style.flexDirection = 'column';
-        this.element.style.gap = '12px';
         
         this.activeTab = 'basics';
         this.onChange = options.onChange || (() => {});
@@ -31,21 +26,13 @@ export class TypeSettingsFlyout extends Flyout {
         
         // 1. Tabs
         const tabs = document.createElement('div');
-        tabs.style.display = 'flex';
-        tabs.style.borderBottom = '1px solid #444';
-        tabs.style.marginBottom = '8px';
+        tabs.className = 'flyout-tabs';
         
         ['Basics', 'Details', 'Variable'].forEach(tabName => {
             const key = tabName.toLowerCase();
             const tab = document.createElement('div');
             tab.textContent = tabName;
-            tab.style.flex = '1';
-            tab.style.textAlign = 'center';
-            tab.style.padding = '8px 0';
-            tab.style.fontSize = '12px';
-            tab.style.cursor = 'pointer';
-            tab.style.color = this.activeTab === key ? '#FFFFFF' : '#888888';
-            tab.style.borderBottom = this.activeTab === key ? '2px solid #FFFFFF' : '2px solid transparent';
+            tab.className = 'flyout-tab' + (this.activeTab === key ? ' active' : '');
             
             tab.onclick = () => {
                 this.activeTab = key;
@@ -59,9 +46,7 @@ export class TypeSettingsFlyout extends Flyout {
 
         // 2. Content
         const content = document.createElement('div');
-        content.style.display = 'flex';
-        content.style.flexDirection = 'column';
-        content.style.gap = '16px';
+        content.className = 'flyout-content';
         
         if (this.activeTab === 'basics') {
             this.renderBasics(content);
@@ -110,11 +95,8 @@ export class TypeSettingsFlyout extends Flyout {
         // Case Row
         const row2 = this.createRow();
         const caseLabel = document.createElement('span');
+        caseLabel.className = 'type-settings-label';
         caseLabel.textContent = 'Case';
-        caseLabel.style.fontSize = '11px';
-        caseLabel.style.color = '#888';
-        caseLabel.style.marginRight = '8px';
-        caseLabel.style.minWidth = '30px';
         row2.appendChild(caseLabel);
         
         const cases = [
@@ -129,12 +111,7 @@ export class TypeSettingsFlyout extends Flyout {
             const btn = document.createElement('div');
             btn.textContent = c.label;
             btn.title = c.title;
-            btn.style.padding = '4px 8px';
-            btn.style.fontSize = '11px';
-            btn.style.cursor = 'pointer';
-            btn.style.borderRadius = '4px';
-            btn.style.color = this.currentProps.textTransform === c.value ? '#FFF' : '#888';
-            btn.style.backgroundColor = this.currentProps.textTransform === c.value ? '#444' : 'transparent';
+            btn.className = 'fill-type-btn' + (this.currentProps.textTransform === c.value ? ' active' : '');
             if (c.value === 'small-caps') {
                 btn.style.fontVariant = 'small-caps';
             }
@@ -172,9 +149,9 @@ export class TypeSettingsFlyout extends Flyout {
                 { label: 'Cap Height', value: 'capHeight' }
             ],
             value: this.currentProps.verticalTrim || 'standard',
+            size: 'md',
             onChange: (val) => this.updateProp('verticalTrim', val)
         });
-        vTrimDropdown.element.style.width = '100px';
         vTrimRow.appendChild(vTrimDropdown.element);
         container.appendChild(vTrimRow);
 
@@ -265,9 +242,9 @@ export class TypeSettingsFlyout extends Flyout {
                 { label: 'Old Style', value: 'onum' }
             ],
             value: this.currentProps.opentypeFeatures.figureStyle || 'default',
+            size: 'md',
             onChange: (val) => this.updateOpenType('figureStyle', val)
         });
-        figureStyleDropdown.element.style.width = '100px';
         figureStyleRow.appendChild(figureStyleDropdown.element);
         container.appendChild(figureStyleRow);
 
@@ -280,9 +257,9 @@ export class TypeSettingsFlyout extends Flyout {
                 { label: 'Tabular', value: 'tnum' }
             ],
             value: this.currentProps.opentypeFeatures.figureSpacing || 'default',
+            size: 'md',
             onChange: (val) => this.updateOpenType('figureSpacing', val)
         });
-        figureSpacingDropdown.element.style.width = '100px';
         figureSpacingRow.appendChild(figureSpacingDropdown.element);
         container.appendChild(figureSpacingRow);
 
@@ -295,9 +272,9 @@ export class TypeSettingsFlyout extends Flyout {
                 { label: 'Stacked', value: 'afrc' }
             ],
             value: this.currentProps.opentypeFeatures.fractions || 'off',
+            size: 'md',
             onChange: (val) => this.updateOpenType('fractions', val)
         });
-        fractionsDropdown.element.style.width = '100px';
         fractionsRow.appendChild(fractionsDropdown.element);
         container.appendChild(fractionsRow);
 
@@ -369,9 +346,9 @@ export class TypeSettingsFlyout extends Flyout {
                 { label: 'Ordinal', value: 'ordn' }
             ],
             value: this.currentProps.opentypeFeatures.position || 'normal',
+            size: 'md',
             onChange: (val) => this.updateOpenType('position', val)
         });
-        positionDropdown.element.style.width = '100px';
         positionRow.appendChild(positionDropdown.element);
         container.appendChild(positionRow);
     }
@@ -385,13 +362,7 @@ export class TypeSettingsFlyout extends Flyout {
     createSectionHeader(title) {
         const header = document.createElement('div');
         header.textContent = title;
-        header.style.fontSize = '11px';
-        header.style.fontWeight = '600';
-        header.style.color = '#AAA';
-        header.style.marginTop = '12px';
-        header.style.marginBottom = '8px';
-        header.style.borderBottom = '1px solid #444';
-        header.style.paddingBottom = '4px';
+        header.className = 'type-settings-section-header';
         return header;
     }
 
@@ -403,10 +374,7 @@ export class TypeSettingsFlyout extends Flyout {
 
         // Info text
         const infoText = document.createElement('div');
-        infoText.style.fontSize = '11px';
-        infoText.style.color = '#888';
-        infoText.style.marginBottom = '12px';
-        infoText.style.lineHeight = '1.4';
+        infoText.className = 'type-settings-info';
         infoText.textContent = 'Variable fonts allow fine-tuning of weight, width, and other axes. Controls below work with fonts that support these features.';
         container.appendChild(infoText);
 
@@ -480,17 +448,9 @@ export class TypeSettingsFlyout extends Flyout {
         // Reset button
         const resetBtn = document.createElement('button');
         resetBtn.textContent = 'Reset to Defaults';
+        resetBtn.className = 'reset-btn';
         resetBtn.style.marginTop = '16px';
-        resetBtn.style.padding = '6px 12px';
-        resetBtn.style.fontSize = '11px';
-        resetBtn.style.border = '1px solid #555';
-        resetBtn.style.borderRadius = '4px';
-        resetBtn.style.background = 'transparent';
-        resetBtn.style.color = '#AAA';
-        resetBtn.style.cursor = 'pointer';
         resetBtn.style.width = '100%';
-        resetBtn.onmouseenter = () => resetBtn.style.backgroundColor = '#444';
-        resetBtn.onmouseleave = () => resetBtn.style.backgroundColor = 'transparent';
         resetBtn.onclick = () => {
             this.currentProps.variableAxes = {};
             this.onChange({ variableAxes: {} });
@@ -518,10 +478,7 @@ export class TypeSettingsFlyout extends Flyout {
 
         const valueDisplay = document.createElement('span');
         valueDisplay.textContent = value;
-        valueDisplay.style.fontSize = '11px';
-        valueDisplay.style.color = '#AAA';
-        valueDisplay.style.minWidth = '35px';
-        valueDisplay.style.textAlign = 'right';
+        valueDisplay.className = 'type-settings-value';
 
         slider.oninput = (e) => {
             const val = parseFloat(e.target.value);
@@ -542,22 +499,18 @@ export class TypeSettingsFlyout extends Flyout {
 
     createRow() {
         const div = document.createElement('div');
-        div.style.display = 'flex';
-        div.style.alignItems = 'center';
-        div.style.gap = '4px';
+        div.className = 'type-settings-row';
         return div;
     }
 
     createLabelRow(label) {
         const div = document.createElement('div');
-        div.style.display = 'flex';
+        div.className = 'flyout-row';
         div.style.justifyContent = 'space-between';
-        div.style.alignItems = 'center';
         
         const span = document.createElement('span');
         span.textContent = label;
-        span.style.fontSize = '11px';
-        span.style.color = '#888';
+        span.className = 'flyout-label';
         
         div.appendChild(span);
         return div;
@@ -565,9 +518,9 @@ export class TypeSettingsFlyout extends Flyout {
 
     createSeparator() {
         const div = document.createElement('div');
+        div.className = 'type-settings-divider';
         div.style.width = '1px';
         div.style.height = '16px';
-        div.style.backgroundColor = '#444';
         div.style.margin = '0 4px';
         return div;
     }

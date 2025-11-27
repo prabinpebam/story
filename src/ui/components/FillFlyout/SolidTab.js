@@ -291,13 +291,13 @@ export class SolidTab {
         this.hexInput = document.createElement('input');
         this.updateHexInput();
         this.hexInput.style.flex = '1';
-        this.hexInput.style.backgroundColor = '#383838';
+        this.hexInput.style.backgroundColor = 'var(--color-bg-input)';
         this.hexInput.style.border = '1px solid transparent';
-        this.hexInput.style.borderRadius = '4px';
-        this.hexInput.style.color = '#FFF';
+        this.hexInput.style.borderRadius = 'var(--radius-sm)';
+        this.hexInput.style.color = 'var(--color-text-primary)';
         this.hexInput.style.padding = '4px 8px';
-        this.hexInput.style.fontFamily = 'monospace';
-        this.hexInput.style.fontSize = '12px';
+        this.hexInput.style.fontFamily = 'var(--font-mono)';
+        this.hexInput.style.fontSize = 'var(--font-size-md)';
         this.hexInput.addEventListener('change', (e) => {
             let val = e.target.value;
             if (!val.startsWith('#')) val = '#' + val;
@@ -352,14 +352,7 @@ export class SolidTab {
         // 5. Default Swatch Palette
         const swatchesLabel = document.createElement('div');
         swatchesLabel.textContent = 'Default Colors';
-        swatchesLabel.style.cssText = `
-            font-size: 10px;
-            font-weight: 500;
-            color: var(--color-text-secondary, #888);
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            margin-top: 4px;
-        `;
+        swatchesLabel.className = 'color-section-label';
         this.element.appendChild(swatchesLabel);
 
         const swatches = document.createElement('div');

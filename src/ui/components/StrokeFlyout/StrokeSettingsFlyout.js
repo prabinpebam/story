@@ -139,7 +139,7 @@ export class StrokeSettingsFlyout {
                 { label: 'Outside', value: 'outside' }
             ],
             value: this.stroke.position || 'center',
-            width: '100%',
+            size: 'fill',
             onChange: (val) => this.onChange({ position: val })
         });
         rowA.appendChild(weightInput.element);

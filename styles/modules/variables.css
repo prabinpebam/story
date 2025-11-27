@@ -1,115 +1,341 @@
+/* =============================================================================
+   STORY DESIGN SYSTEM - CSS Custom Properties (Design Tokens)
+   =============================================================================
+   
+   This file defines the complete design token system for the Story application.
+   All colors, typography, spacing, and other visual properties should reference
+   these tokens to ensure consistency and theme support.
+   
+   ARCHITECTURE:
+   - Dark mode is the DEFAULT (professional creative tool convention)
+   - Light mode is applied via `body.theme-light` class
+   - All components MUST use CSS variables, never hardcoded colors
+   
+   NAMING CONVENTION:
+   --color-{category}-{variant}
+   --font-{property}
+   --spacing-{size}
+   --radius-{size}
+   
+   ============================================================================= */
+
+/* =============================================================================
+   DARK THEME (Default)
+   ============================================================================= */
 :root {
-    /* --- Design Tokens (Figma-like) --- */
-
-    /* Colors: Base */
-    --color-bg-app: #E5E5E5;       /* Canvas background (Light Gray) */
-    --color-bg-canvas: #FFFFFF;    /* Canvas/Content background */
-    --color-bg-panel: #F5F5F5;     /* Panels (Off-White) */
-    --color-bg-hover: #EBEBEB;     /* Hover state */
-    --color-bg-active: #E6F7FF;    /* Selected state (Light Blue) */
-    --color-bg-well: #FFFFFF;      /* Input backgrounds (White) */
-    --color-bg-input: #FFFFFF;     /* Input backgrounds (White) */
+    /* -------------------------------------------------------------------------
+       SEMANTIC COLOR TOKENS
+       These are the primary tokens components should use
+       ------------------------------------------------------------------------- */
     
-    /* Colors: Borders */
-    --color-border: #E0E0E0;       /* Subtle dividers */
-    --color-border-focus: #18A0FB; /* Figma Blue */
-
-    /* Colors: Text */
-    --color-text-primary: #333333;
-    --color-text-secondary: #888888;
-    --color-text-disabled: #C7C7C7;
-    --color-text-on-accent: #FFFFFF;
-
-    /* Colors: Accent */
-    --color-accent: #18A0FB;       /* Figma Blue */
-    --color-accent-hover: #0D86D7;
-    --color-selection: rgba(24, 160, 251, 0.1);
-
-    /* Colors: System */
-    --color-danger: #F24822;
-    --color-success: #1BC47D;
-
-    /* Typography */
-    --font-ui: 'Inter', sans-serif;
-    --font-mono: 'JetBrains Mono', monospace;
+    /* Background Hierarchy (darkest to lightest for layering) */
+    --color-bg-app: #1E1E1E;           /* Main application background */
+    --color-bg-canvas: #252526;        /* Canvas/viewport background */
+    --color-bg-panel: #2D2D2D;         /* Sidebars, floating panels */
+    --color-bg-elevated: #333333;      /* Elevated surfaces (modals, popovers) */
+    --color-bg-input: #383838;         /* Input fields, wells */
+    --color-bg-hover: #404040;         /* Hover state for interactive elements */
+    --color-bg-active: #0C4A6E;        /* Active/pressed state */
+    --color-bg-selected: #1E3A5F;      /* Selected items background */
     
-    --font-size-xs: 10px;
-    --font-size-sm: 11px;
-    --font-size-md: 12px;
-    --font-size-lg: 14px;
-
+    /* Surface Variants (for cards, containers, sections) */
+    --color-surface-primary: #2D2D2D;  /* Primary surface */
+    --color-surface-secondary: #363636;/* Secondary surface (nested containers) */
+    --color-surface-tertiary: #3D3D3D; /* Tertiary surface (deeply nested) */
+    
+    /* Text Hierarchy */
+    --color-text-primary: #E8E8E8;     /* Primary text, headings, values */
+    --color-text-secondary: #A0A0A0;   /* Secondary text, labels, captions */
+    --color-text-tertiary: #707070;    /* Tertiary text, hints, placeholders */
+    --color-text-disabled: #505050;    /* Disabled text */
+    --color-text-inverse: #1E1E1E;     /* Text on light/accent backgrounds */
+    --color-text-on-accent: #FFFFFF;   /* Text on accent color backgrounds */
+    
+    /* Border & Dividers */
+    --color-border: #404040;           /* Default borders */
+    --color-border-subtle: #353535;    /* Subtle dividers */
+    --color-border-strong: #505050;    /* Emphasized borders */
+    --color-border-hover: #555555;     /* Border on hover */
+    --color-border-focus: #18A0FB;     /* Focus ring color */
+    
+    /* Brand & Accent Colors */
+    --color-accent: #18A0FB;           /* Primary accent (Figma Blue) */
+    --color-accent-hover: #3DB8FF;     /* Accent hover state */
+    --color-accent-active: #0D86D7;    /* Accent active/pressed state */
+    --color-accent-subtle: rgba(24, 160, 251, 0.15); /* Subtle accent background */
+    
+    /* Semantic/Status Colors */
+    --color-success: #1BC47D;          /* Success, positive actions */
+    --color-success-subtle: rgba(27, 196, 125, 0.15);
+    --color-warning: #FFBE0B;          /* Warnings, caution */
+    --color-warning-subtle: rgba(255, 190, 11, 0.15);
+    --color-danger: #F24822;           /* Errors, destructive actions */
+    --color-danger-subtle: rgba(242, 72, 34, 0.15);
+    --color-info: #18A0FB;             /* Information */
+    --color-info-subtle: rgba(24, 160, 251, 0.15);
+    
+    /* Interactive Element States */
+    --color-interactive-hover: rgba(255, 255, 255, 0.08);
+    --color-interactive-active: rgba(255, 255, 255, 0.12);
+    --color-interactive-selected: rgba(24, 160, 251, 0.20);
+    
+    /* Shadows & Overlays */
+    --color-shadow: rgba(0, 0, 0, 0.4);
+    --color-overlay: rgba(0, 0, 0, 0.5);
+    --color-backdrop: rgba(0, 0, 0, 0.6);
+    
+    /* Special Purpose */
+    --color-grid-dot: rgba(255, 255, 255, 0.08);
+    --color-selection-fill: rgba(24, 160, 251, 0.3);
+    --color-drag-indicator: #18A0FB;
+    
+    /* -------------------------------------------------------------------------
+       TYPOGRAPHY TOKENS
+       ------------------------------------------------------------------------- */
+    
+    /* Font Families */
+    --font-ui: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    --font-mono: 'JetBrains Mono', 'Fira Code', 'SF Mono', monospace;
+    
+    /* Font Sizes */
+    --font-size-2xs: 9px;              /* Micro labels */
+    --font-size-xs: 10px;              /* Small labels, badges */
+    --font-size-sm: 11px;              /* Property labels, secondary text */
+    --font-size-md: 12px;              /* Body text, input values */
+    --font-size-lg: 13px;              /* Section headers */
+    --font-size-xl: 14px;              /* Panel titles */
+    --font-size-2xl: 16px;             /* Modal headers */
+    
+    /* Font Weights */
     --font-weight-regular: 400;
     --font-weight-medium: 500;
-    --font-weight-bold: 600;
-
-    /* Spacing */
+    --font-weight-semibold: 600;
+    --font-weight-bold: 700;
+    
+    /* Line Heights */
+    --line-height-tight: 1.2;
+    --line-height-normal: 1.4;
+    --line-height-relaxed: 1.6;
+    
+    /* Letter Spacing */
+    --letter-spacing-tight: -0.02em;
+    --letter-spacing-normal: 0;
+    --letter-spacing-wide: 0.02em;
+    --letter-spacing-wider: 0.05em;
+    
+    /* -------------------------------------------------------------------------
+       SPACING TOKENS (4px base grid)
+       ------------------------------------------------------------------------- */
+    --spacing-0: 0;
     --spacing-1: 4px;
     --spacing-2: 8px;
     --spacing-3: 12px;
     --spacing-4: 16px;
-
-    /* Layout */
+    --spacing-5: 20px;
+    --spacing-6: 24px;
+    --spacing-8: 32px;
+    --spacing-10: 40px;
+    --spacing-12: 48px;
+    
+    /* -------------------------------------------------------------------------
+       LAYOUT TOKENS
+       ------------------------------------------------------------------------- */
     --sidebar-width: 240px;
     --header-height: 40px;
-
-    /* Radius */
+    --toolbar-height: 48px;
+    --panel-min-width: 200px;
+    --panel-max-width: 400px;
+    
+    /* -------------------------------------------------------------------------
+       BORDER RADIUS TOKENS
+       ------------------------------------------------------------------------- */
+    --radius-xs: 2px;
     --radius-sm: 4px;
-    --radius-md: 8px;
-    --radius-lg: 14px;
-
-    /* Grid */
-    --color-grid-dot: rgba(0, 0, 0, 0.08);
-
-    /* Legacy Mappings (to prevent breaking existing code immediately) */
+    --radius-md: 6px;
+    --radius-lg: 8px;
+    --radius-xl: 12px;
+    --radius-2xl: 16px;
+    --radius-full: 9999px;
+    
+    /* -------------------------------------------------------------------------
+       SHADOW TOKENS
+       ------------------------------------------------------------------------- */
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+    --shadow-md: 0 4px 8px rgba(0, 0, 0, 0.3);
+    --shadow-lg: 0 8px 16px rgba(0, 0, 0, 0.3);
+    --shadow-xl: 0 12px 24px rgba(0, 0, 0, 0.4);
+    --shadow-2xl: 0 20px 40px rgba(0, 0, 0, 0.5);
+    --shadow-floating: 0 4px 24px rgba(0, 0, 0, 0.35);
+    
+    /* -------------------------------------------------------------------------
+       TRANSITION TOKENS
+       ------------------------------------------------------------------------- */
+    --transition-fast: 100ms ease-out;
+    --transition-normal: 150ms ease-out;
+    --transition-slow: 250ms ease-out;
+    
+    /* -------------------------------------------------------------------------
+       Z-INDEX SCALE
+       ------------------------------------------------------------------------- */
+    --z-base: 0;
+    --z-dropdown: 1000;
+    --z-sticky: 1100;
+    --z-fixed: 1200;
+    --z-modal-backdrop: 1300;
+    --z-modal: 1400;
+    --z-popover: 1500;
+    --z-tooltip: 1600;
+    --z-toast: 1700;
+    
+    /* -------------------------------------------------------------------------
+       COMPONENT-SPECIFIC TOKENS
+       These provide semantic naming for specific UI patterns
+       ------------------------------------------------------------------------- */
+    
+    /* Input & Control Heights (3 sizes) */
+    --input-height-sm: 24px;           /* Compact inputs, inline controls */
+    --input-height-md: 28px;           /* Default input height */
+    --input-height-lg: 32px;           /* Large inputs, form controls */
+    
+    /* Input Styling */
+    --input-border-radius: var(--radius-sm);
+    --input-padding-x: 8px;
+    --input-padding-y: 4px;
+    
+    /* Property Inspector */
+    --pi-row-height: 32px;
+    --pi-input-height: var(--input-height-md);
+    --pi-label-color: var(--color-text-secondary);
+    --pi-input-bg: var(--color-bg-input);
+    --pi-input-bg-hover: var(--color-bg-hover);
+    
+    /* Flyouts & Menus */
+    --menu-bg: var(--color-bg-elevated);
+    --menu-border: var(--color-border);
+    --menu-item-hover: var(--color-interactive-hover);
+    --menu-item-active: var(--color-interactive-active);
+    --menu-item-selected: var(--color-interactive-selected);
+    
+    /* Toolbar */
+    --toolbar-bg: var(--color-bg-panel);
+    --toolbar-border: var(--color-border);
+    --tool-active-bg: var(--color-accent);
+    --tool-active-color: var(--color-text-on-accent);
+    
+    /* -------------------------------------------------------------------------
+       SEMANTIC ALIASES
+       Map semantic names to core tokens for common patterns
+       ------------------------------------------------------------------------- */
+    
+    /* Background Aliases (semantic shortcuts) */
+    --color-bg-primary: var(--color-surface-primary);
+    --color-bg-secondary: var(--color-surface-secondary);
+    --color-bg-tertiary: var(--color-surface-tertiary);
+    --color-bg-well: var(--color-bg-input);
+    
+    /* Property Inspector Tokens (used by dropdowns, inputs) */
+    --prop-bg-input: var(--color-bg-input);
+    --prop-bg-input-hover: var(--color-bg-hover);
+    --prop-text-label: var(--color-text-secondary);
+    --prop-border-radius: var(--input-border-radius);
+    
+    /* -------------------------------------------------------------------------
+       LEGACY ALIASES (for backward compatibility)
+       TODO: Deprecate these gradually
+       ------------------------------------------------------------------------- */
     --bg-app: var(--color-bg-app);
     --bg-panel: var(--color-bg-panel);
-    --bg-well: var(--color-bg-well);
+    --bg-well: var(--color-bg-input);
     --border-color: var(--color-border);
     --text-primary: var(--color-text-primary);
     --text-secondary: var(--color-text-secondary);
     --te-blue: var(--color-accent);
-    /* --te-orange removed */
-    --spacing-xs: var(--spacing-1);
-    --spacing-sm: var(--spacing-2);
-    --spacing-md: var(--spacing-4);
-    --spacing-lg: 24px;
+    --te-orange: #FF5722;              /* Legacy accent color */
+    --spacing-sm: var(--spacing-2);    /* Legacy spacing alias */
+    --color-primary: var(--color-accent);
 }
 
-@media (prefers-color-scheme: dark) {
-    :root {
-        /* Colors: Base (Dark Mode) */
-        --color-bg-app: #1E1E1E;
-        --color-bg-panel: #2C2C2C;
-        --color-bg-hover: #383838;
-        --color-bg-active: #0C4A6E; /* Dark Blue selection */
-        --color-bg-well: #383838;
-        --color-bg-input: #1E1E1E; /* Darker background for inputs */
-        
-        /* Colors: Borders */
-        --color-border: #444444;
-        --color-border-focus: #18A0FB;
-
-        /* Colors: Text */
-        --color-text-primary: #FFFFFF;
-        --color-text-secondary: #AAAAAA;
-        --color-text-disabled: #666666;
-    }
-}
-
-/* Dark Mode Overrides (Class-based) */
-body.theme-dark {
-    --color-bg-app: #1E1E1E;
-    --color-bg-canvas: #252526;
-    --color-bg-panel: #2D2D2D;
-    --color-bg-hover: #383838;
-    --color-bg-active: #0C4A6E;
-    --color-bg-well: #383838;
-    --color-bg-input: #1E1E1E;
-    --color-border: #454545;
-    --color-text-primary: #E0E0E0;
-    --color-text-secondary: #A0A0A0;
-    --color-text-disabled: #666666;
-    --color-shadow: rgba(0, 0, 0, 0.4);
+/* =============================================================================
+   LIGHT THEME
+   Applied via body.theme-light class
+   ============================================================================= */
+body.theme-light {
+    /* Background Hierarchy */
+    --color-bg-app: #E8E8E8;
+    --color-bg-canvas: #FFFFFF;
+    --color-bg-panel: #F5F5F5;
+    --color-bg-elevated: #FFFFFF;
+    --color-bg-input: #FFFFFF;
+    --color-bg-hover: #EBEBEB;
+    --color-bg-active: #D4EDFF;
+    --color-bg-selected: #E6F4FF;
     
-    --color-grid-dot: rgba(255, 255, 255, 0.08);
+    /* Surface Variants */
+    --color-surface-primary: #F5F5F5;
+    --color-surface-secondary: #EFEFEF;
+    --color-surface-tertiary: #E8E8E8;
+    
+    /* Text Hierarchy */
+    --color-text-primary: #1A1A1A;
+    --color-text-secondary: #666666;
+    --color-text-tertiary: #999999;
+    --color-text-disabled: #BBBBBB;
+    --color-text-inverse: #FFFFFF;
+    
+    /* Border & Dividers */
+    --color-border: #DDDDDD;
+    --color-border-subtle: #E8E8E8;
+    --color-border-strong: #CCCCCC;
+    --color-border-hover: #BBBBBB;
+    
+    /* Accent (keep consistent) */
+    --color-accent-hover: #0D86D7;
+    --color-accent-active: #0A6AAB;
+    --color-accent-subtle: rgba(24, 160, 251, 0.10);
+    
+    /* Status Colors (adjusted for light bg) */
+    --color-success-subtle: rgba(27, 196, 125, 0.12);
+    --color-warning-subtle: rgba(255, 190, 11, 0.12);
+    --color-danger-subtle: rgba(242, 72, 34, 0.12);
+    --color-info-subtle: rgba(24, 160, 251, 0.10);
+    
+    /* Interactive States */
+    --color-interactive-hover: rgba(0, 0, 0, 0.05);
+    --color-interactive-active: rgba(0, 0, 0, 0.08);
+    --color-interactive-selected: rgba(24, 160, 251, 0.15);
+    
+    /* Shadows (lighter for light mode) */
+    --color-shadow: rgba(0, 0, 0, 0.12);
+    --color-overlay: rgba(0, 0, 0, 0.3);
+    --color-backdrop: rgba(0, 0, 0, 0.4);
+    
+    /* Special Purpose */
+    --color-grid-dot: rgba(0, 0, 0, 0.06);
+    
+    /* Shadows */
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.08);
+    --shadow-md: 0 4px 8px rgba(0, 0, 0, 0.10);
+    --shadow-lg: 0 8px 16px rgba(0, 0, 0, 0.12);
+    --shadow-xl: 0 12px 24px rgba(0, 0, 0, 0.15);
+    --shadow-2xl: 0 20px 40px rgba(0, 0, 0, 0.18);
+    --shadow-floating: 0 4px 24px rgba(0, 0, 0, 0.12);
+    
+    /* Semantic Aliases (must be re-defined for light theme) */
+    --color-bg-primary: var(--color-surface-primary);
+    --color-bg-secondary: var(--color-surface-secondary);
+    --color-bg-tertiary: var(--color-surface-tertiary);
+    --color-bg-well: var(--color-bg-input);
+    
+    /* Property Inspector Tokens */
+    --prop-bg-input: var(--color-bg-input);
+    --prop-bg-input-hover: var(--color-bg-hover);
+    --prop-text-label: var(--color-text-secondary);
+    
+    /* Legacy Aliases */
+    --bg-app: var(--color-bg-app);
+    --bg-panel: var(--color-bg-panel);
+    --bg-well: var(--color-bg-input);
+    --border-color: var(--color-border);
+    --text-primary: var(--color-text-primary);
+    --text-secondary: var(--color-text-secondary);
 }

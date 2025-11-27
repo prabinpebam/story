@@ -111,7 +111,7 @@ export class StrokeSection {
         // 1. Drag Handle
         const dragHandle = document.createElement('div');
         dragHandle.innerHTML = Icons.DRAG_HANDLE;
-        dragHandle.style.color = '#666';
+        dragHandle.style.color = 'var(--color-text-tertiary)';
         dragHandle.style.cursor = 'grab';
         dragHandle.style.fontSize = '12px';
         dragHandle.style.display = 'flex';
@@ -150,11 +150,11 @@ export class StrokeSection {
             const midY = rect.top + rect.height / 2;
             
             if (e.clientY < midY) {
-                row.style.borderTop = '2px solid #0055FF';
+                row.style.borderTop = '2px solid var(--color-accent)';
                 row.style.borderBottom = 'none';
             } else {
                 row.style.borderTop = 'none';
-                row.style.borderBottom = '2px solid #0055FF';
+                row.style.borderBottom = '2px solid var(--color-accent)';
             }
         });
 
@@ -191,11 +191,11 @@ export class StrokeSection {
         combinedInput.style.flex = '1';
         combinedInput.style.display = 'flex';
         combinedInput.style.alignItems = 'center';
-        combinedInput.style.border = '1px solid #444';
-        combinedInput.style.borderRadius = '4px';
+        combinedInput.style.border = '1px solid var(--color-border)';
+        combinedInput.style.borderRadius = 'var(--radius-sm)';
         combinedInput.style.height = '24px';
         combinedInput.style.overflow = 'hidden';
-        combinedInput.style.backgroundColor = '#262626';
+        combinedInput.style.backgroundColor = 'var(--color-bg-input)';
 
         // Swatch (Trigger for Flyout)
         const swatch = document.createElement('div');
@@ -238,7 +238,7 @@ export class StrokeSection {
         hexInput.style.minWidth = '0';
         hexInput.style.border = 'none';
         hexInput.style.background = 'transparent';
-        hexInput.style.color = '#ccc';
+        hexInput.style.color = 'var(--color-text-secondary)';
         hexInput.style.fontSize = '11px';
         hexInput.style.fontFamily = 'monospace';
         hexInput.style.padding = '0 2px';
@@ -269,7 +269,7 @@ export class StrokeSection {
         const separator = document.createElement('div');
         separator.style.width = '1px';
         separator.style.height = '12px'; // Reduced height
-        separator.style.backgroundColor = '#444';
+        separator.style.backgroundColor = 'var(--color-border)';
         combinedInput.appendChild(separator);
 
         // Opacity Input
@@ -318,7 +318,7 @@ export class StrokeSection {
             }
         });
         if (!isNormalBlend) {
-            blendBtn.element.style.color = '#0055FF';
+            blendBtn.element.style.color = 'var(--color-accent)';
         }
         blendBtn.element.style.width = '24px';
         blendBtn.element.style.height = '24px';
@@ -376,16 +376,16 @@ export class StrokeSection {
         // Create a simple dropdown menu
         const menu = document.createElement('div');
         menu.style.position = 'fixed';
-        menu.style.zIndex = '10000';
-        menu.style.backgroundColor = '#2C2C2C';
-        menu.style.border = '1px solid #444';
-        menu.style.borderRadius = '4px';
+        menu.style.zIndex = 'var(--z-popover)';
+        menu.style.backgroundColor = 'var(--menu-bg)';
+        menu.style.border = '1px solid var(--color-border)';
+        menu.style.borderRadius = 'var(--radius-sm)';
         menu.style.padding = '4px 0';
-        menu.style.boxShadow = '0 4px 12px rgba(0,0,0,0.5)';
+        menu.style.boxShadow = 'var(--shadow-floating)';
         menu.style.width = '140px';
         menu.style.maxHeight = '300px';
         menu.style.overflowY = 'auto';
-        menu.style.fontFamily = 'sans-serif';
+        menu.style.fontFamily = 'var(--font-ui)';
         
         // Prevent clicks/scroll inside menu from closing it
         menu.addEventListener('mousedown', (e) => e.stopPropagation());
@@ -394,20 +394,20 @@ export class StrokeSection {
             const item = document.createElement('div');
             item.textContent = label;
             item.style.padding = '6px 12px';
-            item.style.fontSize = '12px';
-            item.style.color = '#ccc';
+            item.style.fontSize = 'var(--font-size-md)';
+            item.style.color = 'var(--color-text-primary)';
             item.style.cursor = 'pointer';
             item.style.display = 'flex';
             item.style.alignItems = 'center';
             item.style.justifyContent = 'space-between';
 
             if ((stroke.blendMode || 'normal') === mode) {
-                item.style.backgroundColor = '#0055FF';
-                item.style.color = '#fff';
+                item.style.backgroundColor = 'var(--color-accent)';
+                item.style.color = 'var(--color-text-on-accent)';
             }
 
             item.onmouseenter = () => {
-                if ((stroke.blendMode || 'normal') !== mode) item.style.backgroundColor = '#383838';
+                if ((stroke.blendMode || 'normal') !== mode) item.style.backgroundColor = 'var(--color-bg-hover)';
             };
             item.onmouseleave = () => {
                 if ((stroke.blendMode || 'normal') !== mode) item.style.backgroundColor = 'transparent';

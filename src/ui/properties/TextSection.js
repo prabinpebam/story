@@ -33,9 +33,9 @@ export class TextSection {
             options: this.getTextStyleOptions(),
             value: '',
             placeholder: 'No Style',
+            size: 'fill',
             onChange: (val) => this.applyTextStyle(val)
         });
-        this.styleDropdown.element.style.flex = '1';
         styleRow.appendChild(this.styleDropdown.element);
 
         // Style Action Menu Button (Edit/Detach)
@@ -53,8 +53,8 @@ export class TextSection {
         this.overrideIndicator = document.createElement('div');
         this.overrideIndicator.className = 'pi-style-override';
         this.overrideIndicator.style.display = 'none';
-        this.overrideIndicator.style.fontSize = '10px';
-        this.overrideIndicator.style.color = '#888';
+        this.overrideIndicator.style.fontSize = 'var(--font-size-xs)';
+        this.overrideIndicator.style.color = 'var(--color-text-secondary)';
         this.overrideIndicator.style.marginBottom = '8px';
         this.overrideIndicator.style.display = 'flex';
         this.overrideIndicator.style.justifyContent = 'space-between';
@@ -66,12 +66,12 @@ export class TextSection {
         
         const resetBtn = document.createElement('button');
         resetBtn.textContent = 'Reset';
-        resetBtn.style.fontSize = '10px';
+        resetBtn.style.fontSize = 'var(--font-size-xs)';
         resetBtn.style.padding = '2px 6px';
-        resetBtn.style.border = '1px solid #555';
-        resetBtn.style.borderRadius = '3px';
+        resetBtn.style.border = '1px solid var(--color-border)';
+        resetBtn.style.borderRadius = 'var(--radius-xs)';
         resetBtn.style.background = 'transparent';
-        resetBtn.style.color = '#888';
+        resetBtn.style.color = 'var(--color-text-secondary)';
         resetBtn.style.cursor = 'pointer';
         resetBtn.onclick = () => this.resetToStyle();
         this.overrideIndicator.appendChild(resetBtn);
@@ -232,11 +232,11 @@ export class TextSection {
         combinedInput.style.flex = '1';
         combinedInput.style.display = 'flex';
         combinedInput.style.alignItems = 'center';
-        combinedInput.style.border = '1px solid #444';
-        combinedInput.style.borderRadius = '4px';
+        combinedInput.style.border = '1px solid var(--color-border)';
+        combinedInput.style.borderRadius = 'var(--radius-sm)';
         combinedInput.style.height = '24px';
         combinedInput.style.overflow = 'hidden';
-        combinedInput.style.backgroundColor = '#262626';
+        combinedInput.style.backgroundColor = 'var(--color-bg-input)';
 
         // Swatch
         this.fillSwatch = document.createElement('div');
@@ -269,7 +269,7 @@ export class TextSection {
         this.fillHexInput.style.minWidth = '0';
         this.fillHexInput.style.border = 'none';
         this.fillHexInput.style.background = 'transparent';
-        this.fillHexInput.style.color = '#ccc';
+        this.fillHexInput.style.color = 'var(--color-text-secondary)';
         this.fillHexInput.style.fontSize = '11px';
         this.fillHexInput.style.fontFamily = 'monospace';
         this.fillHexInput.style.padding = '0 2px';
@@ -291,7 +291,7 @@ export class TextSection {
         const separator = document.createElement('div');
         separator.style.width = '1px';
         separator.style.height = '12px';
-        separator.style.backgroundColor = '#444';
+        separator.style.backgroundColor = 'var(--color-border)';
         combinedInput.appendChild(separator);
 
         // Opacity
@@ -404,8 +404,8 @@ export class TextSection {
              this.fillHexInput.value = 'Gradient';
              this.fillHexInput.disabled = true;
         } else if (fill.type === 'code') {
-             this.fillPreview.style.background = '#000';
-             this.fillPreview.style.backgroundImage = 'linear-gradient(45deg, #333 25%, transparent 25%), linear-gradient(-45deg, #333 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #333 75%), linear-gradient(-45deg, transparent 75%, #333 75%)';
+             this.fillPreview.style.background = 'var(--color-bg-app)';
+             this.fillPreview.style.backgroundImage = 'linear-gradient(45deg, var(--color-surface-tertiary) 25%, transparent 25%), linear-gradient(-45deg, var(--color-surface-tertiary) 25%, transparent 25%), linear-gradient(45deg, transparent 75%, var(--color-surface-tertiary) 75%), linear-gradient(-45deg, transparent 75%, var(--color-surface-tertiary) 75%)';
              this.fillPreview.style.backgroundSize = '8px 8px';
              this.fillHexInput.value = 'Code';
              this.fillHexInput.disabled = true;
@@ -782,11 +782,11 @@ export class TextSection {
         const menu = document.createElement('div');
         menu.className = 'style-action-menu';
         menu.style.position = 'fixed';
-        menu.style.backgroundColor = '#2C2C2C';
-        menu.style.border = '1px solid #444';
-        menu.style.borderRadius = '4px';
+        menu.style.backgroundColor = 'var(--menu-bg)';
+        menu.style.border = '1px solid var(--color-border)';
+        menu.style.borderRadius = 'var(--radius-sm)';
         menu.style.padding = '4px 0';
-        menu.style.zIndex = '10000';
+        menu.style.zIndex = 'var(--z-popover)';
         menu.style.minWidth = '120px';
         
         const rect = e.target.getBoundingClientRect();
@@ -803,10 +803,10 @@ export class TextSection {
             const item = document.createElement('div');
             item.textContent = label;
             item.style.padding = '6px 12px';
-            item.style.fontSize = '12px';
+            item.style.fontSize = 'var(--font-size-md)';
             item.style.cursor = 'pointer';
-            item.style.color = '#CCC';
-            item.onmouseenter = () => item.style.backgroundColor = '#444';
+            item.style.color = 'var(--color-text-primary)';
+            item.onmouseenter = () => item.style.backgroundColor = 'var(--color-bg-hover)';
             item.onmouseleave = () => item.style.backgroundColor = 'transparent';
             item.onclick = () => {
                 menu.remove();

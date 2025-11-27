@@ -101,9 +101,9 @@ export class SettingsModal {
                 { label: 'Azure', value: 'azure' }
             ],
             value: aiService.config.provider || 'openai',
+            size: 'fill',
             onChange: () => this.updateAIFieldsVisibility()
         });
-        this.providerDropdown.element.style.height = '32px';
         providerGroup.appendChild(this.providerDropdown.element);
         this.body.appendChild(providerGroup);
 
@@ -191,26 +191,26 @@ export class SettingsModal {
     }
 
     renderAppearanceContent() {
-        // Dark Mode Toggle
+        // Theme Toggle (Dark is default)
         const group = this.createFormGroup('Theme');
         
         const themeDropdown = new Dropdown({
             options: [
-                { label: 'Light', value: 'light' },
-                { label: 'Dark', value: 'dark' }
+                { label: 'Dark', value: 'dark' },
+                { label: 'Light', value: 'light' }
             ],
-            value: document.body.classList.contains('theme-dark') ? 'dark' : 'light',
+            value: document.body.classList.contains('theme-light') ? 'light' : 'dark',
+            size: 'fill',
             onChange: (value) => {
-                if (value === 'dark') {
-                    document.body.classList.add('theme-dark');
-                    localStorage.setItem('theme', 'dark');
-                } else {
-                    document.body.classList.remove('theme-dark');
+                if (value === 'light') {
+                    document.body.classList.add('theme-light');
                     localStorage.setItem('theme', 'light');
+                } else {
+                    document.body.classList.remove('theme-light');
+                    localStorage.setItem('theme', 'dark');
                 }
             }
         });
-        themeDropdown.element.style.height = '32px';
 
         group.appendChild(themeDropdown.element);
         this.body.appendChild(group);
@@ -218,8 +218,9 @@ export class SettingsModal {
 
     loadTheme() {
         const theme = localStorage.getItem('theme');
-        if (theme === 'dark') {
-            document.body.classList.add('theme-dark');
+        // Dark is default (no class needed), Light applies theme-light class
+        if (theme === 'light') {
+            document.body.classList.add('theme-light');
         }
     }
 

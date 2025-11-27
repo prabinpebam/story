@@ -62,12 +62,7 @@ export class TypographyStyleManager extends DraggablePanel {
         // Insert tabs after header title but before buttons
         const tabContainer = document.createElement('div');
         tabContainer.className = 'tsm-tabs';
-        tabContainer.style.cssText = `
-            padding: 0 var(--spacing-2) var(--spacing-2);
-            background: var(--color-bg-hover);
-        `;
         tabContainer.appendChild(this.tabControl.element);
-        this.tabControl.element.style.marginBottom = '0';
         
         // Insert after header
         this.element.insertBefore(tabContainer, this.contentElement);
@@ -95,33 +90,15 @@ export class TypographyStyleManager extends DraggablePanel {
     createPresetsTab() {
         const container = document.createElement('div');
         container.className = 'tsm-presets-tab';
-        container.style.cssText = `
-            display: flex;
-            flex-direction: column;
-            height: 100%;
-        `;
         
         // Search bar
         const searchContainer = document.createElement('div');
         searchContainer.className = 'tsm-search';
-        searchContainer.style.cssText = `
-            padding: var(--spacing-2);
-            border-bottom: 1px solid var(--color-border);
-        `;
         
         const searchInput = document.createElement('input');
         searchInput.type = 'text';
         searchInput.placeholder = 'Search font presets...';
         searchInput.className = 'tsm-search-input';
-        searchInput.style.cssText = `
-            width: 100%;
-            padding: var(--spacing-2);
-            background: var(--color-bg-secondary);
-            border: 1px solid var(--color-border);
-            border-radius: var(--radius-sm);
-            color: var(--color-text-primary);
-            font-size: var(--font-size-sm);
-        `;
         searchInput.addEventListener('input', (e) => {
             this.searchQuery = e.target.value;
             this.renderPresetGrid();
@@ -133,10 +110,6 @@ export class TypographyStyleManager extends DraggablePanel {
         // Category filter
         const filterContainer = document.createElement('div');
         filterContainer.className = 'tsm-filter';
-        filterContainer.style.cssText = `
-            padding: var(--spacing-2);
-            border-bottom: 1px solid var(--color-border);
-        `;
         
         this.categoryDropdown = new Dropdown({
             options: FONT_CATEGORIES.map(c => ({ value: c.id, label: c.name })),
@@ -153,14 +126,6 @@ export class TypographyStyleManager extends DraggablePanel {
         // Preset grid
         this.presetGrid = document.createElement('div');
         this.presetGrid.className = 'tsm-preset-grid';
-        this.presetGrid.style.cssText = `
-            flex: 1;
-            overflow-y: auto;
-            padding: var(--spacing-2);
-            display: flex;
-            flex-direction: column;
-            gap: var(--spacing-2);
-        `;
         
         container.appendChild(this.presetGrid);
         this.renderPresetGrid();
@@ -187,52 +152,26 @@ export class TypographyStyleManager extends DraggablePanel {
         if (presets.length === 0) {
             const emptyMessage = document.createElement('div');
             emptyMessage.textContent = 'No font presets found';
-            emptyMessage.style.cssText = `
-                color: var(--color-text-tertiary);
-                text-align: center;
-                padding: var(--spacing-4);
-                font-size: var(--font-size-sm);
-            `;
+            emptyMessage.className = 'tsm-empty-message';
             this.presetGrid.appendChild(emptyMessage);
         }
     }
 
     createPresetCard(preset) {
         const card = document.createElement('div');
-        card.className = 'tsm-preset-card';
-        card.style.cssText = `
-            padding: var(--spacing-3);
-            background: var(--color-bg-secondary);
-            border: 2px solid ${this.selectedPreset?.id === preset.id ? 'var(--color-accent)' : 'transparent'};
-            border-radius: var(--radius-md);
-            cursor: pointer;
-            transition: all 0.15s ease;
-        `;
+        card.className = 'tsm-preset-card' + (this.selectedPreset?.id === preset.id ? ' selected' : '');
         
         // Preset name and category
         const header = document.createElement('div');
-        header.style.cssText = `
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: var(--spacing-2);
-        `;
+        header.className = 'tsm-preset-header';
         
         const name = document.createElement('div');
         name.textContent = preset.name;
-        name.style.cssText = `
-            font-weight: 600;
-            font-size: var(--font-size-sm);
-            color: var(--color-text-primary);
-        `;
+        name.className = 'tsm-preset-name';
         
         const category = document.createElement('div');
         category.textContent = preset.category;
-        category.style.cssText = `
-            font-size: var(--font-size-xs);
-            color: var(--color-text-tertiary);
-            text-transform: capitalize;
-        `;
+        category.className = 'tsm-preset-category';
         
         header.appendChild(name);
         header.appendChild(category);
@@ -241,43 +180,25 @@ export class TypographyStyleManager extends DraggablePanel {
         // Font preview
         const preview = document.createElement('div');
         preview.className = 'tsm-font-preview';
-        preview.style.cssText = `
-            display: flex;
-            flex-direction: column;
-            gap: var(--spacing-1);
-        `;
         
         // Heading preview
         const headingPreview = document.createElement('div');
         headingPreview.textContent = 'Heading Text';
-        headingPreview.style.cssText = `
-            font-family: "${preset.fonts.heading.family}", ${preset.fonts.heading.fallback || 'sans-serif'};
-            font-weight: ${preset.fonts.heading.weight || '700'};
-            font-size: 18px;
-            color: var(--color-text-primary);
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        `;
+        headingPreview.className = 'tsm-heading-preview';
+        headingPreview.style.fontFamily = `"${preset.fonts.heading.family}", ${preset.fonts.heading.fallback || 'sans-serif'}`;
+        headingPreview.style.fontWeight = preset.fonts.heading.weight || '700';
         
         // Body preview
         const bodyPreview = document.createElement('div');
         bodyPreview.textContent = 'Body text sample';
-        bodyPreview.style.cssText = `
-            font-family: "${preset.fonts.body.family}", ${preset.fonts.body.fallback || 'sans-serif'};
-            font-weight: ${preset.fonts.body.weight || '400'};
-            font-size: 13px;
-            color: var(--color-text-secondary);
-        `;
+        bodyPreview.className = 'tsm-body-preview';
+        bodyPreview.style.fontFamily = `"${preset.fonts.body.family}", ${preset.fonts.body.fallback || 'sans-serif'}`;
+        bodyPreview.style.fontWeight = preset.fonts.body.weight || '400';
         
         // Font names
         const fontNames = document.createElement('div');
         fontNames.textContent = `${preset.fonts.heading.family} / ${preset.fonts.body.family}`;
-        fontNames.style.cssText = `
-            font-size: 10px;
-            color: var(--color-text-tertiary);
-            margin-top: var(--spacing-1);
-        `;
+        fontNames.className = 'tsm-font-names';
         
         preview.appendChild(headingPreview);
         preview.appendChild(bodyPreview);
@@ -289,14 +210,12 @@ export class TypographyStyleManager extends DraggablePanel {
             this.selectPreset(preset, card);
         });
         
-        // Hover effects
+        // Hover effects (preview managed separately, hover styles in CSS)
         card.addEventListener('mouseenter', () => {
-            card.style.background = 'var(--color-bg-hover)';
             this.previewPreset(preset);
         });
         
         card.addEventListener('mouseleave', () => {
-            card.style.background = 'var(--color-bg-secondary)';
             if (!this.selectedPreset) {
                 this.cancelPreview();
             }
@@ -313,12 +232,12 @@ export class TypographyStyleManager extends DraggablePanel {
         
         this.selectedPreset = preset;
         
-        // Update card borders
+        // Update card borders via class
         const cards = this.presetGrid.querySelectorAll('.tsm-preset-card');
         cards.forEach(c => {
-            c.style.borderColor = 'transparent';
+            c.classList.remove('selected');
         });
-        card.style.borderColor = 'var(--color-accent)';
+        card.classList.add('selected');
     }
 
     previewPreset(preset) {
@@ -384,12 +303,6 @@ export class TypographyStyleManager extends DraggablePanel {
     createCustomTab() {
         const container = document.createElement('div');
         container.className = 'tsm-custom-tab';
-        container.style.cssText = `
-            display: none;
-            flex-direction: column;
-            height: 100%;
-            overflow-y: auto;
-        `;
         
         // Font Pairings Section
         const fontSection = this.createFontPairingSection();
@@ -405,19 +318,10 @@ export class TypographyStyleManager extends DraggablePanel {
     createFontPairingSection() {
         const section = document.createElement('div');
         section.className = 'tsm-section';
-        section.style.cssText = `
-            padding: var(--spacing-3);
-            border-bottom: 1px solid var(--color-border);
-        `;
         
         const header = document.createElement('div');
         header.textContent = 'Font Pairing';
-        header.style.cssText = `
-            font-weight: 600;
-            font-size: var(--font-size-sm);
-            color: var(--color-text-primary);
-            margin-bottom: var(--spacing-2);
-        `;
+        header.className = 'tsm-section-header';
         section.appendChild(header);
         
         // Heading font dropdown
@@ -434,20 +338,10 @@ export class TypographyStyleManager extends DraggablePanel {
     createFontRow(label, fontType) {
         const row = document.createElement('div');
         row.className = 'tsm-font-row';
-        row.style.cssText = `
-            display: flex;
-            align-items: center;
-            gap: var(--spacing-2);
-            margin-bottom: var(--spacing-2);
-        `;
         
         const labelEl = document.createElement('div');
         labelEl.textContent = label;
-        labelEl.style.cssText = `
-            width: 60px;
-            font-size: var(--font-size-sm);
-            color: var(--color-text-secondary);
-        `;
+        labelEl.className = 'tsm-font-label';
         row.appendChild(labelEl);
         
         const fontOptions = AVAILABLE_FONTS.map(f => ({
@@ -458,12 +352,12 @@ export class TypographyStyleManager extends DraggablePanel {
         const dropdown = new Dropdown({
             options: fontOptions,
             value: 'Inter',
+            size: 'fill',
             onChange: (fontFamily) => {
                 this.updateThemeFont(fontType, fontFamily);
             }
         });
         
-        dropdown.element.style.flex = '1';
         row.appendChild(dropdown.element);
         
         // Store reference for updating
@@ -479,18 +373,10 @@ export class TypographyStyleManager extends DraggablePanel {
     createTextStylesSection() {
         const section = document.createElement('div');
         section.className = 'tsm-styles-section';
-        section.style.cssText = `
-            padding: var(--spacing-3);
-        `;
         
         const header = document.createElement('div');
         header.textContent = 'Text Styles';
-        header.style.cssText = `
-            font-weight: 600;
-            font-size: var(--font-size-sm);
-            color: var(--color-text-primary);
-            margin-bottom: var(--spacing-2);
-        `;
+        header.className = 'tsm-section-header';
         section.appendChild(header);
         
         // Style editors container
@@ -510,53 +396,21 @@ export class TypographyStyleManager extends DraggablePanel {
     createStyleEditor(styleDef) {
         const container = document.createElement('div');
         container.className = 'tsm-style-editor';
-        container.style.cssText = `
-            background: var(--color-bg-secondary);
-            border-radius: var(--radius-md);
-            margin-bottom: var(--spacing-2);
-            overflow: hidden;
-        `;
         
         // Header (clickable to expand)
         const header = document.createElement('div');
         header.className = 'tsm-style-header';
-        header.style.cssText = `
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: var(--spacing-2) var(--spacing-3);
-            cursor: pointer;
-            transition: background 0.15s ease;
-        `;
-        
-        header.addEventListener('mouseenter', () => {
-            header.style.background = 'var(--color-bg-hover)';
-        });
-        header.addEventListener('mouseleave', () => {
-            header.style.background = 'transparent';
-        });
         
         const titleContainer = document.createElement('div');
-        titleContainer.style.cssText = `
-            display: flex;
-            align-items: center;
-            gap: var(--spacing-2);
-        `;
+        titleContainer.className = 'tsm-style-title-container';
         
         const expandIcon = document.createElement('div');
         expandIcon.innerHTML = this.expandedStyles.has(styleDef.id) ? '▼' : '▶';
-        expandIcon.style.cssText = `
-            font-size: 8px;
-            color: var(--color-text-tertiary);
-            transition: transform 0.15s ease;
-        `;
+        expandIcon.className = 'tsm-expand-icon';
         
         const styleLabel = document.createElement('div');
         styleLabel.textContent = styleDef.name;
-        styleLabel.style.cssText = `
-            font-size: var(--font-size-sm);
-            color: var(--color-text-primary);
-        `;
+        styleLabel.className = 'tsm-style-label';
         
         titleContainer.appendChild(expandIcon);
         titleContainer.appendChild(styleLabel);
@@ -564,22 +418,14 @@ export class TypographyStyleManager extends DraggablePanel {
         // Preview text
         const previewText = document.createElement('div');
         previewText.textContent = 'Aa';
-        previewText.style.cssText = `
-            font-size: 16px;
-            color: var(--color-text-secondary);
-        `;
+        previewText.className = 'tsm-preview-text';
         
         header.appendChild(titleContainer);
         header.appendChild(previewText);
         
         // Properties panel (collapsible)
         const propertiesPanel = document.createElement('div');
-        propertiesPanel.className = 'tsm-style-properties';
-        propertiesPanel.style.cssText = `
-            display: ${this.expandedStyles.has(styleDef.id) ? 'block' : 'none'};
-            padding: var(--spacing-2) var(--spacing-3);
-            border-top: 1px solid var(--color-border);
-        `;
+        propertiesPanel.className = 'tsm-style-properties' + (this.expandedStyles.has(styleDef.id) ? '' : ' collapsed');
         
         // Font size row
         const fontSizeRow = this.createPropertyRow('Size', 'fontSize', styleDef.id, 'number', { min: 8, max: 200, step: 1 });
@@ -610,11 +456,11 @@ export class TypographyStyleManager extends DraggablePanel {
             const isExpanded = this.expandedStyles.has(styleDef.id);
             if (isExpanded) {
                 this.expandedStyles.delete(styleDef.id);
-                propertiesPanel.style.display = 'none';
+                propertiesPanel.classList.add('collapsed');
                 expandIcon.innerHTML = '▶';
             } else {
                 this.expandedStyles.add(styleDef.id);
-                propertiesPanel.style.display = 'block';
+                propertiesPanel.classList.remove('collapsed');
                 expandIcon.innerHTML = '▼';
             }
         });
@@ -628,19 +474,10 @@ export class TypographyStyleManager extends DraggablePanel {
     createPropertyRow(label, property, styleId, type, config = {}) {
         const row = document.createElement('div');
         row.className = 'tsm-property-row';
-        row.style.cssText = `
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: var(--spacing-2);
-        `;
         
         const labelEl = document.createElement('div');
         labelEl.textContent = label;
-        labelEl.style.cssText = `
-            font-size: var(--font-size-xs);
-            color: var(--color-text-secondary);
-        `;
+        labelEl.className = 'tsm-property-label';
         row.appendChild(labelEl);
         
         let input;
@@ -649,44 +486,26 @@ export class TypographyStyleManager extends DraggablePanel {
             const dropdown = new Dropdown({
                 options: config.options,
                 value: '400',
+                size: 'md',
                 onChange: (value) => {
                     this.updateTextStyle(styleId, property, value);
                 }
             });
-            dropdown.element.style.width = '100px';
             input = dropdown.element;
         } else if (type === 'number') {
             input = document.createElement('input');
             input.type = 'number';
+            input.className = 'tsm-property-input';
             input.min = config.min;
             input.max = config.max;
             input.step = config.step;
-            input.style.cssText = `
-                width: 70px;
-                padding: var(--spacing-1) var(--spacing-2);
-                background: var(--color-bg-tertiary);
-                border: 1px solid var(--color-border);
-                border-radius: var(--radius-sm);
-                color: var(--color-text-primary);
-                font-size: var(--font-size-xs);
-                text-align: right;
-            `;
             input.addEventListener('change', (e) => {
                 this.updateTextStyle(styleId, property, parseFloat(e.target.value));
             });
         } else {
             input = document.createElement('input');
             input.type = 'text';
-            input.style.cssText = `
-                width: 70px;
-                padding: var(--spacing-1) var(--spacing-2);
-                background: var(--color-bg-tertiary);
-                border: 1px solid var(--color-border);
-                border-radius: var(--radius-sm);
-                color: var(--color-text-primary);
-                font-size: var(--font-size-xs);
-                text-align: right;
-            `;
+            input.className = 'tsm-property-input';
             input.addEventListener('change', (e) => {
                 this.updateTextStyle(styleId, property, e.target.value);
             });
@@ -742,24 +561,10 @@ export class TypographyStyleManager extends DraggablePanel {
     createAITab() {
         const container = document.createElement('div');
         container.className = 'tsm-ai-tab';
-        container.style.cssText = `
-            display: none;
-            flex-direction: column;
-            height: 100%;
-            padding: var(--spacing-3);
-        `;
         
         // AI coming soon message
         const message = document.createElement('div');
-        message.style.cssText = `
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            height: 100%;
-            text-align: center;
-            color: var(--color-text-secondary);
-        `;
+        message.className = 'tsm-ai-message';
         
         const icon = document.createElement('div');
         icon.innerHTML = `<svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
@@ -767,36 +572,19 @@ export class TypographyStyleManager extends DraggablePanel {
             <path d="M2 17l10 5 10-5"/>
             <path d="M2 12l10 5 10-5"/>
         </svg>`;
-        icon.style.marginBottom = 'var(--spacing-3)';
-        icon.style.opacity = '0.5';
+        icon.className = 'tsm-ai-icon';
         
         const title = document.createElement('div');
         title.textContent = 'AI Typography Generator';
-        title.style.cssText = `
-            font-weight: 600;
-            font-size: var(--font-size-md);
-            margin-bottom: var(--spacing-2);
-            color: var(--color-text-primary);
-        `;
+        title.className = 'tsm-ai-title';
         
         const subtitle = document.createElement('div');
         subtitle.textContent = 'Describe your desired typography style and let AI generate custom font pairings and text styles for you.';
-        subtitle.style.cssText = `
-            font-size: var(--font-size-sm);
-            max-width: 240px;
-            line-height: 1.5;
-        `;
+        subtitle.className = 'tsm-ai-subtitle';
         
         const comingSoon = document.createElement('div');
         comingSoon.textContent = 'Coming Soon';
-        comingSoon.style.cssText = `
-            margin-top: var(--spacing-3);
-            padding: var(--spacing-1) var(--spacing-2);
-            background: var(--color-bg-secondary);
-            border-radius: var(--radius-sm);
-            font-size: var(--font-size-xs);
-            color: var(--color-text-tertiary);
-        `;
+        comingSoon.className = 'tsm-coming-soon';
         
         message.appendChild(icon);
         message.appendChild(title);
@@ -813,59 +601,17 @@ export class TypographyStyleManager extends DraggablePanel {
     createFooter() {
         const footer = document.createElement('div');
         footer.className = 'tsm-footer';
-        footer.style.cssText = `
-            display: flex;
-            gap: var(--spacing-2);
-            padding: var(--spacing-3);
-            border-top: 1px solid var(--color-border);
-            background: var(--color-bg-primary);
-        `;
         
         // Apply button
         const applyBtn = document.createElement('button');
         applyBtn.textContent = 'Apply';
         applyBtn.className = 'tsm-btn-primary';
-        applyBtn.style.cssText = `
-            flex: 1;
-            padding: var(--spacing-2) var(--spacing-3);
-            background: var(--color-accent);
-            color: white;
-            border: none;
-            border-radius: var(--radius-sm);
-            font-size: var(--font-size-sm);
-            font-weight: 500;
-            cursor: pointer;
-            transition: opacity 0.15s ease;
-        `;
-        applyBtn.addEventListener('mouseenter', () => {
-            applyBtn.style.opacity = '0.9';
-        });
-        applyBtn.addEventListener('mouseleave', () => {
-            applyBtn.style.opacity = '1';
-        });
         applyBtn.addEventListener('click', () => this.applySelection());
         
         // Reset button
         const resetBtn = document.createElement('button');
         resetBtn.textContent = 'Reset';
         resetBtn.className = 'tsm-btn-secondary';
-        resetBtn.style.cssText = `
-            padding: var(--spacing-2) var(--spacing-3);
-            background: var(--color-bg-secondary);
-            color: var(--color-text-primary);
-            border: 1px solid var(--color-border);
-            border-radius: var(--radius-sm);
-            font-size: var(--font-size-sm);
-            font-weight: 500;
-            cursor: pointer;
-            transition: background 0.15s ease;
-        `;
-        resetBtn.addEventListener('mouseenter', () => {
-            resetBtn.style.background = 'var(--color-bg-hover)';
-        });
-        resetBtn.addEventListener('mouseleave', () => {
-            resetBtn.style.background = 'var(--color-bg-secondary)';
-        });
         resetBtn.addEventListener('click', () => this.resetFonts());
         
         footer.appendChild(resetBtn);
@@ -913,20 +659,7 @@ export class TypographyStyleManager extends DraggablePanel {
         // Simple toast notification
         const toast = document.createElement('div');
         toast.textContent = message;
-        toast.style.cssText = `
-            position: fixed;
-            bottom: var(--spacing-4);
-            left: 50%;
-            transform: translateX(-50%);
-            padding: var(--spacing-2) var(--spacing-4);
-            background: var(--color-bg-elevated);
-            color: var(--color-text-primary);
-            border-radius: var(--radius-md);
-            font-size: var(--font-size-sm);
-            box-shadow: var(--shadow-lg);
-            z-index: 10000;
-            animation: fadeInUp 0.2s ease;
-        `;
+        toast.className = 'tsm-toast';
         
         document.body.appendChild(toast);
         

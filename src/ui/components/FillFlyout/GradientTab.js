@@ -178,13 +178,13 @@ export class GradientTab {
                 { label: 'Diamond', value: 'diamond' }
             ],
             value: this.state.type,
+            size: 'fill',
             onChange: (value) => {
                 this.state.type = value;
                 this.emitChange();
                 this.render(); // Full render needed for angle input visibility
             }
         });
-        typeDropdown.element.style.flex = '1';
         typeDropdown.element.style.height = '24px';
         this.topBar.appendChild(typeDropdown.element);
 
@@ -288,7 +288,7 @@ export class GradientTab {
             handle.style.width = '16px';
             handle.style.height = '16px';
             handle.style.borderRadius = '50% 50% 0 50%';
-            handle.style.border = '2px solid #fff';
+            handle.style.border = '2px solid var(--color-text-primary)';
             handle.style.boxShadow = '0 0 2px rgba(0,0,0,0.5)';
             handle.style.position = 'absolute';
             handle.style.top = '0px';
@@ -299,7 +299,7 @@ export class GradientTab {
             handle.style.zIndex = index === this.selectedStopIndex ? '10' : '1';
 
             if (index === this.selectedStopIndex) {
-                handle.style.borderColor = '#0055FF';
+                handle.style.borderColor = 'var(--color-accent)';
                 handle.style.transform = 'translate(-50%, -85%) rotate(45deg) scale(1.2)';
             }
 
@@ -316,11 +316,11 @@ export class GradientTab {
                 const handles = Array.from(container.children).slice(1);
                 handles.forEach((h, i) => {
                     if (i === index) {
-                        h.style.borderColor = '#0055FF';
+                        h.style.borderColor = 'var(--color-accent)';
                         h.style.transform = 'translate(-50%, -85%) rotate(45deg) scale(1.2)';
                         h.style.zIndex = '10';
                     } else {
-                        h.style.borderColor = '#fff';
+                        h.style.borderColor = 'var(--color-text-primary)';
                         h.style.transform = 'translate(-50%, -85%) rotate(45deg)';
                         h.style.zIndex = '1';
                     }
@@ -329,7 +329,7 @@ export class GradientTab {
                 // Update list selection visual
                 const listRows = this.stopsListContainer.querySelectorAll('.stop-row');
                 listRows.forEach((row, i) => {
-                    row.style.backgroundColor = i === index ? '#444' : 'transparent';
+                    row.style.backgroundColor = i === index ? 'var(--color-bg-active)' : 'transparent';
                 });
 
                 const startX = e.clientX;
@@ -392,8 +392,7 @@ export class GradientTab {
         
         const label = document.createElement('span');
         label.textContent = 'Stops';
-        label.style.fontSize = '11px';
-        label.style.color = '#888';
+        label.className = 'flyout-label';
         listHeader.appendChild(label);
 
         const addStopBtn = new IconButton({
@@ -431,7 +430,7 @@ export class GradientTab {
             row.style.cursor = 'pointer';
             
             if (index === this.selectedStopIndex) {
-                row.style.backgroundColor = '#444';
+                row.style.backgroundColor = 'var(--color-bg-active)';
             }
             
             row.onclick = () => {
@@ -446,7 +445,7 @@ export class GradientTab {
             swatch.style.height = '16px';
             swatch.style.borderRadius = '2px';
             swatch.style.backgroundColor = stop.color;
-            swatch.style.border = '1px solid #666';
+            swatch.style.border = '1px solid var(--color-border)';
             swatch.style.cursor = 'pointer';
             
             swatch.onclick = (e) => {

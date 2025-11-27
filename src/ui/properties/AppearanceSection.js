@@ -50,12 +50,12 @@ export class AppearanceSection {
                 { label: 'Luminosity', value: 'luminosity' }
             ],
             value: 'normal',
+            size: 'fill',
             onChange: (val) => this.updateProperty('blendMode', val)
         });
         
         // Style adjustments for row
         this.opacityInput.element.style.flex = '0 0 100px'; // Fixed width for opacity
-        this.blendModeSelect.element.style.flex = '1';
 
         opacityRow.appendChild(this.opacityInput.element);
         opacityRow.appendChild(this.blendModeSelect.element);

@@ -10,9 +10,7 @@ export class ImageTab {
         this.onChange = options.onChange || (() => {});
         
         this.element = document.createElement('div');
-        this.element.style.display = 'flex';
-        this.element.style.flexDirection = 'column';
-        this.element.style.gap = '12px';
+        this.element.className = 'flyout-content';
         
         this.render();
     }
@@ -22,17 +20,7 @@ export class ImageTab {
 
         // 1. Image Preview / Upload Area
         const previewArea = document.createElement('div');
-        previewArea.style.width = '100%';
-        previewArea.style.height = '120px';
-        previewArea.style.borderRadius = '4px';
-        previewArea.style.backgroundColor = '#1a1a1a';
-        previewArea.style.border = '1px dashed #555';
-        previewArea.style.display = 'flex';
-        previewArea.style.alignItems = 'center';
-        previewArea.style.justifyContent = 'center';
-        previewArea.style.cursor = 'pointer';
-        previewArea.style.overflow = 'hidden';
-        previewArea.style.position = 'relative';
+        previewArea.className = 'media-preview-area';
 
         if (this.fill.assetId) {
             // Show image preview
@@ -40,32 +28,16 @@ export class ImageTab {
             if (blobUrl) {
                 const img = document.createElement('img');
                 img.src = blobUrl;
-                img.style.maxWidth = '100%';
-                img.style.maxHeight = '100%';
-                img.style.objectFit = 'contain';
                 previewArea.appendChild(img);
                 
                 // Remove button overlay
-                const removeBtn = document.createElement('div');
-                removeBtn.style.position = 'absolute';
-                removeBtn.style.top = '4px';
-                removeBtn.style.right = '4px';
-                removeBtn.style.width = '20px';
-                removeBtn.style.height = '20px';
-                removeBtn.style.borderRadius = '50%';
-                removeBtn.style.backgroundColor = 'rgba(0,0,0,0.7)';
-                removeBtn.style.display = 'flex';
-                removeBtn.style.alignItems = 'center';
-                removeBtn.style.justifyContent = 'center';
-                removeBtn.style.cursor = 'pointer';
+                const removeBtn = document.createElement('button');
+                removeBtn.className = 'media-remove-btn';
                 removeBtn.innerHTML = Icons.CLOSE;
                 const svgEl = removeBtn.querySelector('svg');
                 if (svgEl) {
                     svgEl.style.width = '12px';
                     svgEl.style.height = '12px';
-                } else {
-                    removeBtn.style.fontSize = '12px';
-                    removeBtn.style.color = '#fff';
                 }
                 removeBtn.addEventListener('click', (e) => {
                     e.stopPropagation();
@@ -76,16 +48,15 @@ export class ImageTab {
         } else {
             // Show upload prompt
             const uploadPrompt = document.createElement('div');
-            uploadPrompt.style.textAlign = 'center';
-            uploadPrompt.style.color = '#888';
+            uploadPrompt.className = 'media-upload-prompt';
             
             const icon = document.createElement('div');
+            icon.className = 'icon';
             icon.innerHTML = Icons.IMAGE || `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>`;
-            icon.style.marginBottom = '8px';
             
             const text = document.createElement('div');
+            text.className = 'text';
             text.textContent = 'Click or drop image';
-            text.style.fontSize = '11px';
             
             uploadPrompt.appendChild(icon);
             uploadPrompt.appendChild(text);
@@ -107,14 +78,14 @@ export class ImageTab {
         previewArea.addEventListener('click', () => fileInput.click());
         previewArea.addEventListener('dragover', (e) => {
             e.preventDefault();
-            previewArea.style.borderColor = '#007AFF';
+            previewArea.classList.add('drag-over');
         });
         previewArea.addEventListener('dragleave', () => {
-            previewArea.style.borderColor = '#555';
+            previewArea.classList.remove('drag-over');
         });
         previewArea.addEventListener('drop', (e) => {
             e.preventDefault();
-            previewArea.style.borderColor = '#555';
+            previewArea.classList.remove('drag-over');
             if (e.dataTransfer.files.length > 0) {
                 this.handleImageFile(e.dataTransfer.files[0]);
             }
@@ -125,8 +96,7 @@ export class ImageTab {
 
         // 2. Scale Mode Selector
         const scaleModeRow = document.createElement('div');
-        scaleModeRow.style.display = 'flex';
-        scaleModeRow.style.gap = '4px';
+        scaleModeRow.className = 'scale-mode-row';
 
         const scaleModes = [
             { value: 'fill', label: 'Fill', title: 'Fill (cover entire shape)' },
@@ -139,14 +109,7 @@ export class ImageTab {
             const btn = document.createElement('button');
             btn.textContent = mode.label;
             btn.title = mode.title;
-            btn.style.flex = '1';
-            btn.style.padding = '6px 8px';
-            btn.style.fontSize = '10px';
-            btn.style.border = 'none';
-            btn.style.borderRadius = '4px';
-            btn.style.cursor = 'pointer';
-            btn.style.backgroundColor = this.fill.scaleMode === mode.value ? '#007AFF' : '#3a3a3a';
-            btn.style.color = '#fff';
+            btn.className = 'scale-mode-btn' + (this.fill.scaleMode === mode.value ? ' active' : '');
             btn.addEventListener('click', () => this.setScaleMode(mode.value));
             scaleModeRow.appendChild(btn);
         });
@@ -161,15 +124,11 @@ export class ImageTab {
 
         // 4. Opacity Control
         const opacityRow = document.createElement('div');
-        opacityRow.style.display = 'flex';
-        opacityRow.style.alignItems = 'center';
-        opacityRow.style.gap = '8px';
+        opacityRow.className = 'flyout-row';
 
         const opacityLabel = document.createElement('span');
+        opacityLabel.className = 'flyout-label';
         opacityLabel.textContent = 'Opacity';
-        opacityLabel.style.fontSize = '11px';
-        opacityLabel.style.color = '#aaa';
-        opacityLabel.style.width = '60px';
 
         const opacityInput = new NumberInput({
             value: this.fill.opacity ?? 100,
@@ -200,16 +159,12 @@ export class ImageTab {
         section.style.gap = '8px';
 
         const label = document.createElement('span');
+        label.className = 'flyout-label';
         label.textContent = 'Position';
-        label.style.fontSize = '11px';
-        label.style.color = '#aaa';
 
         // Position grid (3x3)
         const grid = document.createElement('div');
-        grid.style.display = 'grid';
-        grid.style.gridTemplateColumns = 'repeat(3, 1fr)';
-        grid.style.gap = '2px';
-        grid.style.width = '80px';
+        grid.className = 'position-grid';
 
         const positions = [
             { x: 0, y: 0 }, { x: 0.5, y: 0 }, { x: 1, y: 0 },
@@ -218,27 +173,13 @@ export class ImageTab {
         ];
 
         positions.forEach(pos => {
-            const btn = document.createElement('div');
-            btn.style.width = '24px';
-            btn.style.height = '24px';
-            btn.style.borderRadius = '2px';
-            btn.style.backgroundColor = '#3a3a3a';
-            btn.style.cursor = 'pointer';
-            btn.style.display = 'flex';
-            btn.style.alignItems = 'center';
-            btn.style.justifyContent = 'center';
-            
             const isActive = this.fill.position?.x === pos.x && this.fill.position?.y === pos.y;
-            if (isActive) {
-                btn.style.backgroundColor = '#007AFF';
-            }
+            const btn = document.createElement('button');
+            btn.className = 'position-grid-btn' + (isActive ? ' active' : '');
             
             // Dot indicator
             const dot = document.createElement('div');
-            dot.style.width = '4px';
-            dot.style.height = '4px';
-            dot.style.borderRadius = '50%';
-            dot.style.backgroundColor = isActive ? '#fff' : '#666';
+            dot.className = 'dot';
             btn.appendChild(dot);
             
             btn.addEventListener('click', () => this.setPosition(pos.x, pos.y));
@@ -252,34 +193,24 @@ export class ImageTab {
 
     createAdjustmentsSection() {
         const section = document.createElement('div');
-        section.style.borderTop = '1px solid #444';
-        section.style.paddingTop = '12px';
-        section.style.marginTop = '4px';
+        section.className = 'collapsible-section' + (this.adjustmentsExpanded ? ' expanded' : '');
 
         const header = document.createElement('div');
-        header.style.display = 'flex';
-        header.style.justifyContent = 'space-between';
-        header.style.alignItems = 'center';
-        header.style.cursor = 'pointer';
-        header.style.marginBottom = '8px';
+        header.className = 'collapsible-header';
 
         const title = document.createElement('span');
+        title.className = 'collapsible-title';
         title.textContent = 'Adjustments';
-        title.style.fontSize = '11px';
-        title.style.color = '#aaa';
 
         const arrow = document.createElement('span');
-        arrow.textContent = this.adjustmentsExpanded ? '▼' : '▶';
-        arrow.style.fontSize = '8px';
-        arrow.style.color = '#666';
+        arrow.className = 'collapsible-arrow';
+        arrow.textContent = '▶';
 
         header.appendChild(title);
         header.appendChild(arrow);
 
         const content = document.createElement('div');
-        content.style.display = this.adjustmentsExpanded ? 'flex' : 'none';
-        content.style.flexDirection = 'column';
-        content.style.gap = '8px';
+        content.className = 'collapsible-content';
 
         const adjustments = [
             { key: 'brightness', label: 'Brightness', min: -100, max: 100, default: 0 },
@@ -291,15 +222,11 @@ export class ImageTab {
 
         adjustments.forEach(adj => {
             const row = document.createElement('div');
-            row.style.display = 'flex';
-            row.style.alignItems = 'center';
-            row.style.gap = '8px';
+            row.className = 'flyout-row';
 
             const label = document.createElement('span');
+            label.className = 'flyout-label flyout-label-wide';
             label.textContent = adj.label;
-            label.style.fontSize = '10px';
-            label.style.color = '#888';
-            label.style.width = '70px';
 
             const input = new NumberInput({
                 value: this.fill.filters?.[adj.key] ?? adj.default,
@@ -321,8 +248,7 @@ export class ImageTab {
 
         header.addEventListener('click', () => {
             this.adjustmentsExpanded = !this.adjustmentsExpanded;
-            arrow.textContent = this.adjustmentsExpanded ? '▼' : '▶';
-            content.style.display = this.adjustmentsExpanded ? 'flex' : 'none';
+            section.classList.toggle('expanded', this.adjustmentsExpanded);
         });
 
         section.appendChild(header);

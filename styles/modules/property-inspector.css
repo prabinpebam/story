@@ -1,15 +1,9 @@
 /* --- Property Inspector (High Density) --- */
 .property-inspector {
-    /* Overrides for High-Density Panel */
-    --prop-bg-input: #383838;       /* Lighter input for contrast on dark panel */
-    --prop-bg-input-hover: #444444;
-    --prop-text-label: #B3B3B3;     /* Muted label */
-    --prop-border-radius: 4px;      /* Sharper corners for pro feel */
-    
-    /* Spacing Overrides */
-    --row-height: 32px;
-    --input-height: 28px;
-    --spacing-row: 8px;
+    /* Use global tokens - no need to redefine here */
+    --row-height: var(--pi-row-height);
+    --input-height: var(--pi-input-height);
+    --spacing-row: var(--spacing-2);
     
     display: flex;
     flex-direction: column;
@@ -63,11 +57,11 @@
     flex: 1;
     min-width: 0;
     
-    /* Visuals */
+    /* Visuals - use global tokens */
     background-color: var(--prop-bg-input);
     border-radius: var(--prop-border-radius);
-    height: var(--input-height);
-    padding: 0 4px;
+    height: var(--input-height-md);
+    padding: 0 var(--input-padding-x);
     border: 1px solid transparent;
 }
 
@@ -147,7 +141,7 @@ select.pi-input option {
 .layout-grid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    gap: 8px;
+    gap: var(--spacing-2);
     padding: 4px 0;
 }
 
@@ -155,7 +149,7 @@ select.pi-input option {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 4px;
+    gap: var(--spacing-1);
     padding: 4px;
     border-radius: var(--radius-sm);
     cursor: pointer;
@@ -249,8 +243,8 @@ select.pi-input option {
 
 .layout-flyout-grid {
     display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 8px;
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--spacing-2);
 }
 
 .layout-flyout-grid .layout-thumbnail {

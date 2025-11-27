@@ -16,9 +16,7 @@ export class CodeTab {
         this.runner = null;
         
         this.element = document.createElement('div');
-        this.element.style.display = 'flex';
-        this.element.style.flexDirection = 'column';
-        this.element.style.gap = '12px';
+        this.element.className = 'flyout-content';
         
         this.render();
     }
@@ -29,12 +27,7 @@ export class CodeTab {
 
         // Sub-tabs header
         const tabsHeader = document.createElement('div');
-        tabsHeader.style.cssText = `
-            display: flex;
-            gap: 0;
-            border-bottom: 1px solid #444;
-            margin-bottom: 4px;
-        `;
+        tabsHeader.className = 'flyout-tabs';
 
         const presetsTabBtn = this.createTabButton('Presets', this.activeSubTab === 'presets');
         presetsTabBtn.onclick = () => this.switchSubTab('presets');
@@ -62,24 +55,7 @@ export class CodeTab {
     createTabButton(label, isActive) {
         const btn = document.createElement('button');
         btn.textContent = label;
-        btn.style.cssText = `
-            flex: 1;
-            padding: 8px 12px;
-            border: none;
-            background: ${isActive ? '#383838' : 'transparent'};
-            color: ${isActive ? '#fff' : '#888'};
-            font-size: 11px;
-            font-weight: ${isActive ? '600' : '400'};
-            cursor: pointer;
-            transition: all 0.15s ease;
-            border-bottom: 2px solid ${isActive ? '#0055FF' : 'transparent'};
-        `;
-        btn.onmouseenter = () => {
-            if (!isActive) btn.style.background = '#333';
-        };
-        btn.onmouseleave = () => {
-            if (!isActive) btn.style.background = 'transparent';
-        };
+        btn.className = 'flyout-tab' + (isActive ? ' active' : '');
         return btn;
     }
 
@@ -107,19 +83,10 @@ export class CodeTab {
     renderCustomContent(container) {
         // 1. Canvas Preview
         const previewContainer = document.createElement('div');
-        previewContainer.style.cssText = `
-            width: 100%;
-            height: 140px;
-            background-color: #000;
-            border-radius: 4px;
-            position: relative;
-            overflow: hidden;
-            border: 1px solid #444;
-        `;
+        previewContainer.className = 'code-preview-container';
 
         const canvas = document.createElement('canvas');
-        canvas.style.width = '100%';
-        canvas.style.height = '100%';
+        canvas.className = 'code-preview-canvas';
         canvas.width = 240; 
         canvas.height = 140;
         
@@ -134,35 +101,15 @@ export class CodeTab {
 
         // 2. AI Generation
         const aiSection = document.createElement('div');
-        aiSection.style.cssText = `
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-        `;
+        aiSection.className = 'code-ai-section';
 
         const promptInput = document.createElement('textarea');
         promptInput.placeholder = 'Describe a pattern or animation...';
-        promptInput.style.cssText = `
-            width: 100%;
-            height: 36px;
-            background-color: #383838;
-            border: 1px solid transparent;
-            border-radius: 4px;
-            color: #FFF;
-            padding: 8px;
-            font-size: 11px;
-            resize: none;
-            font-family: Inter, sans-serif;
-        `;
+        promptInput.className = 'code-prompt-input';
 
         // Refine Prompt Checkbox
         const refineContainer = document.createElement('div');
-        refineContainer.style.cssText = `
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            padding: 0 4px;
-        `;
+        refineContainer.className = 'code-refine-container';
 
         const refineCheckbox = document.createElement('input');
         refineCheckbox.type = 'checkbox';
@@ -173,49 +120,23 @@ export class CodeTab {
         const refineLabel = document.createElement('label');
         refineLabel.htmlFor = refineCheckbox.id;
         refineLabel.textContent = 'Refine prompt';
-        refineLabel.style.cssText = `
-            color: #D4D4D4;
-            font-size: 11px;
-            user-select: none;
-            cursor: pointer;
-        `;
+        refineLabel.className = 'code-refine-label';
 
         refineContainer.appendChild(refineCheckbox);
         refineContainer.appendChild(refineLabel);
         this.refineCheckbox = refineCheckbox;
 
         const buttonRow = document.createElement('div');
-        buttonRow.style.cssText = `
-            display: flex;
-            gap: 8px;
-        `;
+        buttonRow.className = 'code-button-row';
 
         const updateBtn = document.createElement('button');
         updateBtn.textContent = 'Update';
-        updateBtn.style.cssText = `
-            flex: 1;
-            background-color: #0055FF;
-            color: #FFF;
-            border: none;
-            border-radius: 4px;
-            padding: 6px;
-            font-size: 11px;
-            cursor: pointer;
-        `;
+        updateBtn.className = 'code-btn-update';
         updateBtn.onclick = () => this.handleAIGenerate(promptInput.value, 'update');
 
         const generateBtn = document.createElement('button');
         generateBtn.textContent = 'Generate';
-        generateBtn.style.cssText = `
-            flex: 1;
-            background-color: #444;
-            color: #FFF;
-            border: none;
-            border-radius: 4px;
-            padding: 6px;
-            font-size: 11px;
-            cursor: pointer;
-        `;
+        generateBtn.className = 'code-btn-generate';
         generateBtn.onclick = () => this.handleAIGenerate(promptInput.value, 'new');
 
         buttonRow.appendChild(updateBtn);
@@ -228,22 +149,11 @@ export class CodeTab {
 
         // 3. Code Editor
         const editorContainer = document.createElement('div');
-        editorContainer.style.position = 'relative';
+        editorContainer.className = 'code-editor-container';
         
         const editor = document.createElement('textarea');
         editor.value = this.fill.code || this.runner.userCode;
-        editor.style.cssText = `
-            width: 100%;
-            height: 100px;
-            background-color: #1E1E1E;
-            border: 1px solid #444;
-            border-radius: 4px;
-            color: #D4D4D4;
-            padding: 8px;
-            font-size: 11px;
-            font-family: monospace;
-            resize: vertical;
-        `;
+        editor.className = 'code-editor';
         editor.spellcheck = false;
         
         editor.addEventListener('input', (e) => {
@@ -260,25 +170,7 @@ export class CodeTab {
         // 4. Save as Preset Button
         const saveBtn = document.createElement('button');
         saveBtn.textContent = '+ Save as Preset';
-        saveBtn.style.cssText = `
-            width: 100%;
-            background-color: transparent;
-            color: #888;
-            border: 1px dashed #555;
-            border-radius: 4px;
-            padding: 8px;
-            font-size: 11px;
-            cursor: pointer;
-            transition: all 0.15s ease;
-        `;
-        saveBtn.onmouseenter = () => {
-            saveBtn.style.borderColor = '#0055FF';
-            saveBtn.style.color = '#0055FF';
-        };
-        saveBtn.onmouseleave = () => {
-            saveBtn.style.borderColor = '#555';
-            saveBtn.style.color = '#888';
-        };
+        saveBtn.className = 'code-save-btn';
         saveBtn.onclick = () => this.showSavePresetDialog();
         
         container.appendChild(saveBtn);
@@ -287,92 +179,41 @@ export class CodeTab {
     showSavePresetDialog() {
         // Create modal overlay
         const overlay = document.createElement('div');
-        overlay.style.cssText = `
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0, 0, 0, 0.6);
-            z-index: 10002;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        `;
+        overlay.className = 'code-modal-overlay';
 
         const modal = document.createElement('div');
-        modal.style.cssText = `
-            background: #2c2c2c;
-            border-radius: 8px;
-            padding: 16px;
-            width: 280px;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.5);
-        `;
+        modal.className = 'code-modal';
 
         // Title
         const title = document.createElement('div');
         title.textContent = 'Save Preset';
-        title.style.cssText = `
-            font-size: 14px;
-            font-weight: 600;
-            color: #fff;
-            margin-bottom: 16px;
-        `;
+        title.className = 'code-modal-title';
         modal.appendChild(title);
 
         // Name input
         const nameLabel = document.createElement('label');
         nameLabel.textContent = 'Name';
-        nameLabel.style.cssText = `
-            display: block;
-            font-size: 11px;
-            color: #888;
-            margin-bottom: 4px;
-        `;
+        nameLabel.className = 'code-modal-label';
         modal.appendChild(nameLabel);
 
         const nameInput = document.createElement('input');
         nameInput.type = 'text';
         nameInput.placeholder = 'My Custom Preset';
-        nameInput.style.cssText = `
-            width: 100%;
-            padding: 8px;
-            background: #383838;
-            border: 1px solid #555;
-            border-radius: 4px;
-            color: #fff;
-            font-size: 12px;
-            margin-bottom: 16px;
-        `;
+        nameInput.className = 'code-modal-input';
         modal.appendChild(nameInput);
 
         // Preview
         const previewLabel = document.createElement('div');
         previewLabel.textContent = 'Preview';
-        previewLabel.style.cssText = `
-            font-size: 11px;
-            color: #888;
-            margin-bottom: 4px;
-        `;
+        previewLabel.className = 'code-modal-label';
         modal.appendChild(previewLabel);
 
         const previewContainer = document.createElement('div');
-        previewContainer.style.cssText = `
-            width: 100%;
-            height: 100px;
-            background: #1a1a1a;
-            border-radius: 4px;
-            overflow: hidden;
-            margin-bottom: 16px;
-        `;
+        previewContainer.className = 'code-modal-preview';
 
         const previewCanvas = document.createElement('canvas');
         previewCanvas.width = 240;
-        previewCanvas.height = 100;
-        previewCanvas.style.cssText = `
-            width: 100%;
-            height: 100%;
-        `;
+        previewCanvas.height = 80;
         previewContainer.appendChild(previewCanvas);
         modal.appendChild(previewContainer);
 
@@ -383,23 +224,11 @@ export class CodeTab {
 
         // Buttons
         const buttonRow = document.createElement('div');
-        buttonRow.style.cssText = `
-            display: flex;
-            gap: 8px;
-            justify-content: flex-end;
-        `;
+        buttonRow.className = 'code-modal-buttons';
 
         const cancelBtn = document.createElement('button');
         cancelBtn.textContent = 'Cancel';
-        cancelBtn.style.cssText = `
-            padding: 8px 16px;
-            background: #444;
-            color: #fff;
-            border: none;
-            border-radius: 4px;
-            font-size: 11px;
-            cursor: pointer;
-        `;
+        cancelBtn.className = 'code-modal-btn-cancel';
         cancelBtn.onclick = () => {
             previewRunner.stop();
             overlay.remove();
@@ -407,15 +236,7 @@ export class CodeTab {
 
         const saveBtn = document.createElement('button');
         saveBtn.textContent = 'Save';
-        saveBtn.style.cssText = `
-            padding: 8px 16px;
-            background: #0055FF;
-            color: #fff;
-            border: none;
-            border-radius: 4px;
-            font-size: 11px;
-            cursor: pointer;
-        `;
+        saveBtn.className = 'code-modal-btn-save';
         saveBtn.onclick = () => {
             const name = nameInput.value.trim();
             if (!name) {

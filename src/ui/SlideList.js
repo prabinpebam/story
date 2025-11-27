@@ -166,7 +166,7 @@ export class SlideList {
                      elDiv.style.background = el.style?.backgroundColor || '#ccc';
                 } else if (el.type === 'placeholder' || el.isPlaceholder) {
                     // Dotted border for placeholders
-                    elDiv.style.border = '1px dashed #999';
+                    elDiv.style.border = '1px dashed var(--color-text-tertiary)';
                     elDiv.style.background = 'rgba(0,0,0,0.05)';
                 } else {
                     elDiv.style.background = 'rgba(0,0,0,0.1)';
@@ -283,7 +283,7 @@ export class SlideList {
                         preview.style.background = `url(${bg.value}) center/cover no-repeat`;
                     } else if (bg.type === 'code') {
                         // Placeholder for code background
-                        preview.style.background = 'repeating-linear-gradient(45deg, #eee 0, #eee 10px, #fff 10px, #fff 20px)';
+                        preview.style.background = 'repeating-linear-gradient(45deg, var(--color-surface-secondary) 0, var(--color-surface-secondary) 10px, var(--color-surface-primary) 10px, var(--color-surface-primary) 20px)';
                     } else {
                         preview.style.background = 'white';
                     }
@@ -315,7 +315,7 @@ export class SlideList {
                             }
                         } else if (el.isPlaceholder) {
                             // Dotted border for placeholders
-                            elDiv.style.border = '1px dashed #999';
+                            elDiv.style.border = '1px dashed var(--color-text-tertiary)';
                             elDiv.style.background = 'rgba(0,0,0,0.05)';
                         } else {
                             elDiv.style.background = 'rgba(0,0,0,0.1)';

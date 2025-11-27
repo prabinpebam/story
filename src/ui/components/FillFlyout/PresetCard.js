@@ -27,38 +27,15 @@ export class PresetCard {
 
     render() {
         this.element.innerHTML = '';
-        this.element.style.cssText = `
-            display: flex;
-            flex-direction: column;
-            border-radius: 6px;
-            overflow: hidden;
-            cursor: pointer;
-            background: #383838;
-            transition: transform 0.15s ease, box-shadow 0.15s ease;
-            position: relative;
-        `;
 
         // Preview container (4:3 aspect ratio)
         const previewContainer = document.createElement('div');
-        previewContainer.style.cssText = `
-            position: relative;
-            width: 100%;
-            padding-top: 75%; /* 4:3 aspect ratio */
-            background: #1a1a1a;
-            overflow: hidden;
-        `;
+        previewContainer.className = 'preset-preview';
 
         // Canvas for live preview
         const canvas = document.createElement('canvas');
         canvas.width = 120;
         canvas.height = 90;
-        canvas.style.cssText = `
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-        `;
         previewContainer.appendChild(canvas);
         this.canvas = canvas;
 
@@ -73,42 +50,18 @@ export class PresetCard {
 
         // Info row
         const infoRow = document.createElement('div');
-        infoRow.style.cssText = `
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 6px 8px;
-            background: #2c2c2c;
-        `;
+        infoRow.className = 'preset-info';
 
         // Name
         const name = document.createElement('span');
         name.textContent = this.preset.name;
-        name.style.cssText = `
-            font-size: 10px;
-            color: #e0e0e0;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            flex: 1;
-        `;
+        name.className = 'preset-name';
         infoRow.appendChild(name);
 
         // Options button (only for user presets)
         if (this.preset.category === 'user') {
             const optionsBtn = document.createElement('button');
             optionsBtn.innerHTML = '⋮';
-            optionsBtn.style.cssText = `
-                background: none;
-                border: none;
-                color: #888;
-                cursor: pointer;
-                padding: 2px 4px;
-                font-size: 12px;
-                line-height: 1;
-                opacity: 0;
-                transition: opacity 0.15s ease;
-            `;
             optionsBtn.className = 'preset-options-btn';
             optionsBtn.onclick = (e) => {
                 e.stopPropagation();
@@ -126,17 +79,11 @@ export class PresetCard {
             this.onSelect(this.preset);
         };
 
-        // Hover effects
+        // Hover effects - handled via CSS .preset-card:hover
+
+        // Show tooltip after delay
         this.element.onmouseenter = () => {
             this.isHovered = true;
-            this.element.style.transform = 'scale(1.02)';
-            this.element.style.boxShadow = '0 4px 12px rgba(0,0,0,0.3)';
-            
-            // Show options button
-            const optionsBtn = this.element.querySelector('.preset-options-btn');
-            if (optionsBtn) optionsBtn.style.opacity = '1';
-            
-            // Show tooltip after delay
             this.hoverTimeout = setTimeout(() => {
                 this.showTooltip();
             }, 400);
@@ -144,12 +91,6 @@ export class PresetCard {
 
         this.element.onmouseleave = () => {
             this.isHovered = false;
-            this.element.style.transform = 'scale(1)';
-            this.element.style.boxShadow = 'none';
-            
-            // Hide options button
-            const optionsBtn = this.element.querySelector('.preset-options-btn');
-            if (optionsBtn) optionsBtn.style.opacity = '0';
             
             // Cancel tooltip
             if (this.hoverTimeout) {
@@ -212,26 +153,12 @@ export class PresetCard {
         if (this.tooltip) return;
         
         this.tooltip = document.createElement('div');
-        this.tooltip.style.cssText = `
-            position: fixed;
-            z-index: 10000;
-            background: #2c2c2c;
-            border-radius: 8px;
-            box-shadow: 0 8px 24px rgba(0,0,0,0.5);
-            overflow: hidden;
-            pointer-events: none;
-            animation: fadeIn 0.15s ease;
-        `;
+        this.tooltip.className = 'preset-tooltip';
 
         // Large preview canvas
         const previewCanvas = document.createElement('canvas');
         previewCanvas.width = 240;
         previewCanvas.height = 160;
-        previewCanvas.style.cssText = `
-            display: block;
-            width: 240px;
-            height: 160px;
-        `;
         this.tooltip.appendChild(previewCanvas);
 
         // Initialize preview runner
@@ -241,28 +168,17 @@ export class PresetCard {
 
         // Info section
         const info = document.createElement('div');
-        info.style.cssText = `
-            padding: 8px 12px;
-            border-top: 1px solid #444;
-        `;
+        info.className = 'preset-tooltip-info';
 
         const name = document.createElement('div');
         name.textContent = this.preset.name;
-        name.style.cssText = `
-            font-size: 12px;
-            font-weight: 600;
-            color: #fff;
-            margin-bottom: 2px;
-        `;
+        name.className = 'preset-tooltip-name';
         info.appendChild(name);
 
         if (this.preset.description) {
             const desc = document.createElement('div');
             desc.textContent = this.preset.description;
-            desc.style.cssText = `
-                font-size: 10px;
-                color: #888;
-            `;
+            desc.className = 'preset-tooltip-desc';
             info.appendChild(desc);
         }
 
@@ -306,15 +222,6 @@ export class PresetCard {
 
         const menu = document.createElement('div');
         menu.className = 'preset-options-menu';
-        menu.style.cssText = `
-            position: fixed;
-            z-index: 10001;
-            background: #383838;
-            border-radius: 6px;
-            box-shadow: 0 4px 16px rgba(0,0,0,0.4);
-            overflow: hidden;
-            min-width: 120px;
-        `;
 
         const options = [
             { label: 'Rename', action: () => this.onRename?.(this.preset) },
@@ -325,15 +232,7 @@ export class PresetCard {
         options.forEach(opt => {
             const item = document.createElement('div');
             item.textContent = opt.label;
-            item.style.cssText = `
-                padding: 8px 12px;
-                font-size: 11px;
-                color: ${opt.danger ? '#ff6b6b' : '#e0e0e0'};
-                cursor: pointer;
-                transition: background 0.1s ease;
-            `;
-            item.onmouseenter = () => item.style.background = '#444';
-            item.onmouseleave = () => item.style.background = 'transparent';
+            item.className = 'preset-menu-item' + (opt.danger ? ' danger' : '');
             item.onclick = (e) => {
                 e.stopPropagation();
                 menu.remove();

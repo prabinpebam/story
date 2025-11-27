@@ -56,21 +56,11 @@ export class DraggablePanel {
         this.element = document.createElement('div');
         this.element.className = 'draggable-panel';
         this.element.id = `panel-${this.options.id}`;
-        this.element.style.cssText = `
-            position: fixed;
-            display: none;
-            flex-direction: column;
-            background: var(--color-bg-panel);
-            border: 1px solid var(--color-border);
-            border-radius: var(--radius-md);
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
-            z-index: 1000;
-            overflow: hidden;
-            min-width: ${this.options.minWidth}px;
-            min-height: ${this.options.minHeight}px;
-            max-width: ${this.options.maxWidth}px;
-            max-height: ${this.options.maxHeight}px;
-        `;
+        // Dynamic min/max sizes need inline styles
+        this.element.style.minWidth = `${this.options.minWidth}px`;
+        this.element.style.minHeight = `${this.options.minHeight}px`;
+        this.element.style.maxWidth = `${this.options.maxWidth}px`;
+        this.element.style.maxHeight = `${this.options.maxHeight}px`;
         
         // Header
         this.headerElement = this.createHeader();
@@ -79,12 +69,6 @@ export class DraggablePanel {
         // Content area
         this.contentElement = document.createElement('div');
         this.contentElement.className = 'draggable-panel-content';
-        this.contentElement.style.cssText = `
-            flex: 1;
-            overflow-y: auto;
-            overflow-x: hidden;
-            padding: var(--spacing-2);
-        `;
         this.element.appendChild(this.contentElement);
         
         // Resize handles (if resizable)
@@ -99,36 +83,16 @@ export class DraggablePanel {
     createHeader() {
         const header = document.createElement('div');
         header.className = 'draggable-panel-header';
-        header.style.cssText = `
-            display: flex;
-            align-items: center;
-            padding: var(--spacing-2) var(--spacing-3);
-            background: var(--color-bg-hover);
-            border-bottom: 1px solid var(--color-border);
-            cursor: grab;
-            user-select: none;
-            flex-shrink: 0;
-        `;
         
         // Title
         const title = document.createElement('span');
         title.className = 'draggable-panel-title';
         title.textContent = this.options.title;
-        title.style.cssText = `
-            flex: 1;
-            font-weight: var(--font-weight-medium);
-            font-size: var(--font-size-md);
-            color: var(--color-text-primary);
-        `;
         header.appendChild(title);
         
         // Header buttons container
         const buttons = document.createElement('div');
         buttons.className = 'draggable-panel-buttons';
-        buttons.style.cssText = `
-            display: flex;
-            gap: var(--spacing-1);
-        `;
         
         // Minimize button
         if (this.options.minimizable) {
@@ -155,28 +119,7 @@ export class DraggablePanel {
         btn.className = 'draggable-panel-btn';
         btn.title = title;
         btn.innerHTML = icon;
-        btn.style.cssText = `
-            width: 20px;
-            height: 20px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background: transparent;
-            border: none;
-            border-radius: var(--radius-sm);
-            cursor: pointer;
-            color: var(--color-text-secondary);
-            font-size: 14px;
-        `;
         
-        btn.addEventListener('mouseenter', () => {
-            btn.style.background = 'var(--color-bg-active)';
-            btn.style.color = 'var(--color-text-primary)';
-        });
-        btn.addEventListener('mouseleave', () => {
-            btn.style.background = 'transparent';
-            btn.style.color = 'var(--color-text-secondary)';
-        });
         btn.addEventListener('click', (e) => {
             e.stopPropagation();
             onClick();
@@ -187,60 +130,10 @@ export class DraggablePanel {
 
     createResizeHandles() {
         const directions = ['n', 'ne', 'e', 'se', 's', 'sw', 'w', 'nw'];
-        const cursors = {
-            n: 'ns-resize', s: 'ns-resize',
-            e: 'ew-resize', w: 'ew-resize',
-            ne: 'nesw-resize', sw: 'nesw-resize',
-            nw: 'nwse-resize', se: 'nwse-resize'
-        };
         
         directions.forEach(dir => {
             const handle = document.createElement('div');
             handle.className = `resize-handle resize-${dir}`;
-            handle.style.cssText = `
-                position: absolute;
-                z-index: 10;
-                cursor: ${cursors[dir]};
-            `;
-            
-            // Position handles
-            const size = '8px';
-            const corner = '12px';
-            
-            switch (dir) {
-                case 'n':
-                    handle.style.top = '0'; handle.style.left = corner;
-                    handle.style.right = corner; handle.style.height = size;
-                    break;
-                case 's':
-                    handle.style.bottom = '0'; handle.style.left = corner;
-                    handle.style.right = corner; handle.style.height = size;
-                    break;
-                case 'e':
-                    handle.style.right = '0'; handle.style.top = corner;
-                    handle.style.bottom = corner; handle.style.width = size;
-                    break;
-                case 'w':
-                    handle.style.left = '0'; handle.style.top = corner;
-                    handle.style.bottom = corner; handle.style.width = size;
-                    break;
-                case 'ne':
-                    handle.style.top = '0'; handle.style.right = '0';
-                    handle.style.width = corner; handle.style.height = corner;
-                    break;
-                case 'se':
-                    handle.style.bottom = '0'; handle.style.right = '0';
-                    handle.style.width = corner; handle.style.height = corner;
-                    break;
-                case 'sw':
-                    handle.style.bottom = '0'; handle.style.left = '0';
-                    handle.style.width = corner; handle.style.height = corner;
-                    break;
-                case 'nw':
-                    handle.style.top = '0'; handle.style.left = '0';
-                    handle.style.width = corner; handle.style.height = corner;
-                    break;
-            }
             
             handle.addEventListener('mousedown', (e) => this.handleResizeStart(e, dir));
             this.element.appendChild(handle);

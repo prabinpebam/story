@@ -43,8 +43,7 @@ export class SlideSection {
         
         // Layout picker row
         this.layoutRow = document.createElement('div');
-        this.layoutRow.className = 'pi-row';
-        this.layoutRow.style.cssText = 'flex-direction: column; align-items: stretch; gap: 4px;';
+        this.layoutRow.className = 'pi-row layout-picker-row';
         
         // Layout trigger button (shows current layout)
         this.layoutTrigger = document.createElement('button');
@@ -115,85 +114,42 @@ export class SlideSection {
     createThemeRow(options) {
         const row = document.createElement('div');
         row.className = 'theme-property-row';
-        row.style.cssText = `
-            display: flex;
-            align-items: center;
-            gap: var(--spacing-2);
-            padding: 6px 8px;
-            border-radius: var(--radius-sm);
-            cursor: pointer;
-            transition: background 0.15s;
-        `;
-        row.addEventListener('mouseenter', () => {
-            row.style.background = 'var(--color-bg-hover)';
-        });
-        row.addEventListener('mouseleave', () => {
-            row.style.background = 'transparent';
-        });
+        // CSS handles: display: flex; align-items: center; gap; padding; border-radius; cursor; transition
+        // CSS also handles :hover state
         row.addEventListener('click', (e) => {
-            if (!e.target.closest('.theme-reset-btn')) {
+            if (!e.target.closest('.theme-row-reset')) {
                 options.onClick();
             }
         });
 
         // Icon
         const icon = document.createElement('span');
+        icon.className = 'theme-row-icon';
         icon.innerHTML = options.icon;
-        icon.style.cssText = 'color: var(--color-text-secondary); width: 16px; display: flex; align-items: center; justify-content: center;';
         row.appendChild(icon);
 
         // Label
         const label = document.createElement('span');
         label.className = 'theme-row-label';
-        label.style.cssText = 'font-size: var(--font-size-sm); color: var(--color-text-primary); flex-shrink: 0;';
         label.textContent = options.label;
         row.appendChild(label);
 
         // Preview container (will be populated by update)
         const preview = document.createElement('div');
         preview.className = 'theme-row-preview';
-        preview.style.cssText = 'flex: 1; display: flex; align-items: center; justify-content: flex-end; gap: 4px;';
         row.appendChild(preview);
 
         // Inheritance badge
         const badge = document.createElement('span');
-        badge.className = 'theme-inheritance-badge';
-        badge.style.cssText = `
-            font-size: 9px;
-            padding: 2px 4px;
-            border-radius: 2px;
-            text-transform: uppercase;
-            font-weight: 500;
-            display: none;
-        `;
+        badge.className = 'theme-row-badge';
+        badge.style.display = 'none';
         row.appendChild(badge);
 
         // Reset button
         const resetBtn = document.createElement('button');
-        resetBtn.className = 'theme-reset-btn';
+        resetBtn.className = 'theme-row-reset';
         resetBtn.innerHTML = '<i class="fa-solid fa-xmark"></i>';
         resetBtn.title = 'Reset to inherited';
-        resetBtn.style.cssText = `
-            width: 18px;
-            height: 18px;
-            border: none;
-            background: transparent;
-            color: var(--color-text-secondary);
-            cursor: pointer;
-            display: none;
-            align-items: center;
-            justify-content: center;
-            border-radius: 2px;
-            font-size: 10px;
-        `;
-        resetBtn.addEventListener('mouseenter', () => {
-            resetBtn.style.background = 'var(--color-bg-active)';
-            resetBtn.style.color = 'var(--color-text-primary)';
-        });
-        resetBtn.addEventListener('mouseleave', () => {
-            resetBtn.style.background = 'transparent';
-            resetBtn.style.color = 'var(--color-text-secondary)';
-        });
         resetBtn.addEventListener('click', (e) => {
             e.stopPropagation();
             options.onReset();
@@ -238,13 +194,8 @@ export class SlideSection {
 
         accentColors.slice(0, 6).forEach(color => {
             const swatch = document.createElement('div');
-            swatch.style.cssText = `
-                width: 16px;
-                height: 16px;
-                border-radius: 2px;
-                background: ${color};
-                border: 1px solid rgba(0,0,0,0.1);
-            `;
+            swatch.className = 'theme-preview-swatch';
+            swatch.style.background = color; // Color must be inline
             preview.appendChild(swatch);
         });
 
@@ -258,7 +209,7 @@ export class SlideSection {
 
         // Show font names
         const fontLabel = document.createElement('span');
-        fontLabel.style.cssText = 'font-size: 11px; color: var(--color-text-secondary);';
+        fontLabel.className = 'theme-preview-fonts';
         fontLabel.textContent = `${fonts.heading || 'Inter'} / ${fonts.body || 'Inter'}`;
         preview.appendChild(fontLabel);
 
@@ -272,14 +223,14 @@ export class SlideSection {
         if (isOverride) {
             badge.textContent = 'Override';
             badge.style.display = 'inline-block';
-            badge.style.background = 'var(--color-accent)';
-            badge.style.color = 'white';
+            badge.classList.add('override');
+            badge.classList.remove('inherited');
             resetBtn.style.display = 'flex';
         } else {
             badge.textContent = 'Inherited';
             badge.style.display = 'inline-block';
-            badge.style.background = 'var(--color-bg-active)';
-            badge.style.color = 'var(--color-text-secondary)';
+            badge.classList.add('inherited');
+            badge.classList.remove('override');
             resetBtn.style.display = 'none';
         }
     }

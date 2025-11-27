@@ -65,12 +65,7 @@ export class ColorThemeManager extends DraggablePanel {
         // Insert tabs after header title but before buttons
         const tabContainer = document.createElement('div');
         tabContainer.className = 'ctm-tabs';
-        tabContainer.style.cssText = `
-            padding: 0 var(--spacing-2) var(--spacing-2);
-            background: var(--color-bg-hover);
-        `;
         tabContainer.appendChild(this.tabControl.element);
-        this.tabControl.element.style.marginBottom = '0';
         
         // Insert after header
         this.element.insertBefore(tabContainer, this.contentElement);
@@ -98,46 +93,19 @@ export class ColorThemeManager extends DraggablePanel {
     createPresetsTab() {
         const container = document.createElement('div');
         container.className = 'ctm-presets-tab';
-        container.style.cssText = `
-            display: flex;
-            flex-direction: column;
-            gap: var(--spacing-2);
-            height: 100%;
-        `;
         
         // Search and filter row
         const filterRow = document.createElement('div');
-        filterRow.style.cssText = `
-            display: flex;
-            gap: var(--spacing-2);
-            padding-bottom: var(--spacing-2);
-            border-bottom: 1px solid var(--color-border);
-        `;
+        filterRow.className = 'ctm-filter-row';
         
         // Search input
         const searchInput = document.createElement('input');
         searchInput.type = 'text';
         searchInput.placeholder = 'Search themes...';
         searchInput.className = 'ctm-search';
-        searchInput.style.cssText = `
-            flex: 1;
-            padding: 6px 8px;
-            border: 1px solid var(--color-border);
-            border-radius: var(--radius-sm);
-            background: var(--color-bg-input);
-            color: var(--color-text-primary);
-            font-size: var(--font-size-sm);
-            outline: none;
-        `;
         searchInput.addEventListener('input', (e) => {
             this.searchQuery = e.target.value;
             this.renderPresetGrid();
-        });
-        searchInput.addEventListener('focus', () => {
-            searchInput.style.borderColor = 'var(--color-border-focus)';
-        });
-        searchInput.addEventListener('blur', () => {
-            searchInput.style.borderColor = 'var(--color-border)';
         });
         filterRow.appendChild(searchInput);
         
@@ -145,12 +113,12 @@ export class ColorThemeManager extends DraggablePanel {
         this.categoryDropdown = new Dropdown({
             options: COLOR_CATEGORIES.map(c => ({ value: c.id, label: c.name })),
             value: 'all',
+            size: 'md',
             onChange: (category) => {
                 this.currentCategory = category;
                 this.renderPresetGrid();
             }
         });
-        this.categoryDropdown.element.style.width = '100px';
         filterRow.appendChild(this.categoryDropdown.element);
         
         container.appendChild(filterRow);
@@ -158,14 +126,6 @@ export class ColorThemeManager extends DraggablePanel {
         // Preset grid
         this.presetGrid = document.createElement('div');
         this.presetGrid.className = 'ctm-preset-grid';
-        this.presetGrid.style.cssText = `
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: var(--spacing-2);
-            overflow-y: auto;
-            flex: 1;
-            padding-right: var(--spacing-1);
-        `;
         container.appendChild(this.presetGrid);
         
         this.renderPresetGrid();
@@ -188,14 +148,8 @@ export class ColorThemeManager extends DraggablePanel {
         
         if (presets.length === 0) {
             const empty = document.createElement('div');
-            empty.style.cssText = `
-                grid-column: 1 / -1;
-                text-align: center;
-                padding: var(--spacing-4);
-                color: var(--color-text-secondary);
-                font-size: var(--font-size-sm);
-            `;
-            empty.textContent = 'No themes found';
+            empty.className = 'panel-empty-state';
+            empty.innerHTML = '<span class="panel-empty-text">No themes found</span>';
             this.presetGrid.appendChild(empty);
             return;
         }
@@ -208,24 +162,12 @@ export class ColorThemeManager extends DraggablePanel {
 
     createPresetCard(preset) {
         const card = document.createElement('div');
-        card.className = 'ctm-preset-card';
+        card.className = 'preset-card ctm-preset-card';
         card.dataset.presetId = preset.id;
-        card.style.cssText = `
-            background: var(--color-bg-well);
-            border: 2px solid transparent;
-            border-radius: var(--radius-sm);
-            padding: var(--spacing-2);
-            cursor: pointer;
-            transition: border-color 0.15s, transform 0.1s;
-        `;
         
         // Color swatches - show main 6 colors
         const swatches = document.createElement('div');
-        swatches.style.cssText = `
-            display: flex;
-            gap: 2px;
-            margin-bottom: var(--spacing-1);
-        `;
+        swatches.className = 'preset-swatches';
         
         const displayColors = [
             preset.colors.background1,
@@ -238,47 +180,22 @@ export class ColorThemeManager extends DraggablePanel {
         
         displayColors.forEach(color => {
             const swatch = document.createElement('div');
-            swatch.style.cssText = `
-                width: 100%;
-                height: 20px;
-                background: ${color};
-                flex: 1;
-            `;
+            swatch.className = 'preset-swatch';
+            swatch.style.background = color; // Color must be inline
             swatches.appendChild(swatch);
         });
         
-        // Round corners on first and last swatch
-        swatches.firstChild.style.borderRadius = '2px 0 0 2px';
-        swatches.lastChild.style.borderRadius = '0 2px 2px 0';
+        // First/last have CSS for border-radius via :first-child/:last-child
         
         card.appendChild(swatches);
         
         // Name
         const name = document.createElement('div');
-        name.style.cssText = `
-            font-size: var(--font-size-sm);
-            color: var(--color-text-primary);
-            text-align: center;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        `;
+        name.className = 'preset-name';
         name.textContent = preset.name;
         card.appendChild(name);
         
-        // Hover effect
-        card.addEventListener('mouseenter', () => {
-            if (this.selectedPreset?.id !== preset.id) {
-                card.style.borderColor = 'var(--color-border)';
-            }
-            card.style.transform = 'scale(1.02)';
-        });
-        card.addEventListener('mouseleave', () => {
-            if (this.selectedPreset?.id !== preset.id) {
-                card.style.borderColor = 'transparent';
-            }
-            card.style.transform = 'scale(1)';
-        });
+        // Hover and selection handled by CSS .preset-card:hover and .preset-card.selected
         
         // Click to select
         card.addEventListener('click', () => this.selectPreset(preset, card));
@@ -292,11 +209,9 @@ export class ColorThemeManager extends DraggablePanel {
     selectPreset(preset, cardElement) {
         this.selectedPreset = preset;
         
-        // Update visual selection
+        // Update visual selection using CSS class
         this.presetGrid.querySelectorAll('.ctm-preset-card').forEach(card => {
-            card.style.borderColor = card.dataset.presetId === preset.id 
-                ? 'var(--color-accent)' 
-                : 'transparent';
+            card.classList.toggle('selected', card.dataset.presetId === preset.id);
         });
         
         // Preview the preset
@@ -351,22 +266,12 @@ export class ColorThemeManager extends DraggablePanel {
     // ========================================
     createCustomTab() {
         const container = document.createElement('div');
-        container.className = 'ctm-custom-tab';
-        container.style.cssText = `
-            display: none;
-            flex-direction: column;
-            gap: var(--spacing-2);
-            height: 100%;
-            overflow-y: auto;
-        `;
+        container.className = 'ctm-custom-tab panel-section';
+        container.style.display = 'none'; // Initially hidden, shown via switchTab
         
         // Color role editors
         const colorList = document.createElement('div');
-        colorList.style.cssText = `
-            display: flex;
-            flex-direction: column;
-            gap: var(--spacing-1);
-        `;
+        colorList.className = 'color-list';
         
         COLOR_ROLES.forEach(role => {
             const row = this.createColorRoleRow(role);
@@ -380,21 +285,11 @@ export class ColorThemeManager extends DraggablePanel {
 
     createColorRoleRow(role) {
         const row = document.createElement('div');
-        row.className = 'ctm-color-row';
-        row.style.cssText = `
-            display: flex;
-            align-items: center;
-            gap: var(--spacing-2);
-            padding: var(--spacing-1) 0;
-        `;
+        row.className = 'ctm-color-row color-list-row';
         
         // Label
         const label = document.createElement('div');
-        label.style.cssText = `
-            flex: 1;
-            font-size: var(--font-size-sm);
-            color: var(--color-text-primary);
-        `;
+        label.className = 'color-list-label';
         label.textContent = role.name;
         label.title = role.description;
         row.appendChild(label);
@@ -459,27 +354,12 @@ export class ColorThemeManager extends DraggablePanel {
     // ========================================
     createAITab() {
         const container = document.createElement('div');
-        container.className = 'ctm-ai-tab';
-        container.style.cssText = `
-            display: none;
-            flex-direction: column;
-            gap: var(--spacing-3);
-            height: 100%;
-            padding: var(--spacing-2) 0;
-        `;
+        container.className = 'ctm-ai-tab panel-section';
+        container.style.display = 'none'; // Initially hidden
         
         // Placeholder content
         const placeholder = document.createElement('div');
-        placeholder.style.cssText = `
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            flex: 1;
-            text-align: center;
-            color: var(--color-text-secondary);
-            gap: var(--spacing-2);
-        `;
+        placeholder.className = 'coming-soon-container';
         
         const icon = document.createElement('div');
         icon.innerHTML = '<i class="fa-solid fa-wand-magic-sparkles" style="font-size: 32px;"></i>';
@@ -502,26 +382,13 @@ export class ColorThemeManager extends DraggablePanel {
     // ========================================
     createFooter() {
         const footer = document.createElement('div');
-        footer.className = 'ctm-footer';
-        footer.style.cssText = `
-            display: flex;
-            gap: var(--spacing-2);
-            padding: var(--spacing-2) var(--spacing-3);
-            border-top: 1px solid var(--color-border);
-            background: var(--color-bg-hover);
-        `;
+        footer.className = 'ctm-footer panel-footer';
         
         // Reset button
         const resetBtn = document.createElement('button');
+        resetBtn.className = 'panel-btn panel-btn-secondary';
         resetBtn.textContent = 'Reset';
-        resetBtn.style.cssText = this.getButtonStyle(false);
         resetBtn.addEventListener('click', () => this.resetColors());
-        resetBtn.addEventListener('mouseenter', () => {
-            resetBtn.style.background = 'var(--color-bg-active)';
-        });
-        resetBtn.addEventListener('mouseleave', () => {
-            resetBtn.style.background = 'transparent';
-        });
         footer.appendChild(resetBtn);
         
         // Spacer
@@ -531,47 +398,16 @@ export class ColorThemeManager extends DraggablePanel {
         
         // Apply button
         const applyBtn = document.createElement('button');
+        applyBtn.className = 'panel-btn panel-btn-primary';
         applyBtn.textContent = 'Apply';
-        applyBtn.style.cssText = this.getButtonStyle(true);
         applyBtn.addEventListener('click', () => {
             if (this.selectedPreset) {
                 this.applyPreset(this.selectedPreset);
             }
         });
-        applyBtn.addEventListener('mouseenter', () => {
-            applyBtn.style.background = 'var(--color-accent-hover)';
-        });
-        applyBtn.addEventListener('mouseleave', () => {
-            applyBtn.style.background = 'var(--color-accent)';
-        });
         footer.appendChild(applyBtn);
         
         return footer;
-    }
-
-    getButtonStyle(isPrimary) {
-        if (isPrimary) {
-            return `
-                padding: 6px 16px;
-                border: none;
-                border-radius: var(--radius-sm);
-                background: var(--color-accent);
-                color: var(--color-text-on-accent);
-                font-size: var(--font-size-sm);
-                cursor: pointer;
-                transition: background 0.15s;
-            `;
-        }
-        return `
-            padding: 6px 12px;
-            border: 1px solid var(--color-border);
-            border-radius: var(--radius-sm);
-            background: transparent;
-            color: var(--color-text-primary);
-            font-size: var(--font-size-sm);
-            cursor: pointer;
-            transition: background 0.15s;
-        `;
     }
 
     resetColors() {

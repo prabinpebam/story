@@ -17,8 +17,6 @@ export class FillTypeSelector {
 
         this.element = document.createElement('div');
         this.element.className = 'fill-type-selector';
-        this.element.style.display = 'flex';
-        this.element.style.gap = '2px';
         
         this.render();
     }
@@ -31,7 +29,7 @@ export class FillTypeSelector {
             const btn = new IconButton({
                 icon: mode.icon,
                 title: mode.title,
-                isActive: false, // Ensure no default active class
+                isActive: isActive,
                 onClick: () => {
                     if (this.activeType !== mode.type) {
                         this.activeType = mode.type;
@@ -40,15 +38,6 @@ export class FillTypeSelector {
                     }
                 }
             });
-            
-            // Explicitly remove active class just in case
-            btn.element.classList.remove('active');
-            
-            // Apply "correct" active styles as per user preference (from FillFlyout)
-            if (isActive) {
-                btn.element.style.color = '#FFFFFF';
-                btn.element.style.backgroundColor = '#444';
-            }
             
             this.element.appendChild(btn.element);
         });

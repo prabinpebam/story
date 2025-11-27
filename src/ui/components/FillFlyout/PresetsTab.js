@@ -12,13 +12,6 @@ export class PresetsTab {
         
         this.element = document.createElement('div');
         this.element.className = 'presets-tab';
-        this.element.style.cssText = `
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-            max-height: 320px;
-            overflow-y: auto;
-        `;
 
         this.render();
     }
@@ -41,18 +34,10 @@ export class PresetsTab {
         } else {
             // Empty state for user presets
             const emptyState = document.createElement('div');
-            emptyState.style.cssText = `
-                padding: 16px;
-                text-align: center;
-                color: #666;
-                font-size: 11px;
-                border: 1px dashed #444;
-                border-radius: 6px;
-                margin-top: 8px;
-            `;
+            emptyState.className = 'presets-empty-state';
             emptyState.innerHTML = `
-                <div style="margin-bottom: 4px;">No saved presets yet</div>
-                <div style="font-size: 10px; color: #555;">Create one from the Custom tab</div>
+                <div class="presets-empty-title">No saved presets yet</div>
+                <div class="presets-empty-subtitle">Create one from the Custom tab</div>
             `;
             
             const sectionHeader = this.createSectionHeader('My Presets');
@@ -63,36 +48,21 @@ export class PresetsTab {
 
     createSectionHeader(title) {
         const header = document.createElement('div');
-        header.style.cssText = `
-            font-size: 10px;
-            font-weight: 600;
-            color: #888;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            padding: 0 2px;
-        `;
+        header.className = 'presets-section-header';
         header.textContent = title;
         return header;
     }
 
     createSection(title, presets, isUserSection = false) {
         const section = document.createElement('div');
-        section.style.cssText = `
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-        `;
+        section.className = 'presets-section';
 
         // Section header
         section.appendChild(this.createSectionHeader(title));
 
         // Grid container
         const grid = document.createElement('div');
-        grid.style.cssText = `
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 8px;
-        `;
+        grid.className = 'presets-grid';
 
         presets.forEach(preset => {
             const card = new PresetCard({

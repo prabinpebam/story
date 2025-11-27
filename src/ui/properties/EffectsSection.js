@@ -218,9 +218,9 @@ export class EffectsSection {
                 { label: 'Background Blur', value: 'backgroundBlur' }
             ],
             value: 'dropShadow',
+            size: 'lg',
             onChange: (val) => this.changeEffectType('dropShadow', val)
         });
-        typeSelect.element.style.width = '120px';
 
         const headerRight = document.createElement('div');
         headerRight.style.display = 'flex';
@@ -255,11 +255,9 @@ export class EffectsSection {
         const blendDropdown = new Dropdown({
             options: blendModes,
             value: currentBlendMode,
+            size: 'sm',
             onChange: (val) => this.updateDropShadow('blendMode', val)
         });
-        // Style the dropdown to look like an icon button or small trigger if needed, 
-        // but for now a standard dropdown is fine.
-        blendDropdown.element.style.width = '80px';
 
         const closeBtn = new IconButton({ icon: Icons.CLOSE, title: 'Close', onClick: () => this.activeFlyout.close() });
 
@@ -360,9 +358,9 @@ export class EffectsSection {
                 { label: 'Background Blur', value: 'backgroundBlur' }
             ],
             value: 'blur',
+            size: 'lg',
             onChange: (val) => this.changeEffectType('blur', val)
         });
-        typeSelect.element.style.width = '120px';
 
         const closeBtn = new IconButton({ icon: Icons.CLOSE, title: 'Close', onClick: () => this.activeFlyout.close() });
         header.appendChild(typeSelect.element);
@@ -426,9 +424,9 @@ export class EffectsSection {
                 { label: 'Background Blur', value: 'backgroundBlur' }
             ],
             value: 'backgroundBlur',
+            size: 'lg',
             onChange: (val) => this.changeEffectType('backgroundBlur', val)
         });
-        typeSelect.element.style.width = '120px';
 
         const closeBtn = new IconButton({ icon: Icons.CLOSE, title: 'Close', onClick: () => this.activeFlyout.close() });
         header.appendChild(typeSelect.element);
