@@ -9,6 +9,7 @@ Story presentations are saved as `.str` files - a single portable archive contai
 - [Asset Management & Caching](./asset-management.md) - Asset pipeline and cache layers
 - [Security Model](../collaboration/security-model.md) - Sandboxing, encryption, validation
 - [Real-Time Collaboration](../collaboration/realtime-collaboration.md) - Future collaboration architecture
+- [Industry Benchmark](./file-format-benchmark.md) - Comparison with PowerPoint, Keynote, Figma
 
 ---
 
@@ -26,6 +27,8 @@ Story presentations are saved as `.str` files - a single portable archive contai
 10. [Security & Encryption](#10-security--encryption)
 11. [UX Flows](#11-ux-flows)
 12. [Performance Targets](#12-performance-targets)
+13. [Version History System](#13-version-history-system) *(NEW)*
+14. [Recovery System](#14-recovery-system) *(NEW)*
 
 ---
 
@@ -33,38 +36,59 @@ Story presentations are saved as `.str` files - a single portable archive contai
 
 ### 1.1 Format Structure
 
-`.str` files are ZIP archives with a specific internal structure:
+`.str` files are ZIP archives with a **chunked structure** optimized for progressive loading:
 
 ```
 presentation.str (ZIP archive)
-├── manifest.json           # File format version, metadata
-├── presentation.json       # Main document data (slides, elements, theme)
+├── manifest.json           # File format version, metadata, chunk index
+├── preview/
+│   ├── thumbnail.png       # 1200x675 cover image for file browsers
+│   └── slides/             # Per-slide thumbnails (optional)
+│       ├── slide-001.png
+│       └── ...
+├── document/
+│   ├── metadata.json       # Title, author, description
+│   ├── theme.json          # Design tokens, color themes, typography
+│   ├── masters.json        # Master slide definitions
+│   ├── slides/
+│   │   ├── slide-001.json  # Individual slide data (enables progressive load)
+│   │   ├── slide-002.json
+│   │   └── ...
+│   └── relationships.json  # Cross-references between elements
 ├── assets/
 │   ├── index.json          # Asset registry with hashes
 │   ├── images/
 │   │   ├── abc123.jpg      # Hash-named original files
-│   │   ├── def456.png
 │   │   └── ...
 │   ├── videos/
-│   │   ├── ghi789.mp4
 │   │   └── ...
-│   ├── fonts/
-│   │   └── custom-font.woff2
-│   └── thumbnails/         # Preview images
-│       ├── slide-1.png
+│   └── fonts/
 │       └── ...
 ├── code/                   # CodeFill presets & user code
 │   └── presets.json
-└── history/                # (Optional) Local history snapshots
+├── history/                # Version history (optional)
+│   ├── versions.json       # Version manifest
+│   └── snapshots/
+│       ├── v001.json.gz    # Compressed state snapshots
+│       └── ...
+├── comments/               # Collaboration data (future)
+│   └── threads.json
+└── extensions/             # Plugin data (future)
     └── ...
 ```
+
+> **Design Decision:** Per-slide JSON files enable:
+> - Progressive loading (show slide 1 while loading others)
+> - Incremental saves (only update changed slides)
+> - Parallel processing in Web Workers
+> - Smaller diffs for version control
 
 ### 1.2 Manifest.json
 
 ```javascript
 {
     // Format & App Version
-    version: "1.0.0",           // File format version
+    version: "1.0.0",           // File format version (semver)
     appVersion: "0.1.0",        // Story app version that created this
     
     // Timestamps
@@ -81,7 +105,7 @@ presentation.str (ZIP archive)
     // Document Info
     title: "Presentation Title",
     description: "Optional description",
-    thumbnail: "assets/thumbnails/cover.png",
+    thumbnail: "preview/thumbnail.png",
     
     // Content Summary (for quick preview without full parse)
     summary: {
@@ -92,11 +116,27 @@ presentation.str (ZIP archive)
         hasAnimations: false
     },
     
+    // Chunk Index (enables random access without decompressing all)
+    chunks: {
+        "document/metadata.json": { offset: 1024, size: 512 },
+        "document/slides/slide-001.json": { offset: 1536, size: 2048 },
+        // ... indexed for each file
+    },
+    
     // Progressive Loading Hints
     loading: {
-        firstSlideOffset: 1024,     // Byte offset to slide 1 data
-        assetIndexOffset: 2048,     // Byte offset to asset index
-        criticalAssets: ["abc123.jpg", "def456.png"]  // Load first
+        priority: ["document/metadata.json", "document/slides/slide-001.json"],
+        criticalAssets: ["abc123.jpg", "def456.png"],  // Hero images
+        deferrable: ["history/*", "comments/*"]  // Load last
+    },
+    
+    // Relationships Index (PowerPoint-style _rels equivalent)
+    relationships: {
+        "document/slides/slide-001.json": {
+            master: "document/masters.json#default",
+            assets: ["assets/images/abc123.jpg"],
+            linkedSlides: ["document/slides/slide-003.json"]
+        }
     },
     
     // Collaboration Hooks (future-proofing)
@@ -106,16 +146,79 @@ presentation.str (ZIP archive)
         conflictResolution: "last-write-wins"  // or "manual"
     },
     
-    // Integrity
-    checksum: "sha256:abc123..."
+    // Integrity & Validation
+    checksum: "sha256:abc123...",
+    validation: {
+        schema: "https://story.app/schemas/v1.0/str-format.json",
+        signatures: []  // For enterprise signing
+    }
 }
 ```
 
-### 1.3 Presentation.json
+### 1.3 Document Structure
 
-- Contains full state tree (slides, elements, theme, masterSlides)
-- Media references use relative paths: `"assets/images/abc123.jpg"`
-- No blob URLs or data URLs - all media externalized
+**metadata.json:**
+```javascript
+{
+    title: "Presentation Title",
+    description: "Description text",
+    keywords: ["design", "product"],
+    language: "en-US",
+    
+    // Compatibility flags
+    features: {
+        codeEffects: true,
+        animations: false,
+        interactivity: false
+    }
+}
+```
+
+**slides/slide-001.json:**
+```javascript
+{
+    id: "slide-001",
+    order: 0,
+    masterId: "master-default",
+    
+    // Layout
+    background: { ... },
+    
+    // Elements (indexed for efficient updates)
+    elements: [
+        {
+            id: "elem-001",
+            type: "text",
+            position: { x: 100, y: 200 },
+            // ... element data
+        }
+    ],
+    
+    // Metadata
+    notes: "Speaker notes here",
+    duration: null,  // For timed slides
+    
+    // Hash for change detection
+    contentHash: "sha256:..."
+}
+```
+
+**relationships.json:**
+```javascript
+{
+    // Cross-reference map (inspired by PPTX _rels)
+    slideToAssets: {
+        "slide-001": ["abc123.jpg", "def456.woff2"],
+        "slide-002": ["ghi789.mp4"]
+    },
+    assetUsage: {
+        "abc123.jpg": ["slide-001/elem-001", "slide-003/elem-002"]
+    },
+    slideLinks: {
+        "slide-001/elem-003": { target: "slide-005", action: "navigate" }
+    }
+}
+```
 
 ### 1.4 Asset Index
 
@@ -128,7 +231,15 @@ presentation.str (ZIP archive)
         size: 1048576,          // bytes
         hash: "sha256:abc123...",
         dimensions: { width: 1920, height: 1080 },
-        references: ["slide-1/element-5", "slide-3/element-2"]
+        colorProfile: "sRGB",
+        references: ["slide-001/elem-005", "slide-003/elem-002"],
+        
+        // Processing hints
+        optimizations: {
+            hasWebP: true,       // WebP variant available
+            hasAvif: false,
+            thumbnailSizes: [200, 400, 800]
+        }
     },
     "ghi789.mp4": {
         originalName: "intro-video.mp4",
@@ -137,12 +248,49 @@ presentation.str (ZIP archive)
         hash: "sha256:ghi789...",
         dimensions: { width: 1920, height: 1080 },
         duration: 30.5,
-        references: ["slide-2/element-1"]
+        codec: "h264",
+        references: ["slide-002/elem-001"],
+        
+        // Streaming hints
+        hasHLS: false,
+        previewFrame: "ghi789-preview.jpg"
+    },
+    "custom-font.woff2": {
+        originalName: "Roboto-Bold.woff2",
+        type: "font/woff2",
+        size: 45056,
+        hash: "sha256:jkl012...",
+        fontFamily: "Roboto",
+        fontWeight: 700,
+        fontStyle: "normal",
+        glyphCount: 256,
+        references: ["theme"]
     }
 }
 ```
 
-### 1.5 Sections to Detail
+### 1.5 Content Types (PPTX-Inspired)
+
+For maximum tool interoperability, include content type declarations:
+
+```javascript
+// document/content-types.json
+{
+    "defaults": {
+        ".json": "application/json",
+        ".png": "image/png",
+        ".jpg": "image/jpeg",
+        ".woff2": "font/woff2",
+        ".mp4": "video/mp4"
+    },
+    "overrides": {
+        "/manifest.json": "application/vnd.story.manifest+json",
+        "/document/slides/*.json": "application/vnd.story.slide+json"
+    }
+}
+```
+
+### 1.6 Implementation Guidelines
 
 - [ ] Complete manifest.json schema
 - [ ] presentation.json structure (reference data-structures.md)
@@ -573,7 +721,245 @@ const MIGRATIONS = {
 
 ---
 
+## 13. Version History System
+
+> **Inspired by:** Figma's named versions, Google Docs version history, Git-style snapshots
+
+### 13.1 Overview
+
+Version history enables users to track changes, create named milestones, and restore previous states without leaving the application.
+
+### 13.2 Version Types
+
+| Type | Trigger | Retention | Storage |
+|------|---------|-----------|---------|
+| **Auto-checkpoint** | Every 10 edits or 5 minutes | 24 hours rolling | Local only |
+| **Session snapshot** | On close/open | 7 days | Local + cloud |
+| **Named version** | User creates | Permanent | Full history |
+| **Collaborative checkpoint** | On sync conflict | Until resolved | Temp storage |
+
+### 13.3 Storage Structure
+
+```javascript
+// history/versions.json
+{
+    currentHead: "v-2024-01-15-001",
+    versions: [
+        {
+            id: "v-2024-01-15-001",
+            type: "named",
+            name: "Final Draft",
+            description: "Ready for review",
+            created: "2024-01-15T14:30:00Z",
+            author: { id: "user_abc", name: "User" },
+            slideCount: 24,
+            checksum: "sha256:...",
+            
+            // Storage optimization
+            storage: {
+                type: "delta",         // or "full"
+                baseVersion: "v-2024-01-14-003",
+                deltaSize: 4096        // bytes
+            }
+        }
+    ]
+}
+```
+
+### 13.4 Delta Storage
+
+To minimize storage, use delta compression:
+
+```javascript
+// history/snapshots/v-2024-01-15-001.json.gz
+{
+    base: "v-2024-01-14-003",
+    operations: [
+        { op: "replace", path: "/slides/slide-003/elements/0/text", value: "Updated" },
+        { op: "add", path: "/slides/slide-025", value: { ... } },
+        { op: "remove", path: "/slides/slide-010" }
+    ]
+}
+```
+
+**Storage savings (typical):**
+- 100-slide presentation: ~5MB full state
+- Average delta: ~10-50KB
+- 50 versions with delta: ~7MB (vs. 250MB full)
+
+### 13.5 Version Operations
+
+```javascript
+// Version History API
+class VersionHistoryManager {
+    async createVersion(name, description) {
+        const snapshot = this.captureState();
+        const delta = this.computeDelta(this.lastCheckpoint, snapshot);
+        await this.storeVersion({ name, description, delta });
+    }
+    
+    async restoreVersion(versionId) {
+        const state = await this.reconstructState(versionId);
+        await this.setState(state);
+        this.createAutoCheckpoint("Restored from: " + versionId);
+    }
+    
+    async compareVersions(v1, v2) {
+        return this.diffStates(
+            await this.reconstructState(v1),
+            await this.reconstructState(v2)
+        );
+    }
+}
+```
+
+### 13.6 UI Integration
+
+- **Version panel:** Sidebar showing version timeline
+- **Quick compare:** Overlay showing diff between versions
+- **Restore with copy:** "Restore as new file" option
+- **Version naming:** Prompted on significant actions (before share, before export)
+
+---
+
+## 14. Recovery System
+
+> **Inspired by:** Word/Excel crash recovery, VS Code file recovery, native app autosave
+
+### 14.1 Overview
+
+Robust recovery system to prevent data loss from crashes, browser closures, or storage failures.
+
+### 14.2 Recovery Layers
+
+```
+Recovery Priority Stack:
+┌─────────────────────────────────────────────────────────────────┐
+│  Layer 1: In-Memory State (Lost on crash)                       │
+│           - Current working state                               │
+│           - Undo/redo stack                                     │
+│                                                                 │
+│  Layer 2: Autosave (Every 30s to IndexedDB)                     │
+│           - Full state snapshot                                 │
+│           - Recovery flag set                                   │
+│                                                                 │
+│  Layer 3: Session Storage (On tab close)                        │
+│           - Captured via beforeunload                           │
+│           - Quick recovery on accidental close                  │
+│                                                                 │
+│  Layer 4: OPFS Checkpoint (Every 5 min)                         │
+│           - File-system-level durability                        │
+│           - Survives browser storage pressure                   │
+│                                                                 │
+│  Layer 5: Original File (User's last explicit save)             │
+│           - Always preserved until user saves                   │
+│           - Never overwritten during editing                    │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### 14.3 Recovery Data Structure
+
+```javascript
+// Stored in IndexedDB: story:recovery:{presentationId}
+{
+    presentationId: "pres_abc123",
+    timestamp: "2024-01-15T14:45:00Z",
+    
+    // Recovery state
+    state: { /* full state tree */ },
+    
+    // Metadata
+    metadata: {
+        slideCount: 24,
+        dirtyChanges: true,
+        lastSavedFile: "My Presentation.str",
+        originalChecksum: "sha256:..."
+    },
+    
+    // Operation log (last 100 actions)
+    recentOperations: [
+        { type: "UPDATE_ELEMENT", timestamp: "...", summary: "Changed text" }
+    ],
+    
+    // Recovery hints
+    recovery: {
+        cursorPosition: { slideId: "slide-003", elementId: "elem-001" },
+        scrollPosition: { x: 0, y: 250 },
+        selectedElements: ["elem-001", "elem-002"],
+        panelStates: { propertyInspector: "open" }
+    }
+}
+```
+
+### 14.4 Recovery Detection
+
+```javascript
+// On app startup
+async function checkForRecovery() {
+    const recoveryData = await db.recovery.toArray();
+    
+    for (const data of recoveryData) {
+        // Check if file was properly closed
+        if (data.metadata.dirtyChanges) {
+            // Show recovery dialog
+            const choice = await showRecoveryDialog({
+                title: data.metadata.lastSavedFile,
+                savedAt: data.timestamp,
+                slideCount: data.metadata.slideCount
+            });
+            
+            if (choice === 'recover') {
+                await loadRecoveredState(data);
+            } else if (choice === 'discard') {
+                await db.recovery.delete(data.presentationId);
+            } else if (choice === 'saveCopy') {
+                await saveRecoveredAsCopy(data);
+            }
+        }
+    }
+}
+```
+
+### 14.5 Recovery UI
+
+**Recovery Dialog:**
+```
+┌─────────────────────────────────────────────────────────────────┐
+│  ⚠️  Recovered Unsaved Changes                                  │
+│                                                                 │
+│  "My Presentation.str"                                          │
+│  Last autosaved: 2 minutes ago (24 slides)                      │
+│                                                                 │
+│  Would you like to:                                             │
+│                                                                 │
+│  [Recover Changes]  [Open Original]  [Save as Copy]             │
+│                                                                 │
+│  ☐ Don't ask again for this file                                │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### 14.6 Failure Scenarios
+
+| Scenario | Detection | Recovery |
+|----------|-----------|----------|
+| Browser crash | Recovery flag not cleared | Full autosave restore |
+| Tab closed | beforeunload captured | Session storage restore |
+| Storage quota exceeded | StorageError caught | OPFS fallback + warning |
+| Corrupt autosave | Checksum mismatch | Previous checkpoint or original |
+| Cloud sync failure | Network error | Local-first, queue for retry |
+
+### 14.7 Recovery Guarantees
+
+- **Maximum data loss:** 30 seconds of work (autosave interval)
+- **Recovery success rate:** 99%+ (multiple fallback layers)
+- **Recovery time:** <2 seconds (immediate state hydration)
+- **User notification:** Always shown for recovered files
+
+---
+
 ## Implementation Priority
+
+> **Based on [Industry Benchmark Analysis](./file-format-benchmark.md)**
 
 ### Phase 0: Foundation (Prerequisites)
 1. [ ] Web Worker infrastructure for background operations
@@ -582,34 +968,53 @@ const MIGRATIONS = {
 4. [ ] Basic telemetry for performance monitoring
 
 ### Phase 1: Local Save/Load (MVP)
-1. [ ] .str file structure with progressive loading hooks
-2. [ ] Save to local file (File System Access API)
-3. [ ] Load from local file with skeleton UI
-4. [ ] Basic IndexedDB caching (LRU)
-5. [ ] Autosave to IndexedDB (every 30s or on blur)
+1. [ ] .str file structure with per-slide JSON files *(Updated)*
+2. [ ] Manifest with chunk index for random access *(New)*
+3. [ ] Save to local file (File System Access API)
+4. [ ] Load from local file with skeleton UI
+5. [ ] Content-addressable asset naming *(Improved)*
+6. [ ] Basic IndexedDB caching (LRU)
+7. [ ] Autosave to IndexedDB (every 30s or on blur)
 
-### Phase 2: Cloud Integration
+### Phase 2: Recovery & Versioning *(New Priority)*
+1. [ ] Multi-layer recovery system (Section 14)
+2. [ ] Auto-checkpoint on edit threshold
+3. [ ] Session storage capture on tab close
+4. [ ] Recovery dialog and restoration flow
+5. [ ] Basic version history (named versions)
+6. [ ] Delta compression for version storage
+
+### Phase 3: Cloud Integration
 1. [ ] Google OAuth 2.0 with PKCE flow
 2. [ ] Google Drive integration (save/load)
 3. [ ] Sync status UI and offline queue
 4. [ ] OneDrive integration (future)
 
-### Phase 3: Progressive Loading & Caching
+### Phase 4: Progressive Loading & Caching
 1. [ ] Chunk-based slide loading
 2. [ ] Asset lazy loading with prefetch
 3. [ ] Multi-layer cache system
 4. [ ] Background prefetch strategies
+5. [ ] Per-slide thumbnail generation
 
-### Phase 4: Offline & Recovery
+### Phase 5: Offline & Sync
 1. [ ] Service Worker for offline
-2. [ ] Autosave with recovery prompts
-3. [ ] Version migration system
-4. [ ] Conflict resolution UI
+2. [ ] Conflict resolution UI
+3. [ ] Background sync API usage
+4. [ ] Sync queue persistence
 
-### Phase 5: Import/Export
-1. [ ] PDF export
+### Phase 6: Import/Export *(Updated)*
+1. [ ] PDF export with code effect rasterization
 2. [ ] HTML export (self-contained)
-3. [ ] PPTX import (basic)
+3. [ ] PPTX import (slides, text, images)
+4. [ ] PPTX export (future)
+5. [ ] Keynote import (future)
+
+### Phase 7: Advanced Features
+1. [ ] End-to-end encryption for sensitive presentations
+2. [ ] Digital signatures for enterprise
+3. [ ] Comment threads (collaboration foundation)
+4. [ ] Extension data hooks
 
 ---
 
@@ -745,6 +1150,7 @@ Finally implement FileWriter/FileReader to bundle everything.
 
 ## Related Documents
 
+- [Industry Benchmark Analysis](./file-format-benchmark.md) *(New)*
 - [Progressive Loading Specification](./progressive-loading.md)
 - [Asset Management & Caching](./asset-management.md)
 - [Security Model](../collaboration/security-model.md)
