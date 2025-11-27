@@ -451,62 +451,89 @@
 }
 
 /* ===========================================
-   AI Tab
+   AI Section (Integrated in Custom Tab)
    =========================================== */
-.cfp-ai-tab {
-    gap: var(--spacing-3);
+.cfp-ai-section {
+    flex-shrink: 0;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    margin-bottom: var(--spacing-2);
 }
 
-/* Prompt Section */
-.cfp-prompt-section {
+.cfp-ai-header {
     display: flex;
-    flex-direction: column;
+    align-items: center;
     gap: var(--spacing-2);
+    padding: var(--spacing-2) var(--spacing-3);
+    background: var(--color-bg-tertiary);
+    cursor: pointer;
+    user-select: none;
+    transition: background-color var(--duration-fast);
 }
 
-.cfp-label {
+.cfp-ai-header:hover {
+    background: var(--color-bg-hover);
+}
+
+.cfp-ai-header-icon {
+    font-size: 14px;
+}
+
+.cfp-ai-header-title {
+    flex: 1;
     font-size: var(--font-size-sm);
-    color: var(--color-text-secondary);
+    font-weight: var(--font-weight-medium);
+    color: var(--color-text-primary);
 }
 
-.cfp-prompt-input {
-    min-height: 80px;
+.cfp-ai-toggle-icon {
+    font-size: 10px;
+    color: var(--color-text-secondary);
+    transition: transform var(--duration-fast);
+}
+
+.cfp-ai-content {
+    overflow: hidden;
+    transition: all var(--duration-normal) ease;
+}
+
+.cfp-ai-content.collapsed {
+    max-height: 0;
+    padding: 0 var(--spacing-3);
+}
+
+.cfp-ai-content.expanded {
+    max-height: 200px;
+    padding: var(--spacing-3);
+}
+
+.cfp-ai-prompt-container {
+    margin-bottom: var(--spacing-2);
+}
+
+.cfp-ai-prompt {
+    width: 100%;
+    min-height: 60px;
     padding: var(--spacing-2);
     font-family: inherit;
     font-size: var(--font-size-sm);
-    line-height: 1.5;
+    line-height: 1.4;
     background: var(--color-bg-input);
     border: 1px solid var(--color-border);
-    border-radius: var(--radius-md);
+    border-radius: var(--radius-sm);
     color: var(--color-text-primary);
-    resize: vertical;
+    resize: none;
     outline: none;
     transition: border-color var(--duration-fast);
 }
 
-.cfp-prompt-input:focus {
+.cfp-ai-prompt:focus {
     border-color: var(--color-border-focus);
 }
 
-.cfp-prompt-input::placeholder {
+.cfp-ai-prompt::placeholder {
     color: var(--color-text-disabled);
-}
-
-/* Refine Container */
-.cfp-refine-container {
-    display: flex;
-    align-items: center;
-    gap: var(--spacing-2);
-    font-size: var(--font-size-sm);
-    color: var(--color-text-secondary);
-}
-
-.cfp-refine-container input[type="checkbox"] {
-    cursor: pointer;
-}
-
-.cfp-refine-container label {
-    cursor: pointer;
 }
 
 /* AI Buttons */
@@ -519,52 +546,68 @@
     flex: 1;
 }
 
-/* History Section */
-.cfp-history-section {
-    flex-shrink: 0;
-}
-
-.cfp-history-label {
+.cfp-btn-sm {
+    padding: var(--spacing-1-5) var(--spacing-2);
     font-size: var(--font-size-xs);
-    color: var(--color-text-secondary);
-    margin-bottom: var(--spacing-2);
 }
 
-.cfp-history-grid {
+/* ===========================================
+   CodeMirror Editor Container
+   =========================================== */
+.cfp-editor-header {
     display: flex;
-    gap: var(--spacing-2);
-    overflow-x: auto;
+    align-items: center;
+    justify-content: space-between;
     padding-bottom: var(--spacing-1);
-}
-
-.cfp-history-thumb {
-    flex-shrink: 0;
-    width: 80px;
-    cursor: pointer;
-    border-radius: var(--radius-sm);
-    overflow: hidden;
-    border: 2px solid transparent;
-    transition: all var(--duration-fast);
-}
-
-.cfp-history-thumb:hover {
-    border-color: var(--color-border-hover);
-}
-
-.cfp-history-thumb canvas {
-    width: 100%;
-    aspect-ratio: 16/9;
-    background: #000;
-    display: block;
-}
-
-.cfp-history-thumb span {
-    display: block;
-    padding: var(--spacing-0-5) var(--spacing-1);
-    font-size: var(--font-size-2xs);
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-medium);
     color: var(--color-text-secondary);
-    background: var(--color-bg-tertiary);
-    text-align: center;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.cfp-codemirror-container {
+    flex: 1;
+    min-height: 150px;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+}
+
+.cfp-codemirror-container .CodeMirror {
+    height: 100%;
+    min-height: 150px;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    line-height: 1.5;
+}
+
+/* Customize CodeMirror Dracula theme to match app */
+.cfp-codemirror-container .CodeMirror.cm-s-dracula {
+    background-color: #1a1a2e;
+}
+
+.cfp-codemirror-container .CodeMirror-gutters {
+    background-color: #16162a;
+    border-right: 1px solid var(--color-border);
+}
+
+.cfp-codemirror-container .CodeMirror-linenumber {
+    color: var(--color-text-disabled);
+}
+
+.cfp-codemirror-container .CodeMirror-selected {
+    background: rgba(139, 92, 246, 0.2) !important;
+}
+
+.cfp-codemirror-container .CodeMirror-cursor {
+    border-left-color: var(--color-accent);
+}
+
+/* Scrollbars in CodeMirror */
+.cfp-codemirror-container .CodeMirror-vscrollbar,
+.cfp-codemirror-container .CodeMirror-hscrollbar {
+    scrollbar-width: thin;
 }
 
 /* ===========================================

@@ -2,6 +2,12 @@
  * CodeFillPanel.js
  * A dedicated draggable, resizable panel for managing code-based dynamic fills.
  * Follows patterns from TypographyStyleManager and ColorThemeManager.
+ * 
+ * Features:
+ * - Two tabs: Presets and Custom
+ * - Custom tab includes AI generation as an inline feature
+ * - Uses CodeMirror for syntax highlighting
+ * - Native text undo/redo support
  */
 
 import { DraggablePanel } from '../components/DraggablePanel.js';
@@ -11,7 +17,7 @@ import { store } from '../../core/Store.js';
 import { CodeRunner } from '../../core/effects/CodeRunner.js';
 import { PresetManager } from '../../core/services/PresetManager.js';
 import { AIService } from '../../core/ai/AIService.js';
-import { CODE_FILL_PROMPT, CODE_FILL_UPDATE_PROMPT, PROMPT_REFINEMENT_PROMPT } from '../../core/ai/prompts/templates.js';
+import { CODE_FILL_PROMPT, CODE_FILL_UPDATE_PROMPT } from '../../core/ai/prompts/templates.js';
 import { Icons } from '../Icons.js';
 import { FillLayerBar } from './components/FillLayerBar.js';
 
@@ -23,11 +29,11 @@ export class CodeFillPanel extends DraggablePanel {
         super({
             id: 'code-fill-panel',
             title: 'Code Fill',
-            defaultWidth: 380,
-            defaultHeight: 600,
-            minWidth: 340,
-            minHeight: 500,
-            maxWidth: 600,
+            defaultWidth: 420,
+            defaultHeight: 650,
+            minWidth: 380,
+            minHeight: 550,
+            maxWidth: 650,
             maxHeight: 900
         });
         
@@ -39,11 +45,11 @@ export class CodeFillPanel extends DraggablePanel {
         
         // Code editing
         this.runner = null;
-        this.codeEditor = null;
+        this.codeMirror = null;
         this.updateDebounceTimer = null;
         
-        // AI history
-        this.aiHistory = [];
+        // AI state
+        this.isAIPanelExpanded = false;
         
         // Preset search/filter
         this.presetSearchQuery = '';
@@ -87,12 +93,11 @@ export class CodeFillPanel extends DraggablePanel {
         // Add panel-specific class
         this.element.classList.add('code-fill-panel');
         
-        // Create tab control
+        // Create tab control - only 2 tabs now
         this.tabControl = new SegmentedControl({
             options: [
                 { value: 'presets', label: 'Presets' },
-                { value: 'custom', label: 'Custom' },
-                { value: 'ai', label: 'AI' }
+                { value: 'custom', label: 'Custom' }
             ],
             value: 'presets',
             onChange: (tab) => this.switchTab(tab)
@@ -120,11 +125,9 @@ export class CodeFillPanel extends DraggablePanel {
         // Create tab content containers
         this.presetsContent = this.createPresetsTab();
         this.customContent = this.createCustomTab();
-        this.aiContent = this.createAITab();
         
         this.contentElement.appendChild(this.presetsContent);
         this.contentElement.appendChild(this.customContent);
-        this.contentElement.appendChild(this.aiContent);
         
         // Create empty state
         this.emptyState = this.createEmptyState();
@@ -171,7 +174,6 @@ export class CodeFillPanel extends DraggablePanel {
             this.selectedCodeFillIndex = index;
             this.updateFillLayerBar();
             this.updateCustomTabContent();
-            this.updateAITabContent();
         }
     }
 
@@ -215,7 +217,6 @@ export class CodeFillPanel extends DraggablePanel {
         this.currentFills = newFills;
         this.updateFillLayerBar();
         this.updateCustomTabContent();
-        this.updateAITabContent();
     }
 
     handleReorderFill(fromIndex, toIndex) {
@@ -620,7 +621,7 @@ export class CodeFillPanel extends DraggablePanel {
     }
 
     // ========================================
-    // CUSTOM TAB
+    // CUSTOM TAB (with integrated AI)
     // ========================================
     
     createCustomTab() {
@@ -633,7 +634,7 @@ export class CodeFillPanel extends DraggablePanel {
         
         this.previewCanvas = document.createElement('canvas');
         this.previewCanvas.className = 'cfp-preview-canvas';
-        this.previewCanvas.width = 320;
+        this.previewCanvas.width = 360;
         this.previewCanvas.height = 180;
         previewSection.appendChild(this.previewCanvas);
         
@@ -665,27 +666,151 @@ export class CodeFillPanel extends DraggablePanel {
         
         container.appendChild(playbackControls);
         
-        // Code editor
+        // AI Generation Section (collapsible)
+        const aiSection = this.createAISection();
+        container.appendChild(aiSection);
+        
+        // Code editor section with CodeMirror
         const editorSection = document.createElement('div');
         editorSection.className = 'cfp-editor-section';
         
-        this.codeEditor = document.createElement('textarea');
-        this.codeEditor.className = 'cfp-code-editor';
-        this.codeEditor.spellcheck = false;
-        this.codeEditor.placeholder = 'Enter your canvas code here...';
-        this.codeEditor.addEventListener('input', (e) => this.handleCodeChange(e.target.value));
-        this.codeEditor.addEventListener('keydown', (e) => this.handleEditorKeydown(e));
+        const editorHeader = document.createElement('div');
+        editorHeader.className = 'cfp-editor-header';
+        editorHeader.innerHTML = '<span>Code</span>';
+        editorSection.appendChild(editorHeader);
         
-        editorSection.appendChild(this.codeEditor);
+        // CodeMirror container
+        this.editorContainer = document.createElement('div');
+        this.editorContainer.className = 'cfp-codemirror-container';
+        editorSection.appendChild(this.editorContainer);
+        
         container.appendChild(editorSection);
         
         return container;
     }
 
+    createAISection() {
+        const aiSection = document.createElement('div');
+        aiSection.className = 'cfp-ai-section';
+        
+        // Collapsible header
+        const aiHeader = document.createElement('div');
+        aiHeader.className = 'cfp-ai-header';
+        aiHeader.innerHTML = `
+            <span class="cfp-ai-header-icon">✨</span>
+            <span class="cfp-ai-header-title">AI Generate</span>
+            <span class="cfp-ai-toggle-icon">▼</span>
+        `;
+        aiHeader.onclick = () => this.toggleAIPanel();
+        aiSection.appendChild(aiHeader);
+        
+        // AI content (collapsible)
+        this.aiPanelContent = document.createElement('div');
+        this.aiPanelContent.className = 'cfp-ai-content collapsed';
+        
+        // Prompt input
+        const promptContainer = document.createElement('div');
+        promptContainer.className = 'cfp-ai-prompt-container';
+        
+        this.aiPromptInput = document.createElement('textarea');
+        this.aiPromptInput.className = 'cfp-ai-prompt';
+        this.aiPromptInput.placeholder = 'Describe the animation you want, e.g. "flowing gradient with gentle blue waves"';
+        this.aiPromptInput.rows = 2;
+        promptContainer.appendChild(this.aiPromptInput);
+        
+        this.aiPanelContent.appendChild(promptContainer);
+        
+        // AI buttons row
+        const aiButtonRow = document.createElement('div');
+        aiButtonRow.className = 'cfp-ai-buttons';
+        
+        this.aiUpdateBtn = document.createElement('button');
+        this.aiUpdateBtn.className = 'cfp-btn cfp-btn-secondary cfp-btn-sm';
+        this.aiUpdateBtn.textContent = 'Modify';
+        this.aiUpdateBtn.title = 'Modify existing code based on prompt';
+        this.aiUpdateBtn.onclick = () => this.handleAIGenerate('update');
+        
+        this.aiGenerateBtn = document.createElement('button');
+        this.aiGenerateBtn.className = 'cfp-btn cfp-btn-primary cfp-btn-sm';
+        this.aiGenerateBtn.textContent = 'Generate New';
+        this.aiGenerateBtn.title = 'Generate entirely new code';
+        this.aiGenerateBtn.onclick = () => this.handleAIGenerate('new');
+        
+        aiButtonRow.appendChild(this.aiUpdateBtn);
+        aiButtonRow.appendChild(this.aiGenerateBtn);
+        
+        this.aiPanelContent.appendChild(aiButtonRow);
+        
+        aiSection.appendChild(this.aiPanelContent);
+        
+        return aiSection;
+    }
+
+    toggleAIPanel() {
+        this.isAIPanelExpanded = !this.isAIPanelExpanded;
+        
+        if (this.isAIPanelExpanded) {
+            this.aiPanelContent.classList.remove('collapsed');
+            this.aiPanelContent.classList.add('expanded');
+        } else {
+            this.aiPanelContent.classList.remove('expanded');
+            this.aiPanelContent.classList.add('collapsed');
+        }
+        
+        // Update toggle icon
+        const toggleIcon = this.aiPanelContent.previousElementSibling.querySelector('.cfp-ai-toggle-icon');
+        if (toggleIcon) {
+            toggleIcon.textContent = this.isAIPanelExpanded ? '▲' : '▼';
+        }
+    }
+
+    initCodeMirror() {
+        // Only init if not already done and CodeMirror is available
+        if (this.codeMirror || !window.CodeMirror) {
+            return;
+        }
+        
+        // Clear container
+        this.editorContainer.innerHTML = '';
+        
+        // Create CodeMirror instance
+        this.codeMirror = CodeMirror(this.editorContainer, {
+            value: '',
+            mode: 'javascript',
+            theme: 'dracula',
+            lineNumbers: true,
+            lineWrapping: true,
+            indentUnit: 2,
+            tabSize: 2,
+            indentWithTabs: false,
+            autoCloseBrackets: true,
+            matchBrackets: true,
+            scrollbarStyle: 'native',
+            viewportMargin: Infinity
+        });
+        
+        // Handle changes - uses native undo/redo
+        this.codeMirror.on('change', (cm) => {
+            this.handleCodeChange(cm.getValue());
+        });
+        
+        // Refresh after a short delay to ensure proper rendering
+        setTimeout(() => {
+            if (this.codeMirror) {
+                this.codeMirror.refresh();
+            }
+        }, 100);
+    }
+
     updateCustomTabContent() {
+        // Initialize CodeMirror if needed
+        this.initCodeMirror();
+        
         if (this.selectedCodeFillIndex < 0 || !this.currentFills[this.selectedCodeFillIndex]) {
             // No code fill selected
-            this.codeEditor.value = '';
+            if (this.codeMirror) {
+                this.codeMirror.setValue('');
+            }
             if (this.runner) {
                 this.runner.stop();
             }
@@ -695,7 +820,22 @@ export class CodeFillPanel extends DraggablePanel {
         const fill = this.currentFills[this.selectedCodeFillIndex];
         const code = fill.code || CodeRunner.DEFAULT_CODE;
         
-        this.codeEditor.value = code;
+        // Update CodeMirror value
+        if (this.codeMirror && this.codeMirror.getValue() !== code) {
+            // Save cursor position
+            const cursor = this.codeMirror.getCursor();
+            const scrollInfo = this.codeMirror.getScrollInfo();
+            
+            this.codeMirror.setValue(code);
+            
+            // Restore cursor if possible
+            try {
+                this.codeMirror.setCursor(cursor);
+                this.codeMirror.scrollTo(scrollInfo.left, scrollInfo.top);
+            } catch (e) {
+                // Ignore if cursor position is invalid
+            }
+        }
         
         // Initialize or update runner
         if (!this.runner) {
@@ -733,24 +873,6 @@ export class CodeFillPanel extends DraggablePanel {
                 this.currentFills = newFills;
             }
         }, 300);
-    }
-
-    handleEditorKeydown(e) {
-        // Tab key inserts spaces instead of changing focus
-        if (e.key === 'Tab') {
-            e.preventDefault();
-            const start = this.codeEditor.selectionStart;
-            const end = this.codeEditor.selectionEnd;
-            const spaces = '  ';
-            
-            this.codeEditor.value = 
-                this.codeEditor.value.substring(0, start) + 
-                spaces + 
-                this.codeEditor.value.substring(end);
-            
-            this.codeEditor.selectionStart = this.codeEditor.selectionEnd = start + spaces.length;
-            this.handleCodeChange(this.codeEditor.value);
-        }
     }
 
     togglePlayback() {
@@ -800,109 +922,9 @@ export class CodeFillPanel extends DraggablePanel {
     }
 
     // ========================================
-    // AI TAB
+    // AI GENERATION
     // ========================================
     
-    createAITab() {
-        const container = document.createElement('div');
-        container.className = 'cfp-ai-tab cfp-tab-content';
-        
-        // Canvas preview
-        const previewSection = document.createElement('div');
-        previewSection.className = 'cfp-preview-section';
-        
-        this.aiPreviewCanvas = document.createElement('canvas');
-        this.aiPreviewCanvas.className = 'cfp-preview-canvas';
-        this.aiPreviewCanvas.width = 320;
-        this.aiPreviewCanvas.height = 180;
-        previewSection.appendChild(this.aiPreviewCanvas);
-        
-        container.appendChild(previewSection);
-        
-        // Prompt section
-        const promptSection = document.createElement('div');
-        promptSection.className = 'cfp-prompt-section';
-        
-        const promptLabel = document.createElement('label');
-        promptLabel.className = 'cfp-label';
-        promptLabel.textContent = 'Describe your animation:';
-        promptSection.appendChild(promptLabel);
-        
-        this.aiPromptInput = document.createElement('textarea');
-        this.aiPromptInput.className = 'cfp-prompt-input';
-        this.aiPromptInput.placeholder = 'Create a subtle flowing gradient with gentle movement...';
-        promptSection.appendChild(this.aiPromptInput);
-        
-        // Refine option
-        const refineContainer = document.createElement('div');
-        refineContainer.className = 'cfp-refine-container';
-        
-        this.refineCheckbox = document.createElement('input');
-        this.refineCheckbox.type = 'checkbox';
-        this.refineCheckbox.id = 'cfp-refine-checkbox';
-        this.refineCheckbox.checked = true;
-        
-        const refineLabel = document.createElement('label');
-        refineLabel.htmlFor = 'cfp-refine-checkbox';
-        refineLabel.textContent = 'Refine prompt before generating';
-        
-        refineContainer.appendChild(this.refineCheckbox);
-        refineContainer.appendChild(refineLabel);
-        promptSection.appendChild(refineContainer);
-        
-        // Action buttons
-        const buttonRow = document.createElement('div');
-        buttonRow.className = 'cfp-ai-buttons';
-        
-        this.updateBtn = document.createElement('button');
-        this.updateBtn.className = 'cfp-btn cfp-btn-secondary';
-        this.updateBtn.textContent = 'Update';
-        this.updateBtn.onclick = () => this.handleAIGenerate('update');
-        
-        this.generateBtn = document.createElement('button');
-        this.generateBtn.className = 'cfp-btn cfp-btn-primary';
-        this.generateBtn.textContent = 'Generate';
-        this.generateBtn.onclick = () => this.handleAIGenerate('new');
-        
-        buttonRow.appendChild(this.updateBtn);
-        buttonRow.appendChild(this.generateBtn);
-        promptSection.appendChild(buttonRow);
-        
-        container.appendChild(promptSection);
-        
-        // History section
-        const historySection = document.createElement('div');
-        historySection.className = 'cfp-history-section';
-        
-        const historyLabel = document.createElement('div');
-        historyLabel.className = 'cfp-history-label';
-        historyLabel.textContent = 'Generation History:';
-        historySection.appendChild(historyLabel);
-        
-        this.historyContainer = document.createElement('div');
-        this.historyContainer.className = 'cfp-history-grid';
-        historySection.appendChild(this.historyContainer);
-        
-        container.appendChild(historySection);
-        
-        return container;
-    }
-
-    updateAITabContent() {
-        // Update AI preview with current code
-        if (this.selectedCodeFillIndex >= 0 && this.currentFills[this.selectedCodeFillIndex]) {
-            const fill = this.currentFills[this.selectedCodeFillIndex];
-            const code = fill.code || CodeRunner.DEFAULT_CODE;
-            
-            if (!this.aiRunner) {
-                this.aiRunner = new CodeRunner(this.aiPreviewCanvas);
-            }
-            
-            this.aiRunner.setCode(code);
-            this.aiRunner.play();
-        }
-    }
-
     async handleAIGenerate(mode) {
         const prompt = this.aiPromptInput.value.trim();
         if (!prompt) {
@@ -915,30 +937,15 @@ export class CodeFillPanel extends DraggablePanel {
             this.handleAddCodeFill();
         }
         
-        const btn = mode === 'update' ? this.updateBtn : this.generateBtn;
+        const btn = mode === 'update' ? this.aiUpdateBtn : this.aiGenerateBtn;
         const originalText = btn.textContent;
-        btn.textContent = 'Generating...';
+        btn.textContent = 'Working...';
         btn.disabled = true;
-        this.updateBtn.disabled = true;
-        this.generateBtn.disabled = true;
+        this.aiUpdateBtn.disabled = true;
+        this.aiGenerateBtn.disabled = true;
         
         try {
             const ai = new AIService();
-            let finalPrompt = prompt;
-            
-            // Refine prompt if requested
-            if (this.refineCheckbox.checked) {
-                btn.textContent = 'Refining...';
-                const refinementSystemPrompt = PROMPT_REFINEMENT_PROMPT.replace('{userPrompt}', prompt);
-                
-                const refined = await ai.generate("Refine the prompt.", { 
-                    systemPrompt: refinementSystemPrompt 
-                });
-                
-                finalPrompt = refined.trim();
-                this.aiPromptInput.value = finalPrompt;
-                btn.textContent = 'Generating...';
-            }
             
             let systemPrompt = '';
             let userPrompt = '';
@@ -946,22 +953,19 @@ export class CodeFillPanel extends DraggablePanel {
             const currentCode = this.currentFills[this.selectedCodeFillIndex]?.code || '';
             
             if (mode === 'new') {
-                systemPrompt = CODE_FILL_PROMPT.replace('{description}', finalPrompt);
-                userPrompt = `Generate a canvas animation code for: ${finalPrompt}`;
+                systemPrompt = CODE_FILL_PROMPT.replace('{description}', prompt);
+                userPrompt = `Generate a canvas animation code for: ${prompt}`;
             } else {
                 systemPrompt = CODE_FILL_UPDATE_PROMPT
                     .replace('{existingCode}', currentCode)
-                    .replace('{request}', finalPrompt);
-                userPrompt = `Update the code to: ${finalPrompt}`;
+                    .replace('{request}', prompt);
+                userPrompt = `Update the code to: ${prompt}`;
             }
             
             const generatedCode = await ai.generate(userPrompt, { systemPrompt });
             
-            // Clean up code
+            // Clean up code - remove markdown code blocks
             let cleanCode = generatedCode.replace(/```javascript/g, '').replace(/```/g, '').trim();
-            
-            // Add to history
-            this.addToHistory(cleanCode);
             
             // Apply code
             const newFills = [...this.currentFills];
@@ -973,10 +977,17 @@ export class CodeFillPanel extends DraggablePanel {
             this.updateElementFills(newFills);
             this.currentFills = newFills;
             
-            // Update AI preview
-            if (this.aiRunner) {
-                this.aiRunner.setCode(cleanCode);
+            // Update editor
+            if (this.codeMirror) {
+                this.codeMirror.setValue(cleanCode);
             }
+            
+            // Update preview
+            if (this.runner) {
+                this.runner.setCode(cleanCode);
+            }
+            
+            this.updateErrorIndicator();
             
         } catch (error) {
             console.error('AI Generation failed:', error);
@@ -984,72 +995,8 @@ export class CodeFillPanel extends DraggablePanel {
         } finally {
             btn.textContent = originalText;
             btn.disabled = false;
-            this.updateBtn.disabled = false;
-            this.generateBtn.disabled = false;
-        }
-    }
-
-    addToHistory(code) {
-        // Add to beginning, limit to 5 entries
-        this.aiHistory.unshift(code);
-        if (this.aiHistory.length > 5) {
-            this.aiHistory.pop();
-        }
-        
-        this.renderHistory();
-    }
-
-    renderHistory() {
-        this.historyContainer.innerHTML = '';
-        
-        // Clean up old runners
-        if (this.historyRunners) {
-            this.historyRunners.forEach(r => r.stop());
-        }
-        this.historyRunners = [];
-        
-        this.aiHistory.forEach((code, index) => {
-            const thumb = document.createElement('div');
-            thumb.className = 'cfp-history-thumb';
-            
-            const canvas = document.createElement('canvas');
-            canvas.width = 80;
-            canvas.height = 45;
-            thumb.appendChild(canvas);
-            
-            const label = document.createElement('span');
-            label.textContent = `Ver ${this.aiHistory.length - index}`;
-            thumb.appendChild(label);
-            
-            // Create runner
-            const runner = new CodeRunner(canvas);
-            runner.setCode(code);
-            this.startThrottledPreview(runner);
-            this.historyRunners.push(runner);
-            
-            // Click to restore
-            thumb.onclick = () => {
-                this.restoreFromHistory(code);
-            };
-            
-            this.historyContainer.appendChild(thumb);
-        });
-    }
-
-    restoreFromHistory(code) {
-        if (this.selectedCodeFillIndex < 0) return;
-        
-        const newFills = [...this.currentFills];
-        newFills[this.selectedCodeFillIndex] = {
-            ...newFills[this.selectedCodeFillIndex],
-            code
-        };
-        
-        this.updateElementFills(newFills);
-        this.currentFills = newFills;
-        
-        if (this.aiRunner) {
-            this.aiRunner.setCode(code);
+            this.aiUpdateBtn.disabled = false;
+            this.aiGenerateBtn.disabled = false;
         }
     }
 
@@ -1085,7 +1032,6 @@ export class CodeFillPanel extends DraggablePanel {
         this.emptyState.style.display = 'flex';
         this.presetsContent.style.display = 'none';
         this.customContent.style.display = 'none';
-        this.aiContent.style.display = 'none';
         
         if (type === 'no-selection') {
             this.emptyStateIcon.innerHTML = Icons.CURSOR || '↖';
@@ -1164,7 +1110,7 @@ export class CodeFillPanel extends DraggablePanel {
     switchTab(tab) {
         this.activeTab = tab;
         
-        // Update tab control
+        // Update tab control visually
         const buttons = this.tabControl.element.querySelectorAll('div');
         buttons.forEach((btn, i) => {
             const tabValue = this.tabControl.options[i]?.value;
@@ -1184,7 +1130,7 @@ export class CodeFillPanel extends DraggablePanel {
         }
         
         const hasCodeFills = this.currentFills.some(f => f.type === 'code');
-        if (!hasCodeFills && (tab === 'custom' || tab === 'ai')) {
+        if (!hasCodeFills && tab === 'custom') {
             this.showEmptyState('no-code-fills');
             return;
         }
@@ -1194,15 +1140,18 @@ export class CodeFillPanel extends DraggablePanel {
         // Show/hide tab content
         this.presetsContent.style.display = tab === 'presets' ? 'flex' : 'none';
         this.customContent.style.display = tab === 'custom' ? 'flex' : 'none';
-        this.aiContent.style.display = tab === 'ai' ? 'flex' : 'none';
         
         // Refresh content
         if (tab === 'presets') {
             this.renderPresetGrid();
         } else if (tab === 'custom') {
             this.updateCustomTabContent();
-        } else if (tab === 'ai') {
-            this.updateAITabContent();
+            // Refresh CodeMirror after display
+            setTimeout(() => {
+                if (this.codeMirror) {
+                    this.codeMirror.refresh();
+                }
+            }, 50);
         }
     }
 
@@ -1262,15 +1211,19 @@ export class CodeFillPanel extends DraggablePanel {
             this.currentFills = fills;
             this.updateFillLayerBar();
             
-            // Update current tab content
+            // Update current tab content if on custom
             if (this.activeTab === 'custom') {
                 // Only update if code actually changed (avoid cursor jump)
                 const currentCode = this.currentFills[this.selectedCodeFillIndex]?.code;
-                if (currentCode && this.codeEditor.value !== currentCode) {
-                    this.codeEditor.value = currentCode;
+                if (currentCode && this.codeMirror && this.codeMirror.getValue() !== currentCode) {
+                    const cursor = this.codeMirror.getCursor();
+                    this.codeMirror.setValue(currentCode);
+                    try {
+                        this.codeMirror.setCursor(cursor);
+                    } catch (e) {
+                        // Ignore
+                    }
                 }
-            } else if (this.activeTab === 'ai') {
-                this.updateAITabContent();
             }
         }
     }
@@ -1298,19 +1251,19 @@ export class CodeFillPanel extends DraggablePanel {
         if (this.runner) {
             this.runner.stop();
         }
-        if (this.aiRunner) {
-            this.aiRunner.stop();
-        }
         
         this.destroyPresetCards();
-        
-        if (this.historyRunners) {
-            this.historyRunners.forEach(r => r.stop());
-        }
     }
 
     destroy() {
         this.onClose();
+        
+        // Cleanup CodeMirror
+        if (this.codeMirror) {
+            this.codeMirror.toTextArea();
+            this.codeMirror = null;
+        }
+        
         super.destroy();
         instance = null;
     }
