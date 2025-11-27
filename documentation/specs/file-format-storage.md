@@ -1,8 +1,14 @@
-# File Format & Storage System - Specification Outline
+# File Format & Storage System - Specification
 
 ## Overview
 
 Story presentations are saved as `.str` files - a single portable archive containing all presentation data and assets. This document outlines the complete file format, storage strategies, cloud integration, and browser caching systems.
+
+**Related Specifications:**
+- [Progressive Loading](./progressive-loading.md) - Streaming and phased loading
+- [Asset Management & Caching](./asset-management.md) - Asset pipeline and cache layers
+- [Security Model](./security-model.md) - Sandboxing, encryption, validation
+- [Real-Time Collaboration](./realtime-collaboration.md) - Future collaboration architecture
 
 ---
 
@@ -18,6 +24,8 @@ Story presentations are saved as `.str` files - a single portable archive contai
 8. [Import/Export](#8-importexport)
 9. [Version Control & Migration](#9-version-control--migration)
 10. [Security & Encryption](#10-security--encryption)
+11. [UX Flows](#11-ux-flows)
+12. [Performance Targets](#12-performance-targets)
 
 ---
 
@@ -55,20 +63,47 @@ presentation.str (ZIP archive)
 
 ```javascript
 {
+    // Format & App Version
     version: "1.0.0",           // File format version
     appVersion: "0.1.0",        // Story app version that created this
+    
+    // Timestamps
     created: "2024-01-15T10:30:00Z",
     modified: "2024-01-15T14:45:00Z",
-    author: "User Name",
+    
+    // Authorship
+    author: {
+        id: "user_abc123",      // For collaboration
+        name: "User Name",
+        email: "user@example.com"  // Optional
+    },
+    
+    // Document Info
     title: "Presentation Title",
     description: "Optional description",
     thumbnail: "assets/thumbnails/cover.png",
     
-    // Feature flags for forward compatibility
-    features: {
+    // Content Summary (for quick preview without full parse)
+    summary: {
+        slideCount: 24,
+        totalAssetSize: 52428800,  // bytes
         hasVideo: true,
         hasCodeFill: true,
         hasAnimations: false
+    },
+    
+    // Progressive Loading Hints
+    loading: {
+        firstSlideOffset: 1024,     // Byte offset to slide 1 data
+        assetIndexOffset: 2048,     // Byte offset to asset index
+        criticalAssets: ["abc123.jpg", "def456.png"]  // Load first
+    },
+    
+    // Collaboration Hooks (future-proofing)
+    collaboration: {
+        documentId: "doc_xyz789",   // Unique ID for sync
+        lastSyncedAt: "2024-01-15T14:45:00Z",
+        conflictResolution: "last-write-wins"  // or "manual"
     },
     
     // Integrity
@@ -440,49 +475,140 @@ const MIGRATIONS = {
 
 ## 10. Security & Encryption
 
+> **See [Security Model Specification](./security-model.md) for complete details.**
+
 ### 10.1 Password Protection
 
 - Optional password on .str files
-- AES-256 encryption of ZIP contents
-- Key derivation with PBKDF2/Argon2
+- AES-256-GCM encryption of sensitive content
+- Key derivation with Argon2id (memory-hard)
+- Per-chunk encryption for progressive loading
 
-### 10.2 Sharing Security
+### 10.2 Code Execution Security
+
+- **Sandboxed Web Workers** for all CodeFill execution
+- **Content Security Policy** headers
+- **Asset validation** for uploaded files
+- No network access from code fills (offline-first execution)
+
+### 10.3 Sharing Security
 
 - Read-only export option
 - Expiring share links
 - Watermarking for shared presentations
 
-### 10.3 Sections to Detail
+---
 
-- [ ] Encryption implementation
-- [ ] Key management
-- [ ] Secure cloud token storage
-- [ ] Content sanitization (XSS prevention in CodeFill)
-- [ ] Audit logging
+## 11. UX Flows
+
+### 11.1 New User First Open
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│  User opens app → Blank presentation                                │
+│         ↓                                                           │
+│  User makes first change → "Untitled" appears in title bar         │
+│         ↓                                                           │
+│  User clicks Save (or Cmd+S) → Native file picker appears          │
+│         ↓                                                           │
+│  Suggest: Documents/Story/[Untitled].str                            │
+│         ↓                                                           │
+│  On first cloud save → Prompt for Google OAuth                      │
+│         ↓                                                           │
+│  After auth → Remember preference for this browser                  │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+### 11.2 Returning User Flow
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│  User opens app → Recent files grid + "Open File" button           │
+│         ↓                                                           │
+│  Recent files show: thumbnail, title, last modified, location icon │
+│         ↓                                                           │
+│  Click recent file → Progressive load with skeleton UI             │
+│         ↓                                                           │
+│  Loading states: Skeleton cards → Basic content → Full fidelity    │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+### 11.3 Save Status Indicators
+
+| State | Visual | Behavior |
+|-------|--------|----------|
+| Clean | No indicator | All changes saved |
+| Dirty | • dot in title | Unsaved changes |
+| Saving | Spinner | Save in progress |
+| Error | ⚠️ Warning | Save failed, retry available |
+| Offline | Cloud-off icon | Changes queued for sync |
+
+### 11.4 Error Recovery
+
+- Failed saves: Toast with "Retry" button + auto-retry after 30s
+- Conflict detected: Side-by-side diff view with merge options
+- Corrupt file: Attempt recovery from last autosave, offer export as PDF
+
+---
+
+## 12. Performance Targets
+
+| Metric | Target | Measurement |
+|--------|--------|-------------|
+| Time to first paint | <100ms | Show skeleton immediately |
+| Time to interactive | <500ms | User can navigate slides |
+| Small presentation load | <1s | <10 slides, <10MB assets |
+| Large presentation load | <5s | 100 slides, 500MB assets |
+| Autosave latency | <200ms | Debounced, non-blocking |
+| Export to PDF | <10s | 50 slides |
+
+### Memory Budgets
+
+| Component | Limit |
+|-----------|-------|
+| Memory LRU Cache | 100MB |
+| Decoded images (active) | 200MB |
+| Total heap (target) | 500MB |
+| IndexedDB per presentation | 500MB |
 
 ---
 
 ## Implementation Priority
 
+### Phase 0: Foundation (Prerequisites)
+1. [ ] Web Worker infrastructure for background operations
+2. [ ] Streaming ZIP library evaluation (fflate recommended)
+3. [ ] Error boundary and recovery system
+4. [ ] Basic telemetry for performance monitoring
+
 ### Phase 1: Local Save/Load (MVP)
-1. [ ] .str file structure
+1. [ ] .str file structure with progressive loading hooks
 2. [ ] Save to local file (File System Access API)
-3. [ ] Load from local file
-4. [ ] Basic IndexedDB caching
+3. [ ] Load from local file with skeleton UI
+4. [ ] Basic IndexedDB caching (LRU)
+5. [ ] Autosave to IndexedDB (every 30s or on blur)
 
 ### Phase 2: Cloud Integration
-1. [ ] OneDrive integration
-2. [ ] Google Drive integration
-3. [ ] Sync status UI
+1. [ ] Google OAuth 2.0 with PKCE flow
+2. [ ] Google Drive integration (save/load)
+3. [ ] Sync status UI and offline queue
+4. [ ] OneDrive integration (future)
 
-### Phase 3: Offline & Advanced
+### Phase 3: Progressive Loading & Caching
+1. [ ] Chunk-based slide loading
+2. [ ] Asset lazy loading with prefetch
+3. [ ] Multi-layer cache system
+4. [ ] Background prefetch strategies
+
+### Phase 4: Offline & Recovery
 1. [ ] Service Worker for offline
-2. [ ] Autosave & recovery
+2. [ ] Autosave with recovery prompts
 3. [ ] Version migration system
+4. [ ] Conflict resolution UI
 
-### Phase 4: Import/Export
+### Phase 5: Import/Export
 1. [ ] PDF export
-2. [ ] HTML export
+2. [ ] HTML export (self-contained)
 3. [ ] PPTX import (basic)
 
 ---
@@ -605,24 +731,41 @@ Finally implement FileWriter/FileReader to bundle everything.
 
 ---
 
-## Open Questions
+## Open Questions (Resolved)
 
-1. **Compression**: Use DEFLATE or store uncompressed for faster access?
-2. **Streaming**: Can we support streaming large videos without full download?
-3. **Collaboration**: How does this format support real-time collaboration?
-4. **Asset CDN**: For shared presentations, should assets be CDN-hosted?
-5. **Versioning**: Do we need to support opening multiple versions simultaneously?
+| Question | Resolution |
+|----------|------------|
+| **Compression** | Use streaming ZIP (fflate) with per-chunk compression; store thumbnails uncompressed for fast preview |
+| **Streaming** | Chunk-based loading allows streaming; large videos use range requests |
+| **Collaboration** | Future-proofed with Google OAuth; see [Real-Time Collaboration](./realtime-collaboration.md) |
+| **Asset CDN** | For shared presentations, assets uploaded to CDN with signed URLs |
+| **Versioning** | Migration functions applied sequentially; no multi-version support needed |
+
+---
+
+## Related Documents
+
+- [Progressive Loading Specification](./progressive-loading.md)
+- [Asset Management & Caching](./asset-management.md)
+- [Security Model](./security-model.md)
+- [Real-Time Collaboration](./realtime-collaboration.md)
+- [Media Asset Integration (Tech Spec)](../tech-specs/media-asset-integration.md)
+- [File Format Implementation Plan](../plans/file-format-implementation-plan.md)
 
 ---
 
 ## Next Steps
 
-1. ~~Detail the manifest.json and presentation.json schemas~~
-2. ~~Design the AssetManager class~~ → See [Media Asset Integration](../tech-specs/media-asset-integration.md)
-3. Prototype File System Access API integration
-4. Evaluate ZIP library options (JSZip, fflate)
-5. Plan IndexedDB schema
-6. Research OAuth flows for OneDrive/Google Drive
+1. ✅ Detail the manifest.json and presentation.json schemas
+2. ✅ Design the AssetManager class → See [Media Asset Integration](../tech-specs/media-asset-integration.md)
+3. ✅ Document progressive loading strategy → See [Progressive Loading](./progressive-loading.md)
+4. ✅ Document real-time collaboration architecture → See [Real-Time Collaboration](./realtime-collaboration.md)
+5. ✅ Document security model → See [Security Model](./security-model.md)
+6. ✅ Document asset caching system → See [Asset Management](./asset-management.md)
+7. Prototype File System Access API integration
+8. Evaluate ZIP library options (fflate recommended)
+9. Plan IndexedDB schema
+10. Implement Google OAuth 2.0 with PKCE flow
 
 ---
 

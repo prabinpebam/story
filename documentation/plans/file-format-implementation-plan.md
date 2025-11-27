@@ -2,9 +2,85 @@
 
 ## Overview
 
-This plan outlines the phased implementation of the `.str` file format, storage backends, cloud integration, and caching systems.
+This plan outlines the phased implementation of the `.str` file format, storage backends, cloud integration, and caching systems. The plan is structured for progressive enhancement, with each phase building on the previous.
 
-**Estimated Total Time**: 80-100 hours (across multiple phases)
+**Related Specifications**:
+- [File Format & Storage](../specs/file-format-storage.md) - Main specification
+- [Progressive Loading](../specs/progressive-loading.md) - Streaming and phased loading
+- [Asset Management & Caching](../specs/asset-management.md) - Cache layers and optimization
+- [Security Model](../specs/security-model.md) - Sandboxing and encryption
+- [Real-Time Collaboration](../specs/realtime-collaboration.md) - Future collaboration architecture
+
+**Estimated Total Time**: 100-120 hours (across multiple phases)
+
+---
+
+## Phase 0: Foundation (8-10 hours)
+
+> **Goal**: Establish infrastructure that all subsequent phases depend on.
+
+### 0.1 Web Worker Infrastructure
+
+**File**: `src/core/workers/WorkerPool.js`
+
+**Tasks**:
+- [ ] Create reusable worker pool (2-4 workers)
+- [ ] Implement message passing utilities
+- [ ] Add transferable object support for ArrayBuffers
+- [ ] Create worker wrapper for async/await pattern
+
+**Validation**:
+- [ ] Workers can process tasks in parallel
+- [ ] Main thread never blocks during heavy operations
+- [ ] Memory properly transferred (not copied)
+
+---
+
+### 0.2 Streaming ZIP Library Setup
+
+**Tasks**:
+- [ ] Install fflate (recommended for streaming support)
+- [ ] Create ZIP utility wrapper with streaming API
+- [ ] Test compression/decompression in Web Worker
+- [ ] Benchmark: 100MB file should compress in <2s
+
+**Validation**:
+- [ ] Streaming ZIP creation works
+- [ ] Streaming ZIP extraction works
+- [ ] Operations run in Web Worker, not main thread
+
+---
+
+### 0.3 Error Boundary System
+
+**File**: `src/core/storage/ErrorRecovery.js`
+
+**Tasks**:
+- [ ] Create error classification (network, storage, corruption, permission)
+- [ ] Implement retry logic with exponential backoff
+- [ ] Add user-facing error messages
+- [ ] Create recovery suggestions per error type
+
+**Validation**:
+- [ ] Errors classified correctly
+- [ ] Retry works for transient errors
+- [ ] Users see helpful error messages
+
+---
+
+### 0.4 Performance Telemetry
+
+**File**: `src/utils/PerformanceMetrics.js`
+
+**Tasks**:
+- [ ] Implement timing utilities (mark, measure)
+- [ ] Track key metrics: load time, save time, asset fetch time
+- [ ] Create performance budget checks
+- [ ] Add console reporting (dev mode)
+
+**Validation**:
+- [ ] Can measure any operation duration
+- [ ] Budget violations logged in dev mode
 
 ---
 
@@ -13,8 +89,8 @@ This plan outlines the phased implementation of the `.str` file format, storage 
 ### 1.1 ZIP Library Integration
 
 **Tasks**:
-- [ ] Evaluate ZIP libraries (JSZip vs fflate)
-- [ ] Install and configure chosen library
+- [x] Evaluate ZIP libraries (JSZip vs fflate) → **fflate chosen**
+- [ ] Install and configure fflate
 - [ ] Create utility functions for ZIP operations
 - [ ] Test compression/decompression performance
 
@@ -199,62 +275,73 @@ This plan outlines the phased implementation of the `.str` file format, storage 
 
 ## Phase 3: Cloud Storage (20-24 hours)
 
-### 3.1 Authentication System
+> **See [Real-Time Collaboration Specification](../specs/realtime-collaboration.md) for authentication architecture.**
 
-**File**: `src/core/auth/AuthManager.js`
+### 3.1 Google OAuth 2.0 with PKCE
+
+**File**: `src/core/auth/GoogleAuthManager.js`
 
 **Tasks**:
-- [ ] OAuth 2.0 PKCE flow implementation
-- [ ] Token storage (secure)
-- [ ] Token refresh handling
-- [ ] Multi-provider support
-- [ ] Sign out functionality
+- [ ] Implement OAuth 2.0 Authorization Code flow with PKCE
+- [ ] Create code verifier and challenge generation
+- [ ] Handle OAuth redirect/callback
+- [ ] Secure token storage in memory + encrypted IndexedDB
+- [ ] Implement token refresh with refresh_token
+- [ ] Add sign-out functionality (revoke tokens)
+
+**OAuth Scopes**:
+```
+openid
+email
+profile
+https://www.googleapis.com/auth/drive.file
+```
 
 **Validation**:
-- [ ] OAuth flow completes
-- [ ] Tokens stored securely
-- [ ] Auto-refresh works
-- [ ] Sign out clears tokens
+- [ ] OAuth flow completes without popup blockers
+- [ ] Tokens stored securely (never in localStorage)
+- [ ] Auto-refresh works before expiry
+- [ ] Sign out clears all credentials
 
 ---
 
-### 3.2 OneDrive Integration
-
-**File**: `src/core/storage/providers/OneDriveProvider.js`
-
-**Tasks**:
-- [ ] Microsoft OAuth configuration
-- [ ] OneDrive file picker integration
-- [ ] Download file to browser
-- [ ] Upload file to OneDrive
-- [ ] Handle upload conflicts
-- [ ] Track sync status
-
-**Validation**:
-- [ ] Can browse OneDrive
-- [ ] Can open .str from OneDrive
-- [ ] Can save .str to OneDrive
-- [ ] Conflicts handled gracefully
-
----
-
-### 3.3 Google Drive Integration
+### 3.2 Google Drive Integration
 
 **File**: `src/core/storage/providers/GoogleDriveProvider.js`
 
 **Tasks**:
-- [ ] Google OAuth configuration
 - [ ] Google Drive picker integration
-- [ ] Download file to browser
-- [ ] Upload file to Google Drive
-- [ ] Handle upload conflicts
-- [ ] Track sync status
+- [ ] Download file to browser (with progress)
+- [ ] Upload file to Google Drive (resumable upload for large files)
+- [ ] Handle upload conflicts (409 responses)
+- [ ] Track sync status and last synced time
+- [ ] Create Story folder in Drive on first save
+
+**API Endpoints**:
+- Files: `https://www.googleapis.com/drive/v3/files`
+- Upload: `https://www.googleapis.com/upload/drive/v3/files`
 
 **Validation**:
 - [ ] Can browse Google Drive
 - [ ] Can open .str from Google Drive
 - [ ] Can save .str to Google Drive
-- [ ] Conflicts handled gracefully
+- [ ] Large files (100MB+) upload with progress
+- [ ] Conflicts detected and surfaced to user
+
+---
+
+### 3.3 OneDrive Integration (Future)
+
+**File**: `src/core/storage/providers/OneDriveProvider.js`
+
+> **Note**: Implement after Google Drive is stable.
+
+**Tasks**:
+- [ ] Microsoft OAuth configuration (similar PKCE flow)
+- [ ] OneDrive file picker integration
+- [ ] Download/upload with Microsoft Graph API
+- [ ] Handle upload conflicts
+- [ ] Track sync status
 
 ---
 

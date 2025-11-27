@@ -92,7 +92,6 @@
     background: var(--color-bg-well);
     border: 2px solid transparent;
     border-radius: var(--radius-sm);
-    padding: var(--spacing-2);
     cursor: pointer;
     transition: border-color 0.15s, transform 0.1s;
 }
