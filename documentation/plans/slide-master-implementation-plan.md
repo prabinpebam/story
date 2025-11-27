@@ -907,8 +907,8 @@ The following phases from the original implementation are complete and provide t
 
 ## Related Documents
 
-- [Slide Master System Spec](../specs/slide-master-system.md)
-- [Color Theme Manager Spec](../specs/color-theme-manager.md)
-- [Typography Style Manager Spec](../specs/typography-style-manager.md)
-- [UI Design System](../specs/ui-design-system.md)
+- [Slide Master System Spec](../specs/slides/slide-master-system.md)
+- [Color Theme Manager Spec](../specs/design-system/color-theme-manager.md)
+- [Typography Style Manager Spec](../specs/design-system/typography-style-manager.md)
+- [UI Design System](../specs/design-system/ui-design-system.md)
 

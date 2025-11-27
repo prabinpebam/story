@@ -1,6 +1,6 @@
 # Implementation Plan: Presentation Mode
 
-This plan details the steps to build a robust, high-performance Presentation Mode for "Story", matching the [Presentation Mode Spec](../specs/presentation-mode.md).
+This plan details the steps to build a robust, high-performance Presentation Mode for "Story", matching the [Presentation Mode Spec](../specs/presentation/presentation-mode.md).
 
 ## Phase 1: Core Engine & Rendering
 **Goal:** Successfully enter fullscreen, scale the slide, and exit.

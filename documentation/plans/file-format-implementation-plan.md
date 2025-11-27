@@ -5,11 +5,11 @@
 This plan outlines the phased implementation of the `.str` file format, storage backends, cloud integration, and caching systems. The plan is structured for progressive enhancement, with each phase building on the previous.
 
 **Related Specifications**:
-- [File Format & Storage](../specs/file-format-storage.md) - Main specification
-- [Progressive Loading](../specs/progressive-loading.md) - Streaming and phased loading
-- [Asset Management & Caching](../specs/asset-management.md) - Cache layers and optimization
-- [Security Model](../specs/security-model.md) - Sandboxing and encryption
-- [Real-Time Collaboration](../specs/realtime-collaboration.md) - Future collaboration architecture
+- [File Format & Storage](../specs/storage/file-format-storage.md) - Main specification
+- [Progressive Loading](../specs/storage/progressive-loading.md) - Streaming and phased loading
+- [Asset Management & Caching](../specs/storage/asset-management.md) - Cache layers and optimization
+- [Security Model](../specs/collaboration/security-model.md) - Sandboxing and encryption
+- [Real-Time Collaboration](../specs/collaboration/realtime-collaboration.md) - Future collaboration architecture
 
 **Estimated Total Time**: 100-120 hours (across multiple phases)
 
@@ -275,7 +275,7 @@ This plan outlines the phased implementation of the `.str` file format, storage 
 
 ## Phase 3: Cloud Storage (20-24 hours)
 
-> **See [Real-Time Collaboration Specification](../specs/realtime-collaboration.md) for authentication architecture.**
+> **See [Real-Time Collaboration Specification](../specs/collaboration/realtime-collaboration.md) for authentication architecture.**
 
 ### 3.1 Google OAuth 2.0 with PKCE
 

@@ -7,8 +7,8 @@ Story presentations are saved as `.str` files - a single portable archive contai
 **Related Specifications:**
 - [Progressive Loading](./progressive-loading.md) - Streaming and phased loading
 - [Asset Management & Caching](./asset-management.md) - Asset pipeline and cache layers
-- [Security Model](./security-model.md) - Sandboxing, encryption, validation
-- [Real-Time Collaboration](./realtime-collaboration.md) - Future collaboration architecture
+- [Security Model](../collaboration/security-model.md) - Sandboxing, encryption, validation
+- [Real-Time Collaboration](../collaboration/realtime-collaboration.md) - Future collaboration architecture
 
 ---
 
@@ -475,7 +475,7 @@ const MIGRATIONS = {
 
 ## 10. Security & Encryption
 
-> **See [Security Model Specification](./security-model.md) for complete details.**
+> **See [Security Model Specification](../collaboration/security-model.md) for complete details.**
 
 ### 10.1 Password Protection
 
@@ -737,7 +737,7 @@ Finally implement FileWriter/FileReader to bundle everything.
 |----------|------------|
 | **Compression** | Use streaming ZIP (fflate) with per-chunk compression; store thumbnails uncompressed for fast preview |
 | **Streaming** | Chunk-based loading allows streaming; large videos use range requests |
-| **Collaboration** | Future-proofed with Google OAuth; see [Real-Time Collaboration](./realtime-collaboration.md) |
+| **Collaboration** | Future-proofed with Google OAuth; see [Real-Time Collaboration](../collaboration/realtime-collaboration.md) |
 | **Asset CDN** | For shared presentations, assets uploaded to CDN with signed URLs |
 | **Versioning** | Migration functions applied sequentially; no multi-version support needed |
 
@@ -747,20 +747,20 @@ Finally implement FileWriter/FileReader to bundle everything.
 
 - [Progressive Loading Specification](./progressive-loading.md)
 - [Asset Management & Caching](./asset-management.md)
-- [Security Model](./security-model.md)
-- [Real-Time Collaboration](./realtime-collaboration.md)
-- [Media Asset Integration (Tech Spec)](../tech-specs/media-asset-integration.md)
-- [File Format Implementation Plan](../plans/file-format-implementation-plan.md)
+- [Security Model](../collaboration/security-model.md)
+- [Real-Time Collaboration](../collaboration/realtime-collaboration.md)
+- [Media Asset Integration (Tech Spec)](../../tech-specs/fills/media-asset-integration.md)
+- [File Format Implementation Plan](../../plans/file-format-implementation-plan.md)
 
 ---
 
 ## Next Steps
 
 1. ✅ Detail the manifest.json and presentation.json schemas
-2. ✅ Design the AssetManager class → See [Media Asset Integration](../tech-specs/media-asset-integration.md)
+2. ✅ Design the AssetManager class → See [Media Asset Integration](../../tech-specs/fills/media-asset-integration.md)
 3. ✅ Document progressive loading strategy → See [Progressive Loading](./progressive-loading.md)
-4. ✅ Document real-time collaboration architecture → See [Real-Time Collaboration](./realtime-collaboration.md)
-5. ✅ Document security model → See [Security Model](./security-model.md)
+4. ✅ Document real-time collaboration architecture → See [Real-Time Collaboration](../collaboration/realtime-collaboration.md)
+5. ✅ Document security model → See [Security Model](../collaboration/security-model.md)
 6. ✅ Document asset caching system → See [Asset Management](./asset-management.md)
 7. Prototype File System Access API integration
 8. Evaluate ZIP library options (fflate recommended)

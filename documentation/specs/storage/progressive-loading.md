@@ -7,7 +7,7 @@ Progressive loading enables users to start viewing and interacting with presenta
 **Related Specifications:**
 - [Memory Management](./memory-management.md) - Memory budgets and optimization
 - [Asset Management](./asset-management.md) - Cache layer architecture
-- [Presentation Mode Caching](./presentation-mode-caching.md) - Presentation-specific loading
+- [Presentation Mode Caching](../presentation/presentation-mode-caching.md) - Presentation-specific loading
 
 ---
 
@@ -486,7 +486,7 @@ class LoadingErrorHandler {
 
 ## Integration with Presentation Mode
 
-> **See [Presentation Mode Caching](./presentation-mode-caching.md) for complete presentation caching architecture.**
+> **See [Presentation Mode Caching](../presentation/presentation-mode-caching.md) for complete presentation caching architecture.**
 
 Presentation mode has unique loading requirements compared to edit mode:
 

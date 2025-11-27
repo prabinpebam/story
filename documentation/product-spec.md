@@ -37,16 +37,16 @@ This should be a modern presentation maker.
 - Keep individual files modular and preferrably less than 500 lines.
 
 # UI
-- **Design System:** "Tactile Precision" (See [UI Overhaul 2025](./specs/ui-overhaul-2025.md))
+- **Design System:** "Tactile Precision" (See [UI Design System](./specs/design-system/ui-design-system.md))
 - **Theme:** Dark Mode default, High Contrast.
 - **Layout:** 4-Zone Workspace (Rail, Stage, Inspector, Dock).
 - **Aesthetics:** Teenage Engineering inspired (Industrial, Functional).
 
 # Detailed Specifications
-- **[UI Overhaul 2025](./specs/ui-overhaul-2025.md)** (Current Source of Truth for UI)
-- **[Master Slide System](./tech-specs/master-slide-system.md)**
-- **[Interaction Model](./tech-specs/interaction-model.md)**
-- **[Data Structures](./tech-specs/data-structures.md)**
+- **[UI Design System](./specs/design-system/ui-design-system.md)** (Current Source of Truth for UI)
+- **[Master Slide System](./tech-specs/slides/master-slide-system.md)**
+- **[Interaction Model](./tech-specs/core/interaction-model.md)**
+- **[Data Structures](./tech-specs/core/data-structures.md)**
 
 ---
 
@@ -63,14 +63,14 @@ This should be a modern presentation maker.
 ## 3. Core Features & Functional Requirements
 
 ### 3.1 Slide Management & Architecture
-**[Detailed Spec: Data Structures](./tech-specs/data-structures.md)**
+**[Detailed Spec: Data Structures](./tech-specs/core/data-structures.md)**
 - **Slide Deck:** Linear sequence of slides with drag-and-drop reordering.
 - **Thumbnails:** Real-time DOM-based previews.
-- **Master Slides (Templates):** Inheritance model for layouts. **[Detailed Spec: Master Slides](./tech-specs/master-slide-system.md)**
+- **Master Slides (Templates):** Inheritance model for layouts. **[Detailed Spec: Master Slides](./tech-specs/slides/master-slide-system.md)**
 - **Layer Management:** Z-index control, Grouping, Locking.
 
 ### 3.2 Canvas & Object Manipulation (Figma-like Interaction)
-**[Detailed Spec: Interaction Model](./tech-specs/interaction-model.md)**
+**[Detailed Spec: Interaction Model](./tech-specs/core/interaction-model.md)**
 
 The viewport interaction model mimics professional design tools like Figma to ensure familiarity and precision.
 
@@ -134,7 +134,7 @@ The viewport interaction model mimics professional design tools like Figma to en
 - **Zoom to Selection (Shift + 2):** Zooms to fit the selected object(s).
 
 ### 3.3 Typography & Media
-**[Detailed Spec: Text Engine](./tech-specs/text-engine.md)**
+**[Detailed Spec: Text Engine](./tech-specs/rendering/text-engine.md)**
 - **Text Engine:** Advanced formatting (Kerning, Leading), Global Styles.
 - **Visual Assets:** Image processing (Crop, Filters), Icon Library.
 
@@ -145,19 +145,19 @@ The viewport interaction model mimics professional design tools like Figma to en
 - **Play Mode:** Fullscreen, distraction-free runner.
 
 ### 3.5 Rich Background System
-**[Detailed Spec: Background Engine](./tech-specs/background-engine.md)**
+**[Detailed Spec: Background Engine](./tech-specs/rendering/background-engine.md)**
 - **Static:** Gradients (Linear, Radial, Conic).
 - **Mesh Gradients:** WebGL-powered fluid gradients.
 - **Interactive/Code:** HTML5 Canvas/Shader support with "Hacker Mode".
 
 ### 3.6 AI Assisted Creation
-**[Detailed Spec: AI Integration](./tech-specs/ai-integration.md)**
+**[Detailed Spec: AI Integration](./tech-specs/ai/ai-integration.md)**
 - **Setup:** API Key management.
 - **Content Copilot:** Text refinement and layout suggestions.
 - **Code Generator:** Prompt-to-Code for backgrounds.
 
 ## 4. User Interface (UI) Design
-**[Detailed Spec: Component System](./tech-specs/component-system.md)**
+**[Detailed Spec: Component System](./tech-specs/core/component-system.md)**
 - **Aesthetics:** Teenage Engineering inspired (Industrial, Tactile).
 - **Theme:** Light/Dark mode, High contrast.
 - **Components:** Knobs, Switches, Mechanical feel.
@@ -190,7 +190,7 @@ The properties panel must mimic the interaction model of Figma while retaining t
 8.  **Export:** (Future scope)
 
 ## 5. Technical Architecture & Stack
-**[Detailed Spec: Architecture Overview](./tech-specs/architecture-overview.md)**
+**[Detailed Spec: Architecture Overview](./tech-specs/core/architecture-overview.md)**
 
 ### 5.1 Core Technologies
 - **Stack:** Plain HTML5, CSS3, and Vanilla JavaScript (ES6+).

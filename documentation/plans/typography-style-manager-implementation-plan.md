@@ -1049,7 +1049,7 @@ Before starting this implementation, ensure:
 
 ## Related Documents
 
-- [Typography Style Manager Spec](../specs/typography-style-manager.md)
-- [Property Inspector: Typography Spec](../specs/property-inspector-typography.md)
+- [Typography Style Manager Spec](../specs/design-system/typography-style-manager.md)
+- [Property Inspector: Typography Spec](../specs/property-inspector/property-inspector-typography.md)
 - [Slide Master Implementation Plan](./slide-master-implementation-plan.md)
-- [UI Design System](../specs/ui-design-system.md)
+- [UI Design System](../specs/design-system/ui-design-system.md)

@@ -55,7 +55,7 @@ The Property Inspector is divided into vertical sections.
 ### 5. Fill
 **Header**: "Fill" + "+" (Add).
 **List Item**:
-- **Preview**: Color swatch (Click opens [Color Picker](./color-picker-ui.md)).
+- **Preview**: Color swatch (Click opens [Color Picker](../fills/color-picker-ui.md)).
 - **Value**: Hex/Variable input.
 - **Opacity**: % input.
 - **Visibility**: Eye toggle.

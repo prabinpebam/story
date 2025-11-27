@@ -500,6 +500,6 @@ Think of it like CSS for presentations: define your design system once, apply it
 
 - [Color Theme Manager Specification](./color-theme-manager.md)
 - [Typography Style Manager Specification](./typography-style-manager.md)
-- [Slide Master System](./slide-master-system.md)
+- [Slide Master System](../slides/slide-master-system.md)
 - [UI Design System](./ui-design-system.md)
-- [Color Picker UI](./color-picker-ui.md)
+- [Color Picker UI](../fills/color-picker-ui.md)

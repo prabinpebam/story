@@ -630,8 +630,7 @@ async function loadFont(family, weight) {
 
 ## 13. Related Documents
 - [Design System UX Guide](./design-system-ux-guide.md) - Mental model and user experience
-- [Property Inspector: Typography](./property-inspector-typography.md)
-- [Slide Master System](./slide-master-system.md)
+- [Property Inspector: Typography](../property-inspector/property-inspector-typography.md)
+- [Slide Master System](../slides/slide-master-system.md)
 - [UI Design System](./ui-design-system.md)
-- [Color Theme Manager](./color-theme-manager.md)
 - [Color Theme Manager](./color-theme-manager.md)

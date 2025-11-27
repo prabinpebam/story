@@ -829,6 +829,6 @@ Before starting this implementation, ensure:
 
 ## Related Documents
 
-- [Color Theme Manager Spec](../specs/color-theme-manager.md)
+- [Color Theme Manager Spec](../specs/design-system/color-theme-manager.md)
 - [Slide Master Implementation Plan](./slide-master-implementation-plan.md)
-- [UI Design System](../specs/ui-design-system.md)
+- [UI Design System](../specs/design-system/ui-design-system.md)

@@ -667,7 +667,7 @@ Set via:
 3. **Remote URLs**: Referenced directly (for web images/videos)
 4. **Session blobs**: Temporary blob URLs with reference counting
 
-**Note:** See [File Format & Storage Specification](../specs/file-format-storage.md) for complete bundling strategy.
+**Note:** See [File Format & Storage Specification](../storage/file-format-storage.md) for complete bundling strategy.
 
 ### Blob URL Lifecycle
 
@@ -887,7 +887,7 @@ Future feature: Support for VTT caption tracks.
 - **PDF export**: Embed images, video as poster frame
 - **HTML export**: Proper `<img>` and `<video>` tags
 - **Video export**: Include video content in timeline
-- **Project save (.str)**: Bundle all media assets (see [File Format spec](../specs/file-format-storage.md))
+- **Project save (.str)**: Bundle all media assets (see [File Format spec](../storage/file-format-storage.md))
 
 ### Copy/Paste
 

@@ -4,7 +4,7 @@
 
 This plan outlines the implementation of the presentation mode caching system, which ensures seamless, instant transitions during presentations.
 
-**Specification:** [Presentation Mode Caching](../specs/presentation-mode-caching.md)
+**Specification:** [Presentation Mode Caching](../specs/presentation/presentation-mode-caching.md)
 
 **Estimated Total Time:** 40-50 hours
 

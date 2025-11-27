@@ -6,8 +6,8 @@ Presentation Mode transforms the editor into a high-performance, distraction-fre
 **Related Specifications:**
 - [Presentation Mode Caching](./presentation-mode-caching.md) - Pre-caching, memory management, performance
 - [Animation & Transitions](./animation-transitions.md) - Transition types and animation system
-- [Progressive Loading](./progressive-loading.md) - Asset loading strategies
-- [Rendering Architecture](./rendering-architecture.md) - Renderer design for presentation
+- [Progressive Loading](../storage/progressive-loading.md) - Asset loading strategies
+- [Rendering Architecture](../rendering/rendering-architecture.md) - Renderer design for presentation
 
 ## 2. Modes of Operation
 

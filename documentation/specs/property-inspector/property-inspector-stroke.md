@@ -18,7 +18,7 @@ Each stroke is a row in the list. Strokes are rendered from bottom to top (last 
 **Row Layout:**
 1.  **Color Swatch**:
     - **Visual**: Small square preview.
-    - **Action**: Opens the [Color Picker](./color-picker-ui.md).
+    - **Action**: Opens the [Color Picker](../fills/color-picker-ui.md).
 2.  **Value Input**: Hex code or Variable name.
 3.  **Opacity Input**: Percentage (0-100%).
 4.  **Visibility (Eye)**: Toggles stroke visibility.

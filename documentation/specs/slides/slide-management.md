@@ -63,5 +63,5 @@ Master slides are templates. Elements on a master slide are:
 - **Drag Feedback:** When reordering, show a blue line indicator between slides.
 
 ### 4.2 Context Menu (Right Click)
-**[See Context Menu Spec](./context-menu.md)**
+**[See Context Menu Spec](../canvas/context-menu.md)**
 - Right-clicking a slide provides options to Duplicate, Delete, or Add New.

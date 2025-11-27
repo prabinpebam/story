@@ -8,7 +8,7 @@
  * - Blob URL lifecycle management
  * - Reference counting for undo/redo safety
  * 
- * @see documentation/tech-specs/media-asset-integration.md
+ * @see documentation/tech-specs/fills/media-asset-integration.md
  */
 
 import { EventEmitter } from '../Events.js';

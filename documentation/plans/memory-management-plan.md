@@ -4,7 +4,7 @@
 
 This plan outlines the phased implementation of the comprehensive memory management system for Story.
 
-**Specification:** [Memory Management & Performance Optimization](../specs/memory-management.md)
+**Specification:** [Memory Management & Performance Optimization](../specs/storage/memory-management.md)
 
 **Estimated Total Time:** 50-60 hours
 

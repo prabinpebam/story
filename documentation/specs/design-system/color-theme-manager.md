@@ -470,7 +470,7 @@ presentation: {
 
 ## 12. Related Documents
 - [Design System UX Guide](./design-system-ux-guide.md) - Mental model and user experience
-- [Color Picker UI](./color-picker-ui.md)
-- [Slide Master System](./slide-master-system.md)
+- [Color Picker UI](../fills/color-picker-ui.md)
+- [Slide Master System](../slides/slide-master-system.md)
 - [UI Design System](./ui-design-system.md)
 - [Typography Style Manager](./typography-style-manager.md)
