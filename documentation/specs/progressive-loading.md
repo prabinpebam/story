@@ -479,6 +479,55 @@ class LoadingErrorHandler {
 
 ---
 
+## Integration with Presentation Mode
+
+> **See [Presentation Mode Caching](./presentation-mode-caching.md) for complete presentation caching architecture.**
+
+Presentation mode has unique loading requirements compared to edit mode:
+
+### Differences from Edit Mode Loading
+
+| Aspect | Edit Mode | Presentation Mode |
+|--------|-----------|-------------------|
+| Priority | Current slide only | Current + adjacent slides |
+| Quality | Can show loading states | Must be instant |
+| Memory budget | ~500MB for editing | ~800MB for caching |
+| Eviction | LRU globally | Distance from current |
+| Video | Load on demand | Pre-buffer 5 seconds |
+
+### Presentation Mode Loading Strategy
+
+```javascript
+// Before presentation starts
+async function preparePresentationMode(startSlide) {
+    // Verify critical slides are cached
+    const required = [startSlide, startSlide + 1, startSlide - 1];
+    for (const index of required) {
+        await ensureSlideFullyLoaded(index);
+    }
+    
+    // Start aggressive background preload
+    scheduleBackgroundPreload({
+        direction: 'forward',
+        depth: 5,  // More slides than edit mode
+        priority: 'high'
+    });
+    
+    // Pre-buffer any videos in first 5 slides
+    await prebufferNearbyVideos(startSlide, 5);
+}
+```
+
+### Key Presentation Requirements
+
+1. **Next slide must be instant** - Always in GPU memory
+2. **Previous slide must be instant** - Always in GPU memory
+3. **Jump to any slide <100ms** - Thumbnails always cached
+4. **No loading spinners** - Skeleton states unacceptable
+5. **Transitions at 60fps** - No frame drops during animation
+
+---
+
 ## Integration with Collaboration
 
 For real-time collaboration, progressive loading works with the sync system:
@@ -530,6 +579,12 @@ async function openSharedDocument(documentId) {
 - [ ] Loading state machine
 - [ ] Partial state hydration
 - [ ] Asset reference resolution
+
+### Presentation Mode
+- [ ] Presentation cache controller
+- [ ] Slide preload scheduler
+- [ ] Navigation predictor
+- [ ] Video prebuffer system
 
 ---
 

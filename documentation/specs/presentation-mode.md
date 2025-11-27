@@ -3,6 +3,12 @@
 ## 1. Overview
 Presentation Mode transforms the editor into a high-performance, distraction-free environment for delivering content. It must rival top-tier tools (Keynote, PowerPoint, Pitch) in fluidity, responsiveness, and presenter tools.
 
+**Related Specifications:**
+- [Presentation Mode Caching](./presentation-mode-caching.md) - Pre-caching, memory management, performance
+- [Animation & Transitions](./animation-transitions.md) - Transition types and animation system
+- [Progressive Loading](./progressive-loading.md) - Asset loading strategies
+- [Rendering Architecture](./rendering-architecture.md) - Renderer design for presentation
+
 ## 2. Modes of Operation
 
 ### 2.1 Viewer Mode (Standard)
@@ -187,5 +193,20 @@ A singleton class responsible for:
 ```
 
 ### 9.3 Performance Optimization
+
+> **See [Presentation Mode Caching](./presentation-mode-caching.md) for complete caching architecture.**
+
+**Core Principles:**
 - **Preloading:** The next and previous slides should be rendered in the DOM (hidden) to ensure instant transitions.
 - **Layer Promotion:** Use `will-change: transform` on the scaler and animating elements.
+- **Sliding Window Cache:** Maintain 2-4 slides in GPU-ready HOT cache at all times.
+- **Predictive Loading:** Pre-cache linked slides, section headers, and likely navigation targets.
+- **Memory Management:** Evict distant slides to stay within ~800MB memory budget.
+
+**Key Performance Targets:**
+| Operation | Target | Maximum |
+|-----------|--------|---------|
+| Next/Previous slide | 0ms | 16ms |
+| Jump to any slide | <50ms | 100ms |
+| Transition animation | 60fps | No drops |
+| Exit to editor | <200ms | 300ms |
