@@ -1,6 +1,50 @@
 # UI Design System & Component Library
 **Theme:** Professional Creative Tool (High Density, Focused, Tactile)
-**Last Updated:** Design System Overhaul - Dark Mode Default
+**Last Updated:** Design Token Standardization Phase
+
+---
+
+## 0. Design Token Standardization Status
+
+> **Related Document:** See `documentation/plans/design-token-standardization-plan.md` for the complete standardization roadmap.
+
+### Standardization Progress
+
+| Category | Status | Token Pattern |
+|----------|--------|---------------|
+| Spacing/Gap | ✅ Complete | `--spacing-{n}` |
+| Colors | ✅ Complete | `--color-{category}-{variant}` |
+| Shadows | ✅ Complete | `--shadow-{size}` |
+| Z-Index | ✅ Complete | `--z-{level}` |
+| Border Radius | ✅ Complete | `--radius-{size}` |
+| Transitions | ✅ Complete | `--transition-{speed}` |
+| Font Sizes | ✅ Complete | `--font-size-{size}` |
+| Font Weights | ✅ Complete | `--font-weight-{name}` |
+| Input Heights | ✅ Complete | `--input-height-{size}` |
+| Icon Sizes | 🔄 In Progress | `--icon-size-{size}` |
+| Opacity | 🔄 In Progress | `--opacity-{n}` |
+| Border Width | 🔄 In Progress | `--border-width-{n}` |
+| Component Sizes | 🔄 In Progress | `--control-size-{size}` |
+
+### The "No Magic Numbers" Rule
+
+**CRITICAL:** All numeric values in CSS must use design tokens. No arbitrary pixel values.
+
+```css
+/* ❌ WRONG - Magic numbers */
+.component {
+    padding: 6px 10px;
+    font-size: 13px;
+    border-radius: 5px;
+}
+
+/* ✅ CORRECT - Design tokens */
+.component {
+    padding: var(--spacing-1) var(--spacing-2);
+    font-size: var(--font-size-lg);
+    border-radius: var(--radius-sm);
+}
+```
 
 ---
 
@@ -130,11 +174,19 @@ All design tokens are defined in: `styles/modules/variables.css`
 
 | Token | Value | Usage |
 |-------|-------|-------|
-| `--font-size-xs` | `10px` | Tiny labels |
-| `--font-size-sm` | `11px` | Standard labels |
+| `--font-size-2xs` | `9px` | Micro labels, badges |
+| `--font-size-xs` | `10px` | Small labels, captions |
+| `--font-size-sm` | `11px` | Secondary text, labels |
 | `--font-size-md` | `12px` | Body text, input values |
 | `--font-size-lg` | `13px` | Section headers |
-| `--font-size-xl` | `14px` | Large headers |
+| `--font-size-xl` | `14px` | Panel titles |
+| `--font-size-2xl` | `16px` | Modal headers |
+| `--font-size-3xl` | `20px` | Large headers (proposed) |
+| `--font-size-4xl` | `24px` | Display text (proposed) |
+| `--font-size-5xl` | `32px` | Hero text (proposed) |
+| `--font-size-6xl` | `48px` | Jumbo text (proposed) |
+
+> **Note:** Larger sizes (3xl-6xl) are proposed for display text, empty states, and presentation mode.
 
 ### 4.3 Font Weights
 
@@ -142,7 +194,10 @@ All design tokens are defined in: `styles/modules/variables.css`
 |-------|-------|-------|
 | `--font-weight-regular` | `400` | Body text |
 | `--font-weight-medium` | `500` | Labels, emphasis |
-| `--font-weight-semibold` | `600` | Headers |
+| `--font-weight-semibold` | `600` | Headers, buttons |
+| `--font-weight-bold` | `700` | Strong emphasis |
+
+> **Note:** Avoid using `font-weight: 900` - it's not in our token scale.
 
 ### 4.4 Line Heights
 
@@ -156,39 +211,110 @@ All design tokens are defined in: `styles/modules/variables.css`
 
 ## 5. Spacing & Layout System
 
-### 5.1 Spacing Scale
+### 5.1 Spacing Scale (4px Base Grid)
+
+The spacing system uses a constrained numeric scale based on a 4px grid:
+
+| Token | Value | Usage |
+|-------|-------|-------------|
+| `--spacing-0` | `0` | Reset |
+| `--spacing-1` | `4px` | Tight gaps, inline spacing |
+| `--spacing-2` | `8px` | Standard gaps, input padding |
+| `--spacing-3` | `12px` | Section padding, comfortable gaps |
+| `--spacing-4` | `16px` | Component padding, section margins |
+| `--spacing-5` | `20px` | Large gaps |
+| `--spacing-6` | `24px` | Panel padding, major sections |
+| `--spacing-8` | `32px` | Large section margins |
+| `--spacing-10` | `40px` | Hero spacing |
+| `--spacing-12` | `48px` | Maximum spacing |
+
+> **Note:** We use numeric naming (`--spacing-1`, `--spacing-2`) instead of t-shirt sizing (`--spacing-sm`, `--spacing-md`) because it's more precise and predictable for developers.
+
+### 5.2 Input & Control Heights
 
 | Token | Value | Usage |
 |-------|-------|-------|
-| `--spacing-xs` | `4px` | Tight gaps |
-| `--spacing-sm` | `8px` | Standard gaps |
-| `--spacing-md` | `12px` | Panel padding |
-| `--spacing-lg` | `16px` | Section spacing |
-| `--spacing-xl` | `24px` | Large spacing |
+| `--input-height-sm` | `24px` | Compact inputs, inline controls |
+| `--input-height-md` | `28px` | Default input height |
+| `--input-height-lg` | `32px` | Large inputs, form controls |
 
-### 5.2 Layout Dimensions
+### 5.3 Layout Dimensions
 
 | Token | Value | Usage |
 |-------|-------|-------|
-| `--panel-width` | `240px` | Standard panel width |
-| `--toolbar-height` | `40px` | Top toolbar |
-| `--input-height` | `28px` | Standard input |
-| `--input-height-sm` | `24px` | Compact input |
-| `--row-height` | `32px` | Property row |
-| `--icon-size` | `16px` | Standard icons |
-| `--icon-size-sm` | `12px` | Small icons |
-| `--icon-size-lg` | `20px` | Large icons |
+| `--sidebar-width` | `240px` | Standard panel width |
+| `--header-height` | `40px` | Top header bar |
+| `--toolbar-height` | `48px` | Main toolbar |
+| `--panel-min-width` | `200px` | Minimum panel width |
+| `--panel-max-width` | `400px` | Maximum panel width |
+| `--pi-row-height` | `32px` | Property inspector row |
 
-### 5.3 Border Radius
+### 5.4 Icon Sizes (Proposed)
 
 | Token | Value | Usage |
 |-------|-------|-------|
-| `--radius-xs` | `2px` | Minimal rounding |
+| `--icon-size-xs` | `12px` | Micro icons, indicators |
+| `--icon-size-sm` | `14px` | Small inline icons |
+| `--icon-size-md` | `16px` | Default icon size |
+| `--icon-size-lg` | `20px` | Emphasized icons |
+| `--icon-size-xl` | `24px` | Large icons, buttons |
+| `--icon-size-2xl` | `32px` | Hero icons, empty states |
+
+### 5.5 Border Radius
+
+| Token | Value | Usage |
+|-------|-------|-------|
+| `--radius-xs` | `2px` | Subtle rounding |
 | `--radius-sm` | `4px` | Inputs, buttons |
-| `--radius-md` | `6px` | Cards, panels |
-| `--radius-lg` | `8px` | Modals, large cards |
-| `--radius-xl` | `12px` | Special elements |
-| `--radius-full` | `9999px` | Pills, toggles |
+| `--radius-md` | `6px` | Cards, dropdowns |
+| `--radius-lg` | `8px` | Panels, modals |
+| `--radius-xl` | `12px` | Large elements |
+| `--radius-2xl` | `16px` | Hero elements |
+| `--radius-full` | `9999px` | Circles, pills |
+
+### 5.6 Transition Timing
+
+| Token | Value | Usage |
+|-------|-------|-------|
+| `--transition-fast` | `100ms ease-out` | Micro interactions (hover) |
+| `--transition-normal` | `150ms ease-out` | Standard transitions |
+| `--transition-slow` | `250ms ease-out` | Panel slides, complex animations |
+
+### 5.7 Z-Index Scale
+
+| Token | Value | Usage |
+|-------|-------|-------|
+| `--z-base` | `0` | Base layer |
+| `--z-dropdown` | `1000` | Dropdowns, menus |
+| `--z-sticky` | `1100` | Sticky headers |
+| `--z-fixed` | `1200` | Fixed elements |
+| `--z-modal-backdrop` | `1300` | Modal overlays |
+| `--z-modal` | `1400` | Modal dialogs |
+| `--z-popover` | `1500` | Popovers |
+| `--z-tooltip` | `1600` | Tooltips |
+| `--z-toast` | `1700` | Toast notifications |
+
+### 5.8 Opacity Scale (Proposed)
+
+| Token | Value | Usage |
+|-------|-------|-------|
+| `--opacity-0` | `0` | Invisible |
+| `--opacity-10` | `0.1` | Subtle overlays |
+| `--opacity-20` | `0.2` | Light overlays |
+| `--opacity-40` | `0.4` | Disabled states |
+| `--opacity-60` | `0.6` | Placeholder text |
+| `--opacity-80` | `0.8` | Strong but not full |
+| `--opacity-90` | `0.9` | Near-opaque |
+| `--opacity-100` | `1` | Fully opaque |
+
+### 5.9 Border Width (Proposed)
+
+| Token | Value | Usage |
+|-------|-------|-------|
+| `--border-width-0` | `0` | No border |
+| `--border-width-1` | `1px` | Default borders |
+| `--border-width-2` | `2px` | Emphasis, focus rings |
+| `--border-width-4` | `4px` | Heavy emphasis, selection |
 
 ---
 
