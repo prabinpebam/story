@@ -241,6 +241,12 @@
     --flyout-width-lg: 340px;
     --flyout-width-xl: 400px;
     
+    /* Preview/Canvas widths (for preview areas in panels) */
+    --preview-width-sm: 200px;
+    --preview-width-md: 280px;
+    --preview-width-lg: 360px;
+    --preview-width-xl: 400px;
+    
     /* -------------------------------------------------------------------------
        INPUT WIDTH TOKENS
        ------------------------------------------------------------------------- */
