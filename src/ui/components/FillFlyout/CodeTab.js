@@ -5,6 +5,7 @@ import { AIService } from '../../../core/ai/AIService.js';
 import { CODE_FILL_PROMPT, CODE_FILL_UPDATE_PROMPT, PROMPT_REFINEMENT_PROMPT } from '../../../core/ai/prompts/templates.js';
 import { PresetsTab } from './PresetsTab.js';
 import { PresetManager } from '../../../core/services/PresetManager.js';
+import { CodeFillPanel } from '../../panels/CodeFillPanel.js';
 
 export class CodeTab {
     constructor(options = {}) {
@@ -24,6 +25,21 @@ export class CodeTab {
     render() {
         this.element.innerHTML = '';
         this.destroySubComponents();
+
+        // Open Panel button
+        const openPanelRow = document.createElement('div');
+        openPanelRow.className = 'code-open-panel-row';
+        
+        const openPanelBtn = document.createElement('button');
+        openPanelBtn.className = 'code-open-panel-btn';
+        openPanelBtn.innerHTML = `${Icons.EXTERNAL || '↗'} Open Panel`;
+        openPanelBtn.title = 'Open dedicated Code Fill Panel (Ctrl+Shift+K)';
+        openPanelBtn.onclick = () => {
+            CodeFillPanel.open();
+        };
+        
+        openPanelRow.appendChild(openPanelBtn);
+        this.element.appendChild(openPanelRow);
 
         // Sub-tabs header
         const tabsHeader = document.createElement('div');

@@ -726,6 +726,40 @@
 /* ===========================================
    Code Tab (FillFlyout)
    =========================================== */
+
+/* Open Panel Button */
+.code-open-panel-row {
+    padding: var(--spacing-1) 0;
+    border-bottom: 1px solid var(--color-border);
+    margin-bottom: var(--spacing-1);
+}
+
+.code-open-panel-btn {
+    width: 100%;
+    padding: var(--spacing-1-5) var(--spacing-2);
+    background: var(--color-bg-tertiary);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    color: var(--color-text-primary);
+    font-size: var(--font-size-sm);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--spacing-1);
+    transition: var(--transition-normal);
+}
+
+.code-open-panel-btn:hover {
+    background: var(--color-bg-hover);
+    border-color: var(--color-border-hover);
+}
+
+.code-open-panel-btn svg {
+    width: var(--icon-size-sm);
+    height: var(--icon-size-sm);
+}
+
 .code-tab-content {
     display: flex;
     flex-direction: column;

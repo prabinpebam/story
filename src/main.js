@@ -17,6 +17,7 @@ import { HUD } from './ui/HUD.js';
 import { panelManager } from './ui/PanelManager.js';
 import { ColorThemeManager } from './ui/panels/ColorThemeManager.js';
 import { TypographyStyleManager } from './ui/panels/TypographyStyleManager.js';
+import { CodeFillPanel } from './ui/panels/CodeFillPanel.js';
 
 class App {
     constructor() {
@@ -52,6 +53,11 @@ class App {
         this.typographyStyleManager = new TypographyStyleManager();
         panelManager.register('typography-style-manager', this.typographyStyleManager, {
             shortcut: 'ctrl+shift+t'
+        });
+
+        this.codeFillPanel = CodeFillPanel.getInstance();
+        panelManager.register('code-fill-panel', this.codeFillPanel, {
+            shortcut: 'ctrl+shift+k'
         });
 
         this.bindEvents();
