@@ -17,7 +17,7 @@ import { store } from '../../core/Store.js';
 import { CodeRunner } from '../../core/effects/CodeRunner.js';
 import { PresetManager } from '../../core/services/PresetManager.js';
 import { AIService } from '../../core/ai/AIService.js';
-import { CODE_FILL_PROMPT, CODE_FILL_UPDATE_PROMPT } from '../../core/ai/prompts/templates.js';
+import { CODE_FILL_PROMPT, CODE_FILL_UPDATE_PROMPT, PROMPT_REFINEMENT_PROMPT } from '../../core/ai/prompts/templates.js';
 import { Icons } from '../Icons.js';
 import { FillLayerBar } from './components/FillLayerBar.js';
 
@@ -49,7 +49,7 @@ export class CodeFillPanel extends DraggablePanel {
         this.updateDebounceTimer = null;
         
         // AI state
-        this.isAIPanelExpanded = false;
+        this.refinePromptEnabled = true;
         
         // Preset search/filter
         this.presetSearchQuery = '';
@@ -666,7 +666,7 @@ export class CodeFillPanel extends DraggablePanel {
         
         container.appendChild(playbackControls);
         
-        // AI Generation Section (collapsible)
+        // AI Generation Section (always visible, prominently displayed)
         const aiSection = this.createAISection();
         container.appendChild(aiSection);
         
@@ -693,20 +693,18 @@ export class CodeFillPanel extends DraggablePanel {
         const aiSection = document.createElement('div');
         aiSection.className = 'cfp-ai-section';
         
-        // Collapsible header
+        // Header (non-collapsible, always visible)
         const aiHeader = document.createElement('div');
         aiHeader.className = 'cfp-ai-header';
         aiHeader.innerHTML = `
             <span class="cfp-ai-header-icon">✨</span>
             <span class="cfp-ai-header-title">AI Generate</span>
-            <span class="cfp-ai-toggle-icon">▼</span>
         `;
-        aiHeader.onclick = () => this.toggleAIPanel();
         aiSection.appendChild(aiHeader);
         
-        // AI content (collapsible)
-        this.aiPanelContent = document.createElement('div');
-        this.aiPanelContent.className = 'cfp-ai-content collapsed';
+        // AI content (always visible)
+        const aiContent = document.createElement('div');
+        aiContent.className = 'cfp-ai-content';
         
         // Prompt input
         const promptContainer = document.createElement('div');
@@ -718,7 +716,27 @@ export class CodeFillPanel extends DraggablePanel {
         this.aiPromptInput.rows = 2;
         promptContainer.appendChild(this.aiPromptInput);
         
-        this.aiPanelContent.appendChild(promptContainer);
+        aiContent.appendChild(promptContainer);
+        
+        // Refine prompt option
+        const refineContainer = document.createElement('div');
+        refineContainer.className = 'cfp-refine-container';
+        
+        this.refineCheckbox = document.createElement('input');
+        this.refineCheckbox.type = 'checkbox';
+        this.refineCheckbox.id = 'cfp-refine-prompt';
+        this.refineCheckbox.checked = this.refinePromptEnabled;
+        this.refineCheckbox.onchange = (e) => {
+            this.refinePromptEnabled = e.target.checked;
+        };
+        
+        const refineLabel = document.createElement('label');
+        refineLabel.htmlFor = 'cfp-refine-prompt';
+        refineLabel.textContent = 'Refine prompt before generating';
+        
+        refineContainer.appendChild(this.refineCheckbox);
+        refineContainer.appendChild(refineLabel);
+        aiContent.appendChild(refineContainer);
         
         // AI buttons row
         const aiButtonRow = document.createElement('div');
@@ -739,29 +757,11 @@ export class CodeFillPanel extends DraggablePanel {
         aiButtonRow.appendChild(this.aiUpdateBtn);
         aiButtonRow.appendChild(this.aiGenerateBtn);
         
-        this.aiPanelContent.appendChild(aiButtonRow);
+        aiContent.appendChild(aiButtonRow);
         
-        aiSection.appendChild(this.aiPanelContent);
+        aiSection.appendChild(aiContent);
         
         return aiSection;
-    }
-
-    toggleAIPanel() {
-        this.isAIPanelExpanded = !this.isAIPanelExpanded;
-        
-        if (this.isAIPanelExpanded) {
-            this.aiPanelContent.classList.remove('collapsed');
-            this.aiPanelContent.classList.add('expanded');
-        } else {
-            this.aiPanelContent.classList.remove('expanded');
-            this.aiPanelContent.classList.add('collapsed');
-        }
-        
-        // Update toggle icon
-        const toggleIcon = this.aiPanelContent.previousElementSibling.querySelector('.cfp-ai-toggle-icon');
-        if (toggleIcon) {
-            toggleIcon.textContent = this.isAIPanelExpanded ? '▲' : '▼';
-        }
     }
 
     initCodeMirror() {
@@ -946,6 +946,21 @@ export class CodeFillPanel extends DraggablePanel {
         
         try {
             const ai = new AIService();
+            let finalPrompt = prompt;
+            
+            // Refine prompt if enabled
+            if (this.refinePromptEnabled) {
+                btn.textContent = 'Refining...';
+                const refinementSystemPrompt = PROMPT_REFINEMENT_PROMPT.replace('{userPrompt}', prompt);
+                
+                const refined = await ai.generate("Refine the prompt.", { 
+                    systemPrompt: refinementSystemPrompt 
+                });
+                
+                finalPrompt = refined.trim();
+                this.aiPromptInput.value = finalPrompt;
+                btn.textContent = 'Generating...';
+            }
             
             let systemPrompt = '';
             let userPrompt = '';
@@ -953,13 +968,13 @@ export class CodeFillPanel extends DraggablePanel {
             const currentCode = this.currentFills[this.selectedCodeFillIndex]?.code || '';
             
             if (mode === 'new') {
-                systemPrompt = CODE_FILL_PROMPT.replace('{description}', prompt);
-                userPrompt = `Generate a canvas animation code for: ${prompt}`;
+                systemPrompt = CODE_FILL_PROMPT.replace('{description}', finalPrompt);
+                userPrompt = `Generate a canvas animation code for: ${finalPrompt}`;
             } else {
                 systemPrompt = CODE_FILL_UPDATE_PROMPT
                     .replace('{existingCode}', currentCode)
-                    .replace('{request}', prompt);
-                userPrompt = `Update the code to: ${prompt}`;
+                    .replace('{request}', finalPrompt);
+                userPrompt = `Update the code to: ${finalPrompt}`;
             }
             
             const generatedCode = await ai.generate(userPrompt, { systemPrompt });
