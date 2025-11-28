@@ -56,8 +56,27 @@ This folder contains specifications for Story's **decentralized identity managem
 |------|-------------|
 | [session-lifecycle.md](./session-lifecycle.md) | Sign-in, session, sign-out flows |
 | [cross-device-identity.md](./cross-device-identity.md) | Multi-device and sync considerations |
-| [user-preferences-file.md](./user-preferences-file.md) | Encrypted preferences storage |
+| [user-preferences-file.md](./user-preferences-file.md) | Core encrypted preferences storage spec |
 | [account-linking.md](./account-linking.md) | Linking multiple OAuth providers |
+
+### User Preferences System
+
+| File | Description |
+|------|-------------|
+| **UX & Flows** | |
+| [preferences-ux-first-run.md](./preferences-ux-first-run.md) | First-time user onboarding flow |
+| [preferences-ux-returning-user.md](./preferences-ux-returning-user.md) | Returning user and new device flows |
+| [preferences-ux-import-export.md](./preferences-ux-import-export.md) | Import, export, and migration flows |
+| **UI Design** | |
+| [preferences-ui-panels.md](./preferences-ui-panels.md) | Main settings panel design |
+| [preferences-ui-dialogs.md](./preferences-ui-dialogs.md) | Import, link, and confirmation dialogs |
+| [preferences-ui-indicators.md](./preferences-ui-indicators.md) | Sync status and notifications UI |
+| **Architecture** | |
+| [preferences-tech-autosave.md](./preferences-tech-autosave.md) | Auto-save and debouncing logic |
+| [preferences-tech-sync.md](./preferences-tech-sync.md) | Cloud sync and conflict resolution |
+| [preferences-tech-cache.md](./preferences-tech-cache.md) | Local IndexedDB caching strategy |
+| [preferences-file-linking.md](./preferences-file-linking.md) | Linking presentations to preferences |
+| [preferences-notifications.md](./preferences-notifications.md) | System notification catalog |
 
 ### Collaboration Identity
 
