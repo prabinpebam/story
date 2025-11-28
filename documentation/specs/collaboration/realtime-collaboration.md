@@ -23,6 +23,8 @@ This specification defines the architecture for real-time collaborative editing 
 | [Cloud Storage Abstraction](./cloud-storage-abstraction.md) | Provider-agnostic storage API (OneDrive, Google Drive) |
 | [Azure SignalR Integration](./azure-signalr-integration.md) | Serverless real-time messaging |
 | [Collaboration Protocol](./collaboration-protocol.md) | Message types, presence, cursors |
+| [State Sync Engine](./state-sync-engine.md) | Vector clocks, OT, offline resync, per-user undo |
+| [Asset Streaming](./asset-streaming.md) | Byte-range access, lazy loading, video streaming |
 | [Authentication](./authentication.md) | OAuth 2.0 with Microsoft/Google |
 | [Sharing & Permissions](./sharing-permissions.md) | Three-tier sharing model (public, password, cloud) |
 | [Security Model](./security-model.md) | Sandboxing, encryption, validation |
