@@ -23,9 +23,10 @@ This specification defines the **message protocol** for real-time collaboration 
 2. [Presence Protocol](#2-presence-protocol)
 3. [Cursor Protocol](#3-cursor-protocol)
 4. [Selection Protocol](#4-selection-protocol)
-5. [Document Sync Protocol](#5-document-sync-protocol)
-6. [Conflict Resolution](#6-conflict-resolution)
-7. [Error Handling](#7-error-handling)
+5. [Operation Protocol](#5-operation-protocol)
+6. [Document Sync Protocol](#6-document-sync-protocol)
+7. [Conflict Resolution](#7-conflict-resolution)
+8. [Error Handling](#8-error-handling)
 
 ---
 
@@ -817,7 +818,244 @@ interface EditPermission extends SelectionPermission {
 
 ---
 
-## 5. Document Sync Protocol
+## 5. Operation Protocol
+
+Operations are the core of real-time collaboration. **Only operations are sent, not the entire document.**
+
+### 5.1 Operation Message Structure
+
+```typescript
+interface OperationPayload {
+    /** Unique operation ID */
+    id: string;
+    
+    /** Operation type */
+    type: 'insert' | 'delete' | 'update' | 'move' | 'reorder';
+    
+    /** Path to affected element */
+    path: (string | number)[];
+    
+    /** New value (for insert/update) */
+    value?: any;
+    
+    /** Previous value (for undo) */
+    previousValue?: any;
+    
+    /** Vector clock at creation time */
+    vectorClock: { [userId: string]: number };
+    
+    /** Sequence number for this user */
+    sequence: number;
+}
+```
+
+### 5.2 Operation Examples
+
+**Insert a shape (what gets sent via SignalR):**
+```typescript
+const insertShape: CollaborationMessage<OperationPayload> = {
+    type: 'operation:apply',
+    userId: 'user_alice',
+    userInfo: { /* from OAuth */ },
+    documentId: 'doc_xyz789',
+    payload: {
+        id: 'op-abc123',
+        type: 'insert',
+        path: ['slides', 'slide-001', 'objects'],
+        value: {
+            id: 'rect-xyz789',
+            type: 'rectangle',
+            x: 100, y: 200,
+            width: 300, height: 150,
+            fill: { type: 'solid', color: '#3B82F6' }
+        },
+        vectorClock: { 'user_alice': 5, 'user_bob': 3 },
+        sequence: 5
+    },
+    timestamp: 1732780000000
+};
+// Message size: ~500 bytes (NOT the entire document!)
+```
+
+**Update a property:**
+```typescript
+const updateProperty: CollaborationMessage<OperationPayload> = {
+    type: 'operation:apply',
+    userId: 'user_bob',
+    userInfo: { /* from OAuth */ },
+    documentId: 'doc_xyz789',
+    payload: {
+        id: 'op-def456',
+        type: 'update',
+        path: ['slides', 'slide-001', 'objects', 0, 'fill', 'color'],
+        value: '#EF4444',
+        previousValue: '#3B82F6',
+        vectorClock: { 'user_alice': 5, 'user_bob': 4 },
+        sequence: 4
+    },
+    timestamp: 1732780001000
+};
+// Message size: ~200 bytes
+```
+
+**Add a video (reference only, not the video data):**
+```typescript
+const addVideo: CollaborationMessage<OperationPayload> = {
+    type: 'operation:apply',
+    userId: 'user_alice',
+    userInfo: { /* from OAuth */ },
+    documentId: 'doc_xyz789',
+    payload: {
+        id: 'op-video123',
+        type: 'insert',
+        path: ['slides', 'slide-002', 'objects'],
+        value: {
+            id: 'video-xyz789',
+            type: 'video',
+            mediaRef: 'assets/video-xyz789.mp4',  // Reference, NOT data!
+            x: 50, y: 50,
+            width: 640, height: 360
+        },
+        vectorClock: { 'user_alice': 6, 'user_bob': 4 },
+        sequence: 6
+    },
+    timestamp: 1732780002000
+};
+// Message size: ~400 bytes (the 500MB video is NOT in this message!)
+// Video was uploaded separately to cloud storage
+```
+
+### 5.3 Operation Acknowledgment
+
+```typescript
+interface OperationAckPayload {
+    /** Operation ID being acknowledged */
+    operationId: string;
+    
+    /** Server-assigned version after applying */
+    version: number;
+    
+    /** Transformed operation (if OT was applied) */
+    transformed?: OperationPayload;
+}
+
+const ack: CollaborationMessage<OperationAckPayload> = {
+    type: 'operation:ack',
+    userId: 'system',
+    userInfo: { id: 'system', displayName: 'System', color: '#666' },
+    documentId: 'doc_xyz789',
+    payload: {
+        operationId: 'op-abc123',
+        version: 47
+    },
+    timestamp: 1732780000100
+};
+```
+
+### 5.4 What Flows Through SignalR (and What Doesn't)
+
+```
+┌────────────────────────────────────────────────────────────────┐
+│                   SIGNALR MESSAGE FLOW                         │
+├────────────────────────────────────────────────────────────────┤
+│                                                                │
+│  ✅ THROUGH SIGNALR (small, real-time):                       │
+│  ├── Operations (insert/delete/update/move) ~200-2KB          │
+│  ├── Cursor positions ~100 bytes                              │
+│  ├── Selection changes ~200 bytes                             │
+│  ├── Presence updates ~300 bytes                              │
+│  ├── Media references (NOT data) ~500 bytes                   │
+│  └── Max message size: ~64KB                                   │
+│                                                                │
+│  ❌ NOT THROUGH SIGNALR (too large):                          │
+│  ├── Video file data → Upload to cloud storage               │
+│  ├── High-res images → Upload to cloud storage               │
+│  ├── Full document state → Cloud storage                     │
+│  └── Audio files → Upload to cloud storage                   │
+│                                                                │
+└────────────────────────────────────────────────────────────────┘
+```
+
+### 5.5 Operation Handler
+
+```typescript
+class OperationHandler {
+    private vectorClock: VectorClock;
+    private pendingBuffer: OperationPayload[] = [];
+    
+    /**
+     * Handle incoming operation from SignalR
+     */
+    handleOperation(message: CollaborationMessage<OperationPayload>): void {
+        const { payload: op } = message;
+        
+        // Skip our own operations (already applied locally)
+        if (op.userId === this.localUserId) return;
+        
+        // Check if we can apply (all dependencies met)
+        if (this.canApply(op)) {
+            this.applyOperation(op);
+            this.vectorClock.merge(op.vectorClock);
+            this.flushBuffer();
+        } else {
+            // Buffer until dependencies arrive
+            this.pendingBuffer.push(op);
+        }
+    }
+    
+    /**
+     * Create and broadcast a local operation
+     */
+    createOperation(
+        type: OperationPayload['type'],
+        path: (string | number)[],
+        value?: any,
+        previousValue?: any
+    ): void {
+        const op: OperationPayload = {
+            id: crypto.randomUUID(),
+            type,
+            path,
+            value,
+            previousValue,
+            vectorClock: this.vectorClock.tick(),
+            sequence: this.localSequence++
+        };
+        
+        // Apply locally immediately (optimistic UI)
+        this.applyOperation(op);
+        
+        // Broadcast to collaborators
+        this.signalR.broadcast('operation:apply', op);
+    }
+    
+    private canApply(op: OperationPayload): boolean {
+        return this.vectorClock.canApply(op.vectorClock, op.userId);
+    }
+    
+    private flushBuffer(): void {
+        let applied = true;
+        while (applied) {
+            applied = false;
+            for (let i = 0; i < this.pendingBuffer.length; i++) {
+                if (this.canApply(this.pendingBuffer[i])) {
+                    this.applyOperation(this.pendingBuffer[i]);
+                    this.vectorClock.merge(this.pendingBuffer[i].vectorClock);
+                    this.pendingBuffer.splice(i, 1);
+                    applied = true;
+                    break;
+                }
+            }
+        }
+    }
+}
+```
+
+**See [State Sync Engine](./state-sync-engine.md) for full OT implementation.**
+
+---
+
+## 6. Document Sync Protocol
 
 ### 5.1 Document Save Notification
 
@@ -987,9 +1225,9 @@ class DocumentSyncManager {
 
 ---
 
-## 6. Conflict Resolution
+## 7. Conflict Resolution
 
-### 6.1 Conflict Types
+### 7.1 Conflict Types
 
 ```typescript
 enum ConflictType {
@@ -1017,7 +1255,7 @@ interface Conflict {
 }
 ```
 
-### 6.2 Resolution Strategies
+### 7.2 Resolution Strategies
 
 ```typescript
 class ConflictResolver {
@@ -1065,7 +1303,7 @@ interface Resolution {
 }
 ```
 
-### 6.3 Conflict UI
+### 7.3 Conflict UI
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
@@ -1090,9 +1328,9 @@ interface Resolution {
 
 ---
 
-## 7. Error Handling
+## 8. Error Handling
 
-### 7.1 Error Types
+### 8.1 Error Types
 
 ```typescript
 enum CollaborationError {
@@ -1116,7 +1354,7 @@ enum CollaborationError {
 }
 ```
 
-### 7.2 Error Recovery
+### 8.2 Error Recovery
 
 ```typescript
 class CollaborationErrorHandler {
@@ -1164,7 +1402,7 @@ class CollaborationErrorHandler {
 }
 ```
 
-### 7.3 Graceful Degradation
+### 8.3 Graceful Degradation
 
 ```typescript
 class CollaborationDegradation {

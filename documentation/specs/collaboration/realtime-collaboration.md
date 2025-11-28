@@ -143,6 +143,109 @@ Story uses a **zero-database architecture** where we don't maintain any server-s
 
 ---
 
+## Three Data Channels
+
+The collaboration system uses **three separate channels** for different types of data. This is critical for performance and scalability.
+
+```
+┌────────────────────────────────────────────────────────────────┐
+│                    DATA SYNCHRONIZATION                        │
+├────────────────────────────────────────────────────────────────┤
+│                                                                │
+│  CHANNEL 1: SignalR (Real-Time, Small Data)                   │
+│  ├── Cursor positions (throttled to ~20/sec)                  │
+│  ├── Selection changes                                         │
+│  ├── Operations (add/move/delete/modify objects)              │
+│  ├── Presence (join/leave/heartbeat)                          │
+│  └── Max message: ~64KB                                        │
+│                                                                │
+│  CHANNEL 2: Cloud Storage (Large Files, Persistence)          │
+│  ├── The main .story file (periodic save)                     │
+│  ├── Video files (uploaded to file, not SignalR)              │
+│  ├── High-res images                                           │
+│  ├── Audio files                                               │
+│  └── Embedded documents                                        │
+│                                                                │
+│  CHANNEL 3: Byte-Range Requests (Asset Streaming)             │
+│  ├── Collaborators stream media directly from cloud           │
+│  ├── HTTP Range headers for partial file access               │
+│  └── No relay through SignalR or your browser                 │
+│                                                                │
+└────────────────────────────────────────────────────────────────┘
+```
+
+### Sync Method Summary
+
+| Data Type | Sync Method | Latency | Typical Size | Notes |
+|-----------|-------------|---------|--------------|-------|
+| Cursor movement | SignalR | ~50ms | ~100 bytes | Throttled to 20/sec |
+| Shape added/moved | SignalR (operation) | ~100ms | ~500 bytes - 2KB | Only delta sent |
+| Text edited | SignalR (operation) | ~100ms | ~200 bytes - 1KB | Character ops |
+| Property changed | SignalR (operation) | ~100ms | ~200 bytes | Single property |
+| Selection changed | SignalR | ~100ms | ~200 bytes | Element IDs |
+| Image added | Upload → SignalR ref | 1-5s | Ref ~500 bytes | Binary NOT in SignalR |
+| Video added | Upload → SignalR ref | Varies | Ref ~500 bytes | Streams from cloud |
+| Full file save | Cloud Storage | 1-10s | Unlimited | Periodic |
+| User presence | SignalR | ~100ms | ~300 bytes | Join/leave |
+
+### Key Insight: Operations, Not Files
+
+When you add a shape, **only the operation is sent**, not the entire file:
+
+```javascript
+// What gets sent via SignalR (~500 bytes)
+{
+  type: "operation",
+  operation: {
+    type: "insert",
+    path: ["slides", "slide-1", "objects"],
+    value: {
+      id: "shape-abc123",
+      type: "rectangle",
+      x: 100, y: 200,
+      width: 300, height: 150,
+      fill: "#3B82F6"
+    }
+  },
+  userId: "user-123",
+  vectorClock: { "user-123": 5, "user-456": 3 },
+  timestamp: 1732780000000
+}
+
+// NOT the entire 10MB document!
+```
+
+### Large Media Flow
+
+Videos and large images are **never** sent through SignalR:
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│  YOU (Adding a 500MB video)                                     │
+│                                                                 │
+│  1. Drop video file                                             │
+│  2. Upload to .story file in cloud → Uses YOUR storage quota   │
+│  3. Create operation: { type: "video", mediaRef: "assets/..." }│
+│  4. SignalR broadcasts operation (~500 bytes)                  │
+└─────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼ SignalR (~500 bytes only!)
+┌─────────────────────────────────────────────────────────────────┐
+│  COLLABORATOR'S BROWSER                                         │
+│                                                                 │
+│  1. Receives operation: { type: "video", mediaRef: "assets/..." }
+│  2. Looks up byte offset in assetIndex                         │
+│  3. Issues HTTP Range request directly to cloud storage        │
+│  4. Video streams from OneDrive/Google Drive → Uses 0 quota    │
+│  5. NO video data through SignalR!                              │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+**See [State Sync Engine](./state-sync-engine.md) for full operation/OT details.**
+**See [Asset Streaming](./asset-streaming.md) for byte-range implementation.**
+
+---
+
 ## Collaboration Modes
 
 ### Mode 1: Solo Editing (No Real-Time)

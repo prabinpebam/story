@@ -64,7 +64,57 @@ The collaboration system uses three separate channels for different data types:
 └─────────────────────────────────────────────────────────────────┘
 ```
 
-### 1.2 State Flow
+### 1.2 Sync Method Summary
+
+| Data Type | Sync Method | Latency | Typical Size | Notes |
+|-----------|-------------|---------|--------------|-------|
+| Cursor movement | SignalR | ~50ms | ~100 bytes | Throttled to 20/sec |
+| Shape added/moved | SignalR (operation) | ~100ms | ~500 bytes - 2KB | Only delta, not full doc |
+| Text edited | SignalR (operation) | ~100ms | ~200 bytes - 1KB | Character-level ops |
+| Property changed | SignalR (operation) | ~100ms | ~200 bytes | Single property update |
+| Selection changed | SignalR | ~100ms | ~200 bytes | Element IDs only |
+| Image added | Upload → SignalR ref | 1-5s | Reference ~500 bytes | Binary data NOT in SignalR |
+| Video added | Upload → SignalR ref | Varies | Reference ~500 bytes | Streams from cloud |
+| Full file save | Cloud Storage | 1-10s | Unlimited | Periodic persistence |
+| User presence | SignalR | ~100ms | ~300 bytes | Join/leave/heartbeat |
+
+### 1.3 Large Media Handling
+
+**Key insight:** Large files (videos, high-res images) are NEVER sent through SignalR. They follow a different path:
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│  YOU (Adding a video)                                           │
+│                                                                 │
+│  1. Drop video file (500MB)                                     │
+│  2. Upload to .story file in cloud storage                     │
+│  3. Create operation with reference: { mediaRef: "assets/..." }│
+│  4. SignalR broadcasts operation (~500 bytes)                  │
+└─────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼ SignalR (~500 bytes, NOT 500MB!)
+┌─────────────────────────────────────────────────────────────────┐
+│  COLLABORATOR'S BROWSER                                         │
+│                                                                 │
+│  1. Receives operation: { type: "video", mediaRef: "assets/..." }
+│  2. Looks up byte offset in assetIndex                         │
+│  3. Issues HTTP Range request to cloud storage                 │
+│  4. Video streams directly from OneDrive/Google Drive          │
+│  5. NO video data through SignalR!                              │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+**Large File Flow:**
+
+| Step | Action | Data Size | Channel |
+|------|--------|-----------|---------|
+| 1 | You drop 500MB video | Local only | - |
+| 2 | Upload to .story file | 500MB → Cloud | Cloud Storage |
+| 3 | SignalR broadcasts reference | ~500 bytes | SignalR |
+| 4 | Others receive reference | ~500 bytes | SignalR |
+| 5 | Others stream video | Direct from cloud | Byte-Range |
+
+### 1.4 State Flow
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐

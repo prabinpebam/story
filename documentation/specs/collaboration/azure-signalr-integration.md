@@ -932,7 +932,54 @@ app.timer('heartbeat', {
 
 ## 6. Message Types
 
-### 5.1 Message Schema
+### 6.1 What Flows Through SignalR
+
+SignalR handles **operations and metadata only**, never large binary data:
+
+```
+┌────────────────────────────────────────────────────────────────┐
+│                   SIGNALR DATA FLOW                            │
+├────────────────────────────────────────────────────────────────┤
+│                                                                │
+│  ✅ THROUGH SIGNALR (small, real-time):                       │
+│  ├── Cursor positions        ~100 bytes    (20/sec max)       │
+│  ├── Selection changes       ~200 bytes                       │
+│  ├── Operations (add/move)   ~200-2KB      (delta only)       │
+│  ├── Presence updates        ~300 bytes                       │
+│  ├── Media REFERENCES        ~500 bytes    (not data!)        │
+│  └── Document notifications  ~300 bytes                       │
+│                                                                │
+│  ❌ NOT THROUGH SIGNALR:                                      │
+│  ├── Video files            → Cloud storage upload            │
+│  ├── High-res images        → Cloud storage upload            │
+│  ├── Audio files            → Cloud storage upload            │
+│  ├── Full document state    → Cloud storage save              │
+│  └── Any file > 64KB        → Cloud storage                   │
+│                                                                │
+│  MESSAGE SIZE LIMITS:                                          │
+│  ├── Azure SignalR max:      1MB per message                  │
+│  ├── Practical limit:        ~64KB (for performance)          │
+│  └── Typical operation:      200 bytes - 2KB                  │
+│                                                                │
+└────────────────────────────────────────────────────────────────┘
+```
+
+### 6.2 Sync Method Summary
+
+| Data Type | Via SignalR | Typical Size | Latency |
+|-----------|-------------|--------------|---------|
+| Cursor movement | ✅ | ~100 bytes | ~50ms |
+| Selection change | ✅ | ~200 bytes | ~100ms |
+| Shape added/moved | ✅ (operation) | ~500 bytes | ~100ms |
+| Property changed | ✅ (operation) | ~200 bytes | ~100ms |
+| Text edited | ✅ (operation) | ~200 bytes | ~100ms |
+| Image added | ✅ (reference only) | ~500 bytes | ~100ms |
+| Video added | ✅ (reference only) | ~500 bytes | ~100ms |
+| Image data | ❌ → Cloud | Varies | 1-5s |
+| Video data | ❌ → Cloud | Varies | Varies |
+| Full file | ❌ → Cloud | Unlimited | 1-10s |
+
+### 6.3 Message Schema
 
 ```typescript
 // All messages sent through SignalR
@@ -948,7 +995,8 @@ type MessagePayload =
     | PresenceUpdatePayload
     | UserJoinedPayload
     | UserLeftPayload
-    | DocumentChangedPayload;
+    | DocumentChangedPayload
+    | OperationPayload;       // Added: Operations for real-time sync
 
 interface CursorUpdatePayload {
     userId: string;
@@ -1001,9 +1049,23 @@ interface DocumentChangedPayload {
     };
     timestamp: number;
 }
+
+/**
+ * Operation payload for real-time sync
+ * Only the delta is sent, NOT the entire document
+ */
+interface OperationPayload {
+    id: string;
+    type: 'insert' | 'delete' | 'update' | 'move';
+    path: (string | number)[];
+    value?: any;              // The new value (for insert/update)
+    previousValue?: any;       // For undo support
+    vectorClock: { [userId: string]: number };
+    sequence: number;
+}
 ```
 
-### 5.2 Message Throttling
+### 6.4 Message Throttling
 
 ```typescript
 // Client-side throttling to prevent flooding
