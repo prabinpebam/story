@@ -2,6 +2,7 @@
  * Auth Styles
  * 
  * Styles for Sign In Modal, Profile Button, and authentication UI.
+ * Uses CSS variables from the design system (variables.css).
  */
 
 /* ========================================
@@ -9,18 +10,18 @@
    ======================================== */
 
 .sign-in-modal-overlay {
-    z-index: 10000;
+    z-index: var(--z-modal-backdrop);
 }
 
 .sign-in-modal {
     width: 400px;
     max-width: 90vw;
-    background: var(--bg-secondary);
+    background: var(--color-bg-elevated);
     border-radius: var(--radius-lg);
     box-shadow: var(--shadow-xl);
-    border: 1px solid var(--border-subtle);
+    border: 1px solid var(--color-border-subtle);
     overflow: hidden;
-    animation: modal-enter 0.2s ease-out;
+    animation: modal-enter var(--duration-moderate) var(--ease-out);
 }
 
 @keyframes modal-enter {
@@ -38,46 +39,46 @@
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
-    padding: var(--spacing-lg);
-    border-bottom: 1px solid var(--border-subtle);
+    padding: var(--spacing-4);
+    border-bottom: 1px solid var(--color-border-subtle);
 }
 
 .sign-in-modal-title h2 {
-    margin: 0 0 var(--spacing-xs) 0;
+    margin: 0 0 var(--spacing-1) 0;
     font-size: var(--font-size-xl);
-    font-weight: 600;
-    color: var(--text-primary);
+    font-weight: var(--font-weight-semibold);
+    color: var(--color-text-primary);
 }
 
 .sign-in-modal-subtitle {
     margin: 0;
     font-size: var(--font-size-sm);
-    color: var(--text-secondary);
+    color: var(--color-text-secondary);
 }
 
 .sign-in-modal-body {
-    padding: var(--spacing-lg);
+    padding: var(--spacing-4);
     display: flex;
     flex-direction: column;
-    gap: var(--spacing-md);
+    gap: var(--spacing-3);
 }
 
 .sign-in-modal-footer {
-    padding: var(--spacing-md) var(--spacing-lg);
-    background: var(--bg-tertiary);
-    border-top: 1px solid var(--border-subtle);
+    padding: var(--spacing-3) var(--spacing-4);
+    background: var(--color-surface-tertiary);
+    border-top: 1px solid var(--color-border-subtle);
 }
 
 .sign-in-terms {
     margin: 0;
     font-size: var(--font-size-xs);
-    color: var(--text-tertiary);
+    color: var(--color-text-tertiary);
     text-align: center;
-    line-height: 1.5;
+    line-height: var(--line-height-relaxed);
 }
 
 .sign-in-terms .link {
-    color: var(--accent-primary);
+    color: var(--color-accent);
     text-decoration: none;
 }
 
@@ -90,31 +91,31 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: var(--spacing-sm);
+    gap: var(--spacing-2);
     width: 100%;
-    padding: var(--spacing-md);
-    border: 1px solid var(--border-default);
+    padding: var(--spacing-3);
+    border: 1px solid var(--color-border);
     border-radius: var(--radius-md);
-    background: var(--bg-primary);
-    color: var(--text-primary);
+    background: var(--color-surface-primary);
+    color: var(--color-text-primary);
     font-size: var(--font-size-md);
-    font-weight: 500;
+    font-weight: var(--font-weight-medium);
     cursor: pointer;
-    transition: all 0.15s ease;
+    transition: all var(--transition-normal);
 }
 
 .sign-in-btn:hover:not(:disabled) {
-    background: var(--bg-hover);
-    border-color: var(--border-hover);
+    background: var(--color-bg-hover);
+    border-color: var(--color-border-hover);
 }
 
 .sign-in-btn:focus-visible {
-    outline: 2px solid var(--accent-primary);
+    outline: 2px solid var(--color-border-focus);
     outline-offset: 2px;
 }
 
 .sign-in-btn:disabled {
-    opacity: 0.6;
+    opacity: var(--opacity-disabled);
     cursor: not-allowed;
 }
 
@@ -126,13 +127,13 @@
 .sign-in-btn.loading::after {
     content: '';
     position: absolute;
-    right: var(--spacing-md);
-    width: 16px;
-    height: 16px;
+    right: var(--spacing-3);
+    width: var(--icon-size-md);
+    height: var(--icon-size-md);
     border: 2px solid transparent;
     border-top-color: currentColor;
-    border-radius: 50%;
-    animation: spin 0.6s linear infinite;
+    border-radius: var(--radius-full);
+    animation: spin var(--duration-slowest) var(--ease-linear) infinite;
 }
 
 @keyframes spin {
@@ -140,28 +141,28 @@
 }
 
 .provider-icon {
-    width: 20px;
-    height: 20px;
+    width: var(--icon-size-lg);
+    height: var(--icon-size-lg);
     flex-shrink: 0;
 }
 
-/* Provider-specific styling */
+/* Provider-specific styling - use accent color for hover states */
 .provider-microsoft:hover:not(:disabled) {
-    border-color: #00a4ef;
+    border-color: var(--color-accent);
 }
 
 .provider-google:hover:not(:disabled) {
-    border-color: #4285f4;
+    border-color: var(--color-accent);
 }
 
 .provider-guest {
     background: transparent;
     border-style: dashed;
-    color: var(--text-secondary);
+    color: var(--color-text-secondary);
 }
 
 .provider-guest:hover:not(:disabled) {
-    color: var(--text-primary);
+    color: var(--color-text-primary);
     border-style: solid;
 }
 
@@ -169,8 +170,8 @@
 .sign-in-divider {
     display: flex;
     align-items: center;
-    gap: var(--spacing-md);
-    color: var(--text-tertiary);
+    gap: var(--spacing-3);
+    color: var(--color-text-tertiary);
     font-size: var(--font-size-sm);
 }
 
@@ -179,17 +180,17 @@
     content: '';
     flex: 1;
     height: 1px;
-    background: var(--border-subtle);
+    background: var(--color-border-subtle);
 }
 
 /* Error State */
 .sign-in-error {
-    padding: var(--spacing-sm) var(--spacing-md);
-    margin: 0 var(--spacing-lg);
-    background: var(--status-error-bg, rgba(239, 68, 68, 0.1));
-    border: 1px solid var(--status-error, #ef4444);
+    padding: var(--spacing-2) var(--spacing-3);
+    margin: 0 var(--spacing-4);
+    background: var(--color-danger-subtle);
+    border: 1px solid var(--color-danger);
     border-radius: var(--radius-sm);
-    color: var(--status-error, #ef4444);
+    color: var(--color-danger);
     font-size: var(--font-size-sm);
 }
 
@@ -197,12 +198,12 @@
 .sign-in-warning {
     display: flex;
     align-items: center;
-    gap: var(--spacing-sm);
-    padding: var(--spacing-sm) var(--spacing-md);
-    background: var(--status-warning-bg, rgba(245, 158, 11, 0.1));
-    border: 1px solid var(--status-warning, #f59e0b);
+    gap: var(--spacing-2);
+    padding: var(--spacing-2) var(--spacing-3);
+    background: var(--color-warning-subtle);
+    border: 1px solid var(--color-warning);
     border-radius: var(--radius-sm);
-    color: var(--status-warning, #f59e0b);
+    color: var(--color-warning);
     font-size: var(--font-size-sm);
 }
 
@@ -214,31 +215,31 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 32px;
-    height: 32px;
+    width: var(--control-size-lg);
+    height: var(--control-size-lg);
     padding: 0;
     border: none;
-    border-radius: 50%;
-    background: var(--bg-tertiary);
-    color: var(--text-secondary);
+    border-radius: var(--radius-full);
+    background: var(--color-surface-tertiary);
+    color: var(--color-text-secondary);
     cursor: pointer;
-    transition: all 0.15s ease;
+    transition: all var(--transition-normal);
     overflow: hidden;
 }
 
 .profile-button:hover {
-    background: var(--bg-hover);
-    color: var(--text-primary);
+    background: var(--color-bg-hover);
+    color: var(--color-text-primary);
 }
 
 .profile-button.active {
-    background: var(--accent-primary);
-    color: var(--text-on-accent, #fff);
+    background: var(--color-accent);
+    color: var(--color-text-on-accent);
 }
 
 .profile-button.authenticated {
-    background: var(--accent-primary);
-    color: var(--text-on-accent, #fff);
+    background: var(--color-accent);
+    color: var(--color-text-on-accent);
 }
 
 .profile-avatar {
@@ -249,7 +250,7 @@
 
 .profile-initials {
     font-size: var(--font-size-sm);
-    font-weight: 600;
+    font-weight: var(--font-weight-semibold);
     text-transform: uppercase;
 }
 
@@ -259,15 +260,15 @@
 
 .profile-dropdown {
     position: absolute;
-    top: calc(100% + var(--spacing-xs));
+    top: calc(100% + var(--spacing-1));
     right: 0;
-    min-width: 240px;
-    background: var(--bg-secondary);
-    border: 1px solid var(--border-default);
+    min-width: var(--panel-width-md);
+    background: var(--color-bg-elevated);
+    border: 1px solid var(--color-border);
     border-radius: var(--radius-md);
     box-shadow: var(--shadow-lg);
-    z-index: 1000;
-    animation: dropdown-enter 0.15s ease-out;
+    z-index: var(--z-dropdown);
+    animation: dropdown-enter var(--duration-normal) var(--ease-out);
 }
 
 @keyframes dropdown-enter {
@@ -284,16 +285,16 @@
 .profile-dropdown-header {
     display: flex;
     align-items: center;
-    gap: var(--spacing-md);
-    padding: var(--spacing-md);
+    gap: var(--spacing-3);
+    padding: var(--spacing-3);
 }
 
 .profile-dropdown-avatar {
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
+    width: var(--thumbnail-sm);
+    height: var(--thumbnail-sm);
+    border-radius: var(--radius-full);
     overflow: hidden;
-    background: var(--bg-tertiary);
+    background: var(--color-surface-tertiary);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -307,8 +308,8 @@
 
 .profile-initials-large {
     font-size: var(--font-size-lg);
-    font-weight: 600;
-    color: var(--accent-primary);
+    font-weight: var(--font-weight-semibold);
+    color: var(--color-accent);
 }
 
 .profile-dropdown-info {
@@ -318,8 +319,8 @@
 
 .profile-dropdown-name {
     display: block;
-    font-weight: 500;
-    color: var(--text-primary);
+    font-weight: var(--font-weight-medium);
+    color: var(--color-text-primary);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -328,7 +329,7 @@
 .profile-dropdown-email {
     display: block;
     font-size: var(--font-size-sm);
-    color: var(--text-secondary);
+    color: var(--color-text-secondary);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -336,41 +337,41 @@
 
 .profile-dropdown-divider {
     height: 1px;
-    background: var(--border-subtle);
+    background: var(--color-border-subtle);
     margin: 0;
 }
 
 .profile-dropdown-item {
     display: flex;
     align-items: center;
-    gap: var(--spacing-sm);
+    gap: var(--spacing-2);
     width: 100%;
-    padding: var(--spacing-sm) var(--spacing-md);
+    padding: var(--spacing-2) var(--spacing-3);
     border: none;
     background: none;
-    color: var(--text-primary);
+    color: var(--color-text-primary);
     font-size: var(--font-size-sm);
     text-align: left;
     cursor: pointer;
-    transition: background 0.1s ease;
+    transition: background var(--transition-fast);
 }
 
 .profile-dropdown-item:hover {
-    background: var(--bg-hover);
+    background: var(--color-bg-hover);
 }
 
 .profile-dropdown-item i {
-    width: 16px;
+    width: var(--icon-size-md);
     text-align: center;
-    color: var(--text-secondary);
+    color: var(--color-text-secondary);
 }
 
 .profile-dropdown-item-primary {
-    color: var(--accent-primary);
+    color: var(--color-accent);
 }
 
 .profile-dropdown-item-primary i {
-    color: var(--accent-primary);
+    color: var(--color-accent);
 }
 
 /* ========================================
