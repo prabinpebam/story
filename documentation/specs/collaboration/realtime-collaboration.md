@@ -2,9 +2,29 @@
 
 ## Overview
 
-This specification defines the architecture for real-time collaborative editing of Story presentations. The system uses Google OAuth for authentication, operational transformation or CRDTs for conflict resolution, and WebSocket connections for real-time sync.
+This specification defines the architecture for real-time collaborative editing of Story presentations. The system uses a **serverless architecture** with:
 
-**Note**: This is a future feature. The file format and data structures are designed to support this from day one.
+- **User's cloud storage** (OneDrive/Google Drive) for file persistence
+- **Azure SignalR Service** for real-time messaging (cursors, presence)
+- **Azure Functions** for serverless backend (no servers to maintain)
+
+**Key Design Decisions:**
+- **No dedicated server** - Uses managed cloud services
+- **Provider agnostic** - Can switch storage/messaging providers
+- **User-owned data** - Files stay in user's cloud storage
+- **Minimal infrastructure** - Free tier covers most use cases
+
+---
+
+## Related Specifications
+
+| Document | Purpose |
+|----------|---------|
+| [Cloud Storage Abstraction](./cloud-storage-abstraction.md) | Provider-agnostic storage API (OneDrive, Google Drive) |
+| [Azure SignalR Integration](./azure-signalr-integration.md) | Serverless real-time messaging |
+| [Collaboration Protocol](./collaboration-protocol.md) | Message types, presence, cursors |
+| [Authentication](./authentication.md) | OAuth 2.0 with Microsoft/Google |
+| [Security Model](./security-model.md) | Sandboxing, encryption, validation |
 
 ---
 
@@ -12,28 +32,153 @@ This specification defines the architecture for real-time collaborative editing 
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                         Clients                                  │
-├─────────────────┬─────────────────┬─────────────────────────────┤
-│   User A        │    User B       │    User C                   │
-│   (Editor)      │    (Editor)     │    (Viewer)                 │
-└────────┬────────┴────────┬────────┴────────┬────────────────────┘
-         │                 │                 │
-         │    WebSocket    │    WebSocket    │    WebSocket
-         │                 │                 │
-┌────────▼─────────────────▼─────────────────▼────────────────────┐
-│                    Collaboration Server                          │
-│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐              │
-│  │  Session    │  │  Operation  │  │  Presence   │              │
-│  │  Manager    │  │  Transform  │  │  Tracker    │              │
-│  └─────────────┘  └─────────────┘  └─────────────┘              │
-├─────────────────────────────────────────────────────────────────┤
-│                    Persistence Layer                             │
-│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐              │
-│  │  Document   │  │   Asset     │  │  Operation  │              │
-│  │  Store      │  │   CDN       │  │  History    │              │
-│  └─────────────┘  └─────────────┘  └─────────────┘              │
-└─────────────────────────────────────────────────────────────────┘
+│                         STORY APP                               │
+│                                                                 │
+│  ┌─────────────────────────────────────────────────────────┐   │
+│  │  Browser Client                                          │   │
+│  │  • Authentication (MSAL.js / Google GIS)                │   │
+│  │  • Cloud Storage SDK (Graph API / Drive API)            │   │
+│  │  • SignalR Client (real-time messaging)                 │   │
+│  │  • Presence & Cursor Rendering                          │   │
+│  └─────────────────────────────────────────────────────────┘   │
+│                              │                                  │
+└──────────────────────────────│──────────────────────────────────┘
+                               │
+        ┌──────────────────────┼──────────────────────┐
+        ▼                      ▼                      ▼
+┌───────────────┐    ┌─────────────────┐    ┌───────────────────┐
+│  Azure AD /   │    │  Azure SignalR  │    │  OneDrive /       │
+│  Google Auth  │    │  + Functions    │    │  Google Drive     │
+│               │    │                 │    │                   │
+│  • OAuth 2.0  │    │  • Cursors      │    │  • .str files     │
+│  • Tokens     │    │  • Presence     │    │  • Versions       │
+│  • SSO        │    │  • Notifications│    │  • Sharing        │
+│               │    │                 │    │                   │
+│  Cost: Free   │    │  Cost: ~$0-5/mo │    │  Cost: Free       │
+└───────────────┘    └─────────────────┘    └───────────────────┘
+       ▲                      ▲                      ▲
+       │                      │                      │
+       └──────────────────────┴──────────────────────┘
+                     User's existing accounts
 ```
+
+---
+
+## Collaboration Modes
+
+### Mode 1: Solo Editing (No Real-Time)
+
+```
+User opens file → Downloads from cloud → Edits locally → Saves back
+                                                         (conflict check)
+```
+
+- No SignalR connection
+- Conflict detection on save via ETag
+- Works offline
+
+### Mode 2: Shared Editing (Real-Time Awareness)
+
+```
+User A opens shared file → Joins SignalR group → Sees User B's cursor
+                                               → Gets save notifications
+                                               → Manual reload for changes
+```
+
+- Live cursors and presence
+- Notification when others save
+- File content synced via cloud storage (not real-time)
+
+### Mode 3: Live Collaboration (Future Enhancement)
+
+```
+User A types → Operation sent → Server transforms → Broadcast to all
+                                                  → All see same content
+```
+
+- Operational Transformation (OT) or CRDTs
+- Character-by-character sync
+- Requires more server infrastructure
+
+---
+
+## Implementation Phases
+
+### Phase 1: Foundation ✅
+- [x] Data model with version tracking
+- [x] Element metadata structure
+- [x] Operation-compatible state updates
+
+### Phase 2: Authentication
+- [ ] Microsoft OAuth (MSAL.js)
+- [ ] Google OAuth (GIS)
+- [ ] Token management
+- [ ] Session persistence
+
+### Phase 3: Cloud Storage
+- [ ] OneDrive provider (Graph API)
+- [ ] Google Drive provider (Drive API)
+- [ ] Conflict detection
+- [ ] Version history integration
+
+### Phase 4: Real-Time Presence
+- [ ] Azure SignalR Service setup
+- [ ] Azure Functions (negotiate, broadcast)
+- [ ] Cursor broadcasting
+- [ ] Selection indicators
+- [ ] User presence (online/away)
+
+### Phase 5: Collaboration UX
+- [ ] Share dialog
+- [ ] Collaborator avatars
+- [ ] Save notifications
+- [ ] Conflict resolution UI
+
+### Phase 6: Advanced (Future)
+- [ ] Real-time content sync (OT/CRDTs)
+- [ ] Comments and annotations
+- [ ] Revision history UI
+
+---
+
+## Cost Analysis
+
+| Component | Free Tier | Typical Usage | Notes |
+|-----------|-----------|---------------|-------|
+| Azure AD | Unlimited | - | App registration only |
+| Azure SignalR | 20 connections, 20K msg/day | $0 | Sufficient for dev/small teams |
+| Azure Functions | 1M executions/month | $0 | Consumption plan |
+| OneDrive | User's storage | $0 | Files in user's account |
+| Google Drive | User's storage | $0 | Files in user's account |
+| **Total** | - | **$0-5/month** | Most use cases covered |
+
+---
+
+## Quick Links to Detailed Specs
+
+1. **Storage**: [Cloud Storage Abstraction](./cloud-storage-abstraction.md)
+   - `CloudStorageProvider` interface
+   - OneDrive/Google Drive implementations
+   - Conflict resolution
+   - Offline queue
+
+2. **Messaging**: [Azure SignalR Integration](./azure-signalr-integration.md)
+   - Serverless architecture
+   - Azure Functions code
+   - Client implementation
+   - Provider abstraction
+
+3. **Protocol**: [Collaboration Protocol](./collaboration-protocol.md)
+   - Message formats
+   - Presence/cursor/selection
+   - Document sync
+   - Error handling
+
+4. **Auth**: [Authentication](./authentication.md)
+   - Microsoft/Google providers
+   - Token management
+   - Session handling
+   - UI components
 
 ---
 

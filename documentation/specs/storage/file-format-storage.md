@@ -7,9 +7,14 @@ Story presentations are saved as `.str` files - a single portable archive contai
 **Related Specifications:**
 - [Progressive Loading](./progressive-loading.md) - Streaming and phased loading
 - [Asset Management & Caching](./asset-management.md) - Asset pipeline and cache layers
-- [Security Model](../collaboration/security-model.md) - Sandboxing, encryption, validation
-- [Real-Time Collaboration](../collaboration/realtime-collaboration.md) - Future collaboration architecture
 - [Industry Benchmark](./file-format-benchmark.md) - Comparison with PowerPoint, Keynote, Figma
+
+**Collaboration Specifications:**
+- [Real-Time Collaboration](../collaboration/realtime-collaboration.md) - Collaboration architecture overview
+- [Cloud Storage Abstraction](../collaboration/cloud-storage-abstraction.md) - OneDrive/Google Drive integration
+- [Azure SignalR Integration](../collaboration/azure-signalr-integration.md) - Real-time messaging
+- [Authentication](../collaboration/authentication.md) - OAuth with Microsoft/Google
+- [Security Model](../collaboration/security-model.md) - Sandboxing, encryption, validation
 
 ---
 
