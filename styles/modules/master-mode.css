@@ -52,13 +52,7 @@ body.mode-master .logo::after {
 }
 
 #close-master-btn:hover {
-    background-color: #d63b19;
+    background-color: var(--color-danger);
 }
 
-/* Top Controls Container */
-#top-controls {
-    margin-left: auto;
-    display: flex;
-    gap: var(--spacing-2);
-    align-items: center;
-}
+/* Note: #top-controls base styles are in layout.css */

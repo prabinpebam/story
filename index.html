@@ -18,6 +18,7 @@
     <link rel="stylesheet" href="styles/modules/flyout-components.css">
     <link rel="stylesheet" href="styles/modules/panel-components.css">
     <link rel="stylesheet" href="styles/modules/code-fill-panel.css">
+    <link rel="stylesheet" href="styles/modules/auth.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -53,16 +54,18 @@
         <!-- Center: Main Canvas -->
         <main id="main-stage">
             <!-- Top Right Controls -->
-            <div id="top-controls" style="position: absolute; top: 16px; right: 16px; z-index: 1000; display: flex; gap: 8px;">
-                <button class="action-btn" id="edit-master-btn" style="background: var(--color-bg-panel); color: var(--color-text-primary); border: 1px solid var(--color-border); font-weight: 500;">
+            <div id="top-controls">
+                <button class="action-btn" id="edit-master-btn">
                     <i class="fa-solid fa-layer-group"></i> Edit Master
                 </button>
-                <button class="action-btn hidden" id="close-master-btn" style="background: var(--color-bg-panel); color: var(--color-text-primary); border: 1px solid var(--color-border); font-weight: 500;">
+                <button class="action-btn hidden" id="close-master-btn">
                     <i class="fa-solid fa-xmark"></i> Close Master
                 </button>
                 <button class="action-btn" id="play-btn">
                     <i class="fa-solid fa-play"></i> PLAY
                 </button>
+                <!-- Profile Button Container (for auth) -->
+                <div id="profile-button-container"></div>
             </div>
 
             <!-- Floating Toolbar (Bottom Center) -->

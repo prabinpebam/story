@@ -18,6 +18,8 @@ import { panelManager } from './ui/PanelManager.js';
 import { ColorThemeManager } from './ui/panels/ColorThemeManager.js';
 import { TypographyStyleManager } from './ui/panels/TypographyStyleManager.js';
 import { CodeFillPanel } from './ui/panels/CodeFillPanel.js';
+import { ProfileButton } from './ui/auth/ProfileButton.js';
+import { AuthService } from './core/auth/AuthService.js';
 
 class App {
     constructor() {
@@ -59,6 +61,10 @@ class App {
         panelManager.register('code-fill-panel', this.codeFillPanel, {
             shortcut: 'ctrl+shift+k'
         });
+
+        // Initialize Auth UI
+        this.authService = new AuthService();
+        this.profileButton = new ProfileButton('profile-button-container', this.authService);
 
         this.bindEvents();
         
