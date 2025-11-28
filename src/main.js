@@ -19,6 +19,7 @@ import { ColorThemeManager } from './ui/panels/ColorThemeManager.js';
 import { TypographyStyleManager } from './ui/panels/TypographyStyleManager.js';
 import { CodeFillPanel } from './ui/panels/CodeFillPanel.js';
 import { ProfileButton } from './ui/auth/ProfileButton.js';
+import { SignInModal } from './ui/auth/SignInModal.js';
 import { authService } from './core/auth/index.js';
 
 class App {
@@ -63,7 +64,17 @@ class App {
         });
 
         // Initialize Auth UI
+        this.signInModal = new SignInModal();
         this.profileButton = new ProfileButton('profile-button-container', authService);
+
+        // Listen for auth events
+        window.addEventListener('story:show-signin', () => {
+            this.signInModal.open();
+        });
+
+        window.addEventListener('story:show-settings', () => {
+            this.settingsModal.open();
+        });
 
         this.bindEvents();
         
