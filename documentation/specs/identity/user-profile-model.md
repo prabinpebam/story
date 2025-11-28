@@ -8,6 +8,7 @@ This specification defines the **user profile data model** for Story. Since Stor
 - [Identity Architecture](./identity-architecture.md) - Overall architecture
 - [OAuth Identity Flow](./oauth-identity-flow.md) - Token-based identity
 - [Session Lifecycle](./session-lifecycle.md) - Session management
+- [User Preferences File](./user-preferences-file.md) - Encrypted preferences storage
 
 ---
 
@@ -361,7 +362,40 @@ function hasGoodContrast(color: string, background: 'light' | 'dark'): boolean {
 
 ## 4. Local Storage
 
-### 4.1 Storage Schema
+> **For full preferences storage, see [User Preferences File](./user-preferences-file.md).**
+> This section covers the local cache layer, not the primary preferences storage.
+
+### 4.1 Storage Architecture
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                  STORAGE ARCHITECTURE                           │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  PRIMARY: Preferences File (story-preferences.str)             │
+│  ┌───────────────────────────────────────────────────────────┐ │
+│  │  • Stored in user's cloud storage                         │ │
+│  │  • Encrypted with OAuth identity                          │ │
+│  │  • Contains all synced preferences                        │ │
+│  │  • See user-preferences-file.md                          │ │
+│  └───────────────────────────────────────────────────────────┘ │
+│                                                                 │
+│  LOCAL CACHE: Browser Storage                                   │
+│  ┌───────────────────────────────────────────────────────────┐ │
+│  │  localStorage:                                             │ │
+│  │  • story:profile - Cached profile for fast startup        │ │
+│  │  • story:session - Last provider hint                     │ │
+│  │  • story:preferences-location - Where prefs file lives   │ │
+│  │                                                            │ │
+│  │  IndexedDB:                                                │ │
+│  │  • Preferences file cache (for offline access)           │ │
+│  │  • Decrypted preferences (for performance)               │ │
+│  └───────────────────────────────────────────────────────────┘ │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### 4.2 Storage Schema
 
 ```typescript
 /**

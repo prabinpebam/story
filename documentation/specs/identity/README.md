@@ -56,6 +56,7 @@ This folder contains specifications for Story's **decentralized identity managem
 |------|-------------|
 | [session-lifecycle.md](./session-lifecycle.md) | Sign-in, session, sign-out flows |
 | [cross-device-identity.md](./cross-device-identity.md) | Multi-device and sync considerations |
+| [user-preferences-file.md](./user-preferences-file.md) | Encrypted preferences storage |
 | [account-linking.md](./account-linking.md) | Linking multiple OAuth providers |
 
 ### Collaboration Identity
@@ -82,9 +83,15 @@ This folder contains specifications for Story's **decentralized identity managem
 │  WE STORE (in user's browser/cloud):                           │
 │  • OAuth tokens (access, refresh, ID)                          │
 │  • Cached user profile (from OAuth claims)                     │
-│  • User preferences (theme, settings)                          │
+│  • User preferences (in encrypted preferences file)            │
 │  • Recent files list                                           │
 │  • Collaboration contacts (user-managed)                       │
+│                                                                 │
+│  PREFERENCES FILE (story-preferences.str):                     │
+│  • Identity-locked encryption (OAuth = the key)                │
+│  • Stored in user's cloud storage (OneDrive/Google Drive)      │
+│  • Syncs automatically across devices                          │
+│  • Only owner can decrypt                                       │
 │                                                                 │
 │  WE DON'T STORE (no server database):                          │
 │  • User account records                                        │

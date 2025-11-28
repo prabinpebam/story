@@ -363,6 +363,10 @@ class AssetValidator {
 
 ## 3. Encryption
 
+Story supports two encryption modes:
+1. **Password Protection** - For sharing encrypted presentations
+2. **Identity-Bound Encryption** - For user preferences files (see [User Preferences File](../identity/user-preferences-file.md))
+
 ### Password Protection
 
 ```javascript
@@ -473,6 +477,55 @@ class EncryptedFileHandler {
     }
 }
 ```
+
+### Identity-Bound Encryption
+
+For user preferences files, encryption is bound to OAuth identity rather than a password:
+
+```javascript
+/**
+ * Derive encryption key from OAuth identity
+ * No password needed - OAuth IS the key
+ */
+class IdentityBoundEncryption {
+    /**
+     * Derive key from stable OAuth claims
+     */
+    async deriveKey(idTokenClaims, salt) {
+        // Create identity material from stable claims
+        const identityMaterial = JSON.stringify({
+            sub: idTokenClaims.sub,     // Unique user ID (stable)
+            iss: idTokenClaims.iss      // Issuer (provider)
+            // Note: Don't use email or name (can change)
+        });
+        
+        // Import as key material
+        const keyMaterial = await crypto.subtle.importKey(
+            'raw',
+            new TextEncoder().encode(identityMaterial),
+            'HKDF',
+            false,
+            ['deriveKey']
+        );
+        
+        // Derive AES key using HKDF
+        return crypto.subtle.deriveKey(
+            {
+                name: 'HKDF',
+                salt: salt,
+                info: new TextEncoder().encode('story-preferences-v1'),
+                hash: 'SHA-256'
+            },
+            keyMaterial,
+            { name: 'AES-GCM', length: 256 },
+            false,
+            ['encrypt', 'decrypt']
+        );
+    }
+}
+```
+
+> **See [User Preferences File](../identity/user-preferences-file.md) for complete implementation.**
 
 ---
 

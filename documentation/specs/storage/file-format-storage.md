@@ -9,6 +9,9 @@ Story presentations are saved as `.str` files - a single portable archive contai
 - [Asset Management & Caching](./asset-management.md) - Asset pipeline and cache layers
 - [Industry Benchmark](./file-format-benchmark.md) - Comparison with PowerPoint, Keynote, Figma
 
+**Identity & Preferences:**
+- [User Preferences File](../identity/user-preferences-file.md) - Encrypted preferences storage
+
 **Collaboration Specifications:**
 - [Real-Time Collaboration](../collaboration/realtime-collaboration.md) - Collaboration architecture overview
 - [Cloud Storage Abstraction](../collaboration/cloud-storage-abstraction.md) - OneDrive/Google Drive integration
@@ -47,6 +50,17 @@ Story presentations are saved as `.str` files - a single portable archive contai
 ---
 
 ## 1. .str File Format
+
+### 1.0 File Format Variants
+
+The `.str` extension is used for two types of files:
+
+| Variant | Purpose | formatType | Documentation |
+|---------|---------|------------|---------------|
+| **Presentation** | Story presentations | `story-presentation` | This document |
+| **Preferences** | User settings | `story-preferences` | [User Preferences File](../identity/user-preferences-file.md) |
+
+Files are distinguished by the `formatType` field in `manifest.json`.
 
 ### 1.1 Format Structure
 

@@ -8,6 +8,7 @@ This specification defines how **user identity works across multiple devices** i
 - [Identity Architecture](./identity-architecture.md) - Overall architecture
 - [Session Lifecycle](./session-lifecycle.md) - Session management
 - [OAuth Identity Flow](./oauth-identity-flow.md) - Token handling
+- [User Preferences File](./user-preferences-file.md) - Encrypted preferences storage
 
 ---
 
@@ -105,44 +106,37 @@ function getUserId(idToken: IDTokenClaims): string {
 
 ## 2. Preference Sync
 
+> **See [User Preferences File](./user-preferences-file.md) for complete specification.**
+
 ### 2.1 Sync Architecture
+
+The recommended approach is using an **encrypted preferences file** stored in the user's cloud storage:
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                   PREFERENCE SYNC OPTIONS                       │
+│               PREFERENCES SYNC VIA PREFERENCES FILE             │
 ├─────────────────────────────────────────────────────────────────┤
 │                                                                 │
-│  OPTION A: NO SYNC (Current Default)                            │
+│  story-preferences.str (in user's OneDrive/Google Drive)       │
 │  ┌───────────────────────────────────────────────────────────┐ │
-│  │  Each device has independent preferences                  │ │
-│  │  Stored in browser localStorage                           │ │
-│  │                                                            │ │
-│  │  Pros: Simple, private, no cloud dependency              │ │
-│  │  Cons: Must set up each device separately                │ │
+│  │  • Encrypted with user's OAuth identity                   │ │
+│  │  • Only owner can decrypt                                 │ │
+│  │  • Cloud storage syncs automatically                      │ │
+│  │  • ~10-50KB file size                                    │ │
 │  └───────────────────────────────────────────────────────────┘ │
 │                                                                 │
-│  OPTION B: CLOUD FILE SYNC                                      │
-│  ┌───────────────────────────────────────────────────────────┐ │
-│  │  Preferences stored in a file in user's cloud storage    │ │
-│  │  e.g., /Story/settings.json in OneDrive/Google Drive     │ │
-│  │                                                            │ │
-│  │  Flow:                                                     │ │
-│  │  1. On sign-in, fetch settings.json                       │ │
-│  │  2. Merge with local preferences                          │ │
-│  │  3. On preference change, update settings.json           │ │
-│  │                                                            │ │
-│  │  Pros: Preferences sync automatically                    │ │
-│  │  Cons: Requires cloud access, conflict handling          │ │
-│  └───────────────────────────────────────────────────────────┘ │
+│  ┌─────────────┐     Cloud Sync     ┌─────────────┐           │
+│  │   Laptop    │◄─────────────────►│   Tablet    │           │
+│  │             │   (OneDrive/GDrive) │             │           │
+│  │  Preferences│                    │  Preferences│           │
+│  │  File Cache │                    │  File Cache │           │
+│  └─────────────┘                    └─────────────┘           │
 │                                                                 │
-│  OPTION C: BROWSER SYNC (Native)                                │
-│  ┌───────────────────────────────────────────────────────────┐ │
-│  │  Let browser handle sync (Chrome sync, Firefox sync)     │ │
-│  │  localStorage doesn't sync, but could use storage API    │ │
-│  │                                                            │ │
-│  │  Pros: User's existing sync infrastructure               │ │
-│  │  Cons: Not all browsers support, less control            │ │
-│  └───────────────────────────────────────────────────────────┘ │
+│  Benefits:                                                      │
+│  ✅ Syncs via existing cloud storage (no extra infrastructure) │
+│  ✅ Identity-locked (OAuth IS the encryption key)              │
+│  ✅ User controls file location                                │
+│  ✅ Works offline (local cache)                                │
 │                                                                 │
 └─────────────────────────────────────────────────────────────────┘
 ```
