@@ -2,10 +2,33 @@
  * OAuth Configuration
  * 
  * Centralizes OAuth provider settings and client IDs.
- * Uses environment variables for security.
+ * Uses environment variables for security when available.
  * 
  * @module core/auth/config/OAuthConfig
  */
+
+/**
+ * Safely get environment variable
+ * Works with Vite, or falls back to empty string for non-bundled environments
+ */
+function getEnvVar(name) {
+    try {
+        // Check if import.meta.env exists (Vite environment)
+        if (typeof import.meta !== 'undefined' && import.meta.env) {
+            return import.meta.env[name] || '';
+        }
+    } catch (e) {
+        // Ignore - not in Vite environment
+    }
+    
+    // Check for window-based config (can be set by a config script)
+    if (typeof window !== 'undefined' && window.__OAUTH_CONFIG__) {
+        const key = name.replace('VITE_', '');
+        return window.__OAUTH_CONFIG__[key] || '';
+    }
+    
+    return '';
+}
 
 /**
  * OAuth Provider Configuration
@@ -15,7 +38,7 @@ export const OAuthConfig = {
      * Microsoft OAuth Configuration
      */
     microsoft: {
-        clientId: import.meta.env.VITE_MICROSOFT_CLIENT_ID || '',
+        clientId: getEnvVar('VITE_MICROSOFT_CLIENT_ID'),
         authority: 'https://login.microsoftonline.com/common',
         redirectUri: `${window.location.origin}/auth/callback`,
         scopes: [
@@ -34,7 +57,7 @@ export const OAuthConfig = {
      * Google OAuth Configuration
      */
     google: {
-        clientId: import.meta.env.VITE_GOOGLE_CLIENT_ID || '',
+        clientId: getEnvVar('VITE_GOOGLE_CLIENT_ID'),
         authorizationEndpoint: 'https://accounts.google.com/o/oauth2/v2/auth',
         tokenEndpoint: 'https://oauth2.googleapis.com/token',
         redirectUri: `${window.location.origin}/auth/callback`,
