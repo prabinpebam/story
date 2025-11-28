@@ -24,6 +24,7 @@ This specification defines the architecture for real-time collaborative editing 
 | [Azure SignalR Integration](./azure-signalr-integration.md) | Serverless real-time messaging |
 | [Collaboration Protocol](./collaboration-protocol.md) | Message types, presence, cursors |
 | [Authentication](./authentication.md) | OAuth 2.0 with Microsoft/Google |
+| [Sharing & Permissions](./sharing-permissions.md) | Three-tier sharing model (public, password, cloud) |
 | [Security Model](./security-model.md) | Sandboxing, encryption, validation |
 
 ---
