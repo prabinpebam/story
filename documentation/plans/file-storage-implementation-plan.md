@@ -10,6 +10,9 @@ This plan implements the `.str` file format (ZIP-based) with progressive loading
 - [Asset Management & Caching](../specs/storage/asset-management.md)
 - [Cloud Storage Abstraction](../specs/collaboration/cloud-storage-abstraction.md)
 
+**Validation:**
+- [Validation Framework](./validation-framework.md) - Testing and quality gates
+
 **Dependencies:**
 - ✅ Identity Management (Phase 1-5 complete for cloud access)
 - ✅ Design system

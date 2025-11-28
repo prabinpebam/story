@@ -10,6 +10,9 @@ This plan implements serverless real-time collaboration using Azure SignalR Serv
 - [Collaboration Protocol](../specs/collaboration/collaboration-protocol.md)
 - [State Sync Engine](../specs/collaboration/state-sync-engine.md)
 
+**Validation:**
+- [Validation Framework](./validation-framework.md) - Real-time testing strategies
+
 **Dependencies:**
 - ✅ Identity Management (Phases 1-10)
 - ✅ File Storage (Phases 1-7)

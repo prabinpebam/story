@@ -10,11 +10,15 @@ This plan outlines the phased implementation of Story's decentralized identity s
 - [User Profile Model](../specs/identity/user-profile-model.md)
 - [Session Lifecycle](../specs/identity/session-lifecycle.md)
 
+**Validation:**
+- [Validation Framework](./validation-framework.md) - Quality gates and testing strategy
+
 **Key Principles:**
 - Small, testable incremental phases
 - No breaking changes to existing features
 - Design system adherence
 - Risk mitigation at each phase
+- Validation at every phase gate
 
 ---
 

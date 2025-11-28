@@ -493,6 +493,7 @@ If critical issues arise:
 - [Identity Management Implementation Plan](./identity-management-implementation-plan.md)
 - [File Storage Implementation Plan](./file-storage-implementation-plan.md)
 - [Real-Time Collaboration Implementation Plan](./realtime-collaboration-implementation-plan.md)
+- [Validation Framework](./validation-framework.md) - Quality gates and testing strategies
 
 ---
 
