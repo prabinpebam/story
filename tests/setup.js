@@ -93,11 +93,17 @@ if (!global.crypto.subtle) {
     };
 }
 
-// Mock window.location
-delete global.window;
-global.window = {
-    location: {
-        origin: 'http://localhost:3000',
-        href: 'http://localhost:3000'
-    }
-};
+// Extend window with additional mocks (don't overwrite jsdom's window)
+if (global.window) {
+    // Set mock location properties
+    Object.defineProperty(global.window, 'location', {
+        value: {
+            origin: 'http://localhost:3000',
+            href: 'http://localhost:3000',
+            pathname: '/',
+            search: '',
+            hash: ''
+        },
+        writable: true
+    });
+}
