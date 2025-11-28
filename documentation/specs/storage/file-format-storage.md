@@ -121,6 +121,33 @@ presentation.str (ZIP archive)
         hasAnimations: false
     },
     
+    // ─────────────────────────────────────────────────────────
+    // ASSET INDEX (Critical for Collaboration)
+    // Enables byte-range requests for lazy loading assets
+    // Collaborators can read specific assets without downloading entire file
+    // ─────────────────────────────────────────────────────────
+    assetIndex: {
+        "hero-image.jpg": {
+            path: "assets/images/hero-image.jpg",
+            byteOffset: 10001,          // Start position in ZIP file
+            byteLength: 39999,          // Size in bytes
+            mimeType: "image/jpeg",
+            checksum: "sha256:abc123...",
+            dimensions: { width: 1920, height: 1080 },
+            compression: "store"        // MUST be "store" for streaming
+        },
+        "intro-video.mp4": {
+            path: "assets/videos/intro-video.mp4",
+            byteOffset: 50001,
+            byteLength: 499949999,      // ~500MB
+            mimeType: "video/mp4",
+            checksum: "sha256:def456...",
+            dimensions: { width: 1920, height: 1080 },
+            duration: 120.5,
+            compression: "store"        // REQUIRED for video streaming
+        }
+    },
+    
     // Chunk Index (enables random access without decompressing all)
     chunks: {
         "document/metadata.json": { offset: 1024, size: 512 },
@@ -144,7 +171,7 @@ presentation.str (ZIP archive)
         }
     },
     
-    // Collaboration Hooks (future-proofing)
+    // Collaboration Hooks
     collaboration: {
         documentId: "doc_xyz789",   // Unique ID for sync
         lastSyncedAt: "2024-01-15T14:45:00Z",
@@ -160,7 +187,36 @@ presentation.str (ZIP archive)
 }
 ```
 
-### 1.3 Document Structure
+### 1.3 Compression Requirements for Streaming
+
+For byte-range asset streaming to work (especially during collaboration), assets must be stored **uncompressed** in the ZIP archive:
+
+```javascript
+// ZIP compression settings by file type
+const compressionSettings = {
+    // MUST be uncompressed for byte-range streaming
+    'assets/images/*': 'store',     // Images already compressed (JPEG, PNG)
+    'assets/videos/*': 'store',     // Videos already compressed (H.264)
+    'assets/audio/*': 'store',      // Audio already compressed (MP3, AAC)
+    'assets/fonts/*': 'store',      // Fonts need fast access
+    'preview/*': 'store',           // Thumbnails need fast access
+    
+    // Can be compressed (small, not streamed individually)
+    'document/*': 'deflate',        // JSON files benefit from compression
+    'manifest.json': 'deflate',     // Small, loaded once
+    'history/*': 'deflate',         // Version snapshots
+};
+```
+
+**Why uncompressed assets?**
+- Compressed data cannot be randomly accessed (must decompress from start)
+- Video seeking requires reading specific byte offsets
+- Most media formats (JPEG, PNG, MP4) are already compressed
+- Compression ratio for pre-compressed media is <1%
+
+**Collaboration benefit:** Collaborators can load a 500MB presentation and only download the specific assets they need via HTTP Range requests.
+
+### 1.4 Document Structure
 
 **metadata.json:**
 ```javascript

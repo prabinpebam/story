@@ -137,6 +137,38 @@ interface CloudStorageProvider {
     move(fileId: string, newParentId: string, newName?: string): Promise<CloudFile>;
     
     // ─────────────────────────────────────────────────────────
+    // Byte-Range Access (Critical for Collaboration)
+    // Enables lazy loading assets from self-contained .story files
+    // ─────────────────────────────────────────────────────────
+    
+    /** 
+     * Read a specific byte range from a file.
+     * Used to extract individual assets from .story ZIP files
+     * without downloading the entire file.
+     * 
+     * @example
+     * // Read embedded video (bytes 50001-500000000) from 500MB file
+     * const videoBlob = await provider.readRange(fileId, 50001, 499949999);
+     */
+    readRange(fileId: string, byteOffset: number, byteLength: number): Promise<Blob>;
+    
+    /**
+     * Get a streamable URL that supports HTTP Range requests.
+     * Used for video streaming where browser handles range requests.
+     * 
+     * @returns URL that can be used directly in <video src="...">
+     */
+    getStreamableUrl(fileId: string): Promise<string>;
+    
+    /**
+     * Append bytes to the end of a file.
+     * Used when collaborators add assets - appends to owner's file.
+     * 
+     * @returns New byte offset where content was appended
+     */
+    appendBytes(fileId: string, content: Blob): Promise<{ byteOffset: number }>;
+    
+    // ─────────────────────────────────────────────────────────
     // Version History
     // ─────────────────────────────────────────────────────────
     
@@ -198,6 +230,12 @@ interface ProviderCapabilities {
     
     /** Supports link expiration */
     expiringLinks: boolean;
+    
+    /** Supports HTTP Range requests for partial file download */
+    rangeRequests: boolean;
+    
+    /** Supports appending to existing files */
+    appendBytes: boolean;
     
     /** Supports collaborative editing metadata */
     collaborativeEditing: boolean;
@@ -344,7 +382,9 @@ class OneDriveProvider implements CloudStorageProvider {
         expiringLinks: true,
         collaborativeEditing: true,
         maxFileSize: 250 * 1024 * 1024 * 1024,  // 250 GB
-        deltaSync: true
+        deltaSync: true,
+        rangeRequests: true,          // ✅ Supports byte-range access
+        appendBytes: true             // ✅ Supports appending to files
     };
     
     private graphClient: Client | null = null;
@@ -535,6 +575,92 @@ class OneDriveProvider implements CloudStorageProvider {
         await this.graphClient!
             .api(`/me/drive/items/${fileId}`)
             .delete();
+    }
+    
+    // ─────────────────────────────────────────────────────────
+    // Byte-Range Access (for Asset Streaming)
+    // ─────────────────────────────────────────────────────────
+    
+    /**
+     * Read a specific byte range from a file.
+     * Critical for loading individual assets from self-contained .story files.
+     * 
+     * @example
+     * // Load manifest (first 10KB) from a 500MB presentation
+     * const manifest = await provider.readRange(fileId, 0, 10000);
+     * 
+     * // Load embedded video (bytes 50001-500000000)
+     * const video = await provider.readRange(fileId, 50001, 499949999);
+     */
+    async readRange(fileId: string, byteOffset: number, byteLength: number): Promise<Blob> {
+        // Get download URL (supports Range requests)
+        const item = await this.graphClient!
+            .api(`/me/drive/items/${fileId}`)
+            .select('@microsoft.graph.downloadUrl')
+            .get();
+        
+        const downloadUrl = item['@microsoft.graph.downloadUrl'];
+        
+        // Use Range header to get specific bytes
+        const response = await fetch(downloadUrl, {
+            headers: {
+                'Range': `bytes=${byteOffset}-${byteOffset + byteLength - 1}`
+            }
+        });
+        
+        if (response.status !== 206) {
+            throw new Error(`Range request failed: ${response.status}`);
+        }
+        
+        return response.blob();
+    }
+    
+    /**
+     * Get a URL that supports HTTP Range requests.
+     * Used for video streaming - browser handles range requests automatically.
+     */
+    async getStreamableUrl(fileId: string): Promise<string> {
+        const item = await this.graphClient!
+            .api(`/me/drive/items/${fileId}`)
+            .select('@microsoft.graph.downloadUrl')
+            .get();
+        
+        // OneDrive download URLs support Range requests natively
+        return item['@microsoft.graph.downloadUrl'];
+    }
+    
+    /**
+     * Append bytes to the end of a file.
+     * Used when collaborators add assets to owner's .story file.
+     * 
+     * Note: OneDrive doesn't support direct append, so we:
+     * 1. Create upload session for new total size
+     * 2. Upload only the new bytes at the end
+     */
+    async appendBytes(fileId: string, content: Blob): Promise<{ byteOffset: number }> {
+        // Get current file size
+        const metadata = await this.getMetadata(fileId);
+        const currentSize = metadata.size;
+        const newSize = currentSize + content.size;
+        
+        // Create upload session for the new total size
+        const session = await this.graphClient!
+            .api(`/me/drive/items/${fileId}/createUploadSession`)
+            .post({
+                item: { "@microsoft.graph.conflictBehavior": "replace" }
+            });
+        
+        // Upload only the new bytes at the end
+        await fetch(session.uploadUrl, {
+            method: 'PUT',
+            headers: {
+                'Content-Range': `bytes ${currentSize}-${newSize - 1}/${newSize}`,
+                'Content-Length': String(content.size)
+            },
+            body: content
+        });
+        
+        return { byteOffset: currentSize };
     }
     
     // ─────────────────────────────────────────────────────────
@@ -756,7 +882,9 @@ class GoogleDriveProvider implements CloudStorageProvider {
         expiringLinks: true,
         collaborativeEditing: true,
         maxFileSize: 5 * 1024 * 1024 * 1024 * 1024,  // 5 TB
-        deltaSync: false               // No delta uploads
+        deltaSync: false,              // No delta uploads
+        rangeRequests: true,          // ✅ Supports byte-range access
+        appendBytes: true             // ✅ Supports appending to files
     };
     
     private gapiClient: any;
@@ -872,6 +1000,85 @@ class GoogleDriveProvider implements CloudStorageProvider {
             size: parseInt(r.size),
             isCurrentVersion: i === arr.length - 1
         }));
+    }
+    
+    // ─────────────────────────────────────────────────────────
+    // Byte-Range Access (for Asset Streaming)
+    // ─────────────────────────────────────────────────────────
+    
+    /**
+     * Read a specific byte range from a file.
+     * Critical for loading individual assets from self-contained .story files.
+     */
+    async readRange(fileId: string, byteOffset: number, byteLength: number): Promise<Blob> {
+        const accessToken = this.authProvider.getAccessToken('google');
+        
+        const response = await fetch(
+            `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`,
+            {
+                headers: {
+                    'Authorization': `Bearer ${accessToken}`,
+                    'Range': `bytes=${byteOffset}-${byteOffset + byteLength - 1}`
+                }
+            }
+        );
+        
+        if (response.status !== 206) {
+            throw new Error(`Range request failed: ${response.status}`);
+        }
+        
+        return response.blob();
+    }
+    
+    /**
+     * Get a URL that supports HTTP Range requests for video streaming.
+     */
+    async getStreamableUrl(fileId: string): Promise<string> {
+        const accessToken = this.authProvider.getAccessToken('google');
+        
+        // Google Drive media endpoint supports Range requests
+        // Note: Token must be included, so we return a function-generated URL
+        return `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media&access_token=${accessToken}`;
+    }
+    
+    /**
+     * Append bytes to the end of a file.
+     * Uses resumable upload with Content-Range header.
+     */
+    async appendBytes(fileId: string, content: Blob): Promise<{ byteOffset: number }> {
+        const accessToken = this.authProvider.getAccessToken('google');
+        
+        // Get current file size
+        const metadata = await this.getMetadata(fileId);
+        const currentSize = metadata.size;
+        const newSize = currentSize + content.size;
+        
+        // Create resumable upload session
+        const initResponse = await fetch(
+            `https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=resumable`,
+            {
+                method: 'PATCH',
+                headers: {
+                    'Authorization': `Bearer ${accessToken}`,
+                    'Content-Type': 'application/json',
+                    'X-Upload-Content-Length': String(content.size)
+                },
+                body: JSON.stringify({})
+            }
+        );
+        
+        const uploadUrl = initResponse.headers.get('Location')!;
+        
+        // Upload the new bytes
+        await fetch(uploadUrl, {
+            method: 'PUT',
+            headers: {
+                'Content-Range': `bytes ${currentSize}-${newSize - 1}/${newSize}`
+            },
+            body: content
+        });
+        
+        return { byteOffset: currentSize };
     }
     
     // ─────────────────────────────────────────────────────────

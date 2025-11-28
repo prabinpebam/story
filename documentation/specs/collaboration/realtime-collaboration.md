@@ -144,6 +144,60 @@ User A types → Operation sent → Server transforms → Broadcast to all
 
 ---
 
+## Self-Contained Files & Storage Architecture
+
+### Key Principle: Files Stay Self-Contained
+
+All assets (images, videos, fonts) are **embedded inside the .story ZIP file**, not stored separately. This ensures:
+- **Portability** - One file contains everything
+- **No broken links** - Assets can't be accidentally deleted
+- **Owner-only storage** - Only file owner uses quota
+
+### How Collaborators Access Large Files Efficiently
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│  .story file in Owner's OneDrive (500MB)                       │
+│                                                                 │
+│  Bytes 0-10000:      manifest.json (with assetIndex)           │
+│  Bytes 10001-50000:  slides/slide-1.json                       │
+│  Bytes 50001-100000: assets/images/hero.jpg                    │
+│  Bytes 100001-500MB: assets/videos/intro.mp4  ← Large video    │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+                              │
+    ┌─────────────────────────┼─────────────────────────┐
+    ▼                         ▼                         ▼
+┌───────────────┐    ┌─────────────────┐    ┌──────────────────┐
+│ Owner         │    │ HTTP Range      │    │ Collaborator     │
+│               │    │ Request         │    │                  │
+│ Full file     │    │                 │    │ Range: bytes=    │
+│ (500MB in     │    │ Returns ONLY    │    │ 100001-500MB     │
+│ their drive)  │    │ requested bytes │    │                  │
+│               │    │                 │    │ Uses 0 MB quota  │
+└───────────────┘    └─────────────────┘    └──────────────────┘
+```
+
+### Storage Quota: Only Owner Pays
+
+| Role | Storage Used | How It Works |
+|------|--------------|--------------|
+| **Owner** | Full file size | File stored in owner's cloud storage |
+| **Collaborator** | 0 MB | Reads from owner's file via shared access |
+| **Collaborator adds video** | 0 MB | Video uploaded to owner's file (owner's quota increases) |
+
+### Asset Loading Flow
+
+1. **Collaborator joins session** → SignalR provides file location
+2. **Read manifest** → HTTP Range request for first 10KB only
+3. **Parse assetIndex** → Now knows byte offsets for all assets
+4. **Lazy load assets** → Range request for each asset as needed
+5. **Stream videos** → Browser uses Range requests automatically
+
+**See [Asset Streaming](./asset-streaming.md) for full implementation details.**
+
+---
+
 ## Cost Analysis
 
 | Component | Free Tier | Typical Usage | Notes |
@@ -162,8 +216,8 @@ User A types → Operation sent → Server transforms → Broadcast to all
 1. **Storage**: [Cloud Storage Abstraction](./cloud-storage-abstraction.md)
    - `CloudStorageProvider` interface
    - OneDrive/Google Drive implementations
-   - Conflict resolution
-   - Offline queue
+   - **Byte-range access** for asset streaming
+   - Conflict resolution & offline queue
 
 2. **Messaging**: [Azure SignalR Integration](./azure-signalr-integration.md)
    - Serverless architecture
@@ -177,7 +231,18 @@ User A types → Operation sent → Server transforms → Broadcast to all
    - Document sync
    - Error handling
 
-4. **Auth**: [Authentication](./authentication.md)
+4. **State Sync**: [State Sync Engine](./state-sync-engine.md)
+   - Vector clocks & OT
+   - Per-user undo/redo
+   - Offline support & resync
+
+5. **Asset Streaming**: [Asset Streaming](./asset-streaming.md)
+   - Byte-range requests
+   - Lazy loading strategy
+   - Video streaming
+   - Self-contained file architecture
+
+6. **Auth**: [Authentication](./authentication.md)
    - Microsoft/Google providers
    - Token management
    - Session handling
