@@ -32,8 +32,17 @@ Story presentations are saved as `.str` files - a single portable archive contai
 10. [Security & Encryption](#10-security--encryption)
 11. [UX Flows](#11-ux-flows)
 12. [Performance Targets](#12-performance-targets)
-13. [Version History System](#13-version-history-system) *(NEW)*
-14. [Recovery System](#14-recovery-system) *(NEW)*
+13. [Version History System](#13-version-history-system)
+14. [Recovery System](#14-recovery-system)
+15. [Collaborative Storage](#15-collaborative-storage) *(NEW)*
+16. [File Ownership Model](#16-file-ownership-model) *(NEW)*
+17. [Error Handling](#17-error-handling) *(NEW)*
+
+**Additional Specifications:**
+- [Collaborative Save Protocol](./collaborative-save-protocol.md) - Multi-user save coordination
+- [Cross-Tab Coordination](./cross-tab-coordination.md) - BroadcastChannel sync
+- [Large File Handling](./large-file-handling.md) - Chunked upload/download
+- [Storage Testing Strategy](./storage-testing-strategy.md) - Mocking and test patterns
 
 ---
 
@@ -175,7 +184,35 @@ presentation.str (ZIP archive)
     collaboration: {
         documentId: "doc_xyz789",   // Unique ID for sync
         lastSyncedAt: "2024-01-15T14:45:00Z",
-        conflictResolution: "last-write-wins"  // or "manual"
+        conflictResolution: "last-write-wins",  // or "manual"
+        
+        // ─────────────────────────────────────────────────────────
+        // VECTOR CLOCK (Critical for Collaboration Resync)
+        // Enables determining which operations are missing
+        // ─────────────────────────────────────────────────────────
+        vectorClock: {
+            "user_alice": 15,
+            "user_bob": 12,
+            "user_carol": 18
+        },
+        
+        // ─────────────────────────────────────────────────────────
+        // OPERATION LOG (For Resync After Disconnect)
+        // Recent operations stored for collaborators to catch up
+        // ─────────────────────────────────────────────────────────
+        operationLog: {
+            startClock: { "user_alice": 10, "user_bob": 8, "user_carol": 14 },
+            endClock: { "user_alice": 15, "user_bob": 12, "user_carol": 18 },
+            operationCount: 15,
+            storagePath: "history/operations.json.gz"
+        },
+        
+        // File ownership (for quota and permissions)
+        owner: {
+            id: "user_alice",
+            provider: "google-drive",
+            fileId: "1abc123def456"
+        }
     },
     
     // Integrity & Validation
@@ -1018,7 +1055,608 @@ async function checkForRecovery() {
 
 ---
 
-## Implementation Priority
+## 15. Collaborative Storage
+
+> **See [Collaborative Save Protocol](./collaborative-save-protocol.md) for complete implementation details.**
+
+### 15.1 Overview
+
+When multiple users collaborate on a presentation, storage operations become complex. This section defines how file operations coordinate with real-time collaboration.
+
+### 15.2 Data Flow Architecture
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│               COLLABORATIVE STORAGE ARCHITECTURE                │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  OWNER'S CLOUD STORAGE (OneDrive/Google Drive)                 │
+│  ┌─────────────────────────────────────────────────────────┐   │
+│  │  presentation.str (self-contained ZIP)                   │   │
+│  │  ├── manifest.json (with vectorClock + operationLog)    │   │
+│  │  ├── document/slides/*.json                             │   │
+│  │  └── assets/* (stored uncompressed for streaming)       │   │
+│  └─────────────────────────────────────────────────────────┘   │
+│                         │                                       │
+│                         │ Byte-Range Requests                  │
+│                         ▼                                       │
+│  ┌─────────────────────────────────────────────────────────┐   │
+│  │               COLLABORATOR BROWSER                       │   │
+│  │  • Downloads manifest.json first                         │   │
+│  │  • Fetches slides via byte-range as needed              │   │
+│  │  • Streams assets lazily (never full file)              │   │
+│  │  • Sends operations via SignalR (NOT storage)           │   │
+│  └─────────────────────────────────────────────────────────┘   │
+│                                                                 │
+│  WHO WRITES TO STORAGE?                                        │
+│  ─────────────────────────────────────────────────────────────  │
+│  • Owner: Full save (Ctrl+S, autosave)                         │
+│  • Collaborators: Never write to owner's storage               │
+│  • Operations: Flow via SignalR, owner incorporates on save    │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### 15.3 Save Coordination
+
+When owner saves while collaborators are editing:
+
+```typescript
+interface CollaborativeSaveFlow {
+    // 1. Owner initiates save
+    preSave: {
+        announceIntent: 'save:starting';     // Via SignalR
+        waitForInflight: true;                // Wait for pending ops
+        timeout: 2000;                        // Max wait 2s
+    };
+    
+    // 2. Capture current state
+    capture: {
+        state: DocumentState;
+        vectorClock: VectorClock;
+        pendingOps: Operation[];              // From collaborators
+    };
+    
+    // 3. Write to cloud storage
+    save: {
+        atomic: true;                         // Replace entire file
+        includeOperationLog: true;            // For resync
+        updateEtag: true;                     // Conflict detection
+    };
+    
+    // 4. Announce completion
+    postSave: {
+        broadcast: 'save:complete';
+        newVectorClock: VectorClock;
+        savedAt: timestamp;
+    };
+}
+```
+
+### 15.4 Collaborator Read Access
+
+Collaborators read from owner's storage but never write:
+
+```typescript
+class CollaboratorStorageAccess {
+    /**
+     * Collaborators access file via signed URL or shared link
+     * No authentication to owner's storage account needed
+     */
+    async openSharedFile(shareUrl: string): Promise<void> {
+        // 1. Parse share URL to get file location
+        const { provider, fileId } = this.parseShareUrl(shareUrl);
+        
+        // 2. Read manifest via byte-range
+        const manifest = await this.readManifest(shareUrl);
+        
+        // 3. Check if we have cached version
+        const cached = await this.cache.get(manifest.collaboration.documentId);
+        
+        if (cached && this.isUpToDate(cached, manifest.collaboration.vectorClock)) {
+            // Use cached version, just sync operations
+            await this.syncOperations(manifest);
+        } else {
+            // Download slides we need
+            await this.downloadSlides(shareUrl, manifest);
+        }
+        
+        // 4. Join SignalR group for real-time updates
+        await this.signalR.joinDocument(manifest.collaboration.documentId);
+    }
+    
+    /**
+     * Collaborators NEVER call save() to owner's storage
+     * Changes flow via SignalR operations
+     */
+    async save(): Promise<void> {
+        throw new Error('Collaborators cannot save to owner storage. Use local export.');
+    }
+}
+```
+
+### 15.5 External Change Detection
+
+Detect if file was modified outside of Story (e.g., replaced via cloud web UI):
+
+```typescript
+class ExternalChangeDetector {
+    private lastKnownEtag: string;
+    private pollInterval: number = 30000; // 30 seconds
+    
+    /**
+     * Periodically check if file changed externally
+     */
+    async checkForExternalChanges(): Promise<ExternalChange | null> {
+        const currentMetadata = await this.storage.getMetadata(this.fileId);
+        
+        if (currentMetadata.etag !== this.lastKnownEtag) {
+            // File changed!
+            const manifest = await this.storage.readManifest(this.fileId);
+            
+            // Check if it was us (via vectorClock)
+            if (this.wasOurSave(manifest.collaboration.vectorClock)) {
+                this.lastKnownEtag = currentMetadata.etag;
+                return null;
+            }
+            
+            // External change detected
+            return {
+                type: 'external_change',
+                newEtag: currentMetadata.etag,
+                modifiedAt: currentMetadata.modifiedAt,
+                modifiedBy: manifest.author?.name || 'Unknown',
+                action: this.determineAction()
+            };
+        }
+        
+        return null;
+    }
+    
+    private determineAction(): 'reload' | 'merge' | 'prompt' {
+        if (!this.hasLocalChanges()) {
+            return 'reload'; // Safe to auto-reload
+        }
+        if (this.canAutoMerge()) {
+            return 'merge';  // Non-conflicting changes
+        }
+        return 'prompt';     // User must decide
+    }
+}
+```
+
+### 15.6 Operation Log Storage
+
+Store recent operations in the .str file for resync:
+
+```javascript
+// history/operations.json.gz (compressed)
+{
+    formatVersion: "1.0",
+    
+    // Clock range covered by this log
+    startClock: { "alice": 10, "bob": 8 },
+    endClock: { "alice": 25, "bob": 15 },
+    
+    // Retention policy
+    retention: {
+        maxOperations: 1000,
+        maxAge: 86400000    // 24 hours in ms
+    },
+    
+    // Operations (newest first for fast access)
+    operations: [
+        {
+            id: "op-xyz789",
+            userId: "alice",
+            type: "update",
+            path: ["slides", "slide-001", "elements", 0, "text"],
+            value: "New title",
+            previousValue: "Old title",
+            vectorClock: { "alice": 25, "bob": 15 },
+            timestamp: 1732780000000
+        },
+        // ... more operations
+    ]
+}
+```
+
+---
+
+## 16. File Ownership Model
+
+### 16.1 Overview
+
+Story files always have a single owner whose cloud storage hosts the file. This section defines ownership, quota implications, and transfer scenarios.
+
+### 16.2 Ownership Principles
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    FILE OWNERSHIP MODEL                         │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  PRINCIPLE 1: Single Owner                                      │
+│  • Every .str file has exactly one owner                        │
+│  • Owner is determined by storage location                      │
+│  • Owner's cloud storage hosts the file                         │
+│                                                                 │
+│  PRINCIPLE 2: Owner Bears Storage Costs                         │
+│  • Only owner's storage quota is used                          │
+│  • Collaborators use zero storage for shared files             │
+│  • Assets embedded in owner's file, not copied                 │
+│                                                                 │
+│  PRINCIPLE 3: Owner Controls Persistence                        │
+│  • Only owner can save to cloud                                │
+│  • Collaborators can export local copies                       │
+│  • Owner can transfer ownership                                │
+│                                                                 │
+│  PRINCIPLE 4: Access via Sharing                                │
+│  • Collaborators access via share link                         │
+│  • No need for collaborator cloud authentication               │
+│  • Read access via byte-range requests                         │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### 16.3 Ownership in Manifest
+
+```javascript
+// manifest.json ownership section
+{
+    collaboration: {
+        // ... other fields
+        
+        owner: {
+            /** Owner's user ID (from OAuth sub claim) */
+            id: "user_alice_abc123",
+            
+            /** Display name for attribution */
+            name: "Alice Smith",
+            
+            /** Storage provider hosting the file */
+            provider: "google-drive",
+            
+            /** Provider-specific file ID */
+            fileId: "1abc123def456ghi789",
+            
+            /** When ownership was established */
+            ownedSince: "2024-01-15T10:30:00Z"
+        },
+        
+        /** Current collaborators (ephemeral, for display) */
+        recentCollaborators: [
+            { id: "user_bob", name: "Bob Jones", lastSeen: "2024-01-15T14:30:00Z" },
+            { id: "user_carol", name: "Carol White", lastSeen: "2024-01-15T14:25:00Z" }
+        ]
+    }
+}
+```
+
+### 16.4 Quota Implications
+
+| User Role | Storage Used | Actions |
+|-----------|--------------|---------|
+| **Owner** | Full file size | Save, autosave, all edits |
+| **Collaborator** | 0 bytes | View, edit (via ops), export copy |
+| **Viewer** | 0 bytes | View only, export PDF |
+
+### 16.5 Ownership Transfer
+
+When transferring ownership (e.g., owner leaves organization):
+
+```typescript
+interface OwnershipTransfer {
+    // Step 1: New owner downloads file
+    download: {
+        method: 'full_download';  // Must download entire file
+        includeHistory: boolean;   // Optional: include version history
+    };
+    
+    // Step 2: New owner uploads to their storage
+    upload: {
+        provider: 'google-drive' | 'onedrive';
+        destination: string;       // Folder path
+        newFileId: string;         // Assigned by provider
+    };
+    
+    // Step 3: Update manifest
+    updateManifest: {
+        newOwner: OwnerInfo;
+        newDocumentId: string;     // Generate new ID
+        preserveVectorClock: true; // Keep edit history
+    };
+    
+    // Step 4: Notify collaborators
+    notify: {
+        oldShareUrl: string;       // No longer valid
+        newShareUrl: string;       // New location
+        message: string;           // "Ownership transferred to..."
+    };
+}
+```
+
+### 16.6 Storage Provider Selection
+
+Guide users on choosing storage provider:
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│              STORAGE PROVIDER DECISION TREE                     │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  Q: What devices will you use?                                  │
+│  ├── Windows + Android → OneDrive                              │
+│  ├── Mac + iPhone → iCloud (future)                            │
+│  ├── Mixed/Cross-platform → Google Drive                       │
+│  └── Enterprise/Work → Check IT policy                         │
+│                                                                 │
+│  Q: Who will you collaborate with?                              │
+│  ├── Same organization → Use org's preferred provider          │
+│  ├── External collaborators → Google Drive (widest access)     │
+│  └── No collaboration → Local storage                          │
+│                                                                 │
+│  Q: File size considerations?                                   │
+│  ├── < 100MB → Any provider works                              │
+│  ├── 100MB - 1GB → Check quota, consider compression           │
+│  └── > 1GB → Need enterprise tier or local storage             │
+│                                                                 │
+│  RECOMMENDATION MATRIX:                                         │
+│  ────────────────────────────────────────────────────────────  │
+│  Individual + Cross-platform → Google Drive                    │
+│  Microsoft 365 user → OneDrive                                 │
+│  Privacy-focused → Local + manual sync                         │
+│  Enterprise → Follow IT policy                                 │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## 17. Error Handling
+
+### 17.1 Storage Error Taxonomy
+
+```typescript
+/**
+ * Comprehensive storage error types
+ */
+enum StorageErrorCode {
+    // ─────────────────────────────────────────────────────────
+    // Network Errors
+    // ─────────────────────────────────────────────────────────
+    NETWORK_OFFLINE = 'network_offline',
+    NETWORK_TIMEOUT = 'network_timeout',
+    NETWORK_UNSTABLE = 'network_unstable',
+    
+    // ─────────────────────────────────────────────────────────
+    // Authentication Errors
+    // ─────────────────────────────────────────────────────────
+    AUTH_EXPIRED = 'auth_expired',
+    AUTH_REVOKED = 'auth_revoked',
+    AUTH_INSUFFICIENT_SCOPE = 'auth_insufficient_scope',
+    
+    // ─────────────────────────────────────────────────────────
+    // Permission Errors
+    // ─────────────────────────────────────────────────────────
+    PERMISSION_DENIED = 'permission_denied',
+    PERMISSION_CHANGED = 'permission_changed',
+    FILE_UNSHARED = 'file_unshared',
+    
+    // ─────────────────────────────────────────────────────────
+    // Storage Errors
+    // ─────────────────────────────────────────────────────────
+    QUOTA_EXCEEDED = 'quota_exceeded',
+    FILE_TOO_LARGE = 'file_too_large',
+    STORAGE_UNAVAILABLE = 'storage_unavailable',
+    
+    // ─────────────────────────────────────────────────────────
+    // Conflict Errors
+    // ─────────────────────────────────────────────────────────
+    CONFLICT_DETECTED = 'conflict_detected',
+    ETAG_MISMATCH = 'etag_mismatch',
+    CONCURRENT_EDIT = 'concurrent_edit',
+    
+    // ─────────────────────────────────────────────────────────
+    // File Errors
+    // ─────────────────────────────────────────────────────────
+    FILE_NOT_FOUND = 'file_not_found',
+    FILE_DELETED = 'file_deleted',
+    FILE_MOVED = 'file_moved',
+    FILE_CORRUPTED = 'file_corrupted',
+    INVALID_FORMAT = 'invalid_format',
+    VERSION_INCOMPATIBLE = 'version_incompatible',
+    
+    // ─────────────────────────────────────────────────────────
+    // Browser Storage Errors
+    // ─────────────────────────────────────────────────────────
+    INDEXEDDB_QUOTA = 'indexeddb_quota',
+    INDEXEDDB_BLOCKED = 'indexeddb_blocked',
+    OPFS_UNAVAILABLE = 'opfs_unavailable',
+    CACHE_FULL = 'cache_full'
+}
+
+interface StorageError extends Error {
+    code: StorageErrorCode;
+    retryable: boolean;
+    userMessage: string;
+    technicalDetails?: string;
+    suggestedAction: ErrorAction;
+}
+
+type ErrorAction = 
+    | { type: 'retry'; delay: number }
+    | { type: 'reauthenticate' }
+    | { type: 'save_local' }
+    | { type: 'reload' }
+    | { type: 'manual_resolve' }
+    | { type: 'contact_support' };
+```
+
+### 17.2 Error Recovery Strategies
+
+```typescript
+class StorageErrorHandler {
+    private retryAttempts = new Map<string, number>();
+    
+    async handleError(error: StorageError, context: ErrorContext): Promise<ErrorResolution> {
+        switch (error.code) {
+            // ─────────────────────────────────────────────────────
+            // Network: Retry with backoff
+            // ─────────────────────────────────────────────────────
+            case StorageErrorCode.NETWORK_OFFLINE:
+            case StorageErrorCode.NETWORK_TIMEOUT:
+                return this.handleNetworkError(error, context);
+            
+            // ─────────────────────────────────────────────────────
+            // Auth: Refresh or re-authenticate
+            // ─────────────────────────────────────────────────────
+            case StorageErrorCode.AUTH_EXPIRED:
+                return this.refreshToken(context);
+                
+            case StorageErrorCode.AUTH_REVOKED:
+                return this.promptReauthentication(context);
+            
+            // ─────────────────────────────────────────────────────
+            // Quota: Offer alternatives
+            // ─────────────────────────────────────────────────────
+            case StorageErrorCode.QUOTA_EXCEEDED:
+                return this.handleQuotaExceeded(context);
+            
+            // ─────────────────────────────────────────────────────
+            // Conflicts: Merge or prompt
+            // ─────────────────────────────────────────────────────
+            case StorageErrorCode.CONFLICT_DETECTED:
+            case StorageErrorCode.ETAG_MISMATCH:
+                return this.handleConflict(context);
+            
+            // ─────────────────────────────────────────────────────
+            // File issues: Recovery options
+            // ─────────────────────────────────────────────────────
+            case StorageErrorCode.FILE_CORRUPTED:
+                return this.attemptRecovery(context);
+                
+            default:
+                return this.handleUnknownError(error, context);
+        }
+    }
+    
+    private async handleNetworkError(
+        error: StorageError, 
+        context: ErrorContext
+    ): Promise<ErrorResolution> {
+        // Queue for offline sync
+        await this.offlineQueue.add(context.operation);
+        
+        // Show offline indicator
+        this.ui.showOfflineStatus();
+        
+        // Schedule retry
+        const retryDelay = this.calculateBackoff(context.operationId);
+        
+        return {
+            status: 'queued',
+            message: 'Changes saved locally. Will sync when online.',
+            retryAt: Date.now() + retryDelay
+        };
+    }
+    
+    private async handleQuotaExceeded(context: ErrorContext): Promise<ErrorResolution> {
+        // Calculate file size
+        const fileSize = context.fileSize;
+        const formattedSize = this.formatBytes(fileSize);
+        
+        return {
+            status: 'user_action_required',
+            message: `Not enough storage space (need ${formattedSize})`,
+            options: [
+                { 
+                    label: 'Save to different location', 
+                    action: () => this.saveToAlternateLocation() 
+                },
+                { 
+                    label: 'Save locally', 
+                    action: () => this.saveLocal() 
+                },
+                { 
+                    label: 'Manage storage', 
+                    action: () => this.openStorageManagement() 
+                }
+            ]
+        };
+    }
+    
+    private async handleConflict(context: ErrorContext): Promise<ErrorResolution> {
+        // Fetch both versions
+        const localState = context.localState;
+        const remoteState = await this.fetchRemoteState(context.fileId);
+        
+        // Try auto-merge if possible
+        const mergeResult = this.attemptAutoMerge(localState, remoteState);
+        
+        if (mergeResult.success) {
+            return {
+                status: 'resolved',
+                message: 'Changes merged automatically',
+                mergedState: mergeResult.state
+            };
+        }
+        
+        // Show conflict resolution UI
+        return {
+            status: 'user_action_required',
+            message: 'Changes conflict with another version',
+            conflictData: {
+                local: localState,
+                remote: remoteState,
+                conflicts: mergeResult.conflicts
+            }
+        };
+    }
+}
+```
+
+### 17.3 User-Facing Error Messages
+
+| Error Code | User Message | Action Button |
+|------------|--------------|---------------|
+| `NETWORK_OFFLINE` | "You're offline. Changes will sync when connected." | "Work Offline" |
+| `AUTH_EXPIRED` | "Your session expired. Please sign in again." | "Sign In" |
+| `QUOTA_EXCEEDED` | "Storage is full. Free up space or save elsewhere." | "Manage Storage" |
+| `CONFLICT_DETECTED` | "Someone else edited this file. Review changes." | "Review" |
+| `FILE_NOT_FOUND` | "This file was moved or deleted." | "Locate File" |
+| `FILE_CORRUPTED` | "This file appears damaged. Attempting recovery..." | "Recover" |
+| `PERMISSION_DENIED` | "You no longer have access to this file." | "Request Access" |
+
+### 17.4 Error Telemetry
+
+```typescript
+interface ErrorTelemetry {
+    // What to track
+    track(event: {
+        code: StorageErrorCode;
+        context: 'save' | 'load' | 'sync' | 'cache';
+        provider?: string;
+        fileSize?: number;
+        retryCount?: number;
+        resolution: 'auto' | 'user' | 'failed';
+        duration?: number;
+    }): void;
+}
+
+// Example usage
+errorTelemetry.track({
+    code: StorageErrorCode.NETWORK_TIMEOUT,
+    context: 'save',
+    provider: 'google-drive',
+    fileSize: 52428800,
+    retryCount: 2,
+    resolution: 'auto',
+    duration: 3500
+});
+```
+
+---
 
 > **Based on [Industry Benchmark Analysis](./file-format-benchmark.md)**
 
