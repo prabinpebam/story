@@ -31,6 +31,82 @@ This specification defines the architecture for real-time collaborative editing 
 
 ---
 
+## Zero-Database Architecture
+
+Story uses a **zero-database architecture** where we don't maintain any server-side user database or file metadata. Everything is stored either in the user's cloud storage or extracted from OAuth tokens.
+
+### What Story DOESN'T Have
+
+| Traditional App | Story |
+|-----------------|-------|
+| User database | ❌ Identity from OAuth tokens |
+| File database | ❌ Files in user's cloud storage |
+| Session store | ❌ Tokens in browser storage |
+| Collaboration state | ❌ Ephemeral SignalR groups |
+| User preferences DB | ❌ Browser localStorage |
+
+### How It Works
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                 ZERO-DATABASE ARCHITECTURE                      │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  IDENTITY (No user database)                                   │
+│  ┌─────────────────────────────────────────────────────────┐   │
+│  │  OAuth Provider (Microsoft/Google)                       │   │
+│  │       ↓ tokens with claims (sub, email, name, picture)  │   │
+│  │  Browser extracts user info from ID token               │   │
+│  │       ↓ userInfo included in SignalR messages           │   │
+│  │  Other clients display identity from received messages  │   │
+│  │                                                          │   │
+│  │  Result: Identity travels WITH tokens and messages      │   │
+│  │          No server database lookup needed               │   │
+│  └─────────────────────────────────────────────────────────┘   │
+│                                                                 │
+│  STORAGE (No file database)                                     │
+│  ┌─────────────────────────────────────────────────────────┐   │
+│  │  Owner's Cloud Storage (OneDrive/Google Drive)          │   │
+│  │       ↓ .story files with embedded assets               │   │
+│  │  Collaborators access via shared links + Range requests │   │
+│  │       ↓ read-only access, no storage quota used         │   │
+│  │                                                          │   │
+│  │  Result: Files stay in owner's account                  │   │
+│  │          No central file server                         │   │
+│  └─────────────────────────────────────────────────────────┘   │
+│                                                                 │
+│  REAL-TIME (No persistent state)                               │
+│  ┌─────────────────────────────────────────────────────────┐   │
+│  │  Azure SignalR (Serverless)                             │   │
+│  │       ↓ ephemeral groups (doc:123)                      │   │
+│  │  Groups exist only while users are connected            │   │
+│  │       ↓ no persistence when all users leave             │   │
+│  │                                                          │   │
+│  │  Result: No server tracks who's in which document       │   │
+│  │          State rebuilt on reconnection via messages     │   │
+│  └─────────────────────────────────────────────────────────┘   │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### Benefits
+
+| Benefit | Description |
+|---------|-------------|
+| **$0 database costs** | No PostgreSQL/MongoDB to host, backup, scale |
+| **No data liability** | We don't store PII - OAuth providers do |
+| **GDPR simplified** | User revokes OAuth = all access ends |
+| **Infinite scale** | Each user's files in their own storage |
+| **Offline first** | Everything needed is in browser + .story file |
+| **Provider portable** | Easy to switch OAuth/storage providers |
+
+### See Also
+- [Authentication - Zero-Database Identity](./authentication.md#2-zero-database-identity-architecture)
+- [Azure SignalR - Stateless & Ephemeral Design](./azure-signalr-integration.md#3-stateless--ephemeral-design)
+- [Collaboration Protocol - Identity in Messages](./collaboration-protocol.md#1-message-format)
+
+---
+
 ## Architecture Overview
 
 ```

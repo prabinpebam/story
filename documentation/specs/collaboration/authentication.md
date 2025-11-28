@@ -19,12 +19,13 @@ This specification defines the **authentication system** for Story, supporting m
 ## Table of Contents
 
 1. [Architecture](#1-architecture)
-2. [Provider Interface](#2-provider-interface)
-3. [Microsoft (Azure AD) Provider](#3-microsoft-azure-ad-provider)
-4. [Google Provider](#4-google-provider)
-5. [Token Management](#5-token-management)
-6. [Session Management](#6-session-management)
-7. [Implementation Guide](#7-implementation-guide)
+2. [Zero-Database Identity Architecture](#2-zero-database-identity-architecture)
+3. [Provider Interface](#3-provider-interface)
+4. [Microsoft (Azure AD) Provider](#4-microsoft-azure-ad-provider)
+5. [Google Provider](#5-google-provider)
+6. [Token Management](#6-token-management)
+7. [Session Management](#7-session-management)
+8. [Implementation Guide](#8-implementation-guide)
 
 ---
 
@@ -98,7 +99,235 @@ This specification defines the **authentication system** for Story, supporting m
 
 ---
 
-## 2. Provider Interface
+## 2. Zero-Database Identity Architecture
+
+Story uses a **zero-database identity model** where user identity comes directly from OAuth tokens rather than a server-side user database. The identity provider (Microsoft/Google) IS the identity database.
+
+### 2.1 Design Philosophy
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                 TRADITIONAL vs ZERO-DATABASE                    │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  TRADITIONAL:                                                   │
+│  ┌──────────┐    ┌──────────┐    ┌──────────┐                 │
+│  │  OAuth   │───►│  Server  │───►│ Database │                 │
+│  │  Token   │    │  API     │    │ (users)  │                 │
+│  └──────────┘    └──────────┘    └──────────┘                 │
+│      User logs in → Server creates user record → DB stores     │
+│                                                                 │
+│  STORY (Zero-Database):                                        │
+│  ┌──────────┐    ┌──────────┐                                  │
+│  │  OAuth   │───►│ Browser  │──── No server database!         │
+│  │  Token   │    │ Client   │                                  │
+│  └──────────┘    └──────────┘                                  │
+│      Token contains all user info → Client extracts directly   │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### 2.2 Token as Identity Source
+
+OAuth tokens (specifically ID tokens) contain all the user information Story needs:
+
+```typescript
+/**
+ * ID Token Claims (JWT payload)
+ * This IS the user identity - no database needed
+ */
+interface IDTokenClaims {
+    // Standard OIDC claims
+    sub: string;           // Unique user ID (stable across sessions)
+    email: string;         // User's email address
+    name: string;          // Display name
+    picture?: string;      // Avatar URL
+    given_name?: string;   // First name
+    family_name?: string;  // Last name
+    
+    // Provider-specific
+    iss: string;           // Issuer (Microsoft/Google)
+    aud: string;           // Client ID
+    exp: number;           // Expiration timestamp
+    iat: number;           // Issued at timestamp
+}
+
+/**
+ * Extract user identity directly from ID token
+ * No server API call needed!
+ */
+function extractUserFromToken(idToken: string): AuthUser {
+    // Decode JWT (no verification needed for display - signature verified at OAuth)
+    const payload = JSON.parse(atob(idToken.split('.')[1]));
+    
+    return {
+        id: payload.sub,
+        email: payload.email,
+        displayName: payload.name,
+        givenName: payload.given_name,
+        familyName: payload.family_name,
+        avatarUrl: payload.picture,
+        provider: payload.iss.includes('microsoft') ? 'microsoft' : 'google'
+    };
+}
+```
+
+### 2.3 What We Don't Store
+
+| Data Type | Traditional App | Story (Zero-Database) |
+|-----------|----------------|----------------------|
+| User accounts | Server database | ❌ None - from OAuth tokens |
+| User profiles | Server database | ❌ None - from OAuth claims |
+| Session state | Server/Redis | ❌ None - client-side only |
+| User preferences | Server database | Browser localStorage |
+| File metadata | Server database | ❌ None - in .story files |
+
+### 2.4 Identity Flow
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                      IDENTITY FLOW                              │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  1. USER SIGNS IN                                               │
+│     ┌──────────┐    ┌───────────────┐                          │
+│     │  Story   │───►│ Microsoft /   │                          │
+│     │  Client  │    │ Google OAuth  │                          │
+│     └──────────┘    └───────────────┘                          │
+│          │                  │                                   │
+│          │◄─────────────────┘                                   │
+│          │  Returns: access_token, id_token, refresh_token     │
+│          │                                                      │
+│  2. CLIENT EXTRACTS IDENTITY                                    │
+│     ┌──────────────────────────────────────────┐               │
+│     │  id_token (JWT):                         │               │
+│     │  {                                        │               │
+│     │    "sub": "abc123",                      │               │
+│     │    "email": "alice@example.com",         │               │
+│     │    "name": "Alice Smith",                │               │
+│     │    "picture": "https://..."              │               │
+│     │  }                                        │               │
+│     └──────────────────────────────────────────┘               │
+│          │                                                      │
+│          ▼                                                      │
+│     User object created in browser memory                      │
+│     (no server API call!)                                      │
+│                                                                 │
+│  3. IDENTITY TRAVELS WITH MESSAGES                              │
+│     When collaborating, user info is included in messages:     │
+│     ┌──────────────────────────────────────────┐               │
+│     │  SignalR Message:                        │               │
+│     │  {                                        │               │
+│     │    type: "cursor:move",                  │               │
+│     │    userInfo: {                           │               │
+│     │      id: "abc123",                       │               │
+│     │      displayName: "Alice Smith",         │               │
+│     │      color: "#FF6B6B"                    │               │
+│     │    },                                     │               │
+│     │    payload: { x: 100, y: 200 }           │               │
+│     │  }                                        │               │
+│     └──────────────────────────────────────────┘               │
+│                                                                 │
+│  4. OTHER CLIENTS DISPLAY IDENTITY                              │
+│     Bob's browser receives message → displays "Alice Smith"    │
+│     cursor without any server lookup                           │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### 2.5 Benefits of Zero-Database Identity
+
+| Benefit | Description |
+|---------|-------------|
+| **No server costs** | No database to host, backup, or scale |
+| **No data liability** | We don't store PII - identity provider does |
+| **Instant availability** | No user provisioning or sync delays |
+| **GDPR simplified** | User data deletion = revoke OAuth app access |
+| **Provider flexibility** | Easy to add new OAuth providers |
+| **Offline capable** | Cached tokens work without server connection |
+
+### 2.6 Security Considerations
+
+```typescript
+/**
+ * Security measures for zero-database identity
+ */
+class IdentitySecurity {
+    /**
+     * ID tokens are signed by the provider
+     * Client trusts the signature (verified during OAuth flow)
+     */
+    
+    /**
+     * For server-side operations (Azure Functions), validate token:
+     */
+    async validateForServerOperation(idToken: string): Promise<boolean> {
+        // Option 1: Use provider's public keys to verify signature
+        // Option 2: Call provider's userinfo endpoint with access token
+        // Option 3: Trust client for non-sensitive operations (presence, cursors)
+        
+        return true; // Simplified - real implementation would verify
+    }
+    
+    /**
+     * Access tokens are used for API calls
+     * Storage access requires valid access token scoped to user's files
+     */
+    async accessUserFiles(accessToken: string): Promise<void> {
+        // OneDrive/Google Drive validate token and scope
+        // User can only access their own files
+        // No server can impersonate users
+    }
+}
+```
+
+### 2.7 Local Storage Strategy
+
+```typescript
+/**
+ * What we DO store locally (in browser)
+ */
+interface LocalUserData {
+    // From OAuth (cached for quick access)
+    lastSignedInUser: {
+        id: string;
+        email: string;
+        displayName: string;
+        avatarUrl?: string;
+        provider: 'microsoft' | 'google';
+    };
+    
+    // User preferences (not identity)
+    preferences: {
+        theme: 'light' | 'dark' | 'system';
+        defaultStorageProvider: string;
+        recentFiles: string[];
+        // ... other app settings
+    };
+}
+
+// Storage location
+const STORAGE_KEY = 'story_user_data';
+
+// On sign-in, cache user for faster app startup
+function cacheUser(user: AuthUser): void {
+    const data: LocalUserData = {
+        lastSignedInUser: user,
+        preferences: getPreferences()
+    };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+}
+
+// On app load, restore cached user while waiting for silent sign-in
+function getCachedUser(): AuthUser | null {
+    const data = localStorage.getItem(STORAGE_KEY);
+    return data ? JSON.parse(data).lastSignedInUser : null;
+}
+```
+
+---
+
+## 3. Provider Interface
 
 ### 2.1 AuthProvider Interface
 
@@ -215,7 +444,7 @@ interface AuthError {
 
 ---
 
-## 3. Microsoft (Azure AD) Provider
+## 4. Microsoft (Azure AD) Provider
 
 ### 3.1 Azure AD App Registration
 
@@ -461,7 +690,7 @@ interface MicrosoftAuthConfig {
 
 ---
 
-## 4. Google Provider
+## 5. Google Provider
 
 ### 4.1 Google Cloud Console Setup
 
@@ -711,7 +940,7 @@ interface GoogleAuthConfig {
 
 ---
 
-## 5. Token Management
+## 6. Token Management
 
 ### 5.1 Secure Token Storage
 
@@ -838,7 +1067,7 @@ class TokenRefreshManager {
 
 ---
 
-## 6. Session Management
+## 7. Session Management
 
 ### 6.1 Authentication Manager
 
@@ -1042,7 +1271,7 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
 
 ---
 
-## 7. Implementation Guide
+## 8. Implementation Guide
 
 ### 7.1 Sign-In UI
 

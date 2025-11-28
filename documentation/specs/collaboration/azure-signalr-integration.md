@@ -27,11 +27,12 @@ This specification defines how Story uses **Azure SignalR Service** in **serverl
 
 1. [Architecture](#1-architecture)
 2. [Azure Resources](#2-azure-resources)
-3. [SignalR Client](#3-signalr-client)
-4. [Azure Functions](#4-azure-functions)
-5. [Message Types](#5-message-types)
-6. [Scaling & Costs](#6-scaling--costs)
-7. [Provider Abstraction](#7-provider-abstraction)
+3. [Stateless & Ephemeral Design](#3-stateless--ephemeral-design)
+4. [SignalR Client](#4-signalr-client)
+5. [Azure Functions](#5-azure-functions)
+6. [Message Types](#6-message-types)
+7. [Scaling & Costs](#7-scaling--costs)
+8. [Provider Abstraction](#8-provider-abstraction)
 
 ---
 
@@ -166,7 +167,247 @@ This specification defines how Story uses **Azure SignalR Service** in **serverl
 
 ---
 
-## 3. SignalR Client
+## 3. Stateless & Ephemeral Design
+
+Story's SignalR integration follows a **stateless, ephemeral design** that complements the zero-database identity architecture. No server-side state is persisted.
+
+### 3.1 Ephemeral Groups
+
+SignalR groups are **ephemeral** - they exist only while users are connected:
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                     EPHEMERAL GROUPS                            │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  GROUP LIFECYCLE:                                               │
+│                                                                 │
+│  Alice opens doc "123":                                         │
+│  ┌─────────────────────────────────────────┐                   │
+│  │  Group: doc:123                         │                   │
+│  │  Members: [Alice]                       │  ← Created        │
+│  └─────────────────────────────────────────┘                   │
+│                                                                 │
+│  Bob opens same doc:                                            │
+│  ┌─────────────────────────────────────────┐                   │
+│  │  Group: doc:123                         │                   │
+│  │  Members: [Alice, Bob]                  │  ← Bob added      │
+│  └─────────────────────────────────────────┘                   │
+│                                                                 │
+│  Alice closes doc:                                              │
+│  ┌─────────────────────────────────────────┐                   │
+│  │  Group: doc:123                         │                   │
+│  │  Members: [Bob]                         │  ← Alice removed  │
+│  └─────────────────────────────────────────┘                   │
+│                                                                 │
+│  Bob closes doc:                                                │
+│  ┌─────────────────────────────────────────┐                   │
+│  │  Group: doc:123                         │                   │
+│  │  Members: []                            │  ← Group empty    │
+│  └─────────────────────────────────────────┘                   │
+│  (Group automatically cleaned up by SignalR)                   │
+│                                                                 │
+│  NO PERSISTENCE:                                                │
+│  • No database tracks group membership                          │
+│  • No server remembers who was in which group                   │
+│  • When SignalR restarts, all groups are gone                   │
+│  • Clients rejoin after reconnection                            │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### 3.2 Identity in Messages (Not Server)
+
+User identity is embedded in every message, not stored server-side:
+
+```typescript
+/**
+ * Each message carries its own identity context
+ * Server doesn't need to look up who sent it
+ */
+interface SignalRMessageWithIdentity {
+    // Message metadata
+    type: string;
+    timestamp: number;
+    
+    // Identity EMBEDDED in message
+    userInfo: {
+        id: string;           // From OAuth sub claim
+        displayName: string;  // From OAuth name claim
+        avatarUrl?: string;   // From OAuth picture claim
+        color: string;        // Assigned client-side for cursor color
+    };
+    
+    // Actual payload
+    payload: any;
+}
+
+// Example: Cursor move message
+const cursorMessage: SignalRMessageWithIdentity = {
+    type: 'cursor:move',
+    timestamp: Date.now(),
+    userInfo: {
+        id: 'abc123',              // From OAuth token
+        displayName: 'Alice',      // From OAuth token
+        avatarUrl: 'https://...',  // From OAuth token
+        color: '#FF6B6B'           // Assigned when joining
+    },
+    payload: {
+        slideId: 'slide_001',
+        x: 450,
+        y: 280
+    }
+};
+```
+
+### 3.3 No Server-Side User Database
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                 WHAT THE SERVER KNOWS                           │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  TRADITIONAL SERVER:                                            │
+│  ┌─────────────────────────────────────────────────────────┐   │
+│  │  users table:                                            │   │
+│  │  id | email           | name    | avatar    | created   │   │
+│  │  1  | alice@email.com | Alice   | /img/1.jpg| 2024-01-01│   │
+│  │  2  | bob@email.com   | Bob     | /img/2.jpg| 2024-01-02│   │
+│  └─────────────────────────────────────────────────────────┘   │
+│                                                                 │
+│  STORY SERVER (Azure Functions):                               │
+│  ┌─────────────────────────────────────────────────────────┐   │
+│  │  (empty - no user database)                              │   │
+│  │                                                          │   │
+│  │  Functions only:                                         │   │
+│  │  • negotiate: Returns SignalR connection token           │   │
+│  │  • broadcast: Forwards messages to groups                │   │
+│  │  • join-group: Adds connection to group                  │   │
+│  │  • leave-group: Removes connection from group            │   │
+│  │                                                          │   │
+│  │  Server doesn't know or care:                            │   │
+│  │  • Who the user is (identity in token/messages)          │   │
+│  │  • What documents exist (in user's cloud storage)        │   │
+│  │  • Who collaborates with whom (ephemeral groups)         │   │
+│  └─────────────────────────────────────────────────────────┘   │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### 3.4 Connection to User Mapping
+
+While we don't store users in a database, SignalR needs to route messages:
+
+```typescript
+/**
+ * SignalR uses userId (from x-ms-signalr-userid header) to route
+ * This is the OAuth 'sub' claim - stable and unique
+ */
+interface NegotiateRequest {
+    headers: {
+        // Set by client from OAuth token
+        'x-ms-signalr-userid': string;  // = OAuth sub claim
+        'authorization': string;         // Bearer <access_token>
+    };
+}
+
+/**
+ * SignalR maintains connection → userId mapping internally
+ * We don't persist this - it's ephemeral
+ */
+// Azure SignalR internal (we don't access):
+// connectionId -> userId
+// userId -> [connectionIds] (user may have multiple tabs)
+// groupName -> [connectionIds]
+
+/**
+ * When sending to a user, SignalR routes by userId
+ */
+async function sendToUser(userId: string, message: any): Promise<void> {
+    // SignalR finds all connections for this userId
+    // We don't need a database lookup
+    await signalRClient.send('user', userId, message);
+}
+```
+
+### 3.5 Color Assignment
+
+User colors for cursors/selections are assigned client-side, not stored:
+
+```typescript
+class CollaboratorColorManager {
+    // Palette of distinct, accessible colors
+    private colorPalette = [
+        '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4',
+        '#FFEAA7', '#DDA0DD', '#98D8C8', '#F7DC6F',
+        '#BB8FCE', '#85C1E9', '#F8B500', '#58D68D'
+    ];
+    
+    private assignedColors = new Map<string, string>();
+    
+    /**
+     * Assign color when user joins session
+     * Different clients may assign different colors - that's OK
+     * Each client sees consistent colors for the session duration
+     */
+    getColorForUser(userId: string): string {
+        if (!this.assignedColors.has(userId)) {
+            const index = this.assignedColors.size % this.colorPalette.length;
+            this.assignedColors.set(userId, this.colorPalette[index]);
+        }
+        return this.assignedColors.get(userId)!;
+    }
+    
+    /**
+     * When user leaves, optionally free their color
+     */
+    releaseColor(userId: string): void {
+        this.assignedColors.delete(userId);
+    }
+}
+```
+
+### 3.6 Reconnection Without State
+
+When a client reconnects, it rebuilds state from messages, not server:
+
+```typescript
+class SignalRReconnectionHandler {
+    async onReconnected(): Promise<void> {
+        // 1. Rejoin the document group
+        await this.signalR.joinDocument(this.currentDocumentId);
+        
+        // 2. Announce presence (others will send their presence back)
+        await this.signalR.broadcastPresence({
+            type: 'presence:join',
+            userInfo: this.localUserInfo,  // From OAuth token, stored locally
+            status: 'online'
+        });
+        
+        // 3. Other clients will respond with their presence
+        // This rebuilds our view of who's online
+        // No server database query needed!
+    }
+    
+    /**
+     * Handle presence:join from others after we reconnect
+     */
+    onPresenceJoin(message: PresenceMessage): void {
+        // Rebuild collaborator list from incoming messages
+        this.collaborators.set(message.userInfo.id, {
+            ...message.userInfo,
+            color: this.colorManager.getColorForUser(message.userInfo.id)
+        });
+        
+        // Render their cursor/presence indicator
+        this.renderCollaborator(message.userInfo.id);
+    }
+}
+```
+
+---
+
+## 4. SignalR Client
 
 ### 3.1 Client Implementation
 
@@ -486,7 +727,7 @@ async function closePresentation() {
 
 ---
 
-## 4. Azure Functions
+## 5. Azure Functions
 
 ### 4.1 Negotiate Function
 
@@ -689,7 +930,7 @@ app.timer('heartbeat', {
 
 ---
 
-## 5. Message Types
+## 6. Message Types
 
 ### 5.1 Message Schema
 
@@ -805,7 +1046,7 @@ class MessageThrottler {
 
 ---
 
-## 6. Scaling & Costs
+## 7. Scaling & Costs
 
 ### 6.1 Pricing Tiers
 
@@ -854,7 +1095,7 @@ class CollaborationManager {
 
 ---
 
-## 7. Provider Abstraction
+## 8. Provider Abstraction
 
 ### 7.1 Real-Time Provider Interface
 

@@ -33,15 +33,21 @@ This specification defines the **message protocol** for real-time collaboration 
 
 ### 1.1 Base Message Structure
 
-All collaboration messages follow this structure:
+All collaboration messages follow this structure. **Identity is embedded in each message** (not looked up from a server database):
 
 ```typescript
 interface CollaborationMessage<T = unknown> {
     /** Message type identifier */
     type: MessageType;
     
-    /** Sender's user ID */
+    /** Sender's user ID (from OAuth 'sub' claim) */
     userId: string;
+    
+    /** 
+     * Sender's identity info (from OAuth token claims)
+     * Embedded in every message - no server database lookup!
+     */
+    userInfo: UserInfo;
     
     /** Document ID (group identifier) */
     documentId: string;
@@ -57,6 +63,27 @@ interface CollaborationMessage<T = unknown> {
     
     /** Client-generated message ID */
     messageId?: string;
+}
+
+/**
+ * User identity extracted from OAuth ID token
+ * This travels WITH messages - no server lookup needed
+ */
+interface UserInfo {
+    /** Unique ID from OAuth 'sub' claim */
+    id: string;
+    
+    /** Display name from OAuth 'name' claim */
+    displayName: string;
+    
+    /** Email from OAuth 'email' claim */
+    email?: string;
+    
+    /** Avatar URL from OAuth 'picture' claim */
+    avatarUrl?: string;
+    
+    /** Assigned color for cursor/selection (client-side) */
+    color: string;
 }
 
 type MessageType = 
@@ -81,7 +108,91 @@ type MessageType =
     | 'operation:ack';
 ```
 
-### 1.2 Message Compression
+### 1.2 Zero-Database Identity in Messages
+
+Story uses a **zero-database identity model** where user identity comes from OAuth tokens, not a server database. Each message carries its own identity context:
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                  IDENTITY IN MESSAGES                           │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  TRADITIONAL APPROACH:                                          │
+│  Message: { userId: "abc123", payload: {...} }                 │
+│      │                                                          │
+│      ▼                                                          │
+│  Server looks up: SELECT name, avatar FROM users WHERE id=?    │
+│      │                                                          │
+│      ▼                                                          │
+│  Response includes user details                                 │
+│                                                                 │
+│  ─────────────────────────────────────────────────────────────  │
+│                                                                 │
+│  STORY APPROACH (Zero-Database):                               │
+│  Message: {                                                     │
+│      userId: "abc123",                                          │
+│      userInfo: {          ← Identity FROM OAuth token          │
+│          id: "abc123",                                          │
+│          displayName: "Alice Smith",                           │
+│          avatarUrl: "https://...",                             │
+│          color: "#FF6B6B"                                       │
+│      },                                                         │
+│      payload: {...}                                             │
+│  }                                                              │
+│      │                                                          │
+│      ▼                                                          │
+│  Receiver uses embedded identity directly                      │
+│  NO SERVER DATABASE LOOKUP!                                    │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### 1.3 Creating Messages with Identity
+
+```typescript
+class MessageFactory {
+    private userInfo: UserInfo;
+    
+    constructor(authManager: AuthenticationManager, colorManager: ColorManager) {
+        // Extract identity from OAuth token (stored in memory after sign-in)
+        const user = authManager.getCurrentUser()!;
+        
+        this.userInfo = {
+            id: user.id,                    // From OAuth 'sub' claim
+            displayName: user.displayName,  // From OAuth 'name' claim
+            email: user.email,              // From OAuth 'email' claim
+            avatarUrl: user.avatarUrl,      // From OAuth 'picture' claim
+            color: colorManager.getMyColor() // Assigned client-side
+        };
+    }
+    
+    /**
+     * Create a message with embedded identity
+     */
+    create<T>(type: MessageType, documentId: string, payload: T): CollaborationMessage<T> {
+        return {
+            type,
+            userId: this.userInfo.id,
+            userInfo: this.userInfo,  // Identity travels WITH message
+            documentId,
+            payload,
+            timestamp: Date.now(),
+            messageId: crypto.randomUUID()
+        };
+    }
+}
+
+// Usage
+const factory = new MessageFactory(authManager, colorManager);
+
+const cursorMessage = factory.create('cursor:move', 'doc_123', {
+    slideId: 'slide_001',
+    position: { x: 450, y: 280 }
+});
+// Result includes full userInfo - receiver can render "Alice Smith" cursor
+```
+
+### 1.4 Message Compression
 
 For bandwidth efficiency, use short field names in transit:
 
@@ -90,6 +201,12 @@ For bandwidth efficiency, use short field names in transit:
 interface WireMessage {
     t: string;      // type
     u: string;      // userId
+    ui: {           // userInfo (compressed)
+        i: string;  // id
+        n: string;  // displayName (name)
+        a?: string; // avatarUrl
+        c: string;  // color
+    };
     d: string;      // documentId  
     p: unknown;     // payload
     ts: number;     // timestamp
@@ -102,6 +219,12 @@ function compress(msg: CollaborationMessage): WireMessage {
     return {
         t: msg.type,
         u: msg.userId,
+        ui: {
+            i: msg.userInfo.id,
+            n: msg.userInfo.displayName,
+            a: msg.userInfo.avatarUrl,
+            c: msg.userInfo.color
+        },
         d: msg.documentId,
         p: msg.payload,
         ts: msg.timestamp,
@@ -114,6 +237,12 @@ function decompress(wire: WireMessage): CollaborationMessage {
     return {
         type: wire.t as MessageType,
         userId: wire.u,
+        userInfo: {
+            id: wire.ui.i,
+            displayName: wire.ui.n,
+            avatarUrl: wire.ui.a,
+            color: wire.ui.c
+        },
         documentId: wire.d,
         payload: wire.p,
         timestamp: wire.ts,
@@ -129,35 +258,29 @@ function decompress(wire: WireMessage): CollaborationMessage {
 
 ### 2.1 User Join
 
-When a user opens a shared document:
+When a user opens a shared document, identity comes from OAuth token:
 
 ```typescript
 interface PresenceJoinPayload {
-    user: {
-        id: string;
-        displayName: string;
-        email?: string;
-        avatarUrl?: string;
-        color: string;      // Assigned color for cursor/selection
-    };
+    // userInfo is in the base message, not duplicated here
     device: {
         type: 'desktop' | 'tablet' | 'mobile';
         browser?: string;
     };
 }
 
-// Example message
+// Example message - identity from OAuth token
 const joinMessage: CollaborationMessage<PresenceJoinPayload> = {
     type: 'presence:join',
-    userId: 'user_abc123',
+    userId: 'user_abc123',           // From OAuth 'sub' claim
+    userInfo: {                      // From OAuth token claims
+        id: 'user_abc123',
+        displayName: 'Alice Smith',  // From OAuth 'name' claim
+        avatarUrl: 'https://...',    // From OAuth 'picture' claim
+        color: '#FF6B6B'             // Assigned client-side
+    },
     documentId: 'doc_xyz789',
     payload: {
-        user: {
-            id: 'user_abc123',
-            displayName: 'Alice Smith',
-            avatarUrl: 'https://...',
-            color: '#FF6B6B'
-        },
         device: {
             type: 'desktop',
             browser: 'Chrome'
@@ -169,14 +292,24 @@ const joinMessage: CollaborationMessage<PresenceJoinPayload> = {
 
 **Server Response:**
 
+Since Story uses a zero-database model, the server doesn't maintain a user list. Instead, the joining client receives presence from other clients:
+
 ```typescript
+/**
+ * When user joins, server forwards to group.
+ * Other clients respond with their own presence:join
+ * This builds the active users list without server database
+ */
 interface PresenceJoinResponse {
-    /** All currently active users */
-    activeUsers: PresenceJoinPayload['user'][];
+    /** Acknowledgment that join was broadcast */
+    acknowledged: boolean;
     
-    /** User's assigned sequence start */
+    /** Client's assigned sequence start */
     sequenceStart: number;
 }
+
+// Other clients respond with their presence
+// This is how the joiner learns who's online
 ```
 
 ### 2.2 User Leave
@@ -265,11 +398,20 @@ class PresenceManager {
         }, 30000);
     }
     
+    /**
+     * Handle join - identity comes from message.userInfo (OAuth)
+     * No server database lookup!
+     */
     handleJoin(message: CollaborationMessage<PresenceJoinPayload>): void {
-        const { userId, payload } = message;
+        const { userId, userInfo } = message;
         
         this.users.set(userId, {
-            ...payload.user,
+            // Identity FROM the message (which got it from OAuth)
+            id: userInfo.id,
+            displayName: userInfo.displayName,
+            avatarUrl: userInfo.avatarUrl,
+            color: userInfo.color,
+            // Session state
             joinedAt: message.timestamp,
             lastSeenAt: message.timestamp,
             currentSlideId: null,
@@ -277,6 +419,9 @@ class PresenceManager {
         });
         
         this.emit('userJoined', this.users.get(userId));
+        
+        // Respond with our own presence so new user knows we're here
+        this.broadcastMyPresence();
     }
     
     handleLeave(message: CollaborationMessage<PresenceLeavePayload>): void {
@@ -287,7 +432,16 @@ class PresenceManager {
     
     handleUpdate(message: CollaborationMessage<PresenceUpdatePayload>): void {
         const user = this.users.get(message.userId);
-        if (!user) return;
+        if (!user) {
+            // User not known - they might have joined before us
+            // Add them from message.userInfo
+            this.handleJoin({
+                ...message,
+                type: 'presence:join',
+                payload: { device: { type: 'desktop' } }
+            } as CollaborationMessage<PresenceJoinPayload>);
+            return;
+        }
         
         Object.assign(user, {
             currentSlideId: message.payload.currentSlideId,
@@ -320,11 +474,12 @@ class PresenceManager {
 }
 
 interface UserPresence {
+    // From OAuth token (via message.userInfo)
     id: string;
     displayName: string;
-    email?: string;
     avatarUrl?: string;
     color: string;
+    // Session state (ephemeral, not persisted)
     joinedAt: number;
     lastSeenAt: number;
     currentSlideId: string | null;
