@@ -1189,6 +1189,68 @@ const connectToDocument = async (documentId) => {
 
 ---
 
+## UX Patterns
+
+### Connection State Indicators
+
+The UI must always communicate connection status to users:
+
+| State | Indicator | Message |
+|-------|-----------|---------|
+| **Connected** | Green dot | "Saved" / "All changes synced" |
+| **Connecting** | Yellow spinning | "Connecting..." |
+| **Reconnecting** | Orange spinning | "Reconnecting..." |
+| **Offline** | Gray dot | "Offline - changes will sync when reconnected" |
+| **Error** | Red dot | "Connection failed - click to retry" |
+
+### Reconnection Flow
+
+When connection is lost:
+
+1. **Immediate**: Show "Connection lost" toast, switch to offline indicator
+2. **Background**: Attempt reconnect with exponential backoff (1s, 2s, 4s, 8s, 16s, 30s)
+3. **On reconnect**: Show "Connected! Syncing X changes...", sync queued operations
+4. **After sync**: Show "All changes synced" toast (auto-dismiss 2s)
+5. **On failure**: After 60s, show "Couldn't reconnect. [Retry] [Work Offline]"
+
+### Conflict Notifications
+
+When conflicts are auto-resolved:
+
+```
+┌────────────────────────────────────────────────────────┐
+│  ℹ️  Bob also edited "Title text" - their change       │
+│     was applied                                        │
+│                                               [Undo]   │
+└────────────────────────────────────────────────────────┘
+```
+
+### Save Status
+
+Display a persistent save status in the toolbar:
+
+| Status | Display |
+|--------|---------|
+| Saved | "Saved just now" / "Saved 2 min ago" |
+| Saving | "Saving..." with spinner |
+| Pending | "3 changes pending" |
+| Error | "Save failed - click to retry" |
+
+### Presence Avatars
+
+Show collaborator avatars in the toolbar (max 5 visible + overflow count):
+
+```
+[👤A] [👤B] [👤C] [👤D] [👤E] [+3]
+```
+
+Each avatar shows:
+- User's profile picture or initials
+- User's assigned color (border)
+- Hover: "Alice - Editing slide 3"
+
+---
+
 ## Implementation Phases
 
 ### Phase 1: Foundation (Implemented Now)

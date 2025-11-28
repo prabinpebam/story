@@ -28,7 +28,13 @@ This specification defines the **state synchronization engine** for real-time co
 6. [Offline Support](#6-offline-support)
 7. [Resync Protocol](#7-resync-protocol)
 8. [Conflict Resolution](#8-conflict-resolution)
-9. [Implementation](#9-implementation)
+9. [Initial Sync Protocol](#9-initial-sync-protocol)
+10. [Text Editing OT](#10-text-editing-ot)
+11. [Error Recovery](#11-error-recovery)
+12. [UX Patterns](#12-ux-patterns)
+13. [Performance Limits](#13-performance-limits)
+14. [Testing Strategy](#14-testing-strategy)
+15. [Implementation](#15-implementation)
 
 ---
 
@@ -1118,9 +1124,1532 @@ interface ConflictNotification {
 
 ---
 
-## 9. Implementation
+## 9. Initial Sync Protocol
 
-### 9.1 State Sync Engine Class
+When a new collaborator joins an active session, they need to get the current document state. This section defines how that happens.
+
+### 9.1 Join Flow
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│  NEW COLLABORATOR JOINS                                         │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  1. DOWNLOAD FILE                                               │
+│     ┌─────────────────────────────────────────────────────┐    │
+│     │  Read .story file from cloud storage               │    │
+│     │  (manifest.json has current vectorClock)           │    │
+│     └─────────────────────────────────────────────────────┘    │
+│                              │                                  │
+│  2. JOIN SIGNALR GROUP       ▼                                  │
+│     ┌─────────────────────────────────────────────────────┐    │
+│     │  Send: presence:join + my vectorClock              │    │
+│     │  { clock: { alice: 0, bob: 0 }, fromFile: true }   │    │
+│     └─────────────────────────────────────────────────────┘    │
+│                              │                                  │
+│  3. RECEIVE ACTIVE STATE     ▼                                  │
+│     ┌─────────────────────────────────────────────────────┐    │
+│     │  Other clients respond with:                        │    │
+│     │  • Their current vectorClock                        │    │
+│     │  • Operations since file's clock (if available)     │    │
+│     │  • Current presence/cursor positions                │    │
+│     └─────────────────────────────────────────────────────┘    │
+│                              │                                  │
+│  4. APPLY MISSED OPERATIONS  ▼                                  │
+│     ┌─────────────────────────────────────────────────────┐    │
+│     │  Transform and apply any operations newer than     │    │
+│     │  what was in the file                               │    │
+│     └─────────────────────────────────────────────────────┘    │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### 9.2 Initial Sync Message
+
+```typescript
+interface InitialSyncRequest {
+    type: 'sync:request';
+    userId: string;
+    userInfo: UserInfo;
+    
+    /** Vector clock from downloaded file */
+    fileClock: VectorClock;
+    
+    /** Timestamp of file download */
+    fileTimestamp: number;
+    
+    /** Request operations since this clock */
+    requestOps: boolean;
+}
+
+interface InitialSyncResponse {
+    type: 'sync:response';
+    userId: string;
+    
+    /** Responder's current vector clock */
+    currentClock: VectorClock;
+    
+    /** Operations since requested clock (if available) */
+    operations?: Operation[];
+    
+    /** If ops not available, need full file reload */
+    needsReload?: boolean;
+    
+    /** Current presence state */
+    presence: {
+        currentSlide: string;
+        cursor?: { x: number; y: number };
+    };
+}
+```
+
+### 9.3 Sync Scenarios
+
+| Scenario | File Age | Action |
+|----------|----------|--------|
+| **Fresh file** | < 30 seconds | Apply any in-flight ops from other clients |
+| **Recent file** | < 5 minutes | Request ops since file clock, apply with OT |
+| **Stale file** | > 5 minutes | Re-download file, then request recent ops |
+| **Very stale** | > 1 hour | Re-download file (ops too old to replay) |
+
+### 9.4 Join Handler
+
+```typescript
+class InitialSyncHandler {
+    /**
+     * Handle new collaborator joining
+     */
+    async handleJoin(request: InitialSyncRequest): Promise<void> {
+        const myOps = this.getOperationsSince(request.fileClock);
+        
+        // Check if we can provide incremental sync
+        if (myOps !== null && myOps.length < 1000) {
+            // Send incremental operations
+            await this.signalR.sendToUser(request.userId, {
+                type: 'sync:response',
+                userId: this.userId,
+                currentClock: this.vectorClock.current(),
+                operations: myOps,
+                presence: this.getMyPresence()
+            });
+        } else {
+            // Too many ops or not available - they should reload
+            await this.signalR.sendToUser(request.userId, {
+                type: 'sync:response',
+                userId: this.userId,
+                currentClock: this.vectorClock.current(),
+                needsReload: true,
+                presence: this.getMyPresence()
+            });
+        }
+    }
+    
+    /**
+     * As new joiner, process sync responses
+     */
+    async processSyncResponses(responses: InitialSyncResponse[]): Promise<void> {
+        // Find the most up-to-date response
+        const latest = this.findLatestClock(responses);
+        
+        if (latest.needsReload) {
+            // Re-download file and restart sync
+            await this.reloadDocument();
+            return;
+        }
+        
+        // Merge all operations from all responders
+        const allOps = this.mergeAndDedupe(responses.map(r => r.operations || []));
+        
+        // Sort by vector clock and apply
+        for (const op of this.sortByCausality(allOps)) {
+            if (!this.hasApplied(op)) {
+                await this.applyRemoteOperation(op);
+            }
+        }
+        
+        // Now in sync - start normal operation
+        this.emit('synced');
+    }
+}
+```
+
+### 9.5 Mid-Edit Join
+
+When joining while others are mid-edit (e.g., dragging a shape):
+
+```typescript
+// In-flight operations are marked as tentative
+interface Operation {
+    // ... existing fields
+    
+    /** True if operation is part of ongoing gesture */
+    tentative?: boolean;
+    
+    /** Gesture ID to group related operations */
+    gestureId?: string;
+}
+
+// On join, receive tentative state
+// When gesture completes, final operation replaces tentative ones
+```
+
+---
+
+## 10. Text Editing OT
+
+Text editing requires character-level Operational Transformation for smooth collaboration.
+
+### 10.1 Text Operation Types
+
+```typescript
+type TextOperation = 
+    | TextInsertOp
+    | TextDeleteOp
+    | TextFormatOp
+    | TextRetainOp;
+
+interface TextInsertOp {
+    type: 'text:insert';
+    
+    /** Absolute position in text */
+    position: number;
+    
+    /** Text to insert */
+    text: string;
+    
+    /** Formatting at insertion point */
+    attributes?: TextAttributes;
+}
+
+interface TextDeleteOp {
+    type: 'text:delete';
+    
+    /** Start position */
+    position: number;
+    
+    /** Number of characters to delete */
+    count: number;
+    
+    /** Deleted text (for undo) */
+    deletedText: string;
+}
+
+interface TextFormatOp {
+    type: 'text:format';
+    
+    /** Start position */
+    position: number;
+    
+    /** Number of characters affected */
+    count: number;
+    
+    /** Format changes */
+    attributes: Partial<TextAttributes>;
+    
+    /** Previous attributes (for undo) */
+    previousAttributes: Partial<TextAttributes>;
+}
+
+interface TextAttributes {
+    bold?: boolean;
+    italic?: boolean;
+    underline?: boolean;
+    fontSize?: number;
+    fontFamily?: string;
+    color?: string;
+    link?: string;
+}
+```
+
+### 10.2 Text OT Transform Functions
+
+```typescript
+class TextOperationalTransformer {
+    /**
+     * Transform text operation B against A
+     */
+    transformText(opA: TextOperation, opB: TextOperation): TextOperation {
+        const key = `${opA.type}_${opB.type}`;
+        
+        switch (key) {
+            case 'text:insert_text:insert':
+                return this.transformInsertInsert(opA, opB);
+            case 'text:insert_text:delete':
+                return this.transformInsertDelete(opA, opB);
+            case 'text:delete_text:insert':
+                return this.transformDeleteInsert(opA, opB);
+            case 'text:delete_text:delete':
+                return this.transformDeleteDelete(opA, opB);
+            // ... format operations
+            default:
+                return opB;
+        }
+    }
+    
+    /**
+     * Insert vs Insert: Shift positions based on insertion order
+     */
+    private transformInsertInsert(
+        opA: TextInsertOp, 
+        opB: TextInsertOp
+    ): TextInsertOp {
+        if (opA.position < opB.position) {
+            // A inserts before B - shift B forward
+            return {
+                ...opB,
+                position: opB.position + opA.text.length
+            };
+        } else if (opA.position > opB.position) {
+            // B inserts before A - no change to B
+            return opB;
+        } else {
+            // Same position - use user ID for deterministic order
+            if (opA.userId < opB.userId) {
+                return {
+                    ...opB,
+                    position: opB.position + opA.text.length
+                };
+            }
+            return opB;
+        }
+    }
+    
+    /**
+     * Delete vs Insert: Adjust positions
+     */
+    private transformDeleteInsert(
+        opA: TextDeleteOp, 
+        opB: TextInsertOp
+    ): TextInsertOp {
+        if (opA.position >= opB.position) {
+            // Delete after insert point - no change
+            return opB;
+        } else if (opA.position + opA.count <= opB.position) {
+            // Delete entirely before insert - shift back
+            return {
+                ...opB,
+                position: opB.position - opA.count
+            };
+        } else {
+            // Delete spans insert point - insert at delete position
+            return {
+                ...opB,
+                position: opA.position
+            };
+        }
+    }
+    
+    /**
+     * Delete vs Delete: Handle overlapping deletions
+     */
+    private transformDeleteDelete(
+        opA: TextDeleteOp, 
+        opB: TextDeleteOp
+    ): TextDeleteOp | null {
+        const aStart = opA.position;
+        const aEnd = opA.position + opA.count;
+        const bStart = opB.position;
+        const bEnd = opB.position + opB.count;
+        
+        // No overlap
+        if (aEnd <= bStart) {
+            // A entirely before B
+            return {
+                ...opB,
+                position: opB.position - opA.count
+            };
+        } else if (bEnd <= aStart) {
+            // B entirely before A - no change
+            return opB;
+        }
+        
+        // Overlapping deletions
+        const overlapStart = Math.max(aStart, bStart);
+        const overlapEnd = Math.min(aEnd, bEnd);
+        const overlapCount = overlapEnd - overlapStart;
+        
+        // Reduce B's count by overlap (already deleted by A)
+        const newCount = opB.count - overlapCount;
+        
+        if (newCount <= 0) {
+            // B is entirely contained in A - becomes no-op
+            return null;
+        }
+        
+        // Adjust position
+        const newPosition = bStart < aStart ? bStart : aStart;
+        
+        return {
+            ...opB,
+            position: newPosition,
+            count: newCount,
+            deletedText: opB.deletedText.substring(0, newCount)
+        };
+    }
+}
+```
+
+### 10.3 Text Cursor Synchronization
+
+```typescript
+interface TextCursor {
+    /** Element containing text */
+    elementId: string;
+    
+    /** Caret position (insertion point) */
+    position: number;
+    
+    /** Selection anchor (if selecting) */
+    selectionAnchor?: number;
+    
+    /** Selection focus (if selecting) */
+    selectionFocus?: number;
+}
+
+class TextCursorSync {
+    /**
+     * Transform cursor position when text operation is applied
+     */
+    transformCursor(
+        cursor: TextCursor, 
+        op: TextOperation
+    ): TextCursor {
+        if (op.type === 'text:insert') {
+            return this.transformCursorForInsert(cursor, op);
+        } else if (op.type === 'text:delete') {
+            return this.transformCursorForDelete(cursor, op);
+        }
+        return cursor;
+    }
+    
+    private transformCursorForInsert(
+        cursor: TextCursor, 
+        op: TextInsertOp
+    ): TextCursor {
+        const shift = op.text.length;
+        
+        return {
+            ...cursor,
+            position: cursor.position >= op.position 
+                ? cursor.position + shift 
+                : cursor.position,
+            selectionAnchor: cursor.selectionAnchor !== undefined && cursor.selectionAnchor >= op.position
+                ? cursor.selectionAnchor + shift
+                : cursor.selectionAnchor,
+            selectionFocus: cursor.selectionFocus !== undefined && cursor.selectionFocus >= op.position
+                ? cursor.selectionFocus + shift
+                : cursor.selectionFocus
+        };
+    }
+}
+```
+
+### 10.4 Text Editing Example Flow
+
+```
+Initial text: "Hello World"
+Positions:     0123456789...
+
+Alice at pos 6: inserts "Beautiful "
+Bob at pos 11: inserts "!"
+
+Timeline:
+T=0: "Hello World"
+T=1: Alice → insert("Beautiful ", 6) → "Hello Beautiful World"
+T=1: Bob → insert("!", 11) → "Hello World!" (his view)
+
+Without OT:
+- Alice's view + Bob's op(11): "Hello BeautWorld!iful " ❌
+
+With OT:
+- Transform Bob's insert(11) against Alice's insert(6, len=10)
+- New position: 11 + 10 = 21
+- Result: "Hello Beautiful World!" ✓
+```
+
+---
+
+## 11. Error Recovery
+
+Robust error handling for network failures, invalid operations, and edge cases.
+
+### 11.1 Error Types
+
+```typescript
+enum SyncErrorType {
+    /** Network connection lost */
+    DISCONNECTED = 'disconnected',
+    
+    /** SignalR message failed to send */
+    SEND_FAILED = 'send_failed',
+    
+    /** Cloud storage API failed */
+    STORAGE_FAILED = 'storage_failed',
+    
+    /** Received malformed operation */
+    INVALID_OPERATION = 'invalid_operation',
+    
+    /** Vector clock indicates missed operations */
+    MISSING_OPERATIONS = 'missing_operations',
+    
+    /** Operation references non-existent element */
+    STALE_REFERENCE = 'stale_reference',
+    
+    /** Too many pending operations */
+    QUEUE_OVERFLOW = 'queue_overflow',
+    
+    /** File save conflict with cloud storage */
+    SAVE_CONFLICT = 'save_conflict',
+    
+    /** Received operation from blocked user */
+    UNAUTHORIZED = 'unauthorized'
+}
+```
+
+### 11.2 Recovery Strategies
+
+```typescript
+class ErrorRecoveryManager {
+    private retryQueues = new Map<SyncErrorType, Operation[]>();
+    private retryAttempts = new Map<string, number>();
+    
+    /**
+     * Handle sync error with appropriate recovery strategy
+     */
+    async handleError(error: SyncError): Promise<void> {
+        switch (error.type) {
+            case SyncErrorType.DISCONNECTED:
+                await this.handleDisconnect(error);
+                break;
+                
+            case SyncErrorType.SEND_FAILED:
+                await this.handleSendFailure(error);
+                break;
+                
+            case SyncErrorType.STORAGE_FAILED:
+                await this.handleStorageFailure(error);
+                break;
+                
+            case SyncErrorType.INVALID_OPERATION:
+                await this.handleInvalidOperation(error);
+                break;
+                
+            case SyncErrorType.MISSING_OPERATIONS:
+                await this.handleMissingOps(error);
+                break;
+                
+            case SyncErrorType.STALE_REFERENCE:
+                await this.handleStaleReference(error);
+                break;
+                
+            default:
+                await this.handleUnknownError(error);
+        }
+    }
+    
+    /**
+     * Network disconnect - queue operations and attempt reconnect
+     */
+    private async handleDisconnect(error: SyncError): Promise<void> {
+        // 1. Switch to offline mode
+        this.offlineManager.enable();
+        
+        // 2. Show reconnecting UI
+        this.emit('connection:lost');
+        
+        // 3. Start reconnection with exponential backoff
+        const delays = [1000, 2000, 4000, 8000, 16000, 30000];
+        
+        for (let attempt = 0; attempt < delays.length; attempt++) {
+            await this.sleep(delays[attempt]);
+            
+            try {
+                await this.signalR.reconnect();
+                
+                // 4. Resync on successful reconnect
+                await this.resyncManager.resync();
+                
+                this.emit('connection:restored');
+                return;
+            } catch {
+                this.emit('connection:retrying', { attempt: attempt + 1 });
+            }
+        }
+        
+        // 5. Give up - offer manual reconnect
+        this.emit('connection:failed');
+    }
+    
+    /**
+     * Send failed - retry with backoff
+     */
+    private async handleSendFailure(error: SyncError): Promise<void> {
+        const op = error.operation;
+        const attempts = this.retryAttempts.get(op.id) || 0;
+        
+        if (attempts < 3) {
+            // Retry with backoff
+            this.retryAttempts.set(op.id, attempts + 1);
+            await this.sleep(1000 * Math.pow(2, attempts));
+            
+            try {
+                await this.signalR.send(op);
+                this.retryAttempts.delete(op.id);
+            } catch {
+                await this.handleSendFailure(error);
+            }
+        } else {
+            // Queue for offline sync
+            this.offlineManager.queueOperation(op);
+            this.emit('operation:queued', { op });
+        }
+    }
+    
+    /**
+     * Invalid operation received - log and ignore
+     */
+    private async handleInvalidOperation(error: SyncError): Promise<void> {
+        // Log for debugging (potential malicious actor)
+        console.error('Invalid operation received:', error);
+        
+        // Report to monitoring
+        this.analytics.track('invalid_operation', {
+            fromUserId: error.operation?.userId,
+            operationType: error.operation?.type,
+            reason: error.message
+        });
+        
+        // Do not apply - just ignore
+        // Optionally: if from same user repeatedly, consider blocking
+    }
+    
+    /**
+     * Missing operations detected via vector clock gap
+     */
+    private async handleMissingOps(error: SyncError): Promise<void> {
+        // Request resync from other clients
+        await this.signalR.broadcast('sync:request', {
+            myClock: this.vectorClock.current(),
+            needOpsFrom: error.missingFrom // userId with gap
+        });
+        
+        // Set timeout - if no response, reload file
+        setTimeout(async () => {
+            if (this.stillMissingOps()) {
+                await this.reloadDocument();
+            }
+        }, 5000);
+    }
+    
+    /**
+     * Operation references deleted element
+     */
+    private async handleStaleReference(error: SyncError): Promise<void> {
+        const op = error.operation;
+        
+        // Check if element was deleted
+        if (this.wasDeleted(op.path)) {
+            // Ignore operation - element no longer exists
+            console.log('Ignoring stale operation for deleted element');
+            return;
+        }
+        
+        // Element might be renamed/moved - try to find it
+        const newPath = this.findElement(op.elementId);
+        if (newPath) {
+            // Rewrite and apply
+            const fixedOp = { ...op, path: newPath };
+            await this.applyOperation(fixedOp);
+        }
+    }
+}
+```
+
+### 11.3 Circuit Breaker Pattern
+
+```typescript
+class CircuitBreaker {
+    private state: 'closed' | 'open' | 'half-open' = 'closed';
+    private failures = 0;
+    private lastFailure = 0;
+    
+    private readonly failureThreshold = 5;
+    private readonly resetTimeout = 30000; // 30 seconds
+    
+    async execute<T>(operation: () => Promise<T>): Promise<T> {
+        if (this.state === 'open') {
+            if (Date.now() - this.lastFailure > this.resetTimeout) {
+                this.state = 'half-open';
+            } else {
+                throw new Error('Circuit breaker is open');
+            }
+        }
+        
+        try {
+            const result = await operation();
+            this.onSuccess();
+            return result;
+        } catch (error) {
+            this.onFailure();
+            throw error;
+        }
+    }
+    
+    private onSuccess(): void {
+        this.failures = 0;
+        this.state = 'closed';
+    }
+    
+    private onFailure(): void {
+        this.failures++;
+        this.lastFailure = Date.now();
+        
+        if (this.failures >= this.failureThreshold) {
+            this.state = 'open';
+            console.log('Circuit breaker opened - pausing operations');
+        }
+    }
+}
+
+// Usage: Wrap SignalR sends
+const signalRCircuit = new CircuitBreaker();
+
+async function sendOperation(op: Operation): Promise<void> {
+    await signalRCircuit.execute(() => signalR.send(op));
+}
+```
+
+### 11.4 Validation & Sanitization
+
+```typescript
+class OperationValidator {
+    /**
+     * Validate incoming operation before applying
+     */
+    validate(op: Operation): ValidationResult {
+        const errors: string[] = [];
+        
+        // Required fields
+        if (!op.id) errors.push('Missing operation ID');
+        if (!op.userId) errors.push('Missing user ID');
+        if (!op.type) errors.push('Missing operation type');
+        if (!op.vectorClock) errors.push('Missing vector clock');
+        
+        // Path validation
+        if (op.path) {
+            if (!Array.isArray(op.path)) {
+                errors.push('Path must be an array');
+            } else if (op.path.some(p => typeof p !== 'string' && typeof p !== 'number')) {
+                errors.push('Path elements must be strings or numbers');
+            }
+        }
+        
+        // Value size limits
+        if (op.value && JSON.stringify(op.value).length > 1000000) {
+            errors.push('Operation value too large (>1MB)');
+        }
+        
+        // Timestamp sanity check
+        if (op.timestamp) {
+            const now = Date.now();
+            if (op.timestamp > now + 60000) {
+                errors.push('Timestamp in future');
+            }
+            if (op.timestamp < now - 86400000) {
+                errors.push('Timestamp too old (>24h)');
+            }
+        }
+        
+        return {
+            valid: errors.length === 0,
+            errors
+        };
+    }
+    
+    /**
+     * Sanitize operation before applying
+     */
+    sanitize(op: Operation): Operation {
+        // Sanitize text content
+        if (op.type === 'text:insert' && op.value?.text) {
+            op.value.text = this.sanitizeText(op.value.text);
+        }
+        
+        // Limit string lengths
+        if (typeof op.value === 'string' && op.value.length > 100000) {
+            op.value = op.value.substring(0, 100000);
+        }
+        
+        return op;
+    }
+    
+    private sanitizeText(text: string): string {
+        // Remove control characters except newlines and tabs
+        return text.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '');
+    }
+}
+```
+
+---
+
+## 12. UX Patterns
+
+User experience patterns for collaboration states and transitions.
+
+### 12.1 Connection State Indicators
+
+```typescript
+enum ConnectionState {
+    CONNECTED = 'connected',
+    CONNECTING = 'connecting',
+    RECONNECTING = 'reconnecting',
+    OFFLINE = 'offline',
+    ERROR = 'error'
+}
+
+interface ConnectionIndicator {
+    state: ConnectionState;
+    message: string;
+    icon: string;
+    color: string;
+}
+
+const indicators: Record<ConnectionState, ConnectionIndicator> = {
+    [ConnectionState.CONNECTED]: {
+        state: 'connected',
+        message: 'Connected',
+        icon: '●',
+        color: 'green'
+    },
+    [ConnectionState.CONNECTING]: {
+        state: 'connecting',
+        message: 'Connecting...',
+        icon: '◐',
+        color: 'yellow'
+    },
+    [ConnectionState.RECONNECTING]: {
+        state: 'reconnecting',
+        message: 'Reconnecting...',
+        icon: '◐',
+        color: 'orange'
+    },
+    [ConnectionState.OFFLINE]: {
+        state: 'offline',
+        message: 'Offline - changes will sync when reconnected',
+        icon: '○',
+        color: 'gray'
+    },
+    [ConnectionState.ERROR]: {
+        state: 'error',
+        message: 'Connection error - click to retry',
+        icon: '!',
+        color: 'red'
+    }
+};
+```
+
+### 12.2 Save Status Indicator
+
+```typescript
+enum SaveStatus {
+    SAVED = 'saved',
+    SAVING = 'saving',
+    PENDING = 'pending',
+    ERROR = 'error'
+}
+
+interface SaveIndicator {
+    status: SaveStatus;
+    message: string;
+    lastSaved?: Date;
+}
+
+class SaveStatusManager {
+    private status: SaveStatus = SaveStatus.SAVED;
+    private pendingOps = 0;
+    private lastSaved: Date = new Date();
+    
+    onLocalChange(): void {
+        this.pendingOps++;
+        this.status = SaveStatus.PENDING;
+        this.emit('status', this.getIndicator());
+    }
+    
+    onOpSent(): void {
+        this.status = SaveStatus.SAVING;
+        this.emit('status', this.getIndicator());
+    }
+    
+    onOpAcknowledged(): void {
+        this.pendingOps--;
+        if (this.pendingOps === 0) {
+            this.status = SaveStatus.SAVED;
+            this.lastSaved = new Date();
+        }
+        this.emit('status', this.getIndicator());
+    }
+    
+    getIndicator(): SaveIndicator {
+        const messages = {
+            [SaveStatus.SAVED]: this.formatLastSaved(),
+            [SaveStatus.SAVING]: 'Saving...',
+            [SaveStatus.PENDING]: `${this.pendingOps} change${this.pendingOps > 1 ? 's' : ''} pending`,
+            [SaveStatus.ERROR]: 'Save failed - click to retry'
+        };
+        
+        return {
+            status: this.status,
+            message: messages[this.status],
+            lastSaved: this.lastSaved
+        };
+    }
+    
+    private formatLastSaved(): string {
+        const seconds = Math.floor((Date.now() - this.lastSaved.getTime()) / 1000);
+        
+        if (seconds < 10) return 'Saved just now';
+        if (seconds < 60) return 'Saved seconds ago';
+        if (seconds < 120) return 'Saved a minute ago';
+        if (seconds < 3600) return `Saved ${Math.floor(seconds / 60)} minutes ago`;
+        return `Saved at ${this.lastSaved.toLocaleTimeString()}`;
+    }
+}
+```
+
+### 12.3 Conflict Toast Notifications
+
+```typescript
+interface ConflictToast {
+    id: string;
+    type: 'info' | 'warning';
+    message: string;
+    duration: number;
+    action?: {
+        label: string;
+        callback: () => void;
+    };
+}
+
+class ConflictNotifier {
+    /**
+     * Show notification when conflict is auto-resolved
+     */
+    notifyConflict(conflict: Conflict): void {
+        const toast: ConflictToast = {
+            id: crypto.randomUUID(),
+            type: 'info',
+            message: this.formatConflictMessage(conflict),
+            duration: 4000,
+            action: {
+                label: 'Undo',
+                callback: () => this.undoConflictResolution(conflict)
+            }
+        };
+        
+        this.showToast(toast);
+    }
+    
+    private formatConflictMessage(conflict: Conflict): string {
+        switch (conflict.type) {
+            case 'property':
+                return `${conflict.otherUser} also edited "${conflict.property}" - their change was applied`;
+                
+            case 'delete':
+                return `${conflict.otherUser} deleted an element you were editing`;
+                
+            case 'move':
+                return `${conflict.otherUser} moved an element to a different position`;
+                
+            default:
+                return `Edit conflict with ${conflict.otherUser} was auto-resolved`;
+        }
+    }
+    
+    /**
+     * Show notification when joining session
+     */
+    notifyJoin(collaborators: Collaborator[]): void {
+        if (collaborators.length === 0) return;
+        
+        const names = collaborators.map(c => c.name);
+        const message = names.length === 1
+            ? `${names[0]} is editing`
+            : `${names.slice(0, -1).join(', ')} and ${names.slice(-1)} are editing`;
+        
+        this.showToast({
+            id: crypto.randomUUID(),
+            type: 'info',
+            message,
+            duration: 3000
+        });
+    }
+    
+    /**
+     * Show notification when going offline
+     */
+    notifyOffline(): void {
+        this.showToast({
+            id: 'offline-notification',
+            type: 'warning',
+            message: 'You\'re offline. Changes will sync when you reconnect.',
+            duration: 0 // Persistent until dismissed
+        });
+    }
+    
+    /**
+     * Show notification when back online
+     */
+    notifyOnline(pendingCount: number): void {
+        this.dismissToast('offline-notification');
+        
+        if (pendingCount > 0) {
+            this.showToast({
+                id: crypto.randomUUID(),
+                type: 'info',
+                message: `Back online! Syncing ${pendingCount} change${pendingCount > 1 ? 's' : ''}...`,
+                duration: 3000
+            });
+        }
+    }
+}
+```
+
+### 12.4 Presence Avatars
+
+```typescript
+interface CollaboratorAvatar {
+    userId: string;
+    name: string;
+    email: string;
+    color: string;
+    avatar?: string;
+    isEditing: boolean;
+    currentSlide: string;
+}
+
+class PresenceAvatars {
+    /**
+     * Generate avatar display order (max 5 visible, then +N)
+     */
+    getDisplayAvatars(collaborators: CollaboratorAvatar[]): {
+        visible: CollaboratorAvatar[];
+        overflow: number;
+    } {
+        const maxVisible = 5;
+        
+        // Sort by activity (most recent first)
+        const sorted = [...collaborators].sort((a, b) => 
+            b.lastActivity - a.lastActivity
+        );
+        
+        return {
+            visible: sorted.slice(0, maxVisible),
+            overflow: Math.max(0, sorted.length - maxVisible)
+        };
+    }
+    
+    /**
+     * Get initials for avatar fallback
+     */
+    getInitials(name: string): string {
+        return name
+            .split(' ')
+            .map(part => part[0])
+            .join('')
+            .toUpperCase()
+            .substring(0, 2);
+    }
+    
+    /**
+     * Get tooltip for avatar
+     */
+    getTooltip(collaborator: CollaboratorAvatar): string {
+        const status = collaborator.isEditing ? 'Editing' : 'Viewing';
+        return `${collaborator.name} - ${status} slide ${collaborator.currentSlide}`;
+    }
+}
+```
+
+### 12.5 Reconnection Flow
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│  RECONNECTION UX FLOW                                           │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  1. CONNECTION LOST                                             │
+│     ┌───────────────────────────────────────────────────────┐  │
+│     │  Toast: "Connection lost. Working offline..."         │  │
+│     │  Status: Yellow dot + "Offline"                       │  │
+│     │  User can continue editing normally                   │  │
+│     └───────────────────────────────────────────────────────┘  │
+│                                                                 │
+│  2. RECONNECTING (background)                                   │
+│     ┌───────────────────────────────────────────────────────┐  │
+│     │  Status: Spinning indicator + "Reconnecting..."       │  │
+│     │  No modal/blocking UI                                 │  │
+│     └───────────────────────────────────────────────────────┘  │
+│                                                                 │
+│  3. RECONNECTED + SYNCING                                       │
+│     ┌───────────────────────────────────────────────────────┐  │
+│     │  Toast: "Connected! Syncing 5 changes..."             │  │
+│     │  Status: Green dot + "Syncing..."                     │  │
+│     │  Brief loading overlay on modified elements           │  │
+│     └───────────────────────────────────────────────────────┘  │
+│                                                                 │
+│  4. SYNC COMPLETE                                               │
+│     ┌───────────────────────────────────────────────────────┐  │
+│     │  Toast: "All changes synced" (auto-dismiss 2s)        │  │
+│     │  Status: Green dot + "Saved"                          │  │
+│     │  Show any conflict notifications                      │  │
+│     └───────────────────────────────────────────────────────┘  │
+│                                                                 │
+│  5. RECONNECT FAILED (after 60s)                               │
+│     ┌───────────────────────────────────────────────────────┐  │
+│     │  Toast: "Couldn't reconnect. Your changes are saved  │  │
+│     │         locally. [Retry] [Work Offline]"              │  │
+│     │  Status: Red dot + "Connection failed"                │  │
+│     └───────────────────────────────────────────────────────┘  │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## 13. Performance Limits
+
+Expected performance characteristics and limits for the collaboration system.
+
+### 13.1 Recommended Limits
+
+| Resource | Recommended | Maximum | Notes |
+|----------|-------------|---------|-------|
+| **Concurrent collaborators** | 10 | 50 | SignalR free tier: 20 connections |
+| **Slides per document** | 100 | 500 | Performance degrades beyond 100 |
+| **Elements per slide** | 100 | 500 | Canvas rendering bottleneck |
+| **Document file size** | 100 MB | 1 GB | Cloud upload/download limits |
+| **Operations per second** | 20 | 100 | Per client, throttled |
+| **Operation size** | 2 KB | 64 KB | SignalR message limit |
+| **Offline queue size** | 1,000 | 10,000 | IndexedDB storage |
+| **Operation log retained** | 1,000 | 5,000 | For resync support |
+
+### 13.2 Scaling Behavior
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│  COLLABORATOR SCALING                                           │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  1-5 collaborators:    Smooth, no degradation                  │
+│  5-10 collaborators:   Minimal latency increase (~10ms)        │
+│  10-20 collaborators:  Noticeable cursor lag                   │
+│  20-50 collaborators:  Throttle cursor updates to 10/sec       │
+│  50+ collaborators:    Consider read-only mode for most        │
+│                                                                 │
+│  DOCUMENT SIZE SCALING                                          │
+│  ─────────────────────────────────────────────────────────────  │
+│                                                                 │
+│  < 10 MB:    Instant load, smooth editing                      │
+│  10-50 MB:   2-5 second load, lazy asset loading               │
+│  50-100 MB:  5-15 second load, progressive rendering           │
+│  100+ MB:    Consider splitting into multiple files            │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### 13.3 Memory Management
+
+```typescript
+class MemoryManager {
+    private readonly limits = {
+        maxUndoStackSize: 100,          // Operations per user
+        maxOperationLogSize: 1000,      // Total operations cached
+        maxAssetCacheSize: 100 * 1024 * 1024, // 100 MB
+        gcInterval: 60000               // 1 minute
+    };
+    
+    constructor() {
+        // Periodic garbage collection
+        setInterval(() => this.garbageCollect(), this.limits.gcInterval);
+    }
+    
+    garbageCollect(): void {
+        // Trim undo stacks
+        for (const [userId, stack] of this.undoStacks) {
+            if (stack.length > this.limits.maxUndoStackSize) {
+                stack.splice(0, stack.length - this.limits.maxUndoStackSize);
+            }
+        }
+        
+        // Trim operation log
+        if (this.operationLog.length > this.limits.maxOperationLogSize) {
+            this.operationLog.splice(0, this.operationLog.length - this.limits.maxOperationLogSize);
+        }
+        
+        // Clear unused asset cache entries
+        this.assetCache.evictOldest(this.limits.maxAssetCacheSize);
+    }
+}
+```
+
+### 13.4 Throttling & Debouncing
+
+```typescript
+class OperationThrottler {
+    private queues = new Map<string, ThrottleQueue>();
+    
+    private readonly config = {
+        // Cursor: high frequency, can drop
+        cursor: { maxRate: 20, dropOld: true },
+        
+        // Selection: medium frequency
+        selection: { maxRate: 10, dropOld: true },
+        
+        // Shape operations: lower frequency, must not drop
+        shape: { maxRate: 5, dropOld: false },
+        
+        // Text: debounce batches
+        text: { debounce: 100 }
+    };
+    
+    /**
+     * Throttle operation based on type
+     */
+    throttle(op: Operation, send: (op: Operation) => void): void {
+        const opType = this.getOperationType(op);
+        const config = this.config[opType] || { maxRate: 10, dropOld: false };
+        
+        if (config.debounce) {
+            this.debounce(op, send, config.debounce);
+        } else {
+            this.rateLimit(op, send, config);
+        }
+    }
+    
+    /**
+     * Debounce for batching (text edits)
+     */
+    private debounce(
+        op: Operation, 
+        send: (op: Operation) => void, 
+        delay: number
+    ): void {
+        const key = `${op.path.join('/')}`;
+        
+        if (this.debounceTimers.has(key)) {
+            clearTimeout(this.debounceTimers.get(key));
+            // Merge with pending operation
+            this.pendingOps.set(key, this.mergeOps(this.pendingOps.get(key), op));
+        } else {
+            this.pendingOps.set(key, op);
+        }
+        
+        this.debounceTimers.set(key, setTimeout(() => {
+            send(this.pendingOps.get(key)!);
+            this.pendingOps.delete(key);
+            this.debounceTimers.delete(key);
+        }, delay));
+    }
+}
+```
+
+---
+
+## 14. Testing Strategy
+
+Comprehensive testing approach for the collaboration system.
+
+### 14.1 Local Development Testing
+
+```typescript
+/**
+ * Mock SignalR for local testing without Azure
+ */
+class MockSignalRHub {
+    private clients: Map<string, MockClient> = new Map();
+    private groups: Map<string, Set<string>> = new Map();
+    
+    /**
+     * Simulate multiple clients locally
+     */
+    createClient(userId: string): MockClient {
+        const client = new MockClient(userId, this);
+        this.clients.set(userId, client);
+        return client;
+    }
+    
+    /**
+     * Broadcast to group with simulated latency
+     */
+    async broadcast(groupId: string, message: any, latencyMs = 50): Promise<void> {
+        const group = this.groups.get(groupId) || new Set();
+        
+        for (const userId of group) {
+            // Add random latency jitter
+            const jitter = Math.random() * 20;
+            await this.sleep(latencyMs + jitter);
+            
+            this.clients.get(userId)?.receive(message);
+        }
+    }
+    
+    /**
+     * Simulate network conditions
+     */
+    setNetworkCondition(condition: NetworkCondition): void {
+        switch (condition) {
+            case 'offline':
+                this.simulateDisconnect();
+                break;
+            case 'high-latency':
+                this.setLatency(500, 200);
+                break;
+            case 'packet-loss':
+                this.setPacketLoss(0.1); // 10% loss
+                break;
+        }
+    }
+}
+
+class MockClient {
+    private handlers = new Map<string, Function>();
+    
+    on(event: string, handler: Function): void {
+        this.handlers.set(event, handler);
+    }
+    
+    receive(message: any): void {
+        const handler = this.handlers.get(message.type);
+        handler?.(message);
+    }
+}
+```
+
+### 14.2 Test Scenarios
+
+| Category | Test Case | Validation |
+|----------|-----------|------------|
+| **Basic Sync** | Two users edit different objects | Both see both changes |
+| **Concurrent Edit** | Two users edit same object property | Last-write-wins applied correctly |
+| **Delete Conflict** | User A deletes, User B edits | Delete wins, B notified |
+| **Undo Isolation** | User A undoes while B is editing | Only A's changes undone |
+| **Offline Edit** | User goes offline, edits, reconnects | Changes sync correctly |
+| **Long Offline** | Offline for 1 hour, many changes | Checkpoint recovery works |
+| **Join Mid-Session** | New user joins active editing | Gets current state + operations |
+| **Rapid Edits** | 100 operations/second | Throttling prevents overload |
+| **Large Document** | 500 slides, 10,000 elements | Performance within limits |
+| **Disconnect/Reconnect** | Network drops for 30 seconds | Smooth resync, no data loss |
+
+### 14.3 Chaos Testing
+
+```typescript
+class ChaosTestRunner {
+    private actions: ChaosAction[] = [
+        { name: 'disconnect', weight: 20 },
+        { name: 'high_latency', weight: 30 },
+        { name: 'packet_loss', weight: 15 },
+        { name: 'clock_skew', weight: 10 },
+        { name: 'slow_storage', weight: 15 },
+        { name: 'memory_pressure', weight: 10 }
+    ];
+    
+    /**
+     * Run chaos test for specified duration
+     */
+    async runChaosTest(
+        clients: TestClient[],
+        durationMs: number
+    ): Promise<ChaosTestResult> {
+        const results: ChaosEvent[] = [];
+        const startTime = Date.now();
+        
+        while (Date.now() - startTime < durationMs) {
+            // Random interval between chaos events
+            await this.sleep(1000 + Math.random() * 4000);
+            
+            // Pick random action
+            const action = this.pickWeightedAction();
+            const client = clients[Math.floor(Math.random() * clients.length)];
+            
+            // Execute chaos
+            results.push(await this.executeAction(action, client));
+            
+            // Allow recovery
+            await this.sleep(500);
+        }
+        
+        // Verify final state consistency
+        const consistent = await this.verifyConsistency(clients);
+        
+        return {
+            events: results,
+            duration: Date.now() - startTime,
+            consistent,
+            operationCount: this.countOperations(clients)
+        };
+    }
+    
+    /**
+     * Verify all clients have same state
+     */
+    private async verifyConsistency(clients: TestClient[]): Promise<boolean> {
+        // Wait for all syncs to complete
+        await this.waitForQuiescence(clients);
+        
+        // Compare document hashes
+        const hashes = await Promise.all(
+            clients.map(c => c.getDocumentHash())
+        );
+        
+        return hashes.every(h => h === hashes[0]);
+    }
+}
+```
+
+### 14.4 Load Testing
+
+```typescript
+interface LoadTestConfig {
+    /** Number of simulated clients */
+    clientCount: number;
+    
+    /** Operations per client per second */
+    opsPerSecond: number;
+    
+    /** Test duration in seconds */
+    durationSeconds: number;
+    
+    /** Document complexity */
+    slideCount: number;
+    elementsPerSlide: number;
+}
+
+class LoadTestRunner {
+    async runLoadTest(config: LoadTestConfig): Promise<LoadTestResult> {
+        // Create clients
+        const clients = await this.createClients(config.clientCount);
+        
+        // Generate test document
+        const doc = this.generateDocument(config.slideCount, config.elementsPerSlide);
+        
+        // Start all clients editing
+        const editPromises = clients.map(client =>
+            this.runClientWorkload(client, config.opsPerSecond, config.durationSeconds)
+        );
+        
+        // Collect metrics
+        const metrics: Metrics = {
+            operationsSent: 0,
+            operationsReceived: 0,
+            latencies: [],
+            errors: [],
+            syncTimes: []
+        };
+        
+        await Promise.all(editPromises);
+        
+        // Final sync check
+        const syncTime = await this.measureFinalSync(clients);
+        
+        return {
+            config,
+            metrics,
+            finalSyncTimeMs: syncTime,
+            consistent: await this.verifyConsistency(clients),
+            p50Latency: this.percentile(metrics.latencies, 50),
+            p99Latency: this.percentile(metrics.latencies, 99),
+            errorRate: metrics.errors.length / metrics.operationsSent
+        };
+    }
+}
+```
+
+### 14.5 Integration Test Utilities
+
+```typescript
+/**
+ * Test harness for collaboration scenarios
+ */
+class CollaborationTestHarness {
+    private mockHub: MockSignalRHub;
+    private mockStorage: MockCloudStorage;
+    private clients: Map<string, TestCollaborator> = new Map();
+    
+    /**
+     * Set up test scenario
+     */
+    async setup(scenario: TestScenario): Promise<void> {
+        this.mockHub = new MockSignalRHub();
+        this.mockStorage = new MockCloudStorage();
+        
+        // Create document
+        await this.mockStorage.createDocument(scenario.documentId, scenario.initialState);
+        
+        // Create collaborators
+        for (const user of scenario.users) {
+            await this.addCollaborator(user);
+        }
+    }
+    
+    /**
+     * Execute test steps
+     */
+    async execute(steps: TestStep[]): Promise<void> {
+        for (const step of steps) {
+            switch (step.type) {
+                case 'operation':
+                    await this.executeOperation(step);
+                    break;
+                    
+                case 'disconnect':
+                    await this.disconnectUser(step.userId);
+                    break;
+                    
+                case 'reconnect':
+                    await this.reconnectUser(step.userId);
+                    break;
+                    
+                case 'wait':
+                    await this.sleep(step.durationMs);
+                    break;
+                    
+                case 'assert':
+                    await this.assertState(step.assertion);
+                    break;
+            }
+        }
+    }
+    
+    /**
+     * Verify final state
+     */
+    async verify(): Promise<TestVerification> {
+        // Check all clients consistent
+        const states = new Map<string, string>();
+        for (const [userId, client] of this.clients) {
+            states.set(userId, await client.getDocumentHash());
+        }
+        
+        const allSame = [...states.values()].every(s => s === states.values().next().value);
+        
+        // Check against expected
+        const expected = this.scenario.expectedFinalState;
+        const actual = await this.clients.values().next().value.getDocument();
+        
+        return {
+            consistent: allSame,
+            matchesExpected: this.compareDocuments(actual, expected),
+            states
+        };
+    }
+}
+```
+
+---
+
+## 15. Implementation
+
+### 15.1 State Sync Engine Class
 
 ```typescript
 class StateSyncEngine {
@@ -1266,7 +2795,7 @@ class StateSyncEngine {
 }
 ```
 
-### 9.2 Operation Log (for Resync)
+### 15.2 Operation Log (for Resync)
 
 Store recent operations in the .story file for resync:
 
