@@ -8,6 +8,7 @@ import * as SlideHandlers from './store/handlers/SlideHandlers.js';
 import * as ElementHandlers from './store/handlers/ElementHandlers.js';
 import * as MasterHandlers from './store/handlers/MasterHandlers.js';
 import * as UIHandlers from './store/handlers/UIHandlers.js';
+import * as AuthHandlers from './store/handlers/AuthHandlers.js';
 
 class Store extends EventEmitter {
     constructor() {
@@ -262,6 +263,26 @@ class Store extends EventEmitter {
                     }
                 });
                 this.emit('state-changed', this.state);
+                break;
+
+            // Auth Handlers
+            case 'AUTH_LOGIN_START':
+            case 'AUTH_LOGIN_SUCCESS':
+            case 'AUTH_LOGIN_FAILURE':
+            case 'AUTH_LOGOUT':
+            case 'AUTH_UPDATE_PROFILE':
+                this.state = produce(this.state, draft => {
+                    switch(type) {
+                        case 'AUTH_LOGIN_START': AuthHandlers.handleLoginStart(draft); break;
+                        case 'AUTH_LOGIN_SUCCESS': AuthHandlers.handleLoginSuccess(draft, payload); break;
+                        case 'AUTH_LOGIN_FAILURE': AuthHandlers.handleLoginFailure(draft, payload); break;
+                        case 'AUTH_LOGOUT': AuthHandlers.handleLogout(draft); break;
+                        case 'AUTH_UPDATE_PROFILE': AuthHandlers.handleUpdateProfile(draft, payload); break;
+                    }
+                });
+                this.emit('state-changed', this.state);
+                if (type === 'AUTH_LOGIN_SUCCESS') this.emit('auth-changed', { isAuthenticated: true, user: payload });
+                if (type === 'AUTH_LOGOUT') this.emit('auth-changed', { isAuthenticated: false, user: null });
                 break;
         }
     }

@@ -426,6 +426,12 @@ export function createInitialState() {
             modified: Date.now(),
             theme: "default-dark"
         },
+        auth: {
+            isAuthenticated: false,
+            user: null,
+            loading: false,
+            error: null
+        },
         ui: {
             isInteracting: false
         },

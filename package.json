@@ -1,0 +1,25 @@
+{
+  "name": "story",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Modern presentation creation tool",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "test": "vitest",
+    "test:ui": "vitest --ui",
+    "test:coverage": "vitest run --coverage",
+    "lint": "eslint src/**/*.js",
+    "lint:fix": "eslint src/**/*.js --fix"
+  },
+  "devDependencies": {
+    "@vitest/ui": "^1.0.0",
+    "eslint": "^8.55.0",
+    "jsdom": "^23.0.0",
+    "vite": "^5.0.0",
+    "vitest": "^1.0.0",
+    "@vitest/coverage-v8": "^1.0.0"
+  },
+  "dependencies": {}
+}
