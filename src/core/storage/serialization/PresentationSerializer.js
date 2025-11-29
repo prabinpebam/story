@@ -77,7 +77,11 @@ export class PresentationSerializer {
         }
 
         // Add slide chunks
-        const slides = this.state.slides || [];
+        // Support both object-based slides (keyed by ID) and array-based slides
+        const slidesObj = this.state.slides || {};
+        const slideOrder = this.state.slideOrder || Object.keys(slidesObj);
+        const slides = Array.isArray(slidesObj) ? slidesObj : slideOrder.map(id => slidesObj[id]).filter(Boolean);
+        
         for (let i = 0; i < slides.length; i++) {
             const slide = slides[i];
             const slideData = this.serializeSlide(slide);
@@ -109,12 +113,17 @@ export class PresentationSerializer {
      */
     buildMetadata() {
         const builder = new MetadataBuilder();
-        const meta = this.state.metadata || {};
+        const meta = this.state.metadata || this.state.meta || {};
+        
+        // Calculate slide count - support both object and array format
+        const slidesObj = this.state.slides || {};
+        const slideOrder = this.state.slideOrder || Object.keys(slidesObj);
+        const slideCount = Array.isArray(slidesObj) ? slidesObj.length : slideOrder.length;
         
         builder
             .setTitle(meta.title)
             .setDescription(meta.description)
-            .setSlideCount(this.state.slides?.length || 0)
+            .setSlideCount(slideCount)
             .setAspectRatio(meta.aspectRatio || '16:9')
             .setTags(meta.tags)
             .setLanguage(meta.language)
@@ -137,7 +146,10 @@ export class PresentationSerializer {
      * Add all slides to the archive
      */
     async addSlides() {
-        const slides = this.state.slides || [];
+        // Support both object-based slides (keyed by ID) and array-based slides
+        const slidesObj = this.state.slides || {};
+        const slideOrder = this.state.slideOrder || Object.keys(slidesObj);
+        const slides = Array.isArray(slidesObj) ? slidesObj : slideOrder.map(id => slidesObj[id]).filter(Boolean);
         
         for (const slide of slides) {
             const slideData = this.serializeSlide(slide);
@@ -151,13 +163,20 @@ export class PresentationSerializer {
      * @returns {Object} Serialized slide data
      */
     serializeSlide(slide) {
+        // Support both object-based elements (keyed by ID) and array-based elements
+        const elementsObj = slide.elements || {};
+        const elementOrder = slide.elementOrder || Object.keys(elementsObj);
+        const elements = Array.isArray(elementsObj) 
+            ? elementsObj 
+            : elementOrder.map(id => elementsObj[id]).filter(Boolean);
+        
         return {
             id: slide.id,
             order: slide.order ?? 0,
             name: slide.name || null,
-            elements: (slide.elements || []).map(el => this.serializeElement(el)),
+            elements: elements.map(el => this.serializeElement(el)),
             background: this.serializeBackground(slide.background),
-            layout: slide.layout || null,
+            layout: slide.layout || slide.layoutId || null,
             notes: slide.notes || '',
             transition: slide.transition || null,
             duration: slide.duration || null,
@@ -328,7 +347,10 @@ export class PresentationSerializer {
      */
     collectAssetIds() {
         const ids = new Set();
-        const slides = this.state.slides || [];
+        // Support both object-based slides (keyed by ID) and array-based slides
+        const slidesObj = this.state.slides || {};
+        const slideOrder = this.state.slideOrder || Object.keys(slidesObj);
+        const slides = Array.isArray(slidesObj) ? slidesObj : slideOrder.map(id => slidesObj[id]).filter(Boolean);
 
         for (const slide of slides) {
             // Check slide background
@@ -336,8 +358,14 @@ export class PresentationSerializer {
                 ids.add(slide.background.assetId);
             }
 
-            // Check elements
-            for (const element of slide.elements || []) {
+            // Check elements - support both object-based and array-based elements
+            const elementsObj = slide.elements || {};
+            const elementOrder = slide.elementOrder || Object.keys(elementsObj);
+            const elements = Array.isArray(elementsObj) 
+                ? elementsObj 
+                : elementOrder.map(id => elementsObj[id]).filter(Boolean);
+            
+            for (const element of elements) {
                 if (element.assetId) {
                     ids.add(element.assetId);
                 }
