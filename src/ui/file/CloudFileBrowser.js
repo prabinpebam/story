@@ -271,9 +271,9 @@ export class CloudFileBrowser {
                             <!-- Files will be rendered here -->
                         </div>
                         
-                        <div class="cfb-loading" style="display: none;">
+                        <div class="cfb-loading">
                             <div class="cfb-spinner"></div>
-                            <span>Loading files...</span>
+                            <span class="cfb-loading-text">Connecting to ${this.getProviderName()}...</span>
                         </div>
                         
                         <div class="cfb-empty" style="display: none;">
@@ -720,12 +720,12 @@ export class CloudFileBrowser {
      */
     async loadFiles() {
         this.isLoading = true;
-        this.updateLoadingState();
+        this.updateLoadingState(`Connecting to ${this.getProviderName()}...`);
         
         try {
             const provider = this.cloudStorage.getProvider(this.provider);
             if (!provider) {
-                throw new Error(`Provider ${this.provider} not available`);
+                throw new Error(`${this.getProviderName()} is not available. Please try again later.`);
             }
             
             // Check authentication
@@ -733,6 +733,9 @@ export class CloudFileBrowser {
                 this.showSignIn();
                 return;
             }
+            
+            // Update loading message once we know we're authenticated
+            this.updateLoadingState('Loading files...');
             
             let files = [];
             
@@ -750,6 +753,7 @@ export class CloudFileBrowser {
                 default:
                     // On first load, try to open last folder or find Story folder
                     if (this.navigationHistory.length === 0 && this.currentFolderId === null) {
+                        this.updateLoadingState('Finding Story folder...');
                         const targetFolder = await this.findInitialFolder(provider);
                         if (targetFolder) {
                             this.currentFolderId = targetFolder.id;
@@ -760,6 +764,7 @@ export class CloudFileBrowser {
                         }
                     }
                     
+                    this.updateLoadingState('Loading files...');
                     files = await provider.listFiles(this.currentFolderId);
                     
                     // Save current folder as last opened
@@ -1042,8 +1047,9 @@ export class CloudFileBrowser {
     
     /**
      * Update loading state UI
+     * @param {string} [message] - Optional loading message
      */
-    updateLoadingState() {
+    updateLoadingState(message) {
         const loading = this.modal.querySelector('.cfb-loading');
         const files = this.modal.querySelector('.cfb-files');
         const empty = this.modal.querySelector('.cfb-empty');
@@ -1056,6 +1062,14 @@ export class CloudFileBrowser {
             empty.style.display = 'none';
             error.style.display = 'none';
             signin.style.display = 'none';
+            
+            // Update loading message if provided
+            if (message) {
+                const loadingText = loading.querySelector('.cfb-loading-text');
+                if (loadingText) {
+                    loadingText.textContent = message;
+                }
+            }
         } else {
             loading.style.display = 'none';
         }
