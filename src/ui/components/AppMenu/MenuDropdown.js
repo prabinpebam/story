@@ -22,6 +22,7 @@ export class MenuDropdown {
         this.element = null;
         this.menuItems = [];
         this.activeSubmenu = null;
+        this.activeSubmenuItem = null; // Track which MenuItem has open submenu
         this.focusedIndex = -1;
 
         this.create();
@@ -53,7 +54,7 @@ export class MenuDropdown {
                     ...item,
                     onAction: this.options.onAction,
                     onSubmenuOpen: (submenuItems, itemElement) => {
-                        this.openSubmenu(submenuItems, itemElement);
+                        this.openSubmenu(submenuItems, itemElement, menuItem);
                     },
                     onSubmenuClose: () => {
                         this.closeSubmenu();
@@ -101,9 +102,12 @@ export class MenuDropdown {
         }
     }
 
-    openSubmenu(items, parentElement) {
-        // Close existing submenu
+    openSubmenu(items, parentElement, menuItem) {
+        // Close existing submenu and reset previous item's state
         this.closeSubmenu();
+
+        // Track the new active submenu item
+        this.activeSubmenuItem = menuItem;
 
         const parentRect = parentElement.getBoundingClientRect();
 
@@ -124,6 +128,11 @@ export class MenuDropdown {
         if (this.activeSubmenu) {
             this.activeSubmenu.destroy();
             this.activeSubmenu = null;
+        }
+        // Reset the previous submenu item's state
+        if (this.activeSubmenuItem) {
+            this.activeSubmenuItem.closeSubmenu();
+            this.activeSubmenuItem = null;
         }
     }
 

@@ -148,27 +148,41 @@ describe('MenuItem', () => {
     });
 
     describe('Focus', () => {
-        it('should add focused class on focus', () => {
+        it('should add focused class on focus event', () => {
             const item = new MenuItem({
                 id: 'test',
                 label: 'Test'
             });
             
-            item.focus();
+            // Append to document so focus events work
+            document.body.appendChild(item.element);
+            
+            // Dispatch focus event
+            item.element.dispatchEvent(new FocusEvent('focus'));
             
             expect(item.element.className).toContain('focused');
+            
+            // Cleanup
+            item.element.remove();
         });
 
-        it('should remove focused class on blur', () => {
+        it('should remove focused class on blur event', () => {
             const item = new MenuItem({
                 id: 'test',
                 label: 'Test'
             });
             
-            item.focus();
-            item.blur();
+            // Append to document so focus events work
+            document.body.appendChild(item.element);
+            
+            // Dispatch focus then blur
+            item.element.dispatchEvent(new FocusEvent('focus'));
+            item.element.dispatchEvent(new FocusEvent('blur'));
             
             expect(item.element.className).not.toContain('focused');
+            
+            // Cleanup
+            item.element.remove();
         });
     });
 

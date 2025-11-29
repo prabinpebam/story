@@ -99,16 +99,39 @@ export class MenuItem {
             this.activate();
         });
 
-        // Hover for submenus
-        if (this.options.submenu) {
-            this.element.addEventListener('mouseenter', () => {
-                this.scheduleSubmenuOpen();
-            });
+        // Handle focus/blur for keyboard navigation
+        this.element.addEventListener('focus', () => {
+            this.element.classList.add('focused');
+        });
 
-            this.element.addEventListener('mouseleave', () => {
+        this.element.addEventListener('blur', () => {
+            this.element.classList.remove('focused');
+        });
+
+        // Clear focused class on mouseenter (mouse takes over from keyboard)
+        this.element.addEventListener('mouseenter', () => {
+            // Remove focused class from all siblings
+            const parent = this.element.parentElement;
+            if (parent) {
+                parent.querySelectorAll('.app-menu-item.focused').forEach(item => {
+                    if (item !== this.element) {
+                        item.classList.remove('focused');
+                    }
+                });
+            }
+            
+            // Hover for submenus
+            if (this.options.submenu) {
+                this.scheduleSubmenuOpen();
+            }
+        });
+
+        this.element.addEventListener('mouseleave', () => {
+            // Cancel submenu open on mouse leave
+            if (this.options.submenu) {
                 this.cancelSubmenuOpen();
-            });
-        }
+            }
+        });
     }
 
     scheduleSubmenuOpen() {
@@ -157,10 +180,11 @@ export class MenuItem {
 
     focus() {
         this.element.focus();
-        this.element.classList.add('focused');
+        // Class is added by focus event listener
     }
 
     blur() {
-        this.element.classList.remove('focused');
+        this.element.blur();
+        // Class is removed by blur event listener
     }
 }
