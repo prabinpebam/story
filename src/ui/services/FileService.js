@@ -122,8 +122,8 @@ class FileService extends EventEmitter {
             const arrayBuffer = await file.arrayBuffer();
             
             // Deserialize
-            const deserializer = new PresentationDeserializer();
-            const presentationData = await deserializer.deserialize(arrayBuffer);
+            const deserializer = new PresentationDeserializer(arrayBuffer);
+            const presentationData = await deserializer.deserialize();
             
             // Load into store
             store.dispatch('LOAD_PRESENTATION', presentationData);
@@ -179,8 +179,8 @@ class FileService extends EventEmitter {
             }
 
             // Serialize presentation
-            const serializer = new PresentationSerializer();
-            const data = await serializer.serialize(state);
+            const serializer = new PresentationSerializer(state);
+            const data = await serializer.serialize();
 
             // Write to file
             await fileSystemAccess.writeFile(this.currentFileHandle, data);
