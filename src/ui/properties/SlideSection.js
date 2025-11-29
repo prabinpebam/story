@@ -87,76 +87,137 @@ export class SlideSection {
     }
 
     createThemeSection() {
-        // Theme as a proper pi-section
-        this.themeSection = new Section({ title: 'Theme' });
+        // Colors Section
+        this.colorsSection = new Section({ title: 'Colors' });
+        this.colorsContent = this.createColorsSectionContent();
+        this.colorsSection.appendChild(this.colorsContent);
+        this.element.appendChild(this.colorsSection.element);
 
-        // Colors Row
-        this.colorsRow = this.createThemeRow({
-            label: 'Colors',
-            icon: Icons.PALETTE || '<i class="fa-solid fa-palette"></i>',
-            onClick: () => panelManager.toggle('color-theme-manager'),
-            onReset: () => this.resetColors()
-        });
-        this.themeSection.appendChild(this.colorsRow.element);
-
-        // Typography Row
-        this.typographyRow = this.createThemeRow({
-            label: 'Typography',
-            icon: Icons.FONT || '<i class="fa-solid fa-font"></i>',
-            onClick: () => panelManager.toggle('typography-style-manager'),
-            onReset: () => this.resetTypography()
-        });
-        this.themeSection.appendChild(this.typographyRow.element);
-
-        this.element.appendChild(this.themeSection.element);
+        // Typography Section
+        this.typographySection = new Section({ title: 'Typography' });
+        this.typographyContent = this.createTypographySectionContent();
+        this.typographySection.appendChild(this.typographyContent);
+        this.element.appendChild(this.typographySection.element);
     }
 
-    createThemeRow(options) {
-        const row = document.createElement('div');
-        row.className = 'theme-property-row';
-        // CSS handles: display: flex; align-items: center; gap; padding; border-radius; cursor; transition
-        // CSS also handles :hover state
-        row.addEventListener('click', (e) => {
-            if (!e.target.closest('.theme-row-reset')) {
-                options.onClick();
-            }
-        });
+    createColorsSectionContent() {
+        const container = document.createElement('div');
+        container.className = 'theme-colors-content';
 
-        // Icon
-        const icon = document.createElement('span');
-        icon.className = 'theme-row-icon';
-        icon.innerHTML = options.icon;
-        row.appendChild(icon);
-
-        // Label
-        const label = document.createElement('span');
-        label.className = 'theme-row-label';
-        label.textContent = options.label;
-        row.appendChild(label);
-
-        // Preview container (will be populated by update)
-        const preview = document.createElement('div');
-        preview.className = 'theme-row-preview';
-        row.appendChild(preview);
+        // Current theme name/preset row
+        const headerRow = document.createElement('div');
+        headerRow.className = 'theme-detail-header';
+        
+        this.colorThemeName = document.createElement('span');
+        this.colorThemeName.className = 'theme-detail-name';
+        this.colorThemeName.textContent = 'Default';
+        headerRow.appendChild(this.colorThemeName);
 
         // Inheritance badge
-        const badge = document.createElement('span');
-        badge.className = 'theme-row-badge';
-        badge.style.display = 'none';
-        row.appendChild(badge);
+        this.colorBadge = document.createElement('span');
+        this.colorBadge.className = 'theme-detail-badge';
+        headerRow.appendChild(this.colorBadge);
+
+        // Edit button
+        const editBtn = document.createElement('button');
+        editBtn.className = 'theme-detail-edit';
+        editBtn.innerHTML = '<i class="fa-solid fa-pen"></i>';
+        editBtn.title = 'Edit colors';
+        editBtn.addEventListener('click', () => panelManager.toggle('color-theme-manager'));
+        headerRow.appendChild(editBtn);
 
         // Reset button
-        const resetBtn = document.createElement('button');
-        resetBtn.className = 'theme-row-reset';
-        resetBtn.innerHTML = '<i class="fa-solid fa-xmark"></i>';
-        resetBtn.title = 'Reset to inherited';
-        resetBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            options.onReset();
-        });
-        row.appendChild(resetBtn);
+        this.colorResetBtn = document.createElement('button');
+        this.colorResetBtn.className = 'theme-detail-reset';
+        this.colorResetBtn.innerHTML = '<i class="fa-solid fa-arrow-rotate-left"></i>';
+        this.colorResetBtn.title = 'Reset to inherited';
+        this.colorResetBtn.addEventListener('click', () => this.resetColors());
+        headerRow.appendChild(this.colorResetBtn);
 
-        return { element: row, preview, badge, resetBtn };
+        container.appendChild(headerRow);
+
+        // Swatches preview
+        this.colorSwatches = document.createElement('div');
+        this.colorSwatches.className = 'theme-swatches-preview';
+        container.appendChild(this.colorSwatches);
+
+        return container;
+    }
+
+    createTypographySectionContent() {
+        const container = document.createElement('div');
+        container.className = 'theme-typography-content';
+
+        // Heading font row
+        const headingRow = document.createElement('div');
+        headingRow.className = 'theme-font-row';
+        
+        const headingLabel = document.createElement('span');
+        headingLabel.className = 'theme-font-label';
+        headingLabel.textContent = 'Heading';
+        headingRow.appendChild(headingLabel);
+
+        this.headingFontName = document.createElement('span');
+        this.headingFontName.className = 'theme-font-name';
+        this.headingFontName.textContent = 'Inter';
+        headingRow.appendChild(this.headingFontName);
+
+        this.headingFontPreview = document.createElement('span');
+        this.headingFontPreview.className = 'theme-font-preview';
+        this.headingFontPreview.textContent = 'Aa';
+        headingRow.appendChild(this.headingFontPreview);
+
+        container.appendChild(headingRow);
+
+        // Body font row
+        const bodyRow = document.createElement('div');
+        bodyRow.className = 'theme-font-row';
+        
+        const bodyLabel = document.createElement('span');
+        bodyLabel.className = 'theme-font-label';
+        bodyLabel.textContent = 'Body';
+        bodyRow.appendChild(bodyLabel);
+
+        this.bodyFontName = document.createElement('span');
+        this.bodyFontName.className = 'theme-font-name';
+        this.bodyFontName.textContent = 'Inter';
+        bodyRow.appendChild(this.bodyFontName);
+
+        this.bodyFontPreview = document.createElement('span');
+        this.bodyFontPreview.className = 'theme-font-preview';
+        this.bodyFontPreview.textContent = 'Aa';
+        bodyRow.appendChild(this.bodyFontPreview);
+
+        container.appendChild(bodyRow);
+
+        // Actions row
+        const actionsRow = document.createElement('div');
+        actionsRow.className = 'theme-detail-header theme-detail-actions';
+
+        // Inheritance badge
+        this.typoBadge = document.createElement('span');
+        this.typoBadge.className = 'theme-detail-badge';
+        actionsRow.appendChild(this.typoBadge);
+
+        // Edit button
+        const editBtn = document.createElement('button');
+        editBtn.className = 'theme-detail-edit';
+        editBtn.innerHTML = '<i class="fa-solid fa-pen"></i>';
+        editBtn.title = 'Edit typography';
+        editBtn.addEventListener('click', () => panelManager.toggle('typography-style-manager'));
+        actionsRow.appendChild(editBtn);
+
+        // Reset button
+        this.typoResetBtn = document.createElement('button');
+        this.typoResetBtn.className = 'theme-detail-reset';
+        this.typoResetBtn.innerHTML = '<i class="fa-solid fa-arrow-rotate-left"></i>';
+        this.typoResetBtn.title = 'Reset to inherited';
+        this.typoResetBtn.addEventListener('click', () => this.resetTypography());
+        actionsRow.appendChild(this.typoResetBtn);
+
+        container.appendChild(actionsRow);
+
+        return container;
     }
 
     updateThemeDisplay() {
@@ -170,54 +231,109 @@ export class SlideSection {
 
         const themeColors = themeMaster.themeSettings.colors || {};
         const themeFonts = themeMaster.themeSettings.fonts || {};
+        const themeName = themeMaster.themeSettings.name || 'Default Theme';
 
         // Check if slide has overrides
         const hasColorOverride = currentObject.colorOverride !== undefined;
         const hasTypoOverride = currentObject.typographyOverride !== undefined;
 
-        // Update Colors Row
-        this.updateColorsPreview(themeColors, hasColorOverride);
+        // Update Colors Section
+        this.updateColorsSectionDisplay(themeColors, themeName, hasColorOverride);
 
-        // Update Typography Row
-        this.updateTypographyPreview(themeFonts, hasTypoOverride);
+        // Update Typography Section
+        this.updateTypographySectionDisplay(themeFonts, hasTypoOverride);
     }
 
-    updateColorsPreview(colors, isOverride) {
-        const preview = this.colorsRow.preview;
-        preview.innerHTML = '';
+    updateColorsSectionDisplay(colors, themeName, isOverride) {
+        // Update theme name
+        this.colorThemeName.textContent = themeName;
 
-        // Show accent color swatches (up to 6)
+        // Update badge
+        if (isOverride) {
+            this.colorBadge.textContent = 'Override';
+            this.colorBadge.className = 'theme-detail-badge override';
+            this.colorResetBtn.style.display = 'flex';
+        } else {
+            this.colorBadge.textContent = 'Inherited';
+            this.colorBadge.className = 'theme-detail-badge inherited';
+            this.colorResetBtn.style.display = 'none';
+        }
+
+        // Update swatches preview
+        this.colorSwatches.innerHTML = '';
+
+        // Create two rows: backgrounds/text and accents
+        const bgTextRow = document.createElement('div');
+        bgTextRow.className = 'theme-swatch-row';
+        
+        // Background & Text colors
+        const bgTextColors = [
+            { color: colors.background1, label: 'BG1' },
+            { color: colors.background2, label: 'BG2' },
+            { color: colors.text1, label: 'Text1' },
+            { color: colors.text2, label: 'Text2' }
+        ];
+
+        bgTextColors.forEach(item => {
+            if (item.color) {
+                const swatch = this.createColorSwatch(item.color, item.label);
+                bgTextRow.appendChild(swatch);
+            }
+        });
+
+        this.colorSwatches.appendChild(bgTextRow);
+
+        // Accent colors row
+        const accentRow = document.createElement('div');
+        accentRow.className = 'theme-swatch-row';
+        
         const accentColors = [
             colors.accent1, colors.accent2, colors.accent3,
             colors.accent4, colors.accent5, colors.accent6
         ].filter(Boolean);
 
-        accentColors.slice(0, 6).forEach(color => {
-            const swatch = document.createElement('div');
-            swatch.className = 'theme-preview-swatch';
-            swatch.style.background = color; // Color must be inline
-            preview.appendChild(swatch);
+        accentColors.forEach((color, i) => {
+            const swatch = this.createColorSwatch(color, `Accent ${i + 1}`);
+            accentRow.appendChild(swatch);
         });
 
-        // Update badge and reset button
-        this.updateInheritanceUI(this.colorsRow, isOverride);
+        this.colorSwatches.appendChild(accentRow);
     }
 
-    updateTypographyPreview(fonts, isOverride) {
-        const preview = this.typographyRow.preview;
-        preview.innerHTML = '';
+    createColorSwatch(color, label) {
+        const swatch = document.createElement('div');
+        swatch.className = 'theme-color-swatch';
+        swatch.style.background = color;
+        swatch.title = label;
+        return swatch;
+    }
 
-        // Show font names
-        const fontLabel = document.createElement('span');
-        fontLabel.className = 'theme-preview-fonts';
-        fontLabel.textContent = `${fonts.heading || 'Inter'} / ${fonts.body || 'Inter'}`;
-        preview.appendChild(fontLabel);
+    updateTypographySectionDisplay(fonts, isOverride) {
+        const headingFont = fonts.heading || 'Inter';
+        const bodyFont = fonts.body || 'Inter';
 
-        // Update badge and reset button
-        this.updateInheritanceUI(this.typographyRow, isOverride);
+        // Update heading font
+        this.headingFontName.textContent = headingFont;
+        this.headingFontPreview.style.fontFamily = headingFont;
+
+        // Update body font
+        this.bodyFontName.textContent = bodyFont;
+        this.bodyFontPreview.style.fontFamily = bodyFont;
+
+        // Update badge
+        if (isOverride) {
+            this.typoBadge.textContent = 'Override';
+            this.typoBadge.className = 'theme-detail-badge override';
+            this.typoResetBtn.style.display = 'flex';
+        } else {
+            this.typoBadge.textContent = 'Inherited';
+            this.typoBadge.className = 'theme-detail-badge inherited';
+            this.typoResetBtn.style.display = 'none';
+        }
     }
 
     updateInheritanceUI(row, isOverride) {
+        // Kept for backward compatibility
         const { badge, resetBtn } = row;
         
         if (isOverride) {
