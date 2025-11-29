@@ -271,15 +271,17 @@ export class PresentationDeserializer {
      */
     deserializeFill(fill) {
         if (!fill) {
-            return { type: 'solid', value: '#ffffff' };
+            return { type: 'solid', value: '#ffffff', color: '#ffffff' };
         }
 
         const deserialized = { ...fill };
 
-        // Support legacy 'color' property - convert to 'value'
-        if (fill.type === 'solid' && fill.color && !fill.value) {
-            deserialized.value = fill.color;
-            delete deserialized.color;
+        // For solid fills, ensure both 'color' and 'value' are set for maximum compatibility
+        // The app uses both interchangeably in different places
+        if (fill.type === 'solid') {
+            const colorValue = fill.value || fill.color || '#ffffff';
+            deserialized.value = colorValue;
+            deserialized.color = colorValue;
         }
 
         return deserialized;

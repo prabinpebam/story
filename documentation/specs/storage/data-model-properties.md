@@ -222,8 +222,8 @@ Additional properties for `type: 'video'`:
 ### Fill Type-Specific Properties
 
 ```javascript
-// Solid fill
-{ type: 'solid', value: '#ff5500', opacity: 100, visible: true }
+// Solid fill - serializer sets BOTH 'color' and 'value' for compatibility
+{ type: 'solid', value: '#ff5500', color: '#ff5500', opacity: 100, visible: true }
 
 // Gradient fill (CSS string)
 { type: 'gradient', value: 'linear-gradient(90deg, #000 0%, #fff 100%)' }
@@ -268,12 +268,13 @@ Additional properties for `type: 'video'`:
 }
 ```
 
-**Solid fill color access** (`ShapeElement.js:198`):
-```javascript
-layer.style.backgroundColor = fill.color;  // Renderer reads .color for solid
-```
-
-⚠️ **Note**: While the renderer reads `fill.color` for solid fills, the data model should use `fill.value`. The renderer handles both.
+**Solid fill implementation**:
+- The serializer/deserializer sets BOTH `color` and `value` properties for solid fills
+- Different renderers use different properties:
+  - `ShapeElement.js`: `fill.color || fill.value`
+  - `SlideView.js`: `fill.color || fill.value`
+  - `TextElement.js`: `fill.value`
+- This ensures maximum compatibility with all renderers
 
 ---
 
@@ -499,6 +500,7 @@ serializeBackground(background) {
 | Slide `transition` saved | ✅ | Copied via spread |
 | Asset `assetId` saved | ✅ | Copied via spread |
 | Masters/layouts saved | ✅ | Separate serialization |
+| Solid fills have both `color` and `value` | ✅ | Set by serializer/deserializer |
 
 ---
 
@@ -506,6 +508,7 @@ serializeBackground(background) {
 
 | Date | Change |
 |------|--------|
+| 2025-11-29 | Fixed solid fill serialization to set both `color` and `value` for renderer compatibility |
 | 2025-11-29 | Added implementation notes column with source code references |
 | 2025-11-29 | Fixed background serialization to preserve null and use `value` property |
 | 2025-11-29 | Initial comprehensive property documentation |

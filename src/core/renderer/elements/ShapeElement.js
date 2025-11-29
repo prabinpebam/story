@@ -195,7 +195,8 @@ export class ShapeElement extends VisualElement {
                         }
                         
                         if (fill.type === 'solid') {
-                            layer.style.backgroundColor = fill.color;
+                            // Support both 'color' and 'value' properties for solid fills
+                            layer.style.backgroundColor = fill.color || fill.value;
                         } else if (fill.type === 'gradient') {
                             if (fillValue.startsWith('/* diamond|')) {
                                 this.renderDiamondGradient(layer, el.width, el.height, fillValue);

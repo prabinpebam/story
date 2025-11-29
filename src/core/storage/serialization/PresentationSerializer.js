@@ -313,10 +313,17 @@ export class PresentationSerializer {
      */
     serializeFill(fill) {
         if (!fill) {
-            return { type: 'solid', value: '#ffffff' };
+            return { type: 'solid', value: '#ffffff', color: '#ffffff' };
         }
 
         const serialized = { ...fill };
+
+        // For solid fills, ensure both 'color' and 'value' are set for maximum compatibility
+        if (fill.type === 'solid') {
+            const colorValue = fill.value || fill.color || '#ffffff';
+            serialized.value = colorValue;
+            serialized.color = colorValue;
+        }
 
         // Handle image fills - map asset path
         if (fill.type === 'image' && fill.assetId) {
