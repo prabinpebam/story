@@ -1,0 +1,646 @@
+/**
+ * Sharing UI Styles
+ * 
+ * Styles for share modal, collaborator list, and related components.
+ */
+
+/* ==================== Share Modal ==================== */
+
+.share-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.2s ease, visibility 0.2s ease;
+}
+
+.share-modal.visible {
+    opacity: 1;
+    visibility: visible;
+}
+
+.share-modal-content {
+    background: var(--color-surface, #1e1e1e);
+    border-radius: var(--radius-lg, 12px);
+    width: 480px;
+    max-width: 90vw;
+    max-height: 80vh;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    transform: translateY(-20px);
+    transition: transform 0.2s ease;
+}
+
+.share-modal.visible .share-modal-content {
+    transform: translateY(0);
+}
+
+/* Header */
+.share-modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--spacing-md, 16px);
+    border-bottom: 1px solid var(--color-border, rgba(255, 255, 255, 0.1));
+}
+
+.share-modal-title {
+    font-size: var(--font-size-lg, 18px);
+    font-weight: 600;
+    color: var(--color-text-primary, #fff);
+    margin: 0;
+}
+
+.share-modal-close {
+    background: none;
+    border: none;
+    color: var(--color-text-secondary, rgba(255, 255, 255, 0.6));
+    cursor: pointer;
+    padding: var(--spacing-xs, 4px);
+    border-radius: var(--radius-sm, 4px);
+    transition: color 0.15s ease, background 0.15s ease;
+}
+
+.share-modal-close:hover {
+    color: var(--color-text-primary, #fff);
+    background: var(--color-surface-hover, rgba(255, 255, 255, 0.1));
+}
+
+/* Tabs */
+.share-modal-tabs {
+    display: flex;
+    padding: 0 var(--spacing-md, 16px);
+    border-bottom: 1px solid var(--color-border, rgba(255, 255, 255, 0.1));
+}
+
+.share-modal-tab {
+    background: none;
+    border: none;
+    padding: var(--spacing-sm, 8px) var(--spacing-md, 16px);
+    color: var(--color-text-secondary, rgba(255, 255, 255, 0.6));
+    font-size: var(--font-size-sm, 14px);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+    transition: color 0.15s ease, border-color 0.15s ease;
+}
+
+.share-modal-tab:hover {
+    color: var(--color-text-primary, #fff);
+}
+
+.share-modal-tab.active {
+    color: var(--color-primary, #6366f1);
+    border-bottom-color: var(--color-primary, #6366f1);
+}
+
+/* Body */
+.share-modal-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: var(--spacing-md, 16px);
+}
+
+/* Footer */
+.share-modal-footer {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: var(--spacing-sm, 8px);
+    padding: var(--spacing-md, 16px);
+    border-top: 1px solid var(--color-border, rgba(255, 255, 255, 0.1));
+}
+
+.share-modal-btn {
+    padding: var(--spacing-sm, 8px) var(--spacing-md, 16px);
+    border-radius: var(--radius-md, 8px);
+    font-size: var(--font-size-sm, 14px);
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.15s ease, opacity 0.15s ease;
+}
+
+.share-modal-btn-secondary {
+    background: var(--color-surface-hover, rgba(255, 255, 255, 0.1));
+    border: none;
+    color: var(--color-text-primary, #fff);
+}
+
+.share-modal-btn-secondary:hover {
+    background: var(--color-surface-active, rgba(255, 255, 255, 0.15));
+}
+
+.share-modal-btn-primary {
+    background: var(--color-primary, #6366f1);
+    border: none;
+    color: #fff;
+}
+
+.share-modal-btn-primary:hover {
+    background: var(--color-primary-hover, #5255d3);
+}
+
+.share-modal-btn-primary:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* ==================== Invite Section ==================== */
+
+.share-invite-section {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-md, 16px);
+}
+
+.share-invite-row {
+    display: flex;
+    gap: var(--spacing-sm, 8px);
+    align-items: flex-start;
+}
+
+.share-invite-row .invite-input {
+    flex: 1;
+}
+
+.share-invite-row .permission-dropdown {
+    flex-shrink: 0;
+}
+
+.share-invite-btn {
+    flex-shrink: 0;
+}
+
+/* ==================== Invite Input ==================== */
+
+.invite-input {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--spacing-xs, 4px);
+    padding: var(--spacing-sm, 8px);
+    background: var(--color-surface-elevated, rgba(255, 255, 255, 0.05));
+    border: 1px solid var(--color-border, rgba(255, 255, 255, 0.1));
+    border-radius: var(--radius-md, 8px);
+    min-height: 40px;
+    cursor: text;
+    transition: border-color 0.15s ease;
+}
+
+.invite-input:focus-within {
+    border-color: var(--color-primary, #6366f1);
+}
+
+.invite-input.disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.invite-input-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--spacing-xs, 4px);
+}
+
+.invite-input-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--spacing-xs, 4px);
+    padding: 2px 6px 2px 10px;
+    background: var(--color-primary, #6366f1);
+    color: #fff;
+    border-radius: var(--radius-full, 999px);
+    font-size: var(--font-size-sm, 14px);
+}
+
+.invite-input-tag-remove {
+    background: none;
+    border: none;
+    color: rgba(255, 255, 255, 0.7);
+    cursor: pointer;
+    padding: 2px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: color 0.15s ease, background 0.15s ease;
+}
+
+.invite-input-tag-remove:hover {
+    color: #fff;
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.invite-input-field {
+    flex: 1;
+    min-width: 120px;
+    background: none;
+    border: none;
+    outline: none;
+    color: var(--color-text-primary, #fff);
+    font-size: var(--font-size-sm, 14px);
+}
+
+.invite-input-field::placeholder {
+    color: var(--color-text-tertiary, rgba(255, 255, 255, 0.4));
+}
+
+/* ==================== Permission Dropdown ==================== */
+
+.permission-dropdown {
+    position: relative;
+}
+
+.permission-dropdown-trigger {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm, 8px);
+    padding: var(--spacing-sm, 8px) var(--spacing-md, 16px);
+    background: var(--color-surface-elevated, rgba(255, 255, 255, 0.05));
+    border: 1px solid var(--color-border, rgba(255, 255, 255, 0.1));
+    border-radius: var(--radius-md, 8px);
+    color: var(--color-text-primary, #fff);
+    font-size: var(--font-size-sm, 14px);
+    cursor: pointer;
+    transition: border-color 0.15s ease, background 0.15s ease;
+    white-space: nowrap;
+}
+
+.permission-dropdown-trigger:hover {
+    background: var(--color-surface-hover, rgba(255, 255, 255, 0.1));
+}
+
+.permission-dropdown.open .permission-dropdown-trigger {
+    border-color: var(--color-primary, #6366f1);
+}
+
+.permission-dropdown.disabled .permission-dropdown-trigger {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.permission-dropdown-arrow {
+    font-size: 10px;
+    transition: transform 0.15s ease;
+}
+
+.permission-dropdown.open .permission-dropdown-arrow {
+    transform: rotate(180deg);
+}
+
+.permission-dropdown-menu {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    margin-top: var(--spacing-xs, 4px);
+    background: var(--color-surface, #1e1e1e);
+    border: 1px solid var(--color-border, rgba(255, 255, 255, 0.1));
+    border-radius: var(--radius-md, 8px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+    min-width: 200px;
+    z-index: 10;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-8px);
+    transition: opacity 0.15s ease, visibility 0.15s ease, transform 0.15s ease;
+}
+
+.permission-dropdown-menu.open {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+}
+
+.permission-dropdown-item {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--spacing-sm, 8px);
+    width: 100%;
+    padding: var(--spacing-sm, 8px) var(--spacing-md, 16px);
+    background: none;
+    border: none;
+    color: var(--color-text-primary, #fff);
+    text-align: left;
+    cursor: pointer;
+    transition: background 0.15s ease;
+}
+
+.permission-dropdown-item:first-child {
+    border-radius: var(--radius-md, 8px) var(--radius-md, 8px) 0 0;
+}
+
+.permission-dropdown-item:last-child {
+    border-radius: 0 0 var(--radius-md, 8px) var(--radius-md, 8px);
+}
+
+.permission-dropdown-item:hover {
+    background: var(--color-surface-hover, rgba(255, 255, 255, 0.1));
+}
+
+.permission-dropdown-item.selected {
+    background: var(--color-primary-subtle, rgba(99, 102, 241, 0.1));
+}
+
+.permission-dropdown-item > i:first-child {
+    width: 20px;
+    text-align: center;
+    margin-top: 2px;
+}
+
+.permission-dropdown-item-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.permission-dropdown-item-label {
+    font-weight: 500;
+}
+
+.permission-dropdown-item-description {
+    font-size: var(--font-size-xs, 12px);
+    color: var(--color-text-tertiary, rgba(255, 255, 255, 0.4));
+    margin-top: 2px;
+}
+
+.permission-dropdown-check {
+    color: var(--color-primary, #6366f1);
+    margin-left: auto;
+}
+
+/* ==================== Collaborator List ==================== */
+
+.collaborator-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-xs, 4px);
+}
+
+.collaborator-list-empty {
+    text-align: center;
+    padding: var(--spacing-lg, 24px);
+    color: var(--color-text-tertiary, rgba(255, 255, 255, 0.4));
+}
+
+.collaborator-item {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm, 8px);
+    padding: var(--spacing-sm, 8px);
+    border-radius: var(--radius-md, 8px);
+    transition: background 0.15s ease;
+}
+
+.collaborator-item:hover {
+    background: var(--color-surface-hover, rgba(255, 255, 255, 0.05));
+}
+
+.collaborator-item.is-owner {
+    opacity: 0.8;
+}
+
+.collaborator-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: var(--color-primary, #6366f1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: var(--font-size-sm, 14px);
+    font-weight: 600;
+    color: #fff;
+    flex-shrink: 0;
+}
+
+.collaborator-avatar img {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.collaborator-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.collaborator-name {
+    font-size: var(--font-size-sm, 14px);
+    font-weight: 500;
+    color: var(--color-text-primary, #fff);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.collaborator-email {
+    font-size: var(--font-size-xs, 12px);
+    color: var(--color-text-tertiary, rgba(255, 255, 255, 0.4));
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.collaborator-actions {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs, 4px);
+}
+
+.collaborator-remove {
+    background: none;
+    border: none;
+    color: var(--color-text-tertiary, rgba(255, 255, 255, 0.4));
+    cursor: pointer;
+    padding: var(--spacing-xs, 4px);
+    border-radius: var(--radius-sm, 4px);
+    transition: color 0.15s ease, background 0.15s ease;
+}
+
+.collaborator-remove:hover {
+    color: var(--color-error, #ef4444);
+    background: rgba(239, 68, 68, 0.1);
+}
+
+.collaborator-owner-badge {
+    font-size: var(--font-size-xs, 12px);
+    color: var(--color-text-tertiary, rgba(255, 255, 255, 0.4));
+    padding: 2px 8px;
+    background: var(--color-surface-elevated, rgba(255, 255, 255, 0.05));
+    border-radius: var(--radius-sm, 4px);
+}
+
+/* ==================== Share Link Panel ==================== */
+
+.share-link-panel {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-md, 16px);
+}
+
+.share-link-section {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm, 8px);
+}
+
+.share-link-section-title {
+    font-size: var(--font-size-sm, 14px);
+    font-weight: 600;
+    color: var(--color-text-primary, #fff);
+    margin: 0;
+}
+
+.share-link-section-description {
+    font-size: var(--font-size-xs, 12px);
+    color: var(--color-text-tertiary, rgba(255, 255, 255, 0.4));
+    margin: 0;
+}
+
+.share-link-item {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm, 8px);
+    padding: var(--spacing-sm, 8px);
+    background: var(--color-surface-elevated, rgba(255, 255, 255, 0.05));
+    border-radius: var(--radius-md, 8px);
+}
+
+.share-link-icon {
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--color-primary-subtle, rgba(99, 102, 241, 0.1));
+    border-radius: var(--radius-sm, 4px);
+    color: var(--color-primary, #6366f1);
+    flex-shrink: 0;
+}
+
+.share-link-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.share-link-label {
+    font-size: var(--font-size-sm, 14px);
+    color: var(--color-text-primary, #fff);
+    display: block;
+}
+
+.share-link-url {
+    font-size: var(--font-size-xs, 12px);
+    color: var(--color-text-tertiary, rgba(255, 255, 255, 0.4));
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: block;
+}
+
+.share-link-actions {
+    display: flex;
+    gap: var(--spacing-xs, 4px);
+}
+
+.share-link-btn {
+    background: none;
+    border: none;
+    color: var(--color-text-secondary, rgba(255, 255, 255, 0.6));
+    cursor: pointer;
+    padding: var(--spacing-xs, 4px) var(--spacing-sm, 8px);
+    border-radius: var(--radius-sm, 4px);
+    font-size: var(--font-size-xs, 12px);
+    transition: color 0.15s ease, background 0.15s ease;
+}
+
+.share-link-btn:hover {
+    color: var(--color-text-primary, #fff);
+    background: var(--color-surface-hover, rgba(255, 255, 255, 0.1));
+}
+
+.share-link-btn.copied {
+    color: var(--color-success, #10b981);
+}
+
+.share-link-btn-revoke:hover {
+    color: var(--color-error, #ef4444);
+    background: rgba(239, 68, 68, 0.1);
+}
+
+.share-link-create-btn {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm, 8px);
+    padding: var(--spacing-sm, 8px) var(--spacing-md, 16px);
+    background: var(--color-surface-elevated, rgba(255, 255, 255, 0.05));
+    border: 1px dashed var(--color-border, rgba(255, 255, 255, 0.1));
+    border-radius: var(--radius-md, 8px);
+    color: var(--color-text-secondary, rgba(255, 255, 255, 0.6));
+    font-size: var(--font-size-sm, 14px);
+    cursor: pointer;
+    transition: border-color 0.15s ease, color 0.15s ease;
+}
+
+.share-link-create-btn:hover {
+    border-color: var(--color-primary, #6366f1);
+    color: var(--color-primary, #6366f1);
+}
+
+/* ==================== Loading & Error States ==================== */
+
+.share-loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: var(--spacing-xl, 32px);
+    color: var(--color-text-tertiary, rgba(255, 255, 255, 0.4));
+}
+
+.share-loading-spinner {
+    width: 24px;
+    height: 24px;
+    border: 2px solid var(--color-border, rgba(255, 255, 255, 0.1));
+    border-top-color: var(--color-primary, #6366f1);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+.share-error {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm, 8px);
+    padding: var(--spacing-sm, 8px) var(--spacing-md, 16px);
+    background: rgba(239, 68, 68, 0.1);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    border-radius: var(--radius-md, 8px);
+    color: var(--color-error, #ef4444);
+    font-size: var(--font-size-sm, 14px);
+}
+
+.share-success {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm, 8px);
+    padding: var(--spacing-sm, 8px) var(--spacing-md, 16px);
+    background: rgba(16, 185, 129, 0.1);
+    border: 1px solid rgba(16, 185, 129, 0.3);
+    border-radius: var(--radius-md, 8px);
+    color: var(--color-success, #10b981);
+    font-size: var(--font-size-sm, 14px);
+}

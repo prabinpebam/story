@@ -28,6 +28,9 @@ export const ShareRole = {
     OWNER: 'owner'
 };
 
+// Alias for consistency with other naming conventions
+export const SharingRoles = ShareRole;
+
 /**
  * Share link types
  */
@@ -38,6 +41,9 @@ export const ShareLinkType = {
     PRESENT: 'present'
 };
 
+// Alias for consistency
+export const ShareLinkTypes = ShareLinkType;
+
 /**
  * Share link scope
  */
@@ -46,6 +52,9 @@ export const ShareLinkScope = {
     ORGANIZATION: 'organization', // Only people in the organization
     SPECIFIC: 'specific'         // Specific people only
 };
+
+// Alias for consistency
+export const ShareLinkScopes = ShareLinkScope;
 
 /**
  * Sharing errors

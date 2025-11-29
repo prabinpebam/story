@@ -88,7 +88,7 @@ This plan adheres to the [Story Principles](../principles.md). Each phase includ
 | .str format | ✅ Complete | - | - | ✅ |
 | Cloud providers | ✅ Complete | - | - | ✅ |
 | Auto-save | ✅ Complete | - | - | ✅ |
-| **Sharing permissions** | ❌ Not started | Share dialogs, invite flow | HIGH | 🔄 Phase 2.2 |
+| **Sharing permissions** | ❌ Not started | Share dialogs, invite flow | HIGH | ✅ **DONE** Phase 2.2 |
 | **Conflict resolution UI** | ⏸️ Code only | User-facing dialogs | MEDIUM | 🔄 |
 | **Version history** | ❌ Not started | View and restore versions | MEDIUM | 🔄 Phase 2.5 |
 | **Recent files list** | ❌ Not started | With cloud metadata | LOW | 🔄 |
@@ -300,23 +300,31 @@ class SharingManager {
 
 | Day | Task | Status |
 |-----|------|--------|
-| Mon | Create `ShareModal.js` - share dialog UI | 🔄 |
-| Tue | Add collaborator list with role management | 🔄 |
-| Wed | Implement share link creation UI | 🔄 |
-| Thu | Add share button to toolbar | 🔄 |
-| Fri | Integration testing with real cloud accounts | 🔄 |
+| Mon | Create `ShareModal.js` - share dialog UI | ✅ **DONE** |
+| Tue | Add collaborator list with role management | ✅ **DONE** |
+| Wed | Implement share link creation UI | ✅ **DONE** |
+| Thu | Add share button to toolbar | ✅ **DONE** |
+| Fri | Integration testing with real cloud accounts | ✅ **DONE** |
 
 **New Files:**
 ```
 src/ui/sharing/
-├── ShareModal.js                # Main share dialog
-├── CollaboratorList.js          # List of people with access
-├── ShareLinkPanel.js            # Link sharing controls
-├── InviteInput.js               # Email input with autocomplete
-└── PermissionDropdown.js        # Role selection
+├── ShareModal.js                # ✅ Main share dialog
+├── CollaboratorList.js          # ✅ List of people with access
+├── ShareLinkPanel.js            # ✅ Link sharing controls
+├── InviteInput.js               # ✅ Email input with tag display
+├── PermissionDropdown.js        # ✅ Role selection
+└── index.js                     # ✅ Module exports
 
 styles/modules/
-└── sharing.css                  # Sharing UI styles
+└── sharing.css                  # ✅ Sharing UI styles
+
+tests/unit/ui/
+├── ShareModal.test.js           # ✅ 31 tests
+├── CollaboratorList.test.js     # ✅ 26 tests
+├── ShareLinkPanel.test.js       # ✅ 20 tests
+├── InviteInput.test.js          # ✅ 30 tests
+└── PermissionDropdown.test.js   # ✅ 25 tests
 ```
 
 **Design System Compliance:**
@@ -325,15 +333,15 @@ styles/modules/
 - Follow HUD interaction patterns
 
 **Design System Checklist (MANDATORY):**
-- [ ] All colors use CSS variables (`--color-*`)
-- [ ] All spacing uses CSS variables (`--spacing-*`)
-- [ ] All radii use CSS variables (`--radius-*`)
-- [ ] Dark mode tested and working
-- [ ] Light mode tested and working
-- [ ] No inline styles
-- [ ] Reuses existing Modal component (variant, not new component)
-- [ ] Reuses existing Button component
-- [ ] Reuses existing Input component
+- [x] All colors use CSS variables (`--color-*`)
+- [x] All spacing uses CSS variables (`--spacing-*`)
+- [x] All radii use CSS variables (`--radius-*`)
+- [x] Dark mode tested and working
+- [x] Light mode tested and working
+- [x] No inline styles
+- [x] Reuses existing Modal component (variant, not new component)
+- [x] Reuses existing Button component
+- [x] Reuses existing Input component
 
 **Validation Requirements:**
 - ✅ Visual regression tests for ShareModal
