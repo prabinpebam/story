@@ -42,12 +42,15 @@ import { authService } from '../../core/auth/index.js';
 
 // Storage keys
 const STORAGE_KEYS = {
-    VIEW_MODE: 'story_cloud_browser_view',
-    RECENT_FILES: 'story_cloud_recent_files'
+    RECENT_FILES: 'story_cloud_recent_files',
+    LAST_FOLDER: 'story_cloud_last_folder'
 };
 
 // Maximum recent files to store
 const MAX_RECENT_FILES = 20;
+
+// Default Story folder name
+const STORY_FOLDER_NAME = 'Story';
 
 export class CloudFileBrowser {
     /**
@@ -79,20 +82,12 @@ export class CloudFileBrowser {
         this.navigationHistory = [];
         /** @type {number} */
         this.historyIndex = -1;
-        /** @type {ViewMode} */
-        this.viewMode = this.loadViewMode();
         /** @type {SortColumn} */
         this.sortColumn = 'name';
         /** @type {SortDirection} */
         this.sortDirection = 'asc';
-        /** @type {string} */
-        this.searchQuery = '';
         /** @type {boolean} */
         this.isLoading = false;
-        /** @type {boolean} */
-        this.isSearching = false;
-        /** @type {number|null} */
-        this.searchDebounceTimer = null;
         /** @type {number} */
         this.focusedIndex = -1;
         
@@ -109,22 +104,28 @@ export class CloudFileBrowser {
     }
     
     /**
-     * Load saved view mode preference
+     * Load last opened folder from localStorage
      */
-    loadViewMode() {
+    loadLastFolder() {
         try {
-            return localStorage.getItem(STORAGE_KEYS.VIEW_MODE) || 'list';
+            const data = localStorage.getItem(`${STORAGE_KEYS.LAST_FOLDER}_${this.provider}`);
+            return data ? JSON.parse(data) : null;
         } catch {
-            return 'list';
+            return null;
         }
     }
     
     /**
-     * Save view mode preference
+     * Save current folder as last opened
+     * @param {string|null} folderId
+     * @param {string} folderName
      */
-    saveViewMode() {
+    saveLastFolder(folderId, folderName) {
         try {
-            localStorage.setItem(STORAGE_KEYS.VIEW_MODE, this.viewMode);
+            localStorage.setItem(
+                `${STORAGE_KEYS.LAST_FOLDER}_${this.provider}`, 
+                JSON.stringify({ id: folderId, name: folderName })
+            );
         } catch {
             // Ignore storage errors
         }
@@ -179,14 +180,7 @@ export class CloudFileBrowser {
      */
     getProviderIconSVG() {
         if (this.provider === 'onedrive') {
-            return `<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="cfb-provider-icon">
-                <path d="M9.46 8.86L14.46 5.86C14.14 5.31 13.7 4.83 13.17 4.47C12.32 3.88 11.3 3.56 10.24 3.56C8.59 3.56 7.09 4.37 6.16 5.62C6.62 5.54 7.1 5.5 7.58 5.5C8.34 5.5 9.07 5.65 9.73 5.93C9.61 6.48 9.53 7.05 9.53 7.63C9.53 8.05 9.47 8.46 9.46 8.86Z" fill="#0364B8"/>
-                <path d="M9.46 8.86C9.47 8.46 9.53 8.05 9.53 7.63C9.53 7.05 9.61 6.48 9.73 5.93C9.07 5.65 8.34 5.5 7.58 5.5C7.1 5.5 6.62 5.54 6.16 5.62C4.96 6.07 3.94 6.89 3.26 7.97C2.46 9.26 2.27 10.78 2.66 12.18C2.87 12.1 3.09 12.03 3.32 11.97C4.38 11.68 5.53 11.68 6.57 11.97L9.46 8.86Z" fill="#0078D4"/>
-                <path d="M14.46 5.86L9.46 8.86L6.57 11.97C6.94 12.07 7.3 12.21 7.64 12.38L10.95 10.41L17.09 13.61C17.32 13.24 17.52 12.84 17.67 12.42C18.16 11 18.11 9.45 17.52 8.07C16.93 6.68 15.86 5.58 14.46 5.86Z" fill="#1490DF"/>
-                <path d="M17.09 13.61L10.95 10.41L7.64 12.38C8.06 12.6 8.45 12.88 8.8 13.21C9.62 13.97 10.2 14.95 10.47 16.03L10.5 16.17H18.98C19.56 16.17 20.13 16.03 20.63 15.76C21.91 15.06 22.72 13.72 22.72 12.23C22.72 11.11 22.27 10.03 21.49 9.22C20.71 8.41 19.65 7.91 18.54 7.86C18.32 9.92 17.35 11.79 17.09 13.61Z" fill="#28A8EA"/>
-                <path d="M10.47 16.03C10.2 14.95 9.62 13.97 8.8 13.21C8.45 12.88 8.06 12.6 7.64 12.38C7.3 12.21 6.94 12.07 6.57 11.97C5.53 11.68 4.38 11.68 3.32 11.97C3.09 12.03 2.87 12.1 2.66 12.18C2.34 12.29 2.04 12.44 1.75 12.61C0.67 13.27 0 14.5 0 15.81C0 17.76 1.58 19.34 3.53 19.34H10.5V16.17L10.47 16.03Z" fill="#0078D4"/>
-                <path d="M10.5 16.17V19.34H18.98C20.93 19.34 22.51 17.76 22.51 15.81C22.51 15.1 22.28 14.41 21.86 13.84C21.44 13.27 20.84 12.86 20.16 12.66C19.79 12.54 19.4 12.48 19.01 12.48C18.86 12.48 18.7 12.49 18.54 12.51C17.79 12.6 17.39 13.09 17.09 13.61L10.95 10.41L10.47 16.03L10.5 16.17Z" fill="#14447D"/>
-            </svg>`;
+            return `<img src="/assets/icons/one-drive.svg" alt="OneDrive" class="cfb-provider-icon">`;
         }
         return `<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="cfb-provider-icon">
             <path d="M4.433 20.333L0.883 14.167L8.067 2H15.25L4.433 20.333Z" fill="#0066DA"/>
@@ -244,33 +238,6 @@ export class CloudFileBrowser {
                 </aside>
                 
                 <main class="cfb-main">
-                    <div class="cfb-toolbar">
-                        <div class="cfb-search">
-                            <i class="fa-solid fa-magnifying-glass cfb-search-icon"></i>
-                            <input type="text" 
-                                   class="cfb-search-input" 
-                                   placeholder="Search files..." 
-                                   aria-label="Search files">
-                            <button class="cfb-search-clear" aria-label="Clear search" style="display: none;">
-                                <i class="fa-solid fa-xmark"></i>
-                            </button>
-                        </div>
-                        <div class="cfb-view-toggle">
-                            <button class="cfb-view-btn ${this.viewMode === 'list' ? 'cfb-view-btn--active' : ''}" 
-                                    data-view="list" 
-                                    aria-label="List view"
-                                    aria-pressed="${this.viewMode === 'list'}">
-                                <i class="fa-solid fa-list"></i>
-                            </button>
-                            <button class="cfb-view-btn ${this.viewMode === 'grid' ? 'cfb-view-btn--active' : ''}" 
-                                    data-view="grid" 
-                                    aria-label="Grid view"
-                                    aria-pressed="${this.viewMode === 'grid'}">
-                                <i class="fa-solid fa-grip"></i>
-                            </button>
-                        </div>
-                    </div>
-                    
                     <div class="cfb-breadcrumb">
                         <button class="cfb-nav-btn cfb-nav-btn--back" disabled aria-label="Go back">
                             <i class="fa-solid fa-chevron-left"></i>
@@ -287,7 +254,7 @@ export class CloudFileBrowser {
                     </div>
                     
                     <div class="cfb-content">
-                        <div class="cfb-list-header ${this.viewMode === 'grid' ? 'cfb-hidden' : ''}">
+                        <div class="cfb-list-header">
                             <button class="cfb-col-header cfb-col-name" data-sort="name">
                                 Name
                                 <i class="fa-solid fa-sort-up cfb-sort-icon"></i>
@@ -300,7 +267,7 @@ export class CloudFileBrowser {
                             </button>
                         </div>
                         
-                        <div class="cfb-files cfb-files--${this.viewMode}" role="listbox" aria-label="Files" tabindex="0">
+                        <div class="cfb-files cfb-files--list" role="listbox" aria-label="Files" tabindex="0">
                             <!-- Files will be rendered here -->
                         </div>
                         
@@ -381,7 +348,7 @@ export class CloudFileBrowser {
         document.body.appendChild(this.overlay);
         
         // Focus trap
-        this.firstFocusable = this.modal.querySelector('.cfb-search-input');
+        this.firstFocusable = this.modal.querySelector('.cfb-nav-item');
         this.lastFocusable = this.modal.querySelector('[data-action="confirm"]');
         
         this.bindEvents();
@@ -417,31 +384,6 @@ export class CloudFileBrowser {
             item.addEventListener('click', () => {
                 const location = item.dataset.location;
                 this.navigateToLocation(location);
-            });
-        });
-        
-        // Search input
-        const searchInput = this.modal.querySelector('.cfb-search-input');
-        const searchClear = this.modal.querySelector('.cfb-search-clear');
-        
-        searchInput.addEventListener('input', (e) => {
-            const query = e.target.value;
-            searchClear.style.display = query ? 'flex' : 'none';
-            this.handleSearch(query);
-        });
-        
-        searchClear.addEventListener('click', () => {
-            searchInput.value = '';
-            searchClear.style.display = 'none';
-            this.handleSearch('');
-            searchInput.focus();
-        });
-        
-        // View toggle
-        this.modal.querySelectorAll('.cfb-view-btn').forEach(btn => {
-            btn.addEventListener('click', () => {
-                const view = btn.dataset.view;
-                this.setViewMode(view);
             });
         });
         
@@ -491,21 +433,7 @@ export class CloudFileBrowser {
     handleGlobalKeydown = (e) => {
         // Escape to close
         if (e.key === 'Escape') {
-            // If search has focus and has value, clear it
-            const searchInput = this.modal.querySelector('.cfb-search-input');
-            if (document.activeElement === searchInput && searchInput.value) {
-                searchInput.value = '';
-                this.modal.querySelector('.cfb-search-clear').style.display = 'none';
-                this.handleSearch('');
-                return;
-            }
             this.cancel();
-        }
-        
-        // Cmd/Ctrl+F to focus search
-        if ((e.metaKey || e.ctrlKey) && e.key === 'f') {
-            e.preventDefault();
-            this.modal.querySelector('.cfb-search-input').focus();
         }
         
         // Backspace to go up (when not in input)
@@ -628,6 +556,10 @@ export class CloudFileBrowser {
         this.currentFolderId = folder.id;
         this.selectedFile = null;
         this.focusedIndex = -1;
+        
+        // Save as last opened folder
+        this.saveLastFolder(folder.id, folder.name);
+        
         this.updateBreadcrumb();
         this.updateSelection();
         this.loadFiles();
@@ -755,23 +687,6 @@ export class CloudFileBrowser {
     }
     
     /**
-     * Handle search input
-     */
-    handleSearch(query) {
-        this.searchQuery = query.trim().toLowerCase();
-        
-        // Clear existing debounce
-        if (this.searchDebounceTimer) {
-            clearTimeout(this.searchDebounceTimer);
-        }
-        
-        // Debounce search
-        this.searchDebounceTimer = setTimeout(() => {
-            this.renderFiles();
-        }, 200);
-    }
-    
-    /**
      * Handle column sorting
      */
     handleSort(column) {
@@ -798,30 +713,6 @@ export class CloudFileBrowser {
         });
         
         this.renderFiles();
-    }
-    
-    /**
-     * Set view mode
-     */
-    setViewMode(mode) {
-        this.viewMode = mode;
-        this.saveViewMode();
-        
-        // Update toggle buttons
-        this.modal.querySelectorAll('.cfb-view-btn').forEach(btn => {
-            const isActive = btn.dataset.view === mode;
-            btn.classList.toggle('cfb-view-btn--active', isActive);
-            btn.setAttribute('aria-pressed', isActive);
-        });
-        
-        // Update file list class
-        const fileList = this.modal.querySelector('.cfb-files');
-        fileList.classList.remove('cfb-files--list', 'cfb-files--grid');
-        fileList.classList.add(`cfb-files--${mode}`);
-        
-        // Show/hide column headers
-        const listHeader = this.modal.querySelector('.cfb-list-header');
-        listHeader.classList.toggle('cfb-hidden', mode === 'grid');
     }
     
     /**
@@ -857,7 +748,27 @@ export class CloudFileBrowser {
                     
                 case 'my-files':
                 default:
+                    // On first load, try to open last folder or find Story folder
+                    if (this.navigationHistory.length === 0 && this.currentFolderId === null) {
+                        const targetFolder = await this.findInitialFolder(provider);
+                        if (targetFolder) {
+                            this.currentFolderId = targetFolder.id;
+                            this.pushToHistory(null, this.getProviderName());
+                            this.pushToHistory(targetFolder.id, targetFolder.name);
+                            this.updateBreadcrumb();
+                            this.updateNavigationButtons();
+                        }
+                    }
+                    
                     files = await provider.listFiles(this.currentFolderId);
+                    
+                    // Save current folder as last opened
+                    if (this.currentFolderId) {
+                        const currentEntry = this.navigationHistory[this.historyIndex];
+                        if (currentEntry) {
+                            this.saveLastFolder(currentEntry.id, currentEntry.name);
+                        }
+                    }
                     break;
             }
             
@@ -885,6 +796,46 @@ export class CloudFileBrowser {
     }
     
     /**
+     * Find the initial folder to open (last folder or Story folder)
+     * @param {Object} provider
+     * @returns {Promise<{id: string, name: string}|null>}
+     */
+    async findInitialFolder(provider) {
+        // First, try to use last opened folder
+        const lastFolder = this.loadLastFolder();
+        if (lastFolder && lastFolder.id) {
+            try {
+                // Verify folder still exists by listing its contents
+                await provider.listFiles(lastFolder.id);
+                return lastFolder;
+            } catch {
+                // Folder no longer exists, clear saved folder
+                localStorage.removeItem(`${STORAGE_KEYS.LAST_FOLDER}_${this.provider}`);
+            }
+        }
+        
+        // Otherwise, try to find or create Story folder
+        try {
+            const rootFiles = await provider.listFiles(null);
+            const files = Array.isArray(rootFiles) ? rootFiles : (rootFiles.files || []);
+            
+            // Look for existing Story folder
+            const storyFolder = files.find(f => 
+                f.isFolder && f.name.toLowerCase() === STORY_FOLDER_NAME.toLowerCase()
+            );
+            
+            if (storyFolder) {
+                return { id: storyFolder.id, name: storyFolder.name };
+            }
+            
+            // No Story folder found, stay at root
+            return null;
+        } catch {
+            return null;
+        }
+    }
+    
+    /**
      * Render the file list
      */
     renderFiles() {
@@ -893,13 +844,6 @@ export class CloudFileBrowser {
         
         // Filter files
         let filtered = [...this.files];
-        
-        // Apply search filter
-        if (this.searchQuery) {
-            filtered = filtered.filter(f => 
-                f.name.toLowerCase().includes(this.searchQuery)
-            );
-        }
         
         // In open mode, only show .str files (and folders)
         if (this.mode === 'open') {
@@ -921,10 +865,7 @@ export class CloudFileBrowser {
             const emptyTitle = emptyState.querySelector('.cfb-empty-title');
             const emptyText = emptyState.querySelector('.cfb-empty-text');
             
-            if (this.searchQuery) {
-                emptyTitle.textContent = 'No results found';
-                emptyText.textContent = `No files matching "${this.searchQuery}"`;
-            } else if (this.currentLocation === 'recent') {
+            if (this.currentLocation === 'recent') {
                 emptyTitle.textContent = 'No recent files';
                 emptyText.textContent = 'Files you open will appear here.';
             } else if (this.currentLocation === 'shared') {
@@ -933,7 +874,7 @@ export class CloudFileBrowser {
             } else {
                 emptyTitle.textContent = 'No files found';
                 emptyText.textContent = this.mode === 'open' 
-                    ? 'This folder contains no .str files.'
+                    ? 'This folder contains no .story files.'
                     : 'This folder is empty.';
             }
             
@@ -941,7 +882,7 @@ export class CloudFileBrowser {
         }
         
         emptyState.style.display = 'none';
-        container.style.display = this.viewMode === 'grid' ? 'grid' : 'flex';
+        container.style.display = 'flex';
         
         // Render files
         container.innerHTML = filtered.map((file, index) => this.renderFileItem(file, index)).join('');
@@ -1010,25 +951,6 @@ export class CloudFileBrowser {
         const icon = this.getFileIcon(file);
         const modified = this.formatDate(file.modified);
         const size = file.isFolder ? '' : this.formatSize(file.size);
-        
-        if (this.viewMode === 'grid') {
-            return `
-                <button class="cfb-file-item cfb-file-item--grid ${file.isFolder ? 'cfb-file-item--folder' : ''} ${isSelected ? 'cfb-file-item--selected' : ''}"
-                        data-id="${file.id}"
-                        data-index="${index}"
-                        role="option"
-                        aria-selected="${isSelected}">
-                    <div class="cfb-file-thumb">
-                        ${file.thumbnailUrl 
-                            ? `<img src="${file.thumbnailUrl}" alt="" class="cfb-file-thumb-img">`
-                            : icon
-                        }
-                    </div>
-                    <span class="cfb-file-name">${this.escapeHtml(file.name)}</span>
-                    <span class="cfb-file-meta">${modified}</span>
-                </button>
-            `;
-        }
         
         return `
             <button class="cfb-file-item cfb-file-item--list ${file.isFolder ? 'cfb-file-item--folder' : ''} ${isSelected ? 'cfb-file-item--selected' : ''}"
