@@ -2,214 +2,440 @@
 
 ## Executive Summary
 
-This document defines the comprehensive URL routing strategy for Story, a cloud-based presentation application. The strategy ensures:
-- Clean, shareable URLs for all application states
-- Proper asset resolution regardless of route depth
-- OAuth callback handling without breaking assets
-- Deep linking to specific files, slides, and elements
-- Analytics and tracking support
-- SEO-friendly structure for public content
+Story uses **ultra-short encoded URLs** that pack all navigation state into a compact, URL-safe string. Unlike Figma's verbose URLs, Story URLs are designed to be as short as possible while remaining fully functional.
+
+**Example URLs:**
+```
+story.app/d/Kx9mP2              # Basic file (6 chars)
+story.app/d/Kx9mP2.3            # File + slide 3
+story.app/d/Kx9mP2.3p           # Slide 3, presentation mode
+story.app/d/Kx9mP2~sH7kL        # Shared link with token
+```
+
+**Comparison:**
+| App | URL Length | Example |
+|-----|------------|---------|
+| Figma | ~120 chars | `figma.com/design/AbCdEf123456/My-Design?node-id=1234%3A5678&t=...` |
+| Google Slides | ~90 chars | `docs.google.com/presentation/d/1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms/edit#slide=id.g123` |
+| **Story** | **~15 chars** | `story.app/d/Kx9mP2.3p` |
 
 ---
 
-## 1. Industry Benchmarks
+## 1. URL Structure
 
-### 1.1 Figma URL Structure
+### 1.1 Minimal Format
+
 ```
-https://www.figma.com/design/{fileKey}/{fileName}?node-id={nodeId}&t={shareToken}
-https://www.figma.com/file/{fileKey}/{fileName}?node-id={nodeId}
-https://www.figma.com/board/{fileKey}/{fileName}
-https://www.figma.com/proto/{fileKey}?node-id={nodeId}  (Prototype view)
+/d/{code}[.{slide}][{mode}][~{token}]
 ```
 
-**Key Features:**
-- File type in path (`/design/`, `/file/`, `/board/`, `/proto/`)
-- Unique file key (shortened ID)
-- Human-readable file name in URL (SEO)
-- Node selection via query param
-- Share tokens for access control
-- Prototype mode as separate route
+| Part | Chars | Description | Example |
+|------|-------|-------------|---------|
+| `/d/` | 3 | Document prefix | `/d/` |
+| `{code}` | 6 | Encoded file ID | `Kx9mP2` |
+| `.{slide}` | 1-3 | Optional slide number | `.3`, `.15` |
+| `{mode}` | 1 | Optional mode flag | `p`=present, `v`=view |
+| `~{token}` | 6 | Optional share token | `~sH7kL` |
 
-### 1.2 Google Slides URL Structure
-```
-https://docs.google.com/presentation/d/{fileId}/edit
-https://docs.google.com/presentation/d/{fileId}/edit#slide=id.{slideId}
-https://docs.google.com/presentation/d/{fileId}/present
-https://docs.google.com/presentation/d/{fileId}/preview
-https://docs.google.com/presentation/d/{fileId}/pub?start=true&loop=true
-```
+### 1.2 URL Examples
 
-**Key Features:**
-- Product type in path (`/presentation/`)
-- Long file ID
-- Mode as path segment (`/edit`, `/present`, `/preview`, `/pub`)
-- Slide selection via hash fragment
-- Publishing options via query params
-
-### 1.3 Canva URL Structure
 ```
-https://www.canva.com/design/{designId}/{designSlug}/edit
-https://www.canva.com/design/{designId}/{designSlug}/view
-https://www.canva.com/design/{designId}/{designSlug}/view?utm_content=...
+/d/Kx9mP2                    # Edit file (default mode)
+/d/Kx9mP2.1                  # Edit slide 1
+/d/Kx9mP2.5p                 # Present starting at slide 5
+/d/Kx9mP2v                   # View-only mode
+/d/Kx9mP2~sH7kL              # Shared link
+/d/Kx9mP2.3p~sH7kL           # Shared presentation at slide 3
 ```
 
-**Key Features:**
-- Design ID + slug pattern
-- Mode in path
-- UTM tracking in query params
+### 1.3 Special Routes
 
-### 1.4 Notion URL Structure
 ```
-https://www.notion.so/{workspace}/{pageTitle}-{pageId}
-https://www.notion.so/{pageTitle}-{pageId}#{blockId}
+/                            # Home / Dashboard
+/auth/callback               # OAuth callback (internal)
+/new                         # Create new presentation
+/t                           # Templates
+/s                           # Settings
 ```
-
-**Key Features:**
-- Page title for SEO/readability
-- Short page ID appended
-- Block-level linking via hash
 
 ---
 
-## 2. Story URL Structure
+## 2. Encoding System
 
-### 2.1 Route Hierarchy
+### 2.1 Character Set
 
-```
-/                                    # Home / Dashboard
-├── /auth/callback                   # OAuth callback (internal)
-├── /new                             # Create new presentation
-├── /d/{fileId}                      # Open local/cloud file (edit mode)
-│   ├── /d/{fileId}/edit             # Explicit edit mode
-│   ├── /d/{fileId}/present          # Presentation mode
-│   └── /d/{fileId}/preview          # Preview/read-only mode
-├── /recent                          # Recent files list
-├── /templates                       # Template gallery
-└── /settings                        # User settings
-```
-
-### 2.2 File URL Format
-
-```
-/d/{fileId}[/{mode}][?params]#{fragment}
-```
-
-**Components:**
-
-| Component | Description | Example |
-|-----------|-------------|---------|
-| `/d/` | Document prefix (short for readability) | `/d/` |
-| `{fileId}` | Unique file identifier | `abc123xyz` |
-| `{mode}` | Optional mode segment | `edit`, `present`, `preview` |
-| `?params` | Query parameters | `?slide=2&utm_source=share` |
-| `#{fragment}` | Hash fragment for in-page state | `#slide-2`, `#element-xyz` |
-
-### 2.3 File ID Generation
-
-**Format:** `{timestamp-base36}{random-base36}`
+Uses a URL-safe Base62 alphabet (no special characters needed):
 
 ```javascript
-function generateFileId() {
-    const timestamp = Date.now().toString(36);  // ~8 chars
-    const random = Math.random().toString(36).substring(2, 8); // 6 chars
-    return `${timestamp}${random}`; // ~14 chars total
+const ALPHABET = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
+// 62 characters = ~5.95 bits per character
+```
+
+### 2.2 File Code Generation
+
+6-character codes provide 62^6 = **56.8 billion unique combinations**.
+
+```javascript
+class UrlCodec {
+    static ALPHABET = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
+    
+    /**
+     * Generate a random 6-character file code
+     */
+    static generateFileCode() {
+        const bytes = new Uint8Array(6);
+        crypto.getRandomValues(bytes);
+        return Array.from(bytes)
+            .map(b => this.ALPHABET[b % 62])
+            .join('');
+    }
+    
+    /**
+     * Encode a number to Base62
+     */
+    static encodeNumber(num) {
+        if (num === 0) return '0';
+        let result = '';
+        while (num > 0) {
+            result = this.ALPHABET[num % 62] + result;
+            num = Math.floor(num / 62);
+        }
+        return result;
+    }
+    
+    /**
+     * Decode Base62 to number
+     */
+    static decodeNumber(str) {
+        let result = 0;
+        for (const char of str) {
+            result = result * 62 + this.ALPHABET.indexOf(char);
+        }
+        return result;
+    }
+}
+```
+
+### 2.3 Full URL Encoding
+
+Pack all state into a single short string:
+
+```javascript
+class StoryUrl {
+    /**
+     * Build a Story URL from components
+     */
+    static build({ fileCode, slide = null, mode = null, shareToken = null }) {
+        let url = `/d/${fileCode}`;
+        
+        // Add slide number (if not slide 1 or default)
+        if (slide && slide > 1) {
+            url += `.${slide}`;
+        } else if (slide === 1 && mode) {
+            // Need separator before mode
+            url += '.1';
+        }
+        
+        // Add mode flag
+        if (mode === 'present') url += 'p';
+        else if (mode === 'view') url += 'v';
+        else if (mode === 'preview') url += 'r';
+        
+        // Add share token
+        if (shareToken) {
+            url += `~${shareToken}`;
+        }
+        
+        return url;
+    }
+    
+    /**
+     * Parse a Story URL
+     */
+    static parse(url) {
+        const match = url.match(/^\/d\/([A-Za-z0-9]{6})(?:\.(\d+))?([pvr])?(?:~([A-Za-z0-9]+))?$/);
+        
+        if (!match) return null;
+        
+        return {
+            fileCode: match[1],
+            slide: match[2] ? parseInt(match[2], 10) : 1,
+            mode: { 'p': 'present', 'v': 'view', 'r': 'preview' }[match[3]] || 'edit',
+            shareToken: match[4] || null
+        };
+    }
 }
 
-// Example: "lz5k8g2m4n7p3q"
+// Examples:
+StoryUrl.build({ fileCode: 'Kx9mP2' });
+// → "/d/Kx9mP2"
+
+StoryUrl.build({ fileCode: 'Kx9mP2', slide: 5, mode: 'present' });
+// → "/d/Kx9mP2.5p"
+
+StoryUrl.build({ fileCode: 'Kx9mP2', shareToken: 'sH7kL' });
+// → "/d/Kx9mP2~sH7kL"
+
+StoryUrl.parse('/d/Kx9mP2.5p~sH7kL');
+// → { fileCode: 'Kx9mP2', slide: 5, mode: 'present', shareToken: 'sH7kL' }
 ```
 
-**Properties:**
-- Sortable by creation time (timestamp prefix)
-- Collision-resistant (random suffix)
-- URL-safe (base36)
-- Reasonably short (~14 characters)
+### 2.4 Share Token Generation
 
-### 2.4 Cloud File Mapping
-
-For cloud-stored files, maintain a mapping:
+5-character tokens provide 62^5 = **916 million combinations** (plenty for share links):
 
 ```javascript
-{
-    "lz5k8g2m4n7p3q": {
-        "provider": "onedrive",
-        "cloudId": "DriveItem.id",
-        "path": "/Documents/Story/MyPresentation.str",
-        "created": "2024-01-15T10:30:00Z"
+static generateShareToken() {
+    const bytes = new Uint8Array(5);
+    crypto.getRandomValues(bytes);
+    return Array.from(bytes)
+        .map(b => this.ALPHABET[b % 62])
+        .join('');
+}
+```
+
+---
+
+## 3. File Code Registry
+
+### 3.1 Local Storage Mapping
+
+Map short codes to actual file references:
+
+```javascript
+class FileCodeRegistry {
+    static STORAGE_KEY = 'story-file-codes';
+    
+    static getRegistry() {
+        return JSON.parse(localStorage.getItem(this.STORAGE_KEY) || '{}');
+    }
+    
+    static saveRegistry(registry) {
+        localStorage.setItem(this.STORAGE_KEY, JSON.stringify(registry));
+    }
+    
+    /**
+     * Register a file and get its code
+     */
+    static register(fileInfo) {
+        const registry = this.getRegistry();
+        
+        // Check if file already has a code
+        const existing = Object.entries(registry).find(([code, info]) => 
+            info.provider === fileInfo.provider && 
+            info.cloudId === fileInfo.cloudId
+        );
+        
+        if (existing) return existing[0];
+        
+        // Generate new code
+        const code = UrlCodec.generateFileCode();
+        registry[code] = {
+            ...fileInfo,
+            created: Date.now()
+        };
+        
+        this.saveRegistry(registry);
+        return code;
+    }
+    
+    /**
+     * Look up file info by code
+     */
+    static lookup(code) {
+        const registry = this.getRegistry();
+        return registry[code] || null;
+    }
+    
+    /**
+     * Get code for existing file
+     */
+    static getCode(provider, cloudId) {
+        const registry = this.getRegistry();
+        const entry = Object.entries(registry).find(([_, info]) => 
+            info.provider === provider && info.cloudId === cloudId
+        );
+        return entry ? entry[0] : null;
+    }
+}
+
+// Usage:
+const code = FileCodeRegistry.register({
+    provider: 'onedrive',
+    cloudId: 'DriveItem.12345',
+    name: 'My Presentation.story',
+    path: '/Documents/Story/'
+});
+// → "Kx9mP2"
+
+FileCodeRegistry.lookup('Kx9mP2');
+// → { provider: 'onedrive', cloudId: '...', name: '...', ... }
+```
+
+### 3.2 Registry Entry Structure
+
+```typescript
+interface FileCodeEntry {
+    provider: 'local' | 'onedrive' | 'googledrive' | 'dropbox';
+    cloudId?: string;       // Cloud provider's file ID
+    localHandle?: string;   // Serialized FileSystemHandle (for local files)
+    name: string;           // File name
+    path?: string;          // File path
+    created: number;        // Timestamp when code was created
+    lastAccessed?: number;  // Last access timestamp
+}
+```
+
+### 3.3 Cleanup & Limits
+
+```javascript
+class FileCodeRegistry {
+    static MAX_ENTRIES = 1000;
+    static MAX_AGE_DAYS = 90;
+    
+    static cleanup() {
+        const registry = this.getRegistry();
+        const now = Date.now();
+        const maxAge = this.MAX_AGE_DAYS * 24 * 60 * 60 * 1000;
+        
+        // Remove old entries
+        const entries = Object.entries(registry)
+            .filter(([_, info]) => now - info.created < maxAge)
+            .sort((a, b) => (b[1].lastAccessed || b[1].created) - (a[1].lastAccessed || a[1].created))
+            .slice(0, this.MAX_ENTRIES);
+        
+        const cleaned = Object.fromEntries(entries);
+        this.saveRegistry(cleaned);
     }
 }
 ```
 
 ---
 
-## 3. Query Parameters
+## 4. Share Links
 
-### 3.1 Navigation Parameters
+### 4.1 Share Link Structure
 
-| Parameter | Description | Example |
-|-----------|-------------|---------|
-| `slide` | Current slide number (1-indexed) | `?slide=3` |
-| `element` | Selected element ID | `?element=text-abc123` |
-| `zoom` | Zoom level percentage | `?zoom=150` |
-| `fit` | Fit mode | `?fit=width`, `?fit=page` |
+```
+/d/{fileCode}~{token}
+```
 
-### 3.2 Sharing Parameters
+The token maps to share permissions stored server-side or in the file metadata.
 
-| Parameter | Description | Example |
-|-----------|-------------|---------|
-| `token` | Share access token | `?token=xyz789` |
-| `access` | Access level hint | `?access=view`, `?access=comment` |
-| `expires` | Expiration timestamp | `?expires=1735689600` |
+### 4.2 Share Token Registry
 
-### 3.3 Presentation Mode Parameters
-
-| Parameter | Description | Example |
-|-----------|-------------|---------|
-| `autoplay` | Auto-advance slides | `?autoplay=true` |
-| `interval` | Slide interval (seconds) | `?interval=5` |
-| `loop` | Loop presentation | `?loop=true` |
-| `start` | Starting slide | `?start=1` |
-
-### 3.4 Tracking Parameters (UTM)
-
-| Parameter | Description | Example |
-|-----------|-------------|---------|
-| `utm_source` | Traffic source | `?utm_source=twitter` |
-| `utm_medium` | Marketing medium | `?utm_medium=social` |
-| `utm_campaign` | Campaign name | `?utm_campaign=launch2024` |
-| `utm_content` | Content identifier | `?utm_content=hero_cta` |
-| `ref` | Referrer ID | `?ref=user123` |
+```javascript
+class ShareTokenRegistry {
+    /**
+     * Create a share link
+     */
+    static async create(fileCode, options = {}) {
+        const token = UrlCodec.generateShareToken();
+        
+        const shareInfo = {
+            fileCode,
+            token,
+            access: options.access || 'view',  // 'view', 'comment', 'edit'
+            expires: options.expires || null,   // Timestamp or null for no expiry
+            password: options.password ? await this.hashPassword(options.password) : null,
+            created: Date.now(),
+            createdBy: options.userId
+        };
+        
+        // Store in file metadata or server
+        await this.saveShare(shareInfo);
+        
+        return token;
+    }
+    
+    /**
+     * Validate share token
+     */
+    static async validate(fileCode, token, password = null) {
+        const share = await this.getShare(fileCode, token);
+        
+        if (!share) return { valid: false, reason: 'invalid_token' };
+        if (share.expires && Date.now() > share.expires) return { valid: false, reason: 'expired' };
+        if (share.password && !await this.verifyPassword(password, share.password)) {
+            return { valid: false, reason: 'password_required' };
+        }
+        
+        return { valid: true, access: share.access };
+    }
+}
+```
 
 ---
 
-## 4. Hash Fragments
+## 5. Extended State (Optional)
 
-Hash fragments provide instant navigation without page reload:
+For advanced use cases, support an extended state parameter that can be compressed:
 
-### 4.1 Slide Navigation
-```
-#slide-{number}        # By position: #slide-3
-#slide-{id}           # By ID: #slide-abc123
-```
+### 5.1 Extended URL Format
 
-### 4.2 Element Focus
 ```
-#element-{id}         # Focus element: #element-text-xyz
-#layer-{id}           # Expand layer in tree: #layer-group-abc
+/d/{fileCode}:{extendedState}
 ```
 
-### 4.3 Panel State
-```
-#panel-properties     # Open properties panel
-#panel-layers         # Open layers panel
-#panel-comments       # Open comments panel
+### 5.2 State Compression
+
+```javascript
+class ExtendedState {
+    /**
+     * Encode complex state into a short string
+     */
+    static encode(state) {
+        // Convert to minimal JSON
+        const json = JSON.stringify(state);
+        
+        // Compress using simple dictionary + base62
+        const compressed = this.compress(json);
+        
+        // URL-safe base62 encoding
+        return this.toBase62(compressed);
+    }
+    
+    /**
+     * Decode state string back to object
+     */
+    static decode(encoded) {
+        const compressed = this.fromBase62(encoded);
+        const json = this.decompress(compressed);
+        return JSON.parse(json);
+    }
+    
+    /**
+     * Simple compression for common keys
+     */
+    static compress(json) {
+        const dictionary = {
+            '"slide":': 's:',
+            '"zoom":': 'z:',
+            '"element":': 'e:',
+            '"panel":': 'p:',
+            'true': '1',
+            'false': '0'
+        };
+        
+        let result = json;
+        for (const [long, short] of Object.entries(dictionary)) {
+            result = result.replace(new RegExp(long, 'g'), short);
+        }
+        return result;
+    }
+}
 ```
 
-### 4.4 Modal State
-```
-#share                # Open share dialog
-#export               # Open export dialog
-#settings             # Open settings
-```
+### 5.3 When to Use Extended State
+
+| Use Case | Simple URL | Extended State |
+|----------|------------|----------------|
+| Open file | ✓ `/d/Kx9mP2` | |
+| Go to slide | ✓ `/d/Kx9mP2.5` | |
+| Present mode | ✓ `/d/Kx9mP2p` | |
+| Zoom level | | ✓ `/d/Kx9mP2:z150` |
+| Selected element | | ✓ `/d/Kx9mP2:eAbc` |
+| Multiple selections | | ✓ `/d/Kx9mP2:e[Ab,Cd]` |
 
 ---
 
@@ -269,154 +495,96 @@ export default {
 ```javascript
 class AppRouter {
     constructor() {
-        this.routes = new Map();
-        this.currentRoute = null;
-        this.params = {};
-        this.query = {};
-        this.hash = '';
-        
+        this.currentFile = null;
         this.init();
     }
     
     init() {
         // Handle initial route
-        this.handleRoute(window.location);
+        this.handleRoute();
         
         // Listen for navigation
-        window.addEventListener('popstate', (e) => {
-            this.handleRoute(window.location);
-        });
-        
-        // Intercept link clicks
-        document.addEventListener('click', (e) => {
-            const link = e.target.closest('a[href^="/"]');
-            if (link && !link.hasAttribute('data-external')) {
-                e.preventDefault();
-                this.navigate(link.href);
-            }
-        });
+        window.addEventListener('popstate', () => this.handleRoute());
     }
     
     navigate(url, replace = false) {
         const method = replace ? 'replaceState' : 'pushState';
         history[method]({}, '', url);
-        this.handleRoute(new URL(url, window.location.origin));
+        this.handleRoute();
     }
     
-    handleRoute(location) {
-        const path = location.pathname;
-        this.query = Object.fromEntries(new URLSearchParams(location.search));
-        this.hash = location.hash.slice(1);
+    handleRoute() {
+        const path = window.location.pathname;
         
-        // Match route
-        for (const [pattern, handler] of this.routes) {
-            const match = this.matchRoute(pattern, path);
-            if (match) {
-                this.params = match;
-                this.currentRoute = pattern;
-                handler(match, this.query, this.hash);
-                return;
-            }
+        // Special routes
+        if (path === '/') return this.handleHome();
+        if (path === '/auth/callback') return this.handleAuthCallback();
+        if (path === '/new') return this.handleNew();
+        if (path === '/t') return this.handleTemplates();
+        if (path === '/s') return this.handleSettings();
+        
+        // File route: /d/{code}[.{slide}][{mode}][~{token}]
+        const parsed = StoryUrl.parse(path);
+        if (parsed) {
+            return this.handleFile(parsed);
         }
         
-        // 404 - redirect to home
+        // Unknown route - go home
         this.navigate('/', true);
     }
     
-    matchRoute(pattern, path) {
-        const patternParts = pattern.split('/');
-        const pathParts = path.split('/');
-        
-        if (patternParts.length !== pathParts.length) {
-            return null;
-        }
-        
-        const params = {};
-        
-        for (let i = 0; i < patternParts.length; i++) {
-            if (patternParts[i].startsWith(':')) {
-                params[patternParts[i].slice(1)] = pathParts[i];
-            } else if (patternParts[i] !== pathParts[i]) {
-                return null;
+    async handleFile({ fileCode, slide, mode, shareToken }) {
+        // Validate share token if present
+        if (shareToken) {
+            const validation = await ShareTokenRegistry.validate(fileCode, shareToken);
+            if (!validation.valid) {
+                return this.showError(validation.reason);
             }
         }
         
-        return params;
-    }
-    
-    register(pattern, handler) {
-        this.routes.set(pattern, handler);
-    }
-    
-    // URL builders
-    fileUrl(fileId, options = {}) {
-        let url = `/d/${fileId}`;
-        
-        if (options.mode && options.mode !== 'edit') {
-            url += `/${options.mode}`;
+        // Look up file
+        const fileInfo = FileCodeRegistry.lookup(fileCode);
+        if (!fileInfo) {
+            return this.showError('file_not_found');
         }
         
-        const params = new URLSearchParams();
-        if (options.slide) params.set('slide', options.slide);
-        if (options.token) params.set('token', options.token);
+        // Load file
+        await app.openFile(fileInfo);
         
-        const queryString = params.toString();
-        if (queryString) url += `?${queryString}`;
+        // Apply state
+        if (slide > 1) store.dispatch('GO_TO_SLIDE', slide);
+        if (mode === 'present') store.dispatch('START_PRESENTATION');
+        else if (mode === 'view') store.dispatch('SET_READ_ONLY', true);
+    }
+    
+    // Update URL when state changes
+    updateUrl(options = {}) {
+        const code = this.currentFile?.code;
+        if (!code) return;
         
-        if (options.element) url += `#element-${options.element}`;
-        else if (options.slideHash) url += `#slide-${options.slideHash}`;
+        const url = StoryUrl.build({
+            fileCode: code,
+            slide: options.slide,
+            mode: options.mode,
+            shareToken: options.shareToken
+        });
         
-        return url;
+        history.replaceState({}, '', url);
     }
 }
 ```
 
-### 6.2 Route Handlers
+### 6.2 Integration with Store
 
 ```javascript
-// Initialize router
-const router = new AppRouter();
-
-// Home / Dashboard
-router.register('/', () => {
-    app.showDashboard();
+// Sync slide changes to URL
+store.on('slide-changed', (slideIndex) => {
+    router.updateUrl({ slide: slideIndex + 1 });
 });
 
-// OAuth callback
-router.register('/auth/callback', async () => {
-    await handleAuthCallback();
-    const returnUrl = getReturnUrl() || '/';
-    router.navigate(returnUrl, true);
-});
-
-// New presentation
-router.register('/new', () => {
-    app.createNewPresentation();
-    const fileId = generateFileId();
-    router.navigate(`/d/${fileId}`, true);
-});
-
-// Open file (default to edit mode)
-router.register('/d/:fileId', (params, query, hash) => {
-    app.openFile(params.fileId, {
-        mode: 'edit',
-        slide: query.slide,
-        element: hash?.startsWith('element-') ? hash.slice(8) : null
-    });
-});
-
-// Explicit edit mode
-router.register('/d/:fileId/edit', (params, query, hash) => {
-    app.openFile(params.fileId, { mode: 'edit', ...query });
-});
-
-// Presentation mode
-router.register('/d/:fileId/present', (params, query) => {
-    app.openFile(params.fileId, {
-        mode: 'presentation',
-        autoplay: query.autoplay === 'true',
-        start: parseInt(query.start) || 1
-    });
+// Sync mode changes to URL  
+store.on('mode-changed', (mode) => {
+    router.updateUrl({ mode });
 });
 ```
 
@@ -426,52 +594,11 @@ router.register('/d/:fileId/present', (params, query) => {
 
 ### 7.1 URL State Sync
 
-The URL should reflect application state for:
-- Current file
-- Current slide
-- Selected element (optional)
-- View mode
-- Share context
-
-```javascript
-class URLStateSync {
-    constructor(router, store) {
-        this.router = router;
-        this.store = store;
-        
-        // Sync store changes to URL
-        store.on('slide-changed', (slideId) => {
-            this.updateHash(`slide-${slideId}`);
-        });
-        
-        store.on('selection-changed', (selection) => {
-            if (selection.length === 1) {
-                this.updateQuery({ element: selection[0] });
-            } else {
-                this.removeQuery('element');
-            }
-        });
-    }
-    
-    updateHash(hash) {
-        const url = new URL(window.location);
-        url.hash = hash;
-        history.replaceState({}, '', url);
-    }
-    
-    updateQuery(params) {
-        const url = new URL(window.location);
-        for (const [key, value] of Object.entries(params)) {
-            url.searchParams.set(key, value);
-        }
-        history.replaceState({}, '', url);
-    }
-    
-    removeQuery(...keys) {
-        const url = new URL(window.location);
-        keys.forEach(key => url.searchParams.delete(key));
-        history.replaceState({}, '', url);
-    }
+The URL reflects the minimal required state:
+- File code (always)
+- Slide number (if not 1)
+- Mode (if not edit)
+- Share token (if shared link)
 }
 ```
 
@@ -722,26 +849,35 @@ https://story.app/
 https://story.app/new
 
 # Edit file
-https://story.app/d/lz5k8g2m4n7p3q
+https://story.app/d/Kx9mP2
 
-# Edit file, specific slide
-https://story.app/d/lz5k8g2m4n7p3q?slide=3
-
-# Edit file, specific element
-https://story.app/d/lz5k8g2m4n7p3q#element-text-abc123
+# Edit file, slide 5
+https://story.app/d/Kx9mP2.5
 
 # Presentation mode
-https://story.app/d/lz5k8g2m4n7p3q/present
+https://story.app/d/Kx9mP2p
 
-# Presentation with autoplay
-https://story.app/d/lz5k8g2m4n7p3q/present?autoplay=true&interval=5
+# Presentation starting at slide 3
+https://story.app/d/Kx9mP2.3p
 
-# Preview mode with share token
-https://story.app/d/lz5k8g2m4n7p3q/preview?token=abc123xyz
+# View-only mode
+https://story.app/d/Kx9mP2v
 
-# Shared with tracking
-https://story.app/d/lz5k8g2m4n7p3q?token=abc123xyz&utm_source=email&utm_campaign=q1_2024
+# Shared link
+https://story.app/d/Kx9mP2~sH7kL
+
+# Shared presentation at slide 5
+https://story.app/d/Kx9mP2.5p~sH7kL
 ```
+
+**URL Length Comparison:**
+
+| Scenario | Story | Figma |
+|----------|-------|-------|
+| Open file | 22 chars | ~80 chars |
+| Slide 5 | 24 chars | ~95 chars |
+| Present mode | 23 chars | ~90 chars |
+| Shared link | 28 chars | ~120 chars |
 
 ---
 
@@ -749,8 +885,8 @@ https://story.app/d/lz5k8g2m4n7p3q?token=abc123xyz&utm_source=email&utm_campaign
 
 | Error | URL | Behavior |
 |-------|-----|----------|
-| File not found | `/d/invalid` | Redirect to `/` with toast |
-| Invalid token | `/d/xyz?token=bad` | Show "Access Denied" page |
-| Expired token | `/d/xyz?token=expired` | Show "Link Expired" page |
-| Auth required | `/d/xyz` (private) | Redirect to sign-in, then back |
-| 404 route | `/unknown/path` | Redirect to `/` |
+| File not found | `/d/Kx9mP2` | Redirect to `/` with toast |
+| Invalid token | `/d/Kx9mP2~bad` | Show "Access Denied" page |
+| Expired token | `/d/Kx9mP2~exp` | Show "Link Expired" page |
+| Auth required | `/d/Kx9mP2` (private) | Redirect to sign-in, then back |
+| 404 route | `/unknown` | Redirect to `/` |
