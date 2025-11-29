@@ -43,7 +43,8 @@ import { authService } from '../../core/auth/index.js';
 // Storage keys
 const STORAGE_KEYS = {
     RECENT_FILES: 'story_cloud_recent_files',
-    LAST_FOLDER: 'story_cloud_last_folder'
+    LAST_FOLDER: 'story_cloud_last_folder',
+    PENDING_ACTION: 'story_cloud_pending_action'
 };
 
 // Maximum recent files to store
@@ -1126,13 +1127,24 @@ export class CloudFileBrowser {
         btn.classList.add('cfb-signin-btn--loading');
         
         try {
+            // Store pending action before OAuth redirect
+            // This will be resumed after successful authentication
+            CloudFileBrowser.storePendingAction({
+                provider: this.provider,
+                mode: this.mode,
+                suggestedName: this.suggestedName
+            });
+            
             const provider = this.cloudStorage.getProvider(this.provider);
             await provider.authenticate();
             
-            // After successful auth, load files
+            // Note: If we reach here, authentication didn't require a redirect
+            // (e.g., token was cached). Clear the pending action and load files.
+            CloudFileBrowser.clearPendingAction();
             this.loadFiles();
         } catch (error) {
             console.error('Sign-in failed:', error);
+            CloudFileBrowser.clearPendingAction();
             btn.disabled = false;
             btn.classList.remove('cfb-signin-btn--loading');
             
@@ -1145,6 +1157,78 @@ export class CloudFileBrowser {
             }
             errorEl.textContent = 'Sign-in failed. Please try again.';
         }
+    }
+    
+    /**
+     * Store a pending cloud action to resume after authentication
+     * @param {Object} action - Action to store
+     * @param {string} action.provider - Cloud provider ID
+     * @param {string} action.mode - Browser mode ('open' or 'save')
+     * @param {string} [action.suggestedName] - Suggested filename for save mode
+     */
+    static storePendingAction(action) {
+        try {
+            sessionStorage.setItem(STORAGE_KEYS.PENDING_ACTION, JSON.stringify({
+                ...action,
+                timestamp: Date.now()
+            }));
+        } catch (e) {
+            console.error('Failed to store pending action:', e);
+        }
+    }
+    
+    /**
+     * Get and clear any pending cloud action
+     * @returns {Object|null} Pending action or null
+     */
+    static getPendingAction() {
+        try {
+            const data = sessionStorage.getItem(STORAGE_KEYS.PENDING_ACTION);
+            if (!data) return null;
+            
+            const action = JSON.parse(data);
+            
+            // Expire after 5 minutes
+            if (Date.now() - action.timestamp > 5 * 60 * 1000) {
+                CloudFileBrowser.clearPendingAction();
+                return null;
+            }
+            
+            return action;
+        } catch (e) {
+            return null;
+        }
+    }
+    
+    /**
+     * Clear pending action
+     */
+    static clearPendingAction() {
+        try {
+            sessionStorage.removeItem(STORAGE_KEYS.PENDING_ACTION);
+        } catch (e) {
+            // Ignore
+        }
+    }
+    
+    /**
+     * Resume pending cloud action after authentication
+     * Call this from app initialization after auth boot
+     * @returns {Promise<Object|null>} Result from CloudFileBrowser or null if no pending action
+     */
+    static async resumePendingAction() {
+        const action = CloudFileBrowser.getPendingAction();
+        if (!action) return null;
+        
+        // Clear the pending action
+        CloudFileBrowser.clearPendingAction();
+        
+        // Show the cloud file browser with the stored options
+        return CloudFileBrowser.show({
+            provider: action.provider,
+            mode: action.mode,
+            suggestedName: action.suggestedName
+        });
     }
     
     /**

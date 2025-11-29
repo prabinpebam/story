@@ -48,6 +48,25 @@ class App {
         
         // Now initialize the rest of the app
         this.init();
+        
+        // After app is initialized, check for pending cloud actions
+        // This handles the case where user was redirected to OAuth from CloudFileBrowser
+        if (this.authBootResult.wasCallback && this.authBootResult.isAuthenticated) {
+            this.resumePendingCloudAction();
+        }
+    }
+    
+    /**
+     * Resume any pending cloud action after successful OAuth
+     */
+    async resumePendingCloudAction() {
+        try {
+            // Dynamic import to avoid circular dependencies
+            const { CloudFileBrowser } = await import('./ui/file/CloudFileBrowser.js');
+            await CloudFileBrowser.resumePendingAction();
+        } catch (error) {
+            console.error('Failed to resume pending cloud action:', error);
+        }
     }
 
     init() {
