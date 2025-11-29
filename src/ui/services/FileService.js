@@ -209,11 +209,15 @@ class FileService extends EventEmitter {
      * @param {'onedrive' | 'google-drive'} provider
      */
     async openFromCloud(provider) {
+        console.log('[FileService] openFromCloud called for provider:', provider);
+        
         // Check for unsaved changes first
         if (this.hasUnsavedChanges()) {
+            console.log('[FileService] Has unsaved changes, showing alert');
             const result = await alertModal.unsavedChanges();
             
             if (result === 'cancel') {
+                console.log('[FileService] User cancelled due to unsaved changes');
                 return false;
             }
             
@@ -224,13 +228,17 @@ class FileService extends EventEmitter {
         }
 
         try {
+            console.log('[FileService] Showing CloudFilePicker for provider:', provider);
             // Show cloud file picker modal (handles auth inline if needed)
             const result = await CloudFilePicker.show({
                 provider,
                 mode: 'open'
             });
             
+            console.log('[FileService] CloudFilePicker result:', result);
+            
             if (!result || !result.file) {
+                console.log('[FileService] User cancelled or no file selected');
                 return false; // User cancelled
             }
 

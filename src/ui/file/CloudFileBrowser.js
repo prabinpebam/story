@@ -64,6 +64,7 @@ export class CloudFileBrowser {
      * @param {Function} options.onCancel - Called when cancelled
      */
     constructor(options) {
+        console.log('[CloudFileBrowser] constructor called for provider:', options.provider);
         this.provider = options.provider;
         this.mode = options.mode || 'open';
         this.suggestedName = options.suggestedName || 'Untitled';
@@ -100,6 +101,7 @@ export class CloudFileBrowser {
         
         // Cloud storage manager
         this.cloudStorage = getCloudStorageManager();
+        console.log('[CloudFileBrowser] cloudStorage:', this.cloudStorage);
         
         this.create();
     }
@@ -194,6 +196,16 @@ export class CloudFileBrowser {
      * Create the browser modal
      */
     create() {
+        console.log('[CloudFileBrowser] create() called for provider:', this.provider);
+        
+        // Check for existing overlays
+        const existingOverlays = document.querySelectorAll('.cfb-overlay');
+        console.log('[CloudFileBrowser] Existing cfb-overlays in DOM:', existingOverlays.length);
+        if (existingOverlays.length > 0) {
+            console.log('[CloudFileBrowser] Removing existing overlays');
+            existingOverlays.forEach(el => el.remove());
+        }
+        
         // Create overlay
         this.overlay = document.createElement('div');
         this.overlay.className = 'cfb-overlay';
@@ -347,12 +359,14 @@ export class CloudFileBrowser {
         
         this.overlay.appendChild(this.modal);
         document.body.appendChild(this.overlay);
+        console.log('[CloudFileBrowser] Modal appended to DOM, overlay:', this.overlay, 'modal:', this.modal);
         
         // Focus trap
         this.firstFocusable = this.modal.querySelector('.cfb-nav-item');
         this.lastFocusable = this.modal.querySelector('[data-action="confirm"]');
         
         this.bindEvents();
+        console.log('[CloudFileBrowser] Events bound, calling loadFiles()');
         this.loadFiles();
     }
     
@@ -1285,6 +1299,7 @@ export class CloudFileBrowser {
      * Cancel and close
      */
     cancel() {
+        console.log('[CloudFileBrowser] cancel() called');
         this.close();
         this.onCancel();
     }
@@ -1293,6 +1308,7 @@ export class CloudFileBrowser {
      * Close the modal
      */
     close() {
+        console.log('[CloudFileBrowser] close() called');
         document.removeEventListener('keydown', this.handleGlobalKeydown);
         
         if (this.overlay) {
@@ -1302,6 +1318,7 @@ export class CloudFileBrowser {
                     this.overlay.remove();
                     this.overlay = null;
                     this.modal = null;
+                    console.log('[CloudFileBrowser] Modal removed from DOM');
                 }
             }, 150);
         }
@@ -1361,11 +1378,19 @@ export class CloudFileBrowser {
      * Static method to show browser and return promise
      */
     static show(options) {
+        console.log('[CloudFileBrowser] show() called with options:', options);
         return new Promise((resolve) => {
+            console.log('[CloudFileBrowser] Creating new CloudFileBrowser instance');
             new CloudFileBrowser({
                 ...options,
-                onSelect: (result) => resolve(result),
-                onCancel: () => resolve(null)
+                onSelect: (result) => {
+                    console.log('[CloudFileBrowser] onSelect called with:', result);
+                    resolve(result);
+                },
+                onCancel: () => {
+                    console.log('[CloudFileBrowser] onCancel called');
+                    resolve(null);
+                }
             });
         });
     }
