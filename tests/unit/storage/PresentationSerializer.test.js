@@ -34,7 +34,10 @@ describe('PresentationSerializer', () => {
                             y: 100,
                             width: 300,
                             height: 50,
-                            text: 'Hello World',
+                            content: '<p>Hello World</p>',
+                            fontFamily: 'Inter',
+                            fontSize: 24,
+                            textFill: { type: 'solid', value: '#000000' },
                             style: {
                                 fontFamily: 'Inter',
                                 fontSize: 24,
@@ -152,8 +155,8 @@ describe('PresentationSerializer', () => {
             const serialized = serializer.serializeElement(element);
 
             expect(serialized.type).toBe('text');
-            expect(serialized.text).toBe('Hello World');
-            expect(serialized.style.fontFamily).toBe('Inter');
+            expect(serialized.content).toBe('<p>Hello World</p>');
+            expect(serialized.fontFamily).toBe('Inter');
             expect(serialized.x).toBe(100);
             expect(serialized.y).toBe(100);
         });

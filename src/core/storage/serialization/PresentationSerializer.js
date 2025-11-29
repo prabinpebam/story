@@ -174,9 +174,14 @@ export class PresentationSerializer {
             id: slide.id,
             order: slide.order ?? 0,
             name: slide.name || null,
+            title: slide.title || null,
             elements: elements.map(el => this.serializeElement(el)),
+            elementOrder: elementOrder,
             background: this.serializeBackground(slide.background),
-            layout: slide.layout || slide.layoutId || null,
+            layout: slide.layout || null,
+            layoutId: slide.layoutId || null,
+            width: slide.width,
+            height: slide.height,
             notes: slide.notes || '',
             transition: slide.transition || null,
             duration: slide.duration || null,
@@ -190,7 +195,9 @@ export class PresentationSerializer {
      * @returns {Object} Serialized element
      */
     serializeElement(element) {
+        // Start with a complete copy of the element to preserve all properties
         const serialized = {
+            // Core properties
             id: element.id,
             type: element.type,
             x: element.x,
@@ -201,41 +208,84 @@ export class PresentationSerializer {
             opacity: element.opacity ?? 1,
             locked: element.locked || false,
             visible: element.visible !== false,
-            name: element.name || null
+            name: element.name || null,
+            
+            // Placeholder properties
+            isPlaceholder: element.isPlaceholder || false,
+            placeholderType: element.placeholderType || null
         };
 
         // Type-specific properties
         switch (element.type) {
             case 'text':
-                serialized.text = element.text || '';
-                serialized.style = this.serializeTextStyle(element.style);
+                // Text content - use 'content' as the app does, not 'text'
+                serialized.content = element.content || '';
+                
+                // Typography properties at element level
+                serialized.fontSize = element.fontSize;
+                serialized.fontFamily = element.fontFamily;
+                serialized.fontWeight = element.fontWeight;
+                serialized.fontStyle = element.fontStyle;
+                serialized.textAlign = element.textAlign;
+                serialized.verticalAlign = element.verticalAlign;
+                serialized.lineHeight = element.lineHeight;
+                serialized.letterSpacing = element.letterSpacing;
+                serialized.textTransform = element.textTransform;
+                serialized.textDecoration = element.textDecoration;
+                serialized.paragraphSpacing = element.paragraphSpacing;
+                serialized.paragraphIndent = element.paragraphIndent;
+                
+                // Text fill (color)
+                serialized.textFill = element.textFill || null;
+                
+                // Style object (may contain additional styling)
+                serialized.style = element.style ? { ...element.style } : null;
                 break;
+                
+            case 'rect':
+            case 'circle':
+            case 'shape':
+                serialized.shapeType = element.shapeType || element.type;
+                // Style contains backgroundColor, borderWidth, borderColor, etc.
+                serialized.style = element.style ? { ...element.style } : null;
+                serialized.fill = element.fill || null;
+                serialized.stroke = element.stroke || null;
+                serialized.cornerRadius = element.cornerRadius;
+                break;
+                
             case 'image':
                 serialized.assetId = element.assetId || element.props?.assetId;
                 serialized.assetPath = this.assetMap.get(serialized.assetId) || null;
+                serialized.src = element.src;
                 serialized.crop = element.crop || null;
                 serialized.filters = element.filters || null;
+                serialized.style = element.style ? { ...element.style } : null;
                 break;
-            case 'shape':
-                serialized.shapeType = element.shapeType || 'rectangle';
-                serialized.fill = element.fill || null;
-                serialized.stroke = element.stroke || null;
-                break;
+                
             case 'video':
                 serialized.assetId = element.assetId || element.props?.assetId;
                 serialized.assetPath = this.assetMap.get(serialized.assetId) || null;
+                serialized.src = element.src;
                 serialized.autoPlay = element.autoPlay || false;
                 serialized.loop = element.loop || false;
                 serialized.muted = element.muted || false;
+                serialized.style = element.style ? { ...element.style } : null;
                 break;
+                
             case 'code':
                 serialized.code = element.code || '';
                 serialized.language = element.language || 'javascript';
                 serialized.theme = element.theme || 'dark';
+                serialized.style = element.style ? { ...element.style } : null;
                 break;
+                
             default:
-                // Copy all props for unknown types
-                serialized.props = element.props || {};
+                // For unknown types, preserve ALL properties
+                Object.keys(element).forEach(key => {
+                    if (!(key in serialized)) {
+                        serialized[key] = element[key];
+                    }
+                });
         }
 
         // Effects
@@ -246,6 +296,11 @@ export class PresentationSerializer {
         // Animation
         if (element.animation) {
             serialized.animation = element.animation;
+        }
+        
+        // Build steps
+        if (element.buildStep !== undefined) {
+            serialized.buildStep = element.buildStep;
         }
 
         return serialized;

@@ -308,11 +308,18 @@ class Store extends EventEmitter {
                                 // Convert elements array to object keyed by ID if needed
                                 if (Array.isArray(slide.elements)) {
                                     const elementsObj = {};
-                                    const elementOrder = [];
+                                    // Use existing elementOrder if provided, otherwise build from array order
+                                    const elementOrder = slide.elementOrder && slide.elementOrder.length > 0 
+                                        ? [...slide.elementOrder] 
+                                        : [];
+                                    
                                     for (const el of slide.elements) {
                                         if (el && el.id) {
                                             elementsObj[el.id] = el;
-                                            elementOrder.push(el.id);
+                                            // Only add to elementOrder if not already there
+                                            if (!elementOrder.includes(el.id)) {
+                                                elementOrder.push(el.id);
+                                            }
                                         }
                                     }
                                     slide.elements = elementsObj;
