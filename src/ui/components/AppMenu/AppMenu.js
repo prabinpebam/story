@@ -37,7 +37,7 @@ export class AppMenu {
         this.trigger.setAttribute('aria-label', 'Story application menu');
 
         this.trigger.innerHTML = `
-            <img src="/assets/story.png" alt="" class="app-menu-logo" />
+            <img src="/assets/story.svg" alt="" class="app-menu-logo" />
             <span class="app-menu-title">STORY</span>
             <svg class="app-menu-chevron" width="8" height="5" viewBox="0 0 8 5" fill="none">
                 <path d="M1 1L4 4L7 1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>

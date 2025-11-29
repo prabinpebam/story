@@ -40,7 +40,7 @@ describe('AppMenu', () => {
             
             const logo = container.querySelector('.app-menu-logo');
             expect(logo).toBeTruthy();
-            expect(logo.src).toContain('story.png');
+            expect(logo.src).toContain('story.svg');
         });
 
         it('should display STORY title', async () => {

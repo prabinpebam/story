@@ -2,53 +2,83 @@
 
 ## Executive Summary
 
-Story uses **ultra-short encoded URLs** that pack all navigation state into a compact, URL-safe string. Unlike Figma's verbose URLs, Story URLs are designed to be as short as possible while remaining fully functional.
+Story uses **globally resolvable URLs** that encode the cloud provider and file ID directly in the URL. This ensures URLs work for anyone, anywhere - no local storage dependencies. Authentication determines access, not URL validity.
 
 **Example URLs:**
 ```
-story.app/d/Kx9mP2              # Basic file (6 chars)
-story.app/d/Kx9mP2.3            # File + slide 3
-story.app/d/Kx9mP2.3p           # Slide 3, presentation mode
-story.app/d/Kx9mP2~sH7kL        # Shared link with token
+story.app/d/o/MDFBQkNE                     # OneDrive file (minimal)
+story.app/d/o/MDFBQkNE/Q4-Report           # With readable name
+story.app/d/o/MDFBQkNE/Q4-Report.5p        # Slide 5, presentation mode
+story.app/d/g/MUJ4aU1WczBYUkE1/Annual-Plan # Google Drive file
 ```
+
+**Key Properties:**
+- ✅ **Universally resolvable** - works for anyone with access
+- ✅ **No server registry needed** - file reference encoded in URL
+- ✅ **Human-readable** - optional slug for clarity
+- ✅ **Reasonably short** - ~35-45 chars (vs Figma's 100+)
 
 **Comparison:**
 | App | URL Length | Example |
 |-----|------------|---------|
 | Figma | ~120 chars | `figma.com/design/AbCdEf123456/My-Design?node-id=1234%3A5678&t=...` |
 | Google Slides | ~90 chars | `docs.google.com/presentation/d/1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms/edit#slide=id.g123` |
-| **Story** | **~15 chars** | `story.app/d/Kx9mP2.3p` |
+| **Story** | **~40 chars** | `story.app/d/o/MDFBQkNE/Q4-Report.5p` |
 
 ---
 
 ## 1. URL Structure
 
-### 1.1 Minimal Format
+### 1.1 Format
 
 ```
-/d/{code}[.{slide}][{mode}][~{token}]
+/d/{provider}/{encodedId}[/{slug}][.{slide}][{mode}]
 ```
 
 | Part | Chars | Description | Example |
 |------|-------|-------------|---------|
 | `/d/` | 3 | Document prefix | `/d/` |
-| `{code}` | 6 | Encoded file ID | `Kx9mP2` |
-| `.{slide}` | 1-3 | Optional slide number | `.3`, `.15` |
-| `{mode}` | 1 | Optional mode flag | `p`=present, `v`=view |
-| `~{token}` | 6 | Optional share token | `~sH7kL` |
+| `{provider}` | 1 | Cloud provider code | `o`, `g`, `d`, `l` |
+| `{encodedId}` | 10-25 | Base64URL encoded cloud ID | `MDFBQkNERUY` |
+| `/{slug}` | 0-50 | Optional human-readable name | `/Q4-Report` |
+| `.{slide}` | 1-4 | Optional slide number | `.5`, `.15` |
+| `{mode}` | 0-1 | Optional mode flag | `p`, `v`, `r` |
 
-### 1.2 URL Examples
+### 1.2 Provider Codes
+
+| Code | Provider | ID Format |
+|------|----------|-----------|
+| `o` | OneDrive | `driveItem.id` (typically 20+ chars) |
+| `g` | Google Drive | File ID (typically 33 chars) |
+| `d` | Dropbox | `id:xxx` format |
+| `l` | Local | FileSystem Access API handle reference |
+
+### 1.3 URL Examples
 
 ```
-/d/Kx9mP2                    # Edit file (default mode)
-/d/Kx9mP2.1                  # Edit slide 1
-/d/Kx9mP2.5p                 # Present starting at slide 5
-/d/Kx9mP2v                   # View-only mode
-/d/Kx9mP2~sH7kL              # Shared link
-/d/Kx9mP2.3p~sH7kL           # Shared presentation at slide 3
+# Basic file URLs
+/d/o/MDFBQkNERUY                          # OneDrive file
+/d/g/MUJ4aU1WczBYUkE1bkZNZEt2             # Google Drive file
+/d/d/aWQ6YWJjMTIzZGVm                      # Dropbox file
+
+# With human-readable slug (ignored for routing)
+/d/o/MDFBQkNERUY/Q4-Financial-Report      # Same file, readable URL
+/d/o/MDFBQkNERUY/My-Presentation          # Slug can be anything
+
+# With slide number
+/d/o/MDFBQkNERUY/Q4-Report.5              # Slide 5
+/d/o/MDFBQkNERUY.5                         # Slide 5 (no slug)
+
+# With mode
+/d/o/MDFBQkNERUY/Q4-Report.5p             # Slide 5, presentation mode
+/d/o/MDFBQkNERUYp                          # Presentation mode (slide 1)
+/d/o/MDFBQkNERUYv                          # View-only mode
+
+# Full example
+/d/o/MDFBQkNERUY/Q4-Report.5p             # OneDrive, Q4 Report, slide 5, presenting
 ```
 
-### 1.3 Special Routes
+### 1.4 Special Routes
 
 ```
 /                            # Home / Dashboard
@@ -62,77 +92,102 @@ story.app/d/Kx9mP2~sH7kL        # Shared link with token
 
 ## 2. Encoding System
 
-### 2.1 Character Set
+### 2.1 Base64URL Encoding
 
-Uses a URL-safe Base62 alphabet (no special characters needed):
-
-```javascript
-const ALPHABET = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
-// 62 characters = ~5.95 bits per character
-```
-
-### 2.2 File Code Generation
-
-6-character codes provide 62^6 = **56.8 billion unique combinations**.
+Use URL-safe Base64 (no `+`, `/`, or `=` padding):
 
 ```javascript
 class UrlCodec {
-    static ALPHABET = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
-    
     /**
-     * Generate a random 6-character file code
+     * Encode string to URL-safe Base64
      */
-    static generateFileCode() {
-        const bytes = new Uint8Array(6);
-        crypto.getRandomValues(bytes);
-        return Array.from(bytes)
-            .map(b => this.ALPHABET[b % 62])
-            .join('');
+    static encode(str) {
+        const base64 = btoa(unescape(encodeURIComponent(str)));
+        return base64
+            .replace(/\+/g, '-')
+            .replace(/\//g, '_')
+            .replace(/=+$/, '');
     }
     
     /**
-     * Encode a number to Base62
+     * Decode URL-safe Base64 to string
      */
-    static encodeNumber(num) {
-        if (num === 0) return '0';
-        let result = '';
-        while (num > 0) {
-            result = this.ALPHABET[num % 62] + result;
-            num = Math.floor(num / 62);
-        }
-        return result;
-    }
-    
-    /**
-     * Decode Base62 to number
-     */
-    static decodeNumber(str) {
-        let result = 0;
-        for (const char of str) {
-            result = result * 62 + this.ALPHABET.indexOf(char);
-        }
-        return result;
+    static decode(encoded) {
+        // Add back padding if needed
+        const padded = encoded + '==='.slice(0, (4 - encoded.length % 4) % 4);
+        const base64 = padded.replace(/-/g, '+').replace(/_/g, '/');
+        return decodeURIComponent(escape(atob(base64)));
     }
 }
+
+// Examples:
+UrlCodec.encode('01ABCDEF123456789');  // → 'MDFBQkNERUYxMjM0NTY3ODk'
+UrlCodec.decode('MDFBQkNERUYxMjM0NTY3ODk');  // → '01ABCDEF123456789'
 ```
 
-### 2.3 Full URL Encoding
+### 2.2 Provider Mapping
 
-Pack all state into a single short string:
+```javascript
+const PROVIDERS = {
+    o: 'onedrive',
+    g: 'googledrive', 
+    d: 'dropbox',
+    l: 'local'
+};
+
+const PROVIDER_CODES = {
+    onedrive: 'o',
+    googledrive: 'g',
+    dropbox: 'd',
+    local: 'l'
+};
+```
+
+### 2.3 Slug Generation
+
+```javascript
+function slugify(name) {
+    return name
+        .toLowerCase()
+        .replace(/\.story$/, '')           // Remove extension
+        .replace(/[^a-z0-9]+/g, '-')        // Replace non-alphanumeric with dash
+        .replace(/^-+|-+$/g, '')            // Trim dashes
+        .substring(0, 50);                   // Limit length
+}
+
+// Examples:
+slugify('Q4 Financial Report.story');  // → 'q4-financial-report'
+slugify('My Awesome Presentation');     // → 'my-awesome-presentation'
+```
+
+---
+
+## 3. URL Builder & Parser
+
+### 3.1 StoryUrl Class
 
 ```javascript
 class StoryUrl {
     /**
-     * Build a Story URL from components
+     * Build a Story URL from file info
      */
-    static build({ fileCode, slide = null, mode = null, shareToken = null }) {
-        let url = `/d/${fileCode}`;
+    static build({ provider, cloudId, name = null, slide = null, mode = null }) {
+        const providerCode = PROVIDER_CODES[provider];
+        if (!providerCode) throw new Error(`Unknown provider: ${provider}`);
         
-        // Add slide number (if not slide 1 or default)
+        const encodedId = UrlCodec.encode(cloudId);
+        
+        let url = `/d/${providerCode}/${encodedId}`;
+        
+        // Add optional slug for readability
+        if (name) {
+            url += `/${slugify(name)}`;
+        }
+        
+        // Add slide number (only if > 1 or if mode specified)
         if (slide && slide > 1) {
             url += `.${slide}`;
         } else if (slide === 1 && mode) {
-            // Need separator before mode
             url += '.1';
         }
         
@@ -141,356 +196,87 @@ class StoryUrl {
         else if (mode === 'view') url += 'v';
         else if (mode === 'preview') url += 'r';
         
-        // Add share token
-        if (shareToken) {
-            url += `~${shareToken}`;
-        }
-        
         return url;
     }
     
     /**
      * Parse a Story URL
      */
-    static parse(url) {
-        const match = url.match(/^\/d\/([A-Za-z0-9]{6})(?:\.(\d+))?([pvr])?(?:~([A-Za-z0-9]+))?$/);
+    static parse(pathname) {
+        // Pattern: /d/{provider}/{encodedId}[/{slug}][.{slide}][{mode}]
+        const match = pathname.match(
+            /^\/d\/([ogdl])\/([A-Za-z0-9_-]+)(?:\/([^/.]+))?(?:\.(\d+))?([pvr])?$/
+        );
         
         if (!match) return null;
         
+        const [, providerCode, encodedId, slug, slideStr, modeChar] = match;
+        
         return {
-            fileCode: match[1],
-            slide: match[2] ? parseInt(match[2], 10) : 1,
-            mode: { 'p': 'present', 'v': 'view', 'r': 'preview' }[match[3]] || 'edit',
-            shareToken: match[4] || null
+            provider: PROVIDERS[providerCode],
+            cloudId: UrlCodec.decode(encodedId),
+            slug: slug || null,
+            slide: slideStr ? parseInt(slideStr, 10) : 1,
+            mode: { p: 'present', v: 'view', r: 'preview' }[modeChar] || 'edit'
         };
     }
-}
-
-// Examples:
-StoryUrl.build({ fileCode: 'Kx9mP2' });
-// → "/d/Kx9mP2"
-
-StoryUrl.build({ fileCode: 'Kx9mP2', slide: 5, mode: 'present' });
-// → "/d/Kx9mP2.5p"
-
-StoryUrl.build({ fileCode: 'Kx9mP2', shareToken: 'sH7kL' });
-// → "/d/Kx9mP2~sH7kL"
-
-StoryUrl.parse('/d/Kx9mP2.5p~sH7kL');
-// → { fileCode: 'Kx9mP2', slide: 5, mode: 'present', shareToken: 'sH7kL' }
-```
-
-### 2.4 Share Token Generation
-
-5-character tokens provide 62^5 = **916 million combinations** (plenty for share links):
-
-```javascript
-static generateShareToken() {
-    const bytes = new Uint8Array(5);
-    crypto.getRandomValues(bytes);
-    return Array.from(bytes)
-        .map(b => this.ALPHABET[b % 62])
-        .join('');
+    
+    /**
+     * Update current URL with new state (preserves file reference)
+     */
+    static updateState({ slide = null, mode = null }) {
+        const current = this.parse(window.location.pathname);
+        if (!current) return;
+        
+        const newUrl = this.build({
+            provider: current.provider,
+            cloudId: current.cloudId,
+            name: current.slug,
+            slide,
+            mode
+        });
+        
+        history.replaceState({}, '', newUrl);
+    }
 }
 ```
 
----
-
-## 3. File Code Registry
-
-### 3.1 Local Storage Mapping
-
-Map short codes to actual file references:
+### 3.2 Usage Examples
 
 ```javascript
-class FileCodeRegistry {
-    static STORAGE_KEY = 'story-file-codes';
-    
-    static getRegistry() {
-        return JSON.parse(localStorage.getItem(this.STORAGE_KEY) || '{}');
-    }
-    
-    static saveRegistry(registry) {
-        localStorage.setItem(this.STORAGE_KEY, JSON.stringify(registry));
-    }
-    
-    /**
-     * Register a file and get its code
-     */
-    static register(fileInfo) {
-        const registry = this.getRegistry();
-        
-        // Check if file already has a code
-        const existing = Object.entries(registry).find(([code, info]) => 
-            info.provider === fileInfo.provider && 
-            info.cloudId === fileInfo.cloudId
-        );
-        
-        if (existing) return existing[0];
-        
-        // Generate new code
-        const code = UrlCodec.generateFileCode();
-        registry[code] = {
-            ...fileInfo,
-            created: Date.now()
-        };
-        
-        this.saveRegistry(registry);
-        return code;
-    }
-    
-    /**
-     * Look up file info by code
-     */
-    static lookup(code) {
-        const registry = this.getRegistry();
-        return registry[code] || null;
-    }
-    
-    /**
-     * Get code for existing file
-     */
-    static getCode(provider, cloudId) {
-        const registry = this.getRegistry();
-        const entry = Object.entries(registry).find(([_, info]) => 
-            info.provider === provider && info.cloudId === cloudId
-        );
-        return entry ? entry[0] : null;
-    }
-}
-
-// Usage:
-const code = FileCodeRegistry.register({
+// Build URLs
+StoryUrl.build({
     provider: 'onedrive',
-    cloudId: 'DriveItem.12345',
-    name: 'My Presentation.story',
-    path: '/Documents/Story/'
+    cloudId: '01ABCDEF123456789',
+    name: 'Q4 Report'
 });
-// → "Kx9mP2"
+// → '/d/o/MDFBQkNERUYxMjM0NTY3ODk/q4-report'
 
-FileCodeRegistry.lookup('Kx9mP2');
-// → { provider: 'onedrive', cloudId: '...', name: '...', ... }
-```
+StoryUrl.build({
+    provider: 'onedrive', 
+    cloudId: '01ABCDEF123456789',
+    name: 'Q4 Report',
+    slide: 5,
+    mode: 'present'
+});
+// → '/d/o/MDFBQkNERUYxMjM0NTY3ODk/q4-report.5p'
 
-### 3.2 Registry Entry Structure
-
-```typescript
-interface FileCodeEntry {
-    provider: 'local' | 'onedrive' | 'googledrive' | 'dropbox';
-    cloudId?: string;       // Cloud provider's file ID
-    localHandle?: string;   // Serialized FileSystemHandle (for local files)
-    name: string;           // File name
-    path?: string;          // File path
-    created: number;        // Timestamp when code was created
-    lastAccessed?: number;  // Last access timestamp
-}
-```
-
-### 3.3 Cleanup & Limits
-
-```javascript
-class FileCodeRegistry {
-    static MAX_ENTRIES = 1000;
-    static MAX_AGE_DAYS = 90;
-    
-    static cleanup() {
-        const registry = this.getRegistry();
-        const now = Date.now();
-        const maxAge = this.MAX_AGE_DAYS * 24 * 60 * 60 * 1000;
-        
-        // Remove old entries
-        const entries = Object.entries(registry)
-            .filter(([_, info]) => now - info.created < maxAge)
-            .sort((a, b) => (b[1].lastAccessed || b[1].created) - (a[1].lastAccessed || a[1].created))
-            .slice(0, this.MAX_ENTRIES);
-        
-        const cleaned = Object.fromEntries(entries);
-        this.saveRegistry(cleaned);
-    }
-}
+// Parse URLs
+StoryUrl.parse('/d/o/MDFBQkNERUYxMjM0NTY3ODk/q4-report.5p');
+// → {
+//     provider: 'onedrive',
+//     cloudId: '01ABCDEF123456789',
+//     slug: 'q4-report',
+//     slide: 5,
+//     mode: 'present'
+// }
 ```
 
 ---
 
-## 4. Share Links
+## 4. Router Implementation
 
-### 4.1 Share Link Structure
-
-```
-/d/{fileCode}~{token}
-```
-
-The token maps to share permissions stored server-side or in the file metadata.
-
-### 4.2 Share Token Registry
-
-```javascript
-class ShareTokenRegistry {
-    /**
-     * Create a share link
-     */
-    static async create(fileCode, options = {}) {
-        const token = UrlCodec.generateShareToken();
-        
-        const shareInfo = {
-            fileCode,
-            token,
-            access: options.access || 'view',  // 'view', 'comment', 'edit'
-            expires: options.expires || null,   // Timestamp or null for no expiry
-            password: options.password ? await this.hashPassword(options.password) : null,
-            created: Date.now(),
-            createdBy: options.userId
-        };
-        
-        // Store in file metadata or server
-        await this.saveShare(shareInfo);
-        
-        return token;
-    }
-    
-    /**
-     * Validate share token
-     */
-    static async validate(fileCode, token, password = null) {
-        const share = await this.getShare(fileCode, token);
-        
-        if (!share) return { valid: false, reason: 'invalid_token' };
-        if (share.expires && Date.now() > share.expires) return { valid: false, reason: 'expired' };
-        if (share.password && !await this.verifyPassword(password, share.password)) {
-            return { valid: false, reason: 'password_required' };
-        }
-        
-        return { valid: true, access: share.access };
-    }
-}
-```
-
----
-
-## 5. Extended State (Optional)
-
-For advanced use cases, support an extended state parameter that can be compressed:
-
-### 5.1 Extended URL Format
-
-```
-/d/{fileCode}:{extendedState}
-```
-
-### 5.2 State Compression
-
-```javascript
-class ExtendedState {
-    /**
-     * Encode complex state into a short string
-     */
-    static encode(state) {
-        // Convert to minimal JSON
-        const json = JSON.stringify(state);
-        
-        // Compress using simple dictionary + base62
-        const compressed = this.compress(json);
-        
-        // URL-safe base62 encoding
-        return this.toBase62(compressed);
-    }
-    
-    /**
-     * Decode state string back to object
-     */
-    static decode(encoded) {
-        const compressed = this.fromBase62(encoded);
-        const json = this.decompress(compressed);
-        return JSON.parse(json);
-    }
-    
-    /**
-     * Simple compression for common keys
-     */
-    static compress(json) {
-        const dictionary = {
-            '"slide":': 's:',
-            '"zoom":': 'z:',
-            '"element":': 'e:',
-            '"panel":': 'p:',
-            'true': '1',
-            'false': '0'
-        };
-        
-        let result = json;
-        for (const [long, short] of Object.entries(dictionary)) {
-            result = result.replace(new RegExp(long, 'g'), short);
-        }
-        return result;
-    }
-}
-```
-
-### 5.3 When to Use Extended State
-
-| Use Case | Simple URL | Extended State |
-|----------|------------|----------------|
-| Open file | ✓ `/d/Kx9mP2` | |
-| Go to slide | ✓ `/d/Kx9mP2.5` | |
-| Present mode | ✓ `/d/Kx9mP2p` | |
-| Zoom level | | ✓ `/d/Kx9mP2:z150` |
-| Selected element | | ✓ `/d/Kx9mP2:eAbc` |
-| Multiple selections | | ✓ `/d/Kx9mP2:e[Ab,Cd]` |
-
----
-
-## 5. Asset Path Resolution
-
-### 5.1 Problem
-
-Relative asset paths break when navigating to deep routes:
-- Route: `/auth/callback`
-- Asset: `assets/story.png`
-- Resolved: `/auth/assets/story.png` ❌
-
-### 5.2 Solution: Absolute Paths with Base URL
-
-**index.html:**
-```html
-<head>
-    <base href="/">
-    <link rel="icon" type="image/png" href="/assets/story.png">
-    <!-- All CSS links should use absolute paths -->
-    <link rel="stylesheet" href="/styles/modules/variables.css">
-</head>
-```
-
-**JavaScript:**
-```javascript
-// Use import.meta.url for module-relative assets
-const logoUrl = new URL('../assets/story.png', import.meta.url).href;
-
-// Or use absolute paths
-const logoUrl = '/assets/story.png';
-```
-
-### 5.3 Vite Configuration
-
-```javascript
-// vite.config.js
-export default {
-    base: '/',
-    build: {
-        assetsDir: 'assets',
-        rollupOptions: {
-            output: {
-                assetFileNames: 'assets/[name]-[hash][extname]'
-            }
-        }
-    }
-}
-```
-
----
-
-## 6. Router Implementation
-
-### 6.1 Router Class
+### 4.1 Router Class
 
 ```javascript
 class AppRouter {
@@ -500,16 +286,12 @@ class AppRouter {
     }
     
     init() {
-        // Handle initial route
         this.handleRoute();
-        
-        // Listen for navigation
         window.addEventListener('popstate', () => this.handleRoute());
     }
     
     navigate(url, replace = false) {
-        const method = replace ? 'replaceState' : 'pushState';
-        history[method]({}, '', url);
+        history[replace ? 'replaceState' : 'pushState']({}, '', url);
         this.handleRoute();
     }
     
@@ -523,7 +305,7 @@ class AppRouter {
         if (path === '/t') return this.handleTemplates();
         if (path === '/s') return this.handleSettings();
         
-        // File route: /d/{code}[.{slide}][{mode}][~{token}]
+        // File route
         const parsed = StoryUrl.parse(path);
         if (parsed) {
             return this.handleFile(parsed);
@@ -533,309 +315,369 @@ class AppRouter {
         this.navigate('/', true);
     }
     
-    async handleFile({ fileCode, slide, mode, shareToken }) {
-        // Validate share token if present
-        if (shareToken) {
-            const validation = await ShareTokenRegistry.validate(fileCode, shareToken);
-            if (!validation.valid) {
-                return this.showError(validation.reason);
+    async handleFile({ provider, cloudId, slug, slide, mode }) {
+        try {
+            // Get cloud provider service
+            const cloudService = getCloudService(provider);
+            
+            // Check if user is authenticated with this provider
+            if (!cloudService.isAuthenticated()) {
+                // Store return URL and redirect to auth
+                sessionStorage.setItem('returnUrl', window.location.href);
+                return cloudService.authenticate();
             }
+            
+            // Fetch and open the file
+            const file = await cloudService.getFile(cloudId);
+            
+            if (!file) {
+                return this.showError('file_not_found');
+            }
+            
+            // Check access permissions
+            if (!file.canAccess) {
+                return this.showError('access_denied');
+            }
+            
+            // Load the file
+            await app.openCloudFile(provider, cloudId, file);
+            this.currentFile = { provider, cloudId, name: file.name };
+            
+            // Update URL with correct name if slug was wrong/missing
+            if (slug !== slugify(file.name)) {
+                const correctUrl = StoryUrl.build({
+                    provider, cloudId, 
+                    name: file.name,
+                    slide, mode
+                });
+                history.replaceState({}, '', correctUrl);
+            }
+            
+            // Apply navigation state
+            if (slide > 1) store.dispatch('GO_TO_SLIDE', slide);
+            if (mode === 'present') store.dispatch('START_PRESENTATION');
+            else if (mode === 'view') store.dispatch('SET_READ_ONLY', true);
+            
+        } catch (error) {
+            console.error('Failed to open file:', error);
+            this.showError('load_failed');
         }
-        
-        // Look up file
-        const fileInfo = FileCodeRegistry.lookup(fileCode);
-        if (!fileInfo) {
-            return this.showError('file_not_found');
-        }
-        
-        // Load file
-        await app.openFile(fileInfo);
-        
-        // Apply state
-        if (slide > 1) store.dispatch('GO_TO_SLIDE', slide);
-        if (mode === 'present') store.dispatch('START_PRESENTATION');
-        else if (mode === 'view') store.dispatch('SET_READ_ONLY', true);
     }
     
-    // Update URL when state changes
-    updateUrl(options = {}) {
-        const code = this.currentFile?.code;
-        if (!code) return;
-        
-        const url = StoryUrl.build({
-            fileCode: code,
-            slide: options.slide,
-            mode: options.mode,
-            shareToken: options.shareToken
-        });
-        
-        history.replaceState({}, '', url);
+    async handleAuthCallback() {
+        await handleOAuthCallback();
+        const returnUrl = sessionStorage.getItem('returnUrl') || '/';
+        sessionStorage.removeItem('returnUrl');
+        this.navigate(returnUrl, true);
+    }
+    
+    showError(type) {
+        const messages = {
+            file_not_found: 'This file could not be found.',
+            access_denied: 'You don\'t have permission to access this file.',
+            load_failed: 'Failed to load the file. Please try again.'
+        };
+        app.showErrorPage(messages[type] || 'An error occurred.');
     }
 }
 ```
 
-### 6.2 Integration with Store
+### 4.2 URL Updates on Navigation
 
 ```javascript
-// Sync slide changes to URL
+// When user navigates to a different slide
 store.on('slide-changed', (slideIndex) => {
-    router.updateUrl({ slide: slideIndex + 1 });
+    if (!router.currentFile) return;
+    
+    StoryUrl.updateState({ 
+        slide: slideIndex + 1,
+        mode: store.getState().mode 
+    });
 });
 
-// Sync mode changes to URL  
+// When user enters/exits presentation mode
 store.on('mode-changed', (mode) => {
-    router.updateUrl({ mode });
+    if (!router.currentFile) return;
+    
+    StoryUrl.updateState({ 
+        slide: store.getState().currentSlide + 1,
+        mode 
+    });
 });
+
+// When opening a file (update URL)
+async function openFile(provider, cloudId, file) {
+    const url = StoryUrl.build({
+        provider,
+        cloudId,
+        name: file.name
+    });
+    router.navigate(url);
+}
 ```
 
 ---
 
-## 7. State Persistence
+## 5. Access Control Flow
 
-### 7.1 URL State Sync
+### 5.1 Authentication Flow
 
-The URL reflects the minimal required state:
-- File code (always)
-- Slide number (if not 1)
-- Mode (if not edit)
-- Share token (if shared link)
-}
+```
+User clicks URL: story.app/d/o/MDFBQkNE/Report.5p
+                              ↓
+                    Parse URL → provider: onedrive
+                              ↓
+              Is user authenticated with OneDrive?
+                    ↓                    ↓
+                   YES                   NO
+                    ↓                    ↓
+            Fetch file from         Save returnUrl
+            OneDrive API            Redirect to OAuth
+                    ↓                    ↓
+           Can user access?         OAuth callback
+                    ↓                    ↓
+           YES           NO         Restore returnUrl
+            ↓             ↓              ↓
+         Load file   Show error    Back to step 1
+            ↓
+     Go to slide 5, start presenting
 ```
 
-### 7.2 Page Reload Persistence
-
-On page reload:
-1. Parse current URL
-2. Extract file ID from path
-3. Load file from storage (local or cloud)
-4. Apply URL state (slide, element, mode)
+### 5.2 Permission Handling
 
 ```javascript
-async function restoreFromUrl() {
-    const { fileId, mode, slide, element } = parseCurrentUrl();
+async function checkFileAccess(provider, cloudId) {
+    const cloudService = getCloudService(provider);
     
-    if (!fileId) return;
-    
-    // Look up file location
-    const fileMapping = await getFileMapping(fileId);
-    
-    if (fileMapping) {
-        // Cloud file
-        await app.openCloudFile(fileMapping.provider, fileMapping.cloudId);
-    } else {
-        // Try local storage
-        const localFile = await getLocalFile(fileId);
-        if (localFile) {
-            await app.loadPresentation(localFile);
-        } else {
-            // File not found
-            router.navigate('/', true);
-            return;
+    try {
+        const file = await cloudService.getFile(cloudId);
+        
+        return {
+            exists: true,
+            canRead: file.permissions.includes('read'),
+            canWrite: file.permissions.includes('write'),
+            canShare: file.permissions.includes('share'),
+            owner: file.owner,
+            sharedWith: file.sharedWith
+        };
+    } catch (error) {
+        if (error.status === 404) {
+            return { exists: false };
         }
+        if (error.status === 403) {
+            return { exists: true, canRead: false };
+        }
+        throw error;
     }
-    
-    // Apply state
-    if (slide) store.dispatch('GO_TO_SLIDE', slide);
-    if (element) store.dispatch('SELECT_ELEMENT', element);
-    if (mode === 'presentation') store.dispatch('SET_MODE', 'presentation');
 }
 ```
 
 ---
 
-## 8. Share URL Generation
+## 6. Share Links
 
-### 8.1 Share Link Types
+### 6.1 Sharing via Cloud Provider
 
-| Type | URL | Access |
-|------|-----|--------|
-| Edit | `/d/{fileId}?token={token}` | Full edit access |
-| View | `/d/{fileId}/preview?token={token}` | Read-only |
-| Present | `/d/{fileId}/present?token={token}` | Presentation only |
-| Embed | `/embed/{fileId}?token={token}` | Embeddable iframe |
-
-### 8.2 Token Generation
+Since the URL contains the cloud file ID, sharing uses the provider's native sharing:
 
 ```javascript
-function generateShareToken(fileId, options = {}) {
-    const payload = {
-        fileId,
-        access: options.access || 'view',
-        expires: options.expires || null,
-        createdBy: getCurrentUserId(),
-        createdAt: Date.now()
+async function shareFile(provider, cloudId, options = {}) {
+    const cloudService = getCloudService(provider);
+    
+    // Create share link via provider's API
+    const shareLink = await cloudService.createShareLink(cloudId, {
+        access: options.access || 'view',  // 'view', 'edit'
+        expires: options.expires,
+        password: options.password
+    });
+    
+    // The share link is the provider's link, OR our link
+    // Our link works if user authenticates
+    const storyUrl = StoryUrl.build({ provider, cloudId, name: options.name });
+    const fullUrl = new URL(storyUrl, window.location.origin).href;
+    
+    return {
+        providerLink: shareLink.webUrl,  // Native provider sharing page
+        storyLink: fullUrl                // Direct Story link
     };
-    
-    // Sign with secret (server-side in production)
-    return signPayload(payload);
 }
 ```
 
-### 8.3 Copy Share Link
+### 6.2 Share Flow
 
-```javascript
-async function copyShareLink(fileId, options = {}) {
-    const token = await generateShareToken(fileId, options);
-    
-    const url = router.fileUrl(fileId, {
-        mode: options.mode || 'preview',
-        token
-    });
-    
-    const fullUrl = new URL(url, window.location.origin).href;
-    
-    await navigator.clipboard.writeText(fullUrl);
-    
-    return fullUrl;
-}
-```
+1. User clicks "Share" in Story
+2. Story opens provider's sharing dialog OR updates permissions via API
+3. Story generates the shareable URL: `story.app/d/o/MDFBQkNE/Report`
+4. Recipient clicks link
+5. Recipient authenticates with their account (if needed)
+6. Cloud provider checks if recipient has access
+7. File loads (or shows "Access Denied")
 
 ---
 
-## 9. Analytics Integration
+## 7. Local Files
 
-### 9.1 Route Change Tracking
+### 7.1 Local File URLs
 
-```javascript
-router.on('route-change', (route, params, query) => {
-    // Google Analytics 4
-    gtag('event', 'page_view', {
-        page_path: route,
-        page_title: document.title,
-        ...extractUtmParams(query)
-    });
-    
-    // Custom analytics
-    analytics.track('page_view', {
-        route,
-        fileId: params.fileId,
-        mode: params.mode,
-        referrer: query.ref,
-        source: query.utm_source
-    });
-});
+For local files (via File System Access API), we can't use cloud IDs. Options:
+
+**Option A: Ephemeral URL (current session only)**
 ```
+/d/l/session-123/My-Presentation
+```
+The session ID maps to a FileSystemHandle stored in memory. URL only works in current tab.
 
-### 9.2 UTM Parameter Handling
+**Option B: IndexedDB persistence**
+```
+/d/l/abc123/My-Presentation  
+```
+Store FileSystemHandle in IndexedDB. URL works across sessions (with permission re-prompt).
+
+**Option C: No URL for local files**
+```
+/  (always return to home for local files)
+```
+Local files don't get URLs - only cloud files are linkable.
+
+### 7.2 Recommended: Hybrid
 
 ```javascript
-function extractUtmParams(query) {
-    const utmKeys = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term'];
-    const params = {};
+class LocalFileRegistry {
+    static DB_NAME = 'story-local-files';
     
-    for (const key of utmKeys) {
-        if (query[key]) {
-            params[key] = query[key];
+    /**
+     * Store a file handle and get a reference ID
+     */
+    static async register(handle, name) {
+        const id = crypto.randomUUID().substring(0, 8);
+        
+        // Store in IndexedDB
+        const db = await this.getDB();
+        await db.put('handles', { id, handle, name, created: Date.now() });
+        
+        return id;
+    }
+    
+    /**
+     * Retrieve a file handle by ID
+     */
+    static async getHandle(id) {
+        const db = await this.getDB();
+        const record = await db.get('handles', id);
+        
+        if (!record) return null;
+        
+        // Verify permission
+        const permission = await record.handle.queryPermission({ mode: 'readwrite' });
+        if (permission !== 'granted') {
+            // Request permission
+            const result = await record.handle.requestPermission({ mode: 'readwrite' });
+            if (result !== 'granted') return null;
         }
+        
+        return record.handle;
     }
-    
-    return params;
 }
+```
 
-// Store UTM params in session for attribution
-function storeUtmParams(query) {
-    const utmParams = extractUtmParams(query);
-    if (Object.keys(utmParams).length > 0) {
-        sessionStorage.setItem('utm_params', JSON.stringify(utmParams));
-    }
-}
+Local file URL format:
+```
+/d/l/a1b2c3d4/My-Presentation.5p
 ```
 
 ---
 
-## 10. SEO Considerations
+## 8. Asset Path Resolution
 
-### 10.1 Meta Tags
+### 8.1 Problem
 
-```javascript
-function updateMetaTags(file) {
-    document.title = `${file.name} - Story`;
-    
-    // Open Graph
-    updateMeta('og:title', file.name);
-    updateMeta('og:description', file.description || 'Created with Story');
-    updateMeta('og:image', file.thumbnailUrl);
-    updateMeta('og:url', window.location.href);
-    
-    // Twitter
-    updateMeta('twitter:card', 'summary_large_image');
-    updateMeta('twitter:title', file.name);
-}
-
-function updateMeta(property, content) {
-    let meta = document.querySelector(`meta[property="${property}"]`);
-    if (!meta) {
-        meta = document.createElement('meta');
-        meta.setAttribute('property', property);
-        document.head.appendChild(meta);
-    }
-    meta.setAttribute('content', content);
-}
+Nested routes break relative asset paths:
+```
+Route: /d/o/MDFBQkNE/Report
+Asset: assets/logo.png
+Resolved: /d/o/MDFBQkNE/assets/logo.png ❌
 ```
 
-### 10.2 Canonical URLs
+### 8.2 Solution
+
+All asset paths must be absolute:
 
 ```html
-<link rel="canonical" href="https://story.app/d/{fileId}">
+<!-- index.html -->
+<link rel="icon" href="/assets/story.png">
+<link rel="stylesheet" href="/styles/main.css">
+<script type="module" src="/src/main.js"></script>
+```
+
+```javascript
+// JavaScript
+const logo = '/assets/story.png';  // ✅ Absolute
+const logo = 'assets/story.png';   // ❌ Relative
 ```
 
 ---
 
-## 11. Implementation Checklist
+## 9. URL Length Analysis
 
-### Phase 1: Foundation
-- [ ] Add `<base href="/">` to index.html
-- [ ] Convert all asset paths to absolute
-- [ ] Create Router class
-- [ ] Implement basic route matching
-- [ ] Handle OAuth callback with proper redirect
+### 9.1 Component Breakdown
 
-### Phase 2: File Routing
-- [ ] Implement file ID generation
-- [ ] Create file ID to cloud mapping storage
-- [ ] Implement `/d/{fileId}` route
-- [ ] Add mode routes (edit, present, preview)
-- [ ] Handle file not found gracefully
+| Component | Length | Example |
+|-----------|--------|---------|
+| Domain | ~15 | `story.app/d/` |
+| Provider | 2 | `o/` |
+| Encoded ID | 15-30 | `MDFBQkNERUYxMjM0NTY` |
+| Slug | 0-50 | `/q4-financial-report` |
+| State | 0-5 | `.5p` |
 
-### Phase 3: State Sync
-- [ ] Sync slide changes to URL hash
-- [ ] Sync element selection to query params
-- [ ] Restore state on page reload
-- [ ] Handle browser back/forward
+### 9.2 Typical Lengths
 
-### Phase 4: Sharing
-- [ ] Generate share tokens
-- [ ] Create share URL builder
-- [ ] Validate tokens on access
-- [ ] Handle expired tokens
+| Scenario | URL | Length |
+|----------|-----|--------|
+| Minimal | `/d/o/MDFBQkNERUY` | ~20 |
+| With slug | `/d/o/MDFBQkNERUY/report` | ~30 |
+| With state | `/d/o/MDFBQkNERUY/report.5p` | ~35 |
+| Long name | `/d/o/MDFBQkNERUY/q4-financial-report-draft` | ~50 |
 
-### Phase 5: Analytics
-- [ ] Track route changes
-- [ ] Extract and store UTM params
-- [ ] Integrate with analytics provider
+### 9.3 Comparison
+
+| App | Typical Length |
+|-----|----------------|
+| **Story** | **30-45 chars** |
+| Figma | 100-130 chars |
+| Google Slides | 85-100 chars |
+| Canva | 70-90 chars |
 
 ---
 
-## 12. Migration Plan
+## 10. Implementation Checklist
 
-### 12.1 Current State
-- Single-page app with no routing
-- OAuth callback causes asset path issues
-- No file URLs (files opened via picker)
+### Phase 1: Foundation ✅ (Done)
+- [x] Absolute asset paths in index.html
+- [x] Absolute asset paths in JavaScript
 
-### 12.2 Migration Steps
+### Phase 2: URL System
+- [ ] Implement `UrlCodec` class
+- [ ] Implement `StoryUrl` class
+- [ ] Implement `AppRouter` class
+- [ ] Handle OAuth callback redirect
 
-1. **Add base href** (immediate fix for asset paths)
-2. **Implement minimal router** (handle OAuth, basic navigation)
-3. **Add file routes** (gradual rollout)
-4. **Enable URL state sync** (after file routes stable)
-5. **Add sharing features** (requires backend support)
+### Phase 3: File Routing
+- [ ] Parse file URLs on load
+- [ ] Authenticate with correct provider
+- [ ] Fetch and open file from cloud
+- [ ] Update URL on file open
+- [ ] Handle file not found / access denied
 
-### 12.3 Backward Compatibility
+### Phase 4: State Sync
+- [ ] Update URL on slide change
+- [ ] Update URL on mode change
+- [ ] Restore state on page load
+- [ ] Handle browser back/forward
 
-- Keep `/#` hash routes working during transition
-- Redirect old patterns to new routes
-- Maintain session storage for unsaved files
+### Phase 5: Local Files
+- [ ] Implement LocalFileRegistry
+- [ ] Store FileSystemHandles in IndexedDB
+- [ ] Handle permission re-prompts
 
 ---
 
@@ -845,48 +687,46 @@ function updateMeta(property, content) {
 # Dashboard
 https://story.app/
 
-# New presentation
-https://story.app/new
+# OneDrive file
+https://story.app/d/o/MDFBQkNERUYxMjM0NTY3ODk/q4-report
 
-# Edit file
-https://story.app/d/Kx9mP2
+# Google Drive file  
+https://story.app/d/g/MUJ4aU1WczBYUkE1bkZNZEt2QmRCWmpnbVVVcXB0bGJz/annual-plan
 
-# Edit file, slide 5
-https://story.app/d/Kx9mP2.5
+# Dropbox file
+https://story.app/d/d/aWQ6YWJjMTIzZGVmNDU2/budget-2024
+
+# Local file
+https://story.app/d/l/a1b2c3d4/my-presentation
+
+# With slide number
+https://story.app/d/o/MDFBQkNERUY/report.5
 
 # Presentation mode
-https://story.app/d/Kx9mP2p
-
-# Presentation starting at slide 3
-https://story.app/d/Kx9mP2.3p
+https://story.app/d/o/MDFBQkNERUY/report.5p
 
 # View-only mode
-https://story.app/d/Kx9mP2v
-
-# Shared link
-https://story.app/d/Kx9mP2~sH7kL
-
-# Shared presentation at slide 5
-https://story.app/d/Kx9mP2.5p~sH7kL
+https://story.app/d/o/MDFBQkNERUYv
 ```
-
-**URL Length Comparison:**
-
-| Scenario | Story | Figma |
-|----------|-------|-------|
-| Open file | 22 chars | ~80 chars |
-| Slide 5 | 24 chars | ~95 chars |
-| Present mode | 23 chars | ~90 chars |
-| Shared link | 28 chars | ~120 chars |
 
 ---
 
 ## Appendix B: Error Handling
 
-| Error | URL | Behavior |
-|-------|-----|----------|
-| File not found | `/d/Kx9mP2` | Redirect to `/` with toast |
-| Invalid token | `/d/Kx9mP2~bad` | Show "Access Denied" page |
-| Expired token | `/d/Kx9mP2~exp` | Show "Link Expired" page |
-| Auth required | `/d/Kx9mP2` (private) | Redirect to sign-in, then back |
-| 404 route | `/unknown` | Redirect to `/` |
+| Error | Cause | User Experience |
+|-------|-------|-----------------|
+| `file_not_found` | File deleted or ID invalid | "This file no longer exists" |
+| `access_denied` | User lacks permission | "Request access" button |
+| `auth_required` | Not signed in to provider | Redirect to OAuth flow |
+| `provider_error` | API error from provider | "Try again later" |
+| `invalid_url` | Malformed URL | Redirect to home |
+
+---
+
+## Appendix C: Security Considerations
+
+1. **Cloud IDs are not secret** - They're exposed in the URL, but access is controlled by the provider
+2. **OAuth scopes** - Only request minimum necessary permissions
+3. **No sensitive data in URL** - Passwords, tokens go in headers/body
+4. **HTTPS required** - All URLs must use HTTPS in production
+5. **CSP headers** - Restrict script sources to prevent XSS
