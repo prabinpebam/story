@@ -3,6 +3,7 @@
  * 
  * Handles OAuth redirect callbacks.
  * Should be called when app loads on /auth/callback route.
+ * Supports both authorization code flow (query params) and implicit flow (hash fragment).
  * 
  * @module core/auth/AuthCallback
  */
@@ -14,11 +15,34 @@ const RETURN_URL_KEY = 'auth_return_url';
 
 /**
  * Check if current URL is an auth callback
+ * Detects both code flow (query params) and implicit flow (hash fragment)
  * @returns {boolean}
  */
 export function isAuthCallback() {
-    return window.location.pathname === '/auth/callback' ||
-           window.location.pathname.includes('/auth/callback');
+    const isCallbackPath = window.location.pathname === '/auth/callback' ||
+                          window.location.pathname.includes('/auth/callback');
+    
+    // Check for authorization code in query params
+    const hasCode = window.location.search.includes('code=');
+    
+    // Check for tokens in hash fragment (implicit flow)
+    const hasTokenInHash = window.location.hash.includes('access_token=');
+    
+    return isCallbackPath && (hasCode || hasTokenInHash);
+}
+
+/**
+ * Detect which OAuth flow was used
+ * @returns {'code' | 'implicit' | null}
+ */
+export function detectFlowType() {
+    if (window.location.search.includes('code=')) {
+        return 'code';
+    }
+    if (window.location.hash.includes('access_token=')) {
+        return 'implicit';
+    }
+    return null;
 }
 
 /**

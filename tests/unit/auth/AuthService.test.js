@@ -75,6 +75,7 @@ describe('AuthService', () => {
         window.location = {
             href: '',
             search: '',
+            hash: '',
             origin: 'http://localhost:3000'
         };
     });
@@ -149,9 +150,9 @@ describe('AuthService', () => {
             expect(profile).toBeDefined();
         });
 
-        it('should throw error if code missing', async () => {
-            window.location.search = '?state=auth_state';
-            await expect(authService.handleCallback()).rejects.toThrow('Missing code');
+        it('should throw error if state missing', async () => {
+            window.location.search = '?code=auth_code'; // No state
+            await expect(authService.handleCallback()).rejects.toThrow('Missing state');
         });
 
         it('should throw error if state invalid', async () => {
@@ -162,6 +163,11 @@ describe('AuthService', () => {
         it('should throw error if PKCE params missing', async () => {
             PKCEUtils.getPKCEParams.mockReturnValue(null);
             await expect(authService.handleCallback()).rejects.toThrow('No PKCE parameters');
+        });
+        
+        it('should throw error if no code or access token', async () => {
+            window.location.search = '?state=auth_state'; // State but no code
+            await expect(authService.handleCallback()).rejects.toThrow('No authorization code or access token');
         });
     });
 

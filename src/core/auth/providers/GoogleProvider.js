@@ -5,6 +5,7 @@ import { generateCodeVerifier, generateCodeChallenge, generateState, storePKCEPa
  * Google OAuth Provider
  * 
  * Implements authentication with Google Identity Services.
+ * Uses implicit flow with ID token for SPAs (no client_secret required).
  * 
  * @module core/auth/providers/GoogleProvider
  * @extends AuthProvider
@@ -16,90 +17,80 @@ export class GoogleProvider extends AuthProvider {
 
     /**
      * Initiate login flow
-     * Redirects user to Google login page
+     * Uses implicit flow (response_type=token id_token) for SPAs
+     * This avoids the need for client_secret
      */
     async login() {
-        const codeVerifier = generateCodeVerifier();
-        const codeChallenge = await generateCodeChallenge(codeVerifier);
         const state = generateState();
+        const nonce = generateState(); // Use state generator for nonce too
 
+        // Store state for validation
         storePKCEParams({
-            codeVerifier,
+            codeVerifier: nonce, // Store nonce as verifier for consistency
             state,
             provider: 'google'
         });
 
+        // Use implicit flow for SPAs - returns tokens directly in URL fragment
         const params = new URLSearchParams({
             client_id: this.config.clientId,
             redirect_uri: this.config.redirectUri,
-            response_type: this.config.responseType,
+            response_type: 'token id_token', // Implicit flow - get tokens directly
             scope: this.config.scopes.join(' '),
-            code_challenge: codeChallenge,
-            code_challenge_method: 'S256',
             state: state,
-            prompt: this.config.prompt,
-            access_type: 'offline' // Required for refresh token
+            nonce: nonce, // Required for id_token
+            prompt: this.config.prompt
         });
 
         window.location.href = `${this.config.authorizationEndpoint}?${params.toString()}`;
     }
 
     /**
-     * Exchange authorization code for tokens
-     * @param {string} code - Authorization code
-     * @param {string} codeVerifier - PKCE code verifier
+     * Handle OAuth callback - for implicit flow, tokens are in URL fragment
+     * @param {string} code - Not used for implicit flow
+     * @param {string} codeVerifier - Not used for implicit flow  
      * @returns {Promise<Object>} Token response
      */
     async handleCallback(code, codeVerifier) {
-        const params = new URLSearchParams({
-            client_id: this.config.clientId,
-            code: code,
-            redirect_uri: this.config.redirectUri,
-            grant_type: 'authorization_code',
-            code_verifier: codeVerifier
-        });
-
-        const response = await fetch(this.config.tokenEndpoint, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/x-www-form-urlencoded'
-            },
-            body: params
-        });
-
-        if (!response.ok) {
-            const error = await response.json();
-            throw new Error(error.error_description || 'Failed to exchange code for token');
+        // For implicit flow, tokens are in the URL hash fragment, not query params
+        const hash = window.location.hash.substring(1);
+        const params = new URLSearchParams(hash);
+        
+        const accessToken = params.get('access_token');
+        const idToken = params.get('id_token');
+        const expiresIn = params.get('expires_in');
+        const error = params.get('error');
+        
+        if (error) {
+            throw new Error(params.get('error_description') || error);
+        }
+        
+        if (!accessToken) {
+            // Fallback: Maybe it's authorization code flow, try the old way
+            // This happens if somehow we got here via code flow
+            throw new Error('No access token in callback. Google OAuth requires implicit flow for SPAs.');
         }
 
-        return response.json();
+        return {
+            access_token: accessToken,
+            id_token: idToken,
+            expires_in: parseInt(expiresIn, 10) || 3600,
+            token_type: 'Bearer'
+            // Note: Implicit flow does not provide refresh_token
+        };
     }
 
     /**
      * Refresh access token
-     * @param {string} refreshToken - Refresh token
+     * Note: Implicit flow doesn't support refresh tokens
+     * User will need to re-authenticate
+     * @param {string} refreshToken - Refresh token (not available in implicit flow)
      * @returns {Promise<Object>} New token response
      */
     async refreshTokens(refreshToken) {
-        const params = new URLSearchParams({
-            client_id: this.config.clientId,
-            refresh_token: refreshToken,
-            grant_type: 'refresh_token'
-        });
-
-        const response = await fetch(this.config.tokenEndpoint, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/x-www-form-urlencoded'
-            },
-            body: params
-        });
-
-        if (!response.ok) {
-            throw new Error('Failed to refresh token');
-        }
-
-        return response.json();
+        // Implicit flow doesn't support refresh tokens
+        // Throw an error to trigger re-authentication
+        throw new Error('Session expired. Please sign in again.');
     }
 
     /**
@@ -147,3 +138,4 @@ export class GoogleProvider extends AuthProvider {
         }
     }
 }
+

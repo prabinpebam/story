@@ -59,26 +59,34 @@ class AuthService {
 
     /**
      * Handle OAuth callback
+     * Supports both authorization code flow and implicit flow
      * Should be called when app loads on /auth/callback route
      * @returns {Promise<Object>} User profile
      */
     async handleCallback() {
         this.ensureInitialized();
 
-        const urlParams = new URLSearchParams(window.location.search);
-        const code = urlParams.get('code');
-        const state = urlParams.get('state');
-        const error = urlParams.get('error');
-
+        // Check for errors in both query params and hash
+        const urlParams = new URLSearchParams(window.location.search || '');
+        const hash = window.location.hash || '';
+        const hashParams = new URLSearchParams(hash.startsWith('#') ? hash.substring(1) : hash);
+        
+        const error = urlParams.get('error') || hashParams.get('error');
         if (error) {
-            throw new Error(`Auth error: ${error} - ${urlParams.get('error_description')}`);
+            const description = urlParams.get('error_description') || hashParams.get('error_description');
+            throw new Error(`Auth error: ${error} - ${description}`);
         }
 
-        if (!code || !state) {
-            throw new Error('Missing code or state in callback URL');
+        // Detect flow type
+        const code = urlParams.get('code');
+        const accessTokenInHash = hashParams.get('access_token');
+        const state = urlParams.get('state') || hashParams.get('state');
+
+        if (!state) {
+            throw new Error('Missing state in callback URL');
         }
 
-        // Verify PKCE params
+        // Verify PKCE/state params
         const pkceParams = getPKCEParams();
         if (!pkceParams) {
             throw new Error('No PKCE parameters found. Session may have expired.');
@@ -94,8 +102,17 @@ class AuthService {
         }
 
         try {
-            // Exchange code for tokens
-            const tokenResponse = await provider.handleCallback(code, pkceParams.codeVerifier);
+            let tokenResponse;
+            
+            if (accessTokenInHash) {
+                // Implicit flow - tokens are already in the URL hash
+                tokenResponse = await provider.handleCallback(null, null);
+            } else if (code) {
+                // Authorization code flow - exchange code for tokens
+                tokenResponse = await provider.handleCallback(code, pkceParams.codeVerifier);
+            } else {
+                throw new Error('No authorization code or access token found in callback');
+            }
             
             // Store tokens
             tokenStorage.setTokens({
