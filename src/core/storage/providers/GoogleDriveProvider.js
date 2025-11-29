@@ -381,12 +381,17 @@ export class GoogleDriveProvider extends IStorageProvider {
     async listFiles(folderId) {
         const accessToken = await this._ensureAuthenticated();
 
+        // For Google Drive with drive.file scope, we can only access files created by this app
+        // When no folderId, list root folder contents (files in 'root' that are not trashed)
         const query = folderId
             ? `'${folderId}' in parents and trashed = false`
-            : `mimeType = '${FILE_FORMAT.MIME_TYPE}' and trashed = false`;
+            : `'root' in parents and trashed = false`;
+
+        console.log('[GoogleDriveProvider] listFiles query:', query);
+        console.log('[GoogleDriveProvider] Access token (first 20 chars):', accessToken?.substring(0, 20));
 
         const response = await fetch(
-            `${GOOGLE_API.DRIVE_FILES}?q=${encodeURIComponent(query)}&fields=files(id,name,size,modifiedTime,createdTime,thumbnailLink)`,
+            `${GOOGLE_API.DRIVE_FILES}?q=${encodeURIComponent(query)}&fields=files(id,name,mimeType,size,modifiedTime,createdTime,thumbnailLink)`,
             {
                 headers: {
                     'Authorization': `Bearer ${accessToken}`
@@ -395,18 +400,26 @@ export class GoogleDriveProvider extends IStorageProvider {
         );
 
         if (!response.ok) {
-            throw new Error('Failed to list files');
+            const errorText = await response.text();
+            console.error('[GoogleDriveProvider] listFiles error:', response.status, errorText);
+            throw new Error(`Failed to list files: ${response.status} - ${errorText}`);
         }
 
         const data = await response.json();
-        return data.files.map(f => ({
-            id: f.id,
-            name: f.name,
-            size: parseInt(f.size, 10),
-            modified: new Date(f.modifiedTime),
-            created: f.createdTime ? new Date(f.createdTime) : null,
-            thumbnailUrl: f.thumbnailLink
-        }));
+        console.log('[GoogleDriveProvider] listFiles result:', data.files?.length, 'files');
+        
+        // Filter to show folders and .str files
+        return data.files
+            .filter(f => f.mimeType === 'application/vnd.google-apps.folder' || f.name.endsWith('.str'))
+            .map(f => ({
+                id: f.id,
+                name: f.name,
+                isFolder: f.mimeType === 'application/vnd.google-apps.folder',
+                size: parseInt(f.size, 10) || 0,
+                modified: new Date(f.modifiedTime),
+                created: f.createdTime ? new Date(f.createdTime) : null,
+                thumbnailUrl: f.thumbnailLink
+            }));
     }
 
     /**

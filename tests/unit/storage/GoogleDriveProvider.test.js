@@ -347,7 +347,9 @@ describe('GoogleDriveProvider', () => {
         it('should throw on list failure', async () => {
             mockFetch.mockResolvedValueOnce({
                 ok: false,
-                status: 500
+                status: 500,
+                statusText: 'Internal Server Error',
+                text: async () => 'Server error'
             });
 
             await expect(provider.listFiles())
