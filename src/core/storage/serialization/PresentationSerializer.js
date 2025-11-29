@@ -287,33 +287,40 @@ export class PresentationSerializer {
     }
 
     /**
-     * Serialize background
-     * @param {Object} background - Background object
-     * @returns {Object} Serialized background
+     * Serialize background - can be null, single fill object, or array of fills
+     * @param {Object|Array|null} background - Background object(s)
+     * @returns {Object|Array|null} Serialized background
      */
     serializeBackground(background) {
-        if (!background) {
-            return { type: 'solid', color: '#FFFFFF' };
+        // null means inherit from parent - preserve this
+        if (background === null || background === undefined) {
+            return null;
         }
 
-        const serialized = {
-            type: background.type || 'solid'
-        };
+        // Handle array of fills
+        if (Array.isArray(background)) {
+            return background.map(fill => this.serializeFill(fill));
+        }
 
-        switch (background.type) {
-            case 'solid':
-                serialized.color = background.color || '#FFFFFF';
-                break;
-            case 'gradient':
-                serialized.gradient = background.gradient;
-                break;
-            case 'image':
-                serialized.assetId = background.assetId;
-                serialized.assetPath = this.assetMap.get(background.assetId) || null;
-                serialized.fit = background.fit || 'cover';
-                break;
-            default:
-                serialized.color = '#FFFFFF';
+        // Handle single fill object
+        return this.serializeFill(background);
+    }
+
+    /**
+     * Serialize a single fill object
+     * @param {Object} fill - Fill object
+     * @returns {Object} Serialized fill
+     */
+    serializeFill(fill) {
+        if (!fill) {
+            return { type: 'solid', value: '#ffffff' };
+        }
+
+        const serialized = { ...fill };
+
+        // Handle image fills - map asset path
+        if (fill.type === 'image' && fill.assetId) {
+            serialized.assetPath = this.assetMap.get(fill.assetId) || null;
         }
 
         return serialized;

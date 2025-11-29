@@ -2,6 +2,12 @@
 
 This document provides an **exhaustive list** of all properties that must be serialized and deserialized when saving/loading `.str` files. This serves as the authoritative reference for ensuring complete data preservation.
 
+## Implementation Status
+
+✅ **Last Updated**: November 29, 2025
+
+The serializer/deserializer now uses a "copy all properties" approach to ensure no data is lost. This document reflects the current working implementation.
+
 ## Purpose
 
 When saving a presentation, ALL properties listed here must be preserved. The serializer should use a "preserve all" approach rather than explicitly listing each property, to ensure new properties are automatically saved.
@@ -12,24 +18,34 @@ When saving a presentation, ALL properties listed here must be preserved. The se
 
 Properties on slide objects (`state.slides[slideId]`):
 
-| Property | Type | Required | Description |
-|----------|------|----------|-------------|
-| `id` | string | ✅ | Unique slide identifier |
-| `title` | string | ❌ | Display title for slide list |
-| `layoutId` | string | ❌ | Reference to master layout |
-| `width` | number | ✅ | Slide width in pixels (default: 1920) |
-| `height` | number | ✅ | Slide height in pixels (default: 1080) |
-| `background` | Fill[] \| object | ❌ | Background fill (see Fill Object below) |
-| `elements` | object | ✅ | Map of element ID → element object |
-| `elementOrder` | string[] | ✅ | Array of element IDs (z-index order) |
-| `notes` | string | ❌ | Speaker notes |
-| `transition` | string | ❌ | Transition type: 'none', 'fade', 'slide', 'magic' |
-| `duration` | number | ❌ | Auto-advance duration in ms |
-| `order` | number | ❌ | Sort order (legacy) |
-| `name` | string | ❌ | Internal name (legacy) |
-| `masterSlideId` | string | ❌ | Reference to master slide (legacy) |
-| `colorOverride` | object | ❌ | Theme color overrides |
-| `typographyOverride` | object | ❌ | Theme typography overrides |
+| Property | Type | Required | Default | Description |
+|----------|------|----------|---------|-------------|
+| `id` | string | ✅ | - | Unique slide identifier |
+| `title` | string | ❌ | "" | Display title for slide list |
+| `layoutId` | string | ❌ | null | Reference to master layout |
+| `width` | number | ✅ | 1920 | Slide width in pixels |
+| `height` | number | ✅ | 1080 | Slide height in pixels |
+| `background` | Fill[] \| Fill \| null | ❌ | null | Background fill(s) - see Background section |
+| `elements` | object | ✅ | {} | Map of element ID → element object |
+| `elementOrder` | string[] | ✅ | [] | Array of element IDs (z-index order) |
+| `notes` | string | ❌ | "" | Speaker notes |
+| `transition` | string | ❌ | "none" | Transition type: 'none', 'fade', 'slide', 'magic' |
+| `duration` | number | ❌ | - | Auto-advance duration in ms |
+| `order` | number | ❌ | - | Sort order (legacy) |
+| `name` | string | ❌ | - | Internal name (legacy) |
+| `masterSlideId` | string | ❌ | - | Reference to master slide (legacy) |
+| `colorOverride` | object | ❌ | - | Theme color overrides |
+| `typographyOverride` | object | ❌ | - | Theme typography overrides |
+
+### Background Format
+
+The `background` property has **three valid formats**:
+
+1. **`null`** - Inherit from parent layout/theme
+2. **Single Fill Object** - `{ type: "solid", value: "#ff0000" }`
+3. **Array of Fills** - `[{ type: "solid", value: "#ff0000", opacity: 100 }]`
+
+The serializer **preserves null** to maintain inheritance. DO NOT convert null to a default value.
 
 ---
 
@@ -204,16 +220,32 @@ Additional properties for `type: 'group'`:
 
 ## 9. Fill Object
 
-Fill layers for backgrounds, shapes, and text:
+Fill layers for backgrounds, shapes, and text. **IMPORTANT**: Use `value` property, not `color`.
 
 | Property | Type | Description |
 |----------|------|-------------|
-| `type` | string | 'solid', 'gradient', 'image', 'code' |
+| `type` | string | **Required**: 'solid', 'gradient', 'image', 'code' |
 | `value` | string | Color hex, gradient CSS, or image URL |
-| `color` | string | Alias for value (solid fills) |
-| `opacity` | number | Fill opacity 0-100 |
-| `visible` | boolean | Fill visibility |
-| `blendMode` | string | Blend mode |
+| `opacity` | number | Fill opacity 0-100 (default: 100) |
+| `visible` | boolean | Fill visibility (default: true) |
+| `blendMode` | string | Blend mode (default: 'normal') |
+
+### ⚠️ Property Name Note
+
+- Use **`value`** for all fill types (solid color, gradient string, image URL)
+- **`color`** is a legacy alias that the deserializer converts to `value`
+- Never use `color` in new code
+
+### Solid Fill Example
+
+```json
+{
+  "type": "solid",
+  "value": "#ff5500",
+  "opacity": 100,
+  "visible": true
+}
+```
 
 ### Gradient Value Format
 
@@ -221,6 +253,21 @@ For `type: 'gradient'`, value is CSS gradient string:
 ```
 linear-gradient(90deg, #000000 0%, #ffffff 100%)
 radial-gradient(circle at center, #000000 0%, #ffffff 100%)
+```
+
+Or a structured gradient object:
+```json
+{
+  "type": "gradient",
+  "value": {
+    "type": "linear",
+    "angle": 90,
+    "stops": [
+      { "color": "#000000", "position": 0 },
+      { "color": "#ffffff", "position": 100 }
+    ]
+  }
+}
 ```
 
 ### Code Fill Properties
@@ -376,21 +423,23 @@ These properties are runtime-only and should be excluded:
 
 When modifying serialization code, verify:
 
-- [ ] Slide `background` is saved (including array format)
-- [ ] Shape `borderRadius` is saved
-- [ ] Shape `style.backgroundColor` is saved
-- [ ] Shape `style.fills` array is saved
-- [ ] Shape `style.strokes` array is saved
-- [ ] Text `content` is saved (not `text`)
-- [ ] Text `textFill` is saved
-- [ ] Text typography props at element level are saved
-- [ ] Element `effects` array is saved
-- [ ] Element `animation` is saved
-- [ ] Element `blendMode` is saved
-- [ ] Element `isPlaceholder` and `placeholderType` are saved
-- [ ] Slide `elementOrder` is saved and restored
-- [ ] Image/Video `src` is saved
-- [ ] All master/layout properties are saved
+- [x] Slide `background` is saved (including array format and null)
+- [x] Slide `background` uses `value` not `color` for solid fills
+- [x] Shape `borderRadius` is saved
+- [x] Shape `style.backgroundColor` is saved
+- [x] Shape `style.fills` array is saved
+- [x] Shape `style.strokes` array is saved
+- [x] Text `content` is saved (not `text`)
+- [x] Text `textFill` is saved
+- [x] Text typography props at element level are saved
+- [x] Element `effects` array is saved
+- [x] Element `animation` is saved
+- [x] Element `blendMode` is saved
+- [x] Element `isPlaceholder` and `placeholderType` are saved
+- [x] Slide `elementOrder` is saved and restored
+- [x] Image/Video `src` is saved
+- [x] All master/layout properties are saved
+- [x] `null` background is preserved (not converted to default)
 
 ---
 
@@ -398,4 +447,7 @@ When modifying serialization code, verify:
 
 | Date | Change |
 |------|--------|
+| 2025-11-29 | Fixed background serialization to preserve null and use `value` property |
+| 2025-11-29 | Updated validation checklist with implementation status |
+| 2025-11-29 | Initial comprehensive property documentation |
 | 2025-11-29 | Initial comprehensive property list |

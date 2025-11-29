@@ -245,13 +245,53 @@ export class PresentationDeserializer {
     }
 
     /**
-     * Deserialize background
-     * @param {Object} data - Raw background data
-     * @returns {Object} Deserialized background
+     * Deserialize background - can be null, single fill object, or array of fills
+     * @param {Object|Array|null} data - Raw background data
+     * @returns {Object|Array|null} Deserialized background
      */
     deserializeBackground(data) {
+        // null means inherit from parent - preserve this
+        if (data === null || data === undefined) {
+            return null;
+        }
+
+        // Handle array of fills
+        if (Array.isArray(data)) {
+            return data.map(fill => this.deserializeFill(fill));
+        }
+
+        // Handle single fill object
+        return this.deserializeFill(data);
+    }
+
+    /**
+     * Deserialize a single fill object
+     * @param {Object} fill - Fill object
+     * @returns {Object} Deserialized fill
+     */
+    deserializeFill(fill) {
+        if (!fill) {
+            return { type: 'solid', value: '#ffffff' };
+        }
+
+        const deserialized = { ...fill };
+
+        // Support legacy 'color' property - convert to 'value'
+        if (fill.type === 'solid' && fill.color && !fill.value) {
+            deserialized.value = fill.color;
+            delete deserialized.color;
+        }
+
+        return deserialized;
+    }
+
+    /**
+     * Legacy background deserializer (kept for reference)
+     * @deprecated Use deserializeBackground instead
+     */
+    deserializeBackgroundLegacy(data) {
         if (!data) {
-            return { type: 'solid', color: '#FFFFFF' };
+            return { type: 'solid', value: '#ffffff' };
         }
 
         const background = {
@@ -260,14 +300,14 @@ export class PresentationDeserializer {
 
         switch (data.type) {
             case 'solid':
-                background.color = data.color || '#FFFFFF';
+                background.value = data.value || data.color || '#ffffff';
                 break;
             case 'gradient':
-                background.gradient = data.gradient;
+                background.value = data.value || data.gradient;
                 break;
             case 'image':
                 background.assetId = data.assetId;
-                background.assetPath = data.assetPath;
+                background.value = data.assetPath || data.value;
                 background.fit = data.fit || 'cover';
                 break;
             default:

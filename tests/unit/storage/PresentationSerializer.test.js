@@ -229,33 +229,46 @@ describe('PresentationSerializer', () => {
     });
 
     describe('serializeBackground', () => {
-        it('should serialize solid background', () => {
+        it('should serialize solid background with value', () => {
             const serializer = new PresentationSerializer(mockState);
-            const bg = { type: 'solid', color: '#FFFF00' };
+            const bg = { type: 'solid', value: '#FFFF00' };
             const serialized = serializer.serializeBackground(bg);
 
             expect(serialized.type).toBe('solid');
-            expect(serialized.color).toBe('#FFFF00');
+            expect(serialized.value).toBe('#FFFF00');
         });
 
         it('should serialize gradient background', () => {
             const serializer = new PresentationSerializer(mockState);
             const bg = {
                 type: 'gradient',
-                gradient: { type: 'linear', colors: ['#FF0000', '#00FF00'] }
+                value: { type: 'linear', stops: [{ color: '#FF0000', position: 0 }, { color: '#00FF00', position: 100 }] }
             };
             const serialized = serializer.serializeBackground(bg);
 
             expect(serialized.type).toBe('gradient');
-            expect(serialized.gradient.colors).toEqual(['#FF0000', '#00FF00']);
+            expect(serialized.value.type).toBe('linear');
         });
 
-        it('should default to white solid for null', () => {
+        it('should preserve null background (inherit from parent)', () => {
             const serializer = new PresentationSerializer(mockState);
             const serialized = serializer.serializeBackground(null);
 
-            expect(serialized.type).toBe('solid');
-            expect(serialized.color).toBe('#FFFFFF');
+            expect(serialized).toBe(null);
+        });
+
+        it('should serialize array of fills', () => {
+            const serializer = new PresentationSerializer(mockState);
+            const bg = [
+                { type: 'solid', value: '#FF0000', opacity: 100 },
+                { type: 'gradient', value: 'linear-gradient(90deg, #000 0%, #fff 100%)' }
+            ];
+            const serialized = serializer.serializeBackground(bg);
+
+            expect(Array.isArray(serialized)).toBe(true);
+            expect(serialized.length).toBe(2);
+            expect(serialized[0].type).toBe('solid');
+            expect(serialized[0].value).toBe('#FF0000');
         });
     });
 
