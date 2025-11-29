@@ -1,0 +1,35 @@
+/**
+ * File Service Styles
+ * 
+ * Toast notifications and other file service UI elements.
+ */
+
+/* ===== Save Toast ===== */
+.file-toast {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    background: var(--color-bg-elevated);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    padding: var(--spacing-2) var(--spacing-4);
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-2);
+    box-shadow: var(--shadow-lg);
+    opacity: 0;
+    transition: opacity 200ms ease-out, transform 200ms ease-out;
+    z-index: var(--z-toast);
+    font-size: var(--font-size-md);
+    color: var(--color-text-primary);
+}
+
+.file-toast.visible {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+}
+
+.file-toast i {
+    color: #22c55e;
+}

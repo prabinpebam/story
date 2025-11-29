@@ -21,6 +21,9 @@ import { CodeFillPanel } from './ui/panels/CodeFillPanel.js';
 import { ProfileButton } from './ui/auth/ProfileButton.js';
 import { SignInModal } from './ui/auth/SignInModal.js';
 import { authService } from './core/auth/index.js';
+import { AppMenu } from './ui/components/AppMenu/AppMenu.js';
+import { fileService } from './ui/services/FileService.js';
+import { menuActionHandler } from './ui/services/MenuActionHandler.js';
 
 class App {
     constructor() {
@@ -46,6 +49,9 @@ class App {
         this.settingsModal = new SettingsModal();
         this.gridView = new GridView('presentation-grid-view');
         this.hud = new HUD('presentation-hud');
+
+        // Initialize App Menu (file menu in sidebar header)
+        this.appMenu = new AppMenu('app-menu-container');
 
         // Initialize Panels
         this.colorThemeManager = new ColorThemeManager();
@@ -119,12 +125,6 @@ class App {
     }
 
     bindEvents() {
-        // Settings Button
-        const settingsBtn = document.getElementById('settings-btn');
-        if (settingsBtn) {
-            settingsBtn.onclick = () => this.settingsModal.open();
-        }
-
         // Master Mode Buttons
         const editMasterBtn = document.getElementById('edit-master-btn');
         const closeMasterBtn = document.getElementById('close-master-btn');
@@ -168,6 +168,28 @@ class App {
 
             const state = store.getState();
             if (state.editor.mode === 'presentation') return;
+
+            // File Operations (handled before other shortcuts)
+            if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key.toLowerCase() === 'n') {
+                e.preventDefault();
+                fileService.newPresentation();
+                return;
+            }
+            if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key.toLowerCase() === 'o') {
+                e.preventDefault();
+                fileService.open();
+                return;
+            }
+            if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key.toLowerCase() === 's') {
+                e.preventDefault();
+                fileService.save();
+                return;
+            }
+            if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === 's') {
+                e.preventDefault();
+                fileService.saveAs();
+                return;
+            }
 
             // Undo/Redo
             if ((e.ctrlKey || e.metaKey) && e.key === 'z') {

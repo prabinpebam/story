@@ -284,6 +284,40 @@ class Store extends EventEmitter {
                 if (type === 'AUTH_LOGIN_SUCCESS') this.emit('auth-changed', { isAuthenticated: true, user: payload });
                 if (type === 'AUTH_LOGOUT') this.emit('auth-changed', { isAuthenticated: false, user: null });
                 break;
+
+            // File/Presentation Handlers
+            case 'RESET_STATE':
+                // Reset to initial state for new presentation
+                this.state = createInitialState();
+                historyManager.clear();
+                this.emit('state-changed', this.state);
+                this.emit('presentation-reset');
+                break;
+
+            case 'LOAD_PRESENTATION':
+                // Load a complete presentation state
+                if (payload && payload.slides) {
+                    this.state = produce(this.state, draft => {
+                        // Replace slides
+                        draft.slides = payload.slides || [];
+                        
+                        // Replace masters if provided
+                        if (payload.masters) {
+                            draft.masters = payload.masters;
+                        }
+                        
+                        // Reset editor to first slide
+                        if (draft.slides.length > 0) {
+                            draft.editor.activeSlideId = draft.slides[0].id;
+                        }
+                        draft.editor.selectedElementIds = [];
+                        draft.editor.mode = 'edit';
+                    });
+                    historyManager.clear();
+                    this.emit('state-changed', this.state);
+                    this.emit('presentation-loaded');
+                }
+                break;
         }
     }
 
