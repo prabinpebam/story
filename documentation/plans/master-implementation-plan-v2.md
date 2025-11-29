@@ -15,12 +15,12 @@ This V2 plan takes the foundation from V1 (code complete) to **100% production-r
 - ✅ Operational Transform with vector clocks
 
 **V2 Goals:**
-- 🎯 User preferences file (encrypted, identity-locked)
-- 🎯 File sharing and permissions UI
+- ✅ User preferences file (encrypted, identity-locked) - **COMPLETE**
+- ✅ Cross-device sync for preferences - **COMPLETE**
+- ✅ Identity linking (multiple OAuth accounts) - **COMPLETE**
+- 🔄 File sharing and permissions UI - **IN PROGRESS (Phase 2.2)**
 - 🎯 Azure Functions deployment (negotiate, broadcast, join)
 - 🎯 End-to-end integration testing
-- 🎯 Cross-device sync for preferences
-- 🎯 Identity linking (multiple OAuth accounts)
 - 🎯 Version history and restore
 - 🎯 Production-ready error handling
 
@@ -71,40 +71,40 @@ This plan adheres to the [Story Principles](../principles.md). Each phase includ
 
 ### Identity System Gaps
 
-| Feature | V1 Status | V2 Target | Priority |
-|---------|-----------|-----------|----------|
-| OAuth flow | ✅ Code complete | Configure client IDs | HIGH |
-| Token storage | ✅ Complete | - | - |
-| User profile | ✅ Complete | - | - |
-| **User preferences file** | ❌ Not started | Identity-locked .str | HIGH |
-| **Identity linking** | ⏸️ Prep only | Multiple OAuth accounts | MEDIUM |
-| **Cross-device sync** | ❌ Not started | Preferences sync | MEDIUM |
-| Guest mode | ✅ Code exists | Test and polish | LOW |
+| Feature | V1 Status | V2 Target | Priority | V2 Status |
+|---------|-----------|-----------|----------|-----------|
+| OAuth flow | ✅ Code complete | Configure client IDs | HIGH | 🔄 Week 1 |
+| Token storage | ✅ Complete | - | - | ✅ |
+| User profile | ✅ Complete | - | - | ✅ |
+| **User preferences file** | ❌ Not started | Identity-locked .str | HIGH | ✅ **DONE** |
+| **Identity linking** | ⏸️ Prep only | Multiple OAuth accounts | MEDIUM | ✅ **DONE** |
+| **Cross-device sync** | ❌ Not started | Preferences sync | MEDIUM | ✅ **DONE** |
+| Guest mode | ✅ Code exists | Test and polish | LOW | 🔄 |
 
 ### Storage System Gaps
 
-| Feature | V1 Status | V2 Target | Priority |
-|---------|-----------|-----------|----------|
-| .str format | ✅ Complete | - | - |
-| Cloud providers | ✅ Complete | - | - |
-| Auto-save | ✅ Complete | - | - |
-| **Sharing permissions** | ❌ Not started | Share dialogs, invite flow | HIGH |
-| **Conflict resolution UI** | ⏸️ Code only | User-facing dialogs | MEDIUM |
-| **Version history** | ❌ Not started | View and restore versions | MEDIUM |
-| **Recent files list** | ❌ Not started | With cloud metadata | LOW |
+| Feature | V1 Status | V2 Target | Priority | V2 Status |
+|---------|-----------|-----------|----------|-----------|
+| .str format | ✅ Complete | - | - | ✅ |
+| Cloud providers | ✅ Complete | - | - | ✅ |
+| Auto-save | ✅ Complete | - | - | ✅ |
+| **Sharing permissions** | ❌ Not started | Share dialogs, invite flow | HIGH | 🔄 Phase 2.2 |
+| **Conflict resolution UI** | ⏸️ Code only | User-facing dialogs | MEDIUM | 🔄 |
+| **Version history** | ❌ Not started | View and restore versions | MEDIUM | 🔄 Phase 2.5 |
+| **Recent files list** | ❌ Not started | With cloud metadata | LOW | 🔄 |
 
 ### Collaboration System Gaps
 
-| Feature | V1 Status | V2 Target | Priority |
-|---------|-----------|-----------|----------|
-| SignalR client | ✅ Complete | - | - |
-| Presence manager | ✅ Complete | - | - |
-| Cursor manager | ✅ Complete | - | - |
-| State sync (OT) | ✅ Complete | - | - |
-| **Azure Functions** | ❌ Not deployed | negotiate, broadcast, join | HIGH |
-| **End-to-end test** | ❌ Not started | Multi-user editing test | HIGH |
-| **Offline queue flush** | ⏸️ Partial | Full offline→online sync | MEDIUM |
-| **Collaborator avatars** | ❌ Not started | Show in presence panel | LOW |
+| Feature | V1 Status | V2 Target | Priority | V2 Status |
+|---------|-----------|-----------|----------|-----------|
+| SignalR client | ✅ Complete | - | - | ✅ |
+| Presence manager | ✅ Complete | - | - | ✅ |
+| Cursor manager | ✅ Complete | - | - | ✅ |
+| State sync (OT) | ✅ Complete | - | - | ✅ |
+| **Azure Functions** | ❌ Not deployed | negotiate, broadcast, join | HIGH | 🔄 Phase 2.3 |
+| **End-to-end test** | ❌ Not started | Multi-user editing test | HIGH | 🔄 Phase 2.4 |
+| **Offline queue flush** | ⏸️ Partial | Full offline→online sync | MEDIUM | 🔄 |
+| **Collaborator avatars** | ❌ Not started | Show in presence panel | LOW | 🔄 |
 
 ---
 
