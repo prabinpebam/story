@@ -3,7 +3,8 @@
  * Reads .str file (ZIP archive) for Story presentations
  */
 
-import JSZip from 'jszip';
+// JSZip loaded via CDN in index.html
+const JSZip = window.JSZip;
 import { ARCHIVE_PATHS, STORAGE_ERRORS } from '../constants/StorageConstants.js';
 
 export class ZipFileReader {

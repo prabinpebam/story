@@ -5,6 +5,13 @@
  */
 
 import { vi } from 'vitest';
+import JSZip from 'jszip';
+
+// Make JSZip available globally for modules that use window.JSZip
+global.JSZip = JSZip;
+if (typeof window !== 'undefined') {
+    window.JSZip = JSZip;
+}
 
 // Mock localStorage
 global.localStorage = {
