@@ -218,6 +218,13 @@ export class SlideList {
         if (state.slideOrder && state.slides) {
             state.slideOrder.forEach((slideId, index) => {
                 const slide = state.slides[slideId];
+                
+                // Skip if slide doesn't exist
+                if (!slide) {
+                    console.warn(`Slide not found: ${slideId}`);
+                    return;
+                }
+                
                 const isActive = slideId === state.editor.activeSlideId;
                 const isSelected = state.editor.selectedSlideIds && state.editor.selectedSlideIds.includes(slideId);
                 

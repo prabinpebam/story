@@ -298,17 +298,50 @@ class Store extends EventEmitter {
                 // Load a complete presentation state
                 if (payload && payload.slides) {
                     this.state = produce(this.state, draft => {
-                        // Replace slides
-                        draft.slides = payload.slides || [];
+                        // Convert slides array to object keyed by ID
+                        const slidesArray = Array.isArray(payload.slides) ? payload.slides : Object.values(payload.slides);
+                        const slidesObj = {};
+                        const slideOrder = [];
+                        
+                        for (const slide of slidesArray) {
+                            if (slide && slide.id) {
+                                // Convert elements array to object keyed by ID if needed
+                                if (Array.isArray(slide.elements)) {
+                                    const elementsObj = {};
+                                    const elementOrder = [];
+                                    for (const el of slide.elements) {
+                                        if (el && el.id) {
+                                            elementsObj[el.id] = el;
+                                            elementOrder.push(el.id);
+                                        }
+                                    }
+                                    slide.elements = elementsObj;
+                                    slide.elementOrder = elementOrder;
+                                }
+                                slidesObj[slide.id] = slide;
+                                slideOrder.push(slide.id);
+                            }
+                        }
+                        
+                        draft.slides = slidesObj;
+                        draft.slideOrder = slideOrder;
                         
                         // Replace masters if provided
                         if (payload.masters) {
                             draft.masters = payload.masters;
                         }
                         
+                        // Update metadata if provided
+                        if (payload.metadata) {
+                            draft.meta = {
+                                ...draft.meta,
+                                ...payload.metadata
+                            };
+                        }
+                        
                         // Reset editor to first slide
-                        if (draft.slides.length > 0) {
-                            draft.editor.activeSlideId = draft.slides[0].id;
+                        if (slideOrder.length > 0) {
+                            draft.editor.activeSlideId = slideOrder[0];
                         }
                         draft.editor.selectedElementIds = [];
                         draft.editor.mode = 'edit';
