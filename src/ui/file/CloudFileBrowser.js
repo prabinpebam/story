@@ -89,7 +89,7 @@ export class CloudFileBrowser {
         /** @type {SortDirection} */
         this.sortDirection = 'asc';
         /** @type {boolean} */
-        this.isLoading = false;
+        this.isLoading = true; // Start in loading state for instant perceived performance
         /** @type {number} */
         this.focusedIndex = -1;
         
@@ -280,11 +280,11 @@ export class CloudFileBrowser {
                             </button>
                         </div>
                         
-                        <div class="cfb-files cfb-files--list" role="listbox" aria-label="Files" tabindex="0">
+                        <div class="cfb-files cfb-files--list" role="listbox" aria-label="Files" tabindex="0" style="display: none;">
                             <!-- Files will be rendered here -->
                         </div>
                         
-                        <div class="cfb-loading">
+                        <div class="cfb-loading" style="display: flex;">
                             <div class="cfb-spinner"></div>
                             <span class="cfb-loading-text">Connecting to ${this.getProviderName()}...</span>
                         </div>
@@ -366,8 +366,15 @@ export class CloudFileBrowser {
         this.lastFocusable = this.modal.querySelector('[data-action="confirm"]');
         
         this.bindEvents();
-        console.log('[CloudFileBrowser] Events bound, calling loadFiles()');
-        this.loadFiles();
+        console.log('[CloudFileBrowser] Events bound, scheduling loadFiles()');
+        
+        // Use double requestAnimationFrame to ensure modal is painted before loading
+        // This provides instant perceived performance - modal appears immediately
+        requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+                this.loadFiles();
+            });
+        });
     }
     
     /**
