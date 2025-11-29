@@ -34,3 +34,17 @@ export {
     CloudStorageManager,
     getCloudStorageManager
 } from './providers/index.js';
+
+// Sharing
+export {
+    SharingManager,
+    PermissionNormalizer,
+    ShareLinkGenerator,
+    getSharingManager,
+    resetSharingManager,
+    SharingEvents,
+    ShareRole,
+    ShareLinkType,
+    ShareLinkScope,
+    SharingErrors
+} from './sharing/index.js';

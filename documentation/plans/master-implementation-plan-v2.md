@@ -248,22 +248,24 @@ tests/unit/core/auth/
 
 | Day | Task | Status |
 |-----|------|--------|
-| Mon | Create `SharingManager.js` - unified sharing API | 🔄 |
-| Tue | Implement OneDrive sharing (invite, links) | 🔄 |
-| Wed | Implement Google Drive sharing (permissions) | 🔄 |
-| Thu | Create permission normalization layer | 🔄 |
-| Fri | Write tests for sharing operations | 🔄 |
+| Mon | Create `SharingManager.js` - unified sharing API | ✅ **DONE** |
+| Tue | Implement OneDrive sharing (invite, links) | ✅ **DONE** |
+| Wed | Implement Google Drive sharing (permissions) | ✅ **DONE** |
+| Thu | Create permission normalization layer | ✅ **DONE** |
+| Fri | Write tests for sharing operations | ✅ **DONE** |
 
 **New Files:**
 ```
 src/core/storage/sharing/
-├── SharingManager.js            # Unified sharing API
-├── PermissionNormalizer.js      # Normalize across providers
-└── ShareLinkGenerator.js        # Create shareable links
+├── SharingManager.js            # Unified sharing API ✅
+├── PermissionNormalizer.js      # Normalize across providers ✅
+├── ShareLinkGenerator.js        # Create shareable links ✅
+└── SharingConstants.js          # Events, roles, types ✅
 
 tests/unit/storage/sharing/
-├── SharingManager.test.js
-└── PermissionNormalizer.test.js
+├── SharingManager.test.js       # 36 tests ✅
+├── PermissionNormalizer.test.js # 37 tests ✅
+└── ShareLinkGenerator.test.js   # 35 tests ✅
 ```
 
 **Validation Requirements:**
