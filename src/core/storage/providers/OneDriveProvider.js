@@ -3,10 +3,13 @@
  * Storage provider for Microsoft OneDrive integration
  * 
  * Uses Microsoft Graph API with OAuth 2.0 PKCE flow
+ * Integrates with app-level authService for shared authentication
  */
 
 import { IStorageProvider } from './IStorageProvider.js';
 import { FILE_FORMAT, STORAGE_ERRORS } from '../constants/StorageConstants.js';
+import { authService } from '../../auth/AuthService.js';
+import { tokenStorage } from '../../auth/storage/TokenStorage.js';
 
 // Microsoft API endpoints
 const MICROSOFT_API = {
@@ -38,14 +41,8 @@ export class OneDriveProvider extends IStorageProvider {
         this.clientId = options.clientId;
         this.redirectUri = options.redirectUri || `${window.location.origin}/auth/microsoft/callback`;
         
-        this._accessToken = null;
-        this._refreshToken = null;
-        this._tokenExpiry = null;
         this._user = null;
         this._storyFolderId = null;
-        
-        // Load stored tokens
-        this._loadStoredTokens();
     }
 
     /**
@@ -63,121 +60,41 @@ export class OneDriveProvider extends IStorageProvider {
 
     /**
      * @inheritdoc
+     * Uses app-level auth state for Microsoft provider
      */
     isAuthenticated() {
-        return this._accessToken !== null && !this._isTokenExpired();
+        // Check if user is authenticated at app level with Microsoft
+        const provider = tokenStorage.getProvider();
+        if (provider !== 'microsoft') {
+            return false;
+        }
+        return tokenStorage.isAuthenticated();
     }
 
     /**
-     * Check if token is expired
-     * @returns {boolean}
+     * Get access token from app-level auth
+     * @returns {Promise<string|null>}
      * @private
      */
-    _isTokenExpired() {
-        if (!this._tokenExpiry) return true;
-        return Date.now() >= this._tokenExpiry - 60000; // 1 minute buffer
+    async _getAccessToken() {
+        // Use app-level auth service to get (and refresh if needed) the token
+        return await authService.getAccessToken();
     }
 
     /**
      * @inheritdoc
+     * Delegates to app-level auth service
      */
     async authenticate() {
-        // Generate PKCE code verifier and challenge
-        const codeVerifier = this._generateCodeVerifier();
-        const codeChallenge = await this._generateCodeChallenge(codeVerifier);
-        
-        // Store verifier for callback
-        sessionStorage.setItem('microsoft_code_verifier', codeVerifier);
-        
-        // Build authorization URL
-        const params = new URLSearchParams({
-            client_id: this.clientId,
-            redirect_uri: this.redirectUri,
-            response_type: 'code',
-            scope: SCOPES,
-            code_challenge: codeChallenge,
-            code_challenge_method: 'S256',
-            response_mode: 'query'
-        });
-
-        // Redirect to Microsoft auth
-        window.location.href = `${MICROSOFT_API.AUTH}?${params}`;
-    }
-
-    /**
-     * Handle OAuth callback
-     * @param {string} code - Authorization code from callback
-     * @returns {Promise<void>}
-     */
-    async handleCallback(code) {
-        const codeVerifier = sessionStorage.getItem('microsoft_code_verifier');
-        sessionStorage.removeItem('microsoft_code_verifier');
-
-        if (!codeVerifier) {
-            throw new Error('No code verifier found');
-        }
-
-        // Exchange code for tokens
-        const response = await fetch(MICROSOFT_API.TOKEN, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/x-www-form-urlencoded'
-            },
-            body: new URLSearchParams({
-                client_id: this.clientId,
-                code: code,
-                code_verifier: codeVerifier,
-                grant_type: 'authorization_code',
-                redirect_uri: this.redirectUri,
-                scope: SCOPES
-            })
-        });
-
-        if (!response.ok) {
-            const error = await response.json();
-            throw new Error(error.error_description || 'Token exchange failed');
-        }
-
-        const tokens = await response.json();
-        await this._setTokens(tokens);
-    }
-
-    /**
-     * Refresh the access token
-     * @returns {Promise<void>}
-     */
-    async refreshAccessToken() {
-        if (!this._refreshToken) {
-            throw new Error('No refresh token available');
-        }
-
-        const response = await fetch(MICROSOFT_API.TOKEN, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/x-www-form-urlencoded'
-            },
-            body: new URLSearchParams({
-                client_id: this.clientId,
-                refresh_token: this._refreshToken,
-                grant_type: 'refresh_token',
-                scope: SCOPES
-            })
-        });
-
-        if (!response.ok) {
-            this._clearTokens();
-            throw new Error('Session expired, please sign in again');
-        }
-
-        const tokens = await response.json();
-        await this._setTokens(tokens);
+        // Use app-level auth service for authentication
+        await authService.login('microsoft');
     }
 
     /**
      * @inheritdoc
      */
     async signOut() {
-        this._clearTokens();
+        await authService.logout();
     }
 
     /**
@@ -220,13 +137,13 @@ export class OneDriveProvider extends IStorageProvider {
      * @inheritdoc
      */
     async read(handle, options = {}) {
-        await this._ensureAuthenticated();
+        const accessToken = await this._ensureAuthenticated();
 
         const response = await fetch(
             `${MICROSOFT_API.GRAPH}/me/drive/items/${handle.id}/content`,
             {
                 headers: {
-                    'Authorization': `Bearer ${this._accessToken}`
+                    'Authorization': `Bearer ${accessToken}`
                 }
             }
         );
@@ -267,7 +184,7 @@ export class OneDriveProvider extends IStorageProvider {
      * @inheritdoc
      */
     async write(handle, data, options = {}) {
-        await this._ensureAuthenticated();
+        const accessToken = await this._ensureAuthenticated();
 
         const blob = data instanceof Blob ? data : new Blob([data]);
         
@@ -284,7 +201,7 @@ export class OneDriveProvider extends IStorageProvider {
         const response = await fetch(url, {
             method: 'PUT',
             headers: {
-                'Authorization': `Bearer ${this._accessToken}`,
+                'Authorization': `Bearer ${accessToken}`,
                 'Content-Type': FILE_FORMAT.MIME_TYPE
             },
             body: blob
@@ -311,6 +228,8 @@ export class OneDriveProvider extends IStorageProvider {
      * @private
      */
     async _uploadLargeFile(handle, blob, options) {
+        const accessToken = await this._ensureAuthenticated();
+        
         // Create upload session
         const sessionUrl = handle.id
             ? `${MICROSOFT_API.GRAPH}/me/drive/items/${handle.id}/createUploadSession`
@@ -319,7 +238,7 @@ export class OneDriveProvider extends IStorageProvider {
         const sessionResponse = await fetch(sessionUrl, {
             method: 'POST',
             headers: {
-                'Authorization': `Bearer ${this._accessToken}`,
+                'Authorization': `Bearer ${accessToken}`,
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({
@@ -376,13 +295,13 @@ export class OneDriveProvider extends IStorageProvider {
      * @inheritdoc
      */
     async getFileInfo(handle) {
-        await this._ensureAuthenticated();
+        const accessToken = await this._ensureAuthenticated();
 
         const response = await fetch(
             `${MICROSOFT_API.GRAPH}/me/drive/items/${handle.id}`,
             {
                 headers: {
-                    'Authorization': `Bearer ${this._accessToken}`
+                    'Authorization': `Bearer ${accessToken}`
                 }
             }
         );
@@ -407,14 +326,14 @@ export class OneDriveProvider extends IStorageProvider {
      * @inheritdoc
      */
     async delete(handle) {
-        await this._ensureAuthenticated();
+        const accessToken = await this._ensureAuthenticated();
 
         const response = await fetch(
             `${MICROSOFT_API.GRAPH}/me/drive/items/${handle.id}`,
             {
                 method: 'DELETE',
                 headers: {
-                    'Authorization': `Bearer ${this._accessToken}`
+                    'Authorization': `Bearer ${accessToken}`
                 }
             }
         );
@@ -428,32 +347,45 @@ export class OneDriveProvider extends IStorageProvider {
      * @inheritdoc
      */
     async listFiles(folderId) {
-        await this._ensureAuthenticated();
+        const accessToken = await this._ensureAuthenticated();
 
         const path = folderId
             ? `/me/drive/items/${folderId}/children`
             : '/me/drive/root/children';
 
-        const response = await fetch(
-            `${MICROSOFT_API.GRAPH}${path}?$filter=endswith(name,'.str')&$select=id,name,size,lastModifiedDateTime,createdDateTime`,
+        // Try without filter first - $filter=endswith() not always supported
+        let response = await fetch(
+            `${MICROSOFT_API.GRAPH}${path}?$select=id,name,size,lastModifiedDateTime,createdDateTime,folder`,
             {
                 headers: {
-                    'Authorization': `Bearer ${this._accessToken}`
+                    'Authorization': `Bearer ${accessToken}`
                 }
             }
         );
 
         if (!response.ok) {
+            // If 404, user may not have OneDrive set up - return empty list
+            if (response.status === 404) {
+                console.warn('OneDrive root not found - user may not have OneDrive set up');
+                return [];
+            }
             throw new Error('Failed to list files');
         }
 
         const data = await response.json();
-        return data.value.map(f => ({
+        
+        // Filter for .str files and folders (client-side)
+        const items = (data.value || []).filter(f => 
+            f.folder || f.name.toLowerCase().endsWith('.str')
+        );
+        
+        return items.map(f => ({
             id: f.id,
             name: f.name,
-            size: f.size,
+            size: f.size || 0,
             modified: new Date(f.lastModifiedDateTime),
-            created: f.createdDateTime ? new Date(f.createdDateTime) : null
+            created: f.createdDateTime ? new Date(f.createdDateTime) : null,
+            isFolder: !!f.folder
         }));
     }
 
@@ -469,7 +401,7 @@ export class OneDriveProvider extends IStorageProvider {
      * @returns {Promise<Object>} User info
      */
     async getUserInfo() {
-        await this._ensureAuthenticated();
+        const accessToken = await this._ensureAuthenticated();
 
         if (this._user) {
             return this._user;
@@ -477,7 +409,7 @@ export class OneDriveProvider extends IStorageProvider {
 
         const response = await fetch(MICROSOFT_API.ME, {
             headers: {
-                'Authorization': `Bearer ${this._accessToken}`
+                'Authorization': `Bearer ${accessToken}`
             }
         });
 
@@ -492,82 +424,41 @@ export class OneDriveProvider extends IStorageProvider {
     // Private helper methods
 
     /**
-     * Ensure user is authenticated
+     * Ensure user is authenticated and get valid access token
+     * @returns {Promise<string>} Access token
      * @private
      */
     async _ensureAuthenticated() {
-        if (!this._accessToken) {
+        if (!this.isAuthenticated()) {
             throw new Error('Not authenticated');
         }
 
-        if (this._isTokenExpired()) {
-            await this.refreshAccessToken();
+        // Get access token from app-level auth (handles refresh automatically)
+        const accessToken = await this._getAccessToken();
+        if (!accessToken) {
+            throw new Error('Not authenticated');
         }
-    }
-
-    /**
-     * Set tokens from OAuth response
-     * @param {Object} tokens - Token response
-     * @private
-     */
-    async _setTokens(tokens) {
-        this._accessToken = tokens.access_token;
-        this._tokenExpiry = Date.now() + (tokens.expires_in * 1000);
         
-        if (tokens.refresh_token) {
-            this._refreshToken = tokens.refresh_token;
-        }
-
-        // Store tokens securely
-        this._storeTokens();
-
-        // Get user info
-        await this.getUserInfo();
+        return accessToken;
     }
 
     /**
-     * Store tokens in session storage
+     * Make an authenticated API request
+     * @param {string} url - API URL
+     * @param {Object} options - Fetch options
+     * @returns {Promise<Response>}
      * @private
      */
-    _storeTokens() {
-        const data = {
-            accessToken: this._accessToken,
-            refreshToken: this._refreshToken,
-            tokenExpiry: this._tokenExpiry
-        };
+    async _authenticatedFetch(url, options = {}) {
+        const accessToken = await this._ensureAuthenticated();
         
-        // TODO: Move to encrypted IndexedDB storage
-        sessionStorage.setItem('microsoft_tokens', JSON.stringify(data));
-    }
-
-    /**
-     * Load stored tokens
-     * @private
-     */
-    _loadStoredTokens() {
-        try {
-            const stored = sessionStorage.getItem('microsoft_tokens');
-            if (stored) {
-                const data = JSON.parse(stored);
-                this._accessToken = data.accessToken;
-                this._refreshToken = data.refreshToken;
-                this._tokenExpiry = data.tokenExpiry;
+        return fetch(url, {
+            ...options,
+            headers: {
+                ...options.headers,
+                'Authorization': `Bearer ${accessToken}`
             }
-        } catch (e) {
-            console.warn('Failed to load stored tokens:', e);
-        }
-    }
-
-    /**
-     * Clear stored tokens
-     * @private
-     */
-    _clearTokens() {
-        this._accessToken = null;
-        this._refreshToken = null;
-        this._tokenExpiry = null;
-        this._user = null;
-        sessionStorage.removeItem('microsoft_tokens');
+        });
     }
 
     /**
@@ -614,13 +505,8 @@ export class OneDriveProvider extends IStorageProvider {
      * @private
      */
     async _listStrFiles() {
-        const response = await fetch(
-            `${MICROSOFT_API.GRAPH}/me/drive/root/search(q='.str')?$select=id,name,lastModifiedDateTime`,
-            {
-                headers: {
-                    'Authorization': `Bearer ${this._accessToken}`
-                }
-            }
+        const response = await this._authenticatedFetch(
+            `${MICROSOFT_API.GRAPH}/me/drive/root/search(q='.str')?$select=id,name,lastModifiedDateTime`
         );
 
         if (!response.ok) {
@@ -643,13 +529,8 @@ export class OneDriveProvider extends IStorageProvider {
 
         // Check if folder exists
         try {
-            const response = await fetch(
-                `${MICROSOFT_API.GRAPH}/me/drive/root:/Story`,
-                {
-                    headers: {
-                        'Authorization': `Bearer ${this._accessToken}`
-                    }
-                }
+            const response = await this._authenticatedFetch(
+                `${MICROSOFT_API.GRAPH}/me/drive/root:/Story`
             );
 
             if (response.ok) {
@@ -662,12 +543,11 @@ export class OneDriveProvider extends IStorageProvider {
         }
 
         // Create the folder
-        const createResponse = await fetch(
+        const createResponse = await this._authenticatedFetch(
             `${MICROSOFT_API.GRAPH}/me/drive/root/children`,
             {
                 method: 'POST',
                 headers: {
-                    'Authorization': `Bearer ${this._accessToken}`,
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
@@ -680,13 +560,8 @@ export class OneDriveProvider extends IStorageProvider {
 
         if (!createResponse.ok) {
             // Folder might already exist due to race condition
-            const checkResponse = await fetch(
-                `${MICROSOFT_API.GRAPH}/me/drive/root:/Story`,
-                {
-                    headers: {
-                        'Authorization': `Bearer ${this._accessToken}`
-                    }
-                }
+            const checkResponse = await this._authenticatedFetch(
+                `${MICROSOFT_API.GRAPH}/me/drive/root:/Story`
             );
 
             if (checkResponse.ok) {

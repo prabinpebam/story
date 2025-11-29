@@ -5,55 +5,158 @@
  * Each item has: id, label, shortcut (optional), icon (optional), submenu (optional)
  */
 
-export const menuConfig = [
-    // File operations
-    {
-        id: 'file-new',
-        label: 'New Presentation',
-        shortcut: 'Ctrl+N',
-        icon: 'fa-regular fa-file'
-    },
-    {
-        id: 'file-open',
-        label: 'Open...',
-        shortcut: 'Ctrl+O',
-        icon: 'fa-regular fa-folder-open'
-    },
-    {
-        id: 'file-recent',
-        label: 'Open Recent',
-        icon: 'fa-solid fa-clock-rotate-left',
-        submenu: [
-            { id: 'recent-empty', label: 'No recent files', disabled: true }
-            // Dynamic items will be added here
-        ]
-    },
-    { divider: true },
-    {
-        id: 'file-save',
-        label: 'Save',
-        shortcut: 'Ctrl+S',
-        icon: 'fa-regular fa-floppy-disk'
-    },
-    {
-        id: 'file-save-as',
-        label: 'Save As...',
-        shortcut: 'Ctrl+Shift+S',
-        icon: 'fa-solid fa-floppy-disk'
-    },
-    {
-        id: 'file-export',
-        label: 'Export',
-        icon: 'fa-solid fa-file-export',
-        submenu: [
-            { id: 'export-pdf', label: 'PDF...', icon: 'fa-regular fa-file-pdf' },
-            { id: 'export-png', label: 'PNG Images...', icon: 'fa-regular fa-image' },
-            { id: 'export-jpg', label: 'JPEG Images...', icon: 'fa-regular fa-image' },
-            { divider: true },
-            { id: 'export-html', label: 'HTML...', icon: 'fa-solid fa-code' }
-        ]
-    },
-    { divider: true },
+import { tokenStorage } from '../../../core/auth/storage/TokenStorage.js';
+
+/**
+ * Get cloud storage menu items based on current authentication
+ * @returns {Object[]} Cloud storage menu items
+ */
+function getCloudOpenItems() {
+    const provider = tokenStorage.getProvider();
+    const isAuthenticated = tokenStorage.isAuthenticated();
+    
+    // If not authenticated, show both options
+    if (!isAuthenticated || !provider) {
+        return [
+            { 
+                id: 'open-onedrive', 
+                label: 'OneDrive...', 
+                icon: 'fa-brands fa-microsoft'
+            },
+            { 
+                id: 'open-google-drive', 
+                label: 'Google Drive...', 
+                icon: 'fa-brands fa-google-drive'
+            }
+        ];
+    }
+    
+    // Show only the provider user is signed in with
+    if (provider === 'microsoft') {
+        return [{ 
+            id: 'open-onedrive', 
+            label: 'OneDrive...', 
+            icon: 'fa-brands fa-microsoft'
+        }];
+    } else if (provider === 'google') {
+        return [{ 
+            id: 'open-google-drive', 
+            label: 'Google Drive...', 
+            icon: 'fa-brands fa-google-drive'
+        }];
+    }
+    
+    return [];
+}
+
+/**
+ * Get cloud save menu items based on current authentication
+ * @returns {Object[]} Cloud save menu items
+ */
+function getCloudSaveItems() {
+    const provider = tokenStorage.getProvider();
+    const isAuthenticated = tokenStorage.isAuthenticated();
+    
+    // If not authenticated, show both options
+    if (!isAuthenticated || !provider) {
+        return [
+            { 
+                id: 'save-onedrive', 
+                label: 'OneDrive...', 
+                icon: 'fa-brands fa-microsoft'
+            },
+            { 
+                id: 'save-google-drive', 
+                label: 'Google Drive...', 
+                icon: 'fa-brands fa-google-drive'
+            }
+        ];
+    }
+    
+    // Show only the provider user is signed in with
+    if (provider === 'microsoft') {
+        return [{ 
+            id: 'save-onedrive', 
+            label: 'OneDrive...', 
+            icon: 'fa-brands fa-microsoft'
+        }];
+    } else if (provider === 'google') {
+        return [{ 
+            id: 'save-google-drive', 
+            label: 'Google Drive...', 
+            icon: 'fa-brands fa-google-drive'
+        }];
+    }
+    
+    return [];
+}
+
+/**
+ * Generate menu configuration dynamically
+ * @returns {Object[]} Menu configuration
+ */
+export function getMenuConfig() {
+    return [
+        // File operations
+        {
+            id: 'file-new',
+            label: 'New Presentation',
+            shortcut: 'Ctrl+N',
+            icon: 'fa-regular fa-file'
+        },
+        {
+            id: 'file-open',
+            label: 'Open...',
+            shortcut: 'Ctrl+O',
+            icon: 'fa-regular fa-folder-open'
+        },
+        {
+            id: 'file-open-cloud',
+            label: 'Open from Cloud',
+            icon: 'fa-solid fa-cloud-arrow-down',
+            submenu: getCloudOpenItems()
+        },
+        {
+            id: 'file-recent',
+            label: 'Open Recent',
+            icon: 'fa-solid fa-clock-rotate-left',
+            submenu: [
+                { id: 'recent-empty', label: 'No recent files', disabled: true }
+                // Dynamic items will be added here
+            ]
+        },
+        { divider: true },
+        {
+            id: 'file-save',
+            label: 'Save',
+            shortcut: 'Ctrl+S',
+            icon: 'fa-regular fa-floppy-disk'
+        },
+        {
+            id: 'file-save-as',
+            label: 'Save As...',
+            shortcut: 'Ctrl+Shift+S',
+            icon: 'fa-solid fa-floppy-disk'
+        },
+        {
+            id: 'file-save-cloud',
+            label: 'Save to Cloud',
+            icon: 'fa-solid fa-cloud-arrow-up',
+            submenu: getCloudSaveItems()
+        },
+        {
+            id: 'file-export',
+            label: 'Export',
+            icon: 'fa-solid fa-file-export',
+            submenu: [
+                { id: 'export-pdf', label: 'PDF...', icon: 'fa-regular fa-file-pdf' },
+                { id: 'export-png', label: 'PNG Images...', icon: 'fa-regular fa-image' },
+                { id: 'export-jpg', label: 'JPEG Images...', icon: 'fa-regular fa-image' },
+                { divider: true },
+                { id: 'export-html', label: 'HTML...', icon: 'fa-solid fa-code' }
+            ]
+        },
+        { divider: true },
 
     // Edit operations
     {
@@ -225,6 +328,7 @@ export const menuConfig = [
         ]
     }
 ];
+}
 
 /**
  * Get a flat list of all menu item IDs for action handling
@@ -243,6 +347,13 @@ export function getAllMenuActions() {
         }
     }
     
-    traverse(menuConfig);
+    traverse(getMenuConfig());
     return actions;
 }
+
+/**
+ * Legacy export for backwards compatibility
+ * Note: This is evaluated once at import time, so cloud items may not reflect 
+ * current auth state. Use getMenuConfig() for dynamic menu generation.
+ */
+export const menuConfig = getMenuConfig();

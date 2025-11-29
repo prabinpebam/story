@@ -7,7 +7,7 @@
 
 import { store } from '../../../core/Store.js';
 import { MenuDropdown } from './MenuDropdown.js';
-import { menuConfig } from './menuConfig.js';
+import { getMenuConfig } from './menuConfig.js';
 
 export class AppMenu {
     constructor(containerId) {
@@ -98,9 +98,10 @@ export class AppMenu {
         // Get trigger position for dropdown
         const rect = this.trigger.getBoundingClientRect();
 
-        // Create dropdown
+        // Create dropdown with dynamically generated config
+        // This ensures cloud items reflect current auth state
         this.dropdown = new MenuDropdown({
-            items: menuConfig,
+            items: getMenuConfig(),
             position: {
                 top: rect.bottom + 4,
                 left: rect.left

@@ -24,6 +24,7 @@ import { authService, bootAuth } from './core/auth/index.js';
 import { AppMenu } from './ui/components/AppMenu/AppMenu.js';
 import { fileService } from './ui/services/FileService.js';
 import { menuActionHandler } from './ui/services/MenuActionHandler.js';
+import { FileIndicatorController } from './ui/services/FileIndicatorController.js';
 
 class App {
     constructor() {
@@ -70,6 +71,9 @@ class App {
 
         // Initialize App Menu (file menu in sidebar header)
         this.appMenu = new AppMenu('app-menu-container');
+
+        // Initialize File Indicator (floating pill showing current file)
+        this.fileIndicator = new FileIndicatorController('file-indicator-container');
 
         // Initialize Panels
         this.colorThemeManager = new ColorThemeManager();

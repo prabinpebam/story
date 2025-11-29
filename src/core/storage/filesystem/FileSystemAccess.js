@@ -174,7 +174,14 @@ export class FileSystemAccess {
             if (error.name === 'AbortError') {
                 throw new Error(STORAGE_ERRORS.USER_CANCELLED);
             }
-            throw error;
+            // SecurityError can happen when called without user gesture
+            if (error.name === 'SecurityError') {
+                console.warn('File picker requires user gesture, falling back to download');
+                return null;
+            }
+            // Provide more context for debugging
+            console.error('Save picker error:', error.name, error.message);
+            throw new Error(`Failed to save: ${error.message || error.name || 'Unknown error'}`);
         }
     }
 

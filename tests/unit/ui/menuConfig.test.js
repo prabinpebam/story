@@ -1,8 +1,9 @@
 /**
  * MenuConfig Tests
  */
-import { describe, it, expect } from 'vitest';
-import { menuConfig, getAllMenuActions } from '../../../src/ui/components/AppMenu/menuConfig.js';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { menuConfig, getAllMenuActions, getMenuConfig } from '../../../src/ui/components/AppMenu/menuConfig.js';
+import { tokenStorage } from '../../../src/core/auth/storage/TokenStorage.js';
 
 describe('menuConfig', () => {
     describe('Structure', () => {
@@ -190,6 +191,111 @@ describe('getAllMenuActions', () => {
         actions.forEach(action => {
             expect(action).not.toBe('divider');
             expect(typeof action).toBe('string');
+        });
+    });
+});
+
+describe('getMenuConfig - Dynamic Cloud Items', () => {
+    let getProviderSpy;
+    let isAuthenticatedSpy;
+
+    beforeEach(() => {
+        getProviderSpy = vi.spyOn(tokenStorage, 'getProvider');
+        isAuthenticatedSpy = vi.spyOn(tokenStorage, 'isAuthenticated');
+    });
+
+    afterEach(() => {
+        vi.restoreAllMocks();
+    });
+
+    it('should return function that generates config', () => {
+        expect(typeof getMenuConfig).toBe('function');
+        const config = getMenuConfig();
+        expect(Array.isArray(config)).toBe(true);
+    });
+
+    describe('when not authenticated', () => {
+        beforeEach(() => {
+            getProviderSpy.mockReturnValue(null);
+            isAuthenticatedSpy.mockReturnValue(false);
+        });
+
+        it('should show both cloud providers in Open submenu', () => {
+            const config = getMenuConfig();
+            const openCloud = config.find(item => item.id === 'file-open-cloud');
+            
+            expect(openCloud).toBeTruthy();
+            expect(openCloud.submenu).toHaveLength(2);
+            
+            const oneDrive = openCloud.submenu.find(item => item.id === 'open-onedrive');
+            const googleDrive = openCloud.submenu.find(item => item.id === 'open-google-drive');
+            
+            expect(oneDrive).toBeTruthy();
+            expect(googleDrive).toBeTruthy();
+        });
+
+        it('should show both cloud providers in Save submenu', () => {
+            const config = getMenuConfig();
+            const saveCloud = config.find(item => item.id === 'file-save-cloud');
+            
+            expect(saveCloud).toBeTruthy();
+            expect(saveCloud.submenu).toHaveLength(2);
+            
+            const oneDrive = saveCloud.submenu.find(item => item.id === 'save-onedrive');
+            const googleDrive = saveCloud.submenu.find(item => item.id === 'save-google-drive');
+            
+            expect(oneDrive).toBeTruthy();
+            expect(googleDrive).toBeTruthy();
+        });
+    });
+
+    describe('when authenticated with Microsoft', () => {
+        beforeEach(() => {
+            getProviderSpy.mockReturnValue('microsoft');
+            isAuthenticatedSpy.mockReturnValue(true);
+        });
+
+        it('should only show OneDrive in Open submenu', () => {
+            const config = getMenuConfig();
+            const openCloud = config.find(item => item.id === 'file-open-cloud');
+            
+            expect(openCloud.submenu).toHaveLength(1);
+            expect(openCloud.submenu[0].id).toBe('open-onedrive');
+            expect(openCloud.submenu[0].label).toBe('OneDrive...');
+        });
+
+        it('should only show OneDrive in Save submenu', () => {
+            const config = getMenuConfig();
+            const saveCloud = config.find(item => item.id === 'file-save-cloud');
+            
+            expect(saveCloud.submenu).toHaveLength(1);
+            expect(saveCloud.submenu[0].id).toBe('save-onedrive');
+            expect(saveCloud.submenu[0].label).toBe('OneDrive...');
+        });
+    });
+
+    describe('when authenticated with Google', () => {
+        beforeEach(() => {
+            getProviderSpy.mockReturnValue('google');
+            isAuthenticatedSpy.mockReturnValue(true);
+        });
+
+        it('should only show Google Drive in Open submenu', () => {
+            const config = getMenuConfig();
+            const openCloud = config.find(item => item.id === 'file-open-cloud');
+            
+            expect(openCloud.submenu).toHaveLength(1);
+            expect(openCloud.submenu[0].id).toBe('open-google-drive');
+            expect(openCloud.submenu[0].label).toBe('Google Drive...');
+        });
+
+        it('should only show Google Drive in Save submenu', () => {
+            const config = getMenuConfig();
+            const saveCloud = config.find(item => item.id === 'file-save-cloud');
+            
+            expect(saveCloud.submenu).toHaveLength(1);
+            expect(saveCloud.submenu[0].id).toBe('save-google-drive');
+            expect(saveCloud.submenu[0].label).toBe('Google Drive...');
         });
     });
 });

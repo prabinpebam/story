@@ -58,6 +58,7 @@ export const OAuthConfig = {
      */
     google: {
         clientId: getEnvVar('VITE_GOOGLE_CLIENT_ID'),
+        apiKey: getEnvVar('VITE_GOOGLE_API_KEY'),
         authorizationEndpoint: 'https://accounts.google.com/o/oauth2/v2/auth',
         tokenEndpoint: 'https://oauth2.googleapis.com/token',
         redirectUri: `${window.location.origin}/auth/callback`,

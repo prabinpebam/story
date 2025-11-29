@@ -66,11 +66,15 @@ export const CLOUD_PATHS = {
 
 // Error messages
 export const STORAGE_ERRORS = {
+    USER_CANCELLED: 'Operation cancelled by user.',
+    PERMISSION_DENIED: 'Permission denied.',
     INVALID_FORMAT: 'Invalid file format. Expected .str file.',
     VERSION_MISMATCH: 'File version is newer than supported. Please update the app.',
     CORRUPT_FILE: 'File appears to be corrupted.',
     MISSING_MANIFEST: 'File is missing manifest.json.',
     ASSET_NOT_FOUND: 'Referenced asset not found in file.',
+    READ_FAILED: 'Failed to read file.',
+    WRITE_FAILED: 'Failed to write file.',
     CLOUD_AUTH_REQUIRED: 'Please sign in to access cloud storage.',
     CLOUD_QUOTA_EXCEEDED: 'Cloud storage quota exceeded.',
     CONFLICT_DETECTED: 'File was modified elsewhere.',

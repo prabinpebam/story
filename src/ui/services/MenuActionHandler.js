@@ -24,6 +24,12 @@ class MenuActionHandler {
         this.register('file-open', () => fileService.open());
         this.register('file-save', () => fileService.save());
         this.register('file-save-as', () => fileService.saveAs());
+        
+        // Cloud file operations
+        this.register('open-onedrive', () => fileService.openFromCloud('onedrive'));
+        this.register('open-google-drive', () => fileService.openFromCloud('google-drive'));
+        this.register('save-onedrive', () => fileService.saveToCloud('onedrive'));
+        this.register('save-google-drive', () => fileService.saveToCloud('google-drive'));
 
         // Edit operations
         this.register('edit-undo', () => store.dispatch('UNDO'));

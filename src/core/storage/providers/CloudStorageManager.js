@@ -368,9 +368,22 @@ let cloudStorageManagerInstance = null;
  */
 export function getCloudStorageManager(config = {}) {
     if (!cloudStorageManagerInstance) {
-        cloudStorageManagerInstance = new CloudStorageManager(config);
+        // Auto-configure providers if no config provided
+        const autoConfig = {
+            googleDrive: { enabled: true, options: {} },
+            oneDrive: { enabled: true, options: {} },
+            ...config
+        };
+        cloudStorageManagerInstance = new CloudStorageManager(autoConfig);
     }
     return cloudStorageManagerInstance;
+}
+
+/**
+ * Reset the singleton (for testing)
+ */
+export function resetCloudStorageManager() {
+    cloudStorageManagerInstance = null;
 }
 
 export default CloudStorageManager;

@@ -4,6 +4,26 @@
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { OneDriveProvider } from '../../../src/core/storage/providers/OneDriveProvider.js';
+import { authService } from '../../../src/core/auth/AuthService.js';
+import { tokenStorage } from '../../../src/core/auth/storage/TokenStorage.js';
+
+// Mock authService and tokenStorage modules
+vi.mock('../../../src/core/auth/AuthService.js', () => ({
+    authService: {
+        getAccessToken: vi.fn().mockResolvedValue('test-token'),
+        login: vi.fn().mockResolvedValue(),
+        logout: vi.fn().mockResolvedValue(),
+        isAuthenticated: vi.fn().mockReturnValue(true)
+    }
+}));
+
+vi.mock('../../../src/core/auth/storage/TokenStorage.js', () => ({
+    tokenStorage: {
+        getProvider: vi.fn().mockReturnValue('microsoft'),
+        isAuthenticated: vi.fn().mockReturnValue(true),
+        getAccessToken: vi.fn().mockReturnValue('test-token')
+    }
+}));
 
 // Mock fetch globally
 const mockFetch = vi.fn();
@@ -70,7 +90,14 @@ describe('OneDriveProvider', () => {
             expect(defaultProvider.redirectUri).toBe('https://app.example.com/auth/microsoft/callback');
         });
 
-        it('should not be authenticated initially', () => {
+        it('should not be authenticated when tokenStorage returns false', () => {
+            tokenStorage.isAuthenticated.mockReturnValueOnce(false);
+            expect(provider.isAuthenticated()).toBe(false);
+        });
+
+        it('should not be authenticated when provider mismatch', () => {
+            tokenStorage.isAuthenticated.mockReturnValueOnce(true);
+            tokenStorage.getProvider.mockReturnValueOnce('google');
             expect(provider.isAuthenticated()).toBe(false);
         });
     });
@@ -88,141 +115,27 @@ describe('OneDriveProvider', () => {
     });
 
     describe('authenticate', () => {
-        it('should generate code verifier and store it', async () => {
+        it('should call authService.login with microsoft provider', async () => {
             await provider.authenticate();
             
-            expect(mockSessionStorage.setItem).toHaveBeenCalledWith(
-                'microsoft_code_verifier',
-                expect.any(String)
-            );
-        });
-
-        it('should redirect to Microsoft OAuth URL', async () => {
-            await provider.authenticate();
-            
-            expect(mockLocation.href).toContain('https://login.microsoftonline.com/common/oauth2/v2.0/authorize');
-            expect(mockLocation.href).toContain('client_id=test-client-id');
-            expect(mockLocation.href).toContain('response_type=code');
-            expect(mockLocation.href).toContain('code_challenge=');
-        });
-
-        it('should include required scopes', async () => {
-            await provider.authenticate();
-            
-            const url = mockLocation.href;
-            expect(url).toContain('scope=');
-            expect(url).toContain('openid');
-            expect(url).toContain('Files.ReadWrite');
+            expect(authService.login).toHaveBeenCalledWith('microsoft');
         });
     });
 
-    describe('handleCallback', () => {
-        beforeEach(() => {
-            // Store code verifier as if authenticate was called
-            sessionStorageData['microsoft_code_verifier'] = 'test-verifier';
-        });
-
-        it('should exchange code for tokens', async () => {
-            mockFetch.mockResolvedValueOnce({
-                ok: true,
-                json: () => Promise.resolve({
-                    access_token: 'test-access-token',
-                    refresh_token: 'test-refresh-token',
-                    expires_in: 3600
-                })
-            }).mockResolvedValueOnce({
-                ok: true,
-                json: () => Promise.resolve({
-                    displayName: 'Test User',
-                    mail: 'test@example.com'
-                })
-            });
-
-            await provider.handleCallback('auth-code');
-            
-            expect(mockFetch).toHaveBeenCalledWith(
-                'https://login.microsoftonline.com/common/oauth2/v2.0/token',
-                expect.objectContaining({
-                    method: 'POST'
-                })
-            );
-            expect(provider.isAuthenticated()).toBe(true);
-        });
-
-        it('should throw if no code verifier found', async () => {
-            delete sessionStorageData['microsoft_code_verifier'];
-            
-            await expect(provider.handleCallback('auth-code'))
-                .rejects.toThrow('No code verifier found');
-        });
-
-        it('should throw on token exchange failure', async () => {
-            mockFetch.mockResolvedValueOnce({
-                ok: false,
-                json: () => Promise.resolve({
-                    error_description: 'Invalid code'
-                })
-            });
-
-            await expect(provider.handleCallback('auth-code'))
-                .rejects.toThrow('Invalid code');
-        });
-
-        it('should remove code verifier after use', async () => {
-            mockFetch.mockResolvedValueOnce({
-                ok: true,
-                json: () => Promise.resolve({
-                    access_token: 'token',
-                    expires_in: 3600
-                })
-            }).mockResolvedValueOnce({
-                ok: true,
-                json: () => Promise.resolve({ displayName: 'User' })
-            });
-
-            await provider.handleCallback('auth-code');
-            
-            expect(mockSessionStorage.removeItem).toHaveBeenCalledWith('microsoft_code_verifier');
-        });
-    });
+    // Note: handleCallback is now handled by app-level authService
+    // Callback handling tests should be in AuthService.test.js
 
     describe('signOut', () => {
-        beforeEach(async () => {
-            // Simulate authenticated state
-            sessionStorageData['microsoft_code_verifier'] = 'test-verifier';
-            mockFetch.mockResolvedValueOnce({
-                ok: true,
-                json: () => Promise.resolve({
-                    access_token: 'test-token',
-                    expires_in: 3600
-                })
-            }).mockResolvedValueOnce({
-                ok: true,
-                json: () => Promise.resolve({ displayName: 'User' })
-            });
-            await provider.handleCallback('code');
-        });
-
-        it('should clear tokens', async () => {
-            expect(provider.isAuthenticated()).toBe(true);
-            
+        it('should call authService.logout', async () => {
             await provider.signOut();
             
-            expect(provider.isAuthenticated()).toBe(false);
-        });
-
-        it('should remove stored tokens', async () => {
-            await provider.signOut();
-            
-            expect(mockSessionStorage.removeItem).toHaveBeenCalledWith('microsoft_tokens');
+            expect(authService.logout).toHaveBeenCalled();
         });
     });
 
     describe('read', () => {
         beforeEach(() => {
-            // Set up authenticated state
-            provider._accessToken = 'test-token';
-            provider._tokenExpiry = Date.now() + 3600000;
+            // Authentication is handled by mocked authService and tokenStorage
         });
 
         it('should read file from OneDrive', async () => {
@@ -260,7 +173,8 @@ describe('OneDriveProvider', () => {
         });
 
         it('should throw if not authenticated', async () => {
-            provider._accessToken = null;
+            // Mock unauthenticated state
+            tokenStorage.isAuthenticated.mockReturnValueOnce(false);
             
             await expect(provider.read({ id: 'file-123' }))
                 .rejects.toThrow('Not authenticated');
@@ -269,8 +183,7 @@ describe('OneDriveProvider', () => {
 
     describe('write', () => {
         beforeEach(() => {
-            provider._accessToken = 'test-token';
-            provider._tokenExpiry = Date.now() + 3600000;
+            // Authentication is handled by mocked authService and tokenStorage
         });
 
         it('should write file to OneDrive', async () => {
@@ -344,8 +257,7 @@ describe('OneDriveProvider', () => {
 
     describe('getFileInfo', () => {
         beforeEach(() => {
-            provider._accessToken = 'test-token';
-            provider._tokenExpiry = Date.now() + 3600000;
+            // Authentication is handled by mocked authService and tokenStorage
         });
 
         it('should return file info', async () => {
@@ -384,11 +296,10 @@ describe('OneDriveProvider', () => {
 
     describe('delete', () => {
         beforeEach(() => {
-            provider._accessToken = 'test-token';
-            provider._tokenExpiry = Date.now() + 3600000;
+            // Authentication is handled by mocked authService and tokenStorage
         });
 
-        it('should delete file', async () => {
+        it('should delete file from OneDrive', async () => {
             mockFetch.mockResolvedValueOnce({
                 ok: true,
                 status: 204
@@ -418,11 +329,10 @@ describe('OneDriveProvider', () => {
 
     describe('listFiles', () => {
         beforeEach(() => {
-            provider._accessToken = 'test-token';
-            provider._tokenExpiry = Date.now() + 3600000;
+            // Authentication is handled by mocked authService and tokenStorage
         });
 
-        it('should list .str files', async () => {
+        it('should list files from OneDrive', async () => {
             mockFetch.mockResolvedValueOnce({
                 ok: true,
                 json: () => Promise.resolve({
@@ -463,6 +373,38 @@ describe('OneDriveProvider', () => {
             await expect(provider.listFiles())
                 .rejects.toThrow('Failed to list files');
         });
+
+        it('should return empty array when drive root returns 404', async () => {
+            mockFetch.mockResolvedValueOnce({
+                ok: false,
+                status: 404
+            });
+
+            const files = await provider.listFiles();
+            
+            expect(files).toEqual([]);
+        });
+
+        it('should filter .str files and folders client-side', async () => {
+            mockFetch.mockResolvedValueOnce({
+                ok: true,
+                json: () => Promise.resolve({
+                    value: [
+                        { id: 'f1', name: 'presentation.str', size: 1024, lastModifiedDateTime: '2024-01-15T10:00:00Z' },
+                        { id: 'f2', name: 'document.docx', size: 2048, lastModifiedDateTime: '2024-01-14T09:00:00Z' },
+                        { id: 'f3', name: 'My Folder', folder: {}, lastModifiedDateTime: '2024-01-13T08:00:00Z' }
+                    ]
+                })
+            });
+
+            const files = await provider.listFiles();
+            
+            // Should filter client-side to only .str files and folders
+            expect(files.length).toBe(2);
+            expect(files[0].name).toBe('presentation.str');
+            expect(files[1].name).toBe('My Folder');
+            expect(files[1].isFolder).toBe(true);
+        });
     });
 
     describe('isAvailable', () => {
@@ -479,11 +421,10 @@ describe('OneDriveProvider', () => {
 
     describe('getUserInfo', () => {
         beforeEach(() => {
-            provider._accessToken = 'test-token';
-            provider._tokenExpiry = Date.now() + 3600000;
+            // Authentication is handled by mocked authService and tokenStorage
         });
 
-        it('should fetch user info', async () => {
+        it('should return user info', async () => {
             mockFetch.mockResolvedValueOnce({
                 ok: true,
                 json: () => Promise.resolve({
@@ -523,54 +464,12 @@ describe('OneDriveProvider', () => {
         });
     });
 
-    describe('refreshAccessToken', () => {
-        beforeEach(() => {
-            provider._accessToken = 'old-token';
-            provider._refreshToken = 'test-refresh-token';
-            provider._tokenExpiry = Date.now() - 1000; // Expired
-        });
-
-        it('should refresh token', async () => {
-            mockFetch.mockResolvedValueOnce({
-                ok: true,
-                json: () => Promise.resolve({
-                    access_token: 'new-access-token',
-                    expires_in: 3600
-                })
-            }).mockResolvedValueOnce({
-                ok: true,
-                json: () => Promise.resolve({ displayName: 'User' })
-            });
-
-            await provider.refreshAccessToken();
-            
-            expect(provider.isAuthenticated()).toBe(true);
-        });
-
-        it('should throw if no refresh token', async () => {
-            provider._refreshToken = null;
-            
-            await expect(provider.refreshAccessToken())
-                .rejects.toThrow('No refresh token available');
-        });
-
-        it('should clear tokens on refresh failure', async () => {
-            mockFetch.mockResolvedValueOnce({
-                ok: false,
-                status: 400
-            });
-
-            await expect(provider.refreshAccessToken())
-                .rejects.toThrow('Session expired');
-            
-            expect(provider.isAuthenticated()).toBe(false);
-        });
-    });
+    // Note: refreshAccessToken is now handled by app-level authService
+    // Token refresh tests should be in AuthService.test.js
 
     describe('showPicker', () => {
         beforeEach(() => {
-            provider._accessToken = 'test-token';
-            provider._tokenExpiry = Date.now() + 3600000;
+            // Authentication is handled by mocked authService and tokenStorage
         });
 
         it('should return files from search', async () => {
@@ -602,8 +501,7 @@ describe('OneDriveProvider', () => {
 
     describe('showSavePicker', () => {
         beforeEach(() => {
-            provider._accessToken = 'test-token';
-            provider._tokenExpiry = Date.now() + 3600000;
+            // Authentication is handled by mocked authService and tokenStorage
         });
 
         it('should get or create Story folder', async () => {
