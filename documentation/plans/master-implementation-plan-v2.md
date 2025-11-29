@@ -26,6 +26,47 @@ This V2 plan takes the foundation from V1 (code complete) to **100% production-r
 
 ---
 
+## Principles Compliance
+
+This plan adheres to the [Story Principles](../principles.md). Each phase includes:
+
+### ✅ App Integrity
+- **Small incremental changes** - Each week focuses on one cohesive feature area
+- **Mandatory validation with tests** - Every new component requires vitest tests before merge
+- **Risk callouts** - Each phase includes explicit risks, dependencies, and mitigations
+
+### ✅ Design & Craft
+- **Global Design System** - All UI components use existing patterns (Modal, HUD, Toolbar)
+- **Global CSS Variables** - No inline styles; use `--color-*`, `--spacing-*`, `--radius-*` tokens
+- **Dark/Light Mode** - All UI must be tested in both themes before merge
+- **Component Reuse** - Use variants of existing components (e.g., `Modal` not new modal patterns)
+
+### ✅ Security & Privacy
+- **Security-first architecture** - Identity encryption uses Web Crypto API with HKDF
+- **No plaintext secrets** - OAuth tokens in secure storage, preferences encrypted at rest
+- **Privacy by design** - User data stays in user's cloud storage, no server-side user database
+
+### ✅ Performance
+- **Performance benchmarks** defined in [Success Metrics](#success-metrics)
+- **No regression below baseline** - Cursor latency < 200ms, save < 10s, version restore < 5s
+
+### ✅ Undo/Redo Compatibility
+- **Version history integrates with undo** - Restore creates undoable checkpoint
+- **Preferences changes** - Not undoable (separate from document state)
+- **Sharing changes** - Not undoable (server-side state)
+
+### ✅ File Storage & Serialization Compatibility
+- **Preferences file** - Uses existing .str ZIP format
+- **Version history** - Uses existing serialization for restore
+- **No changes to PresentationSerializer** - All new features are additive
+
+### ✅ Realtime Collaboration Compatibility
+- **Sharing integrates with presence** - Collaborators appear in presence panel
+- **Version restore broadcasts** - Other users see "File restored to previous version" notification
+- **Preferences are local** - No conflict with collaborative state
+
+---
+
 ## Gap Analysis: V1 → V2
 
 ### Identity System Gaps
@@ -88,6 +129,18 @@ This V2 plan takes the foundation from V1 (code complete) to **100% production-r
 - `src/core/auth/providers/MicrosoftProvider.js` - Verify endpoints
 - `src/core/auth/providers/GoogleProvider.js` - Verify endpoints
 
+**Validation Requirements:**
+- ✅ All existing auth tests pass (`npm test -- --grep auth`)
+- ✅ Manual test: Sign in with Microsoft in both dark/light mode
+- ✅ Manual test: Sign in with Google in both dark/light mode
+
+**Risks & Mitigations:**
+| Risk | Impact | Mitigation |
+|------|--------|------------|
+| OAuth popup blocked | HIGH | Test in multiple browsers, provide fallback redirect flow |
+| Wrong redirect URI | HIGH | Document exact URIs in Azure/Google console |
+| Token refresh fails | MEDIUM | Keep existing guest mode as fallback |
+
 #### Week 2: User Preferences File
 
 | Day | Task | Status |
@@ -131,6 +184,23 @@ export const DEFAULT_PREFERENCES = {
 };
 ```
 
+**Validation Requirements:**
+- ✅ New tests: `tests/unit/auth/preferences/*.test.js` (min 90% coverage)
+- ✅ Encryption/decryption round-trip tests
+- ✅ Migration from localStorage test
+- ✅ Manual test: Preferences persist after browser restart
+
+**Risks & Mitigations:**
+| Risk | Impact | Mitigation |
+|------|--------|------------|
+| Encryption key derivation fails | HIGH | localStorage fallback, clear error message |
+| Cloud storage unavailable | MEDIUM | Local IndexedDB cache |
+| Migration loses settings | MEDIUM | Backup localStorage before migration |
+
+**Compatibility Notes:**
+- ⚠️ **Undo/Redo:** Preferences changes are NOT undoable (separate from document state)
+- ⚠️ **Serialization:** Uses .str format but separate file from presentations
+
 #### Week 3: Identity Linking & Cross-Device
 
 | Day | Task | Status |
@@ -148,6 +218,18 @@ src/core/auth/
 └── preferences/
     └── PreferencesSync.js       # Cross-device sync
 ```
+
+**Validation Requirements:**
+- ✅ Tests for identity linking flow
+- ✅ Tests for cross-device sync conflict resolution
+- ✅ Manual test: Link Microsoft + Google accounts
+
+**Risks & Mitigations:**
+| Risk | Impact | Mitigation |
+|------|--------|------------|
+| User loses access after relinking | HIGH | Keep all linked identities, require re-auth to unlink |
+| Sync conflict between devices | MEDIUM | Last-write-wins with user notification |
+| User confusion about linked accounts | LOW | Clear UI showing all linked accounts |
 
 ---
 
@@ -176,6 +258,22 @@ tests/unit/storage/sharing/
 ├── SharingManager.test.js
 └── PermissionNormalizer.test.js
 ```
+
+**Validation Requirements:**
+- ✅ Tests for OneDrive sharing API integration
+- ✅ Tests for Google Drive sharing API integration
+- ✅ Tests for permission normalization across providers
+
+**Risks & Mitigations:**
+| Risk | Impact | Mitigation |
+|------|--------|------------|
+| Provider API rate limits | MEDIUM | Exponential backoff, cache collaborator list |
+| Permission model mismatch | MEDIUM | Normalize to lowest common denominator |
+| OAuth scope insufficient | HIGH | Verify required scopes in OAuth config |
+
+**Compatibility Notes:**
+- ⚠️ **Realtime Collaboration:** Sharing integrates with presence - new collaborators appear in presence panel
+- ⚠️ **Undo/Redo:** Sharing changes are NOT undoable (server-side state)
 
 **Sharing API (from spec):**
 ```javascript
@@ -216,6 +314,30 @@ styles/modules/
 - Use existing modal patterns from SettingsModal
 - Use design tokens for colors, spacing
 - Follow HUD interaction patterns
+
+**Design System Checklist (MANDATORY):**
+- [ ] All colors use CSS variables (`--color-*`)
+- [ ] All spacing uses CSS variables (`--spacing-*`)
+- [ ] All radii use CSS variables (`--radius-*`)
+- [ ] Dark mode tested and working
+- [ ] Light mode tested and working
+- [ ] No inline styles
+- [ ] Reuses existing Modal component (variant, not new component)
+- [ ] Reuses existing Button component
+- [ ] Reuses existing Input component
+
+**Validation Requirements:**
+- ✅ Visual regression tests for ShareModal
+- ✅ Manual test: Share flow in dark mode
+- ✅ Manual test: Share flow in light mode
+- ✅ All existing UI tests pass
+
+**Risks & Mitigations:**
+| Risk | Impact | Mitigation |
+|------|--------|------------|
+| UI inconsistent with design system | MEDIUM | Design review before merge |
+| Dark mode not working | HIGH | Test dark mode for every component |
+| Accessibility issues | MEDIUM | Keyboard navigation, focus states |
 
 ---
 
@@ -279,6 +401,17 @@ module.exports = async function (context, req) {
 };
 ```
 
+**Validation Requirements:**
+- ✅ Local function tests with Azure Functions Core Tools
+- ✅ Unit tests for each function
+- ✅ Manual test: negotiate → connect → broadcast round-trip
+
+**Security Requirements:**
+- [ ] Validate OAuth token in negotiate function
+- [ ] Rate limiting on broadcast function
+- [ ] Group name validation (prevent unauthorized access)
+- [ ] No sensitive data in function logs
+
 #### Week 7: Azure Deployment & Integration
 
 | Day | Task | Status |
@@ -299,6 +432,24 @@ module.exports = async function (context, req) {
 | Azure SignalR Service | Free (20 connections) → Standard | $0 → $50/mo |
 | Azure Functions App | Consumption | ~$10/mo |
 | Azure Storage Account | LRS | ~$5/mo |
+
+**Validation Requirements:**
+- ✅ Connection test with 2+ browsers
+- ✅ Cursor sync test (< 200ms latency)
+- ✅ Presence test (join/leave visible)
+- ✅ All collaboration tests pass
+
+**Risks & Mitigations:**
+| Risk | Impact | Mitigation |
+|------|--------|------------|
+| Azure deployment fails | HIGH | Local testing first, staged rollout |
+| SignalR costs exceed budget | MEDIUM | Monitor usage, rate limiting |
+| Connection string exposed | HIGH | Azure Key Vault for secrets |
+| CORS issues | MEDIUM | Configure allowed origins |
+
+**Compatibility Notes:**
+- ⚠️ **Realtime Collaboration:** This is the core infrastructure - all collaboration features depend on this
+- ⚠️ **Fallback:** If SignalR unavailable, app works in offline-only mode
 
 ---
 
@@ -333,6 +484,19 @@ tests/e2e/
 3. **Share:** Share with email → verify collaborator access
 4. **Real-time:** Two browsers edit same file → verify sync
 5. **Offline:** Disconnect → edit → reconnect → verify merge
+
+**Validation Requirements:**
+- ✅ All E2E tests pass in CI
+- ✅ Tests run in both Chromium and Firefox
+- ✅ Tests cover dark and light mode
+
+**Performance Benchmarks (MANDATORY):**
+| Metric | Target | Fail Threshold |
+|--------|--------|----------------|
+| OAuth sign-in | < 3s | > 5s = fail |
+| Cloud save | < 10s | > 30s = fail |
+| Cursor latency | < 200ms | > 500ms = fail |
+| Version restore | < 5s | > 15s = fail |
 
 #### Week 9: Bug Fixes & Polish
 
@@ -385,6 +549,31 @@ class VersionManager {
     async restoreVersion(fileId, versionId);  // Restore version
 }
 ```
+
+**Validation Requirements:**
+- ✅ Tests for listing versions from both providers
+- ✅ Tests for version restore
+- ✅ Manual test: View version history panel
+- ✅ Manual test: Restore to previous version
+
+**Compatibility Notes:**
+- ⚠️ **Undo/Redo:** Version restore creates an undoable checkpoint (user can undo the restore)
+- ⚠️ **Realtime Collaboration:** Version restore broadcasts "File restored" notification to collaborators
+- ⚠️ **Serialization:** Uses existing PresentationDeserializer for loading old versions
+
+**Risks & Mitigations:**
+| Risk | Impact | Mitigation |
+|------|--------|------------|
+| Version format incompatible | MEDIUM | Schema version check, migration if needed |
+| Restore overwrites current work | HIGH | Confirmation dialog, auto-backup before restore |
+| Too many versions to display | LOW | Pagination, show most recent first |
+
+**Design System Checklist (Version History Panel):**
+- [ ] All colors use CSS variables
+- [ ] Dark mode tested and working
+- [ ] Light mode tested and working
+- [ ] Uses existing Panel/List components
+- [ ] Keyboard navigable
 
 ---
 
@@ -553,6 +742,32 @@ export class ShareModal {
 ---
 
 ## Risk Mitigation
+
+### Dependencies Between Phases
+
+```
+Phase 2.1 (Identity) ──────────────────────────────────────────────────────┐
+    │                                                                       │
+    ├── OAuth config required for:                                         │
+    │   • Cloud storage authentication                                     │
+    │   • Preferences file encryption (needs OAuth sub claim)              │
+    │   • SignalR user ID                                                  │
+    │                                                                       │
+    ▼                                                                       │
+Phase 2.2 (Sharing) ◄── Depends on OAuth tokens for provider APIs          │
+    │                                                                       │
+    ▼                                                                       │
+Phase 2.3 (Azure) ◄── Depends on OAuth for SignalR user authentication     │
+    │                                                                       │
+    ▼                                                                       │
+Phase 2.4 (E2E) ◄── Depends on all previous phases                         │
+    │                                                                       │
+    ▼                                                                       │
+Phase 2.5 (Versions) ◄── Depends on cloud storage (Phase 2.2)              │
+────────────────────────────────────────────────────────────────────────────┘
+```
+
+**Critical Path:** Phase 2.1 → 2.2 → 2.3 are sequential. Phase 2.5 can start after 2.2.
 
 ### High-Risk Areas
 
