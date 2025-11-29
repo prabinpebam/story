@@ -121,142 +121,97 @@ export class PresentationDeserializer {
     }
 
     /**
-     * Deserialize a single slide
+     * Deserialize a single slide - copies ALL properties to ensure nothing is lost
      * @param {Object} data - Raw slide data
      * @returns {Object} Deserialized slide
      */
     deserializeSlide(data) {
-        return {
-            id: data.id,
-            order: data.order ?? 0,
-            name: data.name || null,
-            title: data.title || null,
-            elements: (data.elements || []).map(el => this.deserializeElement(el)),
-            elementOrder: data.elementOrder || [],
-            background: this.deserializeBackground(data.background),
-            layout: data.layout || null,
-            layoutId: data.layoutId || data.layout || null,
-            width: data.width || 1920,
-            height: data.height || 1080,
-            notes: data.notes || '',
-            transition: data.transition || null,
-            duration: data.duration || null,
-            masterSlideId: data.masterSlideId || null
-        };
+        // Start with a complete copy of ALL properties
+        const slide = { ...data };
+        
+        // Transform elements array
+        slide.elements = (data.elements || []).map(el => this.deserializeElement(el));
+        
+        // Ensure elementOrder exists
+        slide.elementOrder = data.elementOrder || slide.elements.map(el => el.id);
+        
+        // Deserialize background properly
+        slide.background = this.deserializeBackground(data.background);
+        
+        // Ensure layoutId is set (support both layout and layoutId)
+        if (!slide.layoutId && slide.layout) {
+            slide.layoutId = slide.layout;
+        }
+        
+        // Set defaults for required properties
+        slide.width = slide.width || 1920;
+        slide.height = slide.height || 1080;
+        
+        return slide;
     }
 
     /**
-     * Deserialize an element
+     * Deserialize an element - copies ALL properties to ensure nothing is lost
      * @param {Object} data - Raw element data
      * @returns {Object} Deserialized element
      */
     deserializeElement(data) {
-        const element = {
-            // Core properties
-            id: data.id,
-            type: data.type,
-            x: data.x ?? 0,
-            y: data.y ?? 0,
-            width: data.width ?? 100,
-            height: data.height ?? 100,
-            rotation: data.rotation ?? 0,
-            opacity: data.opacity ?? 1,
-            locked: data.locked ?? false,
-            visible: data.visible !== false,
-            name: data.name || null,
-            
-            // Placeholder properties
-            isPlaceholder: data.isPlaceholder || false,
-            placeholderType: data.placeholderType || null
-        };
-
-        // Type-specific properties
-        switch (data.type) {
-            case 'text':
-                // Text content - support both 'content' and legacy 'text'
-                element.content = data.content || data.text || '';
-                
-                // Typography properties at element level
-                if (data.fontSize !== undefined) element.fontSize = data.fontSize;
-                if (data.fontFamily !== undefined) element.fontFamily = data.fontFamily;
-                if (data.fontWeight !== undefined) element.fontWeight = data.fontWeight;
-                if (data.fontStyle !== undefined) element.fontStyle = data.fontStyle;
-                if (data.textAlign !== undefined) element.textAlign = data.textAlign;
-                if (data.verticalAlign !== undefined) element.verticalAlign = data.verticalAlign;
-                if (data.lineHeight !== undefined) element.lineHeight = data.lineHeight;
-                if (data.letterSpacing !== undefined) element.letterSpacing = data.letterSpacing;
-                if (data.textTransform !== undefined) element.textTransform = data.textTransform;
-                if (data.textDecoration !== undefined) element.textDecoration = data.textDecoration;
-                if (data.paragraphSpacing !== undefined) element.paragraphSpacing = data.paragraphSpacing;
-                if (data.paragraphIndent !== undefined) element.paragraphIndent = data.paragraphIndent;
-                
-                // Text fill (color)
-                if (data.textFill) element.textFill = data.textFill;
-                
-                // Style object
-                if (data.style) element.style = { ...data.style };
-                break;
-                
-            case 'rect':
-            case 'circle':
-            case 'shape':
-                element.shapeType = data.shapeType || data.type;
-                if (data.style) element.style = { ...data.style };
-                if (data.fill) element.fill = data.fill;
-                if (data.stroke) element.stroke = data.stroke;
-                if (data.cornerRadius !== undefined) element.cornerRadius = data.cornerRadius;
-                break;
-                
-            case 'image':
-                element.assetId = data.assetId;
-                element.assetPath = data.assetPath;
-                if (data.src) element.src = data.src;
-                element.crop = data.crop || null;
-                element.filters = data.filters || null;
-                if (data.style) element.style = { ...data.style };
-                break;
-                
-            case 'video':
-                element.assetId = data.assetId;
-                element.assetPath = data.assetPath;
-                if (data.src) element.src = data.src;
-                element.autoPlay = data.autoPlay ?? false;
-                element.loop = data.loop ?? false;
-                element.muted = data.muted ?? false;
-                if (data.style) element.style = { ...data.style };
-                break;
-                
-            case 'code':
-                element.code = data.code || '';
-                element.language = data.language || 'javascript';
-                element.theme = data.theme || 'dark';
-                if (data.style) element.style = { ...data.style };
-                break;
-                
-            default:
-                // For unknown types, preserve ALL properties from the data
-                Object.keys(data).forEach(key => {
-                    if (!(key in element)) {
-                        element[key] = data[key];
-                    }
-                });
-        }
-
-        // Effects
-        if (data.effects) {
-            element.effects = data.effects;
-        }
-
-        // Animation
-        if (data.animation) {
-            element.animation = data.animation;
+        // Start with a complete copy of ALL properties
+        const element = { ...data };
+        
+        // Deep copy nested objects
+        if (data.style) {
+            element.style = { ...data.style };
+            if (data.style.fills) {
+                element.style.fills = data.style.fills.map(f => ({ ...f }));
+            }
+            if (data.style.strokes) {
+                element.style.strokes = data.style.strokes.map(s => ({ ...s }));
+            }
         }
         
-        // Build steps
-        if (data.buildStep !== undefined) {
-            element.buildStep = data.buildStep;
+        if (data.textFill) {
+            element.textFill = { ...data.textFill };
         }
-
+        
+        if (data.fill) {
+            element.fill = { ...data.fill };
+        }
+        
+        if (data.stroke) {
+            element.stroke = { ...data.stroke };
+        }
+        
+        if (data.effects) {
+            element.effects = data.effects.map(e => ({ ...e }));
+        }
+        
+        if (data.animation) {
+            element.animation = { ...data.animation };
+        }
+        
+        if (data.crop) {
+            element.crop = { ...data.crop };
+        }
+        
+        if (data.filters) {
+            element.filters = data.filters.map(f => ({ ...f }));
+        }
+        
+        // Support legacy 'text' property for backwards compatibility
+        if (data.text && !element.content) {
+            element.content = data.text;
+        }
+        
+        // Ensure defaults for core properties
+        element.x = element.x ?? 0;
+        element.y = element.y ?? 0;
+        element.width = element.width ?? 100;
+        element.height = element.height ?? 100;
+        element.rotation = element.rotation ?? 0;
+        element.opacity = element.opacity ?? 1;
+        element.visible = element.visible !== false;
+        
         return element;
     }
 

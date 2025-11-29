@@ -170,139 +170,97 @@ export class PresentationSerializer {
             ? elementsObj 
             : elementOrder.map(id => elementsObj[id]).filter(Boolean);
         
-        return {
-            id: slide.id,
-            order: slide.order ?? 0,
-            name: slide.name || null,
-            title: slide.title || null,
-            elements: elements.map(el => this.serializeElement(el)),
-            elementOrder: elementOrder,
-            background: this.serializeBackground(slide.background),
-            layout: slide.layout || null,
-            layoutId: slide.layoutId || null,
-            width: slide.width,
-            height: slide.height,
-            notes: slide.notes || '',
-            transition: slide.transition || null,
-            duration: slide.duration || null,
-            masterSlideId: slide.masterSlideId || null
-        };
+        // Copy ALL slide properties to ensure nothing is lost
+        const serialized = { ...slide };
+        
+        // Transform elements to array format for storage
+        serialized.elements = elements.map(el => this.serializeElement(el));
+        serialized.elementOrder = elementOrder;
+        
+        // Serialize background properly
+        serialized.background = this.serializeBackground(slide.background);
+        
+        // Remove transient/runtime properties
+        delete serialized._cached;
+        delete serialized._domElement;
+        
+        return serialized;
     }
 
     /**
-     * Serialize an element
+     * Serialize an element - copies ALL properties to ensure nothing is lost
      * @param {Object} element - Element object
      * @returns {Object} Serialized element
      */
     serializeElement(element) {
-        // Start with a complete copy of the element to preserve all properties
-        const serialized = {
-            // Core properties
-            id: element.id,
-            type: element.type,
-            x: element.x,
-            y: element.y,
-            width: element.width,
-            height: element.height,
-            rotation: element.rotation || 0,
-            opacity: element.opacity ?? 1,
-            locked: element.locked || false,
-            visible: element.visible !== false,
-            name: element.name || null,
-            
-            // Placeholder properties
-            isPlaceholder: element.isPlaceholder || false,
-            placeholderType: element.placeholderType || null
-        };
-
-        // Type-specific properties
-        switch (element.type) {
-            case 'text':
-                // Text content - use 'content' as the app does, not 'text'
-                serialized.content = element.content || '';
-                
-                // Typography properties at element level
-                serialized.fontSize = element.fontSize;
-                serialized.fontFamily = element.fontFamily;
-                serialized.fontWeight = element.fontWeight;
-                serialized.fontStyle = element.fontStyle;
-                serialized.textAlign = element.textAlign;
-                serialized.verticalAlign = element.verticalAlign;
-                serialized.lineHeight = element.lineHeight;
-                serialized.letterSpacing = element.letterSpacing;
-                serialized.textTransform = element.textTransform;
-                serialized.textDecoration = element.textDecoration;
-                serialized.paragraphSpacing = element.paragraphSpacing;
-                serialized.paragraphIndent = element.paragraphIndent;
-                
-                // Text fill (color)
-                serialized.textFill = element.textFill || null;
-                
-                // Style object (may contain additional styling)
-                serialized.style = element.style ? { ...element.style } : null;
-                break;
-                
-            case 'rect':
-            case 'circle':
-            case 'shape':
-                serialized.shapeType = element.shapeType || element.type;
-                // Style contains backgroundColor, borderWidth, borderColor, etc.
-                serialized.style = element.style ? { ...element.style } : null;
-                serialized.fill = element.fill || null;
-                serialized.stroke = element.stroke || null;
-                serialized.cornerRadius = element.cornerRadius;
-                break;
-                
-            case 'image':
-                serialized.assetId = element.assetId || element.props?.assetId;
-                serialized.assetPath = this.assetMap.get(serialized.assetId) || null;
-                serialized.src = element.src;
-                serialized.crop = element.crop || null;
-                serialized.filters = element.filters || null;
-                serialized.style = element.style ? { ...element.style } : null;
-                break;
-                
-            case 'video':
-                serialized.assetId = element.assetId || element.props?.assetId;
-                serialized.assetPath = this.assetMap.get(serialized.assetId) || null;
-                serialized.src = element.src;
-                serialized.autoPlay = element.autoPlay || false;
-                serialized.loop = element.loop || false;
-                serialized.muted = element.muted || false;
-                serialized.style = element.style ? { ...element.style } : null;
-                break;
-                
-            case 'code':
-                serialized.code = element.code || '';
-                serialized.language = element.language || 'javascript';
-                serialized.theme = element.theme || 'dark';
-                serialized.style = element.style ? { ...element.style } : null;
-                break;
-                
-            default:
-                // For unknown types, preserve ALL properties
-                Object.keys(element).forEach(key => {
-                    if (!(key in serialized)) {
-                        serialized[key] = element[key];
-                    }
-                });
-        }
-
-        // Effects
-        if (element.effects) {
-            serialized.effects = element.effects;
-        }
-
-        // Animation
-        if (element.animation) {
-            serialized.animation = element.animation;
+        // Start with a complete shallow copy of ALL properties
+        const serialized = { ...element };
+        
+        // Ensure core defaults are set
+        serialized.rotation = serialized.rotation ?? 0;
+        serialized.opacity = serialized.opacity ?? 1;
+        
+        // Deep copy nested objects that need special handling
+        if (element.style) {
+            serialized.style = { ...element.style };
+            // Deep copy fills array if present
+            if (element.style.fills) {
+                serialized.style.fills = element.style.fills.map(f => ({ ...f }));
+            }
+            // Deep copy strokes array if present
+            if (element.style.strokes) {
+                serialized.style.strokes = element.style.strokes.map(s => ({ ...s }));
+            }
         }
         
-        // Build steps
-        if (element.buildStep !== undefined) {
-            serialized.buildStep = element.buildStep;
+        // Deep copy textFill if present
+        if (element.textFill) {
+            serialized.textFill = { ...element.textFill };
         }
-
+        
+        // Deep copy effects array if present
+        if (element.effects) {
+            serialized.effects = element.effects.map(e => ({ ...e }));
+        }
+        
+        // Deep copy animation if present
+        if (element.animation) {
+            serialized.animation = { ...element.animation };
+        }
+        
+        // Deep copy fill/stroke for shapes
+        if (element.fill) {
+            serialized.fill = { ...element.fill };
+        }
+        if (element.stroke) {
+            serialized.stroke = { ...element.stroke };
+        }
+        
+        // Deep copy crop for images
+        if (element.crop) {
+            serialized.crop = { ...element.crop };
+        }
+        
+        // Deep copy filters for images
+        if (element.filters) {
+            serialized.filters = element.filters.map(f => ({ ...f }));
+        }
+        
+        // Handle asset path mapping
+        if (element.assetId) {
+            serialized.assetPath = this.assetMap.get(element.assetId) || null;
+        }
+        
+        // Remove transient/runtime properties that shouldn't be saved
+        delete serialized._domElement;
+        delete serialized._cached;
+        delete serialized._codeRunner;
+        delete serialized._observer;
+        delete serialized._liveWidth;
+        delete serialized._liveHeight;
+        delete serialized._liveX;
+        delete serialized._liveY;
+        
         return serialized;
     }
 
