@@ -7,11 +7,14 @@
  */
 
 import { store } from '../../core/Store.js';
-import { fileSystemAccess } from '../../core/storage/filesystem/FileSystemAccess.js';
+import { FileSystemAccess } from '../../core/storage/filesystem/FileSystemAccess.js';
 import { PresentationSerializer } from '../../core/storage/serialization/PresentationSerializer.js';
 import { PresentationDeserializer } from '../../core/storage/serialization/PresentationDeserializer.js';
 import { alertModal } from '../components/AlertModal.js';
 import { EventEmitter } from '../../core/Events.js';
+
+// Create singleton instance
+const fileSystemAccess = new FileSystemAccess();
 
 const RECENT_FILES_KEY = 'story_recent_files';
 const MAX_RECENT_FILES = 10;
