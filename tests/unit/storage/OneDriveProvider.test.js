@@ -425,6 +425,7 @@ describe('OneDriveProvider', () => {
         });
 
         it('should return user info', async () => {
+            // Mock user info response
             mockFetch.mockResolvedValueOnce({
                 ok: true,
                 json: () => Promise.resolve({
@@ -433,24 +434,58 @@ describe('OneDriveProvider', () => {
                     userPrincipalName: 'test@example.com'
                 })
             });
+            // Mock photo response (404 - no photo)
+            mockFetch.mockResolvedValueOnce({
+                ok: false,
+                status: 404
+            });
 
             const user = await provider.getUserInfo();
             
             expect(user.displayName).toBe('Test User');
             expect(user.mail).toBe('test@example.com');
         });
+        
+        it('should return user info with photo', async () => {
+            // Mock user info response
+            mockFetch.mockResolvedValueOnce({
+                ok: true,
+                json: () => Promise.resolve({
+                    displayName: 'Test User',
+                    mail: 'test@example.com'
+                })
+            });
+            // Mock photo response with blob
+            const mockBlob = new Blob(['fake image data'], { type: 'image/jpeg' });
+            mockFetch.mockResolvedValueOnce({
+                ok: true,
+                blob: () => Promise.resolve(mockBlob)
+            });
+
+            const user = await provider.getUserInfo();
+            
+            expect(user.displayName).toBe('Test User');
+            expect(user.photoUrl).toBeDefined();
+            expect(user.photoUrl).toContain('data:');
+        });
 
         it('should cache user info', async () => {
+            // Mock user info response
             mockFetch.mockResolvedValueOnce({
                 ok: true,
                 json: () => Promise.resolve({ displayName: 'Test User' })
+            });
+            // Mock photo response (404 - no photo)
+            mockFetch.mockResolvedValueOnce({
+                ok: false,
+                status: 404
             });
 
             await provider.getUserInfo();
             await provider.getUserInfo();
             
-            // Should only fetch once
-            expect(mockFetch).toHaveBeenCalledTimes(1);
+            // Should only fetch twice on first call (user info + photo), then use cache
+            expect(mockFetch).toHaveBeenCalledTimes(2);
         });
 
         it('should throw on failure', async () => {

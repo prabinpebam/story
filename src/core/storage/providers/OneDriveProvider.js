@@ -398,7 +398,7 @@ export class OneDriveProvider extends IStorageProvider {
 
     /**
      * Get current user info
-     * @returns {Promise<Object>} User info
+     * @returns {Promise<Object>} User info with photo
      */
     async getUserInfo() {
         const accessToken = await this._ensureAuthenticated();
@@ -418,7 +418,49 @@ export class OneDriveProvider extends IStorageProvider {
         }
 
         this._user = await response.json();
+        
+        // Try to fetch profile photo
+        try {
+            const photoUrl = await this._getProfilePhoto(accessToken);
+            if (photoUrl) {
+                this._user.photoUrl = photoUrl;
+            }
+        } catch (error) {
+            // Photo fetch failed - user may not have a photo set
+            console.debug('[OneDriveProvider] Could not fetch profile photo:', error.message);
+        }
+        
         return this._user;
+    }
+    
+    /**
+     * Get user's profile photo as a data URL
+     * @param {string} accessToken - Access token
+     * @returns {Promise<string|null>} Photo data URL or null
+     * @private
+     */
+    async _getProfilePhoto(accessToken) {
+        const response = await fetch(`${MICROSOFT_API.GRAPH}/me/photo/$value`, {
+            headers: {
+                'Authorization': `Bearer ${accessToken}`
+            }
+        });
+        
+        if (!response.ok) {
+            // 404 means user has no photo set
+            if (response.status === 404) {
+                return null;
+            }
+            throw new Error(`Failed to get profile photo: ${response.status}`);
+        }
+        
+        // Convert blob to data URL
+        const blob = await response.blob();
+        return new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.onloadend = () => resolve(reader.result);
+            reader.readAsDataURL(blob);
+        });
     }
 
     // Private helper methods
