@@ -145,25 +145,27 @@ This plan adheres to the [Story Principles](../principles.md). Each phase includ
 
 | Day | Task | Status |
 |-----|------|--------|
-| Mon | Create `PreferencesFile.js` - encrypted .str format | 🔄 |
-| Tue | Implement identity-locked encryption (HKDF from OAuth sub) | 🔄 |
-| Wed | Create `PreferencesManager.js` - load/save/sync | 🔄 |
-| Thu | Add preferences discovery (default cloud locations) | 🔄 |
-| Fri | Write tests for preferences encryption/decryption | 🔄 |
+| Mon | Create `PreferencesFile.js` - encrypted .str format | ✅ |
+| Tue | Implement identity-locked encryption (HKDF from OAuth sub) | ✅ |
+| Wed | Create `PreferencesManager.js` - load/save/sync | ✅ |
+| Thu | Add preferences discovery (default cloud locations) | ✅ |
+| Fri | Write tests for preferences encryption/decryption | ✅ |
 
 **New Files:**
 ```
 src/core/auth/preferences/
-├── PreferencesFile.js           # Encrypted preferences .str
-├── PreferencesManager.js        # Load/save/sync
-├── PreferencesDiscovery.js      # Find preferences file
-├── IdentityEncryption.js        # HKDF-based encryption
-└── PreferencesMigration.js      # localStorage → file migration
+├── PreferencesFile.js           # ✅ Encrypted preferences .str
+├── PreferencesManager.js        # ✅ Load/save/sync
+├── PreferencesDiscovery.js      # ✅ Find preferences file
+├── IdentityEncryption.js        # ✅ HKDF-based encryption
+├── PreferencesSchema.js         # ✅ Schema, defaults, validation
+├── index.js                     # ✅ Module exports
+└── PreferencesMigration.js      # 🔄 localStorage → file migration
 
-tests/unit/auth/preferences/
-├── PreferencesFile.test.js
-├── PreferencesManager.test.js
-└── IdentityEncryption.test.js
+tests/unit/core/auth/
+├── PreferencesSchema.test.js    # ✅ 20 tests
+├── PreferencesManager.test.js   # ✅ 17 tests
+└── IdentityEncryption.test.js   # ✅ 15 tests
 ```
 
 **Preference Schema (from spec):**
@@ -205,18 +207,23 @@ export const DEFAULT_PREFERENCES = {
 
 | Day | Task | Status |
 |-----|------|--------|
-| Mon | Create `IdentityLinking.js` - link multiple OAuth accounts | 🔄 |
-| Tue | Update preferences file to support linked identities | 🔄 |
-| Wed | Implement key wrapping for multi-identity access | 🔄 |
-| Thu | Create cross-device sync with cloud storage | 🔄 |
-| Fri | Test preferences sync across devices/browsers | 🔄 |
+| Mon | Create `IdentityLinking.js` - link multiple OAuth accounts | ✅ |
+| Tue | Update preferences file to support linked identities | ✅ |
+| Wed | Implement key wrapping for multi-identity access | ✅ |
+| Thu | Create cross-device sync with cloud storage | ✅ |
+| Fri | Test preferences sync across devices/browsers | ✅ |
 
 **New Files:**
 ```
 src/core/auth/
-├── IdentityLinking.js           # Link multiple OAuth accounts
+├── IdentityLinking.js           # ✅ Link multiple OAuth accounts
 └── preferences/
-    └── PreferencesSync.js       # Cross-device sync
+    ├── PreferencesSync.js       # ✅ Cross-device sync
+    └── PreferencesMigration.js  # ✅ localStorage → file migration
+
+tests/unit/core/auth/
+├── IdentityLinking.test.js      # ✅ 17 tests
+└── PreferencesMigration.test.js # ✅ 28 tests
 ```
 
 **Validation Requirements:**

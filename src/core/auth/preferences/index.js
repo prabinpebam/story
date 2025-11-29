@@ -10,6 +10,9 @@
 export { 
     DEFAULT_PREFERENCES,
     PREFERENCES_SCHEMA_VERSION,
+    LOCAL_ONLY_PROPERTIES,
+    MERGE_PROPERTIES,
+    ARRAY_LIMITS,
     validatePreferences,
     migratePreferences,
     mergePreferences
@@ -37,3 +40,16 @@ export {
     StorageLocations,
     PREFERENCES_FILENAME 
 } from './PreferencesDiscovery.js';
+
+// Cross-device sync
+export {
+    PreferencesSync,
+    SyncEvents,
+    SyncStatus
+} from './PreferencesSync.js';
+
+// Migration from localStorage
+export {
+    PreferencesMigration,
+    preferencesMigration
+} from './PreferencesMigration.js';
