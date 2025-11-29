@@ -397,7 +397,11 @@ export class PresentationSerializer {
      * Add thumbnail to the archive
      */
     async addThumbnail() {
-        const slides = this.state.slides || [];
+        // Support both object-based slides (keyed by ID) and array-based slides
+        const slidesObj = this.state.slides || {};
+        const slideOrder = this.state.slideOrder || Object.keys(slidesObj);
+        const slides = Array.isArray(slidesObj) ? slidesObj : slideOrder.map(id => slidesObj[id]).filter(Boolean);
+        
         if (slides.length === 0) return;
 
         try {
@@ -417,13 +421,19 @@ export class PresentationSerializer {
      * @returns {Promise<Blob>} Thumbnail as PNG blob
      */
     async renderThumbnail(slide) {
+        if (!slide) return null;
+        
         const canvas = document.createElement('canvas');
         canvas.width = THUMBNAIL.WIDTH;
         canvas.height = THUMBNAIL.HEIGHT;
         const ctx = canvas.getContext('2d');
 
-        // Fill background
-        ctx.fillStyle = slide.background?.color || '#FFFFFF';
+        // Fill background - handle various background formats
+        const bgColor = slide.background?.color || 
+                       slide.background?.value || 
+                       (slide.background?.type === 'solid' ? slide.background.value : null) ||
+                       '#FFFFFF';
+        ctx.fillStyle = bgColor;
         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
         // Simple thumbnail - just background for now
