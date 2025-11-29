@@ -10,6 +10,8 @@
 import { authService } from './AuthService.js';
 import { store } from '../Store.js';
 
+const RETURN_URL_KEY = 'auth_return_url';
+
 /**
  * Check if current URL is an auth callback
  * @returns {boolean}
@@ -21,11 +23,12 @@ export function isAuthCallback() {
 
 /**
  * Handle auth callback and redirect to app
- * @returns {Promise<void>}
+ * @returns {Promise<Object>} User profile on success
+ * @throws {Error} On auth failure
  */
 export async function handleAuthCallback() {
     if (!isAuthCallback()) {
-        return;
+        throw new Error('Not on auth callback URL');
     }
 
     // Show loading state
@@ -36,29 +39,38 @@ export async function handleAuthCallback() {
         
         // Update store with user info
         store.dispatch('AUTH_LOGIN_SUCCESS', profile);
-
-        // Clear URL parameters and redirect to main app
-        const returnUrl = sessionStorage.getItem('auth_return_url') || '/';
-        sessionStorage.removeItem('auth_return_url');
-        
-        // Use replaceState to avoid back button going to callback URL
-        window.history.replaceState({}, '', returnUrl);
         
         // Trigger re-render
         window.dispatchEvent(new CustomEvent('story:auth-complete', { detail: profile }));
+        
+        return profile;
 
     } catch (error) {
         console.error('Auth callback failed:', error);
         store.dispatch('AUTH_LOGIN_FAILURE', error.message);
-        
-        // Redirect to main app with error
-        window.history.replaceState({}, '', '/?auth_error=' + encodeURIComponent(error.message));
+        throw error;
     }
 }
 
 /**
  * Store return URL before OAuth redirect
+ * @param {string} [url=window.location.pathname] - URL to return to after auth
  */
-export function storeReturnUrl() {
-    sessionStorage.setItem('auth_return_url', window.location.pathname);
+export function storeReturnUrl(url = window.location.pathname) {
+    sessionStorage.setItem(RETURN_URL_KEY, url);
+}
+
+/**
+ * Get stored return URL
+ * @returns {string|null}
+ */
+export function getReturnUrl() {
+    return sessionStorage.getItem(RETURN_URL_KEY);
+}
+
+/**
+ * Clear stored return URL
+ */
+export function clearReturnUrl() {
+    sessionStorage.removeItem(RETURN_URL_KEY);
 }

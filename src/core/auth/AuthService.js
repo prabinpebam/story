@@ -206,6 +206,24 @@ class AuthService {
     }
 
     /**
+     * Get available providers and configuration status
+     * @returns {{isValid: boolean, providers: {microsoft: boolean, google: boolean}}}
+     */
+    getConfigValidation() {
+        return OAuthConfig.validate();
+    }
+
+    /**
+     * Check if a specific provider is available
+     * @param {string} providerName - 'microsoft' or 'google'
+     * @returns {boolean}
+     */
+    isProviderAvailable(providerName) {
+        this.ensureInitialized();
+        return !!this.providers[providerName];
+    }
+
+    /**
      * Ensure service is initialized
      * @private
      */

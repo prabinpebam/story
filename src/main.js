@@ -20,18 +20,36 @@ import { TypographyStyleManager } from './ui/panels/TypographyStyleManager.js';
 import { CodeFillPanel } from './ui/panels/CodeFillPanel.js';
 import { ProfileButton } from './ui/auth/ProfileButton.js';
 import { SignInModal } from './ui/auth/SignInModal.js';
-import { authService } from './core/auth/index.js';
+import { authService, bootAuth } from './core/auth/index.js';
 import { AppMenu } from './ui/components/AppMenu/AppMenu.js';
 import { fileService } from './ui/services/FileService.js';
 import { menuActionHandler } from './ui/services/MenuActionHandler.js';
 
 class App {
     constructor() {
+        this.authBootResult = null;
+        this.initAsync();
+    }
+
+    async initAsync() {
+        console.log('Story App Initializing...');
+        
+        // Boot authentication first (handles OAuth callback if needed)
+        this.authBootResult = await bootAuth();
+        
+        if (this.authBootResult.error) {
+            console.error('Auth boot error:', this.authBootResult.error);
+        }
+        
+        if (this.authBootResult.isAuthenticated) {
+            console.log('User authenticated:', this.authBootResult.user?.displayName || 'Unknown');
+        }
+        
+        // Now initialize the rest of the app
         this.init();
     }
 
     init() {
-        console.log('Story App Initializing...');
         
         // Initialize Components
         // Pass 'canvas-container' as the wrapper ID

@@ -14,18 +14,20 @@ Story is a modern, web-based presentation tool built with vanilla JavaScript. It
   - **Typography**: Comprehensive text styling options.
 - **Layer Management**: A dedicated layer tree to manage element hierarchy and visibility.
 - **Presentation Mode**: Full-screen playback with smooth transitions and animations.
+- **Cloud Storage**: Save and load presentations from OneDrive or Google Drive
+- **OAuth Authentication**: Sign in with Microsoft or Google accounts
 - **AI Integration**: (Experimental) AI-assisted content generation.
 
 ## Tech Stack
 
 - **Core**: Vanilla JavaScript (ES Modules)
+- **Build**: Vite
+- **Testing**: Vitest
 - **Styling**: CSS Modules & Variables
 - **Animation**: Anime.js
 - **Icons**: FontAwesome
 
 ## Getting Started
-
-Since this project uses native ES Modules, you need to serve it using a local web server to avoid CORS issues with file imports.
 
 1. **Clone the repository**
    ```bash
@@ -33,25 +35,37 @@ Since this project uses native ES Modules, you need to serve it using a local we
    cd story
    ```
 
-2. **Start a local server**
-   You can use any static file server. Examples:
-
-   **Using Python:**
+2. **Install dependencies**
    ```bash
-   # Python 3
-   python -m http.server 8000
+   npm install
    ```
 
-   **Using Node.js (http-server):**
+3. **Configure OAuth (optional)**
+   
+   To enable sign-in with Microsoft/Google:
    ```bash
-   npx http-server .
+   cp .env.example .env
+   # Edit .env with your OAuth client IDs
+   ```
+   See [OAuth Setup Guide](./documentation/oauth-setup-guide.md) for detailed instructions.
+
+4. **Start the development server**
+   ```bash
+   npm run dev
    ```
 
-   **Using VS Code:**
-   Install the "Live Server" extension and click "Go Live".
+5. **Open in Browser**
+   Navigate to `http://localhost:5173`
 
-3. **Open in Browser**
-   Navigate to `http://localhost:8000` (or the port shown by your server).
+## Testing
+
+```bash
+# Run all tests
+npm test
+
+# Run tests with coverage
+npm run test:coverage
+```
 
 ## Project Structure
 
@@ -60,11 +74,12 @@ story/
 ├── index.html          # Entry point
 ├── src/
 │   ├── main.js         # Application initialization
-│   ├── core/           # Core logic (Renderer, Store, Input, etc.)
+│   ├── core/           # Core logic (Renderer, Store, Input, Auth, etc.)
 │   ├── ui/             # UI Components (Toolbar, Property Inspector, etc.)
 │   ├── utils/          # Helper functions
 │   └── ...
 ├── styles/             # CSS modules
+├── tests/              # Unit and integration tests
 ├── documentation/      # Project documentation and plans
 └── ...
 ```
