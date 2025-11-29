@@ -12,7 +12,8 @@ export { FileIndicatorMenu } from './FileIndicatorMenu.js';
 
 // Modals
 export { SignInPrompt } from './SignInPrompt.js';
-export { CloudFilePicker } from './CloudFilePicker.js';
+export { CloudFileBrowser } from './CloudFileBrowser.js';
+export { CloudFilePicker } from './CloudFilePicker.js'; // Legacy alias for CloudFileBrowser
 export { SaveToCloudModal } from './SaveToCloudModal.js';
 export { AccessSettingsModal } from './AccessSettingsModal.js';
 
@@ -21,6 +22,7 @@ import { ProviderIcon } from './ProviderIcon.js';
 import { FileIndicatorPill } from './FileIndicatorPill.js';
 import { FileIndicatorMenu } from './FileIndicatorMenu.js';
 import { SignInPrompt } from './SignInPrompt.js';
+import { CloudFileBrowser } from './CloudFileBrowser.js';
 import { CloudFilePicker } from './CloudFilePicker.js';
 import { SaveToCloudModal } from './SaveToCloudModal.js';
 import { AccessSettingsModal } from './AccessSettingsModal.js';
@@ -30,6 +32,7 @@ export default {
     FileIndicatorPill,
     FileIndicatorMenu,
     SignInPrompt,
+    CloudFileBrowser,
     CloudFilePicker,
     SaveToCloudModal,
     AccessSettingsModal
