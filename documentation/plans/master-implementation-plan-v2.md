@@ -1,4 +1,4 @@
-````markdown
+
 # Master Implementation Plan V2: Complete Identity, Storage & Collaboration
 
 ## Overview
@@ -857,4 +857,3 @@ After V2 completion, the following features can be considered:
 ---
 
 *V2 transforms Story from code-complete to production-ready, enabling real multi-user collaboration with cloud storage and identity management.*
-````
