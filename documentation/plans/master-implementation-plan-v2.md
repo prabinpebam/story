@@ -18,7 +18,9 @@ This V2 plan takes the foundation from V1 (code complete) to **100% production-r
 - ✅ User preferences file (encrypted, identity-locked) - **COMPLETE**
 - ✅ Cross-device sync for preferences - **COMPLETE**
 - ✅ Identity linking (multiple OAuth accounts) - **COMPLETE**
-- 🔄 File sharing and permissions UI - **IN PROGRESS (Phase 2.2)**
+- ✅ File sharing and permissions UI - **COMPLETE (Phase 2.2)**
+- ✅ OAuth flow working (Google implicit flow) - **COMPLETE**
+- 🎯 **File Storage UX** - Cloud open/save UI, file indicator, encryption
 - 🎯 Azure Functions deployment (negotiate, broadcast, join)
 - 🎯 End-to-end integration testing
 - 🎯 Version history and restore
@@ -73,7 +75,7 @@ This plan adheres to the [Story Principles](../principles.md). Each phase includ
 
 | Feature | V1 Status | V2 Target | Priority | V2 Status |
 |---------|-----------|-----------|----------|-----------|
-| OAuth flow | ✅ Code complete | Configure client IDs | HIGH | 🔄 Week 1 |
+| OAuth flow | ✅ Code complete | Configure client IDs | HIGH | ✅ **DONE** (implicit flow) |
 | Token storage | ✅ Complete | - | - | ✅ |
 | User profile | ✅ Complete | - | - | ✅ |
 | **User preferences file** | ❌ Not started | Identity-locked .str | HIGH | ✅ **DONE** |
@@ -89,6 +91,8 @@ This plan adheres to the [Story Principles](../principles.md). Each phase includ
 | Cloud providers | ✅ Complete | - | - | ✅ |
 | Auto-save | ✅ Complete | - | - | ✅ |
 | **Sharing permissions** | ❌ Not started | Share dialogs, invite flow | HIGH | ✅ **DONE** Phase 2.2 |
+| **File Storage UX** | ❌ Not started | Cloud picker, file indicator | HIGH | 🎯 **Phase 2.2.5** |
+| **File Encryption** | ❌ Not started | Account-locked files | HIGH | 🎯 **Phase 2.2.5** |
 | **Conflict resolution UI** | ⏸️ Code only | User-facing dialogs | MEDIUM | 🔄 |
 | **Version history** | ❌ Not started | View and restore versions | MEDIUM | 🔄 Phase 2.5 |
 | **Recent files list** | ❌ Not started | With cloud metadata | LOW | 🔄 |
@@ -358,7 +362,173 @@ tests/unit/ui/
 
 ---
 
-### Phase 2.3: Azure Functions & SignalR Deployment (Weeks 6-7)
+### Phase 2.2.5: File Storage UX & Encryption (Weeks 5.5-7) - **NEW PRIORITY**
+
+**Goal:** Enable users to open/save files from cloud storage with proper encryption and access control
+
+> **Specification Documents:**
+> - [File Storage UX](../specs/storage/file-storage-ux.md) - Complete UX flows
+> - [File Storage UI Components](../specs/storage/file-storage-ui-components.md) - Component specs
+
+#### Week 5.5: File Indicator & Menu Integration
+
+| Day | Task | Status |
+|-----|------|--------|
+| Mon | Create `FileIndicatorPill.js` - filename display component | 🎯 |
+| Tue | Create `FileIndicatorMenu.js` - dropdown with file actions | 🎯 |
+| Wed | Update App Menu with cloud Open/Save submenus | 🎯 |
+| Thu | Add source icons (OneDrive, Google Drive, Local) | 🎯 |
+| Fri | Write tests for file indicator components | 🎯 |
+
+**New Files:**
+```
+src/ui/file/
+├── FileIndicatorPill.js         # Filename pill in viewport corner
+├── FileIndicatorMenu.js         # Dropdown menu from pill
+├── ProviderIcon.js              # Cloud provider logo component
+└── index.js                     # Module exports
+
+styles/modules/
+└── file-indicator.css           # Pill and menu styles
+
+tests/unit/ui/file/
+├── FileIndicatorPill.test.js
+└── FileIndicatorMenu.test.js
+```
+
+**Component States:**
+- Unsaved (empty circle + "Untitled" + blue dot)
+- Local file (laptop icon + filename)
+- Cloud file saving (provider icon + spinner)
+- Cloud file saved (provider icon + checkmark briefly)
+- Offline (provider icon + warning)
+- Account-locked (lock icon with keyhole)
+- Public (globe icon)
+
+#### Week 6: Cloud File Picker Integration
+
+| Day | Task | Status |
+|-----|------|--------|
+| Mon | Create `CloudFilePicker.js` - modal wrapper | 🎯 |
+| Tue | Integrate OneDrive File Picker SDK | 🎯 |
+| Wed | Integrate Google Picker API | 🎯 |
+| Thu | Create `SaveToCloudModal.js` - save dialog | 🎯 |
+| Fri | Write tests for cloud picker components | 🎯 |
+
+**New Files:**
+```
+src/ui/file/
+├── CloudFilePicker.js           # Cloud file browser modal
+├── SaveToCloudModal.js          # Save to cloud dialog
+└── SignInPrompt.js              # Auth prompt for cloud features
+
+src/core/storage/
+├── FileStorageService.js        # Unified open/save API
+└── CloudPickerService.js        # Provider picker adapters
+
+styles/modules/
+├── cloud-picker.css             # File picker modal styles
+└── signin-prompt.css            # Auth prompt styles
+
+tests/unit/ui/file/
+├── CloudFilePicker.test.js
+└── SaveToCloudModal.test.js
+```
+
+**Provider SDK Integration:**
+- **OneDrive**: `@microsoft/file-browser` or Graph API file picker
+- **Google Drive**: Google Picker API with `.str` filter
+
+#### Week 6.5: File Encryption & Access Control
+
+| Day | Task | Status |
+|-----|------|--------|
+| Mon | Create `FileEncryptionService.js` - encrypt on save | 🎯 |
+| Tue | Add `access/allowed.json` to .str file format | 🎯 |
+| Wed | Implement access check on file open | 🎯 |
+| Thu | Create `AccessSettingsModal.js` - manage who can access | 🎯 |
+| Fri | Write tests for encryption and access control | 🎯 |
+
+**New Files:**
+```
+src/core/storage/
+├── FileEncryptionService.js     # Encrypt/decrypt file content
+└── FileAccessService.js         # Manage allowed emails
+
+src/ui/file/
+├── AccessSettingsModal.js       # Share/access control UI
+└── AccessDeniedDialog.js        # Permission error dialog
+
+tests/unit/storage/
+├── FileEncryptionService.test.js
+└── FileAccessService.test.js
+```
+
+**Encryption Model:**
+- Files created while signed in are **encrypted by default**
+- Encryption key derived from owner's OAuth identity (HKDF)
+- `access/allowed.json` inside .str stores list of authorized emails
+- Files created as guest are **public by default**
+- Owner can change file from account-locked to public (with warning)
+
+**Access List in File:**
+```json
+{
+    "owner": {
+        "email": "owner@gmail.com",
+        "provider": "google"
+    },
+    "allowedEmails": [
+        { "email": "collaborator@company.com", "role": "editor" }
+    ],
+    "publicAccess": false
+}
+```
+
+#### Week 7: Recent Files & Error Handling
+
+| Day | Task | Status |
+|-----|------|--------|
+| Mon | Update recent files to track cloud file metadata | 🎯 |
+| Tue | Add source icons and access indicators to recent list | 🎯 |
+| Wed | Implement error states (offline, access denied, not found) | 🎯 |
+| Thu | Add offline queue for save operations | 🎯 |
+| Fri | Integration testing with real cloud accounts | 🎯 |
+
+**Validation Requirements:**
+- ✅ All file indicator states render correctly
+- ✅ Cloud picker opens and lists files from provider
+- ✅ Save to cloud creates encrypted file for signed-in users
+- ✅ Open encrypted file checks access list
+- ✅ Guest mode creates public (unencrypted) files
+- ✅ Dark/light mode tested for all components
+- ✅ Keyboard navigation works
+
+**Design System Checklist (MANDATORY):**
+- [ ] All colors use CSS variables (`--color-*`)
+- [ ] All spacing uses CSS variables (`--spacing-*`)
+- [ ] All radii use CSS variables (`--radius-*`)
+- [ ] Dark mode tested and working
+- [ ] Light mode tested and working
+- [ ] No inline styles
+- [ ] Reuses existing Modal, Button, Input components
+
+**Risks & Mitigations:**
+| Risk | Impact | Mitigation |
+|------|--------|------------|
+| Provider picker SDK issues | MEDIUM | Custom file browser as fallback |
+| Encryption key derivation fails | HIGH | Clear error message, guest mode fallback |
+| User loses access to own file | HIGH | Owner always has access, recovery option |
+| Offline edits lost | MEDIUM | Local storage backup, sync queue |
+
+**Dependencies:**
+- OAuth flow must be working (✅ DONE)
+- Cloud storage providers implemented (✅ DONE)
+- User preferences file working (✅ DONE)
+
+---
+
+### Phase 2.3: Azure Functions & SignalR Deployment (Weeks 8-9)
 
 **Goal:** Deploy serverless backend for real-time collaboration
 
@@ -828,14 +998,16 @@ Phase 2.5 (Versions) ◄── Depends on cloud storage (Phase 2.2)             
 
 ---
 
+
 ## Timeline Summary
 
 ```
-Phase 2.1: Identity & Preferences    (Weeks 1-3)   ─────────┐
-Phase 2.2: Sharing & Permissions     (Weeks 4-5)   ─────────┤
-Phase 2.3: Azure Functions           (Weeks 6-7)   ─────────┤ 10 weeks
-Phase 2.4: E2E Integration           (Weeks 8-9)   ─────────┤
-Phase 2.5: Version History           (Week 10)     ─────────┘
+Phase 2.1:   Identity & Preferences    (Weeks 1-3)   ─────────┐
+Phase 2.2:   Sharing & Permissions     (Weeks 4-5)   ─────────┤
+Phase 2.2.5: File Storage UX           (Weeks 5.5-7) ─────────┤ 12 weeks
+Phase 2.3:   Azure Functions           (Weeks 8-9)   ─────────┤
+Phase 2.4:   E2E Integration           (Weeks 10-11) ─────────┤
+Phase 2.5:   Version History           (Week 12)     ─────────┘
 ```
 
 ### Milestones
@@ -844,9 +1016,10 @@ Phase 2.5: Version History           (Week 10)     ─────────�
 |------|-----------|-------------|
 | End Week 3 | **Identity Complete** | OAuth configured, preferences file working |
 | End Week 5 | **Sharing Complete** | Share dialog, invite flow working |
-| End Week 7 | **Collaboration Live** | Azure SignalR deployed, real-time working |
-| End Week 9 | **Integration Verified** | E2E tests passing |
-| End Week 10 | **V2 Complete** | Version history, production ready |
+| End Week 7 | **File Storage Complete** | Cloud picker, encryption, file indicator |
+| End Week 9 | **Collaboration Live** | Azure SignalR deployed, real-time working |
+| End Week 11 | **Integration Verified** | E2E tests passing |
+| End Week 12 | **V2 Complete** | Version history, production ready |
 
 ---
 
@@ -869,8 +1042,11 @@ After V2 completion, the following features can be considered:
 - [Identity Architecture Spec](../specs/identity/identity-architecture.md) - Identity design
 - [User Preferences File Spec](../specs/identity/user-preferences-file.md) - Preferences format
 - [Cloud Storage Abstraction Spec](../specs/storage/cloud-storage-abstraction.md) - Storage API
+- [File Storage UX Spec](../specs/storage/file-storage-ux.md) - Cloud open/save UX
+- [File Storage UI Components Spec](../specs/storage/file-storage-ui-components.md) - UI components
 - [Azure SignalR Integration Spec](../specs/collaboration/azure-signalr-integration.md) - Real-time
 
 ---
 
-*V2 transforms Story from code-complete to production-ready, enabling real multi-user collaboration with cloud storage and identity management.*
+*V2 transforms Story from code-complete to production-ready, enabling real multi-user collaboration with cloud storage, encrypted files, and identity management.*
+
