@@ -185,11 +185,7 @@ export class CloudFileBrowser {
         if (this.provider === 'onedrive') {
             return `<img src="/assets/icons/one-drive.svg" alt="OneDrive" class="cfb-provider-icon">`;
         }
-        return `<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="cfb-provider-icon">
-            <path d="M4.433 20.333L0.883 14.167L8.067 2H15.25L4.433 20.333Z" fill="#0066DA"/>
-            <path d="M15.25 2L8.067 14.167L11.617 20.333H23.117L15.25 2Z" fill="#00AC47"/>
-            <path d="M8.067 14.167H23.117L19.567 20.333H4.433L8.067 14.167Z" fill="#FFBA00"/>
-        </svg>`;
+        return `<img src="/assets/icons/google-drive.svg" alt="Google Drive" class="cfb-provider-icon">`;
     }
     
     /**
