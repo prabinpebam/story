@@ -166,9 +166,9 @@ class FileService extends EventEmitter {
         try {
             // Need file handle?
             if (saveAs || !this.currentFileHandle) {
-                const handle = await fileSystemAccess.showSavePicker({
-                    suggestedName: this.currentFileName || 'Untitled.str'
-                });
+                const handle = await fileSystemAccess.showSavePicker(
+                    this.currentFileName || 'Untitled.str'
+                );
                 
                 if (!handle) {
                     return false; // User cancelled
