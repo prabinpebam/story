@@ -51,13 +51,10 @@ export class TextEditManager {
      * @returns {boolean} True if edit mode was entered
      */
     enterEditMode(elementId, domElement, options = {}) {
-        console.log('[TextEditManager] enterEditMode called', { elementId, options });
-        
         // Prevent entering edit mode if already editing
         if (this.isEditing) {
             if (this.currentElementId === elementId) {
                 // Already editing this element
-                console.log('[TextEditManager] Already editing this element');
                 return true;
             }
             // Exit current edit first
@@ -70,14 +67,6 @@ export class TextEditManager {
         const activeId = mode === 'master' ? state.editor.activeMasterId : state.editor.activeSlideId;
         const container = mode === 'master' ? state.masters[activeId] : state.slides[activeId];
         const elementData = container?.elements?.[elementId];
-
-        console.log('[TextEditManager] Element lookup', { 
-            mode, 
-            activeId, 
-            hasContainer: !!container, 
-            containerElements: container?.elements ? Object.keys(container.elements) : 'none',
-            hasElementData: !!elementData 
-        });
 
         if (!elementData) {
             console.warn('TextEditManager: Element not found', elementId, 'in', mode, 'mode, activeId:', activeId);
@@ -114,12 +103,6 @@ export class TextEditManager {
         domElement.style.cursor = 'text';
         domElement.style.outline = 'none';
 
-        console.log('[TextEditManager] After setting contentEditable:', {
-            isContentEditable: domElement.isContentEditable,
-            contentEditableAttr: domElement.contentEditable,
-            classList: [...domElement.classList]
-        });
-
         // Attach event listeners
         this._attachEventListeners(domElement);
 
@@ -133,11 +116,6 @@ export class TextEditManager {
 
         // Focus the element
         domElement.focus();
-        
-        console.log('[TextEditManager] After focus:', {
-            activeElement: document.activeElement === domElement,
-            isContentEditable: domElement.isContentEditable
-        });
 
         // Dispatch store action
         store.dispatch(ACTION_TYPES.ENTER_TEXT_EDIT, { elementId });
@@ -158,16 +136,7 @@ export class TextEditManager {
     exitEditMode(options = {}) {
         const { save = true, keepSelection = true } = options;
 
-        console.log('[TextEditManager] exitEditMode called', { 
-            isEditing: this.isEditing, 
-            currentElementId: this.currentElementId,
-            save, 
-            keepSelection 
-        });
-        console.trace('[TextEditManager] exitEditMode call stack');
-
         if (!this.isEditing || !this.currentElement) {
-            console.log('[TextEditManager] exitEditMode: not in edit mode, skipping');
             return false;
         }
 

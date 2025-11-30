@@ -4,9 +4,6 @@ import { store } from '../../Store.js';
 import { CodeRunner } from '../../effects/CodeRunner.js';
 import { textEditManager } from '../../text/index.js';
 
-// Debug: Check if textEditManager is properly imported
-console.log('[TextElement module] textEditManager imported:', typeof textEditManager, textEditManager ? 'exists' : 'undefined');
-
 export class TextElement extends VisualElement {
     mount(container) {
         const el = super.mount(container);
@@ -529,38 +526,26 @@ export class TextElement extends VisualElement {
                 // Use TextEditManager for consistent edit mode handling
                 let success = false;
                 
-                console.log('[TextElement.setEditing] About to enter edit mode', {
-                    elementId: this.data.id,
-                    entryMode,
-                    hasClickPosition: !!clickPosition,
-                    textEditManagerExists: !!textEditManager,
-                    textEditManagerType: typeof textEditManager
-                });
-                
                 if (!textEditManager) {
-                    console.warn('[TextElement] textEditManager is undefined, using legacy mode');
+                    // Fallback to legacy mode if TextEditManager not available
                 } else {
                     try {
                         success = textEditManager.enterEditMode(this.data.id, div, {
                             entryMode,
                             clickPosition
                         });
-                        console.log('[TextElement.setEditing] enterEditMode returned:', success);
                     } catch (err) {
                         console.error('[TextElement] TextEditManager.enterEditMode failed:', err);
                     }
                 }
                 
                 if (!success) {
-                    console.log('[TextElement] Falling back to legacy edit mode');
                     // Fallback to legacy behavior if TextEditManager fails
                     this._legacyEnterEditMode(selectionType, clickPosition);
                 }
             }
         } else {
             // Clear live values when exiting edit mode
-            console.log('[TextElement.setEditing] setEditing(false) called on', this.data.id, 'isContentEditable:', div.isContentEditable);
-            console.trace('[TextElement.setEditing] Exit call stack');
             this._liveX = undefined;
             this._liveY = undefined;
             this._liveWidth = undefined;
@@ -585,15 +570,12 @@ export class TextElement extends VisualElement {
      */
     _legacyEnterEditMode(selectionType, clickPosition) {
         const div = this.domElement;
-        console.log('[TextElement] _legacyEnterEditMode', { selectionType, hasClickPosition: !!clickPosition, div: !!div });
         
         div.contentEditable = 'true';
         div.style.outline = 'none';
         div.style.cursor = 'text';
         div.style.pointerEvents = 'auto';
         div.focus({ preventScroll: true });
-        
-        console.log('[TextElement] After setting contentEditable:', div.isContentEditable);
         
         // Handle initial selection based on selectionType
         if (selectionType === 'all') {
