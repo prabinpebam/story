@@ -100,12 +100,12 @@ export class IconLibrary {
                 });
             });
             
-            // Hover effect
-            item.onmouseenter = () => item.style.background = 'var(--te-blue)';
-            item.onmouseenter = () => item.style.color = 'white';
+            // Hover effect - uses accent-subtle via --color-bg-hover token
+            item.onmouseenter = () => {
+                item.style.background = 'var(--color-bg-hover)';
+            };
             item.onmouseleave = () => {
                 item.style.background = 'var(--color-bg-well)';
-                item.style.color = 'var(--color-text-primary)';
             };
 
             this.grid.appendChild(item);

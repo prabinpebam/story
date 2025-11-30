@@ -11,6 +11,104 @@
 ============================================ */
 
 /* ===========================================
+   UNIVERSAL MENU ITEM
+   ===========================================
+   
+   Shared class for all menu-like items across:
+   - Context menus
+   - Dropdown menus
+   - App menu
+   - List selections
+   - Icon library items
+   
+   Uses accent-based hover for brand consistency
+   and theme support.
+   =========================================== */
+.menu-item {
+    display: flex;
+    align-items: center;
+    height: var(--control-size-md);
+    padding: var(--spacing-2) var(--spacing-3);
+    font-size: var(--font-size-md);
+    font-family: var(--font-ui);
+    color: var(--color-text-primary);
+    cursor: pointer;
+    gap: var(--spacing-2);
+    transition: background var(--duration-fast) var(--ease-out);
+    user-select: none;
+}
+
+.menu-item:hover {
+    background: var(--color-bg-hover);  /* Now accent-subtle via token */
+}
+
+.menu-item.focused {
+    background: var(--color-bg-hover);
+}
+
+.menu-item.selected {
+    background: var(--color-accent);
+    color: var(--color-text-on-accent);
+}
+
+.menu-item.active {
+    background: var(--color-bg-active);  /* Now accent-muted via token */
+}
+
+.menu-item.danger {
+    color: var(--color-danger);
+}
+
+.menu-item.danger:hover {
+    background: var(--color-danger-subtle);
+}
+
+.menu-item.disabled {
+    color: var(--color-text-disabled);
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
+/* Menu item parts */
+.menu-item-icon {
+    width: var(--icon-size-sm);
+    height: var(--icon-size-sm);
+    color: var(--color-text-secondary);
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.menu-item.selected .menu-item-icon {
+    color: var(--color-text-on-accent);
+}
+
+.menu-item.danger .menu-item-icon {
+    color: var(--color-danger);
+}
+
+.menu-item-label {
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.menu-item-shortcut {
+    margin-left: auto;
+    padding-left: var(--spacing-4);
+    color: var(--color-text-tertiary);
+    font-size: var(--font-size-sm);
+    font-family: var(--font-ui);
+}
+
+.menu-item.selected .menu-item-shortcut {
+    color: var(--color-text-on-accent);
+    opacity: 0.8;
+}
+
+/* ===========================================
    Base Flyout Container
    =========================================== */
 .ui-flyout {

@@ -34,8 +34,8 @@
     --color-bg-panel: #2D2D2D;         /* Sidebars, floating panels */
     --color-bg-elevated: #333333;      /* Elevated surfaces (modals, popovers) */
     --color-bg-input: #383838;         /* Input fields, wells */
-    --color-bg-hover: #404040;         /* Hover state for interactive elements */
-    --color-bg-active: #0C4A6E;        /* Active/pressed state */
+    --color-bg-hover: var(--color-accent-subtle);  /* Hover state - accent subtle for brand consistency */
+    --color-bg-active: var(--color-accent-muted);  /* Active/pressed state - accent muted */
     --color-bg-selected: #1E3A5F;      /* Selected items background */
     
     /* Surface Variants (for cards, containers, sections) */
@@ -62,7 +62,8 @@
     --color-accent: #18A0FB;           /* Primary accent (Figma Blue) */
     --color-accent-hover: #3DB8FF;     /* Accent hover state */
     --color-accent-active: #0D86D7;    /* Accent active/pressed state */
-    --color-accent-subtle: rgba(24, 160, 251, 0.15); /* Subtle accent background */
+    --color-accent-subtle: rgba(24, 160, 251, 0.15); /* Subtle accent background - used for hover */
+    --color-accent-muted: rgba(24, 160, 251, 0.25);  /* Muted accent - used for active/pressed */
     
     /* Semantic/Status Colors */
     --color-success: #1BC47D;          /* Success, positive actions */
@@ -397,8 +398,8 @@ body.theme-light {
     --color-bg-panel: #F5F5F5;
     --color-bg-elevated: #FFFFFF;
     --color-bg-input: #FFFFFF;
-    --color-bg-hover: #EBEBEB;
-    --color-bg-active: #D4EDFF;
+    --color-bg-hover: var(--color-accent-subtle);  /* Accent-based hover for light theme */
+    --color-bg-active: var(--color-accent-muted);  /* Accent-based active for light theme */
     --color-bg-selected: #E6F4FF;
     
     /* Surface Variants */
@@ -422,7 +423,8 @@ body.theme-light {
     /* Accent (keep consistent) */
     --color-accent-hover: #0D86D7;
     --color-accent-active: #0A6AAB;
-    --color-accent-subtle: rgba(24, 160, 251, 0.10);
+    --color-accent-subtle: rgba(24, 160, 251, 0.12);  /* Slightly more visible on light bg */
+    --color-accent-muted: rgba(24, 160, 251, 0.20);   /* For active states on light bg */
     
     /* Status Colors (adjusted for light bg) */
     --color-success-subtle: rgba(27, 196, 125, 0.12);
