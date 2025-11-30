@@ -1,4 +1,5 @@
 import { store } from '../core/Store.js';
+import { ThumbnailRenderer } from '../core/renderer/ThumbnailRenderer.js';
 
 export class SlideList {
     constructor(containerId) {
@@ -115,66 +116,26 @@ export class SlideList {
         info.appendChild(titleText);
         item.appendChild(info);
 
-        // Preview
-        const preview = document.createElement('div');
-        preview.style.width = '100%';
-        preview.style.aspectRatio = '16/9';
+        // Preview - Use ThumbnailRenderer for accurate representation
+        // For masters/layouts, construct effective data
+        const masterData = {
+            ...slideOrMaster,
+            effectiveBackground: slideOrMaster.background,
+            effectiveElements: slideOrMaster.elements,
+            effectiveOrder: slideOrMaster.elementOrder,
+            themeSettings: slideOrMaster.themeSettings
+        };
         
-        // Background Logic
-        // For masters/layouts, we don't use getEffectiveSlide because they ARE the source
-        // But layouts inherit from master.
-        let bg = slideOrMaster.background;
-        
-        // If layout has inherited background, resolve it from master
-        if (!isMasterRoot && (!bg || bg.type === 'inherited')) {
-             const parentId = slideOrMaster.parentId;
-             if (parentId && state.masters[parentId]) {
-                 bg = state.masters[parentId].background;
-             }
-        }
-
-        if (bg) {
-            if (bg.type === 'solid') {
-                preview.style.background = bg.value;
-            } else if (bg.type === 'gradient') {
-                preview.style.background = bg.value;
-            } else if (bg.type === 'image') {
-                preview.style.background = `url(${bg.value}) center/cover no-repeat`;
-            } else {
-                preview.style.background = 'white';
+        // If layout, inherit background from parent theme
+        if (!isMasterRoot && (!masterData.effectiveBackground || masterData.effectiveBackground.type === 'inherited')) {
+            const parentId = slideOrMaster.parentId;
+            if (parentId && state.masters[parentId]) {
+                masterData.effectiveBackground = state.masters[parentId].background;
+                masterData.themeSettings = state.masters[parentId].themeSettings;
             }
-        } else {
-            preview.style.background = 'white';
         }
-
-        preview.style.border = '1px solid var(--color-border)';
-        preview.style.borderRadius = 'var(--radius-sm)';
-        preview.style.position = 'relative';
-        preview.style.overflow = 'hidden';
-
-        // Mini Elements
-        if (slideOrMaster.elements) {
-            Object.values(slideOrMaster.elements).forEach(el => {
-                const elDiv = document.createElement('div');
-                elDiv.style.position = 'absolute';
-                elDiv.style.left = `${(el.x / 1920) * 100}%`;
-                elDiv.style.top = `${(el.y / 1080) * 100}%`;
-                elDiv.style.width = `${(el.width / 1920) * 100}%`;
-                elDiv.style.height = `${(el.height / 1080) * 100}%`;
-                
-                if (el.type === 'rect') {
-                     elDiv.style.background = el.style?.backgroundColor || '#ccc';
-                } else if (el.type === 'placeholder' || el.isPlaceholder) {
-                    // Dotted border for placeholders
-                    elDiv.style.border = '1px dashed var(--color-text-tertiary)';
-                    elDiv.style.background = 'rgba(0,0,0,0.05)';
-                } else {
-                    elDiv.style.background = 'rgba(0,0,0,0.1)';
-                }
-                preview.appendChild(elDiv);
-            });
-        }
-
+        
+        const preview = ThumbnailRenderer.createThumbnail(id, masterData);
         item.appendChild(preview);
 
         // Click Handler
@@ -272,68 +233,10 @@ export class SlideList {
                 info.appendChild(slideTitle);
                 item.appendChild(info);
 
-                // Preview Box
-                const preview = document.createElement('div');
-                preview.style.width = '100%';
-                preview.style.aspectRatio = '16/9';
-                
-                // Dynamic Background
+                // Preview Box - Use ThumbnailRenderer for accurate representation
                 const effectiveSlide = store.getEffectiveSlide(slide.id);
-                const bg = effectiveSlide ? effectiveSlide.effectiveBackground : slide.background;
-
-                if (bg) {
-                    if (bg.type === 'solid') {
-                        preview.style.background = bg.value;
-                    } else if (bg.type === 'gradient') {
-                        preview.style.background = bg.value;
-                    } else if (bg.type === 'image') {
-                        preview.style.background = `url(${bg.value}) center/cover no-repeat`;
-                    } else if (bg.type === 'code') {
-                        // Placeholder for code background
-                        preview.style.background = 'repeating-linear-gradient(45deg, var(--color-surface-secondary) 0, var(--color-surface-secondary) 10px, var(--color-surface-primary) 10px, var(--color-surface-primary) 20px)';
-                    } else {
-                        preview.style.background = 'white';
-                    }
-                } else {
-                    preview.style.background = 'white';
-                }
-
-                preview.style.border = '1px solid var(--color-border)';
-                preview.style.position = 'relative';
-                preview.style.overflow = 'hidden';
-                preview.style.borderRadius = 'var(--radius-sm)';
-                
-                // Mini representation of elements
-                if (slide.elements) {
-                    Object.values(slide.elements).forEach(el => {
-                        const elDiv = document.createElement('div');
-                        elDiv.style.position = 'absolute';
-                        elDiv.style.left = `${(el.x / 1920) * 100}%`;
-                        elDiv.style.top = `${(el.y / 1080) * 100}%`;
-                        elDiv.style.width = `${(el.width / 1920) * 100}%`;
-                        elDiv.style.height = `${(el.height / 1080) * 100}%`;
-                        
-                        // Handle element background (Solid or Gradient)
-                        if (el.type === 'rect') {
-                            if (el.style?.fillType === 'gradient' || el.style?.fillType === 'image') {
-                                elDiv.style.background = el.style.fillValue || '#ccc';
-                            } else {
-                                elDiv.style.background = el.style?.backgroundColor || '#ccc';
-                            }
-                        } else if (el.isPlaceholder) {
-                            // Dotted border for placeholders
-                            elDiv.style.border = '1px dashed var(--color-text-tertiary)';
-                            elDiv.style.background = 'rgba(0,0,0,0.05)';
-                        } else {
-                            elDiv.style.background = 'rgba(0,0,0,0.1)';
-                        }
-
-                        if (el.type === 'text' && !el.isPlaceholder) {
-                            elDiv.style.border = '1px solid rgba(0,0,0,0.2)';
-                        }
-                        preview.appendChild(elDiv);
-                    });
-                }
+                const slideData = effectiveSlide || slide;
+                const preview = ThumbnailRenderer.createThumbnail(slideId, slideData);
                 
                 item.appendChild(preview);
 
