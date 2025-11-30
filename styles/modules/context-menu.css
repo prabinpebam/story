@@ -1,0 +1,222 @@
+/* =============================================================================
+   CONTEXT MENU STYLES
+   =============================================================================
+   
+   Context menu component styling using design system tokens.
+   All values use CSS variables from variables.css - no hardcoded values.
+   
+   ============================================================================= */
+
+/* -----------------------------------------------------------------------------
+   Menu Container
+   ----------------------------------------------------------------------------- */
+.context-menu {
+    position: fixed;
+    background: var(--color-bg-elevated);
+    border: var(--border-width-1) solid var(--color-border);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-lg);
+    min-width: var(--flyout-width-sm);
+    max-width: var(--flyout-width-md);
+    padding: var(--spacing-1) 0;
+    z-index: var(--z-popover);
+    
+    /* Animation - start hidden */
+    opacity: 0;
+    transform: scale(0.95);
+    transform-origin: top left;
+    transition: 
+        opacity var(--duration-fast) var(--ease-out),
+        transform var(--duration-fast) var(--ease-out);
+    
+    /* Prevent text selection */
+    user-select: none;
+    -webkit-user-select: none;
+    
+    /* Focus outline when navigating with keyboard */
+    outline: none;
+}
+
+.context-menu.visible {
+    opacity: 1;
+    transform: scale(1);
+}
+
+/* Submenu positioning origin */
+.context-menu[data-submenu] {
+    transform-origin: top left;
+}
+
+/* -----------------------------------------------------------------------------
+   Menu Item
+   ----------------------------------------------------------------------------- */
+.context-menu-item {
+    display: flex;
+    align-items: center;
+    height: var(--control-size-md);
+    padding: 0 var(--spacing-3);
+    font-size: var(--font-size-md);
+    font-family: var(--font-ui);
+    font-weight: var(--font-weight-regular);
+    color: var(--color-text-primary);
+    cursor: pointer;
+    gap: var(--spacing-2);
+    transition: background var(--duration-fast) var(--ease-out);
+    position: relative;
+}
+
+.context-menu-item:hover,
+.context-menu-item.focused {
+    background: var(--color-bg-hover);
+}
+
+/* Focus ring for keyboard navigation */
+.context-menu-item:focus-visible,
+.context-menu-item.focused:focus-visible {
+    background: var(--color-bg-hover);
+    box-shadow: inset 0 0 0 var(--border-width-2) var(--color-border-focus);
+    outline: none;
+}
+
+/* -----------------------------------------------------------------------------
+   Item States
+   ----------------------------------------------------------------------------- */
+
+/* Disabled */
+.context-menu-item.disabled {
+    color: var(--color-text-disabled);
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
+/* Danger (destructive action) */
+.context-menu-item.danger {
+    color: var(--color-danger);
+}
+
+.context-menu-item.danger:hover,
+.context-menu-item.danger.focused {
+    background: var(--color-danger-subtle);
+}
+
+/* -----------------------------------------------------------------------------
+   Item Content
+   ----------------------------------------------------------------------------- */
+
+/* Icon */
+.context-menu-icon {
+    width: var(--icon-size-sm);
+    height: var(--icon-size-sm);
+    color: var(--color-text-secondary);
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: var(--font-size-sm);
+}
+
+.context-menu-item.danger .context-menu-icon {
+    color: var(--color-danger);
+}
+
+.context-menu-item.disabled .context-menu-icon {
+    color: var(--color-text-disabled);
+}
+
+/* Label */
+.context-menu-label {
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Keyboard Shortcut */
+.context-menu-shortcut {
+    margin-left: auto;
+    padding-left: var(--spacing-4);
+    color: var(--color-text-tertiary);
+    font-size: var(--font-size-sm);
+    font-family: var(--font-ui);
+    white-space: nowrap;
+}
+
+.context-menu-item.disabled .context-menu-shortcut {
+    color: var(--color-text-disabled);
+}
+
+/* -----------------------------------------------------------------------------
+   Submenu Indicator
+   ----------------------------------------------------------------------------- */
+.context-menu-item.has-submenu::after {
+    content: '';
+    width: 0;
+    height: 0;
+    border-left: var(--spacing-1) solid var(--color-text-tertiary);
+    border-top: var(--spacing-1) solid transparent;
+    border-bottom: var(--spacing-1) solid transparent;
+    margin-left: auto;
+    flex-shrink: 0;
+}
+
+.context-menu-item.has-submenu.disabled::after {
+    border-left-color: var(--color-text-disabled);
+}
+
+/* When submenu has a shortcut, the arrow goes after the shortcut */
+.context-menu-item.has-submenu .context-menu-shortcut {
+    margin-left: var(--spacing-2);
+    padding-left: 0;
+}
+
+/* -----------------------------------------------------------------------------
+   Separator
+   ----------------------------------------------------------------------------- */
+.context-menu-separator {
+    height: var(--border-width-1);
+    background: var(--color-border-subtle);
+    margin: var(--spacing-1) var(--spacing-2);
+}
+
+/* -----------------------------------------------------------------------------
+   Checkbox / Radio Items (future enhancement)
+   ----------------------------------------------------------------------------- */
+.context-menu-item.checkable::before {
+    content: '';
+    width: var(--icon-size-sm);
+    height: var(--icon-size-sm);
+    margin-right: var(--spacing-1);
+    flex-shrink: 0;
+}
+
+.context-menu-item.checked::before {
+    content: '✓';
+    color: var(--color-accent);
+    font-size: var(--font-size-sm);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* -----------------------------------------------------------------------------
+   Accessibility - Reduced Motion
+   ----------------------------------------------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+    .context-menu {
+        transition: none;
+        transform: none;
+    }
+    
+    .context-menu-item {
+        transition: none;
+    }
+}
+
+/* -----------------------------------------------------------------------------
+   Print - Hide menus
+   ----------------------------------------------------------------------------- */
+@media print {
+    .context-menu {
+        display: none !important;
+    }
+}
