@@ -9,3 +9,4 @@ export { ContextMenuManager, contextMenuManager } from './ContextMenuManager.js'
 export { canvasMenuConfigs, canvasEmptyMenuConfig, canvasElementMenuConfig, canvasTextEditingMenuConfig } from './canvasMenuConfig.js';
 export { layerMenuConfigs, layerItemConfig, fillLayerConfig, fillPresetConfig } from './layerMenuConfig.js';
 export { slideMenuConfigs, slideThumbnailConfig, masterThumbnailConfig } from './slideMenuConfig.js';
+export { assetMenuConfigs, assetIconConfig, assetImageConfig } from './assetMenuConfig.js';

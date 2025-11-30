@@ -343,13 +343,17 @@ export const canvasElementMenuConfig = {
  * Shown when right-clicking while in text editing mode
  */
 export const canvasTextEditingMenuConfig = {
+    zone: 'canvas-text-editing',
     getItems: (context) => {
+        const { store, elementId } = context;
+        const state = store?.getState?.() || {};
+        
         return [
             {
                 id: 'cut',
                 label: 'Cut',
                 shortcut: 'Ctrl+X',
-                icon: 'fa-regular fa-scissors',
+                icon: 'fa-solid fa-scissors',
                 action: () => {
                     document.execCommand('cut');
                 }
@@ -372,14 +376,112 @@ export const canvasTextEditingMenuConfig = {
                     document.execCommand('paste');
                 }
             },
-            { type: 'separator' },
+            { separator: true },
             {
                 id: 'select-all',
                 label: 'Select All',
                 shortcut: 'Ctrl+A',
-                icon: 'fa-regular fa-text-size',
                 action: () => {
                     document.execCommand('selectAll');
+                }
+            },
+            { separator: true },
+            {
+                id: 'bold',
+                label: 'Bold',
+                shortcut: 'Ctrl+B',
+                icon: 'fa-solid fa-bold',
+                action: () => {
+                    document.execCommand('bold');
+                }
+            },
+            {
+                id: 'italic',
+                label: 'Italic',
+                shortcut: 'Ctrl+I',
+                icon: 'fa-solid fa-italic',
+                action: () => {
+                    document.execCommand('italic');
+                }
+            },
+            {
+                id: 'underline',
+                label: 'Underline',
+                shortcut: 'Ctrl+U',
+                icon: 'fa-solid fa-underline',
+                action: () => {
+                    document.execCommand('underline');
+                }
+            },
+            {
+                id: 'strikethrough',
+                label: 'Strikethrough',
+                icon: 'fa-solid fa-strikethrough',
+                action: () => {
+                    document.execCommand('strikeThrough');
+                }
+            },
+            { separator: true },
+            {
+                id: 'text-align',
+                label: 'Text Align',
+                icon: 'fa-solid fa-align-left',
+                submenu: [
+                    {
+                        id: 'align-left',
+                        label: 'Align Left',
+                        icon: 'fa-solid fa-align-left',
+                        action: () => {
+                            document.execCommand('justifyLeft');
+                        }
+                    },
+                    {
+                        id: 'align-center',
+                        label: 'Align Center',
+                        icon: 'fa-solid fa-align-center',
+                        action: () => {
+                            document.execCommand('justifyCenter');
+                        }
+                    },
+                    {
+                        id: 'align-right',
+                        label: 'Align Right',
+                        icon: 'fa-solid fa-align-right',
+                        action: () => {
+                            document.execCommand('justifyRight');
+                        }
+                    },
+                    {
+                        id: 'justify',
+                        label: 'Justify',
+                        icon: 'fa-solid fa-align-justify',
+                        action: () => {
+                            document.execCommand('justifyFull');
+                        }
+                    }
+                ]
+            },
+            { separator: true },
+            {
+                id: 'create-link',
+                label: 'Create Link',
+                shortcut: 'Ctrl+K',
+                icon: 'fa-solid fa-link',
+                action: () => {
+                    const url = prompt('Enter URL:');
+                    if (url) {
+                        document.execCommand('createLink', false, url);
+                    }
+                }
+            },
+            { separator: true },
+            {
+                id: 'exit-text-editing',
+                label: 'Exit Text Editing',
+                shortcut: 'Escape',
+                icon: 'fa-solid fa-arrow-right-from-bracket',
+                action: () => {
+                    store?.dispatch?.('CLEAR_EDITING_ELEMENT');
                 }
             }
         ];

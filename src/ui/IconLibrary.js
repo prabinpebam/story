@@ -1,4 +1,5 @@
 import { store } from '../core/Store.js';
+import { contextMenuManager, assetIconConfig } from './components/ContextMenu/index.js';
 
 export class IconLibrary {
     constructor(containerId) {
@@ -22,6 +23,9 @@ export class IconLibrary {
     }
 
     init() {
+        // Register context menu zone
+        contextMenuManager.register(assetIconConfig);
+        
         this.render();
     }
 
@@ -83,6 +87,17 @@ export class IconLibrary {
             item.addEventListener('dragstart', (e) => {
                 e.dataTransfer.setData('application/story-icon', JSON.stringify({ iconClass }));
                 e.dataTransfer.effectAllowed = 'copy';
+            });
+            
+            // Right-click context menu
+            item.addEventListener('contextmenu', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                contextMenuManager.show('asset-icon', e.clientX, e.clientY, {
+                    iconClass,
+                    iconElement: item
+                });
             });
             
             // Hover effect
