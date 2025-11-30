@@ -130,7 +130,43 @@ User action to clear all inline overrides:
 | `preset-applied` | After preset change |
 | `overrides-cleared` | After reset to preset |
 
-## 14. Open Questions
+## 14. Design System Integration
+
+Per project principles, all styling must use global design tokens:
+
+### Required CSS Variables
+
+| Property | CSS Variable | Example |
+|----------|--------------|--------|
+| Text color | `--color-text-primary` | Body text |
+| Heading color | `--color-text-heading` | Titles |
+| Placeholder color | `--color-text-tertiary` | Prompt text |
+| Selection bg | `--color-selection` | Text selection |
+| Focus ring | `--color-focus-ring` | Edit mode indicator |
+| Font family | `--font-family-sans` | Default text |
+| Heading font | `--font-family-heading` | Titles |
+
+### Typography Scale Tokens
+
+| Preset | Token |
+|--------|-------|
+| Heading 1 | `--font-size-heading-1`, `--line-height-heading-1` |
+| Heading 2 | `--font-size-heading-2`, `--line-height-heading-2` |
+| Body | `--font-size-body`, `--line-height-body` |
+| Caption | `--font-size-caption`, `--line-height-caption` |
+
+### Dark/Light Mode
+
+All color values must come from CSS variables that respond to `[data-theme="dark"]` or `[data-theme="light"]` on the root element. Never hardcode colors.
+
+### Forbidden Patterns
+
+- ❌ `element.style.color = '#333'`
+- ❌ `style="font-size: 24px"`
+- ✅ `element.classList.add('text-heading-1')`
+- ✅ `var(--color-text-primary)`
+
+## 15. Open Questions
 
 1. Should selecting text and changing font create inline override or element override?
 2. How to handle partial preset matches (some properties match, others don't)?

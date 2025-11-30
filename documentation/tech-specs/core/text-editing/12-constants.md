@@ -99,16 +99,20 @@ For ContentSanitizer:
 | `SAVE_FAILED` | "Failed to save content" |
 | `RECOVERY_FAILED` | "Failed to recover drafts" |
 
-## 12. Default Style Values
+## 12. Default Style Values (Design Token References)
 
-| Property | Default |
-|----------|---------|
-| `fontFamily` | System UI font |
-| `fontSize` | 24 |
-| `fontWeight` | 400 |
-| `lineHeight` | 1.5 |
-| `letterSpacing` | 0 |
-| `color` | Theme text color |
+Per project principles, all defaults must reference global design tokens:
+
+| Property | Design Token | Fallback |
+|----------|-------------|----------|
+| `fontFamily` | `--font-family-sans` | system-ui |
+| `fontSize` | `--font-size-body` | 16px |
+| `fontWeight` | `--font-weight-regular` | 400 |
+| `lineHeight` | `--line-height-body` | 1.5 |
+| `letterSpacing` | `--letter-spacing-body` | 0 |
+| `color` | `--color-text-primary` | currentColor |
+
+**Note**: Never use hardcoded values. Always resolve from CSS variables to ensure dark/light mode compatibility.
 
 ## 13. Limits
 

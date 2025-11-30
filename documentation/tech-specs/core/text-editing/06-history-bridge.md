@@ -142,7 +142,48 @@ TextEditManager calls:
 4. **Style change**: Enter → bold text → exit → undo reverts bold
 5. **Cancel**: Enter → changes → exit(save=false) → no history entry
 
-## 14. Open Questions
+## 14. Required HistoryManager Modifications
+
+Per project principles, undo/redo modifications must be explicitly called out:
+
+### New Methods Required
+
+| Method | Purpose | Implementation Notes |
+|--------|---------|---------------------|
+| `pause()` | Stop recording state changes during text edit | Add `isPaused` flag, skip recording when true |
+| `resume()` | Resume recording after text edit | Clear `isPaused` flag |
+| `pushTextEdit(entry)` | Add text-edit specific entry | Accepts before/after content snapshots |
+
+### New Entry Type
+
+HistoryManager must handle `type: 'text-edit'` entries:
+
+```
+{
+  type: 'text-edit',
+  elementId: string,
+  before: { content: string, inlineStyles: object },
+  after: { content: string, inlineStyles: object },
+  description: 'Edit text'
+}
+```
+
+### Risk Assessment
+
+| Risk | Impact | Mitigation |
+|------|--------|------------|
+| `pause()` not implemented | App undo during edit causes corruption | Implement as Phase 1 blocker |
+| Entry type not recognized | Text edits not undoable | Add handler before text system ships |
+| State mismatch | Undo restores wrong state | Always capture full content, not diffs |
+
+### Implementation Order
+
+1. Add `pause()`/`resume()` to HistoryManager (trivial)
+2. Add `text-edit` entry type handler
+3. Test: type → exit → undo → verify content restored
+4. Then proceed with TextEditManager implementation
+
+## 15. Open Questions
 
 1. Should Escape cancel (discard changes) or commit (save changes)?
 2. Should there be a keyboard shortcut to explicitly discard changes?

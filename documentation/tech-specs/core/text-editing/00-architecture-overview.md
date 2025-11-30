@@ -181,3 +181,53 @@ src/core/text/
 - [07-ime-handling.md](07-ime-handling.md) - IME support
 - [08-keyboard-shortcuts.md](08-keyboard-shortcuts.md) - Shortcuts
 - [09-error-handling.md](09-error-handling.md) - Recovery
+
+## 8. Principles Compliance
+
+This architecture adheres to the project principles defined in `documentation/principles.md`:
+
+### Design System & Craft
+
+| Requirement | How Addressed |
+|-------------|---------------|
+| Use global CSS variables | All colors, typography, spacing reference `--color-*`, `--font-*`, `--spacing-*` tokens |
+| Use global common components | Leverage existing tooltip, button, input components where applicable |
+| Avoid inline styles | CSS classes only; inline styles stripped on paste |
+| Dark/light mode support | All colors via CSS variables that respond to theme |
+| No duplicate components | Use variants of existing text components |
+
+### Undo/Redo Compatibility
+
+| Requirement | How Addressed | Modifications Needed |
+|-------------|---------------|---------------------|
+| Compatible with existing system | Edit mode isolation strategy | HistoryManager needs `pause()` and `resume()` methods |
+| Call out modifications | See [06-history-bridge.md](06-history-bridge.md) | Add text-edit entry type handler |
+
+**Risk**: HistoryManager may not currently support `pause()/resume()`. 
+**Mitigation**: Implement as first task; simple boolean flag approach.
+
+### File Storage & Serialization
+
+| Requirement | How Addressed |
+|-------------|---------------|
+| Compatible with storage | Content saved as sanitized HTML string |
+| Serialization format | Same `content` field on text elements |
+| No breaking changes | Backward compatible; existing files work |
+
+### Realtime Collaboration
+
+| Requirement | How Addressed |
+|-------------|---------------|
+| Compatible with collab | Content changes go through Store |
+| Conflict resolution | Text content is atomic (last-write-wins per element) |
+| Awareness | `editor.textEdit.elementId` in state shows who is editing what |
+
+**Risk**: Concurrent edits to same text element.
+**Mitigation**: Lock element during edit; show "User X is editing" indicator.
+
+### Security & Privacy
+
+| Requirement | How Addressed |
+|-------------|---------------|
+| Secure by design | ContentSanitizer strips scripts, event handlers |
+| No data leakage | Drafts stored locally only, cleared on save |
