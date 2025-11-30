@@ -2,6 +2,10 @@ import { VisualElement } from './VisualElement.js';
 import { StyleResolver } from '../../../utils/StyleResolver.js';
 import { store } from '../../Store.js';
 import { CodeRunner } from '../../effects/CodeRunner.js';
+import { textEditManager } from '../../text/index.js';
+
+// Debug: Check if textEditManager is properly imported
+console.log('[TextElement module] textEditManager imported:', typeof textEditManager, textEditManager ? 'exists' : 'undefined');
 
 export class TextElement extends VisualElement {
     mount(container) {
@@ -514,58 +518,125 @@ export class TextElement extends VisualElement {
             this._liveHeight = undefined;
             
             if (!div.isContentEditable) {
-                div.contentEditable = true;
-                div.style.outline = 'none';
-                div.style.cursor = 'text';
-                div.style.pointerEvents = 'auto';
-                div.focus({ preventScroll: true });
-                
-                // Handle initial selection based on selectionType
+                // Map selectionType to entryMode for TextEditManager
+                let entryMode = 'click';
                 if (selectionType === 'all') {
-                    // Select all text when entering via Enter key
-                    this.selectAllText();
-                } else if (selectionType === 'caret' && clickPosition) {
-                    // Place caret at click position (double-click)
-                    this.placeCaretAtPosition(clickPosition.clientX, clickPosition.clientY);
+                    entryMode = 'enter'; // Enter key selects all
+                } else if (selectionType === 'caret') {
+                    entryMode = 'doubleClick';
                 }
                 
-                // Add keyboard listener for Escape and Cmd+Enter to exit edit mode
-                if (!this._keydownHandler) {
-                    this._keydownHandler = (e) => this.handleEditKeyDown(e);
-                    div.addEventListener('keydown', this._keydownHandler);
+                // Use TextEditManager for consistent edit mode handling
+                let success = false;
+                
+                console.log('[TextElement.setEditing] About to enter edit mode', {
+                    elementId: this.data.id,
+                    entryMode,
+                    hasClickPosition: !!clickPosition,
+                    textEditManagerExists: !!textEditManager,
+                    textEditManagerType: typeof textEditManager
+                });
+                
+                if (!textEditManager) {
+                    console.warn('[TextElement] textEditManager is undefined, using legacy mode');
+                } else {
+                    try {
+                        success = textEditManager.enterEditMode(this.data.id, div, {
+                            entryMode,
+                            clickPosition
+                        });
+                        console.log('[TextElement.setEditing] enterEditMode returned:', success);
+                    } catch (err) {
+                        console.error('[TextElement] TextEditManager.enterEditMode failed:', err);
+                    }
                 }
                 
-                // Add input listener for list auto-formatting
-                if (!this._inputHandler) {
-                    this._inputHandler = (e) => this.handleInput(e);
-                    div.addEventListener('input', this._inputHandler);
+                if (!success) {
+                    console.log('[TextElement] Falling back to legacy edit mode');
+                    // Fallback to legacy behavior if TextEditManager fails
+                    this._legacyEnterEditMode(selectionType, clickPosition);
                 }
             }
         } else {
             // Clear live values when exiting edit mode
+            console.log('[TextElement.setEditing] setEditing(false) called on', this.data.id, 'isContentEditable:', div.isContentEditable);
+            console.trace('[TextElement.setEditing] Exit call stack');
             this._liveX = undefined;
             this._liveY = undefined;
             this._liveWidth = undefined;
             this._liveHeight = undefined;
             
             if (div.isContentEditable) {
-                div.contentEditable = false;
-                div.style.outline = 'none';
-                div.style.cursor = 'default';
-                div.blur();
-                
-                // Remove keyboard listener
-                if (this._keydownHandler) {
-                    div.removeEventListener('keydown', this._keydownHandler);
-                    this._keydownHandler = null;
-                }
-                
-                // Remove input listener
-                if (this._inputHandler) {
-                    div.removeEventListener('input', this._inputHandler);
-                    this._inputHandler = null;
+                // Check if TextEditManager is managing this element
+                if (textEditManager && textEditManager.isInEditMode() && textEditManager.getCurrentElementId() === this.data.id) {
+                    // Let TextEditManager handle exit
+                    textEditManager.exitEditMode({ keepSelection: true });
+                } else {
+                    // Fallback to legacy behavior
+                    this._legacyExitEditMode();
                 }
             }
+        }
+    }
+
+    /**
+     * Legacy edit mode entry (fallback if TextEditManager unavailable)
+     * @private
+     */
+    _legacyEnterEditMode(selectionType, clickPosition) {
+        const div = this.domElement;
+        console.log('[TextElement] _legacyEnterEditMode', { selectionType, hasClickPosition: !!clickPosition, div: !!div });
+        
+        div.contentEditable = 'true';
+        div.style.outline = 'none';
+        div.style.cursor = 'text';
+        div.style.pointerEvents = 'auto';
+        div.focus({ preventScroll: true });
+        
+        console.log('[TextElement] After setting contentEditable:', div.isContentEditable);
+        
+        // Handle initial selection based on selectionType
+        if (selectionType === 'all') {
+            this.selectAllText();
+        } else if (selectionType === 'caret' && clickPosition) {
+            this.placeCaretAtPosition(clickPosition.clientX, clickPosition.clientY);
+        }
+        
+        // Add keyboard listener for Escape and Cmd+Enter to exit edit mode
+        if (!this._keydownHandler) {
+            this._keydownHandler = (e) => this.handleEditKeyDown(e);
+            div.addEventListener('keydown', this._keydownHandler);
+        }
+        
+        // Add input listener for list auto-formatting
+        if (!this._inputHandler) {
+            this._inputHandler = (e) => this.handleInput(e);
+            div.addEventListener('input', this._inputHandler);
+        }
+    }
+
+    /**
+     * Legacy edit mode exit (fallback if TextEditManager unavailable)
+     * @private
+     */
+    _legacyExitEditMode() {
+        const div = this.domElement;
+        
+        div.contentEditable = false;
+        div.style.outline = 'none';
+        div.style.cursor = 'default';
+        div.blur();
+        
+        // Remove keyboard listener
+        if (this._keydownHandler) {
+            div.removeEventListener('keydown', this._keydownHandler);
+            this._keydownHandler = null;
+        }
+        
+        // Remove input listener
+        if (this._inputHandler) {
+            div.removeEventListener('input', this._inputHandler);
+            this._inputHandler = null;
         }
     }
 

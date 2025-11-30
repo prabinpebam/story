@@ -307,4 +307,249 @@ describe('HistoryManager', () => {
             expect(count).toBe(35);
         });
     });
+
+    describe('pause() and resume()', () => {
+        it('should initialize with isPaused = false', () => {
+            expect(historyManager.isPausedState()).toBe(false);
+        });
+
+        it('should set isPaused to true when pause() is called', () => {
+            historyManager.pause();
+            expect(historyManager.isPausedState()).toBe(true);
+        });
+
+        it('should set isPaused to false when resume() is called', () => {
+            historyManager.pause();
+            historyManager.resume();
+            expect(historyManager.isPausedState()).toBe(false);
+        });
+
+        it('should skip recording when paused', () => {
+            historyManager.pause();
+            historyManager.push({ version: 1 });
+            historyManager.push({ version: 2 });
+            
+            expect(historyManager.canUndo()).toBe(false);
+        });
+
+        it('should resume recording after resume() is called', () => {
+            historyManager.pause();
+            historyManager.push({ version: 1 }); // Should be skipped
+            historyManager.resume();
+            historyManager.push({ version: 2 }); // Should be recorded
+            
+            expect(historyManager.canUndo()).toBe(true);
+            const result = historyManager.undo({ current: true });
+            expect(result.state).toEqual({ version: 2 });
+        });
+
+        it('should handle multiple pause/resume cycles', () => {
+            historyManager.push({ version: 1 });
+            historyManager.pause();
+            historyManager.push({ version: 2 }); // Skipped
+            historyManager.resume();
+            historyManager.push({ version: 3 });
+            historyManager.pause();
+            historyManager.push({ version: 4 }); // Skipped
+            historyManager.resume();
+            historyManager.push({ version: 5 });
+            
+            // Should have versions 1, 3, 5
+            let current = { current: true };
+            const result1 = historyManager.undo(current);
+            expect(result1.state).toEqual({ version: 5 });
+            
+            const result2 = historyManager.undo(result1.state);
+            expect(result2.state).toEqual({ version: 3 });
+            
+            const result3 = historyManager.undo(result2.state);
+            expect(result3.state).toEqual({ version: 1 });
+        });
+    });
+
+    describe('Text Edit Entries', () => {
+        describe('pushTextEdit()', () => {
+            it('should push a text-edit entry to the undo stack', () => {
+                historyManager.pushTextEdit({
+                    elementId: 'text-1',
+                    before: { content: 'Hello' },
+                    after: { content: 'Hello World' }
+                });
+                
+                expect(historyManager.canUndo()).toBe(true);
+            });
+
+            it('should store the correct entry structure', () => {
+                historyManager.pushTextEdit({
+                    elementId: 'text-1',
+                    before: { content: 'Hello', inlineStyles: {} },
+                    after: { content: 'Hello World', inlineStyles: { bold: true } },
+                    description: 'Edit title'
+                });
+                
+                const result = historyManager.undo({ current: true });
+                expect(result.meta.type).toBe('text-edit');
+                expect(result.meta.elementId).toBe('text-1');
+                expect(result.meta.before).toEqual({ content: 'Hello', inlineStyles: {} });
+                expect(result.meta.after).toEqual({ content: 'Hello World', inlineStyles: { bold: true } });
+                expect(result.meta.description).toBe('Edit title');
+                expect(result.meta.timestamp).toBeDefined();
+            });
+
+            it('should use default description if not provided', () => {
+                historyManager.pushTextEdit({
+                    elementId: 'text-1',
+                    before: { content: '' },
+                    after: { content: 'New text' }
+                });
+                
+                const result = historyManager.undo({ current: true });
+                expect(result.meta.description).toBe('Edit text');
+            });
+
+            it('should clear redo stack when pushing text edit', () => {
+                historyManager.push({ version: 1 });
+                historyManager.undo({ version: 2 });
+                expect(historyManager.canRedo()).toBe(true);
+                
+                historyManager.pushTextEdit({
+                    elementId: 'text-1',
+                    before: { content: '' },
+                    after: { content: 'Text' }
+                });
+                
+                expect(historyManager.canRedo()).toBe(false);
+            });
+
+            it('should enforce max size limit', () => {
+                // Push maxSize items
+                for (let i = 0; i < 50; i++) {
+                    historyManager.pushTextEdit({
+                        elementId: `text-${i}`,
+                        before: { content: '' },
+                        after: { content: `Content ${i}` }
+                    });
+                }
+                
+                // Push one more
+                historyManager.pushTextEdit({
+                    elementId: 'text-final',
+                    before: { content: '' },
+                    after: { content: 'Final' }
+                });
+                
+                // Count should still be maxSize
+                let count = 0;
+                let current = { current: true };
+                while (historyManager.canUndo()) {
+                    current = historyManager.undo(current).state || current;
+                    count++;
+                }
+                expect(count).toBe(50);
+            });
+        });
+
+        describe('isTextEditEntry()', () => {
+            it('should return true for text-edit entries', () => {
+                historyManager.pushTextEdit({
+                    elementId: 'text-1',
+                    before: { content: '' },
+                    after: { content: 'Text' }
+                });
+                
+                const result = historyManager.undo({ current: true });
+                expect(historyManager.isTextEditEntry(result)).toBe(true);
+            });
+
+            it('should return false for regular state entries', () => {
+                historyManager.push({ version: 1 });
+                
+                const result = historyManager.undo({ current: true });
+                expect(historyManager.isTextEditEntry(result)).toBe(false);
+            });
+
+            it('should return false for null', () => {
+                expect(historyManager.isTextEditEntry(null)).toBe(false);
+            });
+
+            it('should return false for undefined', () => {
+                expect(historyManager.isTextEditEntry(undefined)).toBe(false);
+            });
+        });
+
+        describe('Entry Handlers', () => {
+            it('should have a default text-edit handler registered', () => {
+                const handler = historyManager.getEntryHandler('text-edit');
+                expect(handler).toBeDefined();
+                expect(typeof handler.apply).toBe('function');
+            });
+
+            it('should return before content on undo', () => {
+                const handler = historyManager.getEntryHandler('text-edit');
+                const entry = {
+                    before: { content: 'Original' },
+                    after: { content: 'Modified' }
+                };
+                
+                const result = handler.apply(entry, 'undo');
+                expect(result).toEqual({ content: 'Original' });
+            });
+
+            it('should return after content on redo', () => {
+                const handler = historyManager.getEntryHandler('text-edit');
+                const entry = {
+                    before: { content: 'Original' },
+                    after: { content: 'Modified' }
+                };
+                
+                const result = handler.apply(entry, 'redo');
+                expect(result).toEqual({ content: 'Modified' });
+            });
+
+            it('should allow registering custom entry handlers', () => {
+                const customHandler = {
+                    apply: (entry, direction) => ({ custom: true, direction })
+                };
+                
+                historyManager.registerEntryHandler('custom-type', customHandler);
+                
+                const handler = historyManager.getEntryHandler('custom-type');
+                expect(handler).toBe(customHandler);
+            });
+
+            it('should return null for unknown entry types', () => {
+                const handler = historyManager.getEntryHandler('unknown-type');
+                expect(handler).toBeNull();
+            });
+        });
+
+        describe('Mixed Entry Types', () => {
+            it('should handle mix of regular and text-edit entries', () => {
+                historyManager.push({ version: 1 });
+                historyManager.pushTextEdit({
+                    elementId: 'text-1',
+                    before: { content: '' },
+                    after: { content: 'Hello' }
+                });
+                historyManager.push({ version: 2 });
+                
+                let current = { version: 3 };
+                
+                // Undo version 2 (regular)
+                const result1 = historyManager.undo(current);
+                expect(result1.state).toEqual({ version: 2 });
+                expect(historyManager.isTextEditEntry(result1)).toBe(false);
+                
+                // Undo text edit
+                const result2 = historyManager.undo(result1.state);
+                expect(historyManager.isTextEditEntry(result2)).toBe(true);
+                expect(result2.meta.elementId).toBe('text-1');
+                
+                // Undo version 1 (regular)
+                const result3 = historyManager.undo(result2.state);
+                expect(result3.state).toEqual({ version: 1 });
+                expect(historyManager.isTextEditEntry(result3)).toBe(false);
+            });
+        });
+    });
 });

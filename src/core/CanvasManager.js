@@ -1203,6 +1203,7 @@ export class CanvasManager {
 
             if (element) {
                 if (element.type === 'text') {
+                    console.log('[CanvasManager.handleDoubleClick] Dispatching SET_EDITING_ELEMENT for text:', hit.id);
                     store.dispatch('SET_EDITING_ELEMENT', { 
                         id: hit.id, 
                         selectionType: 'caret',

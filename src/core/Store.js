@@ -9,6 +9,7 @@ import * as ElementHandlers from './store/handlers/ElementHandlers.js';
 import * as MasterHandlers from './store/handlers/MasterHandlers.js';
 import * as UIHandlers from './store/handlers/UIHandlers.js';
 import * as AuthHandlers from './store/handlers/AuthHandlers.js';
+import * as TextEditHandlers from './store/handlers/TextEditHandlers.js';
 
 class Store extends EventEmitter {
     constructor() {
@@ -357,6 +358,24 @@ class Store extends EventEmitter {
                     this.emit('state-changed', this.state);
                     this.emit('presentation-loaded');
                 }
+                break;
+
+            // Text Edit Handlers
+            case 'ENTER_TEXT_EDIT':
+            case 'EXIT_TEXT_EDIT':
+            case 'SAVE_TEXT_CONTENT':
+            case 'MARK_TEXT_DIRTY':
+                this.state = produce(this.state, draft => {
+                    switch(type) {
+                        case 'ENTER_TEXT_EDIT': TextEditHandlers.handleEnterTextEdit(draft, payload); break;
+                        case 'EXIT_TEXT_EDIT': TextEditHandlers.handleExitTextEdit(draft); break;
+                        case 'SAVE_TEXT_CONTENT': TextEditHandlers.handleSaveTextContent(draft, payload); break;
+                        case 'MARK_TEXT_DIRTY': TextEditHandlers.handleMarkTextDirty(draft, payload); break;
+                    }
+                });
+                this.emit('state-changed', this.state);
+                if (type === 'ENTER_TEXT_EDIT') this.emit('text-edit-started', payload);
+                if (type === 'EXIT_TEXT_EDIT') this.emit('text-edit-ended');
                 break;
         }
     }

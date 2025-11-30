@@ -1,5 +1,6 @@
 import { ElementFactory } from './ElementFactory.js';
 import { CodeRunner } from '../effects/CodeRunner.js';
+import { store } from '../Store.js';
 
 export class SlideView {
     constructor(slideId) {
@@ -91,8 +92,12 @@ export class SlideView {
                 this.elements.set(id, el);
             }
             
-            // Ensure DOM order
-            this.domElement.appendChild(el.domElement);
+            // Ensure DOM order - but skip if element is being edited to prevent blur
+            const state = store.getState();
+            const isBeingEdited = state.editor.editingElementId === id;
+            if (!isBeingEdited) {
+                this.domElement.appendChild(el.domElement);
+            }
             
             el.update(elData, slideData);
         });

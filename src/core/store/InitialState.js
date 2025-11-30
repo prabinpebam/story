@@ -630,7 +630,14 @@ export function createInitialState() {
             pan: { x: 0, y: 0 },
             gridEnabled: true,
             snapToGrid: true,
-            constrainProportions: false
+            constrainProportions: false,
+            // Text editing v2 state
+            textEdit: {
+                isEditing: false,
+                elementId: null,
+                isDirty: false,
+                initialContent: null
+            }
         },
         presentation: {
             isActive: false,
