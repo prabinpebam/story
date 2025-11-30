@@ -2,6 +2,74 @@
 **Theme:** Professional Creative Tool (High Density, Focused, Tactile)
 **Last Updated:** Design Token Standardization Phase
 
+## 1. Core Design Principles
+
+### 1.1 Achieving Consistency Through Constraint
+
+Visual consistency and coherence are achieved through **deliberate constraints** across four foundational systems:
+
+#### The 7-Step Scale Philosophy
+
+All design tokens follow a **7-step scale** (XXS, XS, S, M, L, XL, XXL) or a subset thereof. This constraint ensures:
+
+- **Predictability:** Developers always know what sizes are available
+- **Consistency:** Values are proportionally related across the scale
+- **Simplicity:** No arbitrary values or "magic numbers"
+
+Any token that doesn't fit this scale is an exception that requires explicit justification.
+
+#### Typography Constraint
+- **Maximum 7 type size steps** (2xs through 2xl, with rare extensions)
+- Limited variations in: font family, font size, font weight, and text color
+- Every text element must map to a predefined typographic token
+- Avoids visual noise and creates clear information hierarchy
+
+#### Spacing Constraint
+- **7 core spacing values** aligned to the base grid
+- All whitespace must use tokens from `--spacing-1` through `--spacing-12`
+- Applies to: component padding, section margins, layout gaps, inline spacing
+- Creates visual rhythm and predictable layouts
+
+#### Dimensional Constraint
+- **3-5 size variants** (sm, md, lg or xs through xl) for interactive components
+- Standardized heights for: buttons, pills, text inputs, dropdowns, selection rows
+- All rectangular UI elements share consistent dimensional patterns
+- Prevents the "every component is a different size" problem
+
+#### Border Radius Constraint
+- **7 corner radius values** from `--radius-xs` to `--radius-full`
+- All rounded corners must use predefined tokens
+- Creates cohesive visual language across surfaces
+
+### 1.2 Visual Translation Across Components
+
+Components that share conceptual purpose should share visual treatment:
+
+**Example: Selection Menus**
+- Dropdown selection menus and context menus serve similar purposes (picking from a list)
+- Therefore, they should look **visually identical** despite being different component implementations
+- Same background color, same border treatment, same hover states, same typography
+
+**The Rule:**
+> If two components solve the same user problem or provide the same type of interaction, they should be visually indistinguishable.
+
+This creates intuitive consistency—users learn one pattern and can apply that knowledge everywhere.
+
+### 1.3 The "Before You Add" Checklist
+
+Before creating a new spacing value, font size, or component dimension, ask:
+
+- [ ] Does this fit within the XXS–XXL scale?
+- [ ] Can I use an existing token instead?
+- [ ] Does this variation serve a clear functional purpose?
+- [ ] Will this value be reused in at least 3 places?
+- [ ] Does this maintain visual hierarchy with existing values?
+- [ ] Have I documented why this token is necessary?
+
+**If you answer "no" to any of these, use an existing token.**
+
+
+
 ---
 
 ## 0. Design Token Standardization Status
@@ -62,10 +130,49 @@ The interface is designed for professional workflows, balancing the density of a
 
 ## 2. Theme System Architecture
 
-### 2.1 Theme Switching Mechanism
+### 2.1 Multi-Theme Philosophy
 
-The application uses a **dark-mode-default** architecture:
+> **The Ultimate Litmus Test:** If the design system is truly token-based and well-constrained, switching to a completely different theme (colors, fonts, spacing) should "just work" without breaking any component.
 
+Themes are not just "dark mode vs light mode." A theme is a **complete visual identity** that includes:
+- **Color palette** (primary, accent, semantic colors)
+- **Typography** (font families, size scales)
+- **Spacing rhythm** (base grid, density)
+- **Corner radius philosophy** (sharp vs soft)
+- **Shadow style** (flat vs elevated)
+
+Each theme has both **light** and **dark** mode variants.
+
+### 2.2 Theme Architecture
+
+```
+Theme = {
+  name: "Story Default" | "Minimal" | "Vibrant" | "Corporate",
+  mode: "light" | "dark",
+  tokens: {
+    colors: { ... },
+    typography: { fontFamily, fontSizes, fontWeights },
+    spacing: { baseGrid, scale },
+    radii: { ... },
+    shadows: { ... }
+  }
+}
+```
+
+### 2.3 Theme Class Structure
+
+```css
+/* Theme is set on <html>, mode on <body> */
+html[data-theme="default"] { /* default theme tokens */ }
+html[data-theme="minimal"] { /* minimal theme tokens */ }
+html[data-theme="vibrant"] { /* vibrant theme tokens */ }
+
+/* Mode modifies the theme */
+body.mode-dark { /* dark mode color overrides */ }
+body.mode-light { /* light mode color overrides */ }
+```
+
+**Current Implementation (backward compatible):**
 ```css
 /* Dark mode is the default (no class needed) */
 :root {
@@ -80,17 +187,34 @@ body.theme-light {
 }
 ```
 
-**Implementation Details:**
-- **Default State:** Dark mode (no class on body)
-- **Light Mode:** Add `theme-light` class to `<body>`
-- **Toggle Location:** Settings Modal (`src/ui/SettingsModal.js`)
-- **Persistence:** User preference stored in localStorage
+### 2.4 Planned Theme Variants
 
-### 2.2 Token File Location
+| Theme | Description | Use Case |
+|-------|-------------|----------|
+| **Story Default** | Current dark-first theme | Default experience |
+| **Minimal** | Reduced chrome, smaller text, tighter spacing | Expert users |
+| **Vibrant** | Bolder colors, larger touch targets | Presentation mode |
+| **Corporate** | Conservative palette, serif headers | Enterprise clients |
+
+### 2.5 Token File Location
 
 All design tokens are defined in: `styles/modules/variables.css`
 
 **IMPORTANT:** This is the single source of truth for all color values. Components must NEVER define their own hardcoded colors.
+
+### 2.6 Why Multi-Theme Matters
+
+Multi-theme support validates the design system:
+
+| If This Breaks... | It Means... |
+|-------------------|-------------|
+| Colors don't change | Hardcoded values exist |
+| Layout breaks | Hardcoded pixel values |
+| Fonts don't change | Hardcoded font-family |
+| Spacing looks wrong | Hardcoded spacing values |
+| Hover states stay blue | Accent color not tokenized |
+
+**Goal:** Switch from "Story Default" to "Minimal" theme and have the entire app adapt seamlessly.
 
 ---
 
@@ -105,10 +229,12 @@ All design tokens are defined in: `styles/modules/variables.css`
 | `--color-bg-tertiary` | `#383838` | `#E8E8E8` | Elevated surfaces, cards |
 | `--color-bg-elevated` | `#404040` | `#FFFFFF` | Floating panels, modals |
 | `--color-bg-input` | `#1E1E1E` | `#FFFFFF` | Input field backgrounds |
-| `--color-bg-hover` | `#3A3A3A` | `#E0E0E0` | Hover states |
-| `--color-bg-active` | `#4A4A4A` | `#D0D0D0` | Active/pressed states |
+| `--color-bg-hover` | `var(--color-accent-subtle)` | `var(--color-accent-subtle)` | **Hover states (accent-based)** |
+| `--color-bg-active` | `var(--color-accent)` | `var(--color-accent)` | **Active/pressed states** |
 | `--color-surface-primary` | `#2C2C2C` | `#FFFFFF` | Primary surfaces |
 | `--color-surface-secondary` | `#383838` | `#F5F5F5` | Secondary surfaces |
+
+> **Design Decision:** Hover and active states use **accent color** (not gray). This creates a cohesive brand experience where the accent color is the primary interaction feedback color.
 
 ### 3.2 Border Tokens
 
@@ -134,11 +260,17 @@ All design tokens are defined in: `styles/modules/variables.css`
 
 | Token | Value | Usage |
 |-------|-------|-------|
-| `--color-accent` | `#18A0FB` | Primary accent, selections, focus |
-| `--color-accent-hover` | `#0D86D7` | Accent hover state |
-| `--color-accent-active` | `#0A6EAE` | Accent pressed state |
-| `--color-accent-subtle` | `rgba(24, 160, 251, 0.15)` | Selection backgrounds |
+| `--color-accent` | `#18A0FB` | Primary accent, selections, focus, **hover, active** |
+| `--color-accent-hover` | `#0D86D7` | Accent darker (for hover on accent elements) |
+| `--color-accent-active` | `#0A6EAE` | Accent darkest (for press on accent elements) |
+| `--color-accent-subtle` | `rgba(24, 160, 251, 0.15)` | **Hover background**, selection backgrounds |
+| `--color-accent-muted` | `rgba(24, 160, 251, 0.25)` | **Active background** |
 | `--color-selection` | `rgba(24, 160, 251, 0.1)` | Light selection wash |
+
+> **Interaction Pattern:** All hover and selected states use accent color variants:
+> - **Hover:** `--color-accent-subtle` (15% opacity accent)
+> - **Selected/Active:** `--color-accent` (full accent) or `--color-accent-muted` (25% opacity)
+> - This creates instant brand recognition and consistent interaction feedback.
 
 ### 3.5 System Colors
 
@@ -523,10 +655,47 @@ element.style.border = '1px solid var(--color-border)';
 
 ### 8.3 Testing Themes
 
+**The Theming Litmus Test**
+
+The design system is only as good as its ability to support multiple themes. Use this checklist when testing:
+
+#### Basic Theme Test (Light/Dark)
 1. Open Settings Modal
 2. Toggle "Appearance: Light" checkbox
 3. Verify all UI elements respond correctly
 4. Check for any remaining hardcoded colors (they won't change)
+
+#### Advanced Theme Test (Future)
+When multi-theme support is implemented:
+
+1. **Color Test:** Switch to a theme with a different accent color (e.g., purple instead of blue)
+   - All hover states should use the new accent
+   - All selected states should use the new accent
+   - Focus rings should use the new accent
+   
+2. **Typography Test:** Switch to a theme with different fonts/sizes
+   - All text should use the new font family
+   - Layouts should not break with different font metrics
+   - Truncation should still work correctly
+
+3. **Spacing Test:** Switch to a theme with tighter/looser spacing
+   - Components should resize proportionally
+   - Touch targets should remain usable
+   - Overflow should be handled gracefully
+
+4. **Radius Test:** Switch to a theme with different corner radii
+   - All rounded corners should update
+   - No hardcoded `border-radius` values
+
+#### What Breaks = What's Hardcoded
+
+| Symptom | Root Cause |
+|---------|-----------|
+| Colors don't change | Hardcoded hex values |
+| Some hovers stay blue, others change | Inconsistent token usage |
+| Font doesn't change | Hardcoded font-family |
+| Spacing is inconsistent | Hardcoded pixel values |
+| Border radius unchanged | Hardcoded border-radius |
 
 ### 8.4 Adding New Tokens
 

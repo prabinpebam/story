@@ -1,6 +1,6 @@
 # Design Consistency Audit & Remediation Plan
 
-**Version**: 1.1  
+**Version**: 1.2  
 **Date**: 2024-11-30  
 **Status**: Review  
 **Author**: AI Assistant  
@@ -18,10 +18,14 @@ This audit is grounded in the core design principles:
 1. **Visual Translation Across Components** - Components that serve similar purposes should be visually identical
 2. **7-Step Scale Philosophy** - All tokens follow XXS–XXL scale; no arbitrary values
 3. **Constraint Over Choice** - Use existing tokens before creating new ones
+4. **Theming as Litmus Test** - If the design system breaks when switching themes, it's not truly token-based
 
 > "If two components solve the same user problem or provide the same type of interaction, they should be visually indistinguishable."
 
-**Key Insight**: Dropdown menus and context menus both serve "picking from a list" - therefore they **must look identical**.
+**Key Design Decision**: All hover and selected states use **accent color** (not gray). This creates:
+- Instant brand recognition
+- Consistent interaction feedback across all components
+- Easy theming (change accent = change all interactions)
 
 ### 1.2 Key Findings
 
@@ -31,14 +35,15 @@ This audit is grounded in the core design principles:
 | Inline Style Usage | 15+ components | High | Constraint (bypasses tokens) |
 | Hardcoded Spacing Values | 5 | Medium | 7-Step Scale |
 | Token Underutilization | Multiple | Medium | Constraint |
-| Missing Semantic Tokens | 6 | Medium | - |
+| Theme-breaking hardcodes | 15+ | High | Theming Litmus Test |
 
 ### 1.3 Critical Issues
 
-1. **Hover colors differ** - Context menu uses gray, some dropdowns use accent blue (violates Visual Translation)
+1. **Hover colors should all use accent** - Some use gray, some use accent blue (should all be accent)
 2. **Selected item treatment varies** - Some use accent bg, others use blue text, others use border
 3. **Inline styles bypass design system** - 15+ components use inline `style.backgroundColor` instead of CSS classes
 4. **Hardcoded spacing** - `6px 12px` instead of `var(--spacing-1-5) var(--spacing-3)`
+5. **Theme switching will break** - Hardcoded values won't respond to theme changes
 
 ---
 
@@ -50,119 +55,110 @@ Per the design system: *"Dropdown selection menus and context menus serve simila
 
 **Current Reality**: They don't.
 
-### 2.2 Selection Menu Components (Should Be Identical)
+### 2.2 Design Decision: Accent Color for All Interactions
+
+**Decision**: All hover and selected states use **accent color** variants:
+
+| State | Token | Visual Result |
+|-------|-------|---------------|
+| **Hover** | `--color-accent-subtle` | 15% opacity accent blue |
+| **Active/Pressed** | `--color-accent-muted` | 25% opacity accent |
+| **Selected** | `--color-accent` | Full accent blue + white text |
+
+**Why Accent (not Gray)?**
+
+1. **Brand consistency** - Accent color is the app's visual identity
+2. **Theme support** - Change accent = change all interactions
+3. **Clearer feedback** - Colored hover is more noticeable than subtle gray
+4. **Industry precedent** - Linear, Notion, Figma all use colored hover states
+
+### 2.3 Selection Menu Components (Should Be Identical)
 
 These components all serve "pick from a list" and should share **exact same visual treatment**:
 
 | Component | Purpose | Current Hover | Should Be |
 |-----------|---------|---------------|-----------|
-| Context Menu | Pick action from list | Gray ✅ | Gray |
-| App Menu | Pick action from list | Gray ✅ | Gray |
-| Dropdown Menu | Pick value from list | Gray ✅ | Gray |
-| FillSection blend mode | Pick blend mode | Gray ✅ | Gray |
-| StrokeSection cap/join | Pick cap style | Gray ✅ | Gray |
-| Icon Library grid | Pick icon | **Accent Blue ❌** | Gray |
+| Context Menu | Pick action from list | `--color-bg-hover` (gray) ❌ | `--color-accent-subtle` |
+| App Menu | Pick action from list | `--color-bg-hover` (gray) ❌ | `--color-accent-subtle` |
+| Dropdown Menu | Pick value from list | `--color-bg-hover` (gray) ❌ | `--color-accent-subtle` |
+| FillSection blend mode | Pick blend mode | `--color-bg-hover` (gray) ❌ | `--color-accent-subtle` |
+| StrokeSection cap/join | Pick cap style | `--color-bg-hover` (gray) ❌ | `--color-accent-subtle` |
+| Icon Library grid | Pick icon | `--te-blue` (accent) ✅ | `--color-accent-subtle` |
 
-### 2.3 Hover State Audit
+### 2.4 Hover State Audit (Updated)
 
-| Component | Hover Background | Selected/Active | Visual Translation? |
-|-----------|------------------|-----------------|---------------------|
-| **Context Menu** | `--color-bg-hover` (gray) | N/A | ✅ Correct |
-| **App Menu** | `--color-bg-hover` (gray) | `--color-bg-active` | ✅ Correct |
-| **Dropdown Menu** | `--color-bg-hover` (gray) | `--color-bg-active` | ✅ Correct |
-| **FillSection dropdown** | `--color-bg-hover` (gray) | `--color-accent` (blue) | ✅ Correct |
-| **StrokeSection dropdown** | `--color-bg-hover` (gray) | `--color-accent` (blue) | ✅ Correct |
-| **Icon Library** | `--te-blue` (accent) | N/A | ❌ **VIOLATION** |
-| **Flyout tabs** | text color only | border-bottom accent | ⚠️ Different pattern (tabs) |
-| **Panel tabs** | text color only | border-bottom accent | ⚠️ Different pattern (tabs) |
-| **Segmented Control** | N/A | `--color-accent` (blue bg) | ✅ (different component type) |
-| **Preset cards** | border color change | border accent | ✅ (card pattern) |
-| **Layer tree items** | `--color-bg-hover` (gray) | accent border | ✅ Correct |
-
-### 2.4 Design Decision
-
-**Question**: Should menu item hovers be gray (`--color-bg-hover`) or accent blue (`--color-accent`)?
-
-**Industry Analysis**:
-| App | Menu Hover | Selected |
-|-----|------------|----------|
-| Figma | Gray subtle | Blue bg |
-| VS Code | Gray/blue subtle | Blue accent |
-| Notion | Gray subtle | Blue bg |
-| Linear | Gray subtle | Blue accent |
-
-**Recommendation**: Use **gray for hover** (`--color-bg-hover`) and **accent for selected** (`--color-accent`).
-
-This creates clear visual hierarchy:
-- **Hover** = "I'm pointing at this" (subtle gray)
-- **Selected/Active** = "This is the current value" (accent blue)
+| Component | Current Hover | Should Be | Status |
+|-----------|---------------|-----------|--------|
+| **Context Menu** | `--color-bg-hover` (gray) | `--color-accent-subtle` | ❌ Fix needed |
+| **App Menu** | `--color-bg-hover` (gray) | `--color-accent-subtle` | ❌ Fix needed |
+| **Dropdown Menu** | `--color-bg-hover` (gray) | `--color-accent-subtle` | ❌ Fix needed |
+| **FillSection dropdown** | `--color-bg-hover` (gray) | `--color-accent-subtle` | ❌ Fix needed |
+| **StrokeSection dropdown** | `--color-bg-hover` (gray) | `--color-accent-subtle` | ❌ Fix needed |
+| **Icon Library** | `--te-blue` (accent) | `--color-accent-subtle` | ⚠️ Right idea, wrong token |
+| **Layer tree items** | `--color-bg-hover` (gray) | `--color-accent-subtle` | ❌ Fix needed |
+| **Slide thumbnails** | gray-ish | `--color-accent-subtle` | ❌ Fix needed |
 
 ---
 
-## 3. Proposed Semantic Token System
+## 3. Proposed Token Updates
 
-### 3.1 New Interaction Tokens (Add to variables.css)
+### 3.1 Updated Interaction Tokens
+
+Update in `variables.css` - redefine `--color-bg-hover` and `--color-bg-active` to use accent:
 
 ```css
 :root {
     /* -------------------------------------------------------------------------
-       MENU & LIST INTERACTION TOKENS
-       Used by: Context menus, dropdowns, app menu, layer tree, lists
+       INTERACTION STATE TOKENS (Accent-based)
+       All interactions use accent color for brand consistency and theme support
        ------------------------------------------------------------------------- */
     
-    /* Hover state for menu/list items */
-    --color-menu-item-hover: var(--color-bg-hover);
+    /* Hover state - subtle accent */
+    --color-bg-hover: var(--color-accent-subtle);  /* Was: #3A3A3A */
     
-    /* Active/pressed state */
-    --color-menu-item-active: var(--color-bg-active);
+    /* Active/pressed state - more visible accent */
+    --color-bg-active: var(--color-accent-muted);  /* Was: #4A4A4A */
     
-    /* Selected item (current value in dropdown, checked menu item) */
-    --color-menu-item-selected: var(--color-accent);
-    --color-menu-item-selected-text: var(--color-text-on-accent);
+    /* Accent subtle (15% opacity) - used for hover backgrounds */
+    --color-accent-subtle: rgba(24, 160, 251, 0.15);
     
-    /* Focused item (keyboard navigation) */
-    --color-menu-item-focus: var(--color-bg-hover);
-    --color-menu-item-focus-ring: var(--color-border-focus);
+    /* Accent muted (25% opacity) - used for active/pressed backgrounds */
+    --color-accent-muted: rgba(24, 160, 251, 0.25);
     
-    /* Danger/destructive item hover */
-    --color-menu-item-danger-hover: var(--color-danger-subtle);
-    
-    /* -------------------------------------------------------------------------
-       CONTROL STATE TOKENS
-       Used by: Buttons, toggles, tabs, segmented controls
-       ------------------------------------------------------------------------- */
-    
-    /* Toggle/switch active state */
-    --color-control-active: var(--color-accent);
-    --color-control-active-text: var(--color-text-on-accent);
-    
-    /* Tab/segment active state */
-    --color-tab-active-bg: var(--color-accent);
-    --color-tab-active-text: var(--color-text-on-accent);
-    --color-tab-active-border: var(--color-accent);
-    
-    /* Tab hover (not active) */
-    --color-tab-hover: var(--color-bg-hover);
+    /* Selected item - full accent */
+    --color-accent: #18A0FB;
+    --color-text-on-accent: #FFFFFF;
 }
 
 body.theme-light {
-    /* Light theme overrides if needed */
-    --color-menu-item-hover: var(--color-bg-hover);
-    --color-menu-item-selected: var(--color-accent);
-    --color-menu-item-selected-text: var(--color-text-on-accent);
+    /* Light mode uses same accent-based interactions */
+    --color-bg-hover: var(--color-accent-subtle);
+    --color-bg-active: var(--color-accent-muted);
 }
 ```
 
-### 3.2 Usage Guidelines
+### 3.2 Theme Compatibility
 
-| Use Case | Token | Result |
-|----------|-------|--------|
-| Menu item hover | `--color-menu-item-hover` | Subtle gray |
-| Selected dropdown item | `--color-menu-item-selected` | Accent blue bg |
-| Context menu hover | `--color-menu-item-hover` | Subtle gray |
-| Active segmented control | `--color-control-active` | Accent blue bg |
-| Active tab | `--color-tab-active-bg` | Accent blue bg |
-| Destructive action hover | `--color-menu-item-danger-hover` | Danger subtle |
+This approach makes theming trivial:
+
+```css
+/* Different theme with purple accent */
+html[data-theme="corporate"] {
+    --color-accent: #7C3AED;
+    --color-accent-subtle: rgba(124, 58, 237, 0.15);
+    --color-accent-muted: rgba(124, 58, 237, 0.25);
+    /* All hover/active states automatically update! */
+}
+```
+
+### 3.3 Why This is Better for Theming
+
+| Old Approach (Gray hover) | New Approach (Accent hover) |
+|---------------------------|-----------------------------|
+| Hardcoded gray values | Derived from accent |
+| Neutral, no brand | Reinforces brand identity |
+| Gray looks same in all themes | Interactions match theme |
+| Two separate token families | One unified accent system |
 
 ---
 
@@ -176,19 +172,17 @@ body.theme-light {
 ```css
 .context-menu-item:hover,
 .context-menu-item.focused {
-    background: var(--color-bg-hover);  /* Gray - CORRECT */
+    background: var(--color-bg-hover);  /* Gray - NEEDS UPDATE */
 }
 ```
 
-**Status**: ✅ Already correct! Gray hover is the right pattern.
-
-**Missing**: Add selected state for checkable items:
+**Fix**: Update `--color-bg-hover` token definition (in variables.css) to use accent:
 ```css
-.context-menu-item.selected {
-    background: var(--color-menu-item-selected);
-    color: var(--color-menu-item-selected-text);
-}
+/* In variables.css */
+--color-bg-hover: var(--color-accent-subtle);  /* 15% accent blue */
 ```
+
+**Note**: By updating the token definition, ALL components using `--color-bg-hover` will automatically update.
 
 ---
 
@@ -200,15 +194,15 @@ body.theme-light {
 ```css
 .app-menu-item:hover,
 .app-menu-item.focused {
-    background: var(--color-bg-hover);  /* Gray - CORRECT */
+    background: var(--color-bg-hover);  /* Will auto-update with token change */
 }
 
 .app-menu-item.submenu-open {
-    background: var(--color-bg-active);  /* Blue subtle */
+    background: var(--color-bg-active);  /* Will auto-update with token change */
 }
 ```
 
-**Status**: ✅ Correct pattern.
+**Status**: ✅ Uses correct tokens - will auto-update when tokens change.
 
 ---
 
@@ -220,11 +214,11 @@ body.theme-light {
 ```javascript
 item.onmouseenter = () => {
     if ((fill.blendMode || 'normal') !== mode) 
-        item.style.backgroundColor = 'var(--color-bg-hover)';  // Gray - CORRECT
+        item.style.backgroundColor = 'var(--color-bg-hover)';  // Uses token ✅
 };
 
 if ((fill.blendMode || 'normal') === mode) {
-    item.style.backgroundColor = 'var(--color-accent)';  // Blue for selected - CORRECT
+    item.style.backgroundColor = 'var(--color-accent)';  // Selected - correct
     item.style.color = 'var(--color-text-on-accent)';
 }
 ```
@@ -233,7 +227,7 @@ if ((fill.blendMode || 'normal') === mode) {
 
 **Fix**: Use CSS classes from `flyout-components.css`:
 ```javascript
-item.className = 'dropdown-item';
+item.className = 'menu-item';
 if ((fill.blendMode || 'normal') === mode) {
     item.classList.add('selected');
 }
@@ -241,62 +235,46 @@ if ((fill.blendMode || 'normal') === mode) {
 
 ---
 
-### 4.4 Icon Library (NEEDS FIX)
+### 4.4 Icon Library (CORRECT IDEA, WRONG TOKEN)
 
 **File**: `src/ui/IconLibrary.js`
 
 **Current**:
 ```javascript
-item.onmouseenter = () => item.style.background = 'var(--te-blue)';  // WRONG - accent for hover
+item.onmouseenter = () => item.style.background = 'var(--te-blue)';  // Accent - right idea!
 item.onmouseenter = () => item.style.color = 'white';
 ```
 
-**Issue**: Using accent blue for hover, should be subtle gray.
+**Issue**: Using legacy token `--te-blue` and wrong approach (should be subtle, not full blue).
 
 **Fix**:
 ```javascript
 item.onmouseenter = () => {
-    item.style.background = 'var(--color-bg-hover)';
-    item.style.color = 'var(--color-text-primary)';
+    item.style.background = 'var(--color-bg-hover)';  // Now accent-subtle
+    // No color change needed for hover
 };
 ```
 
----
-
-### 4.5 StrokeSection Dropdown
-
-**File**: `src/ui/properties/StrokeSection.js`
-
-**Status**: Same pattern as FillSection - inline styles.
-
-**Fix**: Convert to CSS classes.
+Or better, use CSS classes.
 
 ---
 
-### 4.6 Layer Tree
+### 4.5 All Other Components
 
-**File**: `src/ui/LayerTree.js`
+**Key Insight**: By updating the token definitions for `--color-bg-hover` and `--color-bg-active`, any component already using these tokens will automatically get the accent-based hover behavior.
 
-**Current behavior**: Gray hover, accent border for selection.
+**Components that will auto-update**:
+- Context Menu ✅
+- App Menu ✅
+- Dropdown Menu ✅
+- Any CSS using `--color-bg-hover`
 
-**Status**: ✅ Correct pattern.
-
----
-
-### 4.7 Slide List
-
-**File**: `src/ui/SlideList.js`
-
-**Current** (inline styles):
-```javascript
-item.style.backgroundColor = (isActive || isSelected) 
-    ? 'var(--color-bg-active)' 
-    : 'transparent';
-```
-
-**Status**: ⚠️ Uses inline styles but correct values.
-
-**Fix**: Convert to CSS classes.
+**Components that need manual fixes** (using inline styles or legacy tokens):
+- FillSection.js
+- StrokeSection.js
+- IconLibrary.js
+- SlideList.js
+- LayerTree.js (verify)
 
 ---
 
@@ -400,54 +378,50 @@ Before adding any new token, validate against:
 
 ## 8. Implementation Plan
 
-### Phase 1: Visual Translation Compliance (2 hours)
+### Phase 1: Token Update (30 minutes)
 
-**Goal**: Make all selection menus visually identical.
+**Goal**: Update core tokens so all compliant components auto-update.
 
-1. **IconLibrary.js** - Change hover from `--te-blue` to `--color-bg-hover`
-2. **Verify all menus use same hover color** (gray #404040)
-3. **Verify all selected states use accent blue** (#18A0FB)
+1. In `variables.css`, update:
+   ```css
+   --color-bg-hover: var(--color-accent-subtle);
+   --color-bg-active: var(--color-accent-muted);
+   --color-accent-muted: rgba(24, 160, 251, 0.25); /* New token */
+   ```
+2. Test all menus - they should now have accent hover
+3. Verify light mode also works
 
-### Phase 2: Replace Inline Styles with CSS Classes (3-4 hours)
+### Phase 2: Fix Inline Styles (2-3 hours)
 
-**Goal**: All interactive patterns use shared CSS classes.
+**Goal**: Components using inline styles need manual updates.
 
-1. **FillSection.js** - Replace inline styles with `.menu-item` class
-2. **StrokeSection.js** - Replace inline styles with `.menu-item` class
-3. **SlideList.js** - Replace inline styles with CSS classes
-4. **EffectsSection.js** - Replace inline styles with CSS classes
+1. **IconLibrary.js** - Replace `--te-blue` with `--color-bg-hover`
+2. **FillSection.js** - Replace inline styles with CSS classes
+3. **StrokeSection.js** - Replace inline styles with CSS classes
 
-### Phase 3: 7-Step Scale Compliance (2 hours)
+### Phase 3: Create Shared `.menu-item` Class (1 hour)
 
-**Goal**: All hardcoded values replaced with scale tokens.
-
-1. Replace `6px 12px` padding with `var(--spacing-1-5) var(--spacing-3)`
-2. Add explicit `height: var(--control-size-md)` to menu items
-3. Verify all spacing uses `--spacing-*` tokens
-
-### Phase 4: Create Shared CSS Classes (1-2 hours)
-
-Add to `flyout-components.css` or new `menu-items.css`:
+Add to `flyout-components.css`:
 
 ```css
-/* Universal Menu Item - Visual Translation Reference */
+/* Universal Menu Item - Accent-based interactions */
 .menu-item {
     display: flex;
     align-items: center;
-    height: var(--control-size-md);           /* 7-step: Dimensional constraint */
-    padding: var(--spacing-2) var(--spacing-3); /* 7-step: Spacing constraint */
-    font-size: var(--font-size-md);           /* 7-step: Typography constraint */
+    height: var(--control-size-md);
+    padding: var(--spacing-2) var(--spacing-3);
+    font-size: var(--font-size-md);
     color: var(--color-text-primary);
     cursor: pointer;
     transition: background var(--duration-fast) var(--ease-out);
 }
 
 .menu-item:hover {
-    background: var(--color-bg-hover);        /* Gray - NOT accent */
+    background: var(--color-bg-hover);  /* Now accent-subtle! */
 }
 
 .menu-item.selected {
-    background: var(--color-accent);          /* Accent blue for selection */
+    background: var(--color-accent);
     color: var(--color-text-on-accent);
 }
 
@@ -466,7 +440,49 @@ Add to `flyout-components.css` or new `menu-items.css`:
 }
 ```
 
-### Phase 5: Documentation & Guidelines (1 hour)
+### Phase 4: Theming Litmus Test (1 hour)
+
+**Goal**: Validate the design system by testing theme switching.
+
+1. Create a test theme with different accent color:
+   ```css
+   html[data-theme="test-purple"] {
+       --color-accent: #7C3AED;
+       --color-accent-subtle: rgba(124, 58, 237, 0.15);
+       --color-accent-muted: rgba(124, 58, 237, 0.25);
+       --color-accent-hover: #6D28D9;
+       --color-accent-active: #5B21B6;
+   }
+   ```
+2. Apply theme and verify:
+   - All hover states are purple
+   - All selected states are purple
+   - Focus rings are purple
+   - No blue remains
+
+3. Document any components that didn't update (= hardcoded values)
+
+### Phase 5: Multi-Theme Architecture (Future)
+
+**Goal**: Full theme system with color + font + spacing variants.
+
+1. Define theme structure:
+   ```typescript
+   interface Theme {
+     name: string;
+     colors: ColorTokens;
+     typography: TypographyTokens;
+     spacing: SpacingTokens;
+     radii: RadiusTokens;
+   }
+   ```
+2. Create 3-4 complete themes:
+   - **Story Default** (current)
+   - **Minimal** (tighter spacing, smaller text)
+   - **Vibrant** (bolder colors, larger targets)
+   - **Corporate** (conservative, serif headers)
+
+3. Each theme has light + dark mode variants
 
 1. Update component documentation
 2. Add "no inline styles" rule to principles.md
@@ -485,9 +501,9 @@ All selection menus MUST look identical:
 ┌──────────────────────────────┐
 │  Normal item                 │  ← Default (transparent)
 ├──────────────────────────────┤
-│  Hovered item    ░░░░░░░░░░░░│  ← Gray (#404040) on hover
+│  Hovered item    ░░░░░░░░░░░░│  ← Accent subtle (15% accent blue)
 ├──────────────────────────────┤
-│  Selected item   ████████████│  ← Accent blue (#18A0FB) + white text
+│  Selected item   ████████████│  ← Full accent blue (#18A0FB) + white text
 ├──────────────────────────────┤
 │  Danger item                 │  ← Red text (#F24822)
 ├──────────────────────────────┤
@@ -497,46 +513,81 @@ All selection menus MUST look identical:
 └──────────────────────────────┘
 ```
 
-### 9.2 Tab/Segmented Control Pattern
+### 9.2 Theming Preview
 
+**Default Theme (Blue Accent):**
 ```
-┌─────────┬─────────┬─────────┐
-│ Tab 1   │ Tab 2 █ │ Tab 3   │  ← Active tab gets accent bg
-└─────────┴─────────┴─────────┘
+┌──────────────────────────────┐
+│  Hovered item    ░░░░░░░░░░░░│  ← Blue 15% (#18A0FB @ 0.15)
+│  Selected item   ████████████│  ← Blue 100% (#18A0FB)
+└──────────────────────────────┘
+```
+
+**Corporate Theme (Purple Accent):**
+```
+┌──────────────────────────────┐
+│  Hovered item    ░░░░░░░░░░░░│  ← Purple 15% (#7C3AED @ 0.15)
+│  Selected item   ████████████│  ← Purple 100% (#7C3AED)
+└──────────────────────────────┘
 ```
 
 ### 9.3 Visual Translation Checklist
 
 When creating any new selectable list:
 
-1. ☐ Does it use `--color-bg-hover` for hover? (NOT accent)
+1. ☐ Does it use `--color-bg-hover` for hover? (now accent-subtle)
 2. ☐ Does it use `--color-accent` for selected?
 3. ☐ Does it use `.menu-item` or similar shared class?
 4. ☐ Does item height use `--control-size-md`?
 5. ☐ Does padding use `--spacing-*` tokens?
+6. ☐ **Theming Test**: Does it change color when accent changes?
 
 ---
 
-## 10. Success Criteria
+## 10. Theming Litmus Test
 
-### 10.1 Visual Translation Test
+### 10.1 The Test
 
-| Test | Pass Condition |
-|------|----------------|
-| **Blur Test** | Squint at two menus - can you tell them apart? Should be NO |
-| **Side-by-Side Test** | Context menu vs dropdown - identical appearance |
-| **Theme Toggle** | All components respond to dark/light theme switch |
+The design system is validated by applying a different theme and checking for breakage.
 
-### 10.2 Quantitative Metrics
+**Test Theme Definition:**
+```css
+html[data-theme="test"] {
+    /* Purple instead of blue */
+    --color-accent: #7C3AED;
+    --color-accent-hover: #6D28D9;
+    --color-accent-active: #5B21B6;
+    --color-accent-subtle: rgba(124, 58, 237, 0.15);
+    --color-accent-muted: rgba(124, 58, 237, 0.25);
+    
+    /* Different font */
+    --font-family-ui: 'SF Pro', -apple-system, sans-serif;
+    
+    /* Tighter spacing */
+    --spacing-base: 3px; /* instead of 4px */
+}
+```
+
+### 10.2 What to Check
+
+| Component | Should Change | If Not = Bug |
+|-----------|---------------|---------------|
+| Menu hovers | Purple subtle | Hardcoded blue |
+| Selected items | Purple solid | Hardcoded blue |
+| Focus rings | Purple | Hardcoded blue |
+| Buttons | Purple accent | Hardcoded blue |
+| All fonts | SF Pro | Hardcoded font |
+| All spacing | 3px based | Hardcoded pixels |
+
+### 10.3 Success Criteria
 
 | Metric | Target |
 |--------|--------|
-| Components with inline styles | 0 |
-| Hover states using consistent token | 100% |
-| Selected states using consistent token | 100% |
-| All menus use same hover color | Yes |
-| Hardcoded pixel values | 0 |
-| All spacing uses tokens | Yes |
+| Components responding to accent change | 100% |
+| Components responding to font change | 100% |
+| Components responding to spacing change | 100% |
+| Hardcoded values found | 0 |
+| Theme switch breaks layout | Never |
 
 ---
 
@@ -546,26 +597,27 @@ When creating any new selectable list:
 |------|-------------|--------|------------|
 | Breaking existing styles | Medium | High | Test each change in isolation |
 | Theme inconsistencies | Low | Medium | Test both dark/light after each change |
-| Increased CSS bundle size | Low | Low | Consolidating, not adding tokens |
+| Accent color too strong | Low | Low | Adjust opacity of accent-subtle |
 | Developer confusion | Medium | Low | Update documentation |
 
 ---
 
 ## 12. Appendix: Files to Modify
 
-### CSS Files
-- `styles/modules/variables.css` - Verify token usage
-- `styles/modules/context-menu.css` - Add selected state
+### CSS Files (Token Updates)
+- `styles/modules/variables.css` - **CRITICAL**: Update `--color-bg-hover` to use accent-subtle
+- `styles/modules/context-menu.css` - Will auto-update with token change
+- `styles/modules/app-menu.css` - Will auto-update with token change
 - `styles/modules/flyout-components.css` - Add shared `.menu-item` class
 
 ### JavaScript Files (Remove Inline Styles)
-- `src/ui/IconLibrary.js` - **CRITICAL**: Fix hover color
-- `src/ui/properties/FillSection.js`
-- `src/ui/properties/StrokeSection.js`
-- `src/ui/properties/EffectsSection.js`
-- `src/ui/properties/TextSection.js`
-- `src/ui/SlideList.js`
-- `src/ui/components/TypeSettingsFlyout.js`
+- `src/ui/IconLibrary.js` - Replace `--te-blue` with `--color-bg-hover`
+- `src/ui/properties/FillSection.js` - Use CSS classes
+- `src/ui/properties/StrokeSection.js` - Use CSS classes
+- `src/ui/properties/EffectsSection.js` - Use CSS classes
+- `src/ui/properties/TextSection.js` - Use CSS classes
+- `src/ui/SlideList.js` - Use CSS classes
+- `src/ui/components/TypeSettingsFlyout.js` - Use CSS classes
 
 ---
 
@@ -573,22 +625,30 @@ When creating any new selectable list:
 
 | Decision | Choice | Rationale |
 |----------|--------|-----------|
-| Hover color | Gray (`--color-bg-hover`) | Industry standard (Figma, VS Code), Visual Translation principle |
-| Selected color | Accent blue (`--color-accent`) | Clear distinction from hover, existing token |
-| Menu padding | `var(--spacing-2) var(--spacing-3)` | 7-step scale compliance, matches app-menu |
-| Menu item height | `var(--control-size-md)` | Dimensional constraint (3-5 size variants) |
-| Add new tokens? | **NO** | "Before You Add" - existing tokens sufficient |
+| Hover color | **Accent subtle** (`--color-accent-subtle`) | Brand consistency, theme support |
+| Selected color | Accent (`--color-accent`) | Clear distinction, white text |
+| `--color-bg-hover` | Redefined to use accent | All existing code auto-updates |
+| Menu padding | `var(--spacing-2) var(--spacing-3)` | 7-step scale compliance |
+| Menu item height | `var(--control-size-md)` | Dimensional constraint |
 
 ---
 
 ## 14. Summary
 
-This audit applies the **Visual Translation** and **7-Step Scale** principles to identify design inconsistencies. The primary finding is that selection menus violate the Visual Translation principle - they don't look identical despite solving the same user problem.
+This audit applies the **Visual Translation**, **7-Step Scale**, and **Theming Litmus Test** principles.
+
+**Key Design Decision**: All hover and selected states use **accent color** (not gray).
+
+**Why This Matters**:
+- Accent-based interactions reinforce brand identity
+- Theme switching becomes trivial (change accent = change all interactions)
+- Gray hovers feel "neutral" - accent hovers feel intentional
 
 **Key Actions**:
-1. Fix IconLibrary hover color (currently accent, should be gray)
-2. Replace all inline styles with shared CSS classes
-3. Standardize all menu items to use `--control-size-md` height
-4. Replace hardcoded padding values with spacing tokens
+1. Update `--color-bg-hover` token to use `var(--color-accent-subtle)`
+2. Add `--color-accent-muted` token for active states
+3. Replace inline styles with CSS classes
+4. Run theming litmus test with different accent color
 
-**Expected Outcome**: After implementation, a user should be unable to visually distinguish between a context menu, dropdown menu, or list selection - they should all feel like "one singular app."
+**Expected Outcome**: 
+Switch accent from blue to purple → ALL interactions turn purple. Zero hardcoded values remain. The app feels like "one singular product."
