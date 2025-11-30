@@ -6,3 +6,4 @@
 
 export { ContextMenu } from './ContextMenu.js';
 export { ContextMenuManager, contextMenuManager } from './ContextMenuManager.js';
+export { canvasMenuConfigs, canvasEmptyMenuConfig, canvasElementMenuConfig, canvasTextEditingMenuConfig } from './canvasMenuConfig.js';

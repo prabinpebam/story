@@ -8,6 +8,8 @@ import { GizmoRenderer } from './canvas/GizmoRenderer.js';
 import { mouseStateManager } from './MouseStateManager.js';
 import { mediaAssetManager } from './media/MediaAssetManager.js';
 import { SUPPORTED_IMAGE_FORMATS, SUPPORTED_VIDEO_FORMATS } from './constants/MediaDefaults.js';
+import { contextMenuManager } from '../ui/components/ContextMenu/index.js';
+import { canvasMenuConfigs } from '../ui/components/ContextMenu/canvasMenuConfig.js';
 
 /**
  * CanvasManager - Main orchestrator for canvas interactions
@@ -183,6 +185,9 @@ export class CanvasManager {
             }
         });
 
+        // Register context menu zones
+        this.registerContextMenuZones();
+
         this.bindEvents();
 
         // Initial Fit to View
@@ -198,6 +203,9 @@ export class CanvasManager {
 
         // Panning (MouseDown)
         this.container.addEventListener('mousedown', (e) => this.handleMouseDown(e));
+        
+        // Context Menu (Right Click)
+        this.container.addEventListener('contextmenu', (e) => this.handleContextMenu(e));
         
         // Double Click (Edit Text)
         this.container.addEventListener('dblclick', (e) => this.handleDoubleClick(e));
@@ -226,6 +234,96 @@ export class CanvasManager {
         if (btnFit) btnFit.addEventListener('click', () => this.fitToView());
         if (btnZoomIn) btnZoomIn.addEventListener('click', () => this.zoomIn());
         if (btnZoomOut) btnZoomOut.addEventListener('click', () => this.zoomOut());
+    }
+
+    /**
+     * Register context menu zones for canvas areas
+     */
+    registerContextMenuZones() {
+        // Register canvas-empty zone
+        contextMenuManager.register('canvas-empty', canvasMenuConfigs['canvas-empty']);
+        
+        // Register canvas-element zone
+        contextMenuManager.register('canvas-element', canvasMenuConfigs['canvas-element']);
+        
+        // Register canvas-text-editing zone
+        contextMenuManager.register('canvas-text-editing', canvasMenuConfigs['canvas-text-editing']);
+    }
+
+    /**
+     * Handle right-click context menu on canvas
+     */
+    handleContextMenu(e) {
+        const state = store.getState();
+        
+        // Don't show context menu in presentation mode
+        if (state.editor.mode === 'presentation') return;
+        
+        // Prevent default browser context menu
+        e.preventDefault();
+        
+        // Get mouse position relative to container
+        const rect = this.container.getBoundingClientRect();
+        const mouseX = e.clientX - rect.left;
+        const mouseY = e.clientY - rect.top;
+        
+        // Convert to world coordinates
+        const { zoom, pan } = state.editor;
+        const worldX = (mouseX - pan.x) / zoom;
+        const worldY = (mouseY - pan.y) / zoom;
+        
+        // Determine which zone to show
+        const container = this.getActiveContainer(state);
+        
+        // Check if we're in text editing mode
+        if (state.editor.editingElementId) {
+            contextMenuManager.show('canvas-text-editing', e.clientX, e.clientY, {
+                store,
+                elementId: state.editor.editingElementId,
+                worldX,
+                worldY
+            });
+            return;
+        }
+        
+        // Hit test to see if we clicked on an element
+        const hitResult = HitTesting.hitTest(worldX, worldY, container, state.editor.selectedElementIds, zoom);
+        
+        if (hitResult && hitResult.elementId) {
+            // If clicked element is not already selected, select it first
+            if (!state.editor.selectedElementIds.includes(hitResult.elementId)) {
+                if (e.shiftKey) {
+                    // Add to selection
+                    store.dispatch('ADD_TO_SELECTION', hitResult.elementId);
+                } else {
+                    // Replace selection
+                    store.dispatch('UPDATE_SELECTION', [hitResult.elementId]);
+                }
+            }
+            
+            // Show element context menu
+            const selectedIds = e.shiftKey 
+                ? [...state.editor.selectedElementIds, hitResult.elementId]
+                : (state.editor.selectedElementIds.includes(hitResult.elementId) 
+                    ? state.editor.selectedElementIds 
+                    : [hitResult.elementId]);
+            
+            contextMenuManager.show('canvas-element', e.clientX, e.clientY, {
+                store,
+                elementIds: selectedIds,
+                worldX,
+                worldY
+            });
+        } else {
+            // Clicked on empty canvas - show empty context menu
+            store.dispatch('CLEAR_SELECTION');
+            
+            contextMenuManager.show('canvas-empty', e.clientX, e.clientY, {
+                store,
+                worldX,
+                worldY
+            });
+        }
     }
 
     // ============================================
