@@ -1244,12 +1244,15 @@ export class CanvasManager {
         }
 
         // Handle text tool specially - click creates auto-size, drag creates fixed
+        // In master editing mode, all text elements are fixed size by default
+        const isMasterMode = state.editor.mode === 'master';
+        
         if (activeTool === 'text') {
             const id = `text-${Date.now()}`;
             let element;
             
             if (isDrag) {
-                // Click-drag: Fixed width and height
+                // Click-drag: Fixed width and height (user intent to set specific size)
                 element = {
                     id,
                     type: 'text',
@@ -1267,8 +1270,60 @@ export class CanvasManager {
                     letterSpacing: 0,
                     resizing: 'fixed'
                 };
+                
+                store.dispatch('ADD_ELEMENT', element);
+                store.dispatch('UPDATE_SELECTION', [id]);
+                store.dispatch('SET_ACTIVE_TOOL', 'select');
+                
+                // Lock aspect ratio if shift was held during drag
+                // Before drag start: shift = square (1:1 ratio)
+                // After drag start: shift = lock at current aspect ratio
+                if (e.shiftKey) {
+                    store.dispatch('TOGGLE_CONSTRAIN_PROPORTIONS', true);
+                }
+                
+                // Enter text edit mode immediately (mark as newly created)
+                store.dispatch('SET_EDITING_ELEMENT', { 
+                    id, 
+                    selectionType: 'all',
+                    clickPosition: { clientX: e.clientX, clientY: e.clientY },
+                    isNewlyCreated: true
+                });
+            } else if (isMasterMode) {
+                // Master mode click: Create fixed-size placeholder text
+                // All text elements in layout masters should be fixed size
+                element = {
+                    id,
+                    type: 'text',
+                    x: startX,
+                    y: startY,
+                    width: 400, // Default placeholder width
+                    height: 80, // Default placeholder height
+                    rotation: 0,
+                    content: '<p>Text</p>',
+                    fontSize: 32,
+                    fontFamily: 'Inter',
+                    textFill: { type: 'solid', value: '#000000' },
+                    textAlign: 'left',
+                    lineHeight: 'auto',
+                    letterSpacing: 0,
+                    resizing: 'fixed'
+                };
+                
+                store.dispatch('ADD_ELEMENT', element);
+                store.dispatch('UPDATE_SELECTION', [id]);
+                store.dispatch('SET_ACTIVE_TOOL', 'select');
+                
+                // Enter text edit mode immediately (mark as newly created)
+                store.dispatch('SET_EDITING_ELEMENT', { 
+                    id, 
+                    selectionType: 'all',
+                    clickPosition: { clientX: e.clientX, clientY: e.clientY },
+                    isNewlyCreated: true
+                });
             } else {
-                // Click only: Auto-size (free width and height)
+                // Click only (not in master mode): Auto-size (free width and height)
+                // No aspect ratio lock applies to auto-size text
                 element = {
                     id,
                     type: 'text',
@@ -1286,19 +1341,19 @@ export class CanvasManager {
                     letterSpacing: 0,
                     resizing: 'autoSize'
                 };
+                
+                store.dispatch('ADD_ELEMENT', element);
+                store.dispatch('UPDATE_SELECTION', [id]);
+                store.dispatch('SET_ACTIVE_TOOL', 'select');
+                
+                // Enter text edit mode immediately (mark as newly created)
+                store.dispatch('SET_EDITING_ELEMENT', { 
+                    id, 
+                    selectionType: 'all',
+                    clickPosition: { clientX: e.clientX, clientY: e.clientY },
+                    isNewlyCreated: true
+                });
             }
-
-            store.dispatch('ADD_ELEMENT', element);
-            store.dispatch('UPDATE_SELECTION', [id]);
-            store.dispatch('SET_ACTIVE_TOOL', 'select');
-            
-            // Enter text edit mode immediately (mark as newly created)
-            store.dispatch('SET_EDITING_ELEMENT', { 
-                id, 
-                selectionType: 'all',
-                clickPosition: { clientX: e.clientX, clientY: e.clientY },
-                isNewlyCreated: true
-            });
             return;
         }
 
