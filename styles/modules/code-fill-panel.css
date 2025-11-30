@@ -717,54 +717,7 @@
     background: var(--color-accent-hover);
 }
 
-/* ===========================================
-   Context Menu
-   =========================================== */
-.cfp-context-menu {
-    background: var(--color-bg-popover);
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-md);
-    box-shadow: var(--shadow-floating);
-    min-width: 140px;
-    padding: var(--spacing-1);
-    overflow: hidden;
-}
-
-.cfp-context-item {
-    padding: var(--spacing-1-5) var(--spacing-2);
-    font-size: var(--font-size-sm);
-    color: var(--color-text-primary);
-    border-radius: var(--radius-xs);
-    cursor: pointer;
-    transition: background-color var(--duration-fast);
-}
-
-.cfp-context-item:hover {
-    background: var(--color-bg-hover);
-}
-
-.cfp-context-item.danger {
-    color: var(--color-error);
-}
-
-.cfp-context-item.danger:hover {
-    background: rgba(239, 68, 68, 0.1);
-}
-
-.cfp-context-item.disabled {
-    opacity: 0.4;
-    cursor: not-allowed;
-}
-
-.cfp-context-item.disabled:hover {
-    background: transparent;
-}
-
-.cfp-context-divider {
-    height: 1px;
-    background: var(--color-border);
-    margin: var(--spacing-1) 0;
-}
+/* Context Menu styles moved to context-menu.css */
 
 /* ===========================================
    Responsive Adjustments

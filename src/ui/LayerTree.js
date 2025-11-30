@@ -1,4 +1,5 @@
 import { store } from '../core/Store.js';
+import { contextMenuManager, layerItemConfig } from './components/ContextMenu/index.js';
 
 export class LayerTree {
     constructor(containerId) {
@@ -18,6 +19,9 @@ export class LayerTree {
         document.addEventListener('dragend', () => {
             this.clearDragState();
         });
+        
+        // Register context menu zone
+        contextMenuManager.register(layerItemConfig);
         
         // Context menu listener
         this.container.addEventListener('contextmenu', (e) => this.handleContextMenu(e));
@@ -545,6 +549,7 @@ export class LayerTree {
     
     /**
      * Handle context menu on layer items.
+     * Uses the shared ContextMenuManager for consistent UX.
      */
     handleContextMenu(e) {
         const layerItem = e.target.closest('.layer-item');
@@ -556,9 +561,6 @@ export class LayerTree {
         const isPlaceholder = layerItem.dataset.isPlaceholder === 'true';
         const source = layerItem.dataset.source;
         const isInherited = source === 'layout' || source === 'theme';
-        
-        // Close any existing context menu
-        this.closeContextMenu();
         
         // Get element data
         const state = store.getState();
@@ -576,154 +578,16 @@ export class LayerTree {
         // Select the element
         store.dispatch('UPDATE_SELECTION', [elementId]);
         
-        // Create context menu
-        const menu = document.createElement('div');
-        menu.className = 'layer-context-menu';
-        menu.style.position = 'fixed';
-        menu.style.left = `${e.clientX}px`;
-        menu.style.top = `${e.clientY}px`;
-        menu.style.backgroundColor = 'var(--color-bg-secondary)';
-        menu.style.border = '1px solid var(--color-border)';
-        menu.style.borderRadius = 'var(--radius-md)';
-        menu.style.padding = '4px 0';
-        menu.style.minWidth = '160px';
-        menu.style.boxShadow = 'var(--shadow-md)';
-        menu.style.zIndex = '10000';
-        
-        // Menu items based on element type
-        const menuItems = [];
-        
-        if (isPlaceholder) {
-            if (element.hasUserContent) {
-                menuItems.push({
-                    label: 'Reset to Master',
-                    icon: 'fa-solid fa-rotate-left',
-                    action: () => this.resetPlaceholderToMaster(elementId, element)
-                });
-            }
-            
-            if (isInherited) {
-                menuItems.push({
-                    label: 'Edit Placeholder',
-                    icon: 'fa-solid fa-pen',
-                    action: () => {
-                        store.dispatch('INSTANTIATE_PLACEHOLDER', { 
-                            placeholderId: elementId,
-                            element: element
-                        });
-                        store.dispatch('SET_EDITING_ELEMENT', { id: elementId, selectionType: 'all' });
-                    }
-                });
-            }
-            
-            menuItems.push({
-                label: element.hidden ? 'Show Placeholder' : 'Hide Placeholder',
-                icon: element.hidden ? 'fa-solid fa-eye' : 'fa-solid fa-eye-slash',
-                action: () => store.dispatch('TOGGLE_ELEMENT_VISIBILITY', { id: elementId })
-            });
-        } else {
-            // Regular element menu items
-            if (!isInherited) {
-                menuItems.push({
-                    label: 'Rename',
-                    icon: 'fa-solid fa-pen',
-                    action: () => this.startRename(layerItem)
-                });
-                
-                menuItems.push({ separator: true });
-                
-                menuItems.push({
-                    label: 'Delete',
-                    icon: 'fa-solid fa-trash',
-                    action: () => store.dispatch('REMOVE_ELEMENT', { id: elementId })
-                });
-            }
-        }
-        
-        // Common items
-        menuItems.push({ separator: true });
-        
-        menuItems.push({
-            label: element.locked ? 'Unlock' : 'Lock',
-            icon: element.locked ? 'fa-solid fa-lock-open' : 'fa-solid fa-lock',
-            action: () => store.dispatch('TOGGLE_ELEMENT_LOCK', { id: elementId })
+        // Show context menu via manager
+        contextMenuManager.show('layer-item', e.clientX, e.clientY, {
+            elementId,
+            element,
+            isPlaceholder,
+            isInherited,
+            layerItem,
+            startRename: () => this.startRename(layerItem),
+            resetPlaceholderToMaster: (id, el) => this.resetPlaceholderToMaster(id, el)
         });
-        
-        menuItems.push({
-            label: element.hidden ? 'Show' : 'Hide',
-            icon: element.hidden ? 'fa-solid fa-eye' : 'fa-solid fa-eye-slash',
-            action: () => store.dispatch('TOGGLE_ELEMENT_VISIBILITY', { id: elementId })
-        });
-        
-        // Build menu
-        menuItems.forEach(item => {
-            if (item.separator) {
-                const sep = document.createElement('div');
-                sep.style.height = '1px';
-                sep.style.backgroundColor = 'var(--color-border-subtle)';
-                sep.style.margin = '4px 8px';
-                menu.appendChild(sep);
-            } else {
-                const menuItem = document.createElement('div');
-                menuItem.className = 'layer-context-menu-item';
-                menuItem.style.display = 'flex';
-                menuItem.style.alignItems = 'center';
-                menuItem.style.padding = '6px 12px';
-                menuItem.style.fontSize = '12px';
-                menuItem.style.color = 'var(--color-text-primary)';
-                menuItem.style.cursor = 'pointer';
-                
-                menuItem.addEventListener('mouseenter', () => {
-                    menuItem.style.backgroundColor = 'var(--color-bg-hover)';
-                });
-                menuItem.addEventListener('mouseleave', () => {
-                    menuItem.style.backgroundColor = 'transparent';
-                });
-                
-                if (item.icon) {
-                    const icon = document.createElement('i');
-                    icon.className = item.icon;
-                    icon.style.width = '16px';
-                    icon.style.marginRight = '8px';
-                    icon.style.fontSize = '11px';
-                    icon.style.color = 'var(--color-text-secondary)';
-                    menuItem.appendChild(icon);
-                }
-                
-                const label = document.createElement('span');
-                label.textContent = item.label;
-                menuItem.appendChild(label);
-                
-                menuItem.addEventListener('click', () => {
-                    this.closeContextMenu();
-                    item.action();
-                });
-                
-                menu.appendChild(menuItem);
-            }
-        });
-        
-        document.body.appendChild(menu);
-        this.contextMenu = menu;
-        
-        // Close on click outside
-        const closeHandler = (e) => {
-            if (!menu.contains(e.target)) {
-                this.closeContextMenu();
-                document.removeEventListener('click', closeHandler);
-            }
-        };
-        setTimeout(() => document.addEventListener('click', closeHandler), 0);
-    }
-    
-    /**
-     * Close the context menu.
-     */
-    closeContextMenu() {
-        if (this.contextMenu) {
-            this.contextMenu.remove();
-            this.contextMenu = null;
-        }
     }
     
     /**

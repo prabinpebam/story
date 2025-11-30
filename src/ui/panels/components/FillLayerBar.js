@@ -6,6 +6,7 @@
 
 import { Icons } from '../../Icons.js';
 import { FillSwatch } from './FillSwatch.js';
+import { contextMenuManager, fillLayerConfig } from '../../components/ContextMenu/index.js';
 
 export class FillLayerBar {
     constructor(options = {}) {
@@ -18,12 +19,17 @@ export class FillLayerBar {
         this.onDuplicate = options.onDuplicate || (() => {});
         
         this.swatches = [];
-        this.contextMenu = null;
         this.draggedIndex = -1;
         this.dragOverIndex = -1;
         
         this.element = document.createElement('div');
         this.element.className = 'cfp-fill-layer-bar';
+        
+        // Register context menu zone (only once per class)
+        if (!FillLayerBar._contextMenuRegistered) {
+            contextMenuManager.register(fillLayerConfig);
+            FillLayerBar._contextMenuRegistered = true;
+        }
         
         this.render();
     }
@@ -72,103 +78,16 @@ export class FillLayerBar {
         if (!fill || fill.type !== 'code') return;
         
         e.preventDefault();
-        this.showContextMenu(e, index);
-    }
-
-    showContextMenu(e, index) {
-        // Remove existing menu
-        this.hideContextMenu();
         
-        const isFirst = index === 0;
-        const isLast = index === this.fills.length - 1;
-        
-        const menu = document.createElement('div');
-        menu.className = 'cfp-context-menu';
-        
-        const items = [
-            { 
-                label: '↑ Move Up', 
-                action: () => this.moveFill(index, index - 1),
-                disabled: isFirst
-            },
-            { 
-                label: '↓ Move Down', 
-                action: () => this.moveFill(index, index + 1),
-                disabled: isLast
-            },
-            { type: 'divider' },
-            { 
-                label: '⎘ Duplicate', 
-                action: () => {
-                    this.hideContextMenu();
-                    this.onDuplicate(index);
-                }
-            },
-            { type: 'divider' },
-            { 
-                label: '🗑 Delete', 
-                action: () => this.confirmDelete(index),
-                danger: true
-            }
-        ];
-        
-        items.forEach(item => {
-            if (item.type === 'divider') {
-                const divider = document.createElement('div');
-                divider.className = 'cfp-context-divider';
-                menu.appendChild(divider);
-            } else {
-                const menuItem = document.createElement('div');
-                menuItem.className = 'cfp-context-item' + 
-                    (item.danger ? ' danger' : '') +
-                    (item.disabled ? ' disabled' : '');
-                menuItem.textContent = item.label;
-                
-                if (!item.disabled) {
-                    menuItem.onclick = () => {
-                        this.hideContextMenu();
-                        item.action();
-                    };
-                }
-                
-                menu.appendChild(menuItem);
-            }
+        // Show context menu via manager
+        contextMenuManager.show('fill-layer', e.clientX, e.clientY, {
+            index,
+            fill,
+            totalFills: this.fills.length,
+            onReorder: (from, to) => this.onReorder(from, to),
+            onDuplicate: (idx) => this.onDuplicate(idx),
+            onDelete: (idx) => this.onDelete(idx)
         });
-        
-        // Position menu
-        menu.style.position = 'fixed';
-        menu.style.left = `${e.clientX}px`;
-        menu.style.top = `${e.clientY}px`;
-        menu.style.zIndex = '10001';
-        
-        document.body.appendChild(menu);
-        this.contextMenu = menu;
-        
-        // Close on click outside
-        const closeHandler = (e) => {
-            if (!menu.contains(e.target)) {
-                this.hideContextMenu();
-                document.removeEventListener('click', closeHandler);
-            }
-        };
-        setTimeout(() => document.addEventListener('click', closeHandler), 0);
-    }
-
-    hideContextMenu() {
-        if (this.contextMenu) {
-            this.contextMenu.remove();
-            this.contextMenu = null;
-        }
-    }
-
-    moveFill(fromIndex, toIndex) {
-        if (toIndex < 0 || toIndex >= this.fills.length) return;
-        this.onReorder(fromIndex, toIndex);
-    }
-
-    confirmDelete(index) {
-        // Could add confirmation dialog, but for now just delete
-        this.onDelete(index);
     }
 
     // Drag and drop for reordering
@@ -235,7 +154,7 @@ export class FillLayerBar {
     }
 
     destroy() {
-        this.hideContextMenu();
+        // Context menu cleanup is handled by ContextMenuManager
         this.destroySwatches();
     }
 }

@@ -20,6 +20,7 @@ import { AIService } from '../../core/ai/AIService.js';
 import { CODE_FILL_PROMPT, CODE_FILL_UPDATE_PROMPT, PROMPT_REFINEMENT_PROMPT } from '../../core/ai/prompts/templates.js';
 import { Icons } from '../Icons.js';
 import { FillLayerBar } from './components/FillLayerBar.js';
+import { contextMenuManager, fillPresetConfig } from '../components/ContextMenu/index.js';
 
 // Singleton instance
 let instance = null;
@@ -36,6 +37,12 @@ export class CodeFillPanel extends DraggablePanel {
             maxWidth: 650,
             maxHeight: 900
         });
+        
+        // Register context menu zone (only once per class)
+        if (!CodeFillPanel._contextMenuRegistered) {
+            contextMenuManager.register(fillPresetConfig);
+            CodeFillPanel._contextMenuRegistered = true;
+        }
         
         this.activeTab = 'presets';
         this.selectedCodeFillIndex = -1;
@@ -537,50 +544,13 @@ export class CodeFillPanel extends DraggablePanel {
     }
 
     showPresetOptionsMenu(e, preset) {
-        // Create context menu
-        const menu = document.createElement('div');
-        menu.className = 'cfp-context-menu';
-        
-        const items = [
-            { label: 'Rename', action: () => this.renamePreset(preset) },
-            { label: 'Duplicate', action: () => this.duplicatePreset(preset) },
-            { type: 'divider' },
-            { label: 'Delete', action: () => this.deletePreset(preset), danger: true }
-        ];
-        
-        items.forEach(item => {
-            if (item.type === 'divider') {
-                const divider = document.createElement('div');
-                divider.className = 'cfp-context-divider';
-                menu.appendChild(divider);
-            } else {
-                const menuItem = document.createElement('div');
-                menuItem.className = 'cfp-context-item' + (item.danger ? ' danger' : '');
-                menuItem.textContent = item.label;
-                menuItem.onclick = () => {
-                    menu.remove();
-                    item.action();
-                };
-                menu.appendChild(menuItem);
-            }
+        // Show context menu via manager
+        contextMenuManager.show('fill-preset', e.clientX, e.clientY, {
+            preset,
+            onRename: (p) => this.renamePreset(p),
+            onDuplicate: (p) => this.duplicatePreset(p),
+            onDelete: (p) => this.deletePreset(p)
         });
-        
-        // Position menu
-        menu.style.position = 'fixed';
-        menu.style.left = `${e.clientX}px`;
-        menu.style.top = `${e.clientY}px`;
-        menu.style.zIndex = '10001';
-        
-        document.body.appendChild(menu);
-        
-        // Close on click outside
-        const closeHandler = (e) => {
-            if (!menu.contains(e.target)) {
-                menu.remove();
-                document.removeEventListener('click', closeHandler);
-            }
-        };
-        setTimeout(() => document.addEventListener('click', closeHandler), 0);
     }
 
     renamePreset(preset) {
