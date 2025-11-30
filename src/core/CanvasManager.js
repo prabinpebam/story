@@ -1134,7 +1134,10 @@ export class CanvasManager {
         let width = Math.abs(currentX - startX);
         let height = Math.abs(currentY - startY);
 
-        if (e.shiftKey) {
+        // Check if this is a drag (box drawn) vs click (no box)
+        const isDrag = width > 5 || height > 5;
+
+        if (e.shiftKey && isDrag) {
             const size = Math.max(width, height);
             width = size;
             height = size;
@@ -1142,6 +1145,65 @@ export class CanvasManager {
             if (currentY < startY) y = startY - size;
         }
 
+        // Handle text tool specially - click creates auto-size, drag creates fixed
+        if (activeTool === 'text') {
+            const id = `text-${Date.now()}`;
+            let element;
+            
+            if (isDrag) {
+                // Click-drag: Fixed width and height
+                element = {
+                    id,
+                    type: 'text',
+                    x,
+                    y,
+                    width: Math.max(width, 50),
+                    height: Math.max(height, 50),
+                    rotation: 0,
+                    content: '<p>Text</p>',
+                    fontSize: 32,
+                    fontFamily: 'Inter',
+                    textFill: { type: 'solid', value: '#000000' },
+                    textAlign: 'left',
+                    lineHeight: 'auto',
+                    letterSpacing: 0,
+                    resizing: 'fixed'
+                };
+            } else {
+                // Click only: Auto-size (free width and height)
+                element = {
+                    id,
+                    type: 'text',
+                    x: startX,
+                    y: startY,
+                    width: 200, // Initial width, will auto-size
+                    height: 50, // Initial height, will auto-size
+                    rotation: 0,
+                    content: '<p>Text</p>',
+                    fontSize: 32,
+                    fontFamily: 'Inter',
+                    textFill: { type: 'solid', value: '#000000' },
+                    textAlign: 'left',
+                    lineHeight: 'auto',
+                    letterSpacing: 0,
+                    resizing: 'autoSize'
+                };
+            }
+
+            store.dispatch('ADD_ELEMENT', element);
+            store.dispatch('UPDATE_SELECTION', [id]);
+            store.dispatch('SET_ACTIVE_TOOL', 'select');
+            
+            // Enter text edit mode immediately
+            store.dispatch('SET_EDITING_ELEMENT', { 
+                id, 
+                selectionType: 'all',
+                clickPosition: { clientX: e.clientX, clientY: e.clientY }
+            });
+            return;
+        }
+
+        // For non-text tools, require a minimum drag size
         if (width > 5 && height > 5) {
             const id = `${activeTool}-${Date.now()}`;
             let element = {
@@ -1154,16 +1216,7 @@ export class CanvasManager {
                 rotation: 0
             };
 
-            if (activeTool === 'text') {
-                element.content = '<h2>Text</h2>';
-                element.fontSize = 32;
-                element.fontFamily = 'Inter';
-                element.textFill = { type: 'solid', value: '#000000' };
-                element.textAlign = 'left';
-                element.lineHeight = 'auto';
-                element.letterSpacing = 0;
-                element.height = Math.max(height, 50);
-            } else if (activeTool === 'shape') {
+            if (activeTool === 'shape') {
                 element.type = 'rect';
                 element.style = {
                     backgroundColor: '#D9D9D9',
@@ -1199,10 +1252,19 @@ export class CanvasManager {
 
         if (hit && hit.type === 'element') {
             const container = this.getActiveContainer(state);
-            const element = container ? container.elements[hit.id] : null;
+            // Get element from container or from hit (for inherited/layout elements)
+            let element = container?.elements?.[hit.id] || hit.element;
 
             if (element) {
                 if (element.type === 'text') {
+                    // For inherited elements, instantiate first then enter edit mode
+                    if (hit.isInherited && element.isPlaceholder) {
+                        store.dispatch('INSTANTIATE_PLACEHOLDER', { 
+                            placeholderId: hit.id,
+                            element: element
+                        });
+                    }
+                    // Enter edit mode
                     store.dispatch('SET_EDITING_ELEMENT', { 
                         id: hit.id, 
                         selectionType: 'caret',
@@ -1521,11 +1583,26 @@ export class CanvasManager {
         // Enter to edit text
         if (e.key === 'Enter' && !e.ctrlKey && !e.metaKey && !e.shiftKey) {
             if (!state.editor.editingElementId && state.editor.selectedElementIds.length === 1) {
+                const elementId = state.editor.selectedElementIds[0];
                 const container = this.getActiveContainer(state);
-                const el = container ? container.elements[state.editor.selectedElementIds[0]] : null;
+                let el = container?.elements?.[elementId];
+                
+                // If not in container, check effective elements (for placeholders from layout)
+                if (!el) {
+                    const effectiveSlide = store.getEffectiveSlide(container?.id);
+                    el = effectiveSlide?.effectiveElements?.[elementId];
+                }
+                
                 if (el && el.type === 'text') {
                     e.preventDefault();
-                    store.dispatch('SET_EDITING_ELEMENT', { id: el.id, selectionType: 'all' });
+                    // Instantiate placeholder if needed
+                    if (el.isPlaceholder && !container?.elements?.[elementId]) {
+                        store.dispatch('INSTANTIATE_PLACEHOLDER', { 
+                            placeholderId: elementId,
+                            element: el
+                        });
+                    }
+                    store.dispatch('SET_EDITING_ELEMENT', { id: elementId, selectionType: 'all' });
                 }
             }
         }

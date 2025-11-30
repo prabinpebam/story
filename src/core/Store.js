@@ -164,7 +164,7 @@ class Store extends EventEmitter {
                 this.snapshot(type);
                 this.state = produce(this.state, draft => {
                     switch(type) {
-                        case 'ADD_SLIDE': SlideHandlers.handleAddSlide(draft); break;
+                        case 'ADD_SLIDE': SlideHandlers.handleAddSlide(draft, payload); break;
                         case 'DELETE_SLIDE': SlideHandlers.handleDeleteSlide(draft, payload); break;
                         case 'DUPLICATE_SLIDE': SlideHandlers.handleDuplicateSlide(draft, payload); break;
                         case 'PASTE_SLIDE': SlideHandlers.handlePasteSlide(draft, payload); break;
@@ -446,8 +446,14 @@ class Store extends EventEmitter {
 
         // Slide Elements (Top)
         slide.elementOrder.forEach(id => {
-            effectiveElements[id] = { ...slide.elements[id], source: 'slide' };
-            effectiveOrder.push(id);
+            const slideEl = slide.elements[id];
+            if (slideEl) {
+                // Slide elements override layout elements with same ID
+                effectiveElements[id] = { ...slideEl, source: 'slide' };
+                if (!effectiveOrder.includes(id)) {
+                    effectiveOrder.push(id);
+                }
+            }
         });
 
         return {

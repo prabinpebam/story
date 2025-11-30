@@ -568,7 +568,7 @@ describe('ElementHandlers', () => {
     });
 
     describe('handleInstantiatePlaceholder()', () => {
-        it('should instantiate a placeholder element', () => {
+        it('should instantiate a placeholder element and keep isPlaceholder flag', () => {
             const element = {
                 id: 'text-1',
                 type: 'text',
@@ -591,7 +591,8 @@ describe('ElementHandlers', () => {
             const instantiated = newState.slides[slideId].elements['text-1'];
             
             expect(instantiated).toBeDefined();
-            expect(instantiated.isPlaceholder).toBeUndefined();
+            // isPlaceholder is now preserved for proper placeholder handling
+            expect(instantiated.isPlaceholder).toBe(true);
         });
 
         it('should select instantiated element', () => {
@@ -614,7 +615,7 @@ describe('ElementHandlers', () => {
             expect(newState.editor.selectedElementIds).toContain('text-1');
         });
 
-        it('should enter edit mode for text elements', () => {
+        it('should NOT enter edit mode immediately (requires double-click)', () => {
             const element = {
                 id: 'text-1',
                 type: 'text',
@@ -631,7 +632,29 @@ describe('ElementHandlers', () => {
                 });
             });
 
-            expect(newState.editor.editingElementId).toBe('text-1');
+            // First click should only select, not enter edit mode
+            expect(newState.editor.editingElementId).toBeNull();
+        });
+        
+        it('should add element to elementOrder', () => {
+            const element = {
+                id: 'placeholder-title',
+                type: 'text',
+                isPlaceholder: true,
+                x: 100,
+                y: 100,
+                width: 500,
+                height: 200
+            };
+
+            const newState = produce(initialState, draft => {
+                handleInstantiatePlaceholder(draft, { 
+                    placeholderId: 'placeholder-title', 
+                    element 
+                });
+            });
+
+            expect(newState.slides['slide-1'].elementOrder).toContain('placeholder-title');
         });
     });
 });

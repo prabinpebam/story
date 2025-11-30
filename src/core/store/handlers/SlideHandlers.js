@@ -120,17 +120,37 @@ function remapContent(draft, slide, newLayoutId) {
     slide.elementOrder = newElementOrder;
 }
 
-export function handleAddSlide(draft) {
+export function handleAddSlide(draft, payload) {
     const newSlideId = `slide-${Date.now()}`;
+    
+    // Determine layout - use payload.layoutId if provided, otherwise default
+    const layoutId = payload?.layoutId || "layout-blank";
+    const layout = draft.masters[layoutId];
+    
+    // Copy placeholder elements from layout so they can be edited on the slide
+    const elements = {};
+    const elementOrder = [];
+    
+    if (layout && layout.elements) {
+        Object.keys(layout.elements).forEach(elId => {
+            const layoutEl = layout.elements[elId];
+            if (layoutEl.isPlaceholder) {
+                // Copy placeholder to slide
+                elements[elId] = { ...layoutEl };
+                elementOrder.push(elId);
+            }
+        });
+    }
+    
     const newSlide = {
         id: newSlideId,
-        layoutId: "layout-blank",
+        layoutId: layoutId,
         title: "New Slide",
         width: 1920,
         height: 1080,
         background: null,
-        elements: {},
-        elementOrder: [],
+        elements: elements,
+        elementOrder: elementOrder,
         notes: "",
         transition: "magic"
     };

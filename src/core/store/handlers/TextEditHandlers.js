@@ -63,7 +63,16 @@ export function handleSaveTextContent(draft, payload) {
     const activeId = mode === 'master' ? draft.editor.activeMasterId : draft.editor.activeSlideId;
     const container = mode === 'master' ? draft.masters[activeId] : draft.slides[activeId];
     
-    if (container && container.elements && container.elements[elementId]) {
+    if (!container) return;
+    
+    // Ensure elements object exists
+    if (!container.elements) {
+        container.elements = {};
+    }
+    
+    // Check if element exists in container
+    if (container.elements[elementId]) {
+        // Element exists - update it
         container.elements[elementId].content = content;
         
         // Update hasUserContent flag for placeholders
@@ -71,9 +80,40 @@ export function handleSaveTextContent(draft, payload) {
             container.elements[elementId].hasUserContent = hasUserContent;
         }
         
-        // Update modified timestamp
-        draft.meta.modified = Date.now();
+        // CRITICAL: Ensure element is in elementOrder so it overrides layout in getEffectiveSlide
+        if (!container.elementOrder) {
+            container.elementOrder = [];
+        }
+        if (!container.elementOrder.includes(elementId)) {
+            container.elementOrder.push(elementId);
+        }
+    } else if (mode !== 'master') {
+        // Element doesn't exist in slide - check if it's a layout placeholder
+        // that needs to be copied to the slide for editing
+        const slide = draft.slides[activeId];
+        const layout = slide?.layoutId ? draft.masters[slide.layoutId] : null;
+        
+        if (layout?.elements?.[elementId]) {
+            // Copy the layout placeholder to the slide
+            const layoutElement = layout.elements[elementId];
+            container.elements[elementId] = {
+                ...layoutElement,
+                content: content,
+                hasUserContent: hasUserContent !== undefined ? hasUserContent : true
+            };
+            
+            // Add to element order if not already present
+            if (!container.elementOrder) {
+                container.elementOrder = [];
+            }
+            if (!container.elementOrder.includes(elementId)) {
+                container.elementOrder.push(elementId);
+            }
+        }
     }
+    
+    // Update modified timestamp
+    draft.meta.modified = Date.now();
     
     // Clear dirty flag
     if (draft.editor.textEdit) {

@@ -186,6 +186,7 @@ export class TextElement extends VisualElement {
         const state = store.getState();
         const isMasterMode = state.editor.mode === 'master';
         const isPlaceholder = el.isPlaceholder === true;
+        const isEditing = div.isContentEditable || state.editor.editingElementId === el.id;
         
         // Check if placeholder still has default prompt text (not yet filled with actual content)
         const isEmptyPlaceholder = isPlaceholder && el.content && el.content.includes('Click to add');
@@ -197,14 +198,16 @@ export class TextElement extends VisualElement {
         div.style.overflow = 'visible'; // Allow text to be seen, but box is defined by ResizeObserver
 
         // Placeholder visual indicator - dashed border in master mode
-        if (isPlaceholder && isMasterMode) {
+        if (isPlaceholder && isMasterMode && !isEditing) {
             div.style.border = '2px dashed var(--color-accent, #18A0FB)';
             div.style.padding = '8px'; // Add padding inside the dashed border
-        } else if (isEmptyPlaceholder) {
+            div.style.opacity = '1';
+        } else if (isEmptyPlaceholder && !isEditing) {
             // Empty placeholder on slide - show dashed border and dim the text
             div.style.border = '1px dashed rgba(255, 255, 255, 0.3)';
             div.style.opacity = '0.5';
         } else {
+            // Normal styling (or editing mode) - full opacity, no border
             div.style.border = 'none';
             div.style.opacity = '1';
         }

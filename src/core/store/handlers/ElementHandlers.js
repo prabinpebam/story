@@ -381,15 +381,21 @@ export function handleInstantiatePlaceholder(draft, payload) {
     const slide = getActiveContainer(draft);
     if (!slide) return;
 
+    // Copy the placeholder element to the slide (keep isPlaceholder for proper handling)
     const newEl = { ...element };
     
-    delete newEl.isPlaceholder;
-
+    // Ensure it's in slide.elements
     slide.elements[newEl.id] = newEl;
     
-    draft.editor.selectedElementIds = [newEl.id];
-    
-    if (newEl.type === 'text') {
-        draft.editor.editingElementId = newEl.id;
+    // Add to elementOrder if not present
+    if (!slide.elementOrder) {
+        slide.elementOrder = [];
     }
+    if (!slide.elementOrder.includes(newEl.id)) {
+        slide.elementOrder.push(newEl.id);
+    }
+    
+    // Just select the element - don't enter edit mode
+    // User needs to double-click or press Enter to edit
+    draft.editor.selectedElementIds = [newEl.id];
 }
