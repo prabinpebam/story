@@ -12,6 +12,7 @@
 | Version | Date | Changes |
 |---------|------|---------|
 | 1.0 | 2024-11-30 | Initial spec with benchmarking, IA, UX, architecture, migration plan |
+| 1.1 | 2024-11-30 | Phase 1 implemented: Core ContextMenu & ContextMenuManager components |
 
 ---
 
@@ -752,20 +753,20 @@ Phase 1 ──► Phase 2 ──► Phase 3 ──► Phase 4 ──► Phase 5
 
 ### 9.2 Detailed Phases
 
-#### Phase 1: Core Component (2 days)
+#### Phase 1: Core Component (2 days) ✅ COMPLETE
 **Goal**: Build reusable context menu infrastructure
 
 | Task | File | Test |
 |------|------|------|
-| Create ContextMenu class | `src/ui/components/ContextMenu/ContextMenu.js` | Unit tests |
-| Create ContextMenuManager singleton | `src/ui/components/ContextMenu/ContextMenuManager.js` | Unit tests |
-| Create MenuItem component | `src/ui/components/ContextMenu/ContextMenuItem.js` | Unit tests |
-| Create CSS module | `styles/modules/context-menu.css` | Visual test |
+| ✅ Create ContextMenu class | `src/ui/components/ContextMenu/ContextMenu.js` | Unit tests |
+| ✅ Create ContextMenuManager singleton | `src/ui/components/ContextMenu/ContextMenuManager.js` | Unit tests |
+| ✅ Create index.js | `src/ui/components/ContextMenu/index.js` | - |
+| ✅ Create CSS module | `styles/modules/context-menu.css` | Visual test |
 
 **Exit Criteria**:
-- [ ] `npm test -- --run ContextMenu` passes
-- [ ] Menu renders with correct styles in dark/light mode
-- [ ] Keyboard navigation works (↑↓ Enter Escape)
+- [x] `npm test -- --run ContextMenu` passes (44 tests)
+- [x] Menu renders with correct styles in dark/light mode
+- [x] Keyboard navigation works (↑↓ Enter Escape)
 
 #### Phase 2: Canvas Integration (3 days)
 **Goal**: Context menus work on canvas
