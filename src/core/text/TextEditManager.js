@@ -454,6 +454,39 @@ export class TextEditManager {
             }
         }
 
+        // List handling
+        if (this._isInList()) {
+            // Tab/Shift+Tab for list indentation
+            if (event.key === 'Tab') {
+                event.preventDefault();
+                if (event.shiftKey) {
+                    this._outdentListItem();
+                } else {
+                    this._indentListItem();
+                }
+                return;
+            }
+
+            // Enter in empty list item exits the list
+            if (event.key === 'Enter' && !event.shiftKey) {
+                const listItem = this._getCurrentListItem();
+                if (listItem && this._isListItemEmpty(listItem)) {
+                    event.preventDefault();
+                    this._exitList(listItem);
+                    return;
+                }
+            }
+
+            // Backspace at start of list item
+            if (event.key === 'Backspace') {
+                if (this._isCaretAtListItemStart()) {
+                    event.preventDefault();
+                    this._handleBackspaceInList();
+                    return;
+                }
+            }
+        }
+
         // Tab to exit and select next object (when not in a list)
         if (event.key === 'Tab' && !this._isInList()) {
             event.preventDefault();
@@ -578,6 +611,40 @@ export class TextEditManager {
     }
 
     /**
+     * Get the formatting state of the current selection.
+     * Returns which styles are applied (for Property Inspector to show active states).
+     * @returns {Object} Style states
+     */
+    getSelectionStyles() {
+        if (!this.isEditing || !this.currentElement) {
+            return { bold: false, italic: false, underline: false, strikethrough: false };
+        }
+
+        return {
+            bold: document.queryCommandState('bold'),
+            italic: document.queryCommandState('italic'),
+            underline: document.queryCommandState('underline'),
+            strikethrough: document.queryCommandState('strikeThrough')
+        };
+    }
+
+    /**
+     * Get extended selection info including formatting.
+     * @returns {Object|null}
+     */
+    getSelectionInfo() {
+        if (!this.isEditing || !this.currentElement) return null;
+
+        const baseInfo = selectionManager.getSelectionInfo(this.currentElement);
+        if (!baseInfo) return null;
+
+        return {
+            ...baseInfo,
+            styles: this.getSelectionStyles()
+        };
+    }
+
+    /**
      * Check if caret is currently inside a list.
      * @returns {boolean}
      * @private
@@ -638,6 +705,256 @@ export class TextEditManager {
         
         // Select the next element
         store.dispatch('UPDATE_SELECTION', [nextElementId]);
+    }
+
+    /**
+     * Get the current list item element.
+     * @returns {Element|null}
+     * @private
+     */
+    _getCurrentListItem() {
+        if (!this.currentElement) return null;
+        
+        const selection = window.getSelection();
+        if (!selection.rangeCount) return null;
+        
+        let node = selection.anchorNode;
+        while (node && node !== this.currentElement) {
+            if (node.nodeName === 'LI') {
+                return node;
+            }
+            node = node.parentNode;
+        }
+        
+        return null;
+    }
+
+    /**
+     * Check if a list item is empty (no text content).
+     * @param {Element} listItem - The LI element
+     * @returns {boolean}
+     * @private
+     */
+    _isListItemEmpty(listItem) {
+        if (!listItem) return false;
+        
+        // Get text content, excluding nested lists
+        const text = Array.from(listItem.childNodes)
+            .filter(n => n.nodeType === Node.TEXT_NODE || 
+                        (n.nodeType === Node.ELEMENT_NODE && 
+                         n.nodeName !== 'UL' && n.nodeName !== 'OL'))
+            .map(n => n.textContent)
+            .join('')
+            .trim();
+        
+        return text === '';
+    }
+
+    /**
+     * Check if caret is at the start of a list item.
+     * @returns {boolean}
+     * @private
+     */
+    _isCaretAtListItemStart() {
+        const selection = window.getSelection();
+        if (!selection.isCollapsed || !selection.rangeCount) return false;
+        
+        const range = selection.getRangeAt(0);
+        const listItem = this._getCurrentListItem();
+        if (!listItem) return false;
+        
+        // Check if we're at the very start
+        if (range.startOffset > 0) return false;
+        
+        // Walk up from anchor to list item, ensuring we're at first position
+        let node = selection.anchorNode;
+        while (node && node !== listItem) {
+            const parent = node.parentNode;
+            if (!parent) break;
+            
+            const siblings = Array.from(parent.childNodes);
+            const index = siblings.indexOf(node);
+            
+            // Check if there are any text-bearing nodes before us
+            for (let i = 0; i < index; i++) {
+                const sibling = siblings[i];
+                if (sibling.nodeType === Node.TEXT_NODE && sibling.textContent.length > 0) {
+                    return false;
+                }
+                if (sibling.nodeType === Node.ELEMENT_NODE && 
+                    sibling.nodeName !== 'UL' && sibling.nodeName !== 'OL' &&
+                    sibling.textContent.length > 0) {
+                    return false;
+                }
+            }
+            
+            node = parent;
+        }
+        
+        return true;
+    }
+
+    /**
+     * Indent the current list item.
+     * @private
+     */
+    _indentListItem() {
+        const listItem = this._getCurrentListItem();
+        if (!listItem) return;
+        
+        const prevSibling = listItem.previousElementSibling;
+        if (!prevSibling || prevSibling.nodeName !== 'LI') {
+            // Can't indent if no previous sibling
+            return;
+        }
+        
+        // Find or create nested list in previous sibling
+        const parentList = listItem.parentElement;
+        const listType = parentList.nodeName; // UL or OL
+        
+        let nestedList = prevSibling.querySelector(listType);
+        if (!nestedList) {
+            nestedList = document.createElement(listType);
+            prevSibling.appendChild(nestedList);
+        }
+        
+        // Move current item into nested list
+        nestedList.appendChild(listItem);
+        this._markDirty();
+    }
+
+    /**
+     * Outdent the current list item.
+     * @private
+     */
+    _outdentListItem() {
+        const listItem = this._getCurrentListItem();
+        if (!listItem) return;
+        
+        const parentList = listItem.parentElement;
+        if (!parentList || (parentList.nodeName !== 'UL' && parentList.nodeName !== 'OL')) {
+            return;
+        }
+        
+        const grandparentLi = parentList.parentElement;
+        if (!grandparentLi || grandparentLi.nodeName !== 'LI') {
+            // Already at top level, can't outdent
+            return;
+        }
+        
+        const greatGrandparentList = grandparentLi.parentElement;
+        if (!greatGrandparentList) return;
+        
+        // Move item after the grandparent LI
+        greatGrandparentList.insertBefore(listItem, grandparentLi.nextSibling);
+        
+        // Clean up empty nested list
+        if (parentList.children.length === 0) {
+            parentList.remove();
+        }
+        
+        this._markDirty();
+    }
+
+    /**
+     * Exit the list when Enter is pressed on empty item.
+     * @param {Element} listItem - The empty list item
+     * @private
+     */
+    _exitList(listItem) {
+        const parentList = listItem.parentElement;
+        if (!parentList) return;
+        
+        // Check if this is a nested list
+        const grandparentLi = parentList.parentElement;
+        if (grandparentLi && grandparentLi.nodeName === 'LI') {
+            // Nested list: outdent instead of exiting completely
+            this._outdentListItem();
+            return;
+        }
+        
+        // Top-level list: remove item and insert paragraph after list
+        listItem.remove();
+        
+        // If list is now empty, remove it
+        if (parentList.children.length === 0) {
+            // Insert a <br> or empty text after the list position
+            const br = document.createElement('br');
+            if (parentList.nextSibling) {
+                parentList.parentNode.insertBefore(br, parentList.nextSibling);
+            } else {
+                parentList.parentNode.appendChild(br);
+            }
+            parentList.remove();
+            
+            // Place caret after the br
+            const selection = window.getSelection();
+            const range = document.createRange();
+            range.setStartAfter(br);
+            range.collapse(true);
+            selection.removeAllRanges();
+            selection.addRange(range);
+        }
+        
+        this._markDirty();
+    }
+
+    /**
+     * Handle backspace at the start of a list item.
+     * @private
+     */
+    _handleBackspaceInList() {
+        const listItem = this._getCurrentListItem();
+        if (!listItem) return;
+        
+        const parentList = listItem.parentElement;
+        const isNested = parentList?.parentElement?.nodeName === 'LI';
+        
+        if (isNested) {
+            // Outdent nested item
+            this._outdentListItem();
+        } else {
+            // Top-level: convert to regular text
+            const content = listItem.innerHTML;
+            const prevSibling = listItem.previousElementSibling;
+            
+            listItem.remove();
+            
+            // If list is now empty, replace with content
+            if (parentList.children.length === 0) {
+                const div = document.createElement('div');
+                div.innerHTML = content || '<br>';
+                parentList.replaceWith(div);
+                
+                // Place caret at start of new content
+                const selection = window.getSelection();
+                const range = document.createRange();
+                range.selectNodeContents(div);
+                range.collapse(true);
+                selection.removeAllRanges();
+                selection.addRange(range);
+            } else if (prevSibling) {
+                // Merge with previous item
+                const selection = window.getSelection();
+                const range = document.createRange();
+                
+                // Find end of previous item content
+                if (prevSibling.lastChild) {
+                    range.setStartAfter(prevSibling.lastChild);
+                } else {
+                    range.setStart(prevSibling, 0);
+                }
+                range.collapse(true);
+                
+                // Append content
+                prevSibling.innerHTML += content;
+                
+                selection.removeAllRanges();
+                selection.addRange(range);
+            }
+        }
+        
+        this._markDirty();
     }
 }
 

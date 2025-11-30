@@ -426,4 +426,98 @@ describe('TextEditManager', () => {
             expect(typeof manager._selectAdjacentElement).toBe('function');
         });
     });
+
+    describe('getSelectionStyles', () => {
+        it('should return all false when not editing', () => {
+            const styles = manager.getSelectionStyles();
+            
+            expect(styles).toEqual({
+                bold: false,
+                italic: false,
+                underline: false,
+                strikethrough: false
+            });
+        });
+
+        it('should return style states when editing', () => {
+            manager.enterEditMode('text-1', mockElement, { entryMode: 'doubleClick' });
+            
+            // Mock document.queryCommandState (not available in jsdom)
+            const originalQueryCommandState = document.queryCommandState;
+            document.queryCommandState = vi.fn((cmd) => cmd === 'bold');
+            
+            const styles = manager.getSelectionStyles();
+            
+            expect(styles.bold).toBe(true);
+            expect(styles.italic).toBe(false);
+            
+            // Restore
+            if (originalQueryCommandState) {
+                document.queryCommandState = originalQueryCommandState;
+            } else {
+                delete document.queryCommandState;
+            }
+        });
+    });
+
+    describe('getSelectionInfo', () => {
+        it('should return null when not editing', () => {
+            expect(manager.getSelectionInfo()).toBeNull();
+        });
+    });
+
+    describe('list helpers', () => {
+        it('should have getCurrentListItem method', () => {
+            expect(typeof manager._getCurrentListItem).toBe('function');
+        });
+
+        it('should have isListItemEmpty method', () => {
+            expect(typeof manager._isListItemEmpty).toBe('function');
+        });
+
+        it('should have isCaretAtListItemStart method', () => {
+            expect(typeof manager._isCaretAtListItemStart).toBe('function');
+        });
+
+        it('should have indentListItem method', () => {
+            expect(typeof manager._indentListItem).toBe('function');
+        });
+
+        it('should have outdentListItem method', () => {
+            expect(typeof manager._outdentListItem).toBe('function');
+        });
+
+        it('should have exitList method', () => {
+            expect(typeof manager._exitList).toBe('function');
+        });
+
+        it('should have handleBackspaceInList method', () => {
+            expect(typeof manager._handleBackspaceInList).toBe('function');
+        });
+
+        it('should return null for getCurrentListItem when not in edit mode', () => {
+            expect(manager._getCurrentListItem()).toBeNull();
+        });
+
+        it('should correctly detect empty list item', () => {
+            const li = document.createElement('li');
+            li.innerHTML = '';
+            expect(manager._isListItemEmpty(li)).toBe(true);
+            
+            li.innerHTML = 'text';
+            expect(manager._isListItemEmpty(li)).toBe(false);
+            
+            li.innerHTML = '   ';
+            expect(manager._isListItemEmpty(li)).toBe(true);
+        });
+
+        it('should not count nested lists as content', () => {
+            const li = document.createElement('li');
+            li.innerHTML = '<ul><li>nested</li></ul>';
+            expect(manager._isListItemEmpty(li)).toBe(true);
+            
+            li.innerHTML = 'text<ul><li>nested</li></ul>';
+            expect(manager._isListItemEmpty(li)).toBe(false);
+        });
+    });
 });

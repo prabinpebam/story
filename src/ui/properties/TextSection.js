@@ -9,6 +9,7 @@ import FontManager from '../../core/FontManager.js';
 import { FillFlyout } from '../components/FillFlyout/FillFlyout.js';
 import { TypeSettingsFlyout } from '../components/TypeSettingsFlyout.js';
 import { ColorUtils } from '../../utils/ColorUtils.js';
+import { textEditManager } from '../../core/text/TextEditManager.js';
 
 export class TextSection {
     constructor() {
@@ -454,6 +455,9 @@ export class TextSection {
         
         // If we're editing a text element, check for text selection
         if (editingElementId && selection.includes(editingElementId)) {
+            // Save selection before any PI interaction
+            textEditManager.saveSelection();
+            
             const textSelection = window.getSelection();
             
             if (textSelection && !textSelection.isCollapsed) {
@@ -477,8 +481,8 @@ export class TextSection {
         const selection = window.getSelection();
         if (!selection || selection.isCollapsed) return;
         
-        // Save current selection
-        const range = selection.getRangeAt(0);
+        // Save selection via TextEditManager before applying style
+        textEditManager.saveSelection();
         
         switch (prop) {
             case 'fontWeight':
@@ -535,9 +539,8 @@ export class TextSection {
                 }
         }
         
-        // Restore selection
-        selection.removeAllRanges();
-        selection.addRange(range);
+        // Restore selection via TextEditManager
+        textEditManager.restoreSelection();
     }
 
     wrapSelectionWithStyle(cssProp, cssValue) {
