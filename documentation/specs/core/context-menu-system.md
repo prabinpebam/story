@@ -808,14 +808,14 @@ Phase 1 ──► Phase 2 ──► Phase 3 ──► Phase 4 ──► Phase 5
 |------|------|------|
 | ✅ Slide thumbnail menu | `slide-thumbnail` | `src/ui/SlideList.js` |
 | ✅ Master thumbnail menu | `master-thumbnail` | `src/ui/SlideList.js` |
-| Text editing menu | `canvas-text-editing` | `src/core/canvas/TextEditor.js` |
-| Asset library menu | `asset-library` | `src/ui/panels/*.js` |
+| ✅ Text editing menu | `canvas-text-editing` | `src/ui/components/ContextMenu/canvasMenuConfig.js` |
+| ✅ Asset library menu | `asset-icon` | `src/ui/IconLibrary.js` |
 
 **Exit Criteria**:
 - [x] Slide thumbnail context menu with add/duplicate/delete/rename
 - [x] Master thumbnail context menu with edit/duplicate/rename/add layout
-- [ ] Text editing menu with formatting options
-- [ ] Asset library menu with insert options
+- [x] Text editing menu with formatting options (Bold, Italic, Underline, Strikethrough, Align, Link)
+- [x] Asset icon library menu with insert/copy class options
 
 #### Phase 5: Polish & Accessibility (2 days)
 **Goal**: Production-ready quality
