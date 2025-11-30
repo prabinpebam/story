@@ -796,29 +796,174 @@
 }
 
 /* ===========================================
-   Theme Swatches in Color Picker
+   Color Swatch System
+   ===========================================
+   
+   Unified swatch system following design tokens.
+   All color swatches (theme, default, preset) share
+   the same base styling via .swatch class.
+   
+   Scale (7-step): xs, sm, md, lg, xl, 2xl
+   Grid columns: 4, 6, 8, 12
    =========================================== */
+
+/* ----- Swatch Container ----- */
+.swatch-section {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-2);
+}
+
+.swatch-section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--spacing-2);
+}
+
+.swatch-section-label {
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-medium);
+    color: var(--color-text-secondary);
+    text-transform: uppercase;
+    letter-spacing: var(--letter-spacing-wide);
+}
+
+/* ----- Swatch Grid ----- */
+.swatch-grid {
+    display: grid;
+    gap: var(--spacing-1);
+}
+
+/* Grid column variants */
+.swatch-grid--cols-4  { grid-template-columns: repeat(4, 1fr); }
+.swatch-grid--cols-6  { grid-template-columns: repeat(6, 1fr); }
+.swatch-grid--cols-8  { grid-template-columns: repeat(8, 1fr); }
+.swatch-grid--cols-12 { grid-template-columns: repeat(12, 1fr); }
+
+/* ----- Base Swatch ----- */
+.swatch {
+    /* Reset button styles */
+    appearance: none;
+    -webkit-appearance: none;
+    padding: 0;
+    margin: 0;
+    font: inherit;
+    
+    /* Dimensions - use aspect-ratio for square */
+    aspect-ratio: 1;
+    min-height: var(--swatch-size-xl);
+    
+    /* Visual */
+    border-radius: var(--radius-sm);
+    border: var(--swatch-border-overlay);
+    cursor: pointer;
+    
+    /* Interaction feedback */
+    transition: 
+        transform var(--transition-fast),
+        box-shadow var(--transition-fast);
+    
+    /* Ensure hover z-index works */
+    position: relative;
+}
+
+.swatch:hover {
+    transform: scale(1.1);
+    box-shadow: var(--shadow-sm);
+    z-index: 1;
+}
+
+.swatch:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 var(--border-width-2) var(--color-accent);
+}
+
+.swatch.selected,
+.swatch[aria-selected="true"] {
+    box-shadow: 0 0 0 var(--border-width-2) var(--color-accent);
+}
+
+/* ----- Swatch Size Variants ----- */
+.swatch--xs { min-height: var(--swatch-size-xs); }
+.swatch--sm { min-height: var(--swatch-size-sm); }
+.swatch--md { min-height: var(--swatch-size-md); }
+.swatch--lg { min-height: var(--swatch-size-lg); }
+.swatch--xl { min-height: var(--swatch-size-xl); }
+.swatch--2xl { min-height: var(--swatch-size-2xl); }
+
+/* ----- Swatch Border Variants ----- */
+.swatch--border-standard {
+    border: var(--swatch-border);
+}
+
+.swatch--border-overlay {
+    border: var(--swatch-border-overlay);
+}
+
+.swatch--border-none {
+    border: none;
+}
+
+/* ===========================================
+   Legacy Compatibility Classes
+   (to be deprecated after full migration)
+   =========================================== */
+
+/* Legacy: .color-swatches-grid → use .swatch-grid.swatch-grid--cols-8 */
+.color-swatches-grid {
+    display: grid;
+    grid-template-columns: repeat(8, 1fr);
+    gap: var(--spacing-1);
+}
+
+/* Legacy: .color-swatch → use .swatch */
+.color-swatch {
+    aspect-ratio: 1;
+    min-height: var(--swatch-size-xl);
+    border-radius: var(--radius-sm);
+    border: var(--swatch-border-overlay);
+    cursor: pointer;
+    transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+    position: relative;
+}
+
+.color-swatch:hover {
+    transform: scale(1.1);
+    box-shadow: var(--shadow-sm);
+    z-index: 1;
+}
+
+.color-swatch.selected {
+    box-shadow: 0 0 0 var(--border-width-2) var(--color-accent);
+}
+
+/* Legacy: .theme-swatches-grid → use .swatch-grid.swatch-grid--cols-8 */
 .theme-swatches-grid {
     display: grid;
     grid-template-columns: repeat(8, 1fr);
     gap: var(--spacing-1);
 }
 
+/* Legacy: .theme-swatch → use .swatch */
 .theme-swatch {
     aspect-ratio: 1;
-    border-radius: var(--radius-xs);
-    border: 1px solid var(--color-border);
+    min-height: var(--swatch-size-xl);
+    border-radius: var(--radius-sm);
+    border: var(--swatch-border);
     cursor: pointer;
-    transition: transform 0.1s, box-shadow 0.1s;
+    transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+    position: relative;
 }
 
 .theme-swatch:hover {
     transform: scale(1.1);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    box-shadow: var(--shadow-sm);
+    z-index: 1;
 }
 
 .theme-swatch.selected {
-    box-shadow: 0 0 0 2px var(--color-accent);
+    box-shadow: 0 0 0 var(--border-width-2) var(--color-accent);
 }
 
 /* ===========================================

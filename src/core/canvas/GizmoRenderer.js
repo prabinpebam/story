@@ -3,10 +3,68 @@ import { GeometryUtils } from './GeometryUtils.js';
 
 /**
  * GizmoRenderer - Handles rendering of selection boxes, guides, and overlays
+ * 
+ * Uses CSS variables from the design system for theming support:
+ * - --color-accent: Selection and hover outlines
+ * - --color-selection-fill: Selection marquee fill
  */
 export class GizmoRenderer {
     constructor(canvasManager) {
         this.cm = canvasManager;
+        
+        // Cache for CSS variable colors (updated on render)
+        this._cachedColors = null;
+        this._lastColorCheck = 0;
+    }
+    
+    /**
+     * Get colors from CSS variables for canvas rendering
+     * Caches the result for performance, refreshes every 100ms
+     */
+    getColors() {
+        const now = Date.now();
+        if (!this._cachedColors || now - this._lastColorCheck > 100) {
+            const style = getComputedStyle(document.documentElement);
+            this._cachedColors = {
+                accent: style.getPropertyValue('--color-accent').trim() || '#18A0FB',
+                selectionFill: style.getPropertyValue('--color-selection-fill').trim() || 'rgba(24, 160, 251, 0.3)',
+                // Parse accent color to create transparent versions
+                accentRgba10: this._colorToRgba(style.getPropertyValue('--color-accent').trim() || '#18A0FB', 0.1),
+                accentRgba80: this._colorToRgba(style.getPropertyValue('--color-accent').trim() || '#18A0FB', 0.8),
+            };
+            this._lastColorCheck = now;
+        }
+        return this._cachedColors;
+    }
+    
+    /**
+     * Convert a hex color to rgba with specified alpha
+     */
+    _colorToRgba(color, alpha) {
+        // Handle hex colors
+        if (color.startsWith('#')) {
+            const hex = color.substring(1);
+            let r, g, b;
+            if (hex.length === 3) {
+                r = parseInt(hex[0] + hex[0], 16);
+                g = parseInt(hex[1] + hex[1], 16);
+                b = parseInt(hex[2] + hex[2], 16);
+            } else {
+                r = parseInt(hex.substring(0, 2), 16);
+                g = parseInt(hex.substring(2, 4), 16);
+                b = parseInt(hex.substring(4, 6), 16);
+            }
+            return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+        }
+        // Handle rgb/rgba
+        if (color.startsWith('rgb')) {
+            const match = color.match(/\d+/g);
+            if (match) {
+                return `rgba(${match[0]}, ${match[1]}, ${match[2]}, ${alpha})`;
+            }
+        }
+        // Fallback
+        return `rgba(24, 160, 251, ${alpha})`;
     }
 
     render() {
@@ -132,13 +190,14 @@ export class GizmoRenderer {
 
     drawHoverOutline(el, zoom) {
         const { x, y, width, height, rotation } = el;
+        const colors = this.getColors();
         
         this.cm.ctx.save();
         this.cm.ctx.translate(x + width / 2, y + height / 2);
         this.cm.ctx.rotate((rotation || 0) * Math.PI / 180);
         this.cm.ctx.translate(-width / 2, -height / 2);
 
-        this.cm.ctx.strokeStyle = '#0055FF'; // TE Blue
+        this.cm.ctx.strokeStyle = colors.accent;
         this.cm.ctx.lineWidth = 1 / zoom;
         this.cm.ctx.strokeRect(0, 0, width, height);
 
@@ -147,6 +206,7 @@ export class GizmoRenderer {
 
     drawSelectionBox(el, zoom, showHandles = true) {
         const { x, y, width, height, rotation } = el;
+        const colors = this.getColors();
         
         this.cm.ctx.save();
         this.cm.ctx.translate(x + width / 2, y + height / 2);
@@ -154,7 +214,7 @@ export class GizmoRenderer {
         this.cm.ctx.translate(-width / 2, -height / 2);
 
         // 1. Draw Bounding Box
-        this.cm.ctx.strokeStyle = '#0055FF';
+        this.cm.ctx.strokeStyle = colors.accent;
         this.cm.ctx.lineWidth = 1 / zoom; // Thin line
         this.cm.ctx.strokeRect(0, 0, width, height);
 
@@ -164,7 +224,7 @@ export class GizmoRenderer {
             const radiusHandleOffset = 12 / zoom; // Offset from corner
 
             this.cm.ctx.fillStyle = '#FFFFFF';
-            this.cm.ctx.strokeStyle = '#0055FF';
+            this.cm.ctx.strokeStyle = colors.accent;
             this.cm.ctx.lineWidth = 1 / zoom;
 
             // 2. Draw Resize Handles (8 points)
@@ -382,6 +442,7 @@ export class GizmoRenderer {
     renderSelectionMarquee() {
         const { x: startX, y: startY } = this.cm.dragStart;
         const { x: currX, y: currY } = this.cm.dragCurrent;
+        const colors = this.getColors();
 
         const x = Math.min(startX, currX);
         const y = Math.min(startY, currY);
@@ -389,9 +450,9 @@ export class GizmoRenderer {
         const height = Math.abs(currY - startY);
 
         this.cm.ctx.save();
-        this.cm.ctx.strokeStyle = 'rgba(0, 85, 255, 0.8)'; // TE Blue
+        this.cm.ctx.strokeStyle = colors.accentRgba80;
         this.cm.ctx.lineWidth = 1;
-        this.cm.ctx.fillStyle = 'rgba(0, 85, 255, 0.1)'; // Transparent Blue
+        this.cm.ctx.fillStyle = colors.accentRgba10;
         
         this.cm.ctx.fillRect(x, y, width, height);
         this.cm.ctx.strokeRect(x, y, width, height);
@@ -402,6 +463,7 @@ export class GizmoRenderer {
     renderCreationGhost() {
         const { x: startX, y: startY } = this.cm.dragStart;
         const { x: currX, y: currY } = this.cm.dragCurrent;
+        const colors = this.getColors();
 
         let x = Math.min(startX, currX);
         let y = Math.min(startY, currY);
@@ -420,13 +482,13 @@ export class GizmoRenderer {
         }
 
         this.cm.ctx.save();
-        this.cm.ctx.strokeStyle = '#0055FF';
+        this.cm.ctx.strokeStyle = colors.accent;
         this.cm.ctx.lineWidth = 1;
         this.cm.ctx.setLineDash([5, 5]);
         this.cm.ctx.strokeRect(x, y, width, height);
         
-        // Optional: Fill with transparent blue
-        this.cm.ctx.fillStyle = 'rgba(0, 85, 255, 0.1)';
+        // Optional: Fill with transparent accent
+        this.cm.ctx.fillStyle = colors.accentRgba10;
         this.cm.ctx.fillRect(x, y, width, height);
         
         this.cm.ctx.restore();

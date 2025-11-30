@@ -272,8 +272,8 @@ export class SettingsModal {
         // Color swatch
         const swatch = document.createElement('div');
         swatch.style.cssText = `
-            width: 40px;
-            height: 40px;
+            width: var(--swatch-size-2xl);
+            height: var(--swatch-size-2xl);
             border-radius: var(--radius-full);
             background: ${theme.color};
             margin-bottom: var(--spacing-2);

@@ -101,10 +101,10 @@ describe('ColorInput', () => {
 
         it('should set swatch size based on compact mode', () => {
             colorInput = new ColorInput('#000000', onChange, { compact: false });
-            expect(colorInput._swatch.style.width).toBe('18px');
+            expect(colorInput._swatch.style.width).toBe('var(--swatch-size-md)');
             
             const compactInput = new ColorInput('#000000', onChange, { compact: true });
-            expect(compactInput._swatch.style.width).toBe('20px');
+            expect(compactInput._swatch.style.width).toBe('var(--swatch-size-lg)');
         });
     });
 

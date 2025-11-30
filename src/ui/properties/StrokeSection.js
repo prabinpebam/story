@@ -209,10 +209,10 @@ export class StrokeSection {
         // swatch.style.borderRight = '1px solid #444'; // Removed separator
         
         const preview = document.createElement('div');
-        preview.style.width = '14px';
-        preview.style.height = '14px';
-        preview.style.borderRadius = '2px';
-        preview.style.border = '1px solid rgba(255,255,255,0.1)';
+        preview.style.width = 'var(--swatch-size-sm)';
+        preview.style.height = 'var(--swatch-size-sm)';
+        preview.style.borderRadius = 'var(--radius-xs)';
+        preview.style.border = 'var(--swatch-border-overlay)';
         
         if (stroke.type === 'gradient') {
              preview.style.background = stroke.value || 'linear-gradient(90deg, #000000 0%, #ffffff 100%)'; 

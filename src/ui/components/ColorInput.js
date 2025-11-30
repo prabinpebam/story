@@ -43,11 +43,11 @@ export class ColorInput {
 
         // Swatch
         const swatch = document.createElement('div');
-        swatch.style.width = this.options.compact ? '20px' : '18px';
-        swatch.style.height = this.options.compact ? '20px' : '18px';
-        swatch.style.borderRadius = '2px';
+        swatch.style.width = this.options.compact ? 'var(--swatch-size-lg)' : 'var(--swatch-size-md)';
+        swatch.style.height = this.options.compact ? 'var(--swatch-size-lg)' : 'var(--swatch-size-md)';
+        swatch.style.borderRadius = 'var(--radius-xs)';
         swatch.style.backgroundColor = this.value;
-        swatch.style.border = '1px solid rgba(0,0,0,0.1)';
+        swatch.style.border = 'var(--swatch-border-overlay)';
         swatch.style.cursor = 'pointer';
         swatch.style.flexShrink = '0';
         

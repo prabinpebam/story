@@ -209,6 +209,21 @@
     --control-size-2xl: 48px;          /* Extra large, primary actions */
     
     /* -------------------------------------------------------------------------
+       SWATCH SIZE TOKENS (color swatches, preview squares)
+       Following 7-Step Scale Philosophy for consistent sizing
+       ------------------------------------------------------------------------- */
+    --swatch-size-xs: 12px;            /* Micro swatches, inline indicators */
+    --swatch-size-sm: 14px;            /* Small swatches in compact inputs */
+    --swatch-size-md: 16px;            /* Default swatch size */
+    --swatch-size-lg: 20px;            /* Comfortable swatches */
+    --swatch-size-xl: 24px;            /* Large theme swatches */
+    --swatch-size-2xl: 40px;           /* Hero swatches, theme cards */
+    
+    /* Swatch border - use --color-border or semi-transparent for overlay */
+    --swatch-border: 1px solid var(--color-border);
+    --swatch-border-overlay: 1px solid rgba(255, 255, 255, 0.1);
+    
+    /* -------------------------------------------------------------------------
        THUMBNAIL/PREVIEW SIZE TOKENS
        ------------------------------------------------------------------------- */
     --thumbnail-xs: 32px;

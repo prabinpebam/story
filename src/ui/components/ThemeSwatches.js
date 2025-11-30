@@ -2,6 +2,11 @@
  * ThemeSwatches.js
  * A reusable component that displays color swatches from the current theme.
  * Automatically updates when theme colors change.
+ * 
+ * Follows Design System principles:
+ * - Uses .swatch CSS class for all swatches (unified styling)
+ * - Uses .swatch-grid for grid layout with column variants
+ * - Uses design tokens for all spacing and sizing
  */
 
 import { store } from '../../core/Store.js';
@@ -26,18 +31,35 @@ const THEME_COLOR_ROLES = [
     { id: 'followedHyperlink', name: 'Visited' }
 ];
 
+/**
+ * Grid column options following the design system constraint
+ * (limited to specific values for consistency)
+ */
+const GRID_COLUMNS = {
+    4: 'swatch-grid--cols-4',
+    6: 'swatch-grid--cols-6',
+    8: 'swatch-grid--cols-8',
+    12: 'swatch-grid--cols-12'
+};
+
 export class ThemeSwatches {
     constructor(options = {}) {
         this.options = {
             onColorSelect: options.onColorSelect || (() => {}),
             showPresetSelector: options.showPresetSelector !== false,
-            columns: options.columns || 6,
+            columns: options.columns || 8,
             ...options
         };
         
+        // Validate columns against allowed values
+        if (!GRID_COLUMNS[this.options.columns]) {
+            console.warn(`ThemeSwatches: Invalid column count ${this.options.columns}, defaulting to 8`);
+            this.options.columns = 8;
+        }
+        
         this.currentPresetId = null; // null = current theme, otherwise preset ID
         this.element = document.createElement('div');
-        this.element.className = 'theme-swatches';
+        this.element.className = 'swatch-section';
         
         this.render();
         
@@ -48,15 +70,14 @@ export class ThemeSwatches {
 
     render() {
         this.element.innerHTML = '';
-        // CSS class handles: display: flex; flex-direction: column; gap: 8px;
         
         // Header with label and optional preset selector
         const header = document.createElement('div');
-        header.className = 'theme-swatches-header';
+        header.className = 'swatch-section-header';
         
         const label = document.createElement('div');
         label.textContent = 'Theme Colors';
-        label.className = 'theme-swatches-label';
+        label.className = 'swatch-section-label';
         header.appendChild(label);
         
         if (this.options.showPresetSelector) {
@@ -66,9 +87,9 @@ export class ThemeSwatches {
         
         this.element.appendChild(header);
         
-        // Swatches grid
+        // Swatches grid using unified swatch-grid class
         this.swatchGrid = document.createElement('div');
-        this.swatchGrid.className = `theme-swatches-grid theme-swatches-grid-${this.options.columns}`;
+        this.swatchGrid.className = `swatch-grid ${GRID_COLUMNS[this.options.columns]}`;
         this.element.appendChild(this.swatchGrid);
         
         this.updateSwatches();
@@ -131,10 +152,19 @@ export class ThemeSwatches {
     }
 
     createSwatch(color, tooltip) {
+        // Use <button> for proper semantics and keyboard accessibility
         const swatch = document.createElement('button');
-        swatch.className = 'theme-swatch';
-        swatch.style.backgroundColor = color; // Color itself must be inline
+        swatch.type = 'button';
+        
+        // Use unified .swatch class with size variant
+        swatch.className = 'swatch swatch--xl';
+        
+        // Color itself must be inline (dynamic per swatch)
+        swatch.style.backgroundColor = color;
+        
+        // Accessibility
         swatch.title = `${tooltip}: ${color}`;
+        swatch.setAttribute('aria-label', `Select ${tooltip} color: ${color}`);
         
         // Click handler
         swatch.addEventListener('click', () => {

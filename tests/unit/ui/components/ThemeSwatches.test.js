@@ -69,7 +69,7 @@ describe('ThemeSwatches', () => {
         it('creates element with correct class', () => {
             const swatches = new ThemeSwatches();
             expect(swatches.element).toBeDefined();
-            expect(swatches.element.className).toBe('theme-swatches');
+            expect(swatches.element.className).toBe('swatch-section');
         });
 
         it('accepts onColorSelect callback', () => {
@@ -88,9 +88,9 @@ describe('ThemeSwatches', () => {
             expect(swatches.options.showPresetSelector).toBe(false);
         });
 
-        it('uses default columns of 6', () => {
+        it('uses default columns of 8', () => {
             const swatches = new ThemeSwatches();
-            expect(swatches.options.columns).toBe(6);
+            expect(swatches.options.columns).toBe(8);
         });
 
         it('accepts custom columns', () => {
@@ -107,13 +107,13 @@ describe('ThemeSwatches', () => {
     describe('structure', () => {
         it('creates header element', () => {
             const swatches = new ThemeSwatches();
-            const header = swatches.element.querySelector('.theme-swatches-header');
+            const header = swatches.element.querySelector('.swatch-section-header');
             expect(header).toBeDefined();
         });
 
         it('creates label in header', () => {
             const swatches = new ThemeSwatches();
-            const label = swatches.element.querySelector('.theme-swatches-label');
+            const label = swatches.element.querySelector('.swatch-section-label');
             expect(label).toBeDefined();
             expect(label.textContent).toBe('Theme Colors');
         });
@@ -121,12 +121,12 @@ describe('ThemeSwatches', () => {
         it('creates swatch grid', () => {
             const swatches = new ThemeSwatches();
             expect(swatches.swatchGrid).toBeDefined();
-            expect(swatches.swatchGrid.className).toContain('theme-swatches-grid');
+            expect(swatches.swatchGrid.className).toContain('swatch-grid');
         });
 
         it('applies columns class to grid', () => {
             const swatches = new ThemeSwatches({ columns: 4 });
-            expect(swatches.swatchGrid.className).toContain('theme-swatches-grid-4');
+            expect(swatches.swatchGrid.className).toContain('swatch-grid--cols-4');
         });
 
         it('creates preset dropdown when enabled', () => {
@@ -172,7 +172,7 @@ describe('ThemeSwatches', () => {
             const swatches = new ThemeSwatches();
             container.appendChild(swatches.element);
             
-            const swatchButtons = swatches.swatchGrid.querySelectorAll('.theme-swatch');
+            const swatchButtons = swatches.swatchGrid.querySelectorAll('.swatch');
             expect(swatchButtons.length).toBeGreaterThan(0);
         });
 
@@ -180,7 +180,7 @@ describe('ThemeSwatches', () => {
             const swatches = new ThemeSwatches();
             container.appendChild(swatches.element);
             
-            const firstSwatch = swatches.swatchGrid.querySelector('.theme-swatch');
+            const firstSwatch = swatches.swatchGrid.querySelector('.swatch');
             expect(firstSwatch.style.backgroundColor).toBeDefined();
         });
 
@@ -188,7 +188,7 @@ describe('ThemeSwatches', () => {
             const swatches = new ThemeSwatches();
             container.appendChild(swatches.element);
             
-            const firstSwatch = swatches.swatchGrid.querySelector('.theme-swatch');
+            const firstSwatch = swatches.swatchGrid.querySelector('.swatch');
             expect(firstSwatch.title).toContain('#');
         });
     });
@@ -199,7 +199,7 @@ describe('ThemeSwatches', () => {
             const swatches = new ThemeSwatches({ onColorSelect });
             container.appendChild(swatches.element);
             
-            const firstSwatch = swatches.swatchGrid.querySelector('.theme-swatch');
+            const firstSwatch = swatches.swatchGrid.querySelector('.swatch');
             firstSwatch.click();
             
             expect(onColorSelect).toHaveBeenCalled();
@@ -210,7 +210,7 @@ describe('ThemeSwatches', () => {
             const swatches = new ThemeSwatches({ onColorSelect });
             container.appendChild(swatches.element);
             
-            const firstSwatch = swatches.swatchGrid.querySelector('.theme-swatch');
+            const firstSwatch = swatches.swatchGrid.querySelector('.swatch');
             firstSwatch.click();
             
             expect(onColorSelect).toHaveBeenCalledWith(expect.stringMatching(/^#|^rgb/));
@@ -260,7 +260,7 @@ describe('ThemeSwatches', () => {
             
             swatches.updateSwatches();
             
-            const testDiv = swatches.swatchGrid.querySelector('div:not(.theme-swatch)');
+            const testDiv = swatches.swatchGrid.querySelector('div:not(.swatch)');
             expect(testDiv).toBeNull();
         });
 
@@ -277,7 +277,7 @@ describe('ThemeSwatches', () => {
             swatches.currentPresetId = 'preset-1'; // Only has background1
             swatches.updateSwatches();
             
-            const swatchButtons = swatches.swatchGrid.querySelectorAll('.theme-swatch');
+            const swatchButtons = swatches.swatchGrid.querySelectorAll('.swatch');
             expect(swatchButtons.length).toBe(1);
         });
     });

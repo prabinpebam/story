@@ -441,11 +441,11 @@ export class GradientTab {
 
             // Color Swatch
             const swatch = document.createElement('div');
-            swatch.style.width = '16px';
-            swatch.style.height = '16px';
-            swatch.style.borderRadius = '2px';
+            swatch.style.width = 'var(--swatch-size-md)';
+            swatch.style.height = 'var(--swatch-size-md)';
+            swatch.style.borderRadius = 'var(--radius-xs)';
             swatch.style.backgroundColor = stop.color;
-            swatch.style.border = '1px solid var(--color-border)';
+            swatch.style.border = 'var(--swatch-border)';
             swatch.style.cursor = 'pointer';
             
             swatch.onclick = (e) => {

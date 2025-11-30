@@ -234,10 +234,10 @@ export class TextSection {
         this.fillSwatch.style.justifyContent = 'center';
         
         this.fillPreview = document.createElement('div');
-        this.fillPreview.style.width = '14px';
-        this.fillPreview.style.height = '14px';
-        this.fillPreview.style.borderRadius = '2px';
-        this.fillPreview.style.border = '1px solid rgba(255,255,255,0.1)';
+        this.fillPreview.style.width = 'var(--swatch-size-sm)';
+        this.fillPreview.style.height = 'var(--swatch-size-sm)';
+        this.fillPreview.style.borderRadius = 'var(--radius-xs)';
+        this.fillPreview.style.border = 'var(--swatch-border-overlay)';
         this.fillSwatch.appendChild(this.fillPreview);
         
         this.fillSwatch.onclick = (e) => {

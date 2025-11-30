@@ -350,16 +350,16 @@ export class SolidTab {
         this.element.appendChild(this.themeSwatches.element);
 
         // 5. Default Swatch Palette
+        const defaultSwatchSection = document.createElement('div');
+        defaultSwatchSection.className = 'swatch-section';
+        
         const swatchesLabel = document.createElement('div');
         swatchesLabel.textContent = 'Default Colors';
-        swatchesLabel.className = 'color-section-label';
-        this.element.appendChild(swatchesLabel);
+        swatchesLabel.className = 'swatch-section-label';
+        defaultSwatchSection.appendChild(swatchesLabel);
 
         const swatches = document.createElement('div');
-        swatches.style.display = 'grid';
-        swatches.style.gridTemplateColumns = 'repeat(8, 1fr)';
-        swatches.style.gap = '4px';
-        swatches.style.marginTop = '4px';
+        swatches.className = 'swatch-grid swatch-grid--cols-8';
         
         const defaultColors = [
             '#FFFFFF', '#F2F2F2', '#CCCCCC', '#808080', '#4D4D4D', '#333333', '#1A1A1A', '#000000',
@@ -367,13 +367,13 @@ export class SolidTab {
         ];
 
         defaultColors.forEach(color => {
-            const swatch = document.createElement('div');
-            swatch.style.width = '100%';
-            swatch.style.paddingBottom = '100%'; // Square
+            // Use <button> for proper semantics and keyboard accessibility
+            const swatch = document.createElement('button');
+            swatch.type = 'button';
+            swatch.className = 'swatch swatch--xl';
             swatch.style.backgroundColor = color;
-            swatch.style.borderRadius = '4px';
-            swatch.style.cursor = 'pointer';
-            swatch.style.border = '1px solid rgba(255,255,255,0.1)';
+            swatch.setAttribute('aria-label', `Select color ${color}`);
+            swatch.title = color;
             
             swatch.onclick = () => {
                 const rgb = ColorUtils.hexToRgb(color);
@@ -388,7 +388,8 @@ export class SolidTab {
             swatches.appendChild(swatch);
         });
 
-        this.element.appendChild(swatches);
+        defaultSwatchSection.appendChild(swatches);
+        this.element.appendChild(defaultSwatchSection);
     }
 
     updateUI() {

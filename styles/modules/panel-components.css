@@ -114,7 +114,7 @@
 
 .preset-swatch {
     flex: 1;
-    height: var(--icon-size-lg);
+    height: var(--swatch-size-lg);
 }
 
 .preset-swatch:first-child {
@@ -514,6 +514,72 @@
     margin-top: var(--spacing-1);
 }
 
+/* ===========================================
+   Base Swatch Component
+   Standardized color swatch following 7-Step Scale
+   =========================================== */
+.swatch {
+    display: inline-block;
+    border-radius: var(--radius-xs);
+    border: var(--swatch-border);
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: transform 0.1s, box-shadow 0.15s;
+}
+
+.swatch:hover {
+    transform: scale(1.1);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    z-index: 1;
+}
+
+/* Swatch size variants */
+.swatch--xs {
+    width: var(--swatch-size-xs);
+    height: var(--swatch-size-xs);
+}
+
+.swatch--sm {
+    width: var(--swatch-size-sm);
+    height: var(--swatch-size-sm);
+}
+
+.swatch--md {
+    width: var(--swatch-size-md);
+    height: var(--swatch-size-md);
+}
+
+.swatch--lg {
+    width: var(--swatch-size-lg);
+    height: var(--swatch-size-lg);
+}
+
+.swatch--xl {
+    width: var(--swatch-size-xl);
+    height: var(--swatch-size-xl);
+}
+
+.swatch--2xl {
+    width: var(--swatch-size-2xl);
+    height: var(--swatch-size-2xl);
+}
+
+/* Swatch with overlay border (for use on colored backgrounds) */
+.swatch--overlay {
+    border: var(--swatch-border-overlay);
+}
+
+/* Swatch without hover scale (for inline contexts) */
+.swatch--static:hover {
+    transform: none;
+    box-shadow: none;
+}
+
+/* Swatch in circular form (theme cards) */
+.swatch--round {
+    border-radius: var(--radius-full);
+}
+
 /* Color swatches preview in Colors section */
 .theme-swatches-preview {
     display: flex;
@@ -527,16 +593,18 @@
 }
 
 .theme-color-swatch {
-    width: 24px;
-    height: 24px;
-    border-radius: var(--radius-xs);
-    border: 1px solid var(--color-border);
+    width: var(--swatch-size-xl);
+    height: var(--swatch-size-xl);
+    border-radius: var(--radius-sm);
+    border: var(--swatch-border);
     cursor: default;
-    transition: transform 0.1s;
+    transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+    position: relative;
 }
 
 .theme-color-swatch:hover {
     transform: scale(1.1);
+    box-shadow: var(--shadow-sm);
     z-index: 1;
 }
 
@@ -571,6 +639,13 @@
 /* ===========================================
    Theme Swatches Component
    =========================================== */
+/* ===========================================
+   Swatch Section (Unified System)
+   Used by ThemeSwatches, ColorManager, etc.
+   =========================================== */
+
+/* Swatch section is defined in flyout-components.css */
+/* Legacy aliases for backward compatibility */
 .theme-swatches {
     display: flex;
     flex-direction: column;
@@ -591,30 +666,30 @@
     letter-spacing: var(--letter-spacing-wide);
 }
 
+/* Legacy grid aliases - prefer swatch-grid--cols-X */
 .theme-swatches-grid {
     display: grid;
     gap: var(--spacing-1);
 }
 
-.theme-swatches-grid-6 {
-    grid-template-columns: repeat(6, 1fr);
-}
+.theme-swatches-grid-4 { grid-template-columns: repeat(4, 1fr); }
+.theme-swatches-grid-6 { grid-template-columns: repeat(6, 1fr); }
+.theme-swatches-grid-8 { grid-template-columns: repeat(8, 1fr); }
+.theme-swatches-grid-12 { grid-template-columns: repeat(12, 1fr); }
 
-.theme-swatches-grid-8 {
-    grid-template-columns: repeat(8, 1fr);
-}
-
+/* Legacy swatch - use .swatch instead */
 .theme-swatch {
     aspect-ratio: 1;
-    border-radius: var(--radius-xs);
-    border: 1px solid var(--color-border);
+    min-height: var(--swatch-size-xl);
+    border-radius: var(--radius-sm);
+    border: var(--swatch-border);
     cursor: pointer;
-    transition: transform 0.1s, box-shadow 0.15s;
+    transition: transform var(--transition-fast), box-shadow var(--transition-fast);
 }
 
 .theme-swatch:hover {
     transform: scale(1.1);
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    box-shadow: var(--shadow-sm);
     z-index: 1;
 }
 

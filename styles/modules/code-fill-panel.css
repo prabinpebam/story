@@ -82,8 +82,8 @@
    Fill Swatch
    =========================================== */
 .cfp-fill-swatch {
-    width: 28px;
-    height: 28px;
+    width: var(--control-size-md);
+    height: var(--control-size-md);
     border-radius: var(--radius-xs);
     border: 2px solid transparent;
     cursor: pointer;
