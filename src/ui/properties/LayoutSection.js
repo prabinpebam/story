@@ -77,10 +77,10 @@ export class LayoutSection {
         selection.forEach(id => {
             const el = this.getElement(state, id);
             if (el && el.type === 'text') {
-                // Update the resizing mode
+                // Update the resizing mode at root level (matching creation behavior)
                 store.dispatch('UPDATE_ELEMENT', { 
                     id, 
-                    style: { ...el.style, resizing: value }
+                    resizing: value
                 });
             }
         });

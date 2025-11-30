@@ -168,8 +168,9 @@ export const DEFAULT_MASTERS = {
                 isPlaceholder: true,
                 placeholderType: "title",
                 content: "<h1>Click to add title</h1>",
-                x: 160, y: 360, width: 1600, height: 200,
+                x: 160, y: 320, width: 1600, height: 240,
                 rotation: 0, opacity: 1,
+                resizing: "fixed",
                 style: { fontSize: 80, textAlign: "center", verticalAlign: "middle", color: "var(--theme-text-primary, #0F172A)", fontFamily: "var(--theme-font-heading, Inter)", fontWeight: "800", letterSpacing: "-0.02em" }
             },
             "placeholder-subtitle": {
@@ -178,8 +179,9 @@ export const DEFAULT_MASTERS = {
                 isPlaceholder: true,
                 placeholderType: "subtitle",
                 content: "<p>Click to add subtitle</p>",
-                x: 320, y: 600, width: 1280, height: 80,
+                x: 320, y: 580, width: 1280, height: 120,
                 rotation: 0, opacity: 1,
+                resizing: "fixed",
                 style: { fontSize: 28, textAlign: "center", verticalAlign: "middle", color: "var(--theme-text-secondary, #64748B)", fontFamily: "var(--theme-font-body, Inter)", fontWeight: "400", lineHeight: 1.4 }
             }
         },
@@ -200,8 +202,9 @@ export const DEFAULT_MASTERS = {
                 isPlaceholder: true,
                 placeholderType: "title",
                 content: "<h1>Click to add title</h1>",
-                x: 100, y: 80, width: 1720, height: 80,
+                x: 100, y: 60, width: 1720, height: 100,
                 rotation: 0, opacity: 1,
+                resizing: "fixed",
                 style: { fontSize: 44, textAlign: "left", verticalAlign: "middle", color: "var(--theme-text-primary, #0F172A)", fontFamily: "var(--theme-font-heading, Inter)", fontWeight: "700", letterSpacing: "-0.01em" }
             },
             "placeholder-body": {
@@ -210,8 +213,9 @@ export const DEFAULT_MASTERS = {
                 isPlaceholder: true,
                 placeholderType: "body",
                 content: "<p>Click to add text</p>",
-                x: 100, y: 200, width: 1720, height: 800,
+                x: 100, y: 180, width: 1720, height: 840,
                 rotation: 0, opacity: 1,
+                resizing: "fixed",
                 style: { fontSize: 24, textAlign: "left", verticalAlign: "top", color: "var(--theme-text-primary, #0F172A)", fontFamily: "var(--theme-font-body, Inter)", fontWeight: "400", lineHeight: 1.5 }
             }
         },
@@ -232,8 +236,9 @@ export const DEFAULT_MASTERS = {
                 isPlaceholder: true,
                 placeholderType: "title",
                 content: "<h1>Section Title</h1>",
-                x: 100, y: 400, width: 1720, height: 140,
+                x: 100, y: 380, width: 1720, height: 160,
                 rotation: 0, opacity: 1,
+                resizing: "fixed",
                 style: { fontSize: 64, textAlign: "left", verticalAlign: "middle", color: "var(--theme-text-primary, #0F172A)", fontFamily: "var(--theme-font-heading, Inter)", fontWeight: "700", letterSpacing: "-0.02em" }
             },
             "placeholder-subtitle": {
@@ -242,8 +247,9 @@ export const DEFAULT_MASTERS = {
                 isPlaceholder: true,
                 placeholderType: "subtitle",
                 content: "<p>Optional description for this section</p>",
-                x: 100, y: 560, width: 1200, height: 60,
+                x: 100, y: 560, width: 1400, height: 100,
                 rotation: 0, opacity: 1,
+                resizing: "fixed",
                 style: { fontSize: 24, textAlign: "left", verticalAlign: "top", color: "var(--theme-text-secondary, #64748B)", fontFamily: "var(--theme-font-body, Inter)", fontWeight: "400", lineHeight: 1.4 }
             }
         },
@@ -264,8 +270,9 @@ export const DEFAULT_MASTERS = {
                 isPlaceholder: true,
                 placeholderType: "title",
                 content: "<h1>Click to add title</h1>",
-                x: 100, y: 80, width: 1720, height: 80,
+                x: 100, y: 60, width: 1720, height: 100,
                 rotation: 0, opacity: 1,
+                resizing: "fixed",
                 style: { fontSize: 44, textAlign: "left", verticalAlign: "middle", color: "var(--theme-text-primary, #0F172A)", fontFamily: "var(--theme-font-heading, Inter)", fontWeight: "700", letterSpacing: "-0.01em" }
             },
             "placeholder-left": {
@@ -274,8 +281,9 @@ export const DEFAULT_MASTERS = {
                 isPlaceholder: true,
                 placeholderType: "body",
                 content: "<p>Click to add text</p>",
-                x: 100, y: 200, width: 830, height: 800,
+                x: 100, y: 180, width: 830, height: 840,
                 rotation: 0, opacity: 1,
+                resizing: "fixed",
                 style: { fontSize: 20, textAlign: "left", verticalAlign: "top", color: "var(--theme-text-primary, #0F172A)", fontFamily: "var(--theme-font-body, Inter)", fontWeight: "400", lineHeight: 1.6 }
             },
             "placeholder-right": {
@@ -284,8 +292,9 @@ export const DEFAULT_MASTERS = {
                 isPlaceholder: true,
                 placeholderType: "text",
                 content: "<p>Click to add text</p>",
-                x: 990, y: 200, width: 830, height: 800,
+                x: 990, y: 180, width: 830, height: 840,
                 rotation: 0, opacity: 1,
+                resizing: "fixed",
                 style: { fontSize: 20, textAlign: "left", verticalAlign: "top", color: "var(--theme-text-primary, #0F172A)", fontFamily: "var(--theme-font-body, Inter)", fontWeight: "400", lineHeight: 1.6 }
             }
         },
@@ -306,8 +315,9 @@ export const DEFAULT_MASTERS = {
                 isPlaceholder: true,
                 placeholderType: "title",
                 content: "<h1>Click to add title</h1>",
-                x: 100, y: 80, width: 1720, height: 80,
+                x: 100, y: 60, width: 1720, height: 100,
                 rotation: 0, opacity: 1,
+                resizing: "fixed",
                 style: { fontSize: 44, textAlign: "left", verticalAlign: "middle", color: "var(--theme-text-primary, #0F172A)", fontFamily: "var(--theme-font-heading, Inter)", fontWeight: "700", letterSpacing: "-0.01em" }
             },
             "placeholder-left-header": {
@@ -316,8 +326,9 @@ export const DEFAULT_MASTERS = {
                 isPlaceholder: true,
                 placeholderType: "text",
                 content: "<p>Option A</p>",
-                x: 100, y: 200, width: 830, height: 50,
+                x: 100, y: 180, width: 830, height: 60,
                 rotation: 0, opacity: 1,
+                resizing: "fixed",
                 style: { fontSize: 28, textAlign: "left", verticalAlign: "middle", color: "var(--theme-accent-1, #3B82F6)", fontFamily: "var(--theme-font-heading, Inter)", fontWeight: "600" }
             },
             "placeholder-left-content": {
@@ -326,8 +337,9 @@ export const DEFAULT_MASTERS = {
                 isPlaceholder: true,
                 placeholderType: "text",
                 content: "<p>Click to add text</p>",
-                x: 100, y: 270, width: 830, height: 730,
+                x: 100, y: 260, width: 830, height: 760,
                 rotation: 0, opacity: 1,
+                resizing: "fixed",
                 style: { fontSize: 20, textAlign: "left", verticalAlign: "top", color: "var(--theme-text-primary, #0F172A)", fontFamily: "var(--theme-font-body, Inter)", fontWeight: "400", lineHeight: 1.6 }
             },
             "placeholder-right-header": {
@@ -336,8 +348,9 @@ export const DEFAULT_MASTERS = {
                 isPlaceholder: true,
                 placeholderType: "text",
                 content: "<p>Option B</p>",
-                x: 990, y: 200, width: 830, height: 50,
+                x: 990, y: 180, width: 830, height: 60,
                 rotation: 0, opacity: 1,
+                resizing: "fixed",
                 style: { fontSize: 28, textAlign: "left", verticalAlign: "middle", color: "var(--theme-accent-2, #8B5CF6)", fontFamily: "var(--theme-font-heading, Inter)", fontWeight: "600" }
             },
             "placeholder-right-content": {
@@ -346,8 +359,9 @@ export const DEFAULT_MASTERS = {
                 isPlaceholder: true,
                 placeholderType: "text",
                 content: "<p>Click to add text</p>",
-                x: 990, y: 270, width: 830, height: 730,
+                x: 990, y: 260, width: 830, height: 760,
                 rotation: 0, opacity: 1,
+                resizing: "fixed",
                 style: { fontSize: 20, textAlign: "left", verticalAlign: "top", color: "var(--theme-text-primary, #0F172A)", fontFamily: "var(--theme-font-body, Inter)", fontWeight: "400", lineHeight: 1.6 }
             }
         },
@@ -367,8 +381,9 @@ export const DEFAULT_MASTERS = {
                 isPlaceholder: true,
                 placeholderType: "title",
                 content: "<h1>Click to add title</h1>",
-                x: 100, y: 80, width: 1720, height: 80,
+                x: 100, y: 60, width: 1720, height: 100,
                 rotation: 0, opacity: 1,
+                resizing: "fixed",
                 style: { fontSize: 44, textAlign: "left", verticalAlign: "middle", color: "var(--theme-text-primary, #0F172A)", fontFamily: "var(--theme-font-heading, Inter)", fontWeight: "700", letterSpacing: "-0.01em" }
             }
         },
@@ -399,8 +414,9 @@ export const DEFAULT_MASTERS = {
                 isPlaceholder: true,
                 placeholderType: "title",
                 content: "<h1>Click to add title</h1>",
-                x: 100, y: 80, width: 1720, height: 80,
+                x: 100, y: 60, width: 1720, height: 100,
                 rotation: 0, opacity: 1,
+                resizing: "fixed",
                 style: { fontSize: 44, textAlign: "left", verticalAlign: "middle", color: "var(--theme-text-primary, #0F172A)", fontFamily: "var(--theme-font-heading, Inter)", fontWeight: "700", letterSpacing: "-0.01em" }
             },
             "placeholder-body": {
@@ -409,8 +425,9 @@ export const DEFAULT_MASTERS = {
                 isPlaceholder: true,
                 placeholderType: "body",
                 content: "<p>Click to add text</p>",
-                x: 100, y: 200, width: 1200, height: 800,
+                x: 100, y: 180, width: 1200, height: 840,
                 rotation: 0, opacity: 1,
+                resizing: "fixed",
                 style: { fontSize: 24, textAlign: "left", verticalAlign: "top", color: "var(--theme-text-primary, #0F172A)", fontFamily: "var(--theme-font-body, Inter)", fontWeight: "400", lineHeight: 1.5 }
             },
             "placeholder-caption": {
@@ -419,8 +436,9 @@ export const DEFAULT_MASTERS = {
                 isPlaceholder: true,
                 placeholderType: "text",
                 content: "<p>Add notes or supporting information here</p>",
-                x: 1360, y: 200, width: 460, height: 800,
+                x: 1360, y: 180, width: 460, height: 840,
                 rotation: 0, opacity: 1,
+                resizing: "fixed",
                 style: { fontSize: 16, textAlign: "left", verticalAlign: "top", color: "var(--theme-text-secondary, #64748B)", fontFamily: "var(--theme-font-body, Inter)", fontWeight: "400", lineHeight: 1.6 }
             }
         },
@@ -441,8 +459,9 @@ export const DEFAULT_MASTERS = {
                 isPlaceholder: true,
                 placeholderType: "title",
                 content: "<h1>Click to add title</h1>",
-                x: 100, y: 80, width: 1720, height: 80,
+                x: 100, y: 60, width: 1720, height: 100,
                 rotation: 0, opacity: 1,
+                resizing: "fixed",
                 style: { fontSize: 44, textAlign: "left", verticalAlign: "middle", color: "var(--theme-text-primary, #0F172A)", fontFamily: "var(--theme-font-heading, Inter)", fontWeight: "700", letterSpacing: "-0.01em" }
             },
             "placeholder-picture": {
@@ -451,8 +470,9 @@ export const DEFAULT_MASTERS = {
                 isPlaceholder: true,
                 placeholderType: "picture",
                 content: "<p style='opacity:0.6;text-align:center;'>🖼️ Click to add picture</p>",
-                x: 100, y: 200, width: 1200, height: 800,
+                x: 100, y: 180, width: 1200, height: 840,
                 rotation: 0, opacity: 1,
+                resizing: "fixed",
                 style: { fontSize: 24, textAlign: "center", verticalAlign: "middle", color: "var(--theme-text-secondary, #64748B)", fontFamily: "var(--theme-font-body, Inter)", fontWeight: "400", backgroundColor: "rgba(248, 250, 252, 1)", borderRadius: "8px" }
             },
             "placeholder-caption": {
@@ -461,8 +481,9 @@ export const DEFAULT_MASTERS = {
                 isPlaceholder: true,
                 placeholderType: "text",
                 content: "<p>Add image caption or description here</p>",
-                x: 1360, y: 200, width: 460, height: 800,
+                x: 1360, y: 180, width: 460, height: 840,
                 rotation: 0, opacity: 1,
+                resizing: "fixed",
                 style: { fontSize: 16, textAlign: "left", verticalAlign: "top", color: "var(--theme-text-secondary, #64748B)", fontFamily: "var(--theme-font-body, Inter)", fontWeight: "400", lineHeight: 1.6 }
             }
         },
@@ -483,8 +504,9 @@ export const DEFAULT_MASTERS = {
                 isPlaceholder: true,
                 placeholderType: "text",
                 content: "<p>\"Click to add your quote here\"</p>",
-                x: 160, y: 340, width: 1600, height: 280,
+                x: 160, y: 300, width: 1600, height: 360,
                 rotation: 0, opacity: 1,
+                resizing: "fixed",
                 style: { fontSize: 40, textAlign: "center", verticalAlign: "middle", color: "var(--theme-text-primary, #0F172A)", fontFamily: "var(--theme-font-heading, Inter)", fontWeight: "400", fontStyle: "italic", lineHeight: 1.4 }
             },
             "placeholder-attribution": {
@@ -493,8 +515,9 @@ export const DEFAULT_MASTERS = {
                 isPlaceholder: true,
                 placeholderType: "text",
                 content: "<p>— Attribution</p>",
-                x: 160, y: 660, width: 1600, height: 50,
+                x: 160, y: 680, width: 1600, height: 80,
                 rotation: 0, opacity: 1,
+                resizing: "fixed",
                 style: { fontSize: 20, textAlign: "center", verticalAlign: "top", color: "var(--theme-text-secondary, #64748B)", fontFamily: "var(--theme-font-body, Inter)", fontWeight: "500" }
             }
         },
@@ -515,8 +538,9 @@ export const DEFAULT_MASTERS = {
                 isPlaceholder: true,
                 placeholderType: "text",
                 content: "<p>METRIC</p>",
-                x: 160, y: 340, width: 1600, height: 40,
+                x: 160, y: 300, width: 1600, height: 60,
                 rotation: 0, opacity: 1,
+                resizing: "fixed",
                 style: { fontSize: 16, textAlign: "center", verticalAlign: "bottom", color: "var(--theme-text-secondary, #64748B)", fontFamily: "var(--theme-font-body, Inter)", fontWeight: "600", letterSpacing: "0.1em", textTransform: "uppercase" }
             },
             "placeholder-number": {
@@ -525,8 +549,9 @@ export const DEFAULT_MASTERS = {
                 isPlaceholder: true,
                 placeholderType: "text",
                 content: "<p>100%</p>",
-                x: 160, y: 400, width: 1600, height: 200,
+                x: 160, y: 380, width: 1600, height: 260,
                 rotation: 0, opacity: 1,
+                resizing: "fixed",
                 style: { fontSize: 144, textAlign: "center", verticalAlign: "middle", color: "var(--theme-accent-1, #3B82F6)", fontFamily: "var(--theme-font-heading, Inter)", fontWeight: "800", letterSpacing: "-0.02em" }
             },
             "placeholder-description": {
@@ -535,8 +560,9 @@ export const DEFAULT_MASTERS = {
                 isPlaceholder: true,
                 placeholderType: "text",
                 content: "<p>Add context or description for this number</p>",
-                x: 320, y: 620, width: 1280, height: 80,
+                x: 320, y: 660, width: 1280, height: 120,
                 rotation: 0, opacity: 1,
+                resizing: "fixed",
                 style: { fontSize: 24, textAlign: "center", verticalAlign: "top", color: "var(--theme-text-secondary, #64748B)", fontFamily: "var(--theme-font-body, Inter)", fontWeight: "400", lineHeight: 1.4 }
             }
         },
@@ -557,8 +583,9 @@ export const DEFAULT_MASTERS = {
                 isPlaceholder: true,
                 placeholderType: "title",
                 content: "<h1>Click to add title</h1>",
-                x: 100, y: 80, width: 1720, height: 80,
+                x: 100, y: 60, width: 1720, height: 100,
                 rotation: 0, opacity: 1,
+                resizing: "fixed",
                 style: { fontSize: 44, textAlign: "left", verticalAlign: "middle", color: "var(--theme-text-primary, #0F172A)", fontFamily: "var(--theme-font-heading, Inter)", fontWeight: "700", letterSpacing: "-0.01em" }
             },
             "placeholder-col1": {
@@ -567,8 +594,9 @@ export const DEFAULT_MASTERS = {
                 isPlaceholder: true,
                 placeholderType: "body",
                 content: "<p>Column 1</p>",
-                x: 100, y: 200, width: 540, height: 800,
+                x: 100, y: 180, width: 540, height: 840,
                 rotation: 0, opacity: 1,
+                resizing: "fixed",
                 style: { fontSize: 20, textAlign: "left", verticalAlign: "top", color: "var(--theme-text-primary, #0F172A)", fontFamily: "var(--theme-font-body, Inter)", fontWeight: "400", lineHeight: 1.6 }
             },
             "placeholder-col2": {
@@ -577,8 +605,9 @@ export const DEFAULT_MASTERS = {
                 isPlaceholder: true,
                 placeholderType: "text",
                 content: "<p>Column 2</p>",
-                x: 690, y: 200, width: 540, height: 800,
+                x: 690, y: 180, width: 540, height: 840,
                 rotation: 0, opacity: 1,
+                resizing: "fixed",
                 style: { fontSize: 20, textAlign: "left", verticalAlign: "top", color: "var(--theme-text-primary, #0F172A)", fontFamily: "var(--theme-font-body, Inter)", fontWeight: "400", lineHeight: 1.6 }
             },
             "placeholder-col3": {
@@ -587,8 +616,9 @@ export const DEFAULT_MASTERS = {
                 isPlaceholder: true,
                 placeholderType: "text",
                 content: "<p>Column 3</p>",
-                x: 1280, y: 200, width: 540, height: 800,
+                x: 1280, y: 180, width: 540, height: 840,
                 rotation: 0, opacity: 1,
+                resizing: "fixed",
                 style: { fontSize: 20, textAlign: "left", verticalAlign: "top", color: "var(--theme-text-primary, #0F172A)", fontFamily: "var(--theme-font-body, Inter)", fontWeight: "400", lineHeight: 1.6 }
             }
         },
