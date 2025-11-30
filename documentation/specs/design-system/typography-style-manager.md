@@ -628,8 +628,61 @@ async function loadFont(family, weight) {
 
 ---
 
-## 13. Related Documents
+## 13. State Memory System
+
+The Typography Style Manager and typography controls implement a memory system to preserve user preferences. See [Property Memory System](../core/property-memory-system.md) for full specification.
+
+### 13.1 Session Memory
+
+While editing typography, settings are preserved:
+
+| Setting | Remembered |
+|---------|------------|
+| Font Family | ✅ |
+| Font Weight | ✅ |
+| Font Style | ✅ |
+| Font Size | ✅ |
+| Line Height | ✅ |
+| Letter Spacing | ✅ |
+| Text Align | ✅ |
+| Vertical Align | ✅ |
+| Text Decoration | ✅ |
+| Text Transform | ✅ |
+| Active Tab | ✅ |
+
+### 13.2 Persistent Memory (Across Sessions)
+
+Only commonly-reused settings persist to localStorage:
+
+| Setting | Persisted | Reason |
+|---------|-----------|--------|
+| Font Family | ✅ Yes | Users have brand fonts |
+| Font Weight | ✅ Yes | Common preference |
+| Font Style | ✅ Yes | Italic preference |
+| Text Align | ✅ Yes | User preference |
+| Vertical Align | ✅ Yes | User preference |
+| Font Size | ❌ No | Too context-specific |
+| Line Height | ❌ No | Too context-specific |
+| Letter Spacing | ❌ No | Rarely default |
+| Text Decoration | ❌ No | Rarely default |
+| Text Transform | ❌ No | Rarely default |
+
+### 13.3 Storage Key
+
+Typography memory is stored at:
+```
+story.memory.typography
+```
+
+### 13.4 Text Color Memory
+
+Text color uses the fill memory system with context key `fill.text`. This is separate from object fills and stroke colors.
+
+---
+
+## 14. Related Documents
 - [Design System UX Guide](./design-system-ux-guide.md) - Mental model and user experience
+- [Property Memory System](../core/property-memory-system.md) - Memory persistence rules
 - [Property Inspector: Typography](../property-inspector/property-inspector-typography.md)
 - [Slide Master System](../slides/slide-master-system.md)
 - [UI Design System](./ui-design-system.md)

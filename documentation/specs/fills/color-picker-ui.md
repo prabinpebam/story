@@ -255,3 +255,67 @@ The list of supported blend modes is defined in `src/core/constants/BlendModes.j
 | **Fill Type Switch** | ✔️ | ✔️ | ✔️ | ✔️ | ✔️ |
 | **Libraries** | ✔️ | ✔️ | ✔️ | ✔️ | ✔️ |
 
+---
+
+## State Memory System
+
+The Color Picker implements a memory system to preserve user settings. See [Property Memory System](../core/property-memory-system.md) for full specification.
+
+### Session Memory (Flyout Open)
+
+While the flyout remains open, **all fill modes preserve their state**:
+
+| Mode | Remembered During Session |
+|------|---------------------------|
+| **Solid** | Color, Opacity |
+| **Gradient** | Type, Stops (shared), Angle, Settings |
+| **Image** | Asset, Scale Mode, Position, Adjustments |
+| **Video** | Asset, Scale Mode, Playback, Adjustments |
+| **Code** | Code, Preset ID |
+
+**Key Behaviors:**
+- Switching tabs (Solid → Gradient → Image → Solid) preserves each mode's state
+- Gradient stops are **shared across all gradient types** (Linear, Radial, Angular, Diamond)
+- User can freely explore modes without losing work
+
+### Persistent Memory (Across Sessions)
+
+When the flyout closes, only certain data persists to localStorage:
+
+| Mode | Persisted | Reason |
+|------|-----------|--------|
+| **Solid** | ✅ Yes | Small data, frequently reused |
+| **Gradient** | ✅ Yes | Complex to recreate |
+| **Image** | ❌ No | Asset may not exist |
+| **Video** | ❌ No | Asset may not exist |
+| **Code** | ✅ Yes | Complex to recreate |
+
+### Context Separation
+
+Each property context maintains **independent memory**:
+
+| Context | Storage Key |
+|---------|-------------|
+| Object Fill | `story.memory.fill.object` |
+| Slide Fill | `story.memory.fill.slide` |
+| Text Color | `story.memory.fill.text` |
+| Stroke Color | `story.memory.stroke.object` |
+| Shadow Color | `story.memory.effect.shadow` |
+| Glow Color | `story.memory.effect.glow` |
+
+Editing the stroke color does **not** affect fill color memory, and vice versa.
+
+### Gradient Stop Behavior
+
+**Critical Rule:** Gradient stops are shared across all gradient types within a context.
+
+```
+User creates stops: Red → Green → Blue
+Linear gradient: Uses Red → Green → Blue
+Switch to Radial: Still Red → Green → Blue
+Switch to Angular: Still Red → Green → Blue
+```
+
+This allows users to quickly try different gradient shapes with the same color progression.
+
+

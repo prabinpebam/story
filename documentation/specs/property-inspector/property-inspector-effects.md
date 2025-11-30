@@ -65,3 +65,59 @@ For `Layer Blur` and `Background Blur`.
 - **Opening**: Clicking the Effect Icon or Name in the stack opens the modal anchored to the left of the row.
 - **Closing**: Clicking the Close (X) button, clicking the row again, or clicking outside the modal/inspector.
 - **Live Updates**: Changes in the modal are reflected immediately on the canvas.
+
+## 4. Effects Memory System
+
+The Effects system implements a memory system to preserve user preferences. See [Property Memory System](../core/property-memory-system.md) for full specification.
+
+### 4.1 Session Memory (Within Session)
+
+When adding new effects, the system remembers the last-used settings:
+
+| Effect Type | Remembered Settings |
+|-------------|---------------------|
+| Drop Shadow | X, Y, Blur, Spread, Color, Opacity, Blend Mode |
+| Inner Shadow | X, Y, Blur, Spread, Color, Opacity, Blend Mode |
+| Layer Blur | Blur Radius |
+| Background Blur | Blur Radius |
+
+**Behavior:**
+- When user adds a new Drop Shadow, it uses settings from last Drop Shadow
+- Each effect type has its own memory slot
+- Settings are preserved for the session
+
+### 4.2 Persistent Memory (Across Sessions)
+
+Only commonly-reused effect settings persist to localStorage:
+
+| Setting | Persisted | Reason |
+|---------|-----------|--------|
+| Shadow Color | ✅ Yes | Users have brand colors |
+| Shadow Opacity | ✅ Yes | Common preference |
+| Blend Mode | ✅ Yes | Common preference |
+| Shadow X/Y | ❌ No | Too context-specific |
+| Shadow Blur | ❌ No | Too context-specific |
+| Shadow Spread | ❌ No | Too context-specific |
+| Blur Radius | ❌ No | Too context-specific |
+
+### 4.3 Storage Keys
+
+Effects memory is stored at:
+```
+story.memory.effects.dropShadow
+story.memory.effects.innerShadow
+story.memory.effects.layerBlur
+story.memory.effects.backgroundBlur
+```
+
+### 4.4 Effect Styles
+
+Effect Styles (saved presets) are persisted separately from memory:
+```
+story.styles.effects
+```
+
+## 5. Related Documents
+- [Property Memory System](../core/property-memory-system.md) - Memory persistence rules
+- [Property Inspector Overview](./property-inspector-overview.md)
+- [Design System UX Guide](../design-system/design-system-ux-guide.md)
