@@ -8,11 +8,13 @@ import { FillFlyout } from '../components/FillFlyout/FillFlyout.js';
 import { BlendModes } from '../../core/constants/BlendModes.js';
 import { EmptyState } from '../components/EmptyState.js';
 
+import { CodeRunner } from '../../core/effects/CodeRunner.js';
+
 // Module-level cache for last used values
 const LastUsed = {
     solid: '#D9D9D9',
     gradient: 'linear-gradient(90deg, #000000 0%, #ffffff 100%)',
-    code: '// Code here'
+    code: null // Will use CodeRunner.DEFAULT_CODE when accessed
 };
 
 export class FillSection {
@@ -693,7 +695,8 @@ export class FillSection {
             } else if (updates.type === 'gradient') {
                 fill.value = LastUsed.gradient;
             } else if (updates.type === 'code') {
-                fill.value = LastUsed.code;
+                fill.value = LastUsed.code || CodeRunner.DEFAULT_CODE;
+                fill.code = LastUsed.code || CodeRunner.DEFAULT_CODE;
             }
         }
         
