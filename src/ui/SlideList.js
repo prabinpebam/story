@@ -1,5 +1,6 @@
 import { store } from '../core/Store.js';
 import { ThumbnailRenderer } from '../core/renderer/ThumbnailRenderer.js';
+import { contextMenuManager, slideThumbnailConfig, masterThumbnailConfig } from './components/ContextMenu/index.js';
 
 export class SlideList {
     constructor(containerId) {
@@ -8,6 +9,10 @@ export class SlideList {
     }
 
     init() {
+        // Register context menu zones
+        contextMenuManager.register(slideThumbnailConfig);
+        contextMenuManager.register(masterThumbnailConfig);
+        
         this.render();
 
         // Subscribe to store
@@ -142,8 +147,75 @@ export class SlideList {
         item.addEventListener('click', () => {
             store.dispatch('SET_ACTIVE_MASTER', id);
         });
+        
+        // Context Menu Handler (right-click)
+        item.addEventListener('contextmenu', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            // Select this master if not already active
+            if (id !== state.editor.activeMasterId) {
+                store.dispatch('SET_ACTIVE_MASTER', id);
+            }
+            
+            contextMenuManager.show('master-thumbnail', e.clientX, e.clientY, {
+                masterId: id,
+                master: slideOrMaster,
+                isTheme: isMasterRoot,
+                isActive,
+                startRename: () => this.startMasterRename(item, titleText, id)
+            });
+        });
 
         return item;
+    }
+    
+    /**
+     * Start inline rename for a master/layout
+     */
+    startMasterRename(item, titleElement, masterId) {
+        const currentName = titleElement.innerText;
+        
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.value = currentName;
+        input.className = 'slide-rename-input';
+        input.style.cssText = `
+            font-size: var(--font-size-sm);
+            font-weight: inherit;
+            color: var(--color-text-primary);
+            background: var(--color-bg-secondary);
+            border: 1px solid var(--color-accent);
+            border-radius: var(--radius-sm);
+            padding: 2px 4px;
+            width: 100%;
+            outline: none;
+        `;
+        
+        titleElement.style.display = 'none';
+        titleElement.parentNode.appendChild(input);
+        input.focus();
+        input.select();
+        
+        const finishRename = () => {
+            const newName = input.value.trim();
+            if (newName && newName !== currentName) {
+                store.dispatch('RENAME_MASTER', { id: masterId, name: newName });
+            }
+            input.remove();
+            titleElement.style.display = '';
+        };
+        
+        input.addEventListener('blur', finishRename);
+        input.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                finishRename();
+            } else if (e.key === 'Escape') {
+                input.value = currentName;
+                finishRename();
+            }
+        });
     }
 
     renderSlideList(state) {
@@ -248,6 +320,27 @@ export class SlideList {
                 item.addEventListener('click', (e) => {
                     store.dispatch('SET_ACTIVE_SLIDE', slideId);
                     store.dispatch('SELECT_SLIDE', { id: slideId, multi: e.ctrlKey || e.metaKey });
+                });
+                
+                // Context Menu Handler (right-click)
+                item.addEventListener('contextmenu', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    
+                    // Select this slide if not already selected
+                    if (!state.editor.selectedSlideIds?.includes(slideId)) {
+                        store.dispatch('SET_ACTIVE_SLIDE', slideId);
+                        store.dispatch('SELECT_SLIDE', { id: slideId, multi: e.ctrlKey || e.metaKey });
+                    }
+                    
+                    contextMenuManager.show('slide-thumbnail', e.clientX, e.clientY, {
+                        slideId,
+                        slide,
+                        slideIndex: index,
+                        isActive,
+                        selectedSlideIds: state.editor.selectedSlideIds || [slideId],
+                        startRename: () => this.startSlideRename(item, slideTitle, slideId)
+                    });
                 });
 
                 // Drag and Drop
@@ -430,5 +523,56 @@ export class SlideList {
         }
 
         this.container.appendChild(list);
+    }
+    
+    /**
+     * Start inline rename for a slide
+     */
+    startSlideRename(item, titleElement, slideId) {
+        const state = store.getState();
+        const slide = state.slides[slideId];
+        const currentName = slide?.title || titleElement.innerText;
+        
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.value = currentName;
+        input.className = 'slide-rename-input';
+        input.style.cssText = `
+            font-size: var(--font-size-md);
+            font-weight: var(--font-weight-medium);
+            color: var(--color-text-primary);
+            background: var(--color-bg-secondary);
+            border: 1px solid var(--color-accent);
+            border-radius: var(--radius-sm);
+            padding: 2px 4px;
+            flex: 1;
+            min-width: 0;
+            outline: none;
+        `;
+        
+        titleElement.style.display = 'none';
+        titleElement.parentNode.appendChild(input);
+        input.focus();
+        input.select();
+        
+        const finishRename = () => {
+            const newName = input.value.trim();
+            if (newName && newName !== currentName) {
+                store.dispatch('RENAME_SLIDE', { id: slideId, title: newName });
+            }
+            input.remove();
+            titleElement.style.display = '';
+        };
+        
+        input.addEventListener('blur', finishRename);
+        input.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                finishRename();
+            } else if (e.key === 'Escape') {
+                input.value = currentName;
+                finishRename();
+            }
+        });
     }
 }
