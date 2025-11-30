@@ -393,13 +393,13 @@ export class TextSection {
              this.fillPreview.style.backgroundImage = `url(${fill.value.src})`;
              this.fillPreview.style.backgroundSize = 'cover';
              this.fillPreview.style.backgroundColor = 'transparent';
-             this.fillPreview.style.boxShadow = 'inset 0 0 0 1px rgba(0, 0, 0, 0.6)';
+             this.fillPreview.style.boxShadow = 'inset 0 0 0 1px rgba(0, 0, 0, 0.3)';
              this._currentFillColor = null;
              this.fillHexInput.value = 'Image';
              this.fillHexInput.disabled = true;
         } else if (fill.type === 'gradient') {
              this.fillPreview.style.background = this.getGradientCss(fill.value);
-             this.fillPreview.style.boxShadow = 'inset 0 0 0 1px rgba(0, 0, 0, 0.6)';
+             this.fillPreview.style.boxShadow = 'inset 0 0 0 1px rgba(0, 0, 0, 0.3)';
              this._currentFillColor = null;
              this.fillHexInput.value = 'Gradient';
              this.fillHexInput.disabled = true;
@@ -407,7 +407,7 @@ export class TextSection {
              this.fillPreview.style.background = 'var(--color-bg-app)';
              this.fillPreview.style.backgroundImage = 'linear-gradient(45deg, var(--color-surface-tertiary) 25%, transparent 25%), linear-gradient(-45deg, var(--color-surface-tertiary) 25%, transparent 25%), linear-gradient(45deg, transparent 75%, var(--color-surface-tertiary) 75%), linear-gradient(-45deg, transparent 75%, var(--color-surface-tertiary) 75%)';
              this.fillPreview.style.backgroundSize = '8px 8px';
-             this.fillPreview.style.boxShadow = 'inset 0 0 0 1px rgba(0, 0, 0, 0.6)';
+             this.fillPreview.style.boxShadow = 'inset 0 0 0 1px rgba(0, 0, 0, 0.3)';
              this._currentFillColor = null;
              this.fillHexInput.value = 'Code';
              this.fillHexInput.disabled = true;
@@ -925,7 +925,7 @@ export class TextSection {
      */
     updateSwatchBorder(preview, color, isHover = false) {
         const isDark = this.isColorDark(color);
-        const opacity = isHover ? 1 : 0.6;
+        const opacity = isHover ? 1 : 0.3;
         preview.style.border = 'none';
         preview.style.boxShadow = isDark 
             ? `inset 0 0 0 1px rgba(255, 255, 255, ${opacity})`

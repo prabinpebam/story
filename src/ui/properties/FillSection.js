@@ -327,7 +327,7 @@ export class FillSection {
              preview.style.backgroundImage = `url(${fill.value})`;
              preview.style.backgroundSize = 'cover';
              // Use a neutral border for images
-             preview.style.boxShadow = 'inset 0 0 0 1px rgba(0, 0, 0, 0.6)';
+             preview.style.boxShadow = 'inset 0 0 0 1px rgba(0, 0, 0, 0.3)';
         } else if (fill.type === 'gradient') {
              if (typeof fill.value === 'string') {
                  preview.style.background = fill.value;
@@ -335,15 +335,15 @@ export class FillSection {
                  preview.style.background = this.getGradientCss(fill.value);
              }
              // Use a neutral border for gradients
-             preview.style.boxShadow = 'inset 0 0 0 1px rgba(0, 0, 0, 0.6)';
+             preview.style.boxShadow = 'inset 0 0 0 1px rgba(0, 0, 0, 0.3)';
         } else if (fill.type === 'code') {
              preview.style.backgroundColor = 'var(--color-surface-tertiary)';
              preview.innerHTML = '<i class="fa-solid fa-code" style="font-size: 10px; color: var(--color-text-primary);"></i>';
-             preview.style.boxShadow = 'inset 0 0 0 1px rgba(0, 0, 0, 0.6)';
+             preview.style.boxShadow = 'inset 0 0 0 1px rgba(0, 0, 0, 0.3)';
         } else if (fill.type === 'video') {
              preview.style.backgroundColor = 'var(--color-surface-tertiary)';
              preview.innerHTML = '<i class="fa-solid fa-play" style="font-size: 10px; color: var(--color-text-primary);"></i>';
-             preview.style.boxShadow = 'inset 0 0 0 1px rgba(0, 0, 0, 0.6)';
+             preview.style.boxShadow = 'inset 0 0 0 1px rgba(0, 0, 0, 0.3)';
         } else {
              swatchColor = fill.color || fill.value || '#000000';
              preview.style.backgroundColor = swatchColor;
@@ -363,7 +363,7 @@ export class FillSection {
             if (fill.type === 'solid' || !fill.type) {
                 this.updateSwatchBorder(preview, swatchColor, false);
             } else {
-                preview.style.boxShadow = 'inset 0 0 0 1px rgba(0, 0, 0, 0.6)';
+                preview.style.boxShadow = 'inset 0 0 0 1px rgba(0, 0, 0, 0.3)';
             }
         });
 
@@ -971,7 +971,7 @@ export class FillSection {
      */
     updateSwatchBorder(preview, color, isHover = false) {
         const isDark = this.isColorDark(color);
-        const opacity = isHover ? 1 : 0.6;
+        const opacity = isHover ? 1 : 0.3;
         preview.style.border = 'none';
         preview.style.boxShadow = isDark 
             ? `inset 0 0 0 1px rgba(255, 255, 255, ${opacity})`

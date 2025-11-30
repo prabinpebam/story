@@ -44,8 +44,8 @@ export class ColorInput {
     updateSwatchBorder(swatch, color) {
         const isDark = this.isColorDark(color);
         swatch.style.boxShadow = isDark 
-            ? 'inset 0 0 0 1px rgba(255, 255, 255, 0.6)'
-            : 'inset 0 0 0 1px rgba(0, 0, 0, 0.6)';
+            ? 'inset 0 0 0 1px rgba(255, 255, 255, 0.3)'
+            : 'inset 0 0 0 1px rgba(0, 0, 0, 0.3)';
         swatch._isDark = isDark;
     }
 

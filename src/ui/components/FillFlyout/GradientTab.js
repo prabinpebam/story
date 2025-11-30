@@ -443,7 +443,7 @@ export class GradientTab {
             const swatch = document.createElement('div');
             swatch.style.width = 'var(--swatch-size-md)';
             swatch.style.height = 'var(--swatch-size-md)';
-            swatch.style.borderRadius = 'var(--radius-xs)';
+            swatch.style.borderRadius = 'var(--radius-sm)';
             swatch.style.backgroundColor = stop.color;
             swatch.style.border = 'var(--swatch-border)';
             swatch.style.cursor = 'pointer';

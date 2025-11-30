@@ -219,7 +219,7 @@ export class StrokeSection {
         if (stroke.type === 'gradient') {
              preview.style.background = stroke.value || 'linear-gradient(90deg, #000000 0%, #ffffff 100%)';
              // Use a neutral border for gradients
-             preview.style.boxShadow = 'inset 0 0 0 1px rgba(0, 0, 0, 0.6)';
+             preview.style.boxShadow = 'inset 0 0 0 1px rgba(0, 0, 0, 0.3)';
         } else {
              preview.style.backgroundColor = swatchColor;
              this.updateSwatchBorder(preview, swatchColor, false);
@@ -236,7 +236,7 @@ export class StrokeSection {
         });
         swatch.addEventListener('mouseleave', () => {
             if (stroke.type === 'gradient') {
-                preview.style.boxShadow = 'inset 0 0 0 1px rgba(0, 0, 0, 0.6)';
+                preview.style.boxShadow = 'inset 0 0 0 1px rgba(0, 0, 0, 0.3)';
             } else {
                 this.updateSwatchBorder(preview, swatchColor, false);
             }
@@ -666,7 +666,7 @@ export class StrokeSection {
      */
     updateSwatchBorder(preview, color, isHover = false) {
         const isDark = this.isColorDark(color);
-        const opacity = isHover ? 1 : 0.6;
+        const opacity = isHover ? 1 : 0.3;
         preview.style.border = 'none';
         preview.style.boxShadow = isDark 
             ? `inset 0 0 0 1px rgba(255, 255, 255, ${opacity})`

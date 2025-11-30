@@ -528,13 +528,13 @@
     flex-shrink: 0;
     position: relative;
     /* Default: dark inset border for light colors */
-    box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.6);
+    box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.3);
     transition: box-shadow var(--transition-fast);
 }
 
 /* Dark swatch variant - white border */
 .swatch--dark {
-    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.6);
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.3);
 }
 
 .swatch:hover {
@@ -579,11 +579,11 @@
 
 /* Swatch without hover effect (for inline contexts) */
 .swatch--static:hover {
-    box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.6);
+    box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.3);
 }
 
 .swatch--static.swatch--dark:hover {
-    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.6);
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.3);
 }
 
 /* Swatch in circular form (theme cards) */
@@ -612,12 +612,12 @@
     transition: box-shadow var(--transition-fast);
     position: relative;
     /* Default: dark inset border for light colors */
-    box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.6);
+    box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.3);
 }
 
 /* Dark swatch variant - white border */
 .theme-color-swatch--dark {
-    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.6);
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.3);
 }
 
 .theme-color-swatch:hover {
