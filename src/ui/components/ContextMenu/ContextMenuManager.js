@@ -48,11 +48,18 @@ class ContextMenuManager {
 
     /**
      * Register a menu configuration for a specific zone
-     * @param {string} zoneId - Unique identifier for the zone
-     * @param {MenuConfig} config - Menu configuration
+     * @param {string|MenuConfig} zoneIdOrConfig - Zone ID or config object with zone property
+     * @param {MenuConfig} [config] - Menu configuration (if first param is zone ID)
      */
-    register(zoneId, config) {
-        this.menuConfigs.set(zoneId, config);
+    register(zoneIdOrConfig, config) {
+        // Support both register('zone', config) and register(configWithZone)
+        if (typeof zoneIdOrConfig === 'object' && zoneIdOrConfig.zone) {
+            this.menuConfigs.set(zoneIdOrConfig.zone, zoneIdOrConfig);
+        } else if (typeof zoneIdOrConfig === 'string' && config) {
+            this.menuConfigs.set(zoneIdOrConfig, config);
+        } else {
+            console.warn('ContextMenuManager: Invalid register call', zoneIdOrConfig);
+        }
     }
 
     /**
