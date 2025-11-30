@@ -502,4 +502,100 @@ return {
     }
 };`.trim();
     }
+    
+    /**
+     * Capture a single frame from code fill
+     * Creates a temporary canvas, runs the code once at t=0, and returns the canvas
+     * @param {string} code - The user code to execute
+     * @param {number} width - Canvas width
+     * @param {number} height - Canvas height
+     * @param {number} [time=0] - Time value to pass to draw function
+     * @returns {HTMLCanvasElement|null} - Canvas with rendered frame, or null on error
+     */
+    static captureFrame(code, width, height, time = 0) {
+        if (!code) return null;
+        
+        const canvas = document.createElement('canvas');
+        canvas.width = Math.floor(width);
+        canvas.height = Math.floor(height);
+        const ctx = canvas.getContext('2d');
+        
+        // Create mock mouse object
+        const mouse = { x: 0, y: 0, isDown: false };
+        
+        try {
+            let func;
+            let result;
+            let success = false;
+            
+            // Attempt 1: Try to interpret as an object literal
+            try {
+                func = new Function('ctx', 'canvas', 'width', 'height', 'time', 'mouse', `return (${code}\n);`);
+                result = func(ctx, canvas, canvas.width, canvas.height, time, mouse);
+                if (result && typeof result.draw === 'function') {
+                    success = true;
+                }
+            } catch (e) {
+                // Fall back to statement mode
+            }
+            
+            // Attempt 2: Interpret as statements
+            if (!success) {
+                try {
+                    func = new Function('ctx', 'canvas', 'width', 'height', 'time', 'mouse', `
+                        ${code}
+                        if (typeof draw === 'function') return { draw };
+                        return null;
+                    `);
+                    result = func(ctx, canvas, canvas.width, canvas.height, time, mouse);
+                } catch (e) {
+                    console.warn('CodeRunner.captureFrame: Compilation error', e);
+                    return null;
+                }
+            }
+            
+            if (result && typeof result.draw === 'function') {
+                // Call init() if it exists
+                if (typeof result.init === 'function') {
+                    try {
+                        result.init.call(result);
+                    } catch (e) {
+                        console.warn('CodeRunner.captureFrame: Error in init', e);
+                    }
+                }
+                
+                // Reset transform and draw single frame
+                try {
+                    if (ctx.setTransform) {
+                        ctx.setTransform(1, 0, 0, 1, 0, 0);
+                    }
+                } catch (e) {
+                    // Ignore transform errors (may happen in test environments)
+                }
+                
+                try {
+                    result.draw.call(result, time);
+                } catch (e) {
+                    console.warn('CodeRunner.captureFrame: Error in draw', e);
+                    // Still return the canvas even if draw failed
+                }
+                
+                // Call cleanup if provided
+                if (typeof result.cleanup === 'function') {
+                    try {
+                        result.cleanup.call(result);
+                    } catch (e) {
+                        // Ignore cleanup errors
+                    }
+                }
+                
+                return canvas;
+            }
+            
+            return null;
+        } catch (e) {
+            console.warn('CodeRunner.captureFrame: Runtime error', e);
+            return null;
+        }
+    }
 }

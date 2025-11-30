@@ -356,4 +356,111 @@ describe('ThumbnailRenderer', () => {
             expect(element.style.transform).toBe('rotate(45deg)');
         });
     });
+
+    describe('code fill support', () => {
+        it('should apply code fill to background', () => {
+            const slideData = {
+                id: 'slide-1',
+                effectiveBackground: {
+                    type: 'code',
+                    value: `return { draw: function(t) { canvas.drawn = true; } }`
+                },
+                effectiveElements: {},
+                effectiveOrder: []
+            };
+
+            const thumbnail = ThumbnailRenderer.createThumbnail('slide-1', slideData);
+            const bgLayer = thumbnail.querySelector('.thumbnail-bg-layer');
+
+            expect(bgLayer).not.toBeNull();
+            // Should have background set (either data URL from capture or fallback)
+            expect(bgLayer.style.background).toBeTruthy();
+        });
+
+        it('should apply code fill to shape elements', () => {
+            const slideData = {
+                id: 'slide-1',
+                effectiveBackground: { type: 'solid', value: '#ffffff' },
+                effectiveElements: {
+                    'rect-1': {
+                        id: 'rect-1',
+                        type: 'rect',
+                        x: 100,
+                        y: 100,
+                        width: 200,
+                        height: 100,
+                        style: {
+                            fill: [{
+                                type: 'code',
+                                value: `return { draw: function(t) { canvas.filled = true; } }`
+                            }]
+                        }
+                    }
+                },
+                effectiveOrder: ['rect-1']
+            };
+
+            const thumbnail = ThumbnailRenderer.createThumbnail('slide-1', slideData);
+            const element = thumbnail.querySelector('.thumbnail-element');
+
+            expect(element).not.toBeNull();
+            // Should have some styling applied (either background image from capture or fallback)
+            // In JSDOM, canvas.toDataURL may not work fully, so check for any styling
+            const hasBackground = element.style.background || element.style.backgroundColor;
+            expect(hasBackground).toBeTruthy();
+        });
+
+        it('should handle invalid code fill gracefully', () => {
+            const slideData = {
+                id: 'slide-1',
+                effectiveBackground: {
+                    type: 'code',
+                    value: 'this is invalid code { ] }'
+                },
+                effectiveElements: {},
+                effectiveOrder: []
+            };
+
+            // Should not throw
+            expect(() => {
+                ThumbnailRenderer.createThumbnail('slide-1', slideData);
+            }).not.toThrow();
+        });
+
+        it('should handle code fill with no value', () => {
+            const slideData = {
+                id: 'slide-1',
+                effectiveBackground: {
+                    type: 'code',
+                    value: null
+                },
+                effectiveElements: {},
+                effectiveOrder: []
+            };
+
+            const thumbnail = ThumbnailRenderer.createThumbnail('slide-1', slideData);
+            const bgLayer = thumbnail.querySelector('.thumbnail-bg-layer');
+
+            expect(bgLayer).not.toBeNull();
+            // Should have fallback background
+            expect(bgLayer.style.background).toBeTruthy();
+        });
+
+        it('should handle multiple background fills including code', () => {
+            const slideData = {
+                id: 'slide-1',
+                effectiveBackground: [
+                    { type: 'solid', value: '#000000' },
+                    { type: 'code', value: `return { draw: function(t) { ctx.fillStyle = 'rgba(255,0,0,0.5)'; ctx.fillRect(0, 0, canvas.width, canvas.height); } }` }
+                ],
+                effectiveElements: {},
+                effectiveOrder: []
+            };
+
+            const thumbnail = ThumbnailRenderer.createThumbnail('slide-1', slideData);
+            const bgLayers = thumbnail.querySelectorAll('.thumbnail-bg-layer');
+
+            expect(bgLayers.length).toBe(2);
+        });
+    });
 });

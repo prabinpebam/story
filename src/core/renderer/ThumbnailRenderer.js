@@ -15,6 +15,7 @@
 
 import { SlideView } from './SlideView.js';
 import { store } from '../Store.js';
+import { CodeRunner } from '../effects/CodeRunner.js';
 
 /**
  * Default thumbnail dimensions
@@ -186,9 +187,8 @@ class ThumbnailRendererClass {
                     layer.style.background = `url(${fill.value}) center/cover no-repeat`;
                     break;
                 case 'code':
-                    // Show pattern placeholder for code backgrounds
-                    // (Can't run code in thumbnails for performance)
-                    layer.style.background = 'repeating-linear-gradient(45deg, var(--color-surface-secondary) 0, var(--color-surface-secondary) 10px, var(--color-surface-tertiary) 10px, var(--color-surface-tertiary) 20px)';
+                    // Capture a single frame from the code fill
+                    this._applyCodeFill(layer, fill, THUMBNAIL_WIDTH, THUMBNAIL_HEIGHT);
                     break;
                 default:
                     layer.style.backgroundColor = '#ffffff';
@@ -351,6 +351,9 @@ class ThumbnailRendererClass {
                 container.style.background = this._getGradientCss(fill.value);
             } else if (fill.type === 'image') {
                 container.style.background = `url(${fill.value}) center/cover no-repeat`;
+            } else if (fill.type === 'code') {
+                // Capture code fill for shape element
+                this._applyCodeFill(container, fill, el.width || 192, el.height || 108);
             }
         } else if (style.backgroundColor) {
             container.style.backgroundColor = style.backgroundColor;
@@ -461,6 +464,54 @@ class ThumbnailRendererClass {
                 return `conic-gradient(from ${gradient.angle || 0}deg at center, ${stops})`;
             default:
                 return `linear-gradient(90deg, ${stops})`;
+        }
+    }
+
+    /**
+     * Apply a code fill to a layer element.
+     * Captures a single frame from the code and displays it as an image.
+     * 
+     * @param {HTMLElement} layer - The layer element to apply the fill to
+     * @param {Object} fill - The fill object with code property
+     * @param {number} width - Width for the capture canvas
+     * @param {number} height - Height for the capture canvas
+     * @private
+     */
+    _applyCodeFill(layer, fill, width, height) {
+        const code = fill.value || fill.code;
+        if (!code) {
+            // Fallback to placeholder if no code
+            layer.style.background = 'var(--color-surface-secondary)';
+            return;
+        }
+        
+        try {
+            // Capture a single frame at t=0
+            const canvas = CodeRunner.captureFrame(code, width, height, 0);
+            
+            if (canvas) {
+                // Convert to data URL and use as background image
+                try {
+                    const dataUrl = canvas.toDataURL('image/png');
+                    // Check for valid data URL (JSDOM may return empty 'data:,')
+                    if (dataUrl && dataUrl.length > 10 && dataUrl !== 'data:,') {
+                        layer.style.background = `url(${dataUrl}) center/cover no-repeat`;
+                    } else {
+                        // Invalid data URL, use fallback pattern
+                        layer.style.background = 'linear-gradient(135deg, var(--color-surface-secondary) 25%, var(--color-surface-tertiary) 25%, var(--color-surface-tertiary) 50%, var(--color-surface-secondary) 50%, var(--color-surface-secondary) 75%, var(--color-surface-tertiary) 75%)';
+                        layer.style.backgroundSize = '20px 20px';
+                    }
+                } catch (e) {
+                    // toDataURL failed, use fallback
+                    layer.style.background = 'var(--color-surface-secondary)';
+                }
+            } else {
+                // Code didn't render properly, show error indicator
+                layer.style.background = 'repeating-linear-gradient(45deg, rgba(255,0,0,0.1) 0, rgba(255,0,0,0.1) 10px, rgba(200,0,0,0.1) 10px, rgba(200,0,0,0.1) 20px)';
+            }
+        } catch (e) {
+            console.warn('ThumbnailRenderer: Error capturing code fill', e);
+            layer.style.background = 'var(--color-surface-secondary)';
         }
     }
 
