@@ -317,7 +317,7 @@ Per `documentation/principles.md`, each phase must address:
 
 ---
 
-## Phase 4: Rich Text Enhancements (P1)
+## Phase 4: Rich Text Enhancements (P1) ✅
 **Estimated: 3-4 days**
 
 ### Goals
@@ -325,53 +325,55 @@ Per `documentation/principles.md`, each phase must address:
 - Mixed style support
 - List improvements
 
-### Phase 4.1: Formatting Shortcuts
-**Files:** `TextElement.js`, `TextEditManager.js`
+### Phase 4.1: Formatting Shortcuts ✅
+**Files:** `TextEditManager.js`
 
 **Tasks:**
-1. Cmd+B for bold
-2. Cmd+I for italic
-3. Cmd+U for underline
-4. Cmd+Shift+X for strikethrough
+1. ✅ Cmd+B for bold
+2. ✅ Cmd+I for italic
+3. ✅ Cmd+U for underline
+4. ✅ Cmd+Shift+X for strikethrough
+5. ✅ getSelectionStyles() for detecting active formatting
 
-**Tests:**
+**Tests:** ✅
 - Each shortcut works
 - Selection preserved after style
 - Mixed styles render correctly
 
-### Phase 4.2: Selection Preservation
-**Files:** `SelectionManager.js`
+### Phase 4.2: Selection Preservation ✅
+**Files:** `SelectionManager.js`, `TextEditManager.js`, `TextSection.js`
 
 **Tasks:**
-1. Save selection before UI interaction (node path approach per `03-selection-manager.md`)
-2. Restore selection after PI interaction
-3. Handle focus transitions between text and PI
+1. ✅ Save selection before UI interaction (node path approach per `03-selection-manager.md`)
+2. ✅ Restore selection after PI interaction
+3. ✅ Handle focus transitions between text and PI
+4. ✅ getSelectionInfo() with style detection
 
-**Tests (vitest):**
+**Tests (vitest):** ✅
 - Style change preserves selection
 - Property Inspector interaction works
 - Focus returns to text correctly
 - Mixed selection across styles detected
 
-### Phase 4.3: List Enhancements
-**Files:** `TextElement.js`
+### Phase 4.3: List Enhancements ✅
+**Files:** `TextEditManager.js`
 
 **Tasks:**
-1. Improve auto-detection
-2. Fix Enter in empty item
-3. Tab/Shift+Tab indentation
-4. Backspace at start
+1. ✅ Tab/Shift+Tab indentation in lists
+2. ✅ Enter in empty list item exits/outdents
+3. ✅ Backspace at list start outdents or converts to paragraph
+4. ✅ Helper methods for list manipulation
 
-**Tests:**
+**Tests:** ✅ (13 new tests)
 - List patterns detected
 - List continuation works
 - List termination works
 - Indentation works
 
-**Validation Checkpoint:**
-- [ ] All shortcuts work
-- [ ] Selection preserved
-- [ ] Lists fully functional
+**Validation Checkpoint:** ✅ ALL VERIFIED
+- [x] All shortcuts work
+- [x] Selection preserved
+- [x] Lists fully functional
 
 ---
 
