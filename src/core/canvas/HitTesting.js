@@ -151,13 +151,13 @@ export class HitTesting {
         }
 
         // 3. Check Rotation (Outside Corners)
+        // Rotation trigger zone is OUTSIDE the resize handle but within rotationThreshold
         const corners = ['nw', 'ne', 'se', 'sw'];
         for (const key of corners) {
             const h = handles[key];
             const dist = Math.sqrt(Math.pow(localX - h.x, 2) + Math.pow(localY - h.y, 2));
-            if (dist <= rotationThreshold) {
-                // We are near corner. Check if we are "outside"
-                // Simple heuristic: if dist > hitThreshold, it's rotation
+            // Only trigger rotation if we're outside the resize handle area but within rotation threshold
+            if (dist > hitThreshold && dist <= rotationThreshold) {
                 return { handle: key, action: 'rotate' };
             }
         }

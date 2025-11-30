@@ -315,6 +315,27 @@
     --shadow-floating: 0 4px 24px rgba(0, 0, 0, 0.35);
     
     /* -------------------------------------------------------------------------
+       CURSOR TOKENS
+       ------------------------------------------------------------------------- */
+    --cursor-default: default;
+    --cursor-pointer: pointer;
+    --cursor-grab: grab;
+    --cursor-grabbing: grabbing;
+    --cursor-crosshair: crosshair;
+    --cursor-text: text;
+    --cursor-move: move;
+    --cursor-not-allowed: not-allowed;
+    --cursor-none: none;
+    
+    /* Resize Cursors */
+    --cursor-resize-ns: ns-resize;
+    --cursor-resize-ew: ew-resize;
+    --cursor-resize-nwse: nwse-resize;
+    --cursor-resize-nesw: nesw-resize;
+    --cursor-resize-col: col-resize;
+    --cursor-resize-row: row-resize;
+    
+    /* -------------------------------------------------------------------------
        TRANSITION TOKENS
        ------------------------------------------------------------------------- */
     --transition-fast: 100ms ease-out;

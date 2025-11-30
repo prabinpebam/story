@@ -130,6 +130,31 @@
     background: rgba(24, 160, 251, 0.3);
 }
 
-/* Cursors */
-body.cursor-select #interaction-canvas { cursor: default; }
-body.cursor-hand #interaction-canvas { cursor: grab; }
+/* =============================================================================
+   CURSOR STATES
+   Managed by CursorManager - uses CSS tokens from variables.css
+   ============================================================================= */
+
+/* Tool-based canvas cursors */
+body.cursor-select #interaction-canvas { cursor: var(--cursor-default); }
+body.cursor-hand #interaction-canvas { cursor: var(--cursor-grab); }
+body.cursor-shape #interaction-canvas { cursor: var(--cursor-crosshair); }
+body.cursor-text #interaction-canvas { cursor: var(--cursor-crosshair); }
+body.cursor-image #interaction-canvas { cursor: var(--cursor-crosshair); }
+
+/* Interaction state cursors */
+body.cursor-hand.is-panning #interaction-canvas { cursor: var(--cursor-grabbing); }
+body.is-dragging #interaction-canvas { cursor: var(--cursor-move); }
+body.is-rotating #interaction-canvas { cursor: var(--cursor-grab); }
+
+/* Global cursor hidden state */
+body.cursor-hidden,
+body.cursor-hidden * {
+    cursor: none !important;
+}
+
+/* Resize handle cursors (applied via inline styles by CursorManager) */
+.resize-handle-n, .resize-handle-s { cursor: var(--cursor-resize-ns); }
+.resize-handle-e, .resize-handle-w { cursor: var(--cursor-resize-ew); }
+.resize-handle-nw, .resize-handle-se { cursor: var(--cursor-resize-nwse); }
+.resize-handle-ne, .resize-handle-sw { cursor: var(--cursor-resize-nesw); }

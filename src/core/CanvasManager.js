@@ -6,6 +6,7 @@ import { HitTesting } from './canvas/HitTesting.js';
 import { SnappingSystem } from './canvas/SnappingSystem.js';
 import { GizmoRenderer } from './canvas/GizmoRenderer.js';
 import { mouseStateManager } from './MouseStateManager.js';
+import { cursorManager } from './CursorManager.js';
 import { mediaAssetManager } from './media/MediaAssetManager.js';
 import { SUPPORTED_IMAGE_FORMATS, SUPPORTED_VIDEO_FORMATS } from './constants/MediaDefaults.js';
 import { contextMenuManager } from '../ui/components/ContextMenu/index.js';
@@ -45,6 +46,7 @@ export class CanvasManager {
         this.initialSelectionBounds = null;
         this.activeHandle = null;
         this.interactionAction = null; // resize, rotate, radius
+        this.initialRotationAngle = null; // Starting mouse angle for rotation
         this.hoveredElementId = null;
         this.isRendering = false;
         this.liveResizeData = null; // Live dimensions during text editing
@@ -400,7 +402,9 @@ export class CanvasManager {
             const rect = this.container.getBoundingClientRect();
             this.lastMouseX = e.clientX - rect.left;
             this.lastMouseY = e.clientY - rect.top;
+            cursorManager.push('grabbing', 'panning');
             this.container.style.cursor = 'grabbing';
+            document.body.classList.add('is-panning');
             return;
         }
 
@@ -444,10 +448,10 @@ export class CanvasManager {
         this.dragStart = { x: mouseX, y: mouseY };
         
         store.dispatch('START_INTERACTION');
-        store.dispatch('UI_INTERACTION_START');
 
         const state = store.getState();
         const slide = this.getActiveContainer(state);
+        const { zoom, pan } = state.editor;
 
         if (hit.id === 'multi-selection') {
             this.initialElementState = {};
@@ -460,6 +464,28 @@ export class CanvasManager {
             const el = slide.elements[hit.id];
             this.initialElementState = { ...el };
             this.initialSelectionBounds = null;
+            
+            // For rotation: calculate initial mouse angle relative to element center
+            if (hit.action === 'rotate' && el) {
+                let absX = el.x;
+                let absY = el.y;
+                
+                if (el.parentId) {
+                    let parent = slide.elements[el.parentId];
+                    while (parent) {
+                        absX += parent.x;
+                        absY += parent.y;
+                        parent = slide.elements[parent.parentId];
+                    }
+                }
+                
+                const cx = absX + el.width / 2;
+                const cy = absY + el.height / 2;
+                const worldMouseX = (mouseX - pan.x) / zoom;
+                const worldMouseY = (mouseY - pan.y) / zoom;
+                
+                this.initialRotationAngle = Math.atan2(worldMouseY - cy, worldMouseX - cx) * 180 / Math.PI;
+            }
         }
         e.stopPropagation();
     }
@@ -480,8 +506,6 @@ export class CanvasManager {
 
         this.interactionState = 'DRAGGING';
         this.dragStart = { x: mouseX, y: mouseY };
-        
-        store.dispatch('UI_INTERACTION_START');
         
         const state = store.getState();
         const slide = this.getActiveContainer(state);
@@ -878,28 +902,27 @@ export class CanvasManager {
         const worldMouseX = (mouseX - pan.x) / zoom;
         const worldMouseY = (mouseY - pan.y) / zoom;
         
-        let angle = Math.atan2(worldMouseY - cy, worldMouseX - cx) * 180 / Math.PI;
-        angle += 90;
+        // Calculate current mouse angle relative to center
+        const currentAngle = Math.atan2(worldMouseY - cy, worldMouseX - cx) * 180 / Math.PI;
         
-        let parentRotation = 0;
-        if (initial.parentId) {
-            let parent = slide.elements[initial.parentId];
-            while (parent) {
-                parentRotation += (parent.rotation || 0);
-                parent = slide.elements[parent.parentId];
-            }
-        }
+        // Calculate delta from initial mouse angle
+        const deltaAngle = currentAngle - this.initialRotationAngle;
         
-        angle -= parentRotation;
+        // Apply delta to initial rotation
+        let newRotation = (initial.rotation || 0) + deltaAngle;
+        
+        // Normalize to -180 to 180 range for cleaner values
+        while (newRotation > 180) newRotation -= 360;
+        while (newRotation < -180) newRotation += 360;
 
         if (e.shiftKey) {
             const snap = 15;
-            angle = Math.round(angle / snap) * snap;
+            newRotation = Math.round(newRotation / snap) * snap;
         }
         
         store.dispatch('UPDATE_ELEMENT', {
             id,
-            rotation: angle
+            rotation: newRotation
         });
     }
 
@@ -1083,24 +1106,39 @@ export class CanvasManager {
 
     _handleIdleHover(mouseX, mouseY, e) {
         const hit = this.hitTest(mouseX, mouseY);
+        const state = store.getState();
+        
         if (hit) {
             if (hit.type === 'handle') {
                 if (hit.action === 'rotate') {
-                    this.container.style.cursor = 'alias';
+                    // Use 'alias' cursor which resembles rotation on most systems
+                    cursorManager.push('alias', 'rotation-handle-hover');
                 } else if (hit.action === 'radius') {
-                    this.container.style.cursor = 'default';
+                    cursorManager.push('default', 'radius-handle-hover');
                 } else {
-                    this.container.style.cursor = 'crosshair';
+                    // Resize handle - get rotation-aware cursor
+                    const slide = this.getActiveContainer(state);
+                    let rotation = 0;
+                    
+                    // Get element rotation for single selection
+                    if (state.editor.selectedElementIds.length === 1) {
+                        const el = slide?.elements[state.editor.selectedElementIds[0]];
+                        rotation = el?.rotation || 0;
+                    }
+                    
+                    cursorManager.pushResizeCursor(hit.handle, rotation, 'resize-handle-hover');
                 }
+                this.container.style.cursor = cursorManager.getCurrentCursor();
             } else {
-                this.container.style.cursor = 'move';
+                // Element hover - show move cursor
+                cursorManager.push('move', 'element-hover');
+                this.container.style.cursor = cursorManager.getCurrentCursor();
             }
             
             if (hit.type === 'element') {
                 let targetId = hit.id;
                 
                 if (!e.ctrlKey && !e.metaKey) {
-                    const state = store.getState();
                     const slide = this.getActiveContainer(state);
                     if (slide) {
                         let el = slide.elements[targetId];
@@ -1116,6 +1154,11 @@ export class CanvasManager {
                 this.hoveredElementId = null;
             }
         } else {
+            // No hit - clear cursor stack and show default
+            cursorManager.pop('rotation-handle-hover');
+            cursorManager.pop('radius-handle-hover');
+            cursorManager.pop('resize-handle-hover');
+            cursorManager.pop('element-hover');
             this.container.style.cursor = 'default';
             this.hoveredElementId = null;
         }
@@ -1140,7 +1183,6 @@ export class CanvasManager {
 
         if (this.interactionState === 'RESIZING' || this.interactionState === 'DRAGGING') {
             store.dispatch('END_INTERACTION');
-            store.dispatch('UI_INTERACTION_END');
         }
 
         this.activeGuides = [];
@@ -1151,6 +1193,10 @@ export class CanvasManager {
 
         this.interactionState = 'IDLE';
         
+        // Clear panning state
+        cursorManager.pop('panning');
+        document.body.classList.remove('is-panning');
+        
         if (this.isSpacePressed || state.editor.activeTool === 'hand') {
             this.container.style.cursor = 'grab';
         } else {
@@ -1159,6 +1205,7 @@ export class CanvasManager {
 
         this.activeHandle = null;
         this.initialElementState = {};
+        this.initialRotationAngle = null;
     }
 
     /**

@@ -1,4 +1,5 @@
 import { store } from '../core/Store.js';
+import { cursorManager } from '../core/CursorManager.js';
 
 export class Toolbar {
     constructor() {
@@ -85,8 +86,8 @@ export class Toolbar {
     }
 
     updateCursor(activeTool) {
-        document.body.classList.remove('cursor-select', 'cursor-hand', 'cursor-shape', 'cursor-text', 'cursor-image');
-        document.body.classList.add(`cursor-${activeTool}`);
+        // Use CursorManager for centralized cursor control
+        cursorManager.setTool(activeTool);
     }
 
     togglePanel(panelName) {

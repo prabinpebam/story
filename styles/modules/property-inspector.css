@@ -127,6 +127,22 @@ select.pi-input option {
     flex-shrink: 0;
 }
 
+/* Ensure icons inside buttons are 16x16 */
+.pi-icon-btn svg {
+    width: var(--icon-size-md);
+    height: var(--icon-size-md);
+    flex-shrink: 0;
+}
+
+.pi-icon-btn i {
+    font-size: var(--icon-size-md);
+    width: var(--icon-size-md);
+    height: var(--icon-size-md);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
 .pi-icon-btn:hover {
     background-color: var(--color-bg-hover);
     color: var(--color-text-primary);

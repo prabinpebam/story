@@ -1,6 +1,7 @@
 import { store } from './core/Store.js';
 import { InputManager } from './core/InputManager.js';
 import { CanvasManager } from './core/CanvasManager.js';
+import { cursorManager } from './core/CursorManager.js';
 import { EditorRenderer } from './core/renderer/EditorRenderer.js';
 import { PresentationRenderer } from './core/renderer/PresentationRenderer.js';
 import { SlideList } from './ui/SlideList.js';
@@ -70,6 +71,9 @@ class App {
     }
 
     init() {
+        
+        // Initialize CursorManager
+        cursorManager.init('#interaction-canvas');
         
         // Initialize Components
         // Pass 'canvas-container' as the wrapper ID
