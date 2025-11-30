@@ -784,21 +784,20 @@ Phase 1 ──► Phase 2 ──► Phase 3 ──► Phase 4 ──► Phase 5
 - [x] Right-click on selected element shows full menu
 - [x] All actions dispatch correctly and are undoable
 
-#### Phase 3: Migrate Existing Menus (2 days)
+#### Phase 3: Migrate Existing Menus (2 days) ✅ COMPLETE
 **Goal**: Replace inline implementations with shared component
 
 | Task | File | Change |
 |------|------|--------|
-| Migrate LayerTree menu | `src/ui/LayerTree.js` | Remove lines 549-725, use ContextMenuManager |
-| Migrate FillLayerBar menu | `src/ui/panels/components/FillLayerBar.js` | Remove lines 70-160 |
-| Remove duplicate CSS | Various | Delete inline menu styles |
+| ✅ Migrate LayerTree menu | `src/ui/LayerTree.js` | Replaced 150+ lines with layerItemConfig |
+| ✅ Migrate FillLayerBar menu | `src/ui/panels/components/FillLayerBar.js` | Replaced 80+ lines with fillLayerConfig |
+| ✅ Migrate CodeFillPanel preset menu | `src/ui/panels/CodeFillPanel.js` | Replaced with presetConfig |
+| ✅ Remove duplicate CSS | `styles/modules/code-fill-panel.css` | Deleted .cfp-context-* styles |
 
 **Exit Criteria**:
-- [ ] LayerTree right-click works identically to before
-- [ ] FillLayerBar right-click works identically to before
-- [ ] No duplicate context menu code in codebase
-
-**Rollback Plan**: Keep old methods commented out until Phase 5 sign-off
+- [x] LayerTree right-click works identically to before
+- [x] FillLayerBar right-click works identically to before
+- [x] No duplicate context menu code in codebase
 
 #### Phase 4: Remaining Zones (3 days)
 **Goal**: Complete all context menu zones

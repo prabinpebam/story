@@ -8,7 +8,7 @@
  * - fill-preset: Code fill panel preset items
  */
 
-import store from '../../../core/Store.js';
+import { store } from '../../../core/Store.js';
 
 /**
  * Layer Item Zone Configuration
