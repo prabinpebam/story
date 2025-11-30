@@ -20,7 +20,8 @@ vi.mock('../../../src/core/Store.js', () => ({
             masters: {}
         })),
         dispatch: vi.fn(),
-        on: vi.fn()
+        on: vi.fn(),
+        getEffectiveSlide: vi.fn(() => null)
     }
 }));
 

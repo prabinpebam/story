@@ -6,6 +6,7 @@ export class LayerTree {
         this.draggedId = null;
         this.dragOverItem = null;
         this.dropPosition = null; // 'before', 'after', 'inside'
+        this.showInheritedElements = true; // Toggle to show/hide inherited elements
         this.init();
     }
 
@@ -17,6 +18,9 @@ export class LayerTree {
         document.addEventListener('dragend', () => {
             this.clearDragState();
         });
+        
+        // Context menu listener
+        this.container.addEventListener('contextmenu', (e) => this.handleContextMenu(e));
     }
 
     clearDragState() {
@@ -35,22 +39,63 @@ export class LayerTree {
     render() {
         const state = store.getState();
         let currentContainer;
+        let effectiveSlide = null;
         
         if (state.editor.mode === 'master') {
             currentContainer = state.masters[state.editor.activeMasterId];
         } else {
             currentContainer = state.slides[state.editor.activeSlideId];
+            // Get effective slide with inherited elements
+            if (this.showInheritedElements) {
+                effectiveSlide = store.getEffectiveSlide(state.editor.activeSlideId);
+            }
         }
         
         this.container.innerHTML = '';
 
-        // Header
+        // Header with toggle for inherited elements
+        const header = document.createElement('div');
+        header.className = 'section-header';
+        header.style.display = 'flex';
+        header.style.alignItems = 'center';
+        header.style.justifyContent = 'space-between';
+        header.style.padding = '0 4px';
+        
         const title = document.createElement('div');
         title.className = 'section-title';
         title.innerText = 'LAYERS';
-        this.container.appendChild(title);
+        header.appendChild(title);
+        
+        // Toggle for showing inherited elements (only in slide mode)
+        if (state.editor.mode !== 'master' && effectiveSlide) {
+            const hasInherited = effectiveSlide.effectiveOrder?.some(id => 
+                effectiveSlide.effectiveElements[id]?.source === 'layout' ||
+                effectiveSlide.effectiveElements[id]?.source === 'theme'
+            );
+            
+            if (hasInherited) {
+                const toggleBtn = document.createElement('i');
+                toggleBtn.className = this.showInheritedElements ? 'fa-solid fa-layer-group' : 'fa-regular fa-layer-group';
+                toggleBtn.title = this.showInheritedElements ? 'Hide inherited layers' : 'Show inherited layers';
+                toggleBtn.style.fontSize = '10px';
+                toggleBtn.style.cursor = 'pointer';
+                toggleBtn.style.color = 'var(--color-text-secondary)';
+                toggleBtn.style.padding = '4px';
+                toggleBtn.onclick = () => {
+                    this.showInheritedElements = !this.showInheritedElements;
+                    this.render();
+                };
+                header.appendChild(toggleBtn);
+            }
+        }
+        
+        this.container.appendChild(header);
 
-        if (!currentContainer || !currentContainer.elementOrder || currentContainer.elementOrder.length === 0) {
+        // Determine what to render
+        const elementsToRender = effectiveSlide?.effectiveElements || currentContainer?.elements || {};
+        const orderToRender = effectiveSlide?.effectiveOrder || currentContainer?.elementOrder || [];
+
+        if (!orderToRender.length) {
             const empty = document.createElement('div');
             empty.innerText = 'No layers';
             empty.style.color = 'var(--color-text-secondary)';
@@ -66,22 +111,88 @@ export class LayerTree {
         list.style.display = 'flex';
         list.style.flexDirection = 'column';
         
-        // Render root elements (Reverse order for UI: Top -> Bottom)
-        // elementOrder is [Back, ..., Front]
-        // We want to render [Front, ..., Back]
-        const rootIds = [...currentContainer.elementOrder].reverse();
+        // Group elements by source
+        const slideElements = [];
+        const layoutElements = [];
+        const themeElements = [];
         
-        rootIds.forEach(id => {
-            const el = currentContainer.elements[id];
-            if (el) {
-                list.appendChild(this.createLayerItem(el, 0, currentContainer, state));
-            }
+        orderToRender.forEach(id => {
+            const el = elementsToRender[id];
+            if (!el) return;
+            
+            const source = el.source || 'slide';
+            if (source === 'theme') themeElements.push(el);
+            else if (source === 'layout') layoutElements.push(el);
+            else slideElements.push(el);
         });
+        
+        // Render in reverse order (Front to Back visually)
+        // Slide elements on top
+        [...slideElements].reverse().forEach(el => {
+            list.appendChild(this.createLayerItem(el, 0, currentContainer, state, effectiveSlide));
+        });
+        
+        // Layout/Theme elements in collapsible sections
+        if (this.showInheritedElements && (layoutElements.length > 0 || themeElements.length > 0)) {
+            // Layout section
+            if (layoutElements.length > 0) {
+                const layoutSection = this.createInheritedSection('Layout', layoutElements, currentContainer, state, effectiveSlide);
+                list.appendChild(layoutSection);
+            }
+            
+            // Theme section
+            if (themeElements.length > 0) {
+                const themeSection = this.createInheritedSection('Theme', themeElements, currentContainer, state, effectiveSlide);
+                list.appendChild(themeSection);
+            }
+        }
 
         this.container.appendChild(list);
     }
+    
+    /**
+     * Create a collapsible section for inherited elements.
+     */
+    createInheritedSection(label, elements, container, state, effectiveSlide) {
+        const section = document.createElement('div');
+        section.className = 'layer-inherited-section';
+        
+        // Section header
+        const header = document.createElement('div');
+        header.className = 'layer-inherited-header';
+        header.style.display = 'flex';
+        header.style.alignItems = 'center';
+        header.style.height = '24px';
+        header.style.padding = '0 8px';
+        header.style.marginTop = '4px';
+        header.style.color = 'var(--color-text-secondary)';
+        header.style.fontSize = '10px';
+        header.style.fontWeight = '500';
+        header.style.textTransform = 'uppercase';
+        header.style.letterSpacing = '0.5px';
+        header.style.borderTop = '1px solid var(--color-border-subtle)';
+        
+        const icon = document.createElement('i');
+        icon.className = 'fa-solid fa-link';
+        icon.style.marginRight = '6px';
+        icon.style.fontSize = '9px';
+        header.appendChild(icon);
+        
+        const text = document.createElement('span');
+        text.textContent = `${label} (${elements.length})`;
+        header.appendChild(text);
+        
+        section.appendChild(header);
+        
+        // Elements
+        [...elements].reverse().forEach(el => {
+            section.appendChild(this.createLayerItem(el, 0, container, state, effectiveSlide, true));
+        });
+        
+        return section;
+    }
 
-    createLayerItem(el, depth, slide, state) {
+    createLayerItem(el, depth, slide, state, effectiveSlide = null, isInherited = false) {
         const container = document.createElement('div');
         container.className = 'layer-item-container';
         
@@ -89,8 +200,12 @@ export class LayerTree {
         item.className = 'layer-item';
         item.dataset.id = el.id;
         item.dataset.parentId = el.parentId || '';
+        item.dataset.source = el.source || 'slide';
+        item.dataset.isPlaceholder = el.isPlaceholder ? 'true' : 'false';
         
         const isSelected = state.editor.selectedElementIds.includes(el.id);
+        const source = el.source || 'slide';
+        isInherited = isInherited || source === 'layout' || source === 'theme';
         
         // Styles
         item.style.display = 'flex';
@@ -99,7 +214,7 @@ export class LayerTree {
         item.style.padding = '0 8px';
         item.style.paddingLeft = `${8 + depth * 16}px`;
         item.style.backgroundColor = isSelected ? 'var(--color-bg-active)' : 'transparent';
-        item.style.color = isSelected ? 'var(--color-accent)' : 'var(--color-text-primary)';
+        item.style.color = isSelected ? 'var(--color-accent)' : (isInherited ? 'var(--color-text-secondary)' : 'var(--color-text-primary)');
         item.style.cursor = 'pointer';
         item.style.fontSize = 'var(--font-size-sm)';
         item.style.userSelect = 'none';
@@ -107,12 +222,24 @@ export class LayerTree {
         item.style.borderRadius = 'var(--radius-sm)';
         item.style.margin = '1px 4px'; // Small gap between items
         item.style.position = 'relative';
+        
+        // Dimmed style for inherited elements
+        if (isInherited) {
+            item.style.opacity = '0.75';
+        }
 
-        // Icon
+        // Icon container
+        const iconContainer = document.createElement('div');
+        iconContainer.style.display = 'flex';
+        iconContainer.style.alignItems = 'center';
+        iconContainer.style.width = '20px';
+        iconContainer.style.marginRight = '6px';
+        iconContainer.style.position = 'relative';
+        
+        // Main icon
         const icon = document.createElement('i');
         icon.style.width = '16px';
         icon.style.textAlign = 'center';
-        icon.style.marginRight = '8px';
         
         // Determine icon based on type and placeholder status
         if (el.isPlaceholder) {
@@ -132,7 +259,36 @@ export class LayerTree {
         else if (el.type === 'image') icon.className = 'fa-regular fa-image';
         else if (el.type === 'group') icon.className = 'fa-solid fa-layer-group';
         
-        item.appendChild(icon);
+        iconContainer.appendChild(icon);
+        
+        // Placeholder badge (small indicator)
+        if (el.isPlaceholder && !isInherited) {
+            const badge = document.createElement('div');
+            badge.style.position = 'absolute';
+            badge.style.right = '-2px';
+            badge.style.bottom = '-2px';
+            badge.style.width = '8px';
+            badge.style.height = '8px';
+            badge.style.borderRadius = '50%';
+            badge.style.backgroundColor = el.hasUserContent ? 'var(--color-success)' : 'var(--color-warning)';
+            badge.style.border = '1px solid var(--color-bg-primary)';
+            badge.title = el.hasUserContent ? 'Has content' : 'Empty placeholder';
+            iconContainer.appendChild(badge);
+        }
+        
+        // Inherited indicator
+        if (isInherited && !el.isPlaceholder) {
+            const linkIcon = document.createElement('i');
+            linkIcon.className = 'fa-solid fa-link';
+            linkIcon.style.position = 'absolute';
+            linkIcon.style.right = '-4px';
+            linkIcon.style.bottom = '-2px';
+            linkIcon.style.fontSize = '7px';
+            linkIcon.style.color = 'var(--color-text-tertiary)';
+            iconContainer.appendChild(linkIcon);
+        }
+        
+        item.appendChild(iconContainer);
 
         // Name (Editable)
         const nameSpan = document.createElement('span');
@@ -164,14 +320,15 @@ export class LayerTree {
         }
         nameSpan.innerText = displayName;
         
-        // Inline Rename
-        nameSpan.ondblclick = (e) => {
-            e.stopPropagation();
-            const input = document.createElement('input');
-            input.type = 'text';
-            input.value = displayName;
-            input.style.width = '100%';
-            input.style.background = 'var(--color-bg-well)';
+        // Inline Rename (only for slide elements, not inherited)
+        if (!isInherited) {
+            nameSpan.ondblclick = (e) => {
+                e.stopPropagation();
+                const input = document.createElement('input');
+                input.type = 'text';
+                input.value = displayName;
+                input.style.width = '100%';
+                input.style.background = 'var(--color-bg-well)';
             input.style.color = 'var(--color-text-primary)';
             input.style.border = 'none';
             input.style.fontSize = '11px';
@@ -194,7 +351,8 @@ export class LayerTree {
             nameSpan.innerHTML = '';
             nameSpan.appendChild(input);
             input.focus();
-        };
+            };
+        }
 
         item.appendChild(nameSpan);
 
@@ -247,11 +405,12 @@ export class LayerTree {
             }
         };
 
-        // Drag & Drop
-        item.draggable = true;
+        // Drag & Drop (only for slide elements, not inherited)
+        item.draggable = !isInherited;
         
-        item.addEventListener('dragstart', (e) => {
-            this.draggedId = el.id;
+        if (!isInherited) {
+            item.addEventListener('dragstart', (e) => {
+                this.draggedId = el.id;
             e.dataTransfer.effectAllowed = 'move';
             item.style.opacity = '0.5';
         });
@@ -365,6 +524,7 @@ export class LayerTree {
             
             this.clearDragState();
         });
+        } // End of !isInherited block for drag handlers
 
         container.appendChild(item);
 
@@ -375,11 +535,224 @@ export class LayerTree {
             childrenIds.forEach(childId => {
                 const child = slide.elements[childId];
                 if (child) {
-                    container.appendChild(this.createLayerItem(child, depth + 1, slide, state));
+                    container.appendChild(this.createLayerItem(child, depth + 1, slide, state, effectiveSlide, isInherited));
                 }
             });
         }
 
         return container;
+    }
+    
+    /**
+     * Handle context menu on layer items.
+     */
+    handleContextMenu(e) {
+        const layerItem = e.target.closest('.layer-item');
+        if (!layerItem) return;
+        
+        e.preventDefault();
+        
+        const elementId = layerItem.dataset.id;
+        const isPlaceholder = layerItem.dataset.isPlaceholder === 'true';
+        const source = layerItem.dataset.source;
+        const isInherited = source === 'layout' || source === 'theme';
+        
+        // Close any existing context menu
+        this.closeContextMenu();
+        
+        // Get element data
+        const state = store.getState();
+        let element;
+        
+        if (state.editor.mode === 'master') {
+            element = state.masters[state.editor.activeMasterId]?.elements?.[elementId];
+        } else {
+            const effectiveSlide = store.getEffectiveSlide(state.editor.activeSlideId);
+            element = effectiveSlide?.effectiveElements?.[elementId];
+        }
+        
+        if (!element) return;
+        
+        // Select the element
+        store.dispatch('UPDATE_SELECTION', [elementId]);
+        
+        // Create context menu
+        const menu = document.createElement('div');
+        menu.className = 'layer-context-menu';
+        menu.style.position = 'fixed';
+        menu.style.left = `${e.clientX}px`;
+        menu.style.top = `${e.clientY}px`;
+        menu.style.backgroundColor = 'var(--color-bg-secondary)';
+        menu.style.border = '1px solid var(--color-border)';
+        menu.style.borderRadius = 'var(--radius-md)';
+        menu.style.padding = '4px 0';
+        menu.style.minWidth = '160px';
+        menu.style.boxShadow = 'var(--shadow-md)';
+        menu.style.zIndex = '10000';
+        
+        // Menu items based on element type
+        const menuItems = [];
+        
+        if (isPlaceholder) {
+            if (element.hasUserContent) {
+                menuItems.push({
+                    label: 'Reset to Master',
+                    icon: 'fa-solid fa-rotate-left',
+                    action: () => this.resetPlaceholderToMaster(elementId, element)
+                });
+            }
+            
+            if (isInherited) {
+                menuItems.push({
+                    label: 'Edit Placeholder',
+                    icon: 'fa-solid fa-pen',
+                    action: () => {
+                        store.dispatch('INSTANTIATE_PLACEHOLDER', { 
+                            placeholderId: elementId,
+                            element: element
+                        });
+                        store.dispatch('SET_EDITING_ELEMENT', { id: elementId, selectionType: 'all' });
+                    }
+                });
+            }
+            
+            menuItems.push({
+                label: element.hidden ? 'Show Placeholder' : 'Hide Placeholder',
+                icon: element.hidden ? 'fa-solid fa-eye' : 'fa-solid fa-eye-slash',
+                action: () => store.dispatch('TOGGLE_ELEMENT_VISIBILITY', { id: elementId })
+            });
+        } else {
+            // Regular element menu items
+            if (!isInherited) {
+                menuItems.push({
+                    label: 'Rename',
+                    icon: 'fa-solid fa-pen',
+                    action: () => this.startRename(layerItem)
+                });
+                
+                menuItems.push({ separator: true });
+                
+                menuItems.push({
+                    label: 'Delete',
+                    icon: 'fa-solid fa-trash',
+                    action: () => store.dispatch('REMOVE_ELEMENT', { id: elementId })
+                });
+            }
+        }
+        
+        // Common items
+        menuItems.push({ separator: true });
+        
+        menuItems.push({
+            label: element.locked ? 'Unlock' : 'Lock',
+            icon: element.locked ? 'fa-solid fa-lock-open' : 'fa-solid fa-lock',
+            action: () => store.dispatch('TOGGLE_ELEMENT_LOCK', { id: elementId })
+        });
+        
+        menuItems.push({
+            label: element.hidden ? 'Show' : 'Hide',
+            icon: element.hidden ? 'fa-solid fa-eye' : 'fa-solid fa-eye-slash',
+            action: () => store.dispatch('TOGGLE_ELEMENT_VISIBILITY', { id: elementId })
+        });
+        
+        // Build menu
+        menuItems.forEach(item => {
+            if (item.separator) {
+                const sep = document.createElement('div');
+                sep.style.height = '1px';
+                sep.style.backgroundColor = 'var(--color-border-subtle)';
+                sep.style.margin = '4px 8px';
+                menu.appendChild(sep);
+            } else {
+                const menuItem = document.createElement('div');
+                menuItem.className = 'layer-context-menu-item';
+                menuItem.style.display = 'flex';
+                menuItem.style.alignItems = 'center';
+                menuItem.style.padding = '6px 12px';
+                menuItem.style.fontSize = '12px';
+                menuItem.style.color = 'var(--color-text-primary)';
+                menuItem.style.cursor = 'pointer';
+                
+                menuItem.addEventListener('mouseenter', () => {
+                    menuItem.style.backgroundColor = 'var(--color-bg-hover)';
+                });
+                menuItem.addEventListener('mouseleave', () => {
+                    menuItem.style.backgroundColor = 'transparent';
+                });
+                
+                if (item.icon) {
+                    const icon = document.createElement('i');
+                    icon.className = item.icon;
+                    icon.style.width = '16px';
+                    icon.style.marginRight = '8px';
+                    icon.style.fontSize = '11px';
+                    icon.style.color = 'var(--color-text-secondary)';
+                    menuItem.appendChild(icon);
+                }
+                
+                const label = document.createElement('span');
+                label.textContent = item.label;
+                menuItem.appendChild(label);
+                
+                menuItem.addEventListener('click', () => {
+                    this.closeContextMenu();
+                    item.action();
+                });
+                
+                menu.appendChild(menuItem);
+            }
+        });
+        
+        document.body.appendChild(menu);
+        this.contextMenu = menu;
+        
+        // Close on click outside
+        const closeHandler = (e) => {
+            if (!menu.contains(e.target)) {
+                this.closeContextMenu();
+                document.removeEventListener('click', closeHandler);
+            }
+        };
+        setTimeout(() => document.addEventListener('click', closeHandler), 0);
+    }
+    
+    /**
+     * Close the context menu.
+     */
+    closeContextMenu() {
+        if (this.contextMenu) {
+            this.contextMenu.remove();
+            this.contextMenu = null;
+        }
+    }
+    
+    /**
+     * Reset a placeholder to its master state.
+     */
+    resetPlaceholderToMaster(elementId, element) {
+        const state = store.getState();
+        const slide = state.slides[state.editor.activeSlideId];
+        if (!slide) return;
+        
+        // Get the original from layout
+        const layout = state.masters[slide.layoutId];
+        const masterElement = layout?.elements?.[elementId];
+        
+        // Dispatch reset action
+        store.dispatch('UPDATE_ELEMENT', {
+            id: elementId,
+            content: masterElement?.content || element.content,
+            hasUserContent: false
+        });
+    }
+    
+    /**
+     * Start inline rename for an element.
+     */
+    startRename(layerItem) {
+        const nameSpan = layerItem.querySelector('span');
+        if (!nameSpan) return;
+        
+        nameSpan.ondblclick?.({ stopPropagation: () => {} });
     }
 }
