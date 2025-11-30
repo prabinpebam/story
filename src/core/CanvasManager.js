@@ -287,7 +287,7 @@ export class CanvasManager {
         }
         
         // Hit test to see if we clicked on an element
-        const hitResult = HitTesting.hitTest(worldX, worldY, container, state.editor.selectedElementIds, zoom);
+        const hitResult = this.hitTest(worldX, worldY);
         
         if (hitResult && hitResult.elementId) {
             // If clicked element is not already selected, select it first
