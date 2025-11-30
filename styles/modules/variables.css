@@ -472,3 +472,72 @@ body.theme-light {
     --text-primary: var(--color-text-primary);
     --text-secondary: var(--color-text-secondary);
 }
+
+/* =============================================================================
+   THEMING LITMUS TEST - Alternative Themes
+   =============================================================================
+   
+   These themes validate that the design system is truly token-based.
+   If switching themes breaks any component, that component has hardcoded values.
+   
+   USAGE:
+   - Add class to html element: <html class="theme-purple">
+   - Can combine with light mode: <html class="theme-purple"> + <body class="theme-light">
+   
+   ============================================================================= */
+
+/* Purple Accent Theme */
+html.theme-purple {
+    --color-accent: #7C3AED;
+    --color-accent-hover: #8B5CF6;
+    --color-accent-active: #6D28D9;
+    --color-accent-subtle: rgba(124, 58, 237, 0.15);
+    --color-accent-muted: rgba(124, 58, 237, 0.25);
+    --color-border-focus: #7C3AED;
+    --color-selection-fill: rgba(124, 58, 237, 0.3);
+    --color-drag-indicator: #7C3AED;
+    --color-info: #7C3AED;
+    --color-info-subtle: rgba(124, 58, 237, 0.15);
+}
+
+/* Teal Accent Theme */
+html.theme-teal {
+    --color-accent: #14B8A6;
+    --color-accent-hover: #2DD4BF;
+    --color-accent-active: #0D9488;
+    --color-accent-subtle: rgba(20, 184, 166, 0.15);
+    --color-accent-muted: rgba(20, 184, 166, 0.25);
+    --color-border-focus: #14B8A6;
+    --color-selection-fill: rgba(20, 184, 166, 0.3);
+    --color-drag-indicator: #14B8A6;
+    --color-info: #14B8A6;
+    --color-info-subtle: rgba(20, 184, 166, 0.15);
+}
+
+/* Orange Accent Theme */
+html.theme-orange {
+    --color-accent: #F97316;
+    --color-accent-hover: #FB923C;
+    --color-accent-active: #EA580C;
+    --color-accent-subtle: rgba(249, 115, 22, 0.15);
+    --color-accent-muted: rgba(249, 115, 22, 0.25);
+    --color-border-focus: #F97316;
+    --color-selection-fill: rgba(249, 115, 22, 0.3);
+    --color-drag-indicator: #F97316;
+    --color-info: #F97316;
+    --color-info-subtle: rgba(249, 115, 22, 0.15);
+}
+
+/* Pink Accent Theme */
+html.theme-pink {
+    --color-accent: #EC4899;
+    --color-accent-hover: #F472B6;
+    --color-accent-active: #DB2777;
+    --color-accent-subtle: rgba(236, 72, 153, 0.15);
+    --color-accent-muted: rgba(236, 72, 153, 0.25);
+    --color-border-focus: #EC4899;
+    --color-selection-fill: rgba(236, 72, 153, 0.3);
+    --color-drag-indicator: #EC4899;
+    --color-info: #EC4899;
+    --color-info-subtle: rgba(236, 72, 153, 0.15);
+}

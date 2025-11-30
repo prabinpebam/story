@@ -1,9 +1,41 @@
 # Design Consistency Audit & Remediation Plan
 
-**Version**: 1.2  
+**Version**: 1.3  
 **Date**: 2024-11-30  
-**Status**: Review  
+**Status**: Implementation Complete  
 **Author**: AI Assistant  
+
+---
+
+## Implementation Status
+
+| Phase | Description | Status |
+|-------|-------------|--------|
+| Phase 1 | Token Update (variables.css) | ✅ Complete |
+| Phase 2 | Fix Inline Styles | ✅ Complete |
+| Phase 3 | Create Shared `.menu-item` Class | ✅ Complete |
+| Phase 4 | Theming Litmus Test | 🔄 Ready for testing |
+| Phase 5 | Multi-Theme Architecture | 📋 Planned |
+
+### Completed Changes
+
+1. **`styles/modules/variables.css`**
+   - `--color-bg-hover` now uses `var(--color-accent-subtle)` (15% accent)
+   - `--color-bg-active` now uses `var(--color-accent-muted)` (25% accent)
+   - Added `--color-accent-muted: rgba(24, 160, 251, 0.25)`
+   - Applied to both dark and light theme sections
+
+2. **`src/ui/IconLibrary.js`**
+   - Fixed: replaced `--te-blue` with `--color-bg-hover`
+   - Removed duplicate `onmouseenter` assignment
+
+3. **`styles/modules/flyout-components.css`**
+   - Added shared `.menu-item` class with accent-based hover/active/selected states
+
+4. **All Components Using Tokens** - Auto-updated via token changes:
+   - Context menus, App menus, Dropdown menus
+   - FillSection, StrokeSection blend mode menus
+   - SlideList, LayerTree selection states
 
 ---
 
@@ -89,14 +121,14 @@ These components all serve "pick from a list" and should share **exact same visu
 
 | Component | Current Hover | Should Be | Status |
 |-----------|---------------|-----------|--------|
-| **Context Menu** | `--color-bg-hover` (gray) | `--color-accent-subtle` | ❌ Fix needed |
-| **App Menu** | `--color-bg-hover` (gray) | `--color-accent-subtle` | ❌ Fix needed |
-| **Dropdown Menu** | `--color-bg-hover` (gray) | `--color-accent-subtle` | ❌ Fix needed |
-| **FillSection dropdown** | `--color-bg-hover` (gray) | `--color-accent-subtle` | ❌ Fix needed |
-| **StrokeSection dropdown** | `--color-bg-hover` (gray) | `--color-accent-subtle` | ❌ Fix needed |
-| **Icon Library** | `--te-blue` (accent) | `--color-accent-subtle` | ⚠️ Right idea, wrong token |
-| **Layer tree items** | `--color-bg-hover` (gray) | `--color-accent-subtle` | ❌ Fix needed |
-| **Slide thumbnails** | gray-ish | `--color-accent-subtle` | ❌ Fix needed |
+| **Context Menu** | `--color-bg-hover` | `--color-accent-subtle` | ✅ Fixed via token |
+| **App Menu** | `--color-bg-hover` | `--color-accent-subtle` | ✅ Fixed via token |
+| **Dropdown Menu** | `--color-bg-hover` | `--color-accent-subtle` | ✅ Fixed via token |
+| **FillSection dropdown** | `--color-bg-hover` | `--color-accent-subtle` | ✅ Fixed via token |
+| **StrokeSection dropdown** | `--color-bg-hover` | `--color-accent-subtle` | ✅ Fixed via token |
+| **Icon Library** | `--color-bg-hover` | `--color-accent-subtle` | ✅ Fixed (was `--te-blue`) |
+| **Layer tree items** | `--color-bg-active` | `--color-accent-muted` | ✅ Fixed via token |
+| **Slide thumbnails** | `--color-bg-active` | `--color-accent-muted` | ✅ Fixed via token |
 
 ---
 
@@ -378,30 +410,30 @@ Before adding any new token, validate against:
 
 ## 8. Implementation Plan
 
-### Phase 1: Token Update (30 minutes)
+### Phase 1: Token Update ✅ COMPLETE
 
 **Goal**: Update core tokens so all compliant components auto-update.
 
-1. In `variables.css`, update:
+1. ✅ In `variables.css`, updated:
    ```css
    --color-bg-hover: var(--color-accent-subtle);
    --color-bg-active: var(--color-accent-muted);
    --color-accent-muted: rgba(24, 160, 251, 0.25); /* New token */
    ```
-2. Test all menus - they should now have accent hover
-3. Verify light mode also works
+2. ✅ All menus now have accent hover
+3. ✅ Light mode verified
 
-### Phase 2: Fix Inline Styles (2-3 hours)
+### Phase 2: Fix Inline Styles ✅ COMPLETE
 
 **Goal**: Components using inline styles need manual updates.
 
-1. **IconLibrary.js** - Replace `--te-blue` with `--color-bg-hover`
-2. **FillSection.js** - Replace inline styles with CSS classes
-3. **StrokeSection.js** - Replace inline styles with CSS classes
+1. ✅ **IconLibrary.js** - Replaced `--te-blue` with `--color-bg-hover`
+2. ✅ **FillSection.js** - Already used `--color-bg-hover` token (no change needed)
+3. ✅ **StrokeSection.js** - Already used `--color-bg-hover` token (no change needed)
 
-### Phase 3: Create Shared `.menu-item` Class (1 hour)
+### Phase 3: Create Shared `.menu-item` Class ✅ COMPLETE
 
-Add to `flyout-components.css`:
+Added to `flyout-components.css`:
 
 ```css
 /* Universal Menu Item - Accent-based interactions */
@@ -430,7 +462,7 @@ Add to `flyout-components.css`:
 }
 
 .menu-item.danger:hover {
-    background: color-mix(in srgb, var(--color-danger) 15%, transparent);
+    background: var(--color-danger-subtle);
 }
 
 .menu-item.disabled {
@@ -440,7 +472,7 @@ Add to `flyout-components.css`:
 }
 ```
 
-### Phase 4: Theming Litmus Test (1 hour)
+### Phase 4: Theming Litmus Test 🔄 READY FOR TESTING
 
 **Goal**: Validate the design system by testing theme switching.
 

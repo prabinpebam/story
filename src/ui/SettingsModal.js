@@ -191,8 +191,8 @@ export class SettingsModal {
     }
 
     renderAppearanceContent() {
-        // Theme Toggle (Dark is default)
-        const group = this.createFormGroup('Theme');
+        // Theme Mode Toggle (Dark/Light)
+        const modeGroup = this.createFormGroup('Mode');
         
         const themeDropdown = new Dropdown({
             options: [
@@ -204,23 +204,328 @@ export class SettingsModal {
             onChange: (value) => {
                 if (value === 'light') {
                     document.body.classList.add('theme-light');
-                    localStorage.setItem('theme', 'light');
+                    localStorage.setItem('themeMode', 'light');
                 } else {
                     document.body.classList.remove('theme-light');
-                    localStorage.setItem('theme', 'dark');
+                    localStorage.setItem('themeMode', 'dark');
                 }
             }
         });
 
-        group.appendChild(themeDropdown.element);
-        this.body.appendChild(group);
+        modeGroup.appendChild(themeDropdown.element);
+        this.body.appendChild(modeGroup);
+        
+        // Accent Theme Selection
+        const accentGroup = this.createFormGroup('Accent Color');
+        
+        const accentThemes = [
+            { id: 'default', label: 'Blue', color: '#18A0FB' },
+            { id: 'purple', label: 'Purple', color: '#7C3AED' },
+            { id: 'teal', label: 'Teal', color: '#14B8A6' },
+            { id: 'orange', label: 'Orange', color: '#F97316' },
+            { id: 'pink', label: 'Pink', color: '#EC4899' }
+        ];
+        
+        const themesGrid = document.createElement('div');
+        themesGrid.className = 'theme-cards-grid';
+        themesGrid.style.cssText = `
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+            gap: var(--spacing-3);
+            margin-top: var(--spacing-2);
+        `;
+        
+        const currentAccent = this.getCurrentAccentTheme();
+        
+        accentThemes.forEach(theme => {
+            const card = this.createThemeCard(theme, currentAccent === theme.id);
+            card.onclick = () => this.setAccentTheme(theme.id, themesGrid);
+            themesGrid.appendChild(card);
+        });
+        
+        accentGroup.appendChild(themesGrid);
+        this.body.appendChild(accentGroup);
+        
+        // Theme Preview Section
+        const previewGroup = this.createFormGroup('Preview');
+        const previewContainer = this.createThemePreview();
+        previewGroup.appendChild(previewContainer);
+        this.body.appendChild(previewGroup);
+    }
+    
+    createThemeCard(theme, isSelected) {
+        const card = document.createElement('div');
+        card.className = `theme-card ${isSelected ? 'selected' : ''}`;
+        card.dataset.themeId = theme.id;
+        card.style.cssText = `
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: var(--spacing-3);
+            border-radius: var(--radius-md);
+            border: 2px solid ${isSelected ? theme.color : 'var(--color-border)'};
+            background: var(--color-bg-input);
+            cursor: pointer;
+            transition: all 0.15s ease;
+        `;
+        
+        // Color swatch
+        const swatch = document.createElement('div');
+        swatch.style.cssText = `
+            width: 40px;
+            height: 40px;
+            border-radius: var(--radius-full);
+            background: ${theme.color};
+            margin-bottom: var(--spacing-2);
+            box-shadow: 0 2px 8px ${theme.color}40;
+        `;
+        card.appendChild(swatch);
+        
+        // Label
+        const label = document.createElement('span');
+        label.textContent = theme.label;
+        label.style.cssText = `
+            font-size: var(--font-size-sm);
+            color: var(--color-text-primary);
+            font-weight: ${isSelected ? 'var(--font-weight-medium)' : 'var(--font-weight-normal)'};
+        `;
+        card.appendChild(label);
+        
+        // Checkmark for selected
+        if (isSelected) {
+            const check = document.createElement('i');
+            check.className = 'fa-solid fa-check';
+            check.style.cssText = `
+                position: absolute;
+                top: var(--spacing-1);
+                right: var(--spacing-1);
+                color: ${theme.color};
+                font-size: var(--font-size-xs);
+            `;
+            card.style.position = 'relative';
+            card.appendChild(check);
+        }
+        
+        // Hover effect
+        card.onmouseenter = () => {
+            if (!card.classList.contains('selected')) {
+                card.style.borderColor = theme.color + '80';
+                card.style.background = 'var(--color-bg-hover)';
+            }
+        };
+        card.onmouseleave = () => {
+            if (!card.classList.contains('selected')) {
+                card.style.borderColor = 'var(--color-border)';
+                card.style.background = 'var(--color-bg-input)';
+            }
+        };
+        
+        return card;
+    }
+    
+    createThemePreview() {
+        const container = document.createElement('div');
+        container.className = 'theme-preview';
+        container.style.cssText = `
+            background: var(--color-bg-panel);
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-md);
+            padding: var(--spacing-3);
+            margin-top: var(--spacing-2);
+        `;
+        
+        // Preview header
+        const header = document.createElement('div');
+        header.style.cssText = `
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-2);
+            margin-bottom: var(--spacing-3);
+        `;
+        
+        const title = document.createElement('span');
+        title.textContent = 'Interactive Preview';
+        title.style.cssText = `
+            font-size: var(--font-size-sm);
+            color: var(--color-text-secondary);
+        `;
+        header.appendChild(title);
+        container.appendChild(header);
+        
+        // Preview elements row
+        const elementsRow = document.createElement('div');
+        elementsRow.style.cssText = `
+            display: flex;
+            gap: var(--spacing-2);
+            flex-wrap: wrap;
+            align-items: center;
+        `;
+        
+        // Hover preview button
+        const hoverBtn = document.createElement('button');
+        hoverBtn.textContent = 'Hover Me';
+        hoverBtn.style.cssText = `
+            padding: var(--spacing-1-5) var(--spacing-3);
+            background: transparent;
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-sm);
+            color: var(--color-text-primary);
+            font-size: var(--font-size-sm);
+            cursor: pointer;
+            transition: all 0.15s ease;
+        `;
+        hoverBtn.onmouseenter = () => {
+            hoverBtn.style.background = 'var(--color-bg-hover)';
+            hoverBtn.style.borderColor = 'var(--color-accent)';
+        };
+        hoverBtn.onmouseleave = () => {
+            hoverBtn.style.background = 'transparent';
+            hoverBtn.style.borderColor = 'var(--color-border)';
+        };
+        elementsRow.appendChild(hoverBtn);
+        
+        // Accent button
+        const accentBtn = document.createElement('button');
+        accentBtn.textContent = 'Accent Button';
+        accentBtn.style.cssText = `
+            padding: var(--spacing-1-5) var(--spacing-3);
+            background: var(--color-accent);
+            border: none;
+            border-radius: var(--radius-sm);
+            color: var(--color-text-on-accent);
+            font-size: var(--font-size-sm);
+            cursor: pointer;
+            transition: all 0.15s ease;
+        `;
+        accentBtn.onmouseenter = () => {
+            accentBtn.style.background = 'var(--color-accent-hover)';
+        };
+        accentBtn.onmouseleave = () => {
+            accentBtn.style.background = 'var(--color-accent)';
+        };
+        elementsRow.appendChild(accentBtn);
+        
+        // Selected item preview
+        const selectedItem = document.createElement('div');
+        selectedItem.textContent = 'Selected Item';
+        selectedItem.style.cssText = `
+            padding: var(--spacing-1-5) var(--spacing-3);
+            background: var(--color-bg-active);
+            border-radius: var(--radius-sm);
+            color: var(--color-text-primary);
+            font-size: var(--font-size-sm);
+            border: 1px solid var(--color-accent);
+        `;
+        elementsRow.appendChild(selectedItem);
+        
+        // Focus ring preview
+        const focusInput = document.createElement('input');
+        focusInput.placeholder = 'Focus me';
+        focusInput.style.cssText = `
+            padding: var(--spacing-1-5) var(--spacing-2);
+            background: var(--color-bg-input);
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-sm);
+            color: var(--color-text-primary);
+            font-size: var(--font-size-sm);
+            width: 100px;
+            outline: none;
+            transition: all 0.15s ease;
+        `;
+        focusInput.onfocus = () => {
+            focusInput.style.borderColor = 'var(--color-accent)';
+            focusInput.style.boxShadow = '0 0 0 2px var(--color-accent-subtle)';
+        };
+        focusInput.onblur = () => {
+            focusInput.style.borderColor = 'var(--color-border)';
+            focusInput.style.boxShadow = 'none';
+        };
+        elementsRow.appendChild(focusInput);
+        
+        container.appendChild(elementsRow);
+        
+        return container;
+    }
+    
+    getCurrentAccentTheme() {
+        const html = document.documentElement;
+        if (html.classList.contains('theme-purple')) return 'purple';
+        if (html.classList.contains('theme-teal')) return 'teal';
+        if (html.classList.contains('theme-orange')) return 'orange';
+        if (html.classList.contains('theme-pink')) return 'pink';
+        return 'default';
+    }
+    
+    setAccentTheme(themeId, themesGrid) {
+        const html = document.documentElement;
+        
+        // Remove all accent theme classes
+        html.classList.remove('theme-purple', 'theme-teal', 'theme-orange', 'theme-pink');
+        
+        // Apply new theme (default has no class)
+        if (themeId !== 'default') {
+            html.classList.add(`theme-${themeId}`);
+        }
+        
+        // Save to localStorage
+        localStorage.setItem('accentTheme', themeId);
+        
+        // Update card visual states
+        const accentThemes = [
+            { id: 'default', color: '#18A0FB' },
+            { id: 'purple', color: '#7C3AED' },
+            { id: 'teal', color: '#14B8A6' },
+            { id: 'orange', color: '#F97316' },
+            { id: 'pink', color: '#EC4899' }
+        ];
+        
+        themesGrid.querySelectorAll('.theme-card').forEach(card => {
+            const cardThemeId = card.dataset.themeId;
+            const theme = accentThemes.find(t => t.id === cardThemeId);
+            const isSelected = cardThemeId === themeId;
+            
+            card.classList.toggle('selected', isSelected);
+            card.style.borderColor = isSelected ? theme.color : 'var(--color-border)';
+            card.style.background = 'var(--color-bg-input)';
+            
+            // Update checkmark
+            const existingCheck = card.querySelector('.fa-check');
+            if (existingCheck) existingCheck.remove();
+            
+            if (isSelected) {
+                const check = document.createElement('i');
+                check.className = 'fa-solid fa-check';
+                check.style.cssText = `
+                    position: absolute;
+                    top: var(--spacing-1);
+                    right: var(--spacing-1);
+                    color: ${theme.color};
+                    font-size: var(--font-size-xs);
+                `;
+                card.style.position = 'relative';
+                card.appendChild(check);
+            }
+            
+            // Update label weight
+            const label = card.querySelector('span');
+            if (label) {
+                label.style.fontWeight = isSelected ? 'var(--font-weight-medium)' : 'var(--font-weight-normal)';
+            }
+        });
     }
 
     loadTheme() {
-        const theme = localStorage.getItem('theme');
+        // Load dark/light mode
+        const themeMode = localStorage.getItem('themeMode') || localStorage.getItem('theme');
         // Dark is default (no class needed), Light applies theme-light class
-        if (theme === 'light') {
+        if (themeMode === 'light') {
             document.body.classList.add('theme-light');
+        }
+        
+        // Load accent theme
+        const accentTheme = localStorage.getItem('accentTheme');
+        if (accentTheme && accentTheme !== 'default') {
+            document.documentElement.classList.add(`theme-${accentTheme}`);
         }
     }
 

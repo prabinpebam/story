@@ -228,9 +228,42 @@ describe('SettingsModal', () => {
             expect(groups.length).toBeGreaterThan(0);
         });
 
-        it('should have Theme label', () => {
+        it('should have Mode label for dark/light toggle', () => {
             const label = modal.body.querySelector('label');
-            expect(label.innerText).toBe('Theme');
+            expect(label.innerText).toBe('Mode');
+        });
+        
+        it('should have Accent Color section', () => {
+            const labels = modal.body.querySelectorAll('label');
+            const accentLabel = Array.from(labels).find(l => l.innerText === 'Accent Color');
+            expect(accentLabel).toBeTruthy();
+        });
+        
+        it('should render theme cards grid', () => {
+            const grid = modal.body.querySelector('.theme-cards-grid');
+            expect(grid).toBeTruthy();
+        });
+        
+        it('should have 5 accent theme options', () => {
+            const cards = modal.body.querySelectorAll('.theme-card');
+            expect(cards.length).toBe(5);
+        });
+        
+        it('should have Preview section', () => {
+            const labels = modal.body.querySelectorAll('label');
+            const previewLabel = Array.from(labels).find(l => l.innerText === 'Preview');
+            expect(previewLabel).toBeTruthy();
+        });
+        
+        it('should render interactive preview elements', () => {
+            const preview = modal.body.querySelector('.theme-preview');
+            expect(preview).toBeTruthy();
+            
+            const buttons = preview.querySelectorAll('button');
+            expect(buttons.length).toBe(2);
+            
+            const input = preview.querySelector('input');
+            expect(input).toBeTruthy();
         });
     });
 
