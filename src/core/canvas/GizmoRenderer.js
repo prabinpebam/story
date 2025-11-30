@@ -82,6 +82,12 @@ export class GizmoRenderer {
         // Clear interaction canvas
         this.cm.ctx.clearRect(0, 0, this.cm.canvas.width, this.cm.canvas.height);
         
+        // Draw placeholder overlays (dashed borders) in master mode
+        // This draws BEFORE gizmos so selection is on top
+        if (state.editor.mode === 'master') {
+            this.renderPlaceholderOverlays();
+        }
+        
         // Draw Gizmos, Selection Box, Grid here
         this.renderGizmos();
         
@@ -201,6 +207,78 @@ export class GizmoRenderer {
         this.cm.ctx.lineWidth = 1 / zoom;
         this.cm.ctx.strokeRect(0, 0, width, height);
 
+        this.cm.ctx.restore();
+    }
+
+    /**
+     * Render dashed border overlays for placeholder elements in master mode
+     * This updates in real-time during drag/resize operations
+     */
+    renderPlaceholderOverlays() {
+        const state = store.getState();
+        const { zoom, pan, selectedElementIds, editingElementId } = state.editor;
+        const slide = this.cm.getActiveContainer(state);
+        
+        if (!slide || !slide.elements) return;
+        
+        const colors = this.getColors();
+        
+        this.cm.ctx.save();
+        this.cm.ctx.translate(pan.x, pan.y);
+        this.cm.ctx.scale(zoom, zoom);
+        
+        // Draw dashed overlay for all placeholder elements
+        Object.values(slide.elements).forEach(el => {
+            if (!el.isPlaceholder) return;
+            
+            // Skip if this element is being edited
+            if (editingElementId === el.id) return;
+            
+            // Get current dimensions (use live resize data if being dragged)
+            let absEl = GeometryUtils.getAbsoluteElement(el, slide);
+            
+            // Use live resize data if this element is selected and being resized
+            if (selectedElementIds.includes(el.id) && this.cm.liveResizeData && this.cm.liveResizeData.id === el.id) {
+                absEl = {
+                    ...absEl,
+                    width: this.cm.liveResizeData.width,
+                    height: this.cm.liveResizeData.height,
+                    x: this.cm.liveResizeData.x !== undefined ? this.cm.liveResizeData.x : absEl.x,
+                    y: this.cm.liveResizeData.y !== undefined ? this.cm.liveResizeData.y : absEl.y
+                };
+            }
+            
+            // Also check for live drag position
+            if (selectedElementIds.includes(el.id) && this.cm.interactionState === 'DRAGGING') {
+                // During dragging, the element position is updated directly
+                // Use the current element position from store which is updated during drag
+                absEl = GeometryUtils.getAbsoluteElement(el, slide);
+            }
+            
+            this.drawPlaceholderOverlay(absEl, zoom, colors);
+        });
+        
+        this.cm.ctx.restore();
+    }
+
+    /**
+     * Draw a dashed border overlay for a placeholder element
+     */
+    drawPlaceholderOverlay(el, zoom, colors) {
+        const { x, y, width, height, rotation } = el;
+        
+        this.cm.ctx.save();
+        this.cm.ctx.translate(x + width / 2, y + height / 2);
+        this.cm.ctx.rotate((rotation || 0) * Math.PI / 180);
+        this.cm.ctx.translate(-width / 2, -height / 2);
+        
+        // Draw dashed border
+        this.cm.ctx.strokeStyle = colors.accent;
+        this.cm.ctx.lineWidth = 2 / zoom;
+        this.cm.ctx.setLineDash([6 / zoom, 4 / zoom]); // Dashed pattern
+        this.cm.ctx.strokeRect(0, 0, width, height);
+        this.cm.ctx.setLineDash([]); // Reset dash pattern
+        
         this.cm.ctx.restore();
     }
 

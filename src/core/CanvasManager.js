@@ -1066,7 +1066,8 @@ export class CanvasManager {
         const slide = this.getActiveContainer(state);
         const element = slide?.elements[id];
         if (element?.type === 'text') {
-            const currentResizing = element.style?.resizing;
+            // Check root level first, then style level for resizing mode
+            const currentResizing = element.resizing || element.style?.resizing;
             const isWidthOnlyHandle = ['e', 'w'].includes(this.activeHandle);
             
             if (currentResizing === 'autoSize') {

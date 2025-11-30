@@ -122,7 +122,8 @@ export class EditorRenderer extends BaseRenderer {
         };
 
         // Handle Auto Resize - save final dimensions and position for auto-sizing modes
-        const resizing = el.data.style?.resizing || 'fixedWidth';
+        // Check root level first, then style level for resizing mode
+        const resizing = el.data.resizing || el.data.style?.resizing || 'fixedWidth';
         if (resizing === 'autoSize' || resizing === 'fixedWidth') {
             updates.width = div.offsetWidth;
             updates.height = div.offsetHeight;

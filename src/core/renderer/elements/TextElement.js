@@ -42,7 +42,8 @@ export class TextElement extends VisualElement {
         const isEditing = state.editor.editingElementId === this.data.id;
 
         const el = this.data;
-        const resizing = el.style?.resizing || 'fixedWidth';
+        // Check root level first, then style level for resizing mode
+        const resizing = el.resizing || el.style?.resizing || 'fixedWidth';
         
         // Only sync if auto-sizing is enabled (not fixed)
         if (resizing === 'fixed') return;
@@ -182,9 +183,8 @@ export class TextElement extends VisualElement {
             }
         }
 
-        // Check if this is a placeholder in master mode
+        // Check if this is a placeholder element
         const state = store.getState();
-        const isMasterMode = state.editor.mode === 'master';
         const isPlaceholder = el.isPlaceholder === true;
         const isEditing = div.isContentEditable || state.editor.editingElementId === el.id;
         
@@ -196,19 +196,14 @@ export class TextElement extends VisualElement {
         div.style.margin = '0';
         div.style.boxSizing = 'border-box';
         div.style.overflow = 'visible'; // Allow text to be seen, but box is defined by ResizeObserver
+        div.style.border = 'none'; // No DOM border - placeholder overlay is drawn on canvas
 
-        // Placeholder visual indicator - dashed border in master mode
-        if (isPlaceholder && isMasterMode && !isEditing) {
-            div.style.border = '2px dashed var(--color-accent, #18A0FB)';
-            div.style.padding = '8px'; // Add padding inside the dashed border
-            div.style.opacity = '1';
-        } else if (isEmptyPlaceholder && !isEditing) {
-            // Empty placeholder on slide - show dashed border and dim the text
-            div.style.border = '1px dashed rgba(255, 255, 255, 0.3)';
+        // Placeholder visual styling (opacity only - dashed border is rendered by GizmoRenderer)
+        if (isEmptyPlaceholder && !isEditing) {
+            // Empty placeholder on slide - dim the text
             div.style.opacity = '0.5';
         } else {
-            // Normal styling (or editing mode) - full opacity, no border
-            div.style.border = 'none';
+            // Normal styling - full opacity
             div.style.opacity = '1';
         }
 
@@ -327,7 +322,8 @@ export class TextElement extends VisualElement {
         
         // Auto Resize Mode Override
         // VisualElement sets fixed width/height from element data. We override based on resizing mode.
-        const resizing = el.style?.resizing || 'fixedWidth';
+        // Check root level first, then style level for resizing mode
+        const resizing = el.resizing || el.style?.resizing || 'fixedWidth';
         
         if (resizing === 'fixedWidth' && !props.truncate) {
             // Fixed Width: Width is fixed (from element data), height auto-adjusts to content

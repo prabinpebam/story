@@ -135,7 +135,8 @@ export class LayoutSection {
 
             if (this.isTextElement) {
                 // Update layout mode button states
-                const currentMode = element.style?.resizing || 'fixedWidth';
+                // Check root level first, then style level for resizing mode
+                const currentMode = element.resizing || element.style?.resizing || 'fixedWidth';
                 this.layoutButtons.forEach(({ btn, value }) => {
                     btn.setActive(value === currentMode);
                 });
