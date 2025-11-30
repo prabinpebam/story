@@ -1194,11 +1194,12 @@ export class CanvasManager {
             store.dispatch('UPDATE_SELECTION', [id]);
             store.dispatch('SET_ACTIVE_TOOL', 'select');
             
-            // Enter text edit mode immediately
+            // Enter text edit mode immediately (mark as newly created)
             store.dispatch('SET_EDITING_ELEMENT', { 
                 id, 
                 selectionType: 'all',
-                clickPosition: { clientX: e.clientX, clientY: e.clientY }
+                clickPosition: { clientX: e.clientX, clientY: e.clientY },
+                isNewlyCreated: true
             });
             return;
         }

@@ -339,6 +339,27 @@ describe('EditorHandlers', () => {
             expect(newState.editor.textEditClickPosition).toEqual({ clientX: 100, clientY: 200 });
         });
 
+        it('should set isNewlyCreated flag', () => {
+            const newState = produce(initialState, draft => {
+                handleSetEditingElement(draft, { 
+                    id: 'text-1',
+                    selectionType: 'all',
+                    isNewlyCreated: true
+                });
+            });
+
+            expect(newState.editor.editingElementId).toBe('text-1');
+            expect(newState.editor.editModeIsNewlyCreated).toBe(true);
+        });
+
+        it('should default isNewlyCreated to false', () => {
+            const newState = produce(initialState, draft => {
+                handleSetEditingElement(draft, { id: 'text-1' });
+            });
+
+            expect(newState.editor.editModeIsNewlyCreated).toBe(false);
+        });
+
         it('should clear editing element with null id', () => {
             let state = produce(initialState, draft => {
                 draft.editor.editingElementId = 'text-1';

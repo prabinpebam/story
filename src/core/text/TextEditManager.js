@@ -28,6 +28,10 @@ export class TextEditManager {
         this.currentElementId = null;
         this.currentElement = null; // DOM element reference
         
+        // Track if element was newly created (no user input yet)
+        this.isNewlyCreated = false;
+        this.hasReceivedInput = false;
+        
         // Debounce timer for saves
         this.saveTimer = null;
         
@@ -48,6 +52,7 @@ export class TextEditManager {
      * @param {Object} options - Entry options
      * @param {string} options.entryMode - 'doubleClick', 'enter', 'typing', 'click'
      * @param {Object} [options.clickPosition] - { x, y } for caret positioning
+     * @param {boolean} [options.isNewlyCreated] - True if element was just created
      * @returns {boolean} True if edit mode was entered
      */
     enterEditMode(elementId, domElement, options = {}) {
@@ -77,6 +82,10 @@ export class TextEditManager {
         this.isEditing = true;
         this.currentElementId = elementId;
         this.currentElement = domElement;
+        
+        // Track newly created state
+        this.isNewlyCreated = options.isNewlyCreated === true;
+        this.hasReceivedInput = false;
 
         // Start history session
         historyBridge.beginSession(elementId, {
@@ -192,9 +201,11 @@ export class TextEditManager {
             });
 
             // Handle element deletion for empty non-placeholders
-            if (exitResult.shouldDelete) {
-                // TODO: Dispatch delete element action
-                // For now, just leave empty
+            if (exitResult.shouldDelete || (this.isNewlyCreated && !this.hasReceivedInput)) {
+                // Delete empty element
+                store.dispatch('REMOVE_ELEMENT', { id: this.currentElementId });
+                // Clear selection since element is deleted
+                store.dispatch('UPDATE_SELECTION', []);
             }
 
             // Update DOM with final content (may include prompt text)
@@ -231,6 +242,8 @@ export class TextEditManager {
         this.isEditing = false;
         this.currentElementId = null;
         this.currentElement = null;
+        this.isNewlyCreated = false;
+        this.hasReceivedInput = false;
 
         // Clear selection manager
         selectionManager.clear();
@@ -383,6 +396,9 @@ export class TextEditManager {
         // Skip during IME composition
         if (imeHandler.isCompositionInProgress()) return;
 
+        // Track that user has typed something
+        this.hasReceivedInput = true;
+        
         this._markDirty();
         this._scheduleSave();
     }
@@ -436,6 +452,15 @@ export class TextEditManager {
                 this.applyFormat('strikethrough');
                 return;
             }
+        }
+
+        // Tab to exit and select next object (when not in a list)
+        if (event.key === 'Tab' && !this._isInList()) {
+            event.preventDefault();
+            const direction = event.shiftKey ? 'previous' : 'next';
+            this.exitEditMode({ keepSelection: false });
+            this._selectAdjacentElement(direction);
+            return;
         }
     }
 
@@ -550,6 +575,69 @@ export class TextEditManager {
                 }
             }
         }
+    }
+
+    /**
+     * Check if caret is currently inside a list.
+     * @returns {boolean}
+     * @private
+     */
+    _isInList() {
+        if (!this.currentElement) return false;
+        
+        const selection = window.getSelection();
+        if (!selection.rangeCount) return false;
+        
+        let node = selection.anchorNode;
+        while (node && node !== this.currentElement) {
+            if (node.nodeName === 'UL' || node.nodeName === 'OL' || node.nodeName === 'LI') {
+                return true;
+            }
+            node = node.parentNode;
+        }
+        
+        return false;
+    }
+
+    /**
+     * Select the next or previous element on the slide.
+     * @param {'next'|'previous'} direction - Direction to move
+     * @private
+     */
+    _selectAdjacentElement(direction) {
+        const state = store.getState();
+        const mode = state.editor.mode;
+        const activeId = mode === 'master' ? state.editor.activeMasterId : state.editor.activeSlideId;
+        const container = mode === 'master' ? state.masters[activeId] : state.slides[activeId];
+        
+        if (!container) return;
+
+        // Get effective elements for slides (includes layout elements)
+        let elementOrder;
+        if (mode === 'edit' || mode === 'slide') {
+            const effectiveSlide = store.getEffectiveSlide(activeId);
+            elementOrder = effectiveSlide?.effectiveOrder || [];
+        } else {
+            elementOrder = container.elementOrder || [];
+        }
+
+        if (elementOrder.length === 0) return;
+
+        // Find current element index
+        const currentIndex = elementOrder.indexOf(this.currentElementId);
+        
+        // Calculate next index
+        let nextIndex;
+        if (direction === 'next') {
+            nextIndex = currentIndex === -1 ? 0 : (currentIndex + 1) % elementOrder.length;
+        } else {
+            nextIndex = currentIndex === -1 ? elementOrder.length - 1 : (currentIndex - 1 + elementOrder.length) % elementOrder.length;
+        }
+
+        const nextElementId = elementOrder[nextIndex];
+        
+        // Select the next element
+        store.dispatch('UPDATE_SELECTION', [nextElementId]);
     }
 }
 

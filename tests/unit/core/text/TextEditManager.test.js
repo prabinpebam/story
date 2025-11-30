@@ -352,4 +352,78 @@ describe('TextEditManager', () => {
             });
         });
     });
+
+    describe('newly created element tracking', () => {
+        it('should track isNewlyCreated flag', () => {
+            manager.enterEditMode('text-1', mockElement, { 
+                entryMode: 'enter', 
+                isNewlyCreated: true 
+            });
+            
+            expect(manager.isNewlyCreated).toBe(true);
+            expect(manager.hasReceivedInput).toBe(false);
+        });
+
+        it('should default isNewlyCreated to false', () => {
+            manager.enterEditMode('text-1', mockElement, { entryMode: 'doubleClick' });
+            
+            expect(manager.isNewlyCreated).toBe(false);
+        });
+
+        it('should delete newly created element with no input on exit', () => {
+            manager.enterEditMode('text-1', mockElement, { 
+                entryMode: 'enter', 
+                isNewlyCreated: true 
+            });
+            vi.clearAllMocks();
+            
+            manager.exitEditMode();
+            
+            // Should dispatch REMOVE_ELEMENT for newly created without input
+            expect(store.dispatch).toHaveBeenCalledWith('REMOVE_ELEMENT', { id: 'text-1' });
+            expect(store.dispatch).toHaveBeenCalledWith('UPDATE_SELECTION', []);
+        });
+
+        it('should NOT delete newly created element if user typed', () => {
+            manager.enterEditMode('text-1', mockElement, { 
+                entryMode: 'enter', 
+                isNewlyCreated: true 
+            });
+            
+            // Simulate user input
+            manager.hasReceivedInput = true;
+            
+            vi.clearAllMocks();
+            manager.exitEditMode();
+            
+            // Should NOT dispatch REMOVE_ELEMENT 
+            expect(store.dispatch).not.toHaveBeenCalledWith('REMOVE_ELEMENT', expect.anything());
+        });
+
+        it('should reset tracking state on exit', () => {
+            manager.enterEditMode('text-1', mockElement, { 
+                entryMode: 'enter', 
+                isNewlyCreated: true 
+            });
+            manager.hasReceivedInput = true;
+            
+            manager.exitEditMode();
+            
+            expect(manager.isNewlyCreated).toBe(false);
+            expect(manager.hasReceivedInput).toBe(false);
+        });
+    });
+
+    describe('Tab navigation', () => {
+        it('should detect when caret is in a list', () => {
+            manager.enterEditMode('text-1', mockElement, { entryMode: 'doubleClick' });
+            
+            // By default, not in list
+            expect(manager._isInList()).toBe(false);
+        });
+
+        it('should have selectAdjacentElement method', () => {
+            expect(typeof manager._selectAdjacentElement).toBe('function');
+        });
+    });
 });

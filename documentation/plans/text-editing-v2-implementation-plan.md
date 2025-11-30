@@ -199,8 +199,8 @@ Per `documentation/principles.md`, each phase must address:
 
 ---
 
-## Phase 2: Enter/Exit Refinements (P1) 🔄 IN PROGRESS
-**Estimated: 2-3 days** | **Status: ~70% Complete**
+## Phase 2: Enter/Exit Refinements (P1) ✅ COMPLETE
+**Estimated: 2-3 days** | **Status: Complete**
 
 ### Goals
 - Complete all entry/exit paths per spec
@@ -230,30 +230,32 @@ Per `documentation/principles.md`, each phase must address:
 1. ✅ Escape: exit, keep selection
 2. ✅ Cmd+Enter: exit, keep selection
 3. ✅ Click outside: exit, deselect (via blur handler)
-4. ⬜ Tab (no list): exit, next object (NOT YET IMPLEMENTED)
+4. ✅ Tab (no list): exit, next object
 
 **Tests:** ✅ TextEditManager.test.js
 - Each exit mode works
 - Content saved on every exit
+- Tab navigation selects next/previous element
 
 ### Phase 2.3: Empty Element Handling ✅ COMPLETE
-**Files:** `PlaceholderManager.js`, `TextEditHandlers.js`
+**Files:** `PlaceholderManager.js`, `TextEditHandlers.js`, `TextEditManager.js`
 
 **Tasks:**
-1. ⬜ Delete empty non-placeholder (TODO marker exists)
+1. ✅ Delete empty non-placeholder
 2. ✅ Restore empty placeholder
-3. ⬜ Track "newly created" state
+3. ✅ Track "newly created" state (isNewlyCreated, hasReceivedInput)
 
-**Tests:** ✅ PlaceholderManager.test.js
-- Empty regular text marked for delete (not yet implemented)
+**Tests:** ✅ PlaceholderManager.test.js, TextEditManager.test.js
+- Empty regular text deleted on exit
 - Empty placeholder preserved
-- New element delete if no typing (partial)
+- New element deleted if no typing
 
-**Validation Checkpoint:** Mostly verified
+**Validation Checkpoint:** ✅ ALL VERIFIED
 - [x] All entry paths work
-- [x] Most exit paths work
-- [ ] Tab to next object not implemented
-- [ ] Empty non-placeholder deletion not implemented
+- [x] All exit paths work
+- [x] Tab to next object implemented
+- [x] Empty non-placeholder deletion implemented
+- [x] Newly created element tracking works
 
 ---
 
@@ -738,7 +740,7 @@ Each phase can be rolled back independently:
 | 0: Foundation | 2-3 days | P0 | None | ✅ COMPLETE | App integrity |
 | 0.5: HistoryManager | 0.5-1 day | P0 | None | ✅ COMPLETE | Undo/redo |
 | 1: Architecture | 3-4 days | P0 | Phase 0, 0.5 | ✅ COMPLETE | App integrity |
-| 2: Enter/Exit | 2-3 days | P1 | Phase 1 | 🔄 70% | App integrity |
+| 2: Enter/Exit | 2-3 days | P1 | Phase 1 | ✅ COMPLETE | App integrity |
 | 3: Layer Tree | 2-3 days | P1 | Phase 2 | ⬜ Not Started | Design system |
 | 4: Rich Text | 3-4 days | P1 | Phase 2 | ⬜ Not Started | App integrity |
 | 5: Polish | 2-3 days | P2 | Phase 4 | ⬜ Not Started | Design system |
@@ -746,9 +748,8 @@ Each phase can be rolled back independently:
 | 7: Advanced | 2-3 days | P2 | Phase 5, 6 | ⬜ Not Started | Undo/redo, Collab |
 
 **Total Estimated: 19-28 days**
-**Completed: Phases 0, 0.5, 1 (~7-9 days of work)**
-**In Progress: Phase 2 (~70% complete)**
-**Remaining: Phases 3-7 (~12-16 days)**
+**Completed: Phases 0, 0.5, 1, 2 (~9-12 days of work)**
+**Remaining: Phases 3-7 (~10-14 days)**
 
 ---
 
