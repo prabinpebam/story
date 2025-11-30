@@ -319,27 +319,53 @@ export class FillSection {
         preview.style.width = 'var(--swatch-size-sm)';
         preview.style.height = 'var(--swatch-size-sm)';
         preview.style.borderRadius = 'var(--radius-xs)';
-        preview.style.border = 'var(--swatch-border-overlay)';
+        
+        // Determine the color for the swatch border
+        let swatchColor = '#000000';
         
         if (fill.type === 'image') {
              preview.style.backgroundImage = `url(${fill.value})`;
              preview.style.backgroundSize = 'cover';
+             // Use a neutral border for images
+             preview.style.boxShadow = 'inset 0 0 0 1px rgba(0, 0, 0, 0.6)';
         } else if (fill.type === 'gradient') {
              if (typeof fill.value === 'string') {
                  preview.style.background = fill.value;
              } else {
                  preview.style.background = this.getGradientCss(fill.value);
              }
+             // Use a neutral border for gradients
+             preview.style.boxShadow = 'inset 0 0 0 1px rgba(0, 0, 0, 0.6)';
         } else if (fill.type === 'code') {
              preview.style.backgroundColor = 'var(--color-surface-tertiary)';
              preview.innerHTML = '<i class="fa-solid fa-code" style="font-size: 10px; color: var(--color-text-primary);"></i>';
+             preview.style.boxShadow = 'inset 0 0 0 1px rgba(0, 0, 0, 0.6)';
         } else if (fill.type === 'video') {
              preview.style.backgroundColor = 'var(--color-surface-tertiary)';
              preview.innerHTML = '<i class="fa-solid fa-play" style="font-size: 10px; color: var(--color-text-primary);"></i>';
+             preview.style.boxShadow = 'inset 0 0 0 1px rgba(0, 0, 0, 0.6)';
         } else {
-             preview.style.backgroundColor = fill.color || fill.value || '#000000';
+             swatchColor = fill.color || fill.value || '#000000';
+             preview.style.backgroundColor = swatchColor;
+             this.updateSwatchBorder(preview, swatchColor, false);
         }
         swatch.appendChild(preview);
+        
+        // Hover handlers for border opacity
+        swatch.addEventListener('mouseenter', () => {
+            if (fill.type === 'solid' || !fill.type) {
+                this.updateSwatchBorder(preview, swatchColor, true);
+            } else {
+                preview.style.boxShadow = 'inset 0 0 0 1px rgba(0, 0, 0, 1)';
+            }
+        });
+        swatch.addEventListener('mouseleave', () => {
+            if (fill.type === 'solid' || !fill.type) {
+                this.updateSwatchBorder(preview, swatchColor, false);
+            } else {
+                preview.style.boxShadow = 'inset 0 0 0 1px rgba(0, 0, 0, 0.6)';
+            }
+        });
 
         swatch.onclick = (e) => {
             e.stopPropagation();
@@ -912,5 +938,43 @@ export class FillSection {
              return `radial-gradient(circle, ${stops})`;
         }
         return 'none';
+    }
+
+    /**
+     * Determines if a color is dark using WCAG luminance formula
+     */
+    isColorDark(color) {
+        try {
+            const canvas = document.createElement('canvas');
+            canvas.width = 1;
+            canvas.height = 1;
+            const ctx = canvas.getContext('2d');
+            if (!ctx) return false; // Fallback for test environment
+            ctx.fillStyle = color;
+            ctx.fillRect(0, 0, 1, 1);
+            const [r, g, b] = ctx.getImageData(0, 0, 1, 1).data;
+            
+            const toLinear = (c) => {
+                const sRGB = c / 255;
+                return sRGB <= 0.03928 ? sRGB / 12.92 : Math.pow((sRGB + 0.055) / 1.055, 2.4);
+            };
+            const luminance = 0.2126 * toLinear(r) + 0.7152 * toLinear(g) + 0.0722 * toLinear(b);
+            return luminance < 0.5;
+        } catch (e) {
+            // Fallback for environments without canvas support
+            return false;
+        }
+    }
+
+    /**
+     * Updates the swatch border based on color darkness
+     */
+    updateSwatchBorder(preview, color, isHover = false) {
+        const isDark = this.isColorDark(color);
+        const opacity = isHover ? 1 : 0.6;
+        preview.style.border = 'none';
+        preview.style.boxShadow = isDark 
+            ? `inset 0 0 0 1px rgba(255, 255, 255, ${opacity})`
+            : `inset 0 0 0 1px rgba(0, 0, 0, ${opacity})`;
     }
 }

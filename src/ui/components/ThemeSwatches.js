@@ -42,6 +42,39 @@ const GRID_COLUMNS = {
     12: 'swatch-grid--cols-12'
 };
 
+/**
+ * Determines if a color is dark (needs white border) or light (needs dark border)
+ * Uses relative luminance calculation per WCAG guidelines
+ * @param {string} color - CSS color value (hex, rgb, etc.)
+ * @returns {boolean} true if color is dark
+ */
+function isColorDark(color) {
+    try {
+        // Parse the color to RGB
+        const canvas = document.createElement('canvas');
+        canvas.width = 1;
+        canvas.height = 1;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return false; // Fallback for test environment
+        ctx.fillStyle = color;
+        ctx.fillRect(0, 0, 1, 1);
+        const [r, g, b] = ctx.getImageData(0, 0, 1, 1).data;
+        
+        // Calculate relative luminance (WCAG formula)
+        const toLinear = (c) => {
+            const sRGB = c / 255;
+            return sRGB <= 0.03928 ? sRGB / 12.92 : Math.pow((sRGB + 0.055) / 1.055, 2.4);
+        };
+        const luminance = 0.2126 * toLinear(r) + 0.7152 * toLinear(g) + 0.0722 * toLinear(b);
+        
+        // Consider dark if luminance < 0.5
+        return luminance < 0.5;
+    } catch (e) {
+        // Fallback for environments without canvas support
+        return false;
+    }
+}
+
 export class ThemeSwatches {
     constructor(options = {}) {
         this.options = {
@@ -157,7 +190,9 @@ export class ThemeSwatches {
         swatch.type = 'button';
         
         // Use unified .swatch class with size variant
-        swatch.className = 'swatch swatch--xl';
+        // Add --dark modifier for dark colors (so they get white border)
+        const isDark = isColorDark(color);
+        swatch.className = `swatch swatch--xl${isDark ? ' swatch--dark' : ''}`;
         
         // Color itself must be inline (dynamic per swatch)
         swatch.style.backgroundColor = color;

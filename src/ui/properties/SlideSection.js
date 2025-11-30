@@ -302,10 +302,41 @@ export class SlideSection {
 
     createColorSwatch(color, label) {
         const swatch = document.createElement('div');
-        swatch.className = 'theme-color-swatch';
+        // Determine if color is dark (needs white border)
+        const isDark = this.isColorDark(color);
+        swatch.className = `theme-color-swatch${isDark ? ' theme-color-swatch--dark' : ''}`;
         swatch.style.background = color;
         swatch.title = label;
         return swatch;
+    }
+
+    /**
+     * Determines if a color is dark (needs white border) or light (needs dark border)
+     * Uses relative luminance calculation
+     */
+    isColorDark(color) {
+        try {
+            const canvas = document.createElement('canvas');
+            canvas.width = 1;
+            canvas.height = 1;
+            const ctx = canvas.getContext('2d');
+            if (!ctx) return false; // Fallback for test environment
+            ctx.fillStyle = color;
+            ctx.fillRect(0, 0, 1, 1);
+            const [r, g, b] = ctx.getImageData(0, 0, 1, 1).data;
+            
+            // Calculate relative luminance (WCAG formula)
+            const toLinear = (c) => {
+                const sRGB = c / 255;
+                return sRGB <= 0.03928 ? sRGB / 12.92 : Math.pow((sRGB + 0.055) / 1.055, 2.4);
+            };
+            const luminance = 0.2126 * toLinear(r) + 0.7152 * toLinear(g) + 0.0722 * toLinear(b);
+            
+            return luminance < 0.5;
+        } catch (e) {
+            // Fallback for environments without canvas support
+            return false;
+        }
     }
 
     updateTypographySectionDisplay(fonts, isOverride) {

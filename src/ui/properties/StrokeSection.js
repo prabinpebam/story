@@ -212,14 +212,35 @@ export class StrokeSection {
         preview.style.width = 'var(--swatch-size-sm)';
         preview.style.height = 'var(--swatch-size-sm)';
         preview.style.borderRadius = 'var(--radius-xs)';
-        preview.style.border = 'var(--swatch-border-overlay)';
+        
+        // Determine the color for the swatch border
+        let swatchColor = stroke.color || '#000000';
         
         if (stroke.type === 'gradient') {
-             preview.style.background = stroke.value || 'linear-gradient(90deg, #000000 0%, #ffffff 100%)'; 
+             preview.style.background = stroke.value || 'linear-gradient(90deg, #000000 0%, #ffffff 100%)';
+             // Use a neutral border for gradients
+             preview.style.boxShadow = 'inset 0 0 0 1px rgba(0, 0, 0, 0.6)';
         } else {
-             preview.style.backgroundColor = stroke.color || '#000000';
+             preview.style.backgroundColor = swatchColor;
+             this.updateSwatchBorder(preview, swatchColor, false);
         }
         swatch.appendChild(preview);
+        
+        // Hover handlers for border opacity
+        swatch.addEventListener('mouseenter', () => {
+            if (stroke.type === 'gradient') {
+                preview.style.boxShadow = 'inset 0 0 0 1px rgba(0, 0, 0, 1)';
+            } else {
+                this.updateSwatchBorder(preview, swatchColor, true);
+            }
+        });
+        swatch.addEventListener('mouseleave', () => {
+            if (stroke.type === 'gradient') {
+                preview.style.boxShadow = 'inset 0 0 0 1px rgba(0, 0, 0, 0.6)';
+            } else {
+                this.updateSwatchBorder(preview, swatchColor, false);
+            }
+        });
 
         swatch.onclick = (e) => {
             e.stopPropagation();
@@ -612,5 +633,43 @@ export class StrokeSection {
                 ...legacyUpdates
             }
         }, { skipHistory: isTransient });
+    }
+
+    /**
+     * Determines if a color is dark using WCAG luminance formula
+     */
+    isColorDark(color) {
+        try {
+            const canvas = document.createElement('canvas');
+            canvas.width = 1;
+            canvas.height = 1;
+            const ctx = canvas.getContext('2d');
+            if (!ctx) return false; // Fallback for test environment
+            ctx.fillStyle = color;
+            ctx.fillRect(0, 0, 1, 1);
+            const [r, g, b] = ctx.getImageData(0, 0, 1, 1).data;
+            
+            const toLinear = (c) => {
+                const sRGB = c / 255;
+                return sRGB <= 0.03928 ? sRGB / 12.92 : Math.pow((sRGB + 0.055) / 1.055, 2.4);
+            };
+            const luminance = 0.2126 * toLinear(r) + 0.7152 * toLinear(g) + 0.0722 * toLinear(b);
+            return luminance < 0.5;
+        } catch (e) {
+            // Fallback for environments without canvas support
+            return false;
+        }
+    }
+
+    /**
+     * Updates the swatch border based on color darkness
+     */
+    updateSwatchBorder(preview, color, isHover = false) {
+        const isDark = this.isColorDark(color);
+        const opacity = isHover ? 1 : 0.6;
+        preview.style.border = 'none';
+        preview.style.boxShadow = isDark 
+            ? `inset 0 0 0 1px rgba(255, 255, 255, ${opacity})`
+            : `inset 0 0 0 1px rgba(0, 0, 0, ${opacity})`;
     }
 }

@@ -11,6 +11,44 @@ export class ColorInput {
         this.element = this.create();
     }
 
+    /**
+     * Determines if a color is dark (needs white border) or light (needs dark border)
+     */
+    isColorDark(color) {
+        try {
+            const canvas = document.createElement('canvas');
+            canvas.width = 1;
+            canvas.height = 1;
+            const ctx = canvas.getContext('2d');
+            if (!ctx) return false; // Fallback for test environment
+            ctx.fillStyle = color;
+            ctx.fillRect(0, 0, 1, 1);
+            const [r, g, b] = ctx.getImageData(0, 0, 1, 1).data;
+            
+            const toLinear = (c) => {
+                const sRGB = c / 255;
+                return sRGB <= 0.03928 ? sRGB / 12.92 : Math.pow((sRGB + 0.055) / 1.055, 2.4);
+            };
+            const luminance = 0.2126 * toLinear(r) + 0.7152 * toLinear(g) + 0.0722 * toLinear(b);
+            
+            return luminance < 0.5;
+        } catch (e) {
+            // Fallback for environments without canvas support
+            return false;
+        }
+    }
+
+    /**
+     * Updates the swatch border based on color darkness
+     */
+    updateSwatchBorder(swatch, color) {
+        const isDark = this.isColorDark(color);
+        swatch.style.boxShadow = isDark 
+            ? 'inset 0 0 0 1px rgba(255, 255, 255, 0.6)'
+            : 'inset 0 0 0 1px rgba(0, 0, 0, 0.6)';
+        swatch._isDark = isDark;
+    }
+
     create() {
         const container = document.createElement('div');
         container.className = 'color-input-container';
@@ -47,9 +85,23 @@ export class ColorInput {
         swatch.style.height = this.options.compact ? 'var(--swatch-size-lg)' : 'var(--swatch-size-md)';
         swatch.style.borderRadius = 'var(--radius-xs)';
         swatch.style.backgroundColor = this.value;
-        swatch.style.border = 'var(--swatch-border-overlay)';
+        swatch.style.border = 'none';
         swatch.style.cursor = 'pointer';
         swatch.style.flexShrink = '0';
+        swatch.style.transition = 'box-shadow var(--transition-fast)';
+        
+        // Set initial border based on color darkness
+        this.updateSwatchBorder(swatch, this.value);
+        
+        // Hover effect - increase border opacity
+        swatch.addEventListener('mouseenter', () => {
+            swatch.style.boxShadow = swatch._isDark 
+                ? 'inset 0 0 0 1px rgba(255, 255, 255, 1)'
+                : 'inset 0 0 0 1px rgba(0, 0, 0, 1)';
+        });
+        swatch.addEventListener('mouseleave', () => {
+            this.updateSwatchBorder(swatch, swatch.style.backgroundColor);
+        });
         
         // Hex Text (Only if not compact and showHex is true)
         let hexInput = null;
@@ -108,6 +160,7 @@ export class ColorInput {
         nativeInput.oninput = (e) => {
             const val = e.target.value;
             swatch.style.backgroundColor = val;
+            this.updateSwatchBorder(swatch, val);
             if (hexInput) hexInput.value = val.toUpperCase();
             this.onChange(val, true);
         };
@@ -137,6 +190,7 @@ export class ColorInput {
         this.value = value || '#000000';
         if (this._swatch) {
             this._swatch.style.backgroundColor = this.value;
+            this.updateSwatchBorder(this._swatch, this.value);
         }
         if (this._hexInput) {
             this._hexInput.value = this.value.toUpperCase();

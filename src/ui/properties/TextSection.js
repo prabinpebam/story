@@ -237,8 +237,19 @@ export class TextSection {
         this.fillPreview.style.width = 'var(--swatch-size-sm)';
         this.fillPreview.style.height = 'var(--swatch-size-sm)';
         this.fillPreview.style.borderRadius = 'var(--radius-xs)';
-        this.fillPreview.style.border = 'var(--swatch-border-overlay)';
         this.fillSwatch.appendChild(this.fillPreview);
+        
+        // Hover handlers for border opacity
+        this.fillSwatch.addEventListener('mouseenter', () => {
+            if (this._currentFillColor) {
+                this.updateSwatchBorder(this.fillPreview, this._currentFillColor, true);
+            }
+        });
+        this.fillSwatch.addEventListener('mouseleave', () => {
+            if (this._currentFillColor) {
+                this.updateSwatchBorder(this.fillPreview, this._currentFillColor, false);
+            }
+        });
         
         this.fillSwatch.onclick = (e) => {
             e.stopPropagation();
@@ -382,22 +393,30 @@ export class TextSection {
              this.fillPreview.style.backgroundImage = `url(${fill.value.src})`;
              this.fillPreview.style.backgroundSize = 'cover';
              this.fillPreview.style.backgroundColor = 'transparent';
+             this.fillPreview.style.boxShadow = 'inset 0 0 0 1px rgba(0, 0, 0, 0.6)';
+             this._currentFillColor = null;
              this.fillHexInput.value = 'Image';
              this.fillHexInput.disabled = true;
         } else if (fill.type === 'gradient') {
              this.fillPreview.style.background = this.getGradientCss(fill.value);
+             this.fillPreview.style.boxShadow = 'inset 0 0 0 1px rgba(0, 0, 0, 0.6)';
+             this._currentFillColor = null;
              this.fillHexInput.value = 'Gradient';
              this.fillHexInput.disabled = true;
         } else if (fill.type === 'code') {
              this.fillPreview.style.background = 'var(--color-bg-app)';
              this.fillPreview.style.backgroundImage = 'linear-gradient(45deg, var(--color-surface-tertiary) 25%, transparent 25%), linear-gradient(-45deg, var(--color-surface-tertiary) 25%, transparent 25%), linear-gradient(45deg, transparent 75%, var(--color-surface-tertiary) 75%), linear-gradient(-45deg, transparent 75%, var(--color-surface-tertiary) 75%)';
              this.fillPreview.style.backgroundSize = '8px 8px';
+             this.fillPreview.style.boxShadow = 'inset 0 0 0 1px rgba(0, 0, 0, 0.6)';
+             this._currentFillColor = null;
              this.fillHexInput.value = 'Code';
              this.fillHexInput.disabled = true;
         } else {
              // Solid
+             this._currentFillColor = fill.value;
              this.fillPreview.style.background = fill.value;
              this.fillPreview.style.backgroundImage = 'none';
+             this.updateSwatchBorder(this.fillPreview, fill.value, false);
              this.fillHexInput.value = fill.value;
              this.fillHexInput.disabled = false;
         }
@@ -873,5 +892,43 @@ export class TextSection {
         }
         
         return false;
+    }
+
+    /**
+     * Determines if a color is dark using WCAG luminance formula
+     */
+    isColorDark(color) {
+        try {
+            const canvas = document.createElement('canvas');
+            canvas.width = 1;
+            canvas.height = 1;
+            const ctx = canvas.getContext('2d');
+            if (!ctx) return false; // Fallback for test environment
+            ctx.fillStyle = color;
+            ctx.fillRect(0, 0, 1, 1);
+            const [r, g, b] = ctx.getImageData(0, 0, 1, 1).data;
+            
+            const toLinear = (c) => {
+                const sRGB = c / 255;
+                return sRGB <= 0.03928 ? sRGB / 12.92 : Math.pow((sRGB + 0.055) / 1.055, 2.4);
+            };
+            const luminance = 0.2126 * toLinear(r) + 0.7152 * toLinear(g) + 0.0722 * toLinear(b);
+            return luminance < 0.5;
+        } catch (e) {
+            // Fallback for environments without canvas support
+            return false;
+        }
+    }
+
+    /**
+     * Updates the swatch border based on color darkness
+     */
+    updateSwatchBorder(preview, color, isHover = false) {
+        const isDark = this.isColorDark(color);
+        const opacity = isHover ? 1 : 0.6;
+        preview.style.border = 'none';
+        preview.style.boxShadow = isDark 
+            ? `inset 0 0 0 1px rgba(255, 255, 255, ${opacity})`
+            : `inset 0 0 0 1px rgba(0, 0, 0, ${opacity})`;
     }
 }

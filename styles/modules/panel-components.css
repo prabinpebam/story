@@ -517,20 +517,33 @@
 /* ===========================================
    Base Swatch Component
    Standardized color swatch following 7-Step Scale
+   Border is done via inset box-shadow, not border
+   Light swatches get dark border, dark swatches get light border
    =========================================== */
 .swatch {
     display: inline-block;
     border-radius: var(--radius-xs);
-    border: var(--swatch-border);
+    border: none;
     cursor: pointer;
     flex-shrink: 0;
-    transition: transform 0.1s, box-shadow 0.15s;
+    position: relative;
+    /* Default: dark inset border for light colors */
+    box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.6);
+    transition: box-shadow var(--transition-fast);
+}
+
+/* Dark swatch variant - white border */
+.swatch--dark {
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.6);
 }
 
 .swatch:hover {
-    transform: scale(1.1);
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-    z-index: 1;
+    /* Only increase border opacity to 100%, no movement/scale */
+    box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 1);
+}
+
+.swatch--dark:hover {
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 1);
 }
 
 /* Swatch size variants */
@@ -564,15 +577,13 @@
     height: var(--swatch-size-2xl);
 }
 
-/* Swatch with overlay border (for use on colored backgrounds) */
-.swatch--overlay {
-    border: var(--swatch-border-overlay);
+/* Swatch without hover effect (for inline contexts) */
+.swatch--static:hover {
+    box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.6);
 }
 
-/* Swatch without hover scale (for inline contexts) */
-.swatch--static:hover {
-    transform: none;
-    box-shadow: none;
+.swatch--static.swatch--dark:hover {
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.6);
 }
 
 /* Swatch in circular form (theme cards) */
@@ -596,16 +607,26 @@
     width: var(--swatch-size-xl);
     height: var(--swatch-size-xl);
     border-radius: var(--radius-sm);
-    border: var(--swatch-border);
+    border: none;
     cursor: default;
-    transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+    transition: box-shadow var(--transition-fast);
     position: relative;
+    /* Default: dark inset border for light colors */
+    box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.6);
+}
+
+/* Dark swatch variant - white border */
+.theme-color-swatch--dark {
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.6);
 }
 
 .theme-color-swatch:hover {
-    transform: scale(1.1);
-    box-shadow: var(--shadow-sm);
-    z-index: 1;
+    /* Only increase border opacity to 100%, no movement */
+    box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 1);
+}
+
+.theme-color-swatch--dark:hover {
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 1);
 }
 
 /* Typography font rows */
