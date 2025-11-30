@@ -522,7 +522,7 @@
    =========================================== */
 .swatch {
     display: inline-block;
-    border-radius: var(--radius-xs);
+    border-radius: var(--radius-sm);
     border: none;
     cursor: pointer;
     flex-shrink: 0;
