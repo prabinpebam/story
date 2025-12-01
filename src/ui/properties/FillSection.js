@@ -328,9 +328,28 @@ export class FillSection {
         let swatchColor = '#000000';
         
         if (fill.type === 'image') {
-             preview.style.backgroundImage = `url(${fill.value})`;
-             preview.style.backgroundSize = 'cover';
+             // Check if there's actually an image asset
+             if (fill.assetId || fill.value) {
+                 preview.style.backgroundImage = `url(${fill.value})`;
+                 preview.style.backgroundSize = 'cover';
+             } else {
+                 // No image - show placeholder icon
+                 preview.style.backgroundColor = 'var(--color-surface-tertiary)';
+                 preview.innerHTML = '<i class="fa-solid fa-image" style="font-size: 10px; color: var(--color-text-tertiary);"></i>';
+             }
              // Use a neutral border for images
+             preview.style.boxShadow = 'inset 0 0 0 1px rgba(0, 0, 0, 0.3)';
+        } else if (fill.type === 'video') {
+             // Check if there's actually a video asset
+             if (fill.assetId || fill.value) {
+                 // TODO: Show video thumbnail if available
+                 preview.style.backgroundColor = 'var(--color-surface-tertiary)';
+                 preview.innerHTML = '<i class="fa-solid fa-play" style="font-size: 10px; color: var(--color-text-primary);"></i>';
+             } else {
+                 // No video - show placeholder icon
+                 preview.style.backgroundColor = 'var(--color-surface-tertiary)';
+                 preview.innerHTML = '<i class="fa-solid fa-video" style="font-size: 10px; color: var(--color-text-tertiary);"></i>';
+             }
              preview.style.boxShadow = 'inset 0 0 0 1px rgba(0, 0, 0, 0.3)';
         } else if (fill.type === 'gradient') {
              if (typeof fill.value === 'string') {
@@ -343,10 +362,6 @@ export class FillSection {
         } else if (fill.type === 'code') {
              preview.style.backgroundColor = 'var(--color-surface-tertiary)';
              preview.innerHTML = '<i class="fa-solid fa-code" style="font-size: 10px; color: var(--color-text-primary);"></i>';
-             preview.style.boxShadow = 'inset 0 0 0 1px rgba(0, 0, 0, 0.3)';
-        } else if (fill.type === 'video') {
-             preview.style.backgroundColor = 'var(--color-surface-tertiary)';
-             preview.innerHTML = '<i class="fa-solid fa-play" style="font-size: 10px; color: var(--color-text-primary);"></i>';
              preview.style.boxShadow = 'inset 0 0 0 1px rgba(0, 0, 0, 0.3)';
         } else {
              swatchColor = fill.color || fill.value || '#000000';
