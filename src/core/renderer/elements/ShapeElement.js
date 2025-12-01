@@ -197,8 +197,14 @@ export class ShapeElement extends VisualElement {
                         if (fill.type === 'solid') {
                             // Clear any media content before applying solid fill
                             this.clearMediaLayer(layer);
-                            // Support both 'color' and 'value' properties for solid fills
-                            layer.style.backgroundColor = fill.color || fill.value;
+                            // Support linked theme colors via CSS variables
+                            if (fill.themeSlot) {
+                                // Use CSS variable for linked colors - auto-updates when theme changes
+                                layer.style.backgroundColor = `var(--theme-${fill.themeSlot})`;
+                            } else {
+                                // Support both 'color' and 'value' properties for solid fills
+                                layer.style.backgroundColor = fill.color || fill.value;
+                            }
                         } else if (fill.type === 'gradient') {
                             // Clear any media content before applying gradient fill
                             this.clearMediaLayer(layer);
@@ -673,7 +679,10 @@ export class ShapeElement extends VisualElement {
                  }
 
                  const width = stroke.width || 0;
-                 const color = stroke.color || 'transparent';
+                 // Support linked theme colors for strokes
+                 const color = stroke.themeSlot 
+                     ? `var(--theme-${stroke.themeSlot})` 
+                     : (stroke.color || 'transparent');
                  const align = stroke.position || 'center';
                  const radius = el.borderRadius || el.style?.radius || 0;
                  

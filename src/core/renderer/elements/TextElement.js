@@ -382,7 +382,12 @@ export class TextElement extends VisualElement {
         }
 
         if (fill.type === 'solid') {
-            div.style.color = fill.value;
+            // Support linked theme colors via CSS variables
+            if (fill.themeSlot) {
+                div.style.color = `var(--theme-${fill.themeSlot})`;
+            } else {
+                div.style.color = fill.value;
+            }
             div.style.background = 'none';
             div.style.webkitBackgroundClip = 'border-box';
             div.style.webkitTextFillColor = 'currentcolor';

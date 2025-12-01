@@ -166,7 +166,12 @@ export class SlideView {
             layer.style.mixBlendMode = fill.blendMode || 'normal';
 
             if (fill.type === 'solid') {
-                layer.style.backgroundColor = fill.color || fill.value;
+                // Support linked theme colors via CSS variables
+                if (fill.themeSlot) {
+                    layer.style.backgroundColor = `var(--theme-${fill.themeSlot})`;
+                } else {
+                    layer.style.backgroundColor = fill.color || fill.value;
+                }
             } else if (fill.type === 'gradient') {
                 layer.style.background = this.getGradientCss(fill.value);
             } else if (fill.type === 'image') {
