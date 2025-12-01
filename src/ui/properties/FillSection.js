@@ -730,85 +730,108 @@ export class FillSection {
              }];
         }
 
-        const fill = { ...fills[index] };
+        let fill = { ...fills[index] };
         
-        if (updates.type) {
-            fill.type = updates.type;
-            // Restore last used value for this type
-            if (updates.type === 'solid') {
-                fill.value = LastUsed.solid;
-                fill.color = LastUsed.solid;
-            } else if (updates.type === 'gradient') {
-                fill.value = LastUsed.gradient;
-            } else if (updates.type === 'code') {
-                fill.value = LastUsed.code || CodeRunner.DEFAULT_CODE;
-                fill.code = LastUsed.code || CodeRunner.DEFAULT_CODE;
-            }
-        }
-        
-        if (updates.blendMode !== undefined) {
-            fill.blendMode = updates.blendMode;
-        }
-        
-        if (updates.code !== undefined) {
-            fill.code = updates.code;
-            LastUsed.code = updates.code;
-        }
-
-        if (updates.color) {
-            // Update color value
-            // If opacity is managed separately, we might want to keep it separate or bake it in.
-            // The prompt asked for "Black with 25% opacity".
-            // Let's store base color and opacity separately if possible, or bake them.
-            // For now, let's bake opacity into the rgba string for 'color' property to keep it simple for renderer.
-            const currentOpacity = fill.opacity !== undefined ? fill.opacity : 100;
-            fill.color = this.applyOpacity(updates.color, currentOpacity);
+        if (updates.type && updates.type !== fill.type) {
+            // When changing fill type, create a clean fill object
+            // Only preserve common properties, not type-specific ones like assetId
+            const commonProps = {
+                type: updates.type,
+                visible: fill.visible,
+                blendMode: fill.blendMode,
+                opacity: fill.opacity !== undefined ? fill.opacity : 100
+            };
             
-            // Only sync value to color if type is solid
-            if (fill.type === 'solid') {
-                fill.value = fill.color;
-                // Update LastUsed (strip opacity for storage if needed, but hex is fine)
-                // Actually updates.color comes from ColorInput which is usually Hex.
-                LastUsed.solid = updates.color;
+            // Set type-specific defaults
+            if (updates.type === 'solid') {
+                fill = {
+                    ...commonProps,
+                    color: updates.color || LastUsed.solid,
+                    value: updates.value || updates.color || LastUsed.solid
+                };
+            } else if (updates.type === 'gradient') {
+                fill = {
+                    ...commonProps,
+                    value: updates.value || LastUsed.gradient
+                };
+            } else if (updates.type === 'code') {
+                fill = {
+                    ...commonProps,
+                    code: updates.code || LastUsed.code || CodeRunner.DEFAULT_CODE,
+                    value: updates.value || LastUsed.code || CodeRunner.DEFAULT_CODE
+                };
+            } else if (updates.type === 'image') {
+                fill = {
+                    ...commonProps,
+                    assetId: updates.assetId || null,
+                    value: updates.value || '',
+                    scaleMode: updates.scaleMode || 'fill',
+                    position: updates.position || { x: 0.5, y: 0.5 }
+                };
+            } else if (updates.type === 'video') {
+                fill = {
+                    ...commonProps,
+                    assetId: updates.assetId || null,
+                    value: updates.value || '',
+                    scaleMode: updates.scaleMode || 'fill'
+                };
             }
-        }
-
-        if (updates.opacity !== undefined) {
-            fill.opacity = updates.opacity;
-            // Re-bake opacity into color string (only for solid fills)
-            if (fill.type === 'solid' && fill.color) {
-                fill.color = this.applyOpacity(fill.color, fill.opacity);
-                fill.value = fill.color;
+        } else {
+            // Same type - merge updates normally
+            if (updates.blendMode !== undefined) {
+                fill.blendMode = updates.blendMode;
             }
-        }
-
-        // For non-solid types (gradient, image, etc), the value comes directly from updates
-        if (fill.type !== 'solid' && updates.value !== undefined) {
-            fill.value = updates.value;
-            if (fill.type === 'gradient') {
-                LastUsed.gradient = updates.value;
+            
+            if (updates.code !== undefined) {
+                fill.code = updates.code;
+                LastUsed.code = updates.code;
             }
-        }
 
-        if (updates.visible !== undefined) {
-            fill.visible = updates.visible;
-        }
+            if (updates.color) {
+                const currentOpacity = fill.opacity !== undefined ? fill.opacity : 100;
+                fill.color = this.applyOpacity(updates.color, currentOpacity);
+                
+                if (fill.type === 'solid') {
+                    fill.value = fill.color;
+                    LastUsed.solid = updates.color;
+                }
+            }
 
-        // Handle media fill properties (image/video)
-        if (updates.assetId !== undefined) {
-            fill.assetId = updates.assetId;
-        }
-        if (updates.scaleMode !== undefined) {
-            fill.scaleMode = updates.scaleMode;
-        }
-        if (updates.position !== undefined) {
-            fill.position = updates.position;
-        }
-        if (updates.filters !== undefined) {
-            fill.filters = updates.filters;
-        }
-        if (updates.playback !== undefined) {
-            fill.playback = updates.playback;
+            if (updates.opacity !== undefined) {
+                fill.opacity = updates.opacity;
+                if (fill.type === 'solid' && fill.color) {
+                    fill.color = this.applyOpacity(fill.color, fill.opacity);
+                    fill.value = fill.color;
+                }
+            }
+
+            if (fill.type !== 'solid' && updates.value !== undefined) {
+                fill.value = updates.value;
+                if (fill.type === 'gradient') {
+                    LastUsed.gradient = updates.value;
+                }
+            }
+
+            if (updates.visible !== undefined) {
+                fill.visible = updates.visible;
+            }
+
+            // Handle media fill properties (image/video)
+            if (updates.assetId !== undefined) {
+                fill.assetId = updates.assetId;
+            }
+            if (updates.scaleMode !== undefined) {
+                fill.scaleMode = updates.scaleMode;
+            }
+            if (updates.position !== undefined) {
+                fill.position = updates.position;
+            }
+            if (updates.filters !== undefined) {
+                fill.filters = updates.filters;
+            }
+            if (updates.playback !== undefined) {
+                fill.playback = updates.playback;
+            }
         }
 
         fills[index] = fill;
