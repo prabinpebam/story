@@ -317,8 +317,8 @@ Per `documentation/principles.md`, each phase must address:
 
 ---
 
-## Phase 4: Rich Text Enhancements (P1) ✅
-**Estimated: 3-4 days**
+## Phase 4: Rich Text Enhancements (P1) ✅ COMPLETE
+**Estimated: 3-4 days** | **Actual: Complete**
 
 ### Goals
 - Reliable keyboard shortcuts
@@ -335,7 +335,7 @@ Per `documentation/principles.md`, each phase must address:
 4. ✅ Cmd+Shift+X for strikethrough
 5. ✅ getSelectionStyles() for detecting active formatting
 
-**Tests:** ✅
+**Tests:** ✅ TextEditManager.test.js
 - Each shortcut works
 - Selection preserved after style
 - Mixed styles render correctly
@@ -346,10 +346,10 @@ Per `documentation/principles.md`, each phase must address:
 **Tasks:**
 1. ✅ Save selection before UI interaction (node path approach per `03-selection-manager.md`)
 2. ✅ Restore selection after PI interaction
-3. ✅ Handle focus transitions between text and PI
+3. ✅ Handle focus transitions between text and PI (via blur handler)
 4. ✅ getSelectionInfo() with style detection
 
-**Tests (vitest):** ✅
+**Tests (vitest):** ✅ SelectionManager.test.js (20 tests)
 - Style change preserves selection
 - Property Inspector interaction works
 - Focus returns to text correctly
@@ -359,21 +359,21 @@ Per `documentation/principles.md`, each phase must address:
 **Files:** `TextEditManager.js`
 
 **Tasks:**
-1. ✅ Tab/Shift+Tab indentation in lists
-2. ✅ Enter in empty list item exits/outdents
-3. ✅ Backspace at list start outdents or converts to paragraph
-4. ✅ Helper methods for list manipulation
+1. ✅ Tab/Shift+Tab indentation in lists (`_indentListItem`, `_outdentListItem`)
+2. ✅ Enter in empty list item exits/outdents (`_exitList`)
+3. ✅ Backspace at list start outdents or converts to paragraph (`_handleBackspaceInList`)
+4. ✅ Helper methods: `_isInList`, `_getCurrentListItem`, `_isListItemEmpty`, `_isCaretAtListItemStart`
 
-**Tests:** ✅ (13 new tests)
+**Tests:** ✅ TextEditManager.test.js (13 list-related tests)
 - List patterns detected
 - List continuation works
 - List termination works
 - Indentation works
 
 **Validation Checkpoint:** ✅ ALL VERIFIED
-- [x] All shortcuts work
-- [x] Selection preserved
-- [x] Lists fully functional
+- [x] All shortcuts work (Cmd+B/I/U, Cmd+Shift+X)
+- [x] Selection preserved via saveSelection/restoreSelection
+- [x] Lists fully functional with Tab/Enter/Backspace handling
 
 ---
 
@@ -749,14 +749,14 @@ Each phase can be rolled back independently:
 | 1: Architecture | 3-4 days | P0 | Phase 0, 0.5 | ✅ COMPLETE | App integrity |
 | 2: Enter/Exit | 2-3 days | P1 | Phase 1 | ✅ COMPLETE | App integrity |
 | 3: Layer Tree | 2-3 days | P1 | Phase 2 | ✅ COMPLETE | Design system |
-| 4: Rich Text | 3-4 days | P1 | Phase 2 | ⬜ Not Started | App integrity |
+| 4: Rich Text | 3-4 days | P1 | Phase 2 | ✅ COMPLETE | App integrity |
 | 5: Polish | 2-3 days | P2 | Phase 4 | ⬜ Not Started | Design system |
 | 6: Style Integration | 2-3 days | P1 | Phase 4 | ⬜ Not Started | Design system |
 | 7: Advanced | 2-3 days | P2 | Phase 5, 6 | ⬜ Not Started | Undo/redo, Collab |
 
 **Total Estimated: 19-28 days**
-**Completed: Phases 0, 0.5, 1, 2, 3 (~12-15 days of work)**
-**Remaining: Phases 4-7 (~8-12 days)**
+**Completed: Phases 0, 0.5, 1, 2, 3, 4 (~15-18 days of work)**
+**Remaining: Phases 5-7 (~6-9 days)**
 
 ---
 
