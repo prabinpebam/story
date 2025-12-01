@@ -459,6 +459,7 @@ export class SolidTab {
         const rgb = ColorUtils.hsbToRgb(this.state.h, this.state.s, this.state.b);
         const hex = ColorUtils.rgbToHex(rgb.r, rgb.g, rgb.b);
         
+        console.log('[SolidTab.emitChange] Emitting:', { hex, opacity: Math.round(this.state.a), isTransient });
         this.onChange({
             color: hex,
             opacity: Math.round(this.state.a),

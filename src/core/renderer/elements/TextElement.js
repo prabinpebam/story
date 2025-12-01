@@ -383,8 +383,11 @@ export class TextElement extends VisualElement {
 
         if (fill.type === 'solid') {
             // Support linked theme colors via CSS variables
-            if (fill.themeSlot) {
-                div.style.color = `var(--theme-${fill.themeSlot})`;
+            if (fill.themeSlot !== undefined && fill.themeSlot !== null) {
+                // themeSlot is 0-indexed, CSS variables are 1-indexed (--theme-slot1 through --theme-slot12)
+                const slotNumber = fill.themeSlot + 1;
+                const fallbackColor = fill.value || '#000000';
+                div.style.color = `var(--theme-slot${slotNumber}, ${fallbackColor})`;
             } else {
                 div.style.color = fill.value;
             }

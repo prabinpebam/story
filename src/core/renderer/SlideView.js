@@ -167,8 +167,11 @@ export class SlideView {
 
             if (fill.type === 'solid') {
                 // Support linked theme colors via CSS variables
-                if (fill.themeSlot) {
-                    layer.style.backgroundColor = `var(--theme-${fill.themeSlot})`;
+                if (fill.themeSlot !== undefined && fill.themeSlot !== null) {
+                    // themeSlot is 0-indexed, CSS variables are 1-indexed (--theme-slot1 through --theme-slot12)
+                    const slotNumber = fill.themeSlot + 1;
+                    const fallbackColor = fill.color || fill.value || '#808080';
+                    layer.style.backgroundColor = `var(--theme-slot${slotNumber}, ${fallbackColor})`;
                 } else {
                     layer.style.backgroundColor = fill.color || fill.value;
                 }
