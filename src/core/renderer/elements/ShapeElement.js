@@ -195,9 +195,13 @@ export class ShapeElement extends VisualElement {
                         }
                         
                         if (fill.type === 'solid') {
+                            // Clear any media content before applying solid fill
+                            this.clearMediaLayer(layer);
                             // Support both 'color' and 'value' properties for solid fills
                             layer.style.backgroundColor = fill.color || fill.value;
                         } else if (fill.type === 'gradient') {
+                            // Clear any media content before applying gradient fill
+                            this.clearMediaLayer(layer);
                             if (fillValue.startsWith('/* diamond|')) {
                                 this.renderDiamondGradient(layer, el.width, el.height, fillValue);
                             } else {
@@ -623,6 +627,10 @@ export class ShapeElement extends VisualElement {
             if (keepType && el.tagName.toLowerCase() === keepType) return;
             el.remove();
         });
+        
+        // Remove media placeholder (empty state indicator)
+        const placeholder = layer.querySelector('.media-placeholder');
+        if (placeholder) placeholder.remove();
         
         // Remove SVG filter defs
         const svgDefs = layer.querySelector('svg.media-filter-defs');
