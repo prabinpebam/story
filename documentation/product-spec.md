@@ -168,6 +168,7 @@ These are the most important specifications for understanding Story:
 | [design-system-ux-guide.md](./specs/design-system/design-system-ux-guide.md) | UX guidelines | ✅ Active |
 | [color-theme-manager.md](./specs/design-system/color-theme-manager.md) | Theme and color management | ✅ Active |
 | [typography-style-manager.md](./specs/design-system/typography-style-manager.md) | Typography system | ✅ Active |
+| [**linked-properties-system.md**](./specs/design-system/linked-properties-system.md) | ⭐ Theme/style property binding | ✅ Active |
 | [theme-architecture.md](./specs/design-system/theme-architecture.md) | Theme implementation details | ✅ Active |
 | [design-consistency-audit.md](./specs/design-system/design-consistency-audit.md) | Audit results and fixes | 📋 Reference |
 
