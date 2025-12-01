@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Story Documentation</title>
+    <link rel="icon" type="image/svg+xml" href="/assets/story.svg">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="/docs/styles/docs.css">
+</head>
+<body>
+    <div id="docs-app">
+        <!-- Top Navigation Bar -->
+        <header id="docs-header">
+            <div class="header-left">
+                <a href="/" class="logo-link" title="Back to Story">
+                    <img src="/assets/story.svg" alt="Story" class="logo">
+                    <span class="logo-text">Story</span>
+                </a>
+                <span class="docs-badge">Documentation</span>
+            </div>
+            <div class="header-center">
+                <div class="search-container">
+                    <i class="fa-solid fa-search search-icon"></i>
+                    <input type="text" id="docs-search" placeholder="Search documentation..." autocomplete="off">
+                    <kbd class="search-shortcut">⌘K</kbd>
+                    <div id="search-results" class="search-results hidden"></div>
+                </div>
+            </div>
+            <div class="header-right">
+                <button id="theme-toggle" class="icon-btn" title="Toggle theme">
+                    <i class="fa-solid fa-moon"></i>
+                </button>
+                <a href="https://github.com/prabinpebam/story" target="_blank" class="icon-btn" title="GitHub">
+                    <i class="fa-brands fa-github"></i>
+                </a>
+            </div>
+        </header>
+
+        <div id="docs-main">
+            <!-- Left Sidebar: Navigation -->
+            <aside id="docs-sidebar">
+                <nav id="docs-nav">
+                    <!-- Navigation will be generated dynamically -->
+                </nav>
+            </aside>
+
+            <!-- Main Content Area -->
+            <main id="docs-content">
+                <article id="docs-article">
+                    <!-- Content will be loaded dynamically -->
+                    <div class="loading-state">
+                        <i class="fa-solid fa-spinner fa-spin"></i>
+                        <span>Loading documentation...</span>
+                    </div>
+                </article>
+
+                <!-- Table of Contents (Right Side) -->
+                <aside id="docs-toc">
+                    <div class="toc-header">On This Page</div>
+                    <nav id="toc-nav">
+                        <!-- TOC will be generated from article headings -->
+                    </nav>
+                </aside>
+            </main>
+        </div>
+    </div>
+
+    <!-- Command Palette Modal -->
+    <div id="command-palette" class="modal hidden">
+        <div class="modal-backdrop"></div>
+        <div class="command-modal">
+            <div class="command-search">
+                <i class="fa-solid fa-search"></i>
+                <input type="text" id="command-input" placeholder="Search or type a command...">
+            </div>
+            <div id="command-results" class="command-results">
+                <!-- Results will be populated dynamically -->
+            </div>
+        </div>
+    </div>
+
+    <script type="module" src="/docs/scripts/docs-app.js"></script>
+</body>
+</html>

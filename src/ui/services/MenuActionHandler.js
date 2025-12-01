@@ -287,7 +287,8 @@ class MenuActionHandler {
     }
 
     openDocumentation() {
-        window.open('https://github.com/prabinpebam/story/wiki', '_blank');
+        // Open documentation viewer in new tab
+        window.open('/docs/', '_blank');
     }
 
     showAbout() {
