@@ -205,6 +205,7 @@
     object-fit: contain;
 }
 
+/* Legacy upload prompt - kept for backward compatibility */
 .media-upload-prompt {
     text-align: center;
     color: var(--color-text-secondary);
@@ -217,6 +218,61 @@
 
 .media-upload-prompt .text {
     font-size: var(--font-size-sm);
+}
+
+/* ===========================================
+   Media Empty State (Image/Video)
+   Clean, minimal empty state for media fills
+   =========================================== */
+.media-empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--spacing-2);
+    padding: var(--spacing-4);
+    text-align: center;
+    color: var(--color-text-tertiary);
+}
+
+.media-empty-icon {
+    opacity: 0.4;
+    transition: var(--transition-normal);
+}
+
+.media-empty-icon svg {
+    width: 32px;
+    height: 32px;
+}
+
+.media-empty-label {
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-medium);
+    color: var(--color-text-secondary);
+}
+
+.media-empty-hint {
+    font-size: var(--font-size-xs);
+    color: var(--color-text-tertiary);
+}
+
+/* Hover state for drag/click affordance */
+.media-preview-area:hover .media-empty-icon {
+    opacity: 0.6;
+}
+
+.media-preview-area:hover .media-empty-label {
+    color: var(--color-text-primary);
+}
+
+/* Drag over state */
+.media-preview-area.drag-over .media-empty-icon {
+    opacity: 0.8;
+    color: var(--color-accent);
+}
+
+.media-preview-area.drag-over .media-empty-label {
+    color: var(--color-accent);
 }
 
 /* Media Remove Button */

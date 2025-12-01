@@ -62,21 +62,36 @@ export class VideoTab {
                 previewArea.appendChild(removeBtn);
             }
         } else {
-            // Show upload prompt
-            const uploadPrompt = document.createElement('div');
-            uploadPrompt.className = 'media-upload-prompt';
+            // Empty state: video icon with upload prompt
+            const emptyState = document.createElement('div');
+            emptyState.className = 'media-empty-state';
             
+            // Video icon (clapperboard/film)
             const icon = document.createElement('div');
-            icon.className = 'icon';
-            icon.innerHTML = `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><polygon points="10 8 16 12 10 16" fill="currentColor" stroke="none"/></svg>`;
+            icon.className = 'media-empty-icon';
+            icon.innerHTML = `<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18"/>
+                <line x1="7" y1="2" x2="7" y2="22"/>
+                <line x1="17" y1="2" x2="17" y2="22"/>
+                <line x1="2" y1="12" x2="22" y2="12"/>
+                <line x1="2" y1="7" x2="7" y2="7"/>
+                <line x1="2" y1="17" x2="7" y2="17"/>
+                <line x1="17" y1="17" x2="22" y2="17"/>
+                <line x1="17" y1="7" x2="22" y2="7"/>
+            </svg>`;
             
-            const text = document.createElement('div');
-            text.className = 'text';
-            text.textContent = 'Click or drop video';
+            const label = document.createElement('div');
+            label.className = 'media-empty-label';
+            label.textContent = 'Drop video here';
             
-            uploadPrompt.appendChild(icon);
-            uploadPrompt.appendChild(text);
-            previewArea.appendChild(uploadPrompt);
+            const hint = document.createElement('div');
+            hint.className = 'media-empty-hint';
+            hint.textContent = 'or click to browse';
+            
+            emptyState.appendChild(icon);
+            emptyState.appendChild(label);
+            emptyState.appendChild(hint);
+            previewArea.appendChild(emptyState);
         }
 
         // File input

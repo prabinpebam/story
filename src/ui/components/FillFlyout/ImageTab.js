@@ -46,21 +46,31 @@ export class ImageTab {
                 previewArea.appendChild(removeBtn);
             }
         } else {
-            // Show upload prompt
-            const uploadPrompt = document.createElement('div');
-            uploadPrompt.className = 'media-upload-prompt';
+            // Empty state: image icon with upload prompt
+            const emptyState = document.createElement('div');
+            emptyState.className = 'media-empty-state';
             
+            // Image icon (landscape with sun)
             const icon = document.createElement('div');
-            icon.className = 'icon';
-            icon.innerHTML = Icons.IMAGE || `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>`;
+            icon.className = 'media-empty-icon';
+            icon.innerHTML = `<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                <circle cx="8.5" cy="8.5" r="1.5"/>
+                <polyline points="21 15 16 10 5 21"/>
+            </svg>`;
             
-            const text = document.createElement('div');
-            text.className = 'text';
-            text.textContent = 'Click or drop image';
+            const label = document.createElement('div');
+            label.className = 'media-empty-label';
+            label.textContent = 'Drop image here';
             
-            uploadPrompt.appendChild(icon);
-            uploadPrompt.appendChild(text);
-            previewArea.appendChild(uploadPrompt);
+            const hint = document.createElement('div');
+            hint.className = 'media-empty-hint';
+            hint.textContent = 'or click to browse';
+            
+            emptyState.appendChild(icon);
+            emptyState.appendChild(label);
+            emptyState.appendChild(hint);
+            previewArea.appendChild(emptyState);
         }
 
         // File input
