@@ -165,26 +165,44 @@ export class FillFlyout extends Flyout {
         // Get defaults from memory for the new mode
         const memoryDefaults = propertyMemory.getFillDefaults(this.contextKey, type);
         
-        // Default values when switching modes (from memory or fallback)
-        let updates = { type };
+        // When switching modes, create a clean fill object for the new type
+        // Don't carry over properties from other fill types (like assetId from image fills)
+        let newFill = { type, visible: this.fill.visible, blendMode: this.fill.blendMode };
+        
         if (type === 'solid') {
-            updates.color = memoryDefaults?.color || '#000000';
-            updates.value = memoryDefaults?.color || '#000000';
-            updates.opacity = memoryDefaults?.opacity || 100;
+            newFill.color = memoryDefaults?.color || '#000000';
+            newFill.value = memoryDefaults?.color || '#000000';
+            newFill.opacity = memoryDefaults?.opacity || 100;
         } else if (type === 'gradient') {
             // Use memory gradient, then LastUsedGradient fallback
-            updates.value = memoryDefaults?.value 
+            newFill.value = memoryDefaults?.value 
                 ? JSON.parse(JSON.stringify(memoryDefaults.value))
                 : JSON.parse(JSON.stringify(LastUsedGradient));
+            newFill.opacity = this.fill.opacity || 100;
         } else if (type === 'image') {
-            updates.value = ''; // Empty image - not stored in memory
+            newFill.value = ''; // Empty image - not stored in memory
+            newFill.assetId = null;
+            newFill.scaleMode = 'fill';
+            newFill.position = { x: 0.5, y: 0.5 };
+            newFill.opacity = this.fill.opacity || 100;
         } else if (type === 'video') {
-            updates.value = ''; // Empty video - not stored in memory
+            newFill.value = ''; // Empty video - not stored in memory
+            newFill.assetId = null;
+            newFill.scaleMode = 'fill';
+            newFill.opacity = this.fill.opacity || 100;
         } else if (type === 'code') {
-            updates.code = memoryDefaults?.code || CodeRunner.DEFAULT_CODE;
+            newFill.code = memoryDefaults?.code || CodeRunner.DEFAULT_CODE;
+            newFill.opacity = this.fill.opacity || 100;
         }
 
-        this.updateFill(updates);
+        // Replace the fill entirely instead of merging
+        this.fill = newFill;
+        
+        // Update memory with the new fill state
+        propertyMemory.updateFromSelection(this.contextKey, this.fill);
+
+        this.onChange(this.fill, false);
+        this.render();
     }
 
     updateFill(updates, isTransient = false) {
