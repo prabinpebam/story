@@ -50,6 +50,42 @@ Color theme is applied in the following heirarchy
 
 # Detailed UX Specification
 
+## Core Concept: Luma-Locked Tonal System
+
+**This is NOT a semantic color system.** There are no "background colors", "accent colors", or "text colors" in the theme definition. Instead:
+
+### The 12-Slot Model
+A color theme is a **tonal scale** of 12 color slots, each with:
+- **Fixed Luma (L)** - The luminance value is locked and defines the slot's tonal position
+- **Variable Hue (H)** - Can be freely changed
+- **Variable Saturation (S)** - Can be freely changed
+
+### Why Luma is Locked
+The **delta between luma values** is what makes a theme functional:
+- Slot 1 and Slot 12 always have sufficient contrast for text legibility
+- Any slot pairing maintains its contrast ratio across themes
+- Desaturate any theme to grayscale → it still works perfectly
+
+### Three Tonal Clusters
+Luma values cluster into shadows, midtones, and highlights (like photography):
+
+```
+SHADOWS          MIDTONES         HIGHLIGHTS
+(L: 5-25%)       (L: 35-65%)      (L: 70-97%)
+┌──┬──┬──┬──┐   ┌──┬──┬──┬──┐   ┌──┬──┬──┬──┐
+│1 │2 │3 │4 │   │5 │6 │7 │8 │   │9 │10│11│12│
+└──┴──┴──┴──┘   └──┴──┴──┴──┘   └──┴──┴──┴──┘
+```
+
+### Interchangeability Guarantee
+Because luma relationships are fixed:
+1. Pick ANY preset or custom theme
+2. Apply to ANY template
+3. Template remains legible and functional
+4. Only the "feel" (hue/saturation) changes, not the structure
+
+---
+
 ## Design System Compliance
 
 This specification strictly adheres to the Story Design System tokens defined in `variables.css`:
@@ -205,12 +241,14 @@ Two sections: **Presets** (read-only) and **Custom** (user-created).
 **Mini Swatch Preview:**
 | Property | Value | Token |
 |----------|-------|-------|
-| Size | 32px × 20px | Custom |
-| Grid | 2 rows × 3 cols | — |
-| Individual swatch | 10px × 10px | — |
+| Size | 36px × 24px | Custom |
+| Grid | 2 rows × 6 cols | — |
+| Individual swatch | 6px × 12px | — |
 | Border radius | 2px | `--radius-xs` |
-| Gap | 1px | — |
-| Colors shown | background1, text1, accent1, accent2, accent3, accent4 | — |
+| Gap | 0px (seamless gradient look) | — |
+| Colors shown | All 12 slots in luma order (dark to light) | — |
+
+The preview shows the full tonal range as a mini gradient strip:
 
 **List Item Tokens:**
 | Element | Token |
@@ -256,8 +294,18 @@ Two sections: **Presets** (read-only) and **Custom** (user-created).
 
 **Invert Button:**
 - Tooltip: "Invert to Light/Dark mode"
-- Flips all luma values to create opposite theme
+- **Flips all luma values**: L → (100 - L)
+  - Slot 1 (L:5%) becomes L:95%
+  - Slot 12 (L:97%) becomes L:3%
+  - All deltas are preserved (just mirrored)
+- Hue and Saturation remain unchanged
 - On preset: prompts to save as new
+
+**Invert Example:**
+```
+Before (Dark theme):   5%  10%  18%  25%  35%  45%  55%  65%  70%  80%  90%  97%
+After  (Light theme): 95%  90%  82%  75%  65%  55%  45%  35%  30%  20%  10%   3%
+```
 
 **Header Tokens:**
 | Element | Token |
@@ -269,97 +317,113 @@ Two sections: **Presets** (read-only) and **Custom** (user-created).
 
 ---
 
-### 4.2 Color Swatch Editor Section
+### 4.2 The 12-Slot Tonal System
 
-The 12 color slots displayed in a structured grid.
+**Core Concept:** A color theme is NOT a set of semantic roles. It is a **tonal scale** of 12 color slots with **fixed luma relationships**. The luma deltas between slots are constant - this ensures that any theme remains legible because contrast ratios are preserved.
+
+**Why This Works:**
+- If you desaturate any theme to grayscale (luma only), it remains fully functional
+- Swapping themes maintains readability because contrast is preserved
+- The designer chooses which slot to use for what purpose - the slot itself has no semantic meaning
+
+**Luma Clusters:**
+The 12 slots are distributed into 3 tonal clusters (not uniform):
+
+```
+SHADOWS (Dark)     │  MIDTONES          │  HIGHLIGHTS (Light)
+───────────────────┼────────────────────┼────────────────────
+Slot 1: L ~5%      │  Slot 5: L ~35%    │  Slot 9:  L ~70%
+Slot 2: L ~10%     │  Slot 6: L ~45%    │  Slot 10: L ~80%
+Slot 3: L ~18%     │  Slot 7: L ~55%    │  Slot 11: L ~90%
+Slot 4: L ~25%     │  Slot 8: L ~65%    │  Slot 12: L ~97%
+```
+
+**Visual Layout:**
 
 ```
 ┌────────────────────────────────────────────────────────────────┐
-│  Color Slots                                                   │
+│  Color Palette                                                 │
 ├────────────────────────────────────────────────────────────────┤
 │                                                                │
-│  ┌─────────────────────────────────────────────────────────┐   │
-│  │  Backgrounds                                            │   │
-│  ├─────────────────────────────────────────────────────────┤   │
-│  │  ┌────┐  Background 1    H: [120°]  S: [50%]  [🔒]      │   │
-│  │  │░░░░│  L: 15% (locked)                                │   │
-│  │  └────┘                                                 │   │
-│  │  ┌────┐  Background 2    H: [120°]  S: [45%]  [🔒]      │   │
-│  │  │░░░░│  L: 22% (locked)                                │   │
-│  │  └────┘                                                 │   │
-│  └─────────────────────────────────────────────────────────┘   │
-│                                                                │
-│  ┌─────────────────────────────────────────────────────────┐   │
-│  │  Text                                                   │   │
-│  ├─────────────────────────────────────────────────────────┤   │
-│  │  ┌────┐  Text Primary    H: [0°]    S: [0%]   [🔒]      │   │
-│  │  │░░░░│  L: 92% (locked)                                │   │
-│  │  └────┘                                                 │   │
-│  │  ┌────┐  Text Secondary  H: [0°]    S: [0%]   [🔒]      │   │
-│  │  │░░░░│  L: 65% (locked)                                │   │
-│  │  └────┘                                                 │   │
-│  └─────────────────────────────────────────────────────────┘   │
-│                                                                │
-│  ┌─────────────────────────────────────────────────────────┐   │
-│  │  Accents                                                │   │
-│  ├─────────────────────────────────────────────────────────┤   │
-│  │  ┌────┐  Accent 1        H: [210°]  S: [85%]  [🔒]      │   │
-│  │  │░░░░│  L: 55% (locked)                                │   │
-│  │  └────┘                                                 │   │
-│  │  ┌────┐  Accent 2        H: [150°]  S: [70%]  [🔒]      │   │
-│  │  │░░░░│  L: 50% (locked)                                │   │
-│  │  └────┘                                                 │   │
-│  │  ┌────┐  Accent 3        H: [30°]   S: [80%]  [🔒]      │   │
-│  │  │░░░░│  L: 55% (locked)                                │   │
-│  │  └────┘                                                 │   │
-│  │  ┌────┐  Accent 4        H: [330°]  S: [75%]  [🔒]      │   │
-│  │  │░░░░│  L: 50% (locked)                                │   │
-│  │  └────┘                                                 │   │
-│  │  ┌────┐  Accent 5        H: [270°]  S: [65%]  [🔒]      │   │
-│  │  │░░░░│  L: 55% (locked)                                │   │
-│  │  └────┘                                                 │   │
-│  │  ┌────┐  Accent 6        H: [60°]   S: [60%]  [🔒]      │   │
-│  │  │░░░░│  L: 50% (locked)                                │   │
-│  │  └────┘                                                 │   │
-│  └─────────────────────────────────────────────────────────┘   │
-│                                                                │
-│  ┌─────────────────────────────────────────────────────────┐   │
-│  │  Links                                                  │   │
-│  ├─────────────────────────────────────────────────────────┤   │
-│  │  ┌────┐  Hyperlink       H: [210°]  S: [90%]  [🔒]      │   │
-│  │  │░░░░│  L: 55% (locked)                                │   │
-│  │  └────┘                                                 │   │
-│  │  ┌────┐  Visited Link    H: [280°]  S: [60%]  [🔒]      │   │
-│  │  │░░░░│  L: 45% (locked)                                │   │
-│  │  └────┘                                                 │   │
-│  └─────────────────────────────────────────────────────────┘   │
+│  ┌─────┬─────┬─────┬─────┬─────┬─────┬─────┬─────┬─────┬─────┬─────┬─────┐
+│  │  1  │  2  │  3  │  4  │  5  │  6  │  7  │  8  │  9  │ 10  │ 11  │ 12  │
+│  │░░░░░│░░░░░│░░░░░│░░░░░│▒▒▒▒▒│▒▒▒▒▒│▒▒▒▒▒│▒▒▒▒▒│▓▓▓▓▓│▓▓▓▓▓│▓▓▓▓▓│█████│
+│  │ 5%  │ 10% │ 18% │ 25% │ 35% │ 45% │ 55% │ 65% │ 70% │ 80% │ 90% │ 97% │
+│  └─────┴─────┴─────┴─────┴─────┴─────┴─────┴─────┴─────┴─────┴─────┴─────┘
+│    ▲─────── SHADOWS ───────▲     ▲──── MIDTONES ────▲    ▲── HIGHLIGHTS ─▲
 │                                                                │
 └────────────────────────────────────────────────────────────────┘
 ```
 
-**Color Slot Row Structure:**
+**Single Slot Editor Row:**
+
 ```
 ┌──────────────────────────────────────────────────────────────────────┐
-│ ┌──────┐  Slot Name      H: [___°]  S: [___%]          [🔒]          │
-│ │      │  L: XX% (locked)                                            │
-│ └──────┘                                                             │
+│ ┌──────┐   1      H: [210°]    S: [75%]    L: 5%           [🔒]      │
+│ │      │                                    ▲                        │
+│ └──────┘                                    └─ Read-only (locked)    │
 └──────────────────────────────────────────────────────────────────────┘
-   │           │               │           │                │
-   │           │               │           │                └─ Lock toggle
-   │           │               │           │                   (prevents Generate)
-   │           │               │           └─ Saturation input (0-100%)
-   │           │               └─ Hue input (0-360°)
-   │           └─ Luma shown as read-only badge
+   │         │           │            │                         │
+   │         │           │            │                         └─ Lock toggle (for Generate)
+   │         │           │            └─ Saturation input (editable)
+   │         │           └─ Hue input (editable)
+   │         └─ Slot number (1-12)
    └─ Color swatch preview
+```
+
+**Slot Row Tokens:**
+| Element | Token |
+|---------|-------|
+| Row height | 36px |
+| Row gap | `--spacing-1` |
+| Swatch size | 28px × 28px |
+| Swatch radius | `--radius-sm` |
+| Slot number font | `--font-size-sm`, `--font-weight-medium` |
+| Slot number color | `--color-text-secondary` |
+| Input width | 56px |
+
+**Compact Grid Alternative:**
+For space efficiency, slots can be shown as a 4×3 or 6×2 grid:
+
+```
+┌────────────────────────────────────────────┐
+│  ┌────┐ ┌────┐ ┌────┐ ┌────┐ ┌────┐ ┌────┐ │
+│  │  1 │ │  2 │ │  3 │ │  4 │ │  5 │ │  6 │ │
+│  └────┘ └────┘ └────┘ └────┘ └────┘ └────┘ │
+│  ┌────┐ ┌────┐ ┌────┐ ┌────┐ ┌────┐ ┌────┐ │
+│  │  7 │ │  8 │ │  9 │ │ 10 │ │ 11 │ │ 12 │ │
+│  └────┘ └────┘ └────┘ └────┘ └────┘ └────┘ │
+├────────────────────────────────────────────┤
+│  Selected: Slot 5                          │
+│  ┌──────┐  H: [210°]   S: [75%]   L: 35%   │
+│  │      │                                  │
+│  └──────┘  [🔒 Lock from Generate]         │
+└────────────────────────────────────────────┘
+```
+
+**Luma Offset Behavior:**
+When adjusting Brightness (global offset):
+- ALL slot luma values shift by the same delta
+- Clipping prevention: if any slot would exceed 0-100%, the adjustment is limited
+- Visual indicator shows when clipping would occur
+
+**Example - Brightness +10:**
+```
+Before:  5%  10%  18%  25%  35%  45%  55%  65%  70%  80%  90%  97%
+After:  15%  20%  28%  35%  45%  55%  65%  75%  80%  90% 100% 100%  ← Clipped!
+                                                          ▲    ▲
+                                                     Would be 100% and 107%
 ```
 
 **Swatch Preview:**
 | Property | Value | Token |
 |----------|-------|-------|
-| Size | 32px × 32px | `--swatch-size-2xl` |
+| Size (grid) | 40px × 40px | `--swatch-size-2xl` |
+| Size (selected detail) | 48px × 48px | Custom |
 | Border radius | 4px | `--radius-sm` |
 | Border | 1px | `--color-border` |
-| Click action | Opens full color picker flyout (H+S only) |
+| Slot number | Centered, `--font-size-xs` |
+| Click action | Select slot for editing |
 
 **Input Fields (H and S):**
 Uses existing `NumberInput` component with scrubbable labels.
@@ -371,36 +435,26 @@ Uses existing `NumberInput` component with scrubbable labels.
 | Max | 360 | 100 |
 | Step | 1 | 1 |
 | Units | ° | % |
-| Width | 60px | 60px |
+| Width | 56px | 56px |
 | Scrubbable | Yes | Yes |
 
 **Luma Display (Read-only):**
 | Property | Value | Token |
 |----------|-------|-------|
 | Format | "L: XX%" | — |
-| Font | `--font-size-xs` | |
+| Font | `--font-size-sm`, `--font-weight-medium` |
 | Color | `--color-text-tertiary` |
-| Style | Badge/pill |
 | Background | `--color-bg-input` |
-| Padding | `--spacing-1` horizontal |
+| Padding | `--spacing-1` `--spacing-2` |
+| Border radius | `--radius-sm` |
 
 **Lock Toggle:**
 Uses existing `IconButton` component.
 
-| State | Icon | Color |
-|-------|------|-------|
-| Unlocked | 🔓 (open lock) | `--color-text-tertiary` |
-| Locked | 🔒 (closed lock) | `--color-accent` |
-
-**Section Tokens:**
-| Element | Token |
-|---------|-------|
-| Section gap | `--spacing-4` |
-| Row gap | `--spacing-2` |
-| Row padding | `--spacing-2` |
-| Section header font | `--font-size-xs`, `--font-weight-semibold` |
-| Section header color | `--color-text-tertiary` |
-| Section header padding-bottom | `--spacing-2` |
+| State | Icon | Color | Tooltip |
+|-------|------|-------|---------|
+| Unlocked | 🔓 | `--color-text-tertiary` | "Lock to prevent Generate from changing" |
+| Locked | 🔒 | `--color-accent` | "Locked - Generate will skip this slot" |
 
 ---
 
@@ -456,7 +510,24 @@ Uses existing `Dropdown` component.
 
 ### 4.4 Theme Adjustments Section
 
-Photo-editing style controls that affect all colors proportionally.
+Photo-editing style controls that affect all colors proportionally. These work like image adjustment tools - they transform the palette while **preserving the luma delta relationships** between slots.
+
+**How Adjustments Work:**
+
+| Control | Effect on Palette |
+|---------|-------------------|
+| **Brightness** | Shifts ALL luma values by same offset (preserves deltas) |
+| **Contrast** | Expands/compresses luma range from midpoint (stretches deltas) |
+| **Highlights** | Adjusts luma values in highlight cluster (slots 9-12) |
+| **Shadows** | Adjusts luma values in shadow cluster (slots 1-4) |
+| **Whites** | Shifts the maximum luma ceiling |
+| **Blacks** | Shifts the minimum luma floor |
+| **Saturation** | Scales all saturation values proportionally |
+
+**Clipping Prevention:**
+- When an adjustment would push any luma outside 0-100%, the control limits automatically
+- Visual indicator (orange tint on track) shows when clipping would occur
+- Tooltip shows "Limited to prevent clipping"
 
 ```
 ┌────────────────────────────────────────────────────────────────┐
@@ -615,9 +686,11 @@ Track dirty state for custom themes.
 | Theme list | "Color themes list" |
 | Theme item | "{name} color theme" |
 | Preset lock | "Preset theme, read only" |
-| Hue input | "Hue for {slot name}" |
-| Saturation input | "Saturation for {slot name}" |
-| Lock toggle | "Lock {slot name} from generation" |
+| Slot swatch | "Color slot {number}" |
+| Hue input | "Hue for slot {number}" |
+| Saturation input | "Saturation for slot {number}" |
+| Luma display | "Luminance {value} percent, read only" |
+| Lock toggle | "Lock slot {number} from generation" |
 | Generate button | "Generate random color harmony" |
 | Slider | "{adjustment name} adjustment" |
 
