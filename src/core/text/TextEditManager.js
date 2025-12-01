@@ -309,6 +309,60 @@ export class TextEditManager {
     }
 
     /**
+     * Apply list style to the current selection/paragraph.
+     * @param {'bullet'|'numbered'|'none'} listType - Type of list to apply
+     * @returns {boolean} True if applied successfully, false otherwise
+     */
+    applyListStyle(listType) {
+        if (!this.isEditing || !this.currentElement) return false;
+
+        // Block during IME
+        if (imeHandler.shouldBlockAction('format')) return false;
+
+        // Focus the element to ensure execCommand works
+        this.currentElement.focus();
+
+        if (listType === 'bullet') {
+            document.execCommand('insertUnorderedList', false, null);
+        } else if (listType === 'numbered') {
+            document.execCommand('insertOrderedList', false, null);
+        } else if (listType === 'none') {
+            // Check if we're in a list and remove it
+            if (this._isInList()) {
+                // Get current list type and toggle it off
+                const listItem = this._getCurrentListItem();
+                if (listItem) {
+                    const parentList = listItem.parentElement;
+                    if (parentList?.nodeName === 'UL') {
+                        document.execCommand('insertUnorderedList', false, null);
+                    } else if (parentList?.nodeName === 'OL') {
+                        document.execCommand('insertOrderedList', false, null);
+                    }
+                }
+            }
+        }
+
+        this._markDirty();
+        return true;
+    }
+
+    /**
+     * Get the current list type at the caret position.
+     * @returns {'bullet'|'numbered'|'none'}
+     */
+    getCurrentListType() {
+        if (!this.isEditing || !this.currentElement) return 'none';
+        
+        const listItem = this._getCurrentListItem();
+        if (!listItem) return 'none';
+        
+        const parentList = listItem.parentElement;
+        if (parentList?.nodeName === 'UL') return 'bullet';
+        if (parentList?.nodeName === 'OL') return 'numbered';
+        return 'none';
+    }
+
+    /**
      * Subscribe to text edit events.
      * @param {string} event - Event name
      * @param {Function} callback - Callback function
@@ -487,12 +541,19 @@ export class TextEditManager {
             }
         }
 
-        // Tab to exit and select next object (when not in a list)
-        if (event.key === 'Tab' && !this._isInList()) {
+        // Shift+Tab for outdent (when not in a list, acts as general outdent)
+        if (event.key === 'Tab' && event.shiftKey && !this._isInList()) {
             event.preventDefault();
-            const direction = event.shiftKey ? 'previous' : 'next';
+            document.execCommand('outdent', false, null);
+            this._markDirty();
+            return;
+        }
+
+        // Tab to exit and select next object (when not in a list)
+        if (event.key === 'Tab' && !event.shiftKey && !this._isInList()) {
+            event.preventDefault();
             this.exitEditMode({ keepSelection: false });
-            this._selectAdjacentElement(direction);
+            this._selectAdjacentElement('next');
             return;
         }
     }

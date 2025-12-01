@@ -4,6 +4,7 @@ import { NumberInput } from './NumberInput.js';
 import { Dropdown } from './Dropdown.js';
 import { Switch } from './Switch.js';
 import { Icons } from '../Icons.js';
+import { textEditManager } from '../../core/text/TextEditManager.js';
 
 export class TypeSettingsFlyout extends Flyout {
     constructor(options = {}) {
@@ -164,21 +165,21 @@ export class TypeSettingsFlyout extends Flyout {
         const listNoneBtn = new IconButton({
             icon: Icons.CLOSE, // Using Close as "None"
             title: 'No List',
-            onClick: () => this.updateProp('listStyle', 'none')
+            onClick: () => this.applyListStyle('none')
         });
         if (!this.currentProps.listStyle || this.currentProps.listStyle === 'none') listNoneBtn.element.classList.add('active');
 
         const listBulletBtn = new IconButton({
             icon: Icons.LIST_BULLET,
             title: 'Bullet List',
-            onClick: () => this.updateProp('listStyle', 'bullet')
+            onClick: () => this.applyListStyle('bullet')
         });
         if (this.currentProps.listStyle === 'bullet') listBulletBtn.element.classList.add('active');
 
         const listNumberBtn = new IconButton({
             icon: Icons.LIST_NUMBERED,
             title: 'Numbered List',
-            onClick: () => this.updateProp('listStyle', 'numbered')
+            onClick: () => this.applyListStyle('numbered')
         });
         if (this.currentProps.listStyle === 'numbered') listNumberBtn.element.classList.add('active');
 
@@ -523,6 +524,24 @@ export class TypeSettingsFlyout extends Flyout {
         div.style.height = '16px';
         div.style.margin = '0 4px';
         return div;
+    }
+
+    /**
+     * Apply list style - uses TextEditManager when in edit mode,
+     * otherwise falls back to property update.
+     * @param {'bullet'|'numbered'|'none'} listType
+     */
+    applyListStyle(listType) {
+        // If in text edit mode, use TextEditManager to insert actual list
+        if (textEditManager.isInEditMode()) {
+            // Save selection, apply list, restore focus
+            textEditManager.saveSelection();
+            textEditManager.applyListStyle(listType);
+            textEditManager.restoreSelection();
+        }
+        
+        // Also update the property for styling
+        this.updateProp('listStyle', listType);
     }
 
     updateProp(prop, value) {

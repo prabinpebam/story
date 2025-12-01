@@ -17,7 +17,8 @@ vi.mock('../../../../src/core/text/HistoryBridge.js', () => ({
     historyBridge: {
         beginSession: vi.fn(),
         endSession: vi.fn(),
-        discardSession: vi.fn()
+        discardSession: vi.fn(),
+        markDirty: vi.fn()
     }
 }));
 
@@ -46,7 +47,8 @@ vi.mock('../../../../src/core/text/IMEHandler.js', () => ({
     imeHandler: {
         attach: vi.fn(),
         detach: vi.fn(),
-        isCompositionInProgress: vi.fn(() => false)
+        isCompositionInProgress: vi.fn(() => false),
+        shouldBlockAction: vi.fn(() => false)
     }
 }));
 
@@ -518,6 +520,50 @@ describe('TextEditManager', () => {
             
             li.innerHTML = 'text<ul><li>nested</li></ul>';
             expect(manager._isListItemEmpty(li)).toBe(false);
+        });
+    });
+
+    describe('applyListStyle', () => {
+        let execCommandSpy;
+
+        beforeEach(() => {
+            // Define document.execCommand if it doesn't exist (jsdom doesn't have it)
+            if (!document.execCommand) {
+                document.execCommand = vi.fn(() => true);
+            }
+            execCommandSpy = vi.spyOn(document, 'execCommand').mockReturnValue(true);
+        });
+
+        afterEach(() => {
+            execCommandSpy?.mockRestore?.();
+        });
+
+        it('should return false when not in edit mode', () => {
+            const result = manager.applyListStyle('bullet');
+            expect(result).toBe(false);
+            expect(execCommandSpy).not.toHaveBeenCalled();
+        });
+
+        it('should apply bullet list when in edit mode', () => {
+            manager.enterEditMode('text-1', mockElement, { entryMode: 'doubleClick' });
+            
+            const result = manager.applyListStyle('bullet');
+            
+            expect(result).toBe(true);
+            expect(execCommandSpy).toHaveBeenCalledWith('insertUnorderedList', false, null);
+        });
+
+        it('should apply numbered list when in edit mode', () => {
+            manager.enterEditMode('text-1', mockElement, { entryMode: 'doubleClick' });
+            
+            const result = manager.applyListStyle('numbered');
+            
+            expect(result).toBe(true);
+            expect(execCommandSpy).toHaveBeenCalledWith('insertOrderedList', false, null);
+        });
+
+        it('should have applyListStyle method available', () => {
+            expect(typeof manager.applyListStyle).toBe('function');
         });
     });
 });

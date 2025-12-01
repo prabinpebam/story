@@ -784,8 +784,14 @@ export class TextElement extends VisualElement {
             return;
         }
         
-        // Check for numbered list pattern: "1. " at start of line
+        // Check for numbered list pattern: "1. ", "2. ", etc. at start of line
         if (/^\d+\.\s$/.test(lineContent.text)) {
+            this.convertToList('ol', lineContent);
+            return;
+        }
+        
+        // Check for lettered list pattern: "a. ", "b. ", "A. ", "B. " at start of line
+        if (/^[a-zA-Z]\.\s$/.test(lineContent.text)) {
             this.convertToList('ol', lineContent);
             return;
         }
