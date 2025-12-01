@@ -62,7 +62,8 @@ describe('IconButton', () => {
 
         it('should render icon as innerHTML', () => {
             iconButton = new IconButton({ icon: '<svg>test</svg>' });
-            expect(iconButton.element.innerHTML).toBe('<svg>test</svg>');
+            // Icon is now wrapped in a span, so check that the icon content is present
+            expect(iconButton.element.innerHTML).toContain('<svg>test</svg>');
         });
 
         it('should set title attribute', () => {
@@ -151,7 +152,8 @@ describe('IconButton', () => {
     describe('edge cases', () => {
         it('should handle empty icon', () => {
             iconButton = new IconButton({ icon: '' });
-            expect(iconButton.element.innerHTML).toBe('');
+            // With new Button component, empty icon means no icon element rendered
+            expect(iconButton.element.querySelector('.btn__icon')).toBeNull();
         });
 
         it('should handle complex SVG icon', () => {

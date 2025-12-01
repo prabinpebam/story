@@ -1,0 +1,570 @@
+/**
+ * Button Component Styles
+ * 
+ * Unified button system for the Story Design System.
+ * 
+ * DESIGN SYSTEM COMPLIANCE:
+ * - All values use CSS custom properties (design tokens)
+ * - Supports dark/light themes automatically via variables.css
+ * - Interaction Color Philosophy: All interactions use accent color
+ *   - Hover = accent-subtle (15% opacity)
+ *   - Active = accent-muted (25% opacity)
+ *   - Selected = accent (100%)
+ * 
+ * BEM NAMING:
+ * - Block: .btn
+ * - Modifiers: .btn--{variant}, .btn--{size}, .btn--{state}
+ * - Elements: .btn__icon, .btn__label, .btn__spinner
+ * 
+ * SIZES:
+ * - xs: 24px (icon buttons, compact spaces)
+ * - sm: 28px (compact buttons in panels)
+ * - md: 32px (default)
+ * - lg: 40px (prominent CTAs, modals)
+ * 
+ * VARIANTS:
+ * - primary: Main CTA (accent background)
+ * - secondary: Default (subtle background, border)
+ * - text: Minimal (transparent)
+ * - danger: Destructive (red on hover)
+ */
+
+/* =============================================================================
+   BASE BUTTON
+   ============================================================================= */
+.btn {
+    /* Layout */
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--spacing-1-5);
+    
+    /* Typography */
+    font-family: var(--font-ui);
+    font-weight: var(--font-weight-medium);
+    text-decoration: none;
+    white-space: nowrap;
+    text-transform: none;
+    letter-spacing: var(--letter-spacing-normal);
+    
+    /* Box Model */
+    border: 1px solid transparent;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    
+    /* Transitions - smooth hover/active states */
+    transition: 
+        background-color var(--duration-fast) var(--ease-out),
+        border-color var(--duration-fast) var(--ease-out),
+        color var(--duration-fast) var(--ease-out),
+        opacity var(--duration-fast) var(--ease-out),
+        box-shadow var(--duration-fast) var(--ease-out);
+}
+
+/* Focus ring for keyboard navigation (accessibility) */
+.btn:focus-visible {
+    outline: 2px solid var(--color-border-focus);
+    outline-offset: 2px;
+}
+
+/* Remove default focus outline (we use focus-visible) */
+.btn:focus {
+    outline: none;
+}
+
+/* =============================================================================
+   SIZE VARIANTS
+   ============================================================================= */
+
+/* XS: 24px - Icon buttons, compact spaces */
+.btn--xs {
+    height: var(--control-size-sm); /* 24px */
+    min-width: var(--control-size-sm);
+    padding: 0 var(--spacing-1-5);
+    font-size: var(--font-size-xs);
+    border-radius: var(--radius-xs);
+    gap: var(--spacing-1);
+}
+
+.btn--xs.btn--icon-only {
+    width: var(--control-size-sm);
+    padding: 0;
+}
+
+.btn--xs .btn__icon {
+    width: var(--icon-size-sm); /* 14px */
+    height: var(--icon-size-sm);
+}
+
+/* SM: 28px - Compact buttons in panels */
+.btn--sm {
+    height: var(--control-size-md); /* 28px */
+    min-width: var(--control-size-md);
+    padding: 0 var(--spacing-2);
+    font-size: var(--font-size-sm);
+    gap: var(--spacing-1);
+}
+
+.btn--sm.btn--icon-only {
+    width: var(--control-size-md);
+    padding: 0;
+}
+
+.btn--sm .btn__icon {
+    width: var(--icon-size-sm); /* 14px */
+    height: var(--icon-size-sm);
+}
+
+/* MD: 32px - Default size */
+.btn--md {
+    height: var(--control-size-lg); /* 32px */
+    min-width: var(--control-size-lg);
+    padding: 0 var(--spacing-3);
+    font-size: var(--font-size-sm);
+}
+
+.btn--md.btn--icon-only {
+    width: var(--control-size-lg);
+    padding: 0;
+}
+
+.btn--md .btn__icon {
+    width: var(--icon-size-md); /* 16px */
+    height: var(--icon-size-md);
+}
+
+/* LG: 40px - Prominent CTAs, modals */
+.btn--lg {
+    height: var(--control-size-xl); /* 40px */
+    min-width: var(--control-size-xl);
+    padding: 0 var(--spacing-4);
+    font-size: var(--font-size-md);
+    border-radius: var(--radius-md);
+}
+
+.btn--lg.btn--icon-only {
+    width: var(--control-size-xl);
+    padding: 0;
+}
+
+.btn--lg .btn__icon {
+    width: var(--icon-size-lg); /* 20px */
+    height: var(--icon-size-lg);
+}
+
+/* =============================================================================
+   STYLE VARIANTS
+   ============================================================================= */
+
+/* PRIMARY: Main CTA - accent background */
+.btn--primary {
+    background: var(--color-accent);
+    border-color: var(--color-accent);
+    color: var(--color-text-on-accent);
+}
+
+.btn--primary:hover:not(:disabled):not(.btn--disabled) {
+    background: var(--color-accent-hover);
+    border-color: var(--color-accent-hover);
+}
+
+.btn--primary:active:not(:disabled):not(.btn--disabled) {
+    background: var(--color-accent-active);
+    border-color: var(--color-accent-active);
+}
+
+/* SECONDARY: Default style - subtle background with border */
+.btn--secondary {
+    background: var(--color-bg-tertiary);
+    border-color: var(--color-border);
+    color: var(--color-text-primary);
+}
+
+.btn--secondary:hover:not(:disabled):not(.btn--disabled) {
+    background: var(--color-accent-subtle);
+    border-color: var(--color-accent);
+}
+
+.btn--secondary:active:not(:disabled):not(.btn--disabled) {
+    background: var(--color-accent-muted);
+    border-color: var(--color-accent);
+}
+
+/* TEXT: Minimal/inline buttons - transparent background */
+.btn--text {
+    background: transparent;
+    border-color: transparent;
+    color: var(--color-text-secondary);
+}
+
+.btn--text:hover:not(:disabled):not(.btn--disabled) {
+    background: var(--color-accent-subtle);
+    color: var(--color-text-primary);
+}
+
+.btn--text:active:not(:disabled):not(.btn--disabled) {
+    background: var(--color-accent-muted);
+}
+
+/* DANGER: Destructive actions - red accent */
+.btn--danger {
+    background: transparent;
+    border-color: var(--color-border);
+    color: var(--color-danger);
+}
+
+.btn--danger:hover:not(:disabled):not(.btn--disabled) {
+    background: var(--color-danger);
+    border-color: var(--color-danger);
+    color: var(--color-text-on-accent);
+}
+
+.btn--danger:active:not(:disabled):not(.btn--disabled) {
+    background: #d63920; /* Darker red for active */
+    border-color: #d63920;
+}
+
+/* =============================================================================
+   STATES
+   ============================================================================= */
+
+/* Disabled */
+.btn:disabled,
+.btn--disabled {
+    opacity: var(--opacity-disabled);
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
+/* Active/Selected toggle state - uses accent for all variants */
+.btn--active {
+    background: var(--color-accent) !important;
+    border-color: var(--color-accent) !important;
+    color: var(--color-text-on-accent) !important;
+}
+
+.btn--active:hover:not(:disabled):not(.btn--disabled) {
+    background: var(--color-accent-hover) !important;
+    border-color: var(--color-accent-hover) !important;
+}
+
+/* Loading state */
+.btn--loading {
+    position: relative;
+    pointer-events: none;
+}
+
+.btn--loading .btn__label,
+.btn--loading .btn__icon {
+    opacity: 0;
+}
+
+.btn__spinner {
+    position: absolute;
+    width: 16px;
+    height: 16px;
+    border: 2px solid currentColor;
+    border-top-color: transparent;
+    border-radius: var(--radius-full);
+    animation: btn-spin 0.6s linear infinite;
+}
+
+/* Adjust spinner size for different button sizes */
+.btn--xs .btn__spinner {
+    width: 12px;
+    height: 12px;
+}
+
+.btn--sm .btn__spinner {
+    width: 14px;
+    height: 14px;
+}
+
+.btn--lg .btn__spinner {
+    width: 18px;
+    height: 18px;
+}
+
+@keyframes btn-spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* =============================================================================
+   MODIFIERS
+   ============================================================================= */
+
+/* Full width */
+.btn--full {
+    width: 100%;
+}
+
+/* Icon only - square aspect ratio */
+.btn--icon-only {
+    padding: 0;
+}
+
+/* =============================================================================
+   CHILD ELEMENTS
+   ============================================================================= */
+
+.btn__icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    line-height: 0; /* Remove line-height spacing for SVGs */
+}
+
+.btn__icon svg {
+    width: 100%;
+    height: 100%;
+    fill: currentColor;
+}
+
+.btn__label {
+    flex-shrink: 0;
+}
+
+/* =============================================================================
+   LEGACY COMPATIBILITY LAYER
+   
+   These classes map old button patterns to the new system.
+   Components using these classes will work without changes.
+   Remove after full migration is complete.
+   ============================================================================= */
+
+/* 
+ * Old pattern: btn-primary (from modal.css, SettingsModal.js)
+ * Maps to: .btn .btn--primary .btn--md
+ */
+.btn-primary {
+    /* Layout */
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--spacing-1-5);
+    
+    /* Size (md) */
+    height: var(--control-size-lg);
+    min-width: var(--control-size-lg);
+    padding: 0 var(--spacing-3);
+    font-size: var(--font-size-sm);
+    
+    /* Typography */
+    font-family: var(--font-ui);
+    font-weight: var(--font-weight-medium);
+    white-space: nowrap;
+    
+    /* Primary variant */
+    background: var(--color-accent);
+    border: 1px solid var(--color-accent);
+    border-radius: var(--radius-sm);
+    color: var(--color-text-on-accent);
+    cursor: pointer;
+    
+    transition: 
+        background-color var(--duration-fast) var(--ease-out),
+        border-color var(--duration-fast) var(--ease-out);
+}
+
+.btn-primary:hover:not(:disabled) {
+    background: var(--color-accent-hover);
+    border-color: var(--color-accent-hover);
+}
+
+.btn-primary:focus-visible {
+    outline: 2px solid var(--color-border-focus);
+    outline-offset: 2px;
+}
+
+.btn-primary:disabled {
+    opacity: var(--opacity-disabled);
+    cursor: not-allowed;
+}
+
+/*
+ * Old pattern: btn-secondary (from ExportSection.js)
+ * Maps to: .btn .btn--secondary .btn--md
+ */
+.btn-secondary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--spacing-1-5);
+    
+    height: var(--control-size-lg);
+    min-width: var(--control-size-lg);
+    padding: 0 var(--spacing-3);
+    font-size: var(--font-size-sm);
+    
+    font-family: var(--font-ui);
+    font-weight: var(--font-weight-medium);
+    white-space: nowrap;
+    
+    background: var(--color-bg-tertiary);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    color: var(--color-text-primary);
+    cursor: pointer;
+    
+    transition: 
+        background-color var(--duration-fast) var(--ease-out),
+        border-color var(--duration-fast) var(--ease-out);
+}
+
+.btn-secondary:hover:not(:disabled) {
+    background: var(--color-accent-subtle);
+    border-color: var(--color-accent);
+}
+
+.btn-secondary:focus-visible {
+    outline: 2px solid var(--color-border-focus);
+    outline-offset: 2px;
+}
+
+.btn-secondary:disabled {
+    opacity: var(--opacity-disabled);
+    cursor: not-allowed;
+}
+
+/*
+ * Old pattern: pi-icon-btn (from IconButton.js)
+ * Maps to: .btn .btn--text .btn--xs .btn--icon-only
+ */
+.pi-icon-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    
+    width: var(--control-size-sm);
+    height: var(--control-size-sm);
+    padding: 0;
+    
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: var(--radius-xs);
+    color: var(--color-text-secondary);
+    cursor: pointer;
+    
+    transition: 
+        background-color var(--duration-fast) var(--ease-out),
+        color var(--duration-fast) var(--ease-out);
+}
+
+.pi-icon-btn:hover:not(:disabled) {
+    background: var(--color-accent-subtle);
+    color: var(--color-text-primary);
+}
+
+.pi-icon-btn:focus-visible {
+    outline: 2px solid var(--color-border-focus);
+    outline-offset: 2px;
+}
+
+.pi-icon-btn.active {
+    background: var(--color-accent);
+    color: var(--color-text-on-accent);
+}
+
+.pi-icon-btn:disabled {
+    opacity: var(--opacity-disabled);
+    cursor: not-allowed;
+}
+
+/* Icon sizing for pi-icon-btn */
+.pi-icon-btn svg {
+    width: var(--icon-size-sm);
+    height: var(--icon-size-sm);
+    fill: currentColor;
+}
+
+/*
+ * Old pattern: icon-btn (from SlideList.js, LegacyTextSection.js)
+ * Maps to: .btn .btn--text .btn--xs .btn--icon-only
+ */
+.icon-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    
+    width: var(--control-size-sm);
+    height: var(--control-size-sm);
+    padding: 0;
+    
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: var(--radius-xs);
+    color: var(--color-text-secondary);
+    cursor: pointer;
+    
+    transition: 
+        background-color var(--duration-fast) var(--ease-out),
+        color var(--duration-fast) var(--ease-out);
+}
+
+.icon-btn:hover:not(:disabled) {
+    background: var(--color-accent-subtle);
+    color: var(--color-text-primary);
+}
+
+.icon-btn:focus-visible {
+    outline: 2px solid var(--color-border-focus);
+    outline-offset: 2px;
+}
+
+.icon-btn.active {
+    background: var(--color-accent);
+    color: var(--color-text-on-accent);
+}
+
+.icon-btn svg {
+    width: var(--icon-size-sm);
+    height: var(--icon-size-sm);
+    fill: currentColor;
+}
+
+/*
+ * Old pattern: reset-btn (from TextSection.js, TypeSettingsFlyout.js)
+ * Maps to: .btn .btn--text .btn--xs
+ */
+.reset-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--spacing-1);
+    
+    height: var(--control-size-sm);
+    padding: 0 var(--spacing-1-5);
+    
+    font-family: var(--font-ui);
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-medium);
+    
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: var(--radius-xs);
+    color: var(--color-text-secondary);
+    cursor: pointer;
+    
+    transition: 
+        background-color var(--duration-fast) var(--ease-out),
+        color var(--duration-fast) var(--ease-out);
+}
+
+.reset-btn:hover:not(:disabled) {
+    background: var(--color-accent-subtle);
+    color: var(--color-text-primary);
+}
+
+.reset-btn:focus-visible {
+    outline: 2px solid var(--color-border-focus);
+    outline-offset: 2px;
+}
+
+.reset-btn svg {
+    width: var(--icon-size-xs);
+    height: var(--icon-size-xs);
+    fill: currentColor;
+}

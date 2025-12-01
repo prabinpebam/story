@@ -13,6 +13,7 @@
 import { DraggablePanel } from '../components/DraggablePanel.js';
 import { SegmentedControl } from '../components/SegmentedControl.js';
 import { Dropdown } from '../components/Dropdown.js';
+import { Button } from '../components/Button.js';
 import { store } from '../../core/Store.js';
 import { CodeRunner } from '../../core/effects/CodeRunner.js';
 import { PresetManager } from '../../core/services/PresetManager.js';
@@ -612,24 +613,30 @@ export class CodeFillPanel extends DraggablePanel {
         const playbackControls = document.createElement('div');
         playbackControls.className = 'cfp-playback-controls';
         
-        this.playPauseBtn = document.createElement('button');
-        this.playPauseBtn.className = 'cfp-control-btn';
-        this.playPauseBtn.innerHTML = '<i class="fa-solid fa-play"></i>';
-        this.playPauseBtn.title = 'Play/Pause';
-        this.playPauseBtn.onclick = () => this.togglePlayback();
+        this.playPauseBtn = new Button({
+            icon: '<i class="fa-solid fa-play"></i>',
+            variant: 'secondary',
+            size: 'xs',
+            title: 'Play/Pause',
+            className: 'cfp-control-btn',
+            onClick: () => this.togglePlayback()
+        });
         
-        this.resetBtn = document.createElement('button');
-        this.resetBtn.className = 'cfp-control-btn';
-        this.resetBtn.innerHTML = '<i class="fa-solid fa-rotate-left"></i>';
-        this.resetBtn.title = 'Reset';
-        this.resetBtn.onclick = () => this.resetPlayback();
+        this.resetBtn = new Button({
+            icon: '<i class="fa-solid fa-rotate-left"></i>',
+            variant: 'secondary',
+            size: 'xs',
+            title: 'Reset',
+            className: 'cfp-control-btn',
+            onClick: () => this.resetPlayback()
+        });
         
         this.errorIndicator = document.createElement('div');
         this.errorIndicator.className = 'cfp-error-indicator success';
         this.errorIndicator.innerHTML = '✓ No errors';
         
-        playbackControls.appendChild(this.playPauseBtn);
-        playbackControls.appendChild(this.resetBtn);
+        playbackControls.appendChild(this.playPauseBtn.element);
+        playbackControls.appendChild(this.resetBtn.element);
         playbackControls.appendChild(this.errorIndicator);
         
         previewSection.appendChild(playbackControls);
@@ -712,20 +719,24 @@ export class CodeFillPanel extends DraggablePanel {
         const aiButtonRow = document.createElement('div');
         aiButtonRow.className = 'cfp-ai-buttons';
         
-        this.aiUpdateBtn = document.createElement('button');
-        this.aiUpdateBtn.className = 'cfp-btn cfp-btn-secondary cfp-btn-sm';
-        this.aiUpdateBtn.textContent = 'Modify';
-        this.aiUpdateBtn.title = 'Modify existing code based on prompt';
-        this.aiUpdateBtn.onclick = () => this.handleAIGenerate('update');
+        this.aiUpdateBtn = new Button({
+            label: 'Modify',
+            variant: 'secondary',
+            size: 'sm',
+            title: 'Modify existing code based on prompt',
+            onClick: () => this.handleAIGenerate('update')
+        });
         
-        this.aiGenerateBtn = document.createElement('button');
-        this.aiGenerateBtn.className = 'cfp-btn cfp-btn-primary cfp-btn-sm';
-        this.aiGenerateBtn.textContent = 'Generate New';
-        this.aiGenerateBtn.title = 'Generate entirely new code';
-        this.aiGenerateBtn.onclick = () => this.handleAIGenerate('new');
+        this.aiGenerateBtn = new Button({
+            label: 'Generate New',
+            variant: 'primary',
+            size: 'sm',
+            title: 'Generate entirely new code',
+            onClick: () => this.handleAIGenerate('new')
+        });
         
-        aiButtonRow.appendChild(this.aiUpdateBtn);
-        aiButtonRow.appendChild(this.aiGenerateBtn);
+        aiButtonRow.appendChild(this.aiUpdateBtn.element);
+        aiButtonRow.appendChild(this.aiGenerateBtn.element);
         
         aiContent.appendChild(aiButtonRow);
         
@@ -869,11 +880,11 @@ export class CodeFillPanel extends DraggablePanel {
         if (!this.runner) return;
         
         if (this.runner.isPlaying) {
-            this.playPauseBtn.innerHTML = '<i class="fa-solid fa-pause"></i>';
-            this.playPauseBtn.title = 'Pause';
+            this.playPauseBtn.setIcon('<i class="fa-solid fa-pause"></i>');
+            this.playPauseBtn.element.title = 'Pause';
         } else {
-            this.playPauseBtn.innerHTML = '<i class="fa-solid fa-play"></i>';
-            this.playPauseBtn.title = 'Play';
+            this.playPauseBtn.setIcon('<i class="fa-solid fa-play"></i>');
+            this.playPauseBtn.element.title = 'Play';
         }
     }
 
@@ -908,11 +919,11 @@ export class CodeFillPanel extends DraggablePanel {
         }
         
         const btn = mode === 'update' ? this.aiUpdateBtn : this.aiGenerateBtn;
-        const originalText = btn.textContent;
-        btn.textContent = 'Working...';
-        btn.disabled = true;
-        this.aiUpdateBtn.disabled = true;
-        this.aiGenerateBtn.disabled = true;
+        const originalText = btn.options.label;
+        btn.setLabel('Working...');
+        btn.setDisabled(true);
+        this.aiUpdateBtn.setDisabled(true);
+        this.aiGenerateBtn.setDisabled(true);
         
         try {
             const ai = new AIService();
@@ -920,7 +931,7 @@ export class CodeFillPanel extends DraggablePanel {
             
             // Refine prompt if enabled
             if (this.refinePromptEnabled) {
-                btn.textContent = 'Refining...';
+                btn.setLabel('Refining...');
                 const refinementSystemPrompt = PROMPT_REFINEMENT_PROMPT.replace('{userPrompt}', prompt);
                 
                 const refined = await ai.generate("Refine the prompt.", { 
@@ -929,7 +940,7 @@ export class CodeFillPanel extends DraggablePanel {
                 
                 finalPrompt = refined.trim();
                 this.aiPromptInput.value = finalPrompt;
-                btn.textContent = 'Generating...';
+                btn.setLabel('Generating...');
             }
             
             let systemPrompt = '';
@@ -978,10 +989,10 @@ export class CodeFillPanel extends DraggablePanel {
             console.error('AI Generation failed:', error);
             alert('Failed to generate code. Please check your AI settings.');
         } finally {
-            btn.textContent = originalText;
-            btn.disabled = false;
-            this.aiUpdateBtn.disabled = false;
-            this.aiGenerateBtn.disabled = false;
+            btn.setLabel(originalText);
+            btn.setDisabled(false);
+            this.aiUpdateBtn.setDisabled(false);
+            this.aiGenerateBtn.setDisabled(false);
         }
     }
 
@@ -1005,10 +1016,13 @@ export class CodeFillPanel extends DraggablePanel {
         this.emptyStateSubtitle.className = 'cfp-empty-subtitle';
         container.appendChild(this.emptyStateSubtitle);
         
-        this.emptyStateCTA = document.createElement('button');
-        this.emptyStateCTA.className = 'cfp-btn cfp-btn-primary';
-        this.emptyStateCTA.style.display = 'none';
-        container.appendChild(this.emptyStateCTA);
+        this.emptyStateCTA = new Button({
+            label: '',
+            variant: 'primary',
+            size: 'md'
+        });
+        this.emptyStateCTA.element.style.display = 'none';
+        container.appendChild(this.emptyStateCTA.element);
         
         return container;
     }
@@ -1022,14 +1036,14 @@ export class CodeFillPanel extends DraggablePanel {
             this.emptyStateIcon.innerHTML = Icons.CURSOR || '↖';
             this.emptyStateTitle.textContent = 'Select an object';
             this.emptyStateSubtitle.textContent = 'Select an object to edit its code fills';
-            this.emptyStateCTA.style.display = 'none';
+            this.emptyStateCTA.element.style.display = 'none';
         } else if (type === 'no-code-fills') {
             this.emptyStateIcon.innerHTML = Icons.CODE || '</>';
             this.emptyStateTitle.textContent = 'No code fills yet';
             this.emptyStateSubtitle.textContent = 'Add a code fill to get started';
-            this.emptyStateCTA.textContent = '+ Add Code Fill';
-            this.emptyStateCTA.style.display = 'block';
-            this.emptyStateCTA.onclick = () => this.handleAddCodeFill();
+            this.emptyStateCTA.setLabel('+ Add Code Fill');
+            this.emptyStateCTA.element.style.display = 'block';
+            this.emptyStateCTA.element.onclick = () => this.handleAddCodeFill();
         }
     }
 
@@ -1045,12 +1059,14 @@ export class CodeFillPanel extends DraggablePanel {
         const footer = document.createElement('div');
         footer.className = 'cfp-footer';
         
-        const savePresetBtn = document.createElement('button');
-        savePresetBtn.className = 'cfp-btn cfp-btn-secondary';
-        savePresetBtn.textContent = 'Save as Preset';
-        savePresetBtn.onclick = () => this.showSavePresetDialog();
+        this.savePresetBtn = new Button({
+            label: 'Save as Preset',
+            variant: 'secondary',
+            size: 'md',
+            onClick: () => this.showSavePresetDialog()
+        });
         
-        footer.appendChild(savePresetBtn);
+        footer.appendChild(this.savePresetBtn.element);
         
         return footer;
     }

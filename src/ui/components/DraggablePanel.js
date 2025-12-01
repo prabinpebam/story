@@ -5,6 +5,7 @@
  */
 
 import { Icons } from '../Icons.js';
+import { Button } from './Button.js';
 
 export class DraggablePanel {
     constructor(options = {}) {
@@ -115,17 +116,20 @@ export class DraggablePanel {
     }
 
     createHeaderButton(icon, title, onClick) {
-        const btn = document.createElement('button');
-        btn.className = 'draggable-panel-btn';
-        btn.title = title;
-        btn.innerHTML = icon;
-        
-        btn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            onClick();
+        const btn = new Button({
+            icon,
+            title,
+            ariaLabel: title,
+            variant: 'text',
+            size: 'xs',
+            className: 'draggable-panel-btn',
+            onClick: (e) => {
+                e.stopPropagation();
+                onClick();
+            }
         });
         
-        return btn;
+        return btn.element;
     }
 
     createResizeHandles() {

@@ -6,6 +6,7 @@
 import { DraggablePanel } from '../components/DraggablePanel.js';
 import { SegmentedControl } from '../components/SegmentedControl.js';
 import { Dropdown } from '../components/Dropdown.js';
+import { Button } from '../components/Button.js';
 import { store } from '../../core/Store.js';
 import { FONT_PRESETS, FONT_CATEGORIES, AVAILABLE_FONTS, getPresetsByCategory, searchPresets, getFontsByCategory } from '../../core/constants/FontPresets.js';
 import fontManager from '../../core/FontManager.js';
@@ -602,20 +603,24 @@ export class TypographyStyleManager extends DraggablePanel {
         const footer = document.createElement('div');
         footer.className = 'tsm-footer';
         
-        // Apply button
-        const applyBtn = document.createElement('button');
-        applyBtn.textContent = 'Apply';
-        applyBtn.className = 'tsm-btn-primary';
-        applyBtn.addEventListener('click', () => this.applySelection());
-        
         // Reset button
-        const resetBtn = document.createElement('button');
-        resetBtn.textContent = 'Reset';
-        resetBtn.className = 'tsm-btn-secondary';
-        resetBtn.addEventListener('click', () => this.resetFonts());
+        this.resetBtn = new Button({
+            label: 'Reset',
+            variant: 'secondary',
+            size: 'md',
+            onClick: () => this.resetFonts()
+        });
         
-        footer.appendChild(resetBtn);
-        footer.appendChild(applyBtn);
+        // Apply button
+        this.applyBtn = new Button({
+            label: 'Apply',
+            variant: 'primary',
+            size: 'md',
+            onClick: () => this.applySelection()
+        });
+        
+        footer.appendChild(this.resetBtn.element);
+        footer.appendChild(this.applyBtn.element);
         
         return footer;
     }

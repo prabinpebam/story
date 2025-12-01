@@ -12,6 +12,7 @@ import { CollaboratorList } from './CollaboratorList.js';
 import { ShareLinkPanel } from './ShareLinkPanel.js';
 import { InviteInput } from './InviteInput.js';
 import { PermissionDropdown } from './PermissionDropdown.js';
+import { Button } from '../components/Button.js';
 
 export class ShareModal {
     /**
@@ -131,14 +132,18 @@ export class ShareModal {
         title.className = 'share-modal-title';
         title.textContent = `Share "${this.fileName}"`;
         
-        const closeButton = document.createElement('button');
-        closeButton.className = 'share-modal-close';
-        closeButton.setAttribute('aria-label', 'Close');
-        closeButton.innerHTML = '<i class="fa-solid fa-xmark"></i>';
-        closeButton.addEventListener('click', () => this.hide());
+        this.closeButton = new Button({
+            icon: '<i class="fa-solid fa-xmark"></i>',
+            variant: 'text',
+            size: 'sm',
+            title: 'Close',
+            ariaLabel: 'Close',
+            className: 'share-modal-close',
+            onClick: () => this.hide()
+        });
         
         header.appendChild(title);
-        header.appendChild(closeButton);
+        header.appendChild(this.closeButton.element);
         
         return header;
     }
@@ -174,11 +179,13 @@ export class ShareModal {
         inputRow.appendChild(this.permissionDropdown.element);
         
         // Invite button
-        this.inviteButton = document.createElement('button');
-        this.inviteButton.className = 'share-modal-button share-modal-button-primary';
-        this.inviteButton.textContent = 'Invite';
-        this.inviteButton.addEventListener('click', () => this._handleInviteClick());
-        inputRow.appendChild(this.inviteButton);
+        this.inviteButton = new Button({
+            label: 'Invite',
+            variant: 'primary',
+            size: 'md',
+            onClick: () => this._handleInviteClick()
+        });
+        inputRow.appendChild(this.inviteButton.element);
         
         section.appendChild(label);
         section.appendChild(inputRow);
@@ -355,7 +362,7 @@ export class ShareModal {
         );
         
         if (!this.canShare) {
-            this.inviteButton.disabled = true;
+            this.inviteButton.setDisabled(true);
             this.inviteInput.disable();
             this.inviteError.textContent = 'You do not have permission to share this file.';
             this.inviteError.style.display = 'block';
@@ -382,8 +389,9 @@ export class ShareModal {
         if (!this.sharingManager || emails.length === 0) return;
         
         this.inviteError.style.display = 'none';
-        this.inviteButton.disabled = true;
-        this.inviteButton.textContent = 'Inviting...';
+        this.inviteButton.setDisabled(true);
+        this.inviteButton.setLoading(true);
+        this.inviteButton.setLabel('Inviting...');
         
         try {
             const results = await this.sharingManager.shareWithPeople(
@@ -410,8 +418,9 @@ export class ShareModal {
             this.inviteError.textContent = error.message || 'Failed to send invites';
             this.inviteError.style.display = 'block';
         } finally {
-            this.inviteButton.disabled = false;
-            this.inviteButton.textContent = 'Invite';
+            this.inviteButton.setDisabled(false);
+            this.inviteButton.setLoading(false);
+            this.inviteButton.setLabel('Invite');
         }
     }
 
@@ -550,6 +559,16 @@ export class ShareModal {
         if (this.permissionDropdown) {
             this.permissionDropdown.destroy();
             this.permissionDropdown = null;
+        }
+        
+        if (this.closeButton) {
+            this.closeButton.destroy();
+            this.closeButton = null;
+        }
+        
+        if (this.inviteButton) {
+            this.inviteButton.destroy();
+            this.inviteButton = null;
         }
         
         this.overlay = null;

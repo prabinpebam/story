@@ -17,6 +17,7 @@
 import { DraggablePanel } from '../../components/DraggablePanel.js';
 import { SliderControl } from '../../components/SliderControl.js';
 import { IconButton } from '../../components/IconButton.js';
+import { Button } from '../../components/Button.js';
 import { Icons } from '../../Icons.js';
 import { store } from '../../../core/Store.js';
 import {
@@ -545,12 +546,16 @@ export class ColorThemeManager extends DraggablePanel {
         });
         
         // Reset button
-        const resetBtn = document.createElement('button');
-        resetBtn.className = 'ctm__adjustments-reset btn btn--text btn--sm';
-        resetBtn.innerHTML = Icons.RESET + ' Reset';
-        resetBtn.title = 'Reset All Adjustments';
-        resetBtn.addEventListener('click', () => this.resetAdjustments());
-        content.appendChild(resetBtn);
+        const resetBtn = new Button({
+            icon: Icons.RESET,
+            label: 'Reset',
+            variant: 'text',
+            size: 'sm',
+            title: 'Reset All Adjustments',
+            onClick: () => this.resetAdjustments()
+        });
+        resetBtn.element.classList.add('ctm__adjustments-reset');
+        content.appendChild(resetBtn.element);
         
         section.appendChild(content);
         
@@ -667,11 +672,15 @@ export class ColorThemeManager extends DraggablePanel {
         controlsRow.appendChild(checkboxes);
         
         // Generate button
-        const generateBtn = document.createElement('button');
-        generateBtn.className = 'ctm__generate-button btn btn--accent';
-        generateBtn.innerHTML = Icons.SPARKLE + ' Generate';
-        generateBtn.addEventListener('click', () => this.generateRandomColors());
-        controlsRow.appendChild(generateBtn);
+        const generateBtn = new Button({
+            icon: Icons.SPARKLE,
+            label: 'Generate',
+            variant: 'primary',
+            size: 'md',
+            onClick: () => this.generateRandomColors()
+        });
+        generateBtn.element.classList.add('ctm__generate-button');
+        controlsRow.appendChild(generateBtn.element);
         
         content.appendChild(controlsRow);
         

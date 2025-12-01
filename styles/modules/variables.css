@@ -62,8 +62,8 @@
     --color-accent: #18A0FB;           /* Primary accent (Figma Blue) */
     --color-accent-hover: #3DB8FF;     /* Accent hover state */
     --color-accent-active: #0D86D7;    /* Accent active/pressed state */
-    --color-accent-subtle: rgba(24, 160, 251, 0.15); /* Subtle accent background - used for hover */
-    --color-accent-muted: rgba(24, 160, 251, 0.25);  /* Muted accent - used for active/pressed */
+    --color-accent-subtle: rgba(24, 160, 251, 0.20); /* Subtle accent background - used for hover */
+    --color-accent-muted: rgba(24, 160, 251, 0.35);  /* Muted accent - used for active/pressed */
     
     /* Semantic/Status Colors */
     --color-success: #1BC47D;          /* Success, positive actions */
@@ -456,11 +456,12 @@ body.theme-light {
     --color-border-strong: #CCCCCC;
     --color-border-hover: #BBBBBB;
     
-    /* Accent (keep consistent) */
-    --color-accent-hover: #0D86D7;
-    --color-accent-active: #0A6AAB;
-    --color-accent-subtle: rgba(24, 160, 251, 0.12);  /* Slightly more visible on light bg */
-    --color-accent-muted: rgba(24, 160, 251, 0.20);   /* For active states on light bg */
+    /* 
+     * NOTE: Accent colors (--color-accent-subtle, --color-accent-muted) are NOT 
+     * overridden here. They inherit from the accent theme (html.theme-*) or root.
+     * This allows accent color themes to work properly in light mode.
+     * See "Light Theme + Accent Theme Combinations" section below for light-specific opacity values.
+     */
     
     /* Status Colors (adjusted for light bg) */
     --color-success-subtle: rgba(27, 196, 125, 0.12);
@@ -523,12 +524,12 @@ body.theme-light {
    ============================================================================= */
 
 /* Purple Accent Theme */
-html.theme-purple {
+:root.theme-purple {
     --color-accent: #7C3AED;
     --color-accent-hover: #8B5CF6;
     --color-accent-active: #6D28D9;
-    --color-accent-subtle: rgba(124, 58, 237, 0.15);
-    --color-accent-muted: rgba(124, 58, 237, 0.25);
+    --color-accent-subtle: rgba(124, 58, 237, 0.20);
+    --color-accent-muted: rgba(124, 58, 237, 0.35);
     --color-border-focus: #7C3AED;
     --color-selection-fill: rgba(124, 58, 237, 0.3);
     --color-drag-indicator: #7C3AED;
@@ -537,12 +538,12 @@ html.theme-purple {
 }
 
 /* Teal Accent Theme */
-html.theme-teal {
+:root.theme-teal {
     --color-accent: #14B8A6;
     --color-accent-hover: #2DD4BF;
     --color-accent-active: #0D9488;
-    --color-accent-subtle: rgba(20, 184, 166, 0.15);
-    --color-accent-muted: rgba(20, 184, 166, 0.25);
+    --color-accent-subtle: rgba(20, 184, 166, 0.20);
+    --color-accent-muted: rgba(20, 184, 166, 0.35);
     --color-border-focus: #14B8A6;
     --color-selection-fill: rgba(20, 184, 166, 0.3);
     --color-drag-indicator: #14B8A6;
@@ -551,12 +552,12 @@ html.theme-teal {
 }
 
 /* Orange Accent Theme */
-html.theme-orange {
+:root.theme-orange {
     --color-accent: #F97316;
     --color-accent-hover: #FB923C;
     --color-accent-active: #EA580C;
-    --color-accent-subtle: rgba(249, 115, 22, 0.15);
-    --color-accent-muted: rgba(249, 115, 22, 0.25);
+    --color-accent-subtle: rgba(249, 115, 22, 0.20);
+    --color-accent-muted: rgba(249, 115, 22, 0.35);
     --color-border-focus: #F97316;
     --color-selection-fill: rgba(249, 115, 22, 0.3);
     --color-drag-indicator: #F97316;
@@ -565,15 +566,67 @@ html.theme-orange {
 }
 
 /* Pink Accent Theme */
-html.theme-pink {
+:root.theme-pink {
     --color-accent: #EC4899;
     --color-accent-hover: #F472B6;
     --color-accent-active: #DB2777;
-    --color-accent-subtle: rgba(236, 72, 153, 0.15);
-    --color-accent-muted: rgba(236, 72, 153, 0.25);
+    --color-accent-subtle: rgba(236, 72, 153, 0.20);
+    --color-accent-muted: rgba(236, 72, 153, 0.35);
     --color-border-focus: #EC4899;
     --color-selection-fill: rgba(236, 72, 153, 0.3);
     --color-drag-indicator: #EC4899;
     --color-info: #EC4899;
     --color-info-subtle: rgba(236, 72, 153, 0.15);
+}
+
+/* =============================================================================
+   LIGHT THEME + ACCENT THEME COMBINATIONS
+   =============================================================================
+   
+   When using light mode with an accent theme, we need slightly different opacity
+   values for the subtle/muted backgrounds to be visible on light backgrounds.
+   
+   These selectors use html.theme-* body.theme-light to override the accent-subtle
+   and accent-muted values with light-mode-appropriate opacities.
+   
+   ============================================================================= */
+
+/* Default Blue Accent in Light Mode */
+body.theme-light {
+    --color-accent-hover: #3DB8FF;
+    --color-accent-active: #0A6AAB;
+    --color-accent-subtle: rgba(24, 160, 251, 0.15);
+    --color-accent-muted: rgba(24, 160, 251, 0.25);
+}
+
+/* Purple Accent in Light Mode */
+:root.theme-purple body.theme-light {
+    --color-accent-hover: #8B5CF6;
+    --color-accent-active: #6D28D9;
+    --color-accent-subtle: rgba(124, 58, 237, 0.15);
+    --color-accent-muted: rgba(124, 58, 237, 0.25);
+}
+
+/* Teal Accent in Light Mode */
+:root.theme-teal body.theme-light {
+    --color-accent-hover: #2DD4BF;
+    --color-accent-active: #0D9488;
+    --color-accent-subtle: rgba(20, 184, 166, 0.15);
+    --color-accent-muted: rgba(20, 184, 166, 0.25);
+}
+
+/* Orange Accent in Light Mode */
+:root.theme-orange body.theme-light {
+    --color-accent-hover: #FB923C;
+    --color-accent-active: #EA580C;
+    --color-accent-subtle: rgba(249, 115, 22, 0.15);
+    --color-accent-muted: rgba(249, 115, 22, 0.25);
+}
+
+/* Pink Accent in Light Mode */
+:root.theme-pink body.theme-light {
+    --color-accent-hover: #F472B6;
+    --color-accent-active: #DB2777;
+    --color-accent-subtle: rgba(236, 72, 153, 0.15);
+    --color-accent-muted: rgba(236, 72, 153, 0.25);
 }

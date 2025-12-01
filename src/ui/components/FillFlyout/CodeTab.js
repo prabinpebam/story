@@ -1,4 +1,5 @@
 import { IconButton } from '../IconButton.js';
+import { Button } from '../Button.js';
 import { Icons } from '../../Icons.js';
 import { CodeRunner } from '../../../core/effects/CodeRunner.js';
 import { AIService } from '../../../core/ai/AIService.js';
@@ -126,18 +127,24 @@ export class CodeTab {
         const buttonRow = document.createElement('div');
         buttonRow.className = 'code-button-row';
 
-        const updateBtn = document.createElement('button');
-        updateBtn.textContent = 'Update';
-        updateBtn.className = 'code-btn-update';
-        updateBtn.onclick = () => this.handleAIGenerate(promptInput.value, 'update');
+        this.updateBtn = new Button({
+            label: 'Update',
+            variant: 'secondary',
+            size: 'sm',
+            onClick: () => this.handleAIGenerate(promptInput.value, 'update')
+        });
+        this.updateBtn.element.classList.add('code-btn-update');
 
-        const generateBtn = document.createElement('button');
-        generateBtn.textContent = 'Generate';
-        generateBtn.className = 'code-btn-generate';
-        generateBtn.onclick = () => this.handleAIGenerate(promptInput.value, 'new');
+        this.generateBtn = new Button({
+            label: 'Generate',
+            variant: 'primary',
+            size: 'sm',
+            onClick: () => this.handleAIGenerate(promptInput.value, 'new')
+        });
+        this.generateBtn.element.classList.add('code-btn-generate');
 
-        buttonRow.appendChild(updateBtn);
-        buttonRow.appendChild(generateBtn);
+        buttonRow.appendChild(this.updateBtn.element);
+        buttonRow.appendChild(this.generateBtn.element);
         
         aiSection.appendChild(promptInput);
         aiSection.appendChild(refineContainer);
@@ -165,12 +172,15 @@ export class CodeTab {
         this.editor = editor;
 
         // 4. Save as Preset Button
-        const saveBtn = document.createElement('button');
-        saveBtn.textContent = '+ Save as Preset';
-        saveBtn.className = 'code-save-btn';
-        saveBtn.onclick = () => this.showSavePresetDialog();
+        const savePresetBtn = new Button({
+            label: '+ Save as Preset',
+            variant: 'text',
+            size: 'sm',
+            onClick: () => this.showSavePresetDialog()
+        });
+        savePresetBtn.element.classList.add('code-save-btn');
         
-        container.appendChild(saveBtn);
+        container.appendChild(savePresetBtn.element);
     }
 
     showSavePresetDialog() {
@@ -220,56 +230,62 @@ export class CodeTab {
         previewRunner.play();
 
         // Buttons
-        const buttonRow = document.createElement('div');
-        buttonRow.className = 'code-modal-buttons';
+        const modalButtonRow = document.createElement('div');
+        modalButtonRow.className = 'code-modal-buttons';
 
-        const cancelBtn = document.createElement('button');
-        cancelBtn.textContent = 'Cancel';
-        cancelBtn.className = 'code-modal-btn-cancel';
-        cancelBtn.onclick = () => {
-            previewRunner.stop();
-            overlay.remove();
-        };
-
-        const saveBtn = document.createElement('button');
-        saveBtn.textContent = 'Save';
-        saveBtn.className = 'code-modal-btn-save';
-        saveBtn.onclick = () => {
-            const name = nameInput.value.trim();
-            if (!name) {
-                alert('Please enter a name for your preset.');
-                nameInput.focus();
-                return;
-            }
-
-            if (PresetManager.isNameTaken(name)) {
-                alert('A preset with this name already exists. Please choose a different name.');
-                nameInput.focus();
-                return;
-            }
-
-            try {
-                PresetManager.saveUserPreset({
-                    name,
-                    description: '',
-                    code: this.editor?.value || this.fill.code || CodeRunner.DEFAULT_CODE
-                });
-                
+        const cancelBtn = new Button({
+            label: 'Cancel',
+            variant: 'secondary',
+            size: 'md',
+            onClick: () => {
                 previewRunner.stop();
                 overlay.remove();
-                
-                // Refresh presets tab if visible
-                if (this.presetsTab) {
-                    this.presetsTab.render();
-                }
-            } catch (e) {
-                alert('Failed to save preset: ' + e.message);
             }
-        };
+        });
+        cancelBtn.element.classList.add('code-modal-btn-cancel');
 
-        buttonRow.appendChild(cancelBtn);
-        buttonRow.appendChild(saveBtn);
-        modal.appendChild(buttonRow);
+        const saveModalBtn = new Button({
+            label: 'Save',
+            variant: 'primary',
+            size: 'md',
+            onClick: () => {
+                const name = nameInput.value.trim();
+                if (!name) {
+                    alert('Please enter a name for your preset.');
+                    nameInput.focus();
+                    return;
+                }
+
+                if (PresetManager.isNameTaken(name)) {
+                    alert('A preset with this name already exists. Please choose a different name.');
+                    nameInput.focus();
+                    return;
+                }
+
+                try {
+                    PresetManager.saveUserPreset({
+                        name,
+                        description: '',
+                        code: this.editor?.value || this.fill.code || CodeRunner.DEFAULT_CODE
+                    });
+                    
+                    previewRunner.stop();
+                    overlay.remove();
+                    
+                    // Refresh presets tab if visible
+                    if (this.presetsTab) {
+                        this.presetsTab.render();
+                    }
+                } catch (e) {
+                    alert('Failed to save preset: ' + e.message);
+                }
+            }
+        });
+        saveModalBtn.element.classList.add('code-modal-btn-save');
+
+        modalButtonRow.appendChild(cancelBtn.element);
+        modalButtonRow.appendChild(saveModalBtn.element);
+        modal.appendChild(modalButtonRow);
 
         overlay.appendChild(modal);
         document.body.appendChild(overlay);
@@ -289,13 +305,12 @@ export class CodeTab {
     async handleAIGenerate(prompt, mode) {
         if (!prompt) return;
         
-        const buttons = this.element.querySelectorAll('button');
-        const btn = mode === 'update' ? buttons[0] : buttons[1];
+        const btn = mode === 'update' ? this.updateBtn : this.generateBtn;
         if (!btn) return;
         
-        const originalText = btn.textContent;
-        btn.textContent = 'Generating...';
-        btn.disabled = true;
+        const originalLabel = mode === 'update' ? 'Update' : 'Generate';
+        btn.setLabel('Generating...');
+        btn.setDisabled(true);
         
         try {
             const ai = new AIService();
@@ -303,7 +318,7 @@ export class CodeTab {
 
             // Step 1: Refine Prompt if requested
             if (this.refineCheckbox && this.refineCheckbox.checked) {
-                btn.textContent = 'Refining...';
+                btn.setLabel('Refining...');
                 const refinementSystemPrompt = PROMPT_REFINEMENT_PROMPT.replace('{userPrompt}', prompt);
                 
                 const refined = await ai.generate("Refine the prompt.", { 
@@ -318,7 +333,7 @@ export class CodeTab {
                     promptInput.value = finalPrompt;
                 }
                 
-                btn.textContent = 'Generating Code...';
+                btn.setLabel('Generating Code...');
             }
 
             let systemPrompt = '';
@@ -348,8 +363,8 @@ export class CodeTab {
             console.error('AI Generation failed:', error);
             alert('Failed to generate code. Please check your AI settings.');
         } finally {
-            btn.textContent = originalText;
-            btn.disabled = false;
+            btn.setLabel(originalLabel);
+            btn.setDisabled(false);
         }
     }
 

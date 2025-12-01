@@ -1,5 +1,6 @@
 import { aiService } from '../core/ai/AIService.js';
 import { Dropdown } from './components/Dropdown.js';
+import { Button } from './components/Button.js';
 
 export class SettingsModal {
     constructor() {
@@ -162,13 +163,15 @@ export class SettingsModal {
         modelGroup.appendChild(this.modelInput);
         this.body.appendChild(modelGroup);
 
-        // Save Button
-        const saveBtn = document.createElement('button');
-        saveBtn.innerText = 'Save AI Settings';
-        saveBtn.className = 'btn-primary';
-        saveBtn.style.marginTop = '16px';
-        saveBtn.onclick = () => this.saveAISettings();
-        this.body.appendChild(saveBtn);
+        // Save Button - using unified Button component
+        const saveBtn = new Button({
+            label: 'Save AI Settings',
+            variant: 'primary',
+            size: 'md',
+            onClick: () => this.saveAISettings()
+        });
+        saveBtn.element.style.marginTop = 'var(--spacing-4)';
+        this.body.appendChild(saveBtn.element);
 
         this.updateAIFieldsVisibility();
     }
@@ -361,49 +364,21 @@ export class SettingsModal {
             align-items: center;
         `;
         
-        // Hover preview button
-        const hoverBtn = document.createElement('button');
-        hoverBtn.textContent = 'Hover Me';
-        hoverBtn.style.cssText = `
-            padding: var(--spacing-1-5) var(--spacing-3);
-            background: transparent;
-            border: 1px solid var(--color-border);
-            border-radius: var(--radius-sm);
-            color: var(--color-text-primary);
-            font-size: var(--font-size-sm);
-            cursor: pointer;
-            transition: all 0.15s ease;
-        `;
-        hoverBtn.onmouseenter = () => {
-            hoverBtn.style.background = 'var(--color-bg-hover)';
-            hoverBtn.style.borderColor = 'var(--color-accent)';
-        };
-        hoverBtn.onmouseleave = () => {
-            hoverBtn.style.background = 'transparent';
-            hoverBtn.style.borderColor = 'var(--color-border)';
-        };
-        elementsRow.appendChild(hoverBtn);
+        // Hover preview button - using unified Button component
+        const hoverBtn = new Button({
+            label: 'Hover Me',
+            variant: 'secondary',
+            size: 'sm'
+        });
+        elementsRow.appendChild(hoverBtn.element);
         
-        // Accent button
-        const accentBtn = document.createElement('button');
-        accentBtn.textContent = 'Accent Button';
-        accentBtn.style.cssText = `
-            padding: var(--spacing-1-5) var(--spacing-3);
-            background: var(--color-accent);
-            border: none;
-            border-radius: var(--radius-sm);
-            color: var(--color-text-on-accent);
-            font-size: var(--font-size-sm);
-            cursor: pointer;
-            transition: all 0.15s ease;
-        `;
-        accentBtn.onmouseenter = () => {
-            accentBtn.style.background = 'var(--color-accent-hover)';
-        };
-        accentBtn.onmouseleave = () => {
-            accentBtn.style.background = 'var(--color-accent)';
-        };
-        elementsRow.appendChild(accentBtn);
+        // Accent button - using unified Button component
+        const accentBtn = new Button({
+            label: 'Accent Button',
+            variant: 'primary',
+            size: 'sm'
+        });
+        elementsRow.appendChild(accentBtn.element);
         
         // Selected item preview
         const selectedItem = document.createElement('div');

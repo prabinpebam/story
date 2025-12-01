@@ -6,6 +6,7 @@
 
 import { ShareLinkTypes, ShareLinkScopes } from '../../core/storage/sharing/SharingConstants.js';
 import { ShareLinkGenerator } from '../../core/storage/sharing/ShareLinkGenerator.js';
+import { Button } from '../components/Button.js';
 
 export class ShareLinkPanel {
     /**
@@ -147,30 +148,38 @@ export class ShareLinkPanel {
         
         // If no view link exists, show create button
         if (!viewLink) {
-            const createViewBtn = document.createElement('button');
-            createViewBtn.className = 'share-link-create-btn';
-            createViewBtn.dataset.linkType = 'view';
-            createViewBtn.innerHTML = '<i class="fa-solid fa-eye"></i> Create view link';
-            createViewBtn.addEventListener('click', () => {
-                if (this.onCreate) {
-                    this.onCreate(ShareLinkTypes.VIEW);
+            const createViewBtn = new Button({
+                label: 'Create view link',
+                icon: '<i class="fa-solid fa-eye"></i>',
+                variant: 'secondary',
+                size: 'sm',
+                onClick: () => {
+                    if (this.onCreate) {
+                        this.onCreate(ShareLinkTypes.VIEW);
+                    }
                 }
             });
-            section.appendChild(createViewBtn);
+            createViewBtn.element.classList.add('share-link-create-btn');
+            createViewBtn.element.dataset.linkType = 'view';
+            section.appendChild(createViewBtn.element);
         }
         
         // If no edit link exists, show create button
         if (!editLink) {
-            const createEditBtn = document.createElement('button');
-            createEditBtn.className = 'share-link-create-btn';
-            createEditBtn.dataset.linkType = 'edit';
-            createEditBtn.innerHTML = '<i class="fa-solid fa-pen"></i> Create edit link';
-            createEditBtn.addEventListener('click', () => {
-                if (this.onCreate) {
-                    this.onCreate(ShareLinkTypes.EDIT);
+            const createEditBtn = new Button({
+                label: 'Create edit link',
+                icon: '<i class="fa-solid fa-pen"></i>',
+                variant: 'secondary',
+                size: 'sm',
+                onClick: () => {
+                    if (this.onCreate) {
+                        this.onCreate(ShareLinkTypes.EDIT);
+                    }
                 }
             });
-            section.appendChild(createEditBtn);
+            createEditBtn.element.classList.add('share-link-create-btn');
+            createEditBtn.element.dataset.linkType = 'edit';
+            section.appendChild(createEditBtn.element);
         }
         
         return section;
@@ -220,28 +229,36 @@ export class ShareLinkPanel {
         actions.className = 'share-link-actions';
         
         // Copy button
-        const copyBtn = document.createElement('button');
-        copyBtn.className = 'share-link-btn';
-        copyBtn.dataset.action = 'copy';
-        copyBtn.dataset.url = link.url;
-        copyBtn.title = 'Copy link';
-        copyBtn.innerHTML = '<i class="fa-solid fa-copy"></i> Copy';
-        copyBtn.addEventListener('click', () => this._copyLink(link.url, copyBtn));
-        actions.appendChild(copyBtn);
+        const copyBtn = new Button({
+            label: 'Copy',
+            icon: '<i class="fa-solid fa-copy"></i>',
+            variant: 'text',
+            size: 'sm',
+            title: 'Copy link',
+            onClick: () => this._copyLink(link.url, copyBtn)
+        });
+        copyBtn.element.classList.add('share-link-btn');
+        copyBtn.element.dataset.action = 'copy';
+        copyBtn.element.dataset.url = link.url;
+        this._copyBtnRef = copyBtn; // Store reference for _copyLink
+        actions.appendChild(copyBtn.element);
         
         // Revoke button
-        const revokeBtn = document.createElement('button');
-        revokeBtn.className = 'share-link-btn share-link-btn-revoke';
-        revokeBtn.dataset.action = 'revoke';
-        revokeBtn.dataset.linkId = link.id;
-        revokeBtn.title = 'Remove link';
-        revokeBtn.innerHTML = '<i class="fa-solid fa-trash"></i>';
-        revokeBtn.addEventListener('click', () => {
-            if (this.onRevoke) {
-                this.onRevoke(link.id);
+        const revokeBtn = new Button({
+            icon: '<i class="fa-solid fa-trash"></i>',
+            variant: 'danger',
+            size: 'sm',
+            title: 'Remove link',
+            onClick: () => {
+                if (this.onRevoke) {
+                    this.onRevoke(link.id);
+                }
             }
         });
-        actions.appendChild(revokeBtn);
+        revokeBtn.element.classList.add('share-link-btn', 'share-link-btn-revoke');
+        revokeBtn.element.dataset.action = 'revoke';
+        revokeBtn.element.dataset.linkId = link.id;
+        actions.appendChild(revokeBtn.element);
         
         item.appendChild(actions);
         
@@ -252,17 +269,20 @@ export class ShareLinkPanel {
      * Copy link to clipboard
      * @private
      */
-    async _copyLink(url, button) {
+    async _copyLink(url, buttonInstance) {
         try {
             await navigator.clipboard.writeText(url);
             
-            const originalContent = button.innerHTML;
-            button.innerHTML = '<i class="fa-solid fa-check"></i> Copied!';
-            button.classList.add('copied');
+            // Use Button API to update label
+            const originalIcon = '<i class="fa-solid fa-copy"></i>';
+            buttonInstance.setIcon('<i class="fa-solid fa-check"></i>');
+            buttonInstance.setLabel('Copied!');
+            buttonInstance.element.classList.add('copied');
             
             setTimeout(() => {
-                button.innerHTML = originalContent;
-                button.classList.remove('copied');
+                buttonInstance.setIcon(originalIcon);
+                buttonInstance.setLabel('Copy');
+                buttonInstance.element.classList.remove('copied');
             }, 2000);
         } catch (error) {
             console.error('Failed to copy link:', error);
