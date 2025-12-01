@@ -813,11 +813,12 @@ export class FillSection {
             }
 
             if (updates.color) {
-                const currentOpacity = fill.opacity !== undefined ? fill.opacity : 100;
-                fill.color = this.applyOpacity(updates.color, currentOpacity);
+                // Store color as-is (hex or rgb) - opacity is applied separately via layer.style.opacity
+                // Do NOT bake opacity into the color, as the renderer applies opacity on the layer
+                fill.color = updates.color;
                 
                 if (fill.type === 'solid') {
-                    fill.value = fill.color;
+                    fill.value = updates.color;
                     LastUsed.solid = updates.color;
                 }
             }
@@ -835,10 +836,7 @@ export class FillSection {
 
             if (updates.opacity !== undefined) {
                 fill.opacity = updates.opacity;
-                if (fill.type === 'solid' && fill.color) {
-                    fill.color = this.applyOpacity(fill.color, fill.opacity);
-                    fill.value = fill.color;
-                }
+                // Don't bake opacity into color - it's applied via layer.style.opacity in the renderer
             }
 
             if (fill.type !== 'solid' && updates.value !== undefined) {
