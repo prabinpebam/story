@@ -1,0 +1,706 @@
+/**
+ * ColorThemeManager CSS
+ * 
+ * Styles for the luma-locked color theme system.
+ * Uses design tokens from variables.css
+ * Follows BEM methodology with ctm- (Color Theme Manager) prefix
+ */
+
+/* ============================================
+   Main Panel Layout
+   ============================================ */
+
+.ctm {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+.ctm__columns {
+    display: flex;
+    flex: 1;
+    min-height: 0;
+}
+
+.ctm__divider {
+    width: 1px;
+    background-color: var(--color-border-subtle);
+}
+
+/* ============================================
+   Left Column: Theme List
+   ============================================ */
+
+.ctm__left-column {
+    width: 160px;
+    min-width: 160px;
+    display: flex;
+    flex-direction: column;
+    background-color: var(--color-bg-secondary);
+    overflow: hidden;
+}
+
+.ctm__list-header {
+    padding: var(--spacing-2) var(--spacing-3);
+    border-bottom: 1px solid var(--color-border-subtle);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.ctm__list-title {
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-semibold);
+    color: var(--color-text-secondary);
+    margin: 0;
+}
+
+.ctm__list-actions {
+    display: flex;
+    gap: var(--spacing-1);
+}
+
+/* Theme List */
+.ctm__theme-list {
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+    flex: 1;
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-text-tertiary) transparent;
+}
+
+.ctm__theme-list::-webkit-scrollbar {
+    width: 6px;
+}
+
+.ctm__theme-list::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.ctm__theme-list::-webkit-scrollbar-thumb {
+    background: var(--color-text-tertiary);
+    opacity: 0.5;
+    border-radius: var(--radius-full);
+}
+
+/* Section Headers */
+.ctm__section-title {
+    padding: var(--spacing-1) var(--spacing-3);
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-medium);
+    color: var(--color-text-tertiary);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-top: var(--spacing-2);
+}
+
+.ctm__section-title:first-child {
+    margin-top: 0;
+}
+
+/* Theme Item */
+.ctm__theme-item {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-2);
+    padding: var(--spacing-1-5) var(--spacing-3);
+    cursor: pointer;
+    transition: background-color var(--transition-fast);
+    border: none;
+    background: none;
+    width: 100%;
+    text-align: left;
+    min-height: 40px;
+}
+
+.ctm__theme-item:hover {
+    background-color: var(--color-accent-subtle);
+}
+
+.ctm__theme-item--selected {
+    background-color: var(--color-accent-muted);
+}
+
+.ctm__theme-item--selected:hover {
+    background-color: var(--color-accent-muted);
+}
+
+/* Mini swatch preview - 2 rows x 6 cols */
+.ctm__theme-preview {
+    width: 36px;
+    height: 24px;
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    grid-template-rows: repeat(2, 1fr);
+    gap: 0;
+    border-radius: var(--radius-xs);
+    overflow: hidden;
+    flex-shrink: 0;
+}
+
+.ctm__preview-swatch {
+    width: 100%;
+    height: 100%;
+}
+
+.ctm__theme-name {
+    font-size: var(--font-size-sm);
+    color: var(--color-text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    flex: 1;
+    min-width: 0;
+}
+
+.ctm__theme-lock {
+    color: var(--color-text-tertiary);
+    font-size: 10px;
+    flex-shrink: 0;
+}
+
+.ctm__theme-actions {
+    display: flex;
+    gap: var(--spacing-1);
+    opacity: 0;
+    transition: opacity var(--transition-fast);
+    flex-shrink: 0;
+}
+
+.ctm__theme-item:hover .ctm__theme-actions {
+    opacity: 1;
+}
+
+/* ============================================
+   Right Column: Theme Editor
+   ============================================ */
+
+.ctm__right-column {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    overflow: hidden;
+}
+
+.ctm__editor {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-3);
+    padding: var(--spacing-3);
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-text-tertiary) transparent;
+}
+
+.ctm__editor::-webkit-scrollbar {
+    width: 6px;
+}
+
+.ctm__editor::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.ctm__editor::-webkit-scrollbar-thumb {
+    background: var(--color-text-tertiary);
+    opacity: 0.5;
+    border-radius: var(--radius-full);
+}
+
+/* Editor Header */
+.ctm__editor-header {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-2);
+}
+
+.ctm__editor-name {
+    font-size: var(--font-size-lg);
+    font-weight: var(--font-weight-semibold);
+    color: var(--color-text-primary);
+    background: none;
+    border: none;
+    padding: var(--spacing-1) var(--spacing-2);
+    border-radius: var(--radius-sm);
+    flex: 1;
+    min-width: 0;
+}
+
+.ctm__editor-name:hover:not(:disabled) {
+    background-color: var(--color-bg-hover);
+}
+
+.ctm__editor-name:focus {
+    outline: none;
+    background-color: var(--color-bg-tertiary);
+    box-shadow: 0 0 0 2px var(--color-border-focus);
+}
+
+.ctm__editor-name:disabled {
+    cursor: default;
+}
+
+.ctm__editor-actions {
+    display: flex;
+    gap: var(--spacing-1);
+    flex-shrink: 0;
+}
+
+/* ============================================
+   Slot Grid (3-row cluster layout)
+   ============================================ */
+
+.ctm__section {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-2);
+}
+
+.ctm__section-header {
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-medium);
+    color: var(--color-text-primary);
+}
+
+/* 3-row cluster layout: Shadows, Midtones, Highlights */
+.ctm__slot-grid {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-3);
+}
+
+/* Each cluster row: label + 4 swatches */
+.ctm__cluster-row {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-1);
+}
+
+.ctm__cluster-label {
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-medium);
+    color: var(--color-text-tertiary);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+/* 4 swatches in a row */
+.ctm__cluster-swatches {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: var(--spacing-1);
+}
+
+/* Individual Slot */
+.ctm__slot {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: var(--spacing-0-5);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: background-color var(--transition-fast);
+    border: 2px solid transparent;
+    background: none;
+}
+
+.ctm__slot:hover {
+    background-color: var(--color-accent-subtle);
+}
+
+.ctm__slot--selected {
+    border-color: var(--color-accent);
+    background-color: var(--color-accent-muted);
+}
+
+/* Swatch fills available width with fixed height */
+.ctm__slot-swatch {
+    width: 100%;
+    height: var(--swatch-size-2xl);
+    border-radius: var(--radius-sm);
+    border: var(--swatch-border);
+    position: relative;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+}
+
+/* Clipped swatch indicator (danger border) */
+.ctm__slot-swatch--clipped {
+    border: 2px solid var(--color-danger);
+}
+
+/* Luma value inside swatch - bottom center */
+.ctm__slot-luma-inner {
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-semibold);
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+    pointer-events: none;
+    padding-bottom: var(--spacing-1);
+}
+
+/* Lock icon on swatch */
+.ctm__slot-lock-icon {
+    position: absolute;
+    top: var(--spacing-0-5);
+    right: var(--spacing-0-5);
+    font-size: 10px;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+/* Locked slot styling */
+.ctm__slot--locked .ctm__slot-swatch {
+    border-color: var(--color-accent);
+}
+
+/* Hint text */
+.ctm__hint {
+    font-size: var(--font-size-xs);
+    color: var(--color-text-tertiary);
+    text-align: center;
+    margin-top: var(--spacing-1);
+}
+
+/* ============================================
+   Slot Editor (when a slot is selected)
+   ============================================ */
+
+.ctm__slot-editor {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-2);
+    padding: var(--spacing-3);
+    background-color: var(--color-bg-secondary);
+    border-radius: var(--radius-md);
+}
+
+.ctm__slot-editor-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--spacing-2);
+}
+
+.ctm__slot-editor-title {
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-semibold);
+    color: var(--color-text-primary);
+}
+
+.ctm__slot-editor-preview {
+    width: 32px;
+    height: 32px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--color-border);
+}
+
+.ctm__slot-editor-controls {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-2);
+}
+
+.ctm__slot-editor-row {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-3);
+}
+
+.ctm__slot-editor-label {
+    font-size: var(--font-size-sm);
+    color: var(--color-text-secondary);
+    width: 72px;
+    flex-shrink: 0;
+}
+
+.ctm__slot-editor-locked {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-1);
+    font-size: var(--font-size-sm);
+    color: var(--color-text-tertiary);
+    padding: var(--spacing-1) var(--spacing-2);
+    background: var(--color-bg-input);
+    border-radius: var(--radius-sm);
+}
+
+/* ============================================
+   Adjustments Section
+   ============================================ */
+
+.ctm__adjustments {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-2);
+}
+
+.ctm__adjustments-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    cursor: pointer;
+    padding: var(--spacing-1) 0;
+}
+
+.ctm__adjustments-title {
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-medium);
+    color: var(--color-text-primary);
+}
+
+.ctm__adjustments-toggle {
+    width: 16px;
+    height: 16px;
+    color: var(--color-text-tertiary);
+    transition: transform var(--transition-fast);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+}
+
+.ctm__adjustments-toggle--expanded {
+    transform: rotate(180deg);
+}
+
+.ctm__adjustments-content {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-1-5);
+}
+
+.ctm__adjustments-content--collapsed {
+    display: none;
+}
+
+.ctm__adjustments-reset {
+    align-self: flex-end;
+    margin-top: var(--spacing-2);
+}
+
+/* ============================================
+   Generate Section
+   ============================================ */
+
+.ctm__generate {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-2);
+}
+
+.ctm__generate-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    cursor: pointer;
+    padding: var(--spacing-1) 0;
+}
+
+.ctm__generate-title {
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-medium);
+    color: var(--color-text-primary);
+}
+
+.ctm__generate-toggle {
+    width: 16px;
+    height: 16px;
+    color: var(--color-text-tertiary);
+    transition: transform var(--transition-fast);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+}
+
+.ctm__generate-toggle--expanded {
+    transform: rotate(180deg);
+}
+
+.ctm__generate-content {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-2);
+}
+
+.ctm__generate-content--collapsed {
+    display: none;
+}
+
+/* Generate row with checkboxes and button */
+.ctm__generate-row {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-2);
+}
+
+/* Checkbox row for Hues/Adjustments */
+.ctm__generate-checkboxes {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-3);
+}
+
+.ctm__generate-checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-1);
+    font-size: var(--font-size-sm);
+    color: var(--color-text-secondary);
+    cursor: pointer;
+}
+
+.ctm__generate-checkbox-label:hover {
+    color: var(--color-text-primary);
+}
+
+.ctm__generate-checkbox-label input[type="checkbox"] {
+    width: 14px;
+    height: 14px;
+    accent-color: var(--color-accent);
+    cursor: pointer;
+}
+
+.ctm__generate-label {
+    font-size: var(--font-size-sm);
+    color: var(--color-text-secondary);
+    width: 100px;
+    flex-shrink: 0;
+}
+
+.ctm__generate-select {
+    flex: 1;
+    background: var(--color-bg-input);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    color: var(--color-text-primary);
+    font-size: var(--font-size-sm);
+    padding: var(--spacing-1-5) var(--spacing-2);
+    cursor: pointer;
+    outline: none;
+    transition: border-color var(--transition-fast);
+}
+
+.ctm__generate-select:hover {
+    border-color: var(--color-border-hover);
+}
+
+.ctm__generate-select:focus {
+    border-color: var(--color-accent);
+}
+
+.ctm__generate-button {
+    width: 100%;
+    padding: var(--spacing-2) var(--spacing-3);
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-medium);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--spacing-2);
+}
+
+.ctm__generate-note {
+    font-size: var(--font-size-xs);
+    color: var(--color-text-tertiary);
+    font-style: italic;
+    text-align: center;
+}
+
+/* ============================================
+   Empty State
+   ============================================ */
+
+.ctm__empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    flex: 1;
+    gap: var(--spacing-3);
+    padding: var(--spacing-6);
+    text-align: center;
+}
+
+.ctm__empty-icon {
+    font-size: 32px;
+    opacity: 0.5;
+}
+
+.ctm__empty-text {
+    font-size: var(--font-size-sm);
+    color: var(--color-text-secondary);
+}
+
+/* ============================================
+   Image Drop Zone
+   ============================================ */
+
+.ctm__dropzone {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--spacing-2);
+    padding: var(--spacing-4);
+    background-color: var(--color-bg-input);
+    border: 2px dashed var(--color-border);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    transition: border-color var(--transition-fast), background-color var(--transition-fast);
+}
+
+.ctm__dropzone:hover,
+.ctm__dropzone--dragover {
+    border-color: var(--color-accent);
+    background-color: var(--color-accent-subtle);
+}
+
+.ctm__dropzone-icon {
+    font-size: 24px;
+    color: var(--color-text-tertiary);
+}
+
+.ctm__dropzone-text {
+    font-size: var(--font-size-sm);
+    color: var(--color-text-secondary);
+    text-align: center;
+}
+
+.ctm__dropzone-formats {
+    font-size: var(--font-size-xs);
+    color: var(--color-text-tertiary);
+}
+
+/* ============================================
+   Responsive Adjustments
+   ============================================ */
+
+@media (max-width: 600px) {
+    .ctm__columns {
+        flex-direction: column;
+    }
+    
+    .ctm__left-column {
+        width: 100%;
+        min-width: unset;
+        max-height: 180px;
+    }
+    
+    .ctm__divider {
+        width: 100%;
+        height: 1px;
+    }
+    
+    .ctm__cluster-swatches {
+        grid-template-columns: repeat(4, 1fr);
+    }
+    
+    .ctm__generate-checkboxes {
+        flex-wrap: wrap;
+    }
+}
+    }
+}

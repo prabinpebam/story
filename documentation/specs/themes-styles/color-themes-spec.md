@@ -343,6 +343,48 @@ After  (Light theme): 95%  90%  82%  75%  65%  55%  45%  35%  30%  20%  10%   3%
 - Swapping themes maintains readability because contrast is preserved
 - The designer chooses which slot to use for what purpose - the slot itself has no semantic meaning
 
+**Three Tonal Clusters (3-Row Layout):**
+The 12 slots are organized into 3 labeled clusters, displayed as 3 rows with 4 slots each:
+
+```
+┌────────────────────────────────────────────────────────────────┐
+│  Color Palette                                                 │
+├────────────────────────────────────────────────────────────────┤
+│                                                                │
+│  SHADOWS  (L: 5-25%)                                           │
+│  ┌────────┐ ┌────────┐ ┌────────┐ ┌────────┐                   │
+│  │   5%   │ │  10%   │ │  18%   │ │  25%   │                   │
+│  │  Slot 1│ │  Slot 2│ │  Slot 3│ │  Slot 4│                   │
+│  └────────┘ └────────┘ └────────┘ └────────┘                   │
+│                                                                │
+│  MIDTONES  (L: 35-65%)                                         │
+│  ┌────────┐ ┌────────┐ ┌────────┐ ┌────────┐                   │
+│  │  35%   │ │  45%   │ │  55%   │ │  65%   │                   │
+│  │  Slot 5│ │  Slot 6│ │  Slot 7│ │  Slot 8│                   │
+│  └────────┘ └────────┘ └────────┘ └────────┘                   │
+│                                                                │
+│  HIGHLIGHTS  (L: 70-97%)                                       │
+│  ┌────────┐ ┌────────┐ ┌────────┐ ┌────────┐                   │
+│  │  70%   │ │  80%   │ │  90%   │ │  97%   │                   │
+│  │  Slot 9│ │Slot 10 │ │Slot 11 │ │Slot 12 │                   │
+│  └────────┘ └────────┘ └────────┘ └────────┘                   │
+│                                                                │
+└────────────────────────────────────────────────────────────────┘
+```
+
+**Luma Inside Swatches:**
+Each swatch displays its luma value directly inside the color:
+- White text for dark slots (L < 50%)
+- Black text for light slots (L >= 50%)
+- Text shadow for better legibility
+
+**Cluster Tokens:**
+| Element | Token |
+|---------|-------|
+| Cluster container | flex column with `--spacing-2` gap |
+| Cluster label | `--font-size-xs`, uppercase, `--color-text-tertiary` |
+| Slot grid | 4 columns, `--spacing-1` gap |
+
 **Luma Clusters:**
 The 12 slots are distributed into 3 tonal clusters (not uniform):
 
@@ -502,12 +544,39 @@ Uses existing `IconButton` component.
 │                                                                │
 │  Color Harmony:  [ Complementary        ▾ ]                    │
 │                                                                │
-│  [      🎲 Generate Random Colors      ]                       │
+│  ☑ Hues   ☐ Adjustments   [    ✨ Generate    ]                │
 │                                                                │
 │  Note: Locked slots will not be affected                       │
 │                                                                │
 └────────────────────────────────────────────────────────────────┘
 ```
+
+**Generate Options Checkboxes:**
+The generate row contains checkboxes to control what gets randomized:
+
+| Option | Default | Effect |
+|--------|---------|--------|
+| **Hues** | ✓ Checked | Randomizes hue and saturation based on color harmony |
+| **Adjustments** | ☐ Unchecked | Randomizes adjustment values (brightness, contrast, etc.) |
+
+Both can be checked for full randomization, or either one for partial generation.
+
+**Adjustments Generation:**
+When "Adjustments" is checked, the generate function creates random adjustment values that respect perceptual thresholds:
+
+| Control | Range | Constraint |
+|---------|-------|-----------|
+| Brightness | -30 to +30 | Limited to prevent luma clipping |
+| Contrast | -20 to +20 | — |
+| Highlights | -40 to +40 | — |
+| Shadows | -40 to +40 | — |
+| Saturation | -30 to +30 | — |
+
+**MIN_PERCEPTIBLE_LUMA_DELTA (JND = 2%):**
+The Just Noticeable Difference for human luminance perception is ~2%. This constant is used to:
+- Ensure generated adjustments don't push luma values too close together
+- Prevent clipping at black (0%) or white (100%)
+- Maintain perceptible contrast between adjacent slots
 
 **Color Harmony Dropdown:**
 Uses existing `Dropdown` component.
@@ -522,17 +591,61 @@ Uses existing `Dropdown` component.
 | Tetradic | Four colors in rectangle pattern |
 | Square | Four evenly spaced colors |
 
+**Color Generation Algorithm:**
+
+The generate function creates 4 hues based on the selected harmony, then randomly assigns them to four roles: **Primary**, **Secondary**, **Tertiary**, and **Accent**. Each slot has a fixed role assignment that creates visual rhythm across the tonal range:
+
+| Cluster | Slot | Role |
+|---------|------|------|
+| **Shadows** | 1 | Tertiary |
+| | 2 | Secondary |
+| | 3 | Primary |
+| | 4 | Accent |
+| **Midtones** | 5 | Tertiary |
+| | 6 | Secondary |
+| | 7 | Primary |
+| | 8 | Accent |
+| **Highlights** | 9 | Accent |
+| | 10 | Primary |
+| | 11 | Secondary |
+| | 12 | Tertiary |
+
+**Why This Distribution:**
+- Each tonal cluster (Shadows, Midtones, Highlights) contains all 4 color roles
+- The pattern creates diagonal color relationships across luminance
+- Highlights mirror the shadows in reverse order (symmetrical visual weight)
+- Accent colors are positioned at transition points (slots 4, 8, 9)
+
+**Harmony → Hue Generation:**
+| Harmony | Hues Generated |
+|---------|---------------|
+| Complementary | Base, Base+180°, Base+15°, Base+195° |
+| Monochromatic | Base, Base, Base, Base (same hue, saturation varies) |
+| Analogous | Base, Base+30°, Base-30°, Base+15° |
+| Triadic | Base, Base+120°, Base+240°, Base+60° |
+| Split Complementary | Base, Base+150°, Base+210°, Base+180° |
+| Tetradic | Base, Base+60°, Base+180°, Base+240° |
+| Square | Base, Base+90°, Base+180°, Base+270° |
+
+**Checkbox Row Tokens:**
+| Element | Token |
+|---------|-------|
+| Container | flex row, `--spacing-3` gap |
+| Checkbox | 14px × 14px, accent-color: `--color-accent` |
+| Label | `--font-size-sm`, `--color-text-secondary` |
+| Label (hover) | `--color-text-primary` |
+
 **Generate Button:**
 | Property | Value | Token |
 |----------|-------|-------|
-| Width | 100% | — |
+| Width | auto (fits content) | — |
 | Height | 32px | `--control-size-lg` |
 | Background | `--color-accent` | |
 | Text | `--color-text-on-accent` | |
 | Border radius | 4px | `--radius-sm` |
 | Hover | `--color-accent-hover` | |
 | Active | `--color-accent-active` | |
-| Icon | 🎲 dice | `--icon-size-sm` |
+| Icon | ✨ sparkle | `--icon-size-sm` |
 
 **Note Text:**
 | Property | Value | Token |
@@ -540,69 +653,6 @@ Uses existing `Dropdown` component.
 | Font | `--font-size-xs` | |
 | Color | `--color-text-tertiary` | |
 | Style | Italic | |
-
----
-
-### 4.4 Create Theme from Image
-
-Users can drag and drop an image to extract colors and create a NEW theme.
-
-**Drop Zone:**
-```
-┌────────────────────────────────────────────────────────────────┐
-│  Create from Image                                             │
-├────────────────────────────────────────────────────────────────┤
-│                                                                │
-│  ┌────────────────────────────────────────────────────────┐    │
-│  │                                                        │    │
-│  │     ┌─────┐                                            │    │
-│  │     │ 🖼️  │   Drop image here                          │    │
-│  │     └─────┘   or click to browse                       │    │
-│  │                                                        │    │
-│  │     Supports: JPG, PNG, WebP                           │    │
-│  │                                                        │    │
-│  └────────────────────────────────────────────────────────┘    │
-│                                                                │
-└────────────────────────────────────────────────────────────────┘
-```
-
-**Behavior:**
-- Dropping/selecting an image **always creates a NEW theme** (never updates existing)
-- Algorithm extracts dominant colors and maps them to the 12 luma slots
-- New theme is named: "From Image" or "From {filename}"
-- Theme is added to Custom section and automatically selected
-
-**Drop Zone States:**
-| State | Visual |
-|-------|--------|
-| Default | Dashed border `--color-border`, icon + text |
-| Drag over | Solid border `--color-accent`, background `--color-accent-subtle` |
-| Processing | Spinner, "Extracting colors..." |
-| Error | Red border, error message |
-
-**Drop Zone Tokens:**
-| Element | Token |
-|---------|-------|
-| Border | 2px dashed `--color-border` |
-| Border (hover/dragover) | 2px solid `--color-accent` |
-| Background | `--color-bg-input` |
-| Background (dragover) | `--color-accent-subtle` |
-| Border radius | `--radius-md` |
-| Padding | `--spacing-4` |
-| Icon size | `--icon-size-xl` |
-| Icon color | `--color-text-tertiary` |
-| Text font | `--font-size-sm` |
-| Text color | `--color-text-secondary` |
-
-**Color Extraction Algorithm:**
-1. Resize image to max 200×200 for performance
-2. Extract dominant colors using k-means clustering (k=12)
-3. For each extracted color, calculate its luma
-4. Map extracted colors to slots by luma proximity:
-   - Each slot's fixed luma finds the closest extracted color
-   - Adjust extracted color's luma to match slot's required luma
-   - Preserve the extracted color's hue and saturation
-5. Result: 12 colors with correct luma relationships but image-derived H/S
 
 ---
 
@@ -943,7 +993,55 @@ All colors defined via CSS variables automatically support both modes as defined
 
 ---
 
-## 15. Future Considerations
+## 15. Clever Theme Name Generator
+
+When creating new themes via "Generate" or "New Theme", automatically generated names use a clever naming system:
+
+**Name Format:** `{Adjective} {Noun}`
+
+**Examples:**
+- Midnight Horizon
+- Solar Cascade
+- Azure Ember
+- Crimson Twilight
+- Velvet Aurora
+
+**Name Pool:**
+- 50 curated adjectives (Midnight, Solar, Azure, Crimson, Velvet, Golden, Cosmic, etc.)
+- 50 curated nouns (Horizon, Cascade, Ember, Twilight, Aurora, Drift, Prism, etc.)
+- 2,500+ unique combinations possible
+
+**Implementation:**
+```javascript
+export function generateThemeName() {
+    const adj = THEME_NAME_ADJECTIVES[randomIndex];
+    const noun = THEME_NAME_NOUNS[randomIndex];
+    return `${adj} ${noun}`;
+}
+```
+
+---
+
+## 16. Real-Time Preview
+
+All edits immediately update the theme preview in the left column:
+
+| Action | Real-Time Update |
+|--------|------------------|
+| Change slot hue | ✓ Immediate |
+| Change slot saturation | ✓ Immediate |
+| Adjust brightness/contrast/etc. | ✓ Immediate |
+| Generate new colors | ✓ Immediate |
+| Invert theme | ✓ Immediate |
+
+**Implementation:**
+- `updateSlotHue()`, `updateSlotSaturation()`, and `updateAdjustment()` all call `renderThemeList()`
+- This re-renders the left column previews to reflect current state
+- No manual refresh needed
+
+---
+
+## 17. Future Considerations
 
 - **AI Tab:** Placeholder reserved for AI-generated themes
 - **Cloud Sync:** Custom themes synced to user account

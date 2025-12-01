@@ -1589,3 +1589,135 @@
     letter-spacing: var(--letter-spacing-wide);
     margin-top: var(--spacing-1);
 }
+
+/* ===========================================
+   Slider Control Component
+   ===========================================
+   
+   Reusable slider with scrubbable label and number input.
+   Used for adjustments like Brightness, Contrast, etc.
+   
+   Structure:
+   ┌──────────────────────────────────────────────────────────────────────┐
+   │  Label          ├─────────────●─────────────┤         [ value ]      │
+   └──────────────────────────────────────────────────────────────────────┘
+   =========================================== */
+
+.slider-control {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-2);
+    height: 28px;
+}
+
+.slider-control--disabled {
+    opacity: var(--opacity-disabled);
+    pointer-events: none;
+}
+
+/* Scrubbable Label */
+.slider-control__label {
+    font-size: var(--font-size-sm);
+    color: var(--color-text-secondary);
+    flex-shrink: 0;
+    user-select: none;
+    transition: color var(--transition-fast);
+}
+
+.slider-control__label:hover {
+    color: var(--color-text-primary);
+}
+
+.slider-control__label--active {
+    color: var(--color-accent);
+}
+
+/* Track Container */
+.slider-control__track-container {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    min-width: 0;
+}
+
+/* Track */
+.slider-control__track {
+    position: relative;
+    width: 100%;
+    height: 4px;
+    background: var(--color-bg-input);
+    border-radius: var(--radius-full);
+    cursor: pointer;
+}
+
+/* Filled portion */
+.slider-control__fill {
+    position: absolute;
+    top: 0;
+    height: 100%;
+    background: var(--color-accent);
+    border-radius: var(--radius-full);
+    pointer-events: none;
+}
+
+/* Thumb */
+.slider-control__thumb {
+    position: absolute;
+    top: 50%;
+    width: 12px;
+    height: 12px;
+    background: var(--color-text-primary);
+    border-radius: var(--radius-full);
+    transform: translate(-50%, -50%);
+    cursor: grab;
+    transition: transform var(--transition-fast), background var(--transition-fast);
+    box-shadow: var(--shadow-xs);
+}
+
+.slider-control__thumb:hover {
+    transform: translate(-50%, -50%) scale(1.2);
+}
+
+.slider-control__thumb:focus {
+    outline: none;
+    box-shadow: 0 0 0 var(--border-width-2) var(--color-border-focus);
+}
+
+.slider-control__thumb--active {
+    cursor: grabbing;
+    background: var(--color-accent);
+    transform: translate(-50%, -50%) scale(1.2);
+}
+
+/* Number Input */
+.slider-control__input {
+    background: var(--color-bg-input);
+    border: 1px solid transparent;
+    border-radius: var(--radius-sm);
+    color: var(--color-text-primary);
+    font-family: var(--font-ui);
+    font-size: var(--font-size-sm);
+    padding: var(--spacing-1) var(--spacing-1-5);
+    text-align: right;
+    outline: none;
+    transition: border-color var(--transition-fast), background var(--transition-fast);
+    flex-shrink: 0;
+    /* Hide spinners */
+    -moz-appearance: textfield;
+}
+
+.slider-control__input::-webkit-outer-spin-button,
+.slider-control__input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+.slider-control__input:hover {
+    background: var(--color-bg-hover);
+    border-color: var(--color-border);
+}
+
+.slider-control__input:focus {
+    border-color: var(--color-accent);
+    background: var(--color-bg-panel);
+}

@@ -144,12 +144,12 @@ select.pi-input option {
 }
 
 .pi-icon-btn:hover {
-    background-color: var(--color-bg-hover);
+    background-color: var(--color-accent-subtle);
     color: var(--color-text-primary);
 }
 
 .pi-icon-btn.active {
-    background-color: var(--color-bg-active);
+    background-color: var(--color-accent-muted);
     color: var(--color-accent);
 }
 
