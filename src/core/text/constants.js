@@ -62,7 +62,8 @@ export const ALLOWED_ELEMENTS = {
 export const ALLOWED_ELEMENTS_LIST = [
     ...ALLOWED_ELEMENTS.structure,
     ...ALLOWED_ELEMENTS.formatting,
-    ...ALLOWED_ELEMENTS.inline
+    ...ALLOWED_ELEMENTS.inline,
+    ...ALLOWED_ELEMENTS.lists
 ];
 
 // =============================================================================

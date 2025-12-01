@@ -55,14 +55,25 @@ describe('ContentSanitizer', () => {
             expect(result).toContain('<p>');
         });
 
-        it('should unwrap li tags (lists not in default allowed elements)', () => {
-            const input = '<li>Item 1</li><li>Item 2</li>';
+        it('should preserve list elements (ul, ol, li)', () => {
+            const input = '<ul><li>Item 1</li><li>Item 2</li></ul>';
             const result = sanitizer.sanitize(input);
             
-            // li tags are in ALLOWED_ELEMENTS.lists but not in default ALLOWED_ELEMENTS_LIST
-            // So they get unwrapped, keeping the text content
+            // List elements are now in ALLOWED_ELEMENTS_LIST
+            expect(result).toContain('<ul>');
+            expect(result).toContain('<li>');
             expect(result).toContain('Item 1');
             expect(result).toContain('Item 2');
+        });
+
+        it('should preserve ordered list elements', () => {
+            const input = '<ol><li>First</li><li>Second</li></ol>';
+            const result = sanitizer.sanitize(input);
+            
+            expect(result).toContain('<ol>');
+            expect(result).toContain('<li>');
+            expect(result).toContain('First');
+            expect(result).toContain('Second');
         });
 
         it('should unwrap script tags (keeping inner text)', () => {
