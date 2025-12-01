@@ -7,6 +7,7 @@ import { store } from '../../core/Store.js';
 import { FillSection } from './FillSection.js';
 import { panelManager } from '../PanelManager.js';
 import { Icons } from '../Icons.js';
+import { ThemeSwatches } from '../components/ThemeSwatches.js';
 
 export class SlideSection {
     constructor() {
@@ -136,10 +137,14 @@ export class SlideSection {
 
         container.appendChild(headerRow);
 
-        // Swatches preview
-        this.colorSwatches = document.createElement('div');
-        this.colorSwatches.className = 'theme-swatches-preview';
-        container.appendChild(this.colorSwatches);
+        // Use ThemeSwatches component for luma-locked 12-slot display
+        // Read-only display (no color selection callback)
+        this.themeSwatchesComponent = new ThemeSwatches({
+            onColorSelect: () => {}, // No-op for display-only in SlideSection
+            showThemeName: false, // We show the name in the header row
+            columns: 6
+        });
+        container.appendChild(this.themeSwatchesComponent.element);
 
         return container;
     }
@@ -229,23 +234,24 @@ export class SlideSection {
         const themeMaster = Object.values(state.masters).find(m => m.type === 'theme');
         if (!themeMaster || !themeMaster.themeSettings) return;
 
-        const themeColors = themeMaster.themeSettings.colors || {};
+        // Get luma theme (new 12-slot system)
+        const lumaTheme = themeMaster.themeSettings.lumaTheme || null;
         const themeFonts = themeMaster.themeSettings.fonts || {};
-        const themeName = themeMaster.themeSettings.name || 'Default Theme';
 
         // Check if slide has overrides
         const hasColorOverride = currentObject.colorOverride !== undefined;
         const hasTypoOverride = currentObject.typographyOverride !== undefined;
 
-        // Update Colors Section
-        this.updateColorsSectionDisplay(themeColors, themeName, hasColorOverride);
+        // Update Colors Section with luma theme
+        this.updateColorsSectionDisplay(lumaTheme, hasColorOverride);
 
         // Update Typography Section
         this.updateTypographySectionDisplay(themeFonts, hasTypoOverride);
     }
 
-    updateColorsSectionDisplay(colors, themeName, isOverride) {
-        // Update theme name
+    updateColorsSectionDisplay(lumaTheme, isOverride) {
+        // Update theme name from luma theme
+        const themeName = lumaTheme?.name || 'Default';
         this.colorThemeName.textContent = themeName;
 
         // Update badge
@@ -259,84 +265,7 @@ export class SlideSection {
             this.colorResetBtn.style.display = 'none';
         }
 
-        // Update swatches preview
-        this.colorSwatches.innerHTML = '';
-
-        // Create two rows: backgrounds/text and accents
-        const bgTextRow = document.createElement('div');
-        bgTextRow.className = 'theme-swatch-row';
-        
-        // Background & Text colors
-        const bgTextColors = [
-            { color: colors.background1, label: 'BG1' },
-            { color: colors.background2, label: 'BG2' },
-            { color: colors.text1, label: 'Text1' },
-            { color: colors.text2, label: 'Text2' }
-        ];
-
-        bgTextColors.forEach(item => {
-            if (item.color) {
-                const swatch = this.createColorSwatch(item.color, item.label);
-                bgTextRow.appendChild(swatch);
-            }
-        });
-
-        this.colorSwatches.appendChild(bgTextRow);
-
-        // Accent colors row
-        const accentRow = document.createElement('div');
-        accentRow.className = 'theme-swatch-row';
-        
-        const accentColors = [
-            colors.accent1, colors.accent2, colors.accent3,
-            colors.accent4, colors.accent5, colors.accent6
-        ].filter(Boolean);
-
-        accentColors.forEach((color, i) => {
-            const swatch = this.createColorSwatch(color, `Accent ${i + 1}`);
-            accentRow.appendChild(swatch);
-        });
-
-        this.colorSwatches.appendChild(accentRow);
-    }
-
-    createColorSwatch(color, label) {
-        const swatch = document.createElement('div');
-        // Determine if color is dark (needs white border)
-        const isDark = this.isColorDark(color);
-        swatch.className = `theme-color-swatch${isDark ? ' theme-color-swatch--dark' : ''}`;
-        swatch.style.background = color;
-        swatch.title = label;
-        return swatch;
-    }
-
-    /**
-     * Determines if a color is dark (needs white border) or light (needs dark border)
-     * Uses relative luminance calculation
-     */
-    isColorDark(color) {
-        try {
-            const canvas = document.createElement('canvas');
-            canvas.width = 1;
-            canvas.height = 1;
-            const ctx = canvas.getContext('2d');
-            if (!ctx) return false; // Fallback for test environment
-            ctx.fillStyle = color;
-            ctx.fillRect(0, 0, 1, 1);
-            const [r, g, b] = ctx.getImageData(0, 0, 1, 1).data;
-            
-            // Calculate relative luminance (WCAG formula)
-            const toLinear = (c) => {
-                const sRGB = c / 255;
-                return sRGB <= 0.03928 ? sRGB / 12.92 : Math.pow((sRGB + 0.055) / 1.055, 2.4);
-            };
-            const luminance = 0.2126 * toLinear(r) + 0.7152 * toLinear(g) + 0.0722 * toLinear(b);
-            
-            return luminance < 0.5;
-        } catch (e) {
-            // Fallback for environments without canvas support
-            return false;
-        }
+        // ThemeSwatches component auto-updates from store, no manual update needed
     }
 
     updateTypographySectionDisplay(fonts, isOverride) {
