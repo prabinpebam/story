@@ -9,8 +9,9 @@ import { BlendModes } from '../../core/constants/BlendModes.js';
 import { EmptyState } from '../components/EmptyState.js';
 
 import { CodeRunner } from '../../core/effects/CodeRunner.js';
+import { propertyMemory } from '../../core/services/PropertyMemoryManager.js';
 
-// Module-level cache for last used values
+// Module-level cache for last used values (legacy, now managed by PropertyMemoryManager)
 const LastUsed = {
     solid: '#D9D9D9',
     gradient: 'linear-gradient(90deg, #000000 0%, #ffffff 100%)',
@@ -20,6 +21,9 @@ const LastUsed = {
 export class FillSection {
     constructor(options = {}) {
         this.options = options;
+        // Context key for memory - default to object fill, can be overridden (e.g., 'fill.slide')
+        this.contextKey = options.contextKey || 'fill.object';
+        
         this.section = new Section({ 
             title: options.title || 'Fill',
             actions: [
@@ -626,21 +630,22 @@ export class FillSection {
         }
 
         // Add new fill to TOP (index 0)
-        // Default: Solid
-        // Color: Last used solid
-        // Opacity: 100% if first fill, 25% (Black) if subsequent
+        // Use memory for defaults when adding new fill
+        const memoryDefaults = propertyMemory.getFillDefaults(this.contextKey, 'solid');
         
         const isFirst = fills.length === 0;
         
         if (isFirst) {
+            // First fill: use memory color at full opacity
             fills.unshift({
                 type: 'solid',
-                color: LastUsed.solid,
-                value: LastUsed.solid,
-                opacity: 100,
+                color: memoryDefaults?.color || LastUsed.solid,
+                value: memoryDefaults?.color || LastUsed.solid,
+                opacity: memoryDefaults?.opacity || 100,
                 visible: true
             });
         } else {
+            // Subsequent fills: black at 25% opacity
             fills.unshift({
                 type: 'solid',
                 color: '#000000',
@@ -912,6 +917,7 @@ export class FillSection {
         const flyout = new FillFlyout({
             trigger: targetElement,
             fill: fill,
+            contextKey: this.contextKey, // Pass context for memory system
             onChange: (updates, isTransient) => {
                 this.updateFill(element, index, updates, isTransient);
             },

@@ -10,6 +10,7 @@ import { FillFlyout } from '../components/FillFlyout/FillFlyout.js';
 import { TypeSettingsFlyout } from '../components/TypeSettingsFlyout.js';
 import { ColorUtils } from '../../utils/ColorUtils.js';
 import { textEditManager } from '../../core/text/TextEditManager.js';
+import { propertyMemory } from '../../core/services/PropertyMemoryManager.js';
 
 export class TextSection {
     constructor() {
@@ -633,6 +634,7 @@ export class TextSection {
         const flyout = new FillFlyout({
             trigger: target,
             fill: this.currentTextFill || { type: 'solid', value: '#000000' },
+            contextKey: 'fill.text', // Text fill uses its own memory context
             onChange: (updates, isTransient) => {
                 const current = this.currentTextFill || { type: 'solid', value: '#000000' };
                 const newFill = { ...current, ...updates };

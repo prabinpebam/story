@@ -9,8 +9,10 @@ import { CodeTab } from './CodeTab.js';
 import { CodeRunner } from '../../../core/effects/CodeRunner.js';
 import { Flyout } from '../Flyout.js';
 import { CodeFillPanel } from '../../panels/CodeFillPanel.js';
+import { propertyMemory } from '../../../core/services/PropertyMemoryManager.js';
 
 // Module-level cache for last used gradient to preserve stops across types/sessions
+// Note: This is now also managed by PropertyMemoryManager, but kept for backward compatibility
 let LastUsedGradient = {
     type: 'linear',
     angle: 90,
@@ -27,7 +29,14 @@ export class FillFlyout extends Flyout {
         this.onChange = options.onChange || (() => {});
         // onClose is handled by Flyout base class via options.onClose
         
+        // Context key for memory (default to object fill)
+        this.contextKey = options.contextKey || 'fill.object';
+        
         this.fill = options.fill || { type: 'solid', color: '#000000', opacity: 100 };
+        
+        // CRITICAL: Update memory FROM selection when panel opens
+        // Memory reads from selection, not applied to selection
+        propertyMemory.updateFromSelection(this.contextKey, this.fill);
         
         // Apply specific styles for FillFlyout
         this.element.className = 'fill-flyout ui-flyout';
@@ -153,20 +162,26 @@ export class FillFlyout extends Flyout {
     setMode(type) {
         if (this.fill.type === type) return;
         
-        // Default values when switching modes
+        // Get defaults from memory for the new mode
+        const memoryDefaults = propertyMemory.getFillDefaults(this.contextKey, type);
+        
+        // Default values when switching modes (from memory or fallback)
         let updates = { type };
         if (type === 'solid') {
-            updates.color = '#000000';
-            updates.value = '#000000';
+            updates.color = memoryDefaults?.color || '#000000';
+            updates.value = memoryDefaults?.color || '#000000';
+            updates.opacity = memoryDefaults?.opacity || 100;
         } else if (type === 'gradient') {
-            // Use last used gradient to preserve stops
-            updates.value = JSON.parse(JSON.stringify(LastUsedGradient));
+            // Use memory gradient, then LastUsedGradient fallback
+            updates.value = memoryDefaults?.value 
+                ? JSON.parse(JSON.stringify(memoryDefaults.value))
+                : JSON.parse(JSON.stringify(LastUsedGradient));
         } else if (type === 'image') {
-            updates.value = ''; // Empty image
+            updates.value = ''; // Empty image - not stored in memory
         } else if (type === 'video') {
-            updates.value = '';
+            updates.value = ''; // Empty video - not stored in memory
         } else if (type === 'code') {
-            updates.code = CodeRunner.DEFAULT_CODE;
+            updates.code = memoryDefaults?.code || CodeRunner.DEFAULT_CODE;
         }
 
         this.updateFill(updates);
@@ -176,13 +191,17 @@ export class FillFlyout extends Flyout {
         const oldType = this.fill.type;
         this.fill = { ...this.fill, ...updates };
         
-        // Update cache if it's a gradient
+        // Update cache if it's a gradient (backward compatibility)
         if (this.fill.type === 'gradient' && this.fill.value) {
             // Ensure we store a clean object
             if (typeof this.fill.value === 'object') {
                 LastUsedGradient = JSON.parse(JSON.stringify(this.fill.value));
             }
         }
+        
+        // Update memory with the new fill state
+        // This ensures memory stays in sync with user edits
+        propertyMemory.updateFromSelection(this.contextKey, this.fill);
 
         this.onChange(this.fill, isTransient);
         
@@ -194,6 +213,9 @@ export class FillFlyout extends Flyout {
     }
 
     destroy() {
+        // Persist memory when flyout closes
+        propertyMemory.onPanelClose(this.contextKey);
+        
         if (this.currentTabInstance && typeof this.currentTabInstance.destroy === 'function') {
             this.currentTabInstance.destroy();
         }
