@@ -2,6 +2,7 @@
  * ThemePresets Tests
  * 
  * Tests for the built-in theme presets.
+ * Updated for 6-preset luma-locked tonal system.
  */
 
 import { describe, it, expect } from 'vitest';
@@ -11,14 +12,8 @@ import {
     OCEAN_PRESET,
     FOREST_PRESET,
     SUNSET_PRESET,
-    MIDNIGHT_PRESET,
-    ROSE_PRESET,
     LAVENDER_PRESET,
     EARTH_PRESET,
-    TEAL_PRESET,
-    CORAL_PRESET,
-    SLATE_PRESET,
-    WARM_GRAY_PRESET,
     getPresetById,
     getPresetByName,
     isPresetTheme
@@ -27,8 +22,8 @@ import { validateTheme } from '../../src/ui/panels/color-theme/ColorThemeUtils.j
 
 describe('ThemePresets', () => {
     describe('THEME_PRESETS', () => {
-        it('should have 12 preset themes', () => {
-            expect(THEME_PRESETS).toHaveLength(12);
+        it('should have 6 preset themes', () => {
+            expect(THEME_PRESETS).toHaveLength(6);
         });
 
         it('should have all presets be valid themes', () => {
@@ -82,13 +77,6 @@ describe('ThemePresets', () => {
             });
         });
 
-        it('ROSE_PRESET should have pink/magenta hues', () => {
-            ROSE_PRESET.slots.forEach(slot => {
-                expect(slot.h).toBeGreaterThanOrEqual(300);
-                expect(slot.h).toBeLessThanOrEqual(360);
-            });
-        });
-
         it('LAVENDER_PRESET should have purple hues', () => {
             LAVENDER_PRESET.slots.forEach(slot => {
                 expect(slot.h).toBeGreaterThanOrEqual(240);
@@ -96,10 +84,19 @@ describe('ThemePresets', () => {
             });
         });
 
-        it('TEAL_PRESET should have teal/cyan hues', () => {
-            TEAL_PRESET.slots.forEach(slot => {
-                expect(slot.h).toBeGreaterThanOrEqual(150);
-                expect(slot.h).toBeLessThanOrEqual(200);
+        it('SUNSET_PRESET should have warm hues', () => {
+            SUNSET_PRESET.slots.forEach(slot => {
+                // Sunset uses warm colors (red-orange-yellow range: 0-60)
+                expect(slot.h).toBeGreaterThanOrEqual(0);
+                expect(slot.h).toBeLessThanOrEqual(60);
+            });
+        });
+
+        it('EARTH_PRESET should have brown/tan hues', () => {
+            EARTH_PRESET.slots.forEach(slot => {
+                // Earth tones are in the yellow-orange-brown range
+                expect(slot.h).toBeGreaterThanOrEqual(20);
+                expect(slot.h).toBeLessThanOrEqual(50);
             });
         });
     });
@@ -119,7 +116,8 @@ describe('ThemePresets', () => {
             expect(getPresetById('preset_ocean')).toBe(OCEAN_PRESET);
             expect(getPresetById('preset_forest')).toBe(FOREST_PRESET);
             expect(getPresetById('preset_sunset')).toBe(SUNSET_PRESET);
-            expect(getPresetById('preset_midnight')).toBe(MIDNIGHT_PRESET);
+            expect(getPresetById('preset_lavender')).toBe(LAVENDER_PRESET);
+            expect(getPresetById('preset_earth')).toBe(EARTH_PRESET);
         });
     });
 

@@ -3,17 +3,25 @@
  * 
  * Built-in theme presets for the color theme system.
  * Each preset defines 12 luma-locked slots with H and S values.
+ * 
+ * 6 Diverse Presets covering:
+ * 1. Neutral - Grayscale base for clean presentations
+ * 2. Ocean - Cool blue tones (professional/corporate)
+ * 3. Sunset - Warm orange/red tones (creative/energetic)
+ * 4. Forest - Natural green tones (organic/sustainable)
+ * 5. Lavender - Soft purple tones (creative/elegant)
+ * 6. Earth - Warm brown/tan tones (rustic/grounded)
  */
 
 import { 
     createTheme, 
     createNeutralTheme, 
-    createMonochromaticTheme,
-    createComplementaryTheme 
+    createMonochromaticTheme
 } from './ColorThemeUtils.js';
 
 /**
  * Neutral grayscale theme
+ * Perfect base for clean, minimalist presentations
  */
 export const NEUTRAL_PRESET = createTheme(
     'preset_neutral',
@@ -24,195 +32,121 @@ export const NEUTRAL_PRESET = createTheme(
 
 /**
  * Ocean blue theme
+ * Cool, professional feel - great for corporate presentations
  */
 export const OCEAN_PRESET = createTheme(
     'preset_ocean',
     'Ocean',
-    createMonochromaticTheme(210, 60),
-    true
-);
-
-/**
- * Forest green theme
- */
-export const FOREST_PRESET = createTheme(
-    'preset_forest',
-    'Forest',
-    createMonochromaticTheme(140, 45),
+    createMonochromaticTheme(210, 65),
     true
 );
 
 /**
  * Sunset warm theme
+ * Warm orange/coral tones - energetic and creative
  */
 export const SUNSET_PRESET = createTheme(
     'preset_sunset',
     'Sunset',
     [
-        { h: 15, s: 20 },   // Slot 1 - deep warm shadow
-        { h: 20, s: 30 },   // Slot 2
-        { h: 25, s: 40 },   // Slot 3
-        { h: 30, s: 50 },   // Slot 4
-        { h: 35, s: 55 },   // Slot 5 - warm midtones
-        { h: 30, s: 50 },   // Slot 6
-        { h: 25, s: 45 },   // Slot 7
-        { h: 20, s: 40 },   // Slot 8
-        { h: 25, s: 30 },   // Slot 9 - warm highlights
-        { h: 30, s: 25 },   // Slot 10
-        { h: 35, s: 15 },   // Slot 11
-        { h: 40, s: 10 }    // Slot 12
+        { h: 10, s: 25 },   // Slot 1 - deep warm shadow
+        { h: 15, s: 35 },   // Slot 2
+        { h: 20, s: 45 },   // Slot 3
+        { h: 25, s: 55 },   // Slot 4
+        { h: 30, s: 60 },   // Slot 5 - warm midtones
+        { h: 28, s: 55 },   // Slot 6
+        { h: 25, s: 50 },   // Slot 7
+        { h: 22, s: 45 },   // Slot 8
+        { h: 25, s: 35 },   // Slot 9 - warm highlights
+        { h: 28, s: 28 },   // Slot 10
+        { h: 32, s: 18 },   // Slot 11
+        { h: 35, s: 10 }    // Slot 12
     ],
     true
 );
 
 /**
- * Midnight dark theme
+ * Forest green theme
+ * Natural, organic feel - great for sustainability/nature topics
  */
-export const MIDNIGHT_PRESET = createTheme(
-    'preset_midnight',
-    'Midnight',
+export const FOREST_PRESET = createTheme(
+    'preset_forest',
+    'Forest',
     [
-        { h: 240, s: 30 },  // Slot 1 - deep blue shadow
-        { h: 235, s: 35 },  // Slot 2
-        { h: 230, s: 40 },  // Slot 3
-        { h: 225, s: 45 },  // Slot 4
-        { h: 220, s: 40 },  // Slot 5 - blue midtones
-        { h: 215, s: 35 },  // Slot 6
-        { h: 210, s: 30 },  // Slot 7
-        { h: 205, s: 25 },  // Slot 8
-        { h: 200, s: 20 },  // Slot 9 - blue highlights
-        { h: 195, s: 15 },  // Slot 10
-        { h: 190, s: 10 },  // Slot 11
-        { h: 185, s: 5 }    // Slot 12
+        { h: 140, s: 30 },  // Slot 1 - deep forest shadow
+        { h: 135, s: 35 },  // Slot 2
+        { h: 130, s: 40 },  // Slot 3
+        { h: 125, s: 45 },  // Slot 4
+        { h: 120, s: 50 },  // Slot 5 - vibrant green midtones
+        { h: 125, s: 45 },  // Slot 6
+        { h: 130, s: 40 },  // Slot 7
+        { h: 135, s: 35 },  // Slot 8
+        { h: 130, s: 25 },  // Slot 9 - soft green highlights
+        { h: 125, s: 18 },  // Slot 10
+        { h: 120, s: 12 },  // Slot 11
+        { h: 115, s: 6 }    // Slot 12
     ],
-    true
-);
-
-/**
- * Rose/pink theme
- */
-export const ROSE_PRESET = createTheme(
-    'preset_rose',
-    'Rose',
-    createMonochromaticTheme(340, 50),
     true
 );
 
 /**
  * Lavender purple theme
+ * Soft, elegant purple tones - creative and sophisticated
  */
 export const LAVENDER_PRESET = createTheme(
     'preset_lavender',
     'Lavender',
-    createMonochromaticTheme(270, 40),
+    [
+        { h: 270, s: 25 },  // Slot 1 - deep purple shadow
+        { h: 275, s: 30 },  // Slot 2
+        { h: 280, s: 35 },  // Slot 3
+        { h: 282, s: 40 },  // Slot 4
+        { h: 275, s: 45 },  // Slot 5 - purple midtones
+        { h: 270, s: 40 },  // Slot 6
+        { h: 268, s: 35 },  // Slot 7
+        { h: 265, s: 30 },  // Slot 8
+        { h: 270, s: 22 },  // Slot 9 - soft lavender highlights
+        { h: 275, s: 15 },  // Slot 10
+        { h: 280, s: 10 },  // Slot 11
+        { h: 285, s: 5 }    // Slot 12
+    ],
     true
 );
 
 /**
  * Earth tones theme
+ * Warm, grounded feel - rustic and natural
  */
 export const EARTH_PRESET = createTheme(
     'preset_earth',
     'Earth',
     [
-        { h: 25, s: 25 },   // Slot 1 - brown shadow
-        { h: 30, s: 30 },   // Slot 2
-        { h: 35, s: 35 },   // Slot 3
-        { h: 40, s: 40 },   // Slot 4
-        { h: 45, s: 35 },   // Slot 5 - tan midtones
-        { h: 50, s: 30 },   // Slot 6
-        { h: 45, s: 25 },   // Slot 7
-        { h: 40, s: 20 },   // Slot 8
-        { h: 35, s: 15 },   // Slot 9 - cream highlights
-        { h: 40, s: 12 },   // Slot 10
-        { h: 45, s: 8 },    // Slot 11
-        { h: 50, s: 5 }     // Slot 12
+        { h: 25, s: 30 },   // Slot 1 - brown shadow
+        { h: 28, s: 35 },   // Slot 2
+        { h: 32, s: 40 },   // Slot 3
+        { h: 35, s: 45 },   // Slot 4
+        { h: 38, s: 42 },   // Slot 5 - tan midtones
+        { h: 42, s: 38 },   // Slot 6
+        { h: 40, s: 32 },   // Slot 7
+        { h: 38, s: 26 },   // Slot 8
+        { h: 35, s: 20 },   // Slot 9 - cream highlights
+        { h: 40, s: 15 },   // Slot 10
+        { h: 45, s: 10 },   // Slot 11
+        { h: 48, s: 5 }     // Slot 12
     ],
     true
 );
 
 /**
- * Teal accent theme
- */
-export const TEAL_PRESET = createTheme(
-    'preset_teal',
-    'Teal',
-    createMonochromaticTheme(180, 55),
-    true
-);
-
-/**
- * Coral complementary theme
- */
-export const CORAL_PRESET = createTheme(
-    'preset_coral',
-    'Coral',
-    createComplementaryTheme(15, 185, 50),
-    true
-);
-
-/**
- * Slate professional theme
- */
-export const SLATE_PRESET = createTheme(
-    'preset_slate',
-    'Slate',
-    [
-        { h: 210, s: 10 },  // Slot 1 - slate shadow
-        { h: 210, s: 12 },  // Slot 2
-        { h: 210, s: 14 },  // Slot 3
-        { h: 210, s: 16 },  // Slot 4
-        { h: 210, s: 15 },  // Slot 5 - slate midtones
-        { h: 210, s: 12 },  // Slot 6
-        { h: 210, s: 10 },  // Slot 7
-        { h: 210, s: 8 },   // Slot 8
-        { h: 210, s: 6 },   // Slot 9 - slate highlights
-        { h: 210, s: 5 },   // Slot 10
-        { h: 210, s: 4 },   // Slot 11
-        { h: 210, s: 2 }    // Slot 12
-    ],
-    true
-);
-
-/**
- * Warm gray theme
- */
-export const WARM_GRAY_PRESET = createTheme(
-    'preset_warm_gray',
-    'Warm Gray',
-    [
-        { h: 30, s: 8 },    // Slot 1
-        { h: 30, s: 10 },   // Slot 2
-        { h: 30, s: 12 },   // Slot 3
-        { h: 30, s: 14 },   // Slot 4
-        { h: 30, s: 12 },   // Slot 5
-        { h: 30, s: 10 },   // Slot 6
-        { h: 30, s: 8 },    // Slot 7
-        { h: 30, s: 6 },    // Slot 8
-        { h: 30, s: 5 },    // Slot 9
-        { h: 30, s: 4 },    // Slot 10
-        { h: 30, s: 3 },    // Slot 11
-        { h: 30, s: 2 }     // Slot 12
-    ],
-    true
-);
-
-/**
- * All preset themes
+ * All preset themes (6 diverse options)
  */
 export const THEME_PRESETS = [
     NEUTRAL_PRESET,
     OCEAN_PRESET,
-    FOREST_PRESET,
     SUNSET_PRESET,
-    MIDNIGHT_PRESET,
-    ROSE_PRESET,
+    FOREST_PRESET,
     LAVENDER_PRESET,
-    EARTH_PRESET,
-    TEAL_PRESET,
-    CORAL_PRESET,
-    SLATE_PRESET,
-    WARM_GRAY_PRESET
+    EARTH_PRESET
 ];
 
 /**

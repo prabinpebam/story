@@ -8,12 +8,17 @@
  * - 12 slots with fixed luma values (5%, 10%, 18%, 25%, 35%, 45%, 55%, 65%, 70%, 80%, 90%, 97%)
  * - Only H (hue) and S (saturation) are editable per slot
  * - Photo-style adjustments affect all slots: Brightness, Contrast, Highlights, Shadows, Whites, Blacks, Saturation
+ * 
+ * Theme Hierarchy:
+ * - Master slide → Layout master slide → Individual slide → Individual object property
+ * - More specific theme choice overrides less specific
  */
 
 import { DraggablePanel } from '../../components/DraggablePanel.js';
 import { SliderControl } from '../../components/SliderControl.js';
 import { IconButton } from '../../components/IconButton.js';
 import { Icons } from '../../Icons.js';
+import { store } from '../../../core/Store.js';
 import {
     LUMA_SLOTS,
     DEFAULT_ADJUSTMENTS,
@@ -54,8 +59,13 @@ export class ColorThemeManager extends DraggablePanel {
             minimizable: true
         });
         
+        // Default onThemeChange dispatches to store
+        const defaultOnThemeChange = (theme) => {
+            this.applyThemeToStore(theme);
+        };
+        
         this.managerOptions = {
-            onThemeChange: options.onThemeChange || (() => {}),
+            onThemeChange: options.onThemeChange || defaultOnThemeChange,
             onThemeApply: options.onThemeApply || (() => {}),
             ...options
         };
@@ -1245,6 +1255,53 @@ export class ColorThemeManager extends DraggablePanel {
         } catch (e) {
             console.warn('Failed to save custom themes:', e);
         }
+    }
+    
+    // =========================================
+    // Store Integration
+    // =========================================
+    
+    /**
+     * Apply theme to the store (master slide level)
+     * This dispatches the theme to be applied to the current theme master
+     * @param {Object} theme - The theme to apply
+     */
+    applyThemeToStore(theme) {
+        if (!theme) return;
+        
+        const state = store.getState();
+        const masterId = 'theme-default'; // Always apply to the default theme master
+        
+        // Generate the resolved colors from slots and adjustments
+        const colors = this.isInverted
+            ? generateInvertedThemeColors(theme.slots, theme.adjustments || DEFAULT_ADJUSTMENTS)
+            : generateThemeColors(theme.slots, theme.adjustments || DEFAULT_ADJUSTMENTS);
+        
+        // Dispatch the theme to the store
+        store.dispatch('APPLY_LUMA_THEME', {
+            masterId,
+            theme: {
+                id: theme.id,
+                name: theme.name,
+                slots: theme.slots,
+                adjustments: theme.adjustments || DEFAULT_ADJUSTMENTS,
+                isInverted: this.isInverted,
+                colors: colors
+            }
+        });
+        
+        // Also apply CSS variables for immediate visual feedback
+        applyThemeToCSSVariables(colors);
+    }
+    
+    /**
+     * Get the current theme from the store
+     * @returns {Object|null} The current luma theme or null
+     */
+    getThemeFromStore() {
+        const state = store.getState();
+        const themeMaster = state.masters?.['theme-default'];
+        return themeMaster?.themeSettings?.lumaTheme || null;
     }
     
     // =========================================

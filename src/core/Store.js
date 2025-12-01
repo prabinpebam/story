@@ -220,6 +220,9 @@ class Store extends EventEmitter {
             case 'UPDATE_TEXT_STYLE':
             case 'ADD_ELEMENT_TO_MASTER':
             case 'DELETE_ELEMENT_FROM_MASTER':
+            case 'APPLY_LUMA_THEME':
+            case 'UPDATE_LUMA_THEME_SLOT':
+            case 'UPDATE_LUMA_THEME_ADJUSTMENTS':
                 this.snapshot(type);
                 this.state = produce(this.state, draft => {
                     switch(type) {
@@ -234,6 +237,9 @@ class Store extends EventEmitter {
                         case 'UPDATE_TEXT_STYLE': MasterHandlers.handleUpdateTextStyle(draft, payload); break;
                         case 'ADD_ELEMENT_TO_MASTER': MasterHandlers.handleAddElementToMaster(draft, payload); break;
                         case 'DELETE_ELEMENT_FROM_MASTER': MasterHandlers.handleDeleteElementFromMaster(draft, payload); break;
+                        case 'APPLY_LUMA_THEME': MasterHandlers.handleApplyLumaTheme(draft, payload); break;
+                        case 'UPDATE_LUMA_THEME_SLOT': MasterHandlers.handleUpdateLumaThemeSlot(draft, payload); break;
+                        case 'UPDATE_LUMA_THEME_ADJUSTMENTS': MasterHandlers.handleUpdateLumaThemeAdjustments(draft, payload); break;
                     }
                 });
                 this.emit('state-changed', this.state);

@@ -1,11 +1,16 @@
 /**
  * ThemeSwatches.js
- * A reusable component that displays color swatches from the current theme.
+ * A reusable component that displays color swatches from the current luma-locked theme.
  * Automatically updates when theme colors change.
+ * 
+ * Uses the 12-slot luma-locked tonal system:
+ * - Shadows (slots 1-4): L = 5%, 10%, 18%, 25%
+ * - Midtones (slots 5-8): L = 35%, 45%, 55%, 65%
+ * - Highlights (slots 9-12): L = 70%, 80%, 90%, 97%
  * 
  * Supports two modes:
  * - Regular mode: onColorSelect receives the color hex value
- * - Linked mode: onLinkedColorSelect receives the slot ID for linked properties
+ * - Linked mode: onLinkedColorSelect receives the slot index for linked properties
  * 
  * Follows Design System principles:
  * - Uses .swatch CSS class for all swatches (unified styling)
@@ -14,26 +19,23 @@
  */
 
 import { store } from '../../core/Store.js';
-import { COLOR_PRESETS, getPresetById } from '../../core/constants/ColorPresets.js';
-import { Dropdown } from './Dropdown.js';
-import { linkedPropertyManager, COLOR_SLOTS } from '../../core/services/LinkedPropertyManager.js';
 
 /**
- * Theme color role definitions with display names
+ * Luma slot definitions (12 slots in 3 clusters)
  */
-const THEME_COLOR_ROLES = [
-    { id: 'background1', name: 'Bg 1' },
-    { id: 'background2', name: 'Bg 2' },
-    { id: 'text1', name: 'Text 1' },
-    { id: 'text2', name: 'Text 2' },
-    { id: 'accent1', name: 'Accent 1' },
-    { id: 'accent2', name: 'Accent 2' },
-    { id: 'accent3', name: 'Accent 3' },
-    { id: 'accent4', name: 'Accent 4' },
-    { id: 'accent5', name: 'Accent 5' },
-    { id: 'accent6', name: 'Accent 6' },
-    { id: 'hyperlink', name: 'Link' },
-    { id: 'followedHyperlink', name: 'Visited' }
+const LUMA_SLOTS = [
+    { slot: 1, luma: 5, cluster: 'shadows' },
+    { slot: 2, luma: 10, cluster: 'shadows' },
+    { slot: 3, luma: 18, cluster: 'shadows' },
+    { slot: 4, luma: 25, cluster: 'shadows' },
+    { slot: 5, luma: 35, cluster: 'midtones' },
+    { slot: 6, luma: 45, cluster: 'midtones' },
+    { slot: 7, luma: 55, cluster: 'midtones' },
+    { slot: 8, luma: 65, cluster: 'midtones' },
+    { slot: 9, luma: 70, cluster: 'highlights' },
+    { slot: 10, luma: 80, cluster: 'highlights' },
+    { slot: 11, luma: 90, cluster: 'highlights' },
+    { slot: 12, luma: 97, cluster: 'highlights' }
 ];
 
 /**
@@ -84,24 +86,24 @@ export class ThemeSwatches {
     constructor(options = {}) {
         this.options = {
             onColorSelect: options.onColorSelect || (() => {}),
-            // New: callback for linked color selection (receives slot ID)
+            // Callback for linked color selection (receives slot index)
             onLinkedColorSelect: options.onLinkedColorSelect || null,
-            // New: enable linked mode (shows link indicators)
+            // Enable linked mode (shows link indicators)
             linkedMode: options.linkedMode !== false && !!options.onLinkedColorSelect,
-            showPresetSelector: options.showPresetSelector !== false,
-            columns: options.columns || 8,
-            // New: currently selected slot (for highlighting)
+            // Show theme name indicator (per spec: "Indicate theme name also")
+            showThemeName: options.showThemeName !== false,
+            columns: options.columns || 6,
+            // Currently selected slot (for highlighting)
             selectedSlot: options.selectedSlot || null,
             ...options
         };
         
         // Validate columns against allowed values
         if (!GRID_COLUMNS[this.options.columns]) {
-            console.warn(`ThemeSwatches: Invalid column count ${this.options.columns}, defaulting to 8`);
-            this.options.columns = 8;
+            console.warn(`ThemeSwatches: Invalid column count ${this.options.columns}, defaulting to 6`);
+            this.options.columns = 6;
         }
         
-        this.currentPresetId = null; // null = current theme, otherwise preset ID
         this.element = document.createElement('div');
         this.element.className = 'swatch-section';
         
@@ -115,27 +117,22 @@ export class ThemeSwatches {
     /**
      * Set the currently selected slot (for highlighting)
      */
-    setSelectedSlot(slotId) {
-        this.options.selectedSlot = slotId;
+    setSelectedSlot(slotIndex) {
+        this.options.selectedSlot = slotIndex;
         this.updateSwatches();
     }
 
     render() {
         this.element.innerHTML = '';
         
-        // Header with label and optional preset selector
+        // Header with theme name (per spec: indicate theme name)
         const header = document.createElement('div');
         header.className = 'swatch-section-header';
         
-        const label = document.createElement('div');
-        label.textContent = 'Theme Colors';
-        label.className = 'swatch-section-label';
-        header.appendChild(label);
-        
-        if (this.options.showPresetSelector) {
-            const selector = this.createPresetSelector();
-            header.appendChild(selector);
-        }
+        this.themeLabel = document.createElement('div');
+        this.themeLabel.className = 'swatch-section-label';
+        this.themeLabel.textContent = 'Theme Colors';
+        header.appendChild(this.themeLabel);
         
         this.element.appendChild(header);
         
@@ -147,45 +144,32 @@ export class ThemeSwatches {
         this.updateSwatches();
     }
 
-    createPresetSelector() {
-        // Build options array for Dropdown
-        const options = [
-            { label: 'Current', value: '' },
-            ...COLOR_PRESETS.map(preset => ({
-                label: preset.name,
-                value: preset.id
-            }))
-        ];
-        
-        this.presetDropdown = new Dropdown({
-            options: options,
-            value: this.currentPresetId || '',
-            size: 'fill',
-            height: 'sm',
-            onChange: (value) => {
-                this.currentPresetId = value || null;
-                this.updateSwatches();
-            }
-        });
-        
-        return this.presetDropdown.element;
+    /**
+     * Get the current luma theme from store
+     */
+    getLumaTheme() {
+        const state = store.getState();
+        const themeMaster = state.masters?.['theme-default'];
+        return themeMaster?.themeSettings?.lumaTheme || null;
     }
 
+    /**
+     * Get resolved colors from the current theme
+     * Returns an array of 12 hex colors
+     */
     getColors() {
-        if (this.currentPresetId) {
-            // Use preset colors
-            const preset = getPresetById(this.currentPresetId);
-            return preset?.colors || {};
+        const lumaTheme = this.getLumaTheme();
+        
+        if (lumaTheme?.resolvedColors && Array.isArray(lumaTheme.resolvedColors)) {
+            return lumaTheme.resolvedColors;
         }
         
-        // Use current theme colors
-        const state = store.getState();
-        const masterId = state.editor?.activeMasterId;
-        if (masterId) {
-            const master = state.masters?.[masterId];
-            return master?.themeSettings?.colors || {};
-        }
-        return {};
+        // Fallback: generate grayscale from luma values if no theme
+        return LUMA_SLOTS.map(slot => {
+            const l = slot.luma;
+            const hex = Math.round(l * 2.55).toString(16).padStart(2, '0');
+            return `#${hex}${hex}${hex}`;
+        });
     }
 
     updateSwatches() {
@@ -193,18 +177,24 @@ export class ThemeSwatches {
         
         this.swatchGrid.innerHTML = '';
         const colors = this.getColors();
+        const lumaTheme = this.getLumaTheme();
         
-        THEME_COLOR_ROLES.forEach(role => {
-            const color = colors[role.id];
-            if (!color) return;
-            
-            // Pass slot ID for linked selection
-            const swatch = this.createSwatch(color, role.name, role.id);
+        // Update theme name label
+        if (this.options.showThemeName && this.themeLabel) {
+            const themeName = lumaTheme?.name || 'Default';
+            this.themeLabel.textContent = themeName;
+        }
+        
+        // Create swatches for all 12 luma slots
+        LUMA_SLOTS.forEach((slotDef, index) => {
+            const color = colors[index] || '#808080';
+            const tooltip = `Slot ${slotDef.slot} (L: ${slotDef.luma}%)`;
+            const swatch = this.createSwatch(color, tooltip, index);
             this.swatchGrid.appendChild(swatch);
         });
     }
 
-    createSwatch(color, tooltip, slotId) {
+    createSwatch(color, tooltip, slotIndex) {
         // Use <button> for proper semantics and keyboard accessibility
         const swatch = document.createElement('button');
         swatch.type = 'button';
@@ -215,7 +205,7 @@ export class ThemeSwatches {
         swatch.className = `swatch swatch--xl${isDark ? ' swatch--dark' : ''}`;
         
         // Add selected state if this slot matches current selection
-        if (this.options.selectedSlot === slotId) {
+        if (this.options.selectedSlot === slotIndex) {
             swatch.classList.add('swatch--selected');
         }
         
@@ -225,15 +215,15 @@ export class ThemeSwatches {
         // Accessibility
         swatch.title = `${tooltip}: ${color}`;
         swatch.setAttribute('aria-label', `Select ${tooltip} color: ${color}`);
-        swatch.dataset.slotId = slotId;
+        swatch.dataset.slotIndex = slotIndex;
         
         // Click handler
         swatch.addEventListener('click', () => {
             // If linked mode is enabled and callback exists, use that
             if (this.options.linkedMode && this.options.onLinkedColorSelect) {
-                this.options.onLinkedColorSelect({ slotId, color });
+                this.options.onLinkedColorSelect({ slotIndex, color });
             } else {
-                // Fallback to regular color selection
+                // Regular color selection
                 this.options.onColorSelect(color);
             }
         });

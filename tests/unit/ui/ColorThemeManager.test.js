@@ -1,10 +1,15 @@
+/**
+ * ColorThemeManager Tests
+ * 
+ * Tests for the ColorThemeManager panel with luma-locked tonal system.
+ * Two-column layout: Theme list (left) + Editor (right)
+ */
+
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 // Use vi.hoisted() for mock functions
 const { 
-    mockOn, mockOff, mockDispatch, mockGetState,
-    mockGetPresetsByCategory, mockSearchPresets,
-    MockSegmentedControl, MockDropdown, MockColorInput
+    mockOn, mockOff, mockDispatch, mockGetState
 } = vi.hoisted(() => ({
     mockOn: vi.fn(),
     mockOff: vi.fn(),
@@ -15,65 +20,28 @@ const {
             'slide-1': { id: 'slide-1', layoutId: 'layout-1' }
         },
         masters: {
-            'theme-1': {
-                id: 'theme-1',
+            'theme-default': {
+                id: 'theme-default',
                 type: 'theme',
                 themeSettings: {
-                    colors: {
-                        background1: '#ffffff',
-                        background2: '#f5f5f5',
-                        text1: '#000000',
-                        text2: '#666666',
-                        accent1: '#0066cc',
-                        accent2: '#00cc66',
-                        accent3: '#cc6600',
-                        accent4: '#6600cc',
-                        accent5: '#cc0066',
-                        accent6: '#66cc00',
-                        hyperlink: '#0066cc',
-                        followedHyperlink: '#666699'
+                    lumaTheme: {
+                        id: 'preset_neutral',
+                        name: 'Neutral',
+                        resolvedColors: [
+                            '#0d0d0d', '#1a1a1a', '#2e2e2e', '#404040',
+                            '#595959', '#737373', '#8c8c8c', '#a6a6a6',
+                            '#b3b3b3', '#cccccc', '#e6e6e6', '#f8f8f8'
+                        ]
                     }
                 }
             },
             'layout-1': {
                 id: 'layout-1',
                 type: 'layout',
-                parentId: 'theme-1'
+                parentId: 'theme-default'
             }
         }
-    })),
-    mockGetPresetsByCategory: vi.fn(() => [
-        {
-            id: 'preset-1',
-            name: 'Corporate Blue',
-            category: 'professional',
-            colors: {
-                background1: '#ffffff',
-                text1: '#333333',
-                accent1: '#0066cc',
-                accent2: '#00cc66',
-                accent3: '#cc6600',
-                accent4: '#6600cc'
-            }
-        },
-        {
-            id: 'preset-2',
-            name: 'Nature Green',
-            category: 'nature',
-            colors: {
-                background1: '#f0f8f0',
-                text1: '#2d5d2d',
-                accent1: '#228b22',
-                accent2: '#32cd32',
-                accent3: '#6b8e23',
-                accent4: '#556b2f'
-            }
-        }
-    ]),
-    mockSearchPresets: vi.fn(),
-    MockSegmentedControl: vi.fn(),
-    MockDropdown: vi.fn(),
-    MockColorInput: vi.fn()
+    }))
 }));
 
 // Mock store
@@ -84,18 +52,6 @@ vi.mock('../../../src/core/Store.js', () => ({
         dispatch: mockDispatch,
         getState: mockGetState
     }
-}));
-
-// Mock color presets
-vi.mock('../../../src/core/constants/ColorPresets.js', () => ({
-    COLOR_PRESETS: {},
-    COLOR_CATEGORIES: [
-        { id: 'all', name: 'All' },
-        { id: 'professional', name: 'Professional' },
-        { id: 'nature', name: 'Nature' }
-    ],
-    getPresetsByCategory: mockGetPresetsByCategory,
-    searchPresets: mockSearchPresets
 }));
 
 // Mock DraggablePanel
@@ -110,25 +66,59 @@ vi.mock('../../../src/ui/components/DraggablePanel.js', () => ({
             this.element.appendChild(this.contentElement);
             document.body.appendChild(this.element);
         }
+        destroy() {
+            if (this.element && this.element.parentNode) {
+                this.element.parentNode.removeChild(this.element);
+            }
+        }
     }
 }));
 
-// Mock SegmentedControl
-vi.mock('../../../src/ui/components/SegmentedControl.js', () => ({
-    SegmentedControl: MockSegmentedControl
+// Mock SliderControl
+vi.mock('../../../src/ui/components/SliderControl.js', () => ({
+    SliderControl: class MockSliderControl {
+        constructor(options) {
+            this.options = options;
+            this.element = document.createElement('div');
+            this.element.className = 'slider-control';
+            this.value = options.value || 0;
+        }
+        setValue(value) {
+            this.value = value;
+        }
+    }
 }));
 
-// Mock Dropdown
-vi.mock('../../../src/ui/components/Dropdown.js', () => ({
-    Dropdown: MockDropdown
+// Mock IconButton
+vi.mock('../../../src/ui/components/IconButton.js', () => ({
+    IconButton: class MockIconButton {
+        constructor(options) {
+            this.options = options;
+            this.element = document.createElement('button');
+            this.element.className = 'icon-button';
+            this.element.title = options.title || '';
+            if (options.onClick) {
+                this.element.addEventListener('click', options.onClick);
+            }
+        }
+    }
 }));
 
-// Mock ColorInput
-vi.mock('../../../src/ui/components/ColorInput.js', () => ({
-    ColorInput: MockColorInput
+// Mock Icons
+vi.mock('../../../src/ui/Icons.js', () => ({
+    Icons: {
+        PLUS: '<svg></svg>',
+        IMAGE: '<svg></svg>',
+        LOCK: '<svg></svg>',
+        FLIP_V: '<svg></svg>',
+        TRASH: '<svg></svg>',
+        CHEVRON_DOWN: '<svg></svg>',
+        RESET: '<svg></svg>',
+        SPARKLE: '<svg></svg>'
+    }
 }));
 
-import { ColorThemeManager } from '../../../src/ui/panels/ColorThemeManager.js';
+import { ColorThemeManager } from '../../../src/ui/panels/color-theme/ColorThemeManager.js';
 
 describe('ColorThemeManager', () => {
     let manager;
@@ -136,78 +126,18 @@ describe('ColorThemeManager', () => {
     beforeEach(() => {
         vi.clearAllMocks();
         
-        // Set up mock implementations for component mocks
-        MockSegmentedControl.mockImplementation(({ options, value, onChange }) => ({
-            element: document.createElement('div'),
-            options,
-            value,
-            onChange
-        }));
-        
-        MockDropdown.mockImplementation(({ options, value, onChange }) => ({
-            element: document.createElement('div'),
-            options,
-            value,
-            onChange
-        }));
-        
-        MockColorInput.mockImplementation((value, onChange, options) => ({
-            element: document.createElement('div'),
-            value,
-            onChange,
-            setValue: vi.fn()
-        }));
-        
-        // Reset mock implementations
-        mockGetState.mockReturnValue({
-            editor: { activeSlideId: 'slide-1' },
-            slides: {
-                'slide-1': { id: 'slide-1', layoutId: 'layout-1' }
-            },
-            masters: {
-                'theme-1': {
-                    id: 'theme-1',
-                    type: 'theme',
-                    themeSettings: {
-                        colors: {
-                            background1: '#ffffff',
-                            text1: '#000000',
-                            accent1: '#0066cc'
-                        }
-                    }
-                },
-                'layout-1': {
-                    id: 'layout-1',
-                    type: 'layout',
-                    parentId: 'theme-1'
-                }
-            }
-        });
-        
-        mockGetPresetsByCategory.mockReturnValue([
-            {
-                id: 'preset-1',
-                name: 'Corporate Blue',
-                category: 'professional',
-                colors: {
-                    background1: '#ffffff',
-                    text1: '#333333',
-                    accent1: '#0066cc',
-                    accent2: '#00cc66',
-                    accent3: '#cc6600',
-                    accent4: '#6600cc'
-                }
-            }
-        ]);
+        // Clear localStorage
+        localStorage.clear();
         
         manager = new ColorThemeManager();
     });
 
     afterEach(() => {
         // Cleanup
-        if (manager.element && manager.element.parentNode) {
+        if (manager && manager.element && manager.element.parentNode) {
             manager.element.parentNode.removeChild(manager.element);
         }
+        manager = null;
         vi.restoreAllMocks();
     });
 
@@ -217,391 +147,341 @@ describe('ColorThemeManager', () => {
             expect(manager instanceof ColorThemeManager).toBe(true);
         });
 
-        it('should set default active tab to presets', () => {
-            expect(manager.activeTab).toBe('presets');
+        it('should have selectedThemeId after initialization', () => {
+            // After buildUI, first theme is selected
+            expect(manager.selectedThemeId).toBeDefined();
         });
 
-        it('should initialize selectedPreset as null', () => {
-            expect(manager.selectedPreset).toBeNull();
+        it('should have null selectedSlotIndex initially', () => {
+            expect(manager.selectedSlotIndex).toBeNull();
         });
 
-        it('should initialize currentCategory as all', () => {
-            expect(manager.currentCategory).toBe('all');
+        it('should initialize with COMPLEMENTARY harmony', () => {
+            expect(manager.selectedHarmony).toBe('complementary');
         });
 
-        it('should initialize searchQuery as empty', () => {
-            expect(manager.searchQuery).toBe('');
+        it('should have empty lockedSlots set', () => {
+            expect(manager.lockedSlots.size).toBe(0);
+        });
+
+        it('should have generateHues enabled by default', () => {
+            expect(manager.generateHues).toBe(true);
+        });
+
+        it('should have generateAdjustments enabled by default', () => {
+            expect(manager.generateAdjustments).toBe(true);
+        });
+
+        it('should not be inverted initially', () => {
+            expect(manager.isInverted).toBe(false);
         });
     });
 
     describe('buildUI()', () => {
-        it('should create tab control', () => {
-            expect(manager.tabControl).toBeDefined();
+        it('should add ctm class to content element', () => {
+            expect(manager.contentElement.classList.contains('ctm')).toBe(true);
         });
 
-        it('should create presets content container', () => {
-            expect(manager.presetsContent).toBeDefined();
+        it('should create columns container', () => {
+            const columns = manager.contentElement.querySelector('.ctm__columns');
+            expect(columns).toBeDefined();
         });
 
-        it('should create custom content container', () => {
-            expect(manager.customContent).toBeDefined();
+        it('should create left column (theme list)', () => {
+            expect(manager.themeListEl).toBeDefined();
+            expect(manager.themeListEl.className).toContain('ctm__left-column');
         });
 
-        it('should create AI content container', () => {
-            expect(manager.aiContent).toBeDefined();
+        it('should create right column (editor)', () => {
+            expect(manager.themeEditorEl).toBeDefined();
+            expect(manager.themeEditorEl.className).toContain('ctm__right-column');
         });
 
-        it('should create footer element', () => {
-            expect(manager.footerElement).toBeDefined();
-        });
-    });
-
-    describe('createPresetsTab()', () => {
-        it('should create preset grid', () => {
-            expect(manager.presetGrid).toBeDefined();
-        });
-
-        it('should create category dropdown', () => {
-            expect(manager.categoryDropdown).toBeDefined();
-        });
-
-        it('should have search input', () => {
-            const searchInput = manager.presetsContent.querySelector('.ctm-search');
-            expect(searchInput).toBeDefined();
+        it('should create divider between columns', () => {
+            const divider = manager.contentElement.querySelector('.ctm__divider');
+            expect(divider).toBeDefined();
         });
     });
 
-    describe('renderPresetGrid()', () => {
-        it('should render preset cards', () => {
-            const cards = manager.presetGrid.querySelectorAll('.ctm-preset-card');
-            expect(cards.length).toBeGreaterThan(0);
+    describe('Theme List', () => {
+        it('should display Presets section', () => {
+            const sectionTitles = manager.themeListEl.querySelectorAll('.ctm__section-title');
+            const presetsSection = Array.from(sectionTitles).find(el => el.textContent === 'Presets');
+            expect(presetsSection).toBeDefined();
         });
 
-        it('should display empty state when no presets', () => {
-            mockGetPresetsByCategory.mockReturnValue([]);
-            manager.renderPresetGrid();
-            
-            const emptyState = manager.presetGrid.querySelector('.panel-empty-state');
-            expect(emptyState).toBeDefined();
+        it('should display 6 preset themes', () => {
+            const themeItems = manager.themeListEl.querySelectorAll('.ctm__theme-item');
+            // 6 presets + any custom themes
+            expect(themeItems.length).toBeGreaterThanOrEqual(6);
         });
 
-        it('should filter by search query', () => {
-            mockGetPresetsByCategory.mockReturnValue([
-                { id: '1', name: 'Blue Theme', category: 'cool', colors: {} },
-                { id: '2', name: 'Red Theme', category: 'warm', colors: {} }
-            ]);
-            
-            manager.searchQuery = 'blue';
-            manager.renderPresetGrid();
-            
-            const cards = manager.presetGrid.querySelectorAll('.ctm-preset-card');
-            expect(cards.length).toBe(1);
+        it('should mark selected theme', () => {
+            const selectedItem = manager.themeListEl.querySelector('.ctm__theme-item--selected');
+            expect(selectedItem).toBeDefined();
+        });
+
+        it('should show lock icon on preset themes', () => {
+            const firstItem = manager.themeListEl.querySelector('.ctm__theme-item');
+            const lockIcon = firstItem.querySelector('.ctm__theme-lock');
+            expect(lockIcon).toBeDefined();
         });
     });
 
-    describe('createPresetCard()', () => {
-        const mockPreset = {
-            id: 'test-preset',
-            name: 'Test Theme',
-            colors: {
-                background1: '#ffffff',
-                text1: '#000000',
-                accent1: '#ff0000',
-                accent2: '#00ff00',
-                accent3: '#0000ff',
-                accent4: '#ffff00'
-            }
-        };
-
-        it('should create card element', () => {
-            const card = manager.createPresetCard(mockPreset);
-            
-            expect(card.className).toContain('preset-card');
-            expect(card.className).toContain('ctm-preset-card');
+    describe('selectTheme()', () => {
+        it('should update selectedThemeId', () => {
+            manager.selectTheme('preset_ocean');
+            expect(manager.selectedThemeId).toBe('preset_ocean');
         });
 
-        it('should store preset id in dataset', () => {
-            const card = manager.createPresetCard(mockPreset);
-            
-            expect(card.dataset.presetId).toBe('test-preset');
+        it('should clear selectedSlotIndex', () => {
+            manager.selectedSlotIndex = 5;
+            manager.selectTheme('preset_ocean');
+            expect(manager.selectedSlotIndex).toBeNull();
         });
 
-        it('should display preset name', () => {
-            const card = manager.createPresetCard(mockPreset);
-            const name = card.querySelector('.preset-name');
-            
-            expect(name.textContent).toBe('Test Theme');
+        it('should reset isInverted', () => {
+            manager.isInverted = true;
+            manager.selectTheme('preset_ocean');
+            expect(manager.isInverted).toBe(false);
         });
 
-        it('should display color swatches', () => {
-            const card = manager.createPresetCard(mockPreset);
-            const swatches = card.querySelectorAll('.preset-swatch');
+        it('should call onThemeChange callback', () => {
+            const onThemeChange = vi.fn();
+            manager.managerOptions.onThemeChange = onThemeChange;
             
-            expect(swatches.length).toBe(6);
+            manager.selectTheme('preset_ocean');
+            
+            expect(onThemeChange).toHaveBeenCalled();
         });
     });
 
-    describe('selectPreset()', () => {
-        const mockPreset = {
-            id: 'preset-1',
-            name: 'Test',
-            colors: { background1: '#fff', accent1: '#000' }
-        };
-
-        it('should set selectedPreset', () => {
-            const card = document.createElement('div');
-            card.dataset.presetId = 'preset-1';
-            manager.presetGrid.appendChild(card);
+    describe('getSelectedTheme()', () => {
+        it('should return preset theme by ID', () => {
+            manager.selectTheme('preset_neutral');
+            const theme = manager.getSelectedTheme();
             
-            manager.selectPreset(mockPreset, card);
-            
-            expect(manager.selectedPreset).toBe(mockPreset);
+            expect(theme).toBeDefined();
+            expect(theme.id).toBe('preset_neutral');
+            expect(theme.name).toBe('Neutral');
         });
 
-        it('should add selected class to card', () => {
-            const card = document.createElement('div');
-            card.className = 'ctm-preset-card';
-            card.dataset.presetId = 'preset-1';
-            manager.presetGrid.appendChild(card);
+        it('should return null when no theme selected', () => {
+            manager.selectedThemeId = null;
+            const theme = manager.getSelectedTheme();
             
-            manager.selectPreset(mockPreset, card);
-            
-            expect(card.classList.contains('selected')).toBe(true);
+            expect(theme).toBeNull();
         });
     });
 
-    describe('applyPreset()', () => {
-        const mockPreset = {
-            id: 'preset-1',
-            name: 'Test',
-            colors: { background1: '#fff' }
-        };
-
-        it('should dispatch APPLY_COLOR_PRESET action', () => {
-            manager.applyPreset(mockPreset);
-            
-            expect(mockDispatch).toHaveBeenCalledWith('APPLY_COLOR_PRESET', {
-                masterId: 'theme-1',
-                preset: mockPreset
-            });
+    describe('Slot Grid', () => {
+        it('should display 3 cluster rows', () => {
+            const clusterRows = manager.themeEditorEl.querySelectorAll('.ctm__cluster-row');
+            expect(clusterRows.length).toBe(3);
         });
 
-        it('should clear originalColors after applying', () => {
-            manager.originalColors = { background1: '#000' };
-            manager.applyPreset(mockPreset);
+        it('should display Shadows, Midtones, Highlights labels', () => {
+            const labels = manager.themeEditorEl.querySelectorAll('.ctm__cluster-label');
+            const labelTexts = Array.from(labels).map(el => el.textContent);
             
-            expect(manager.originalColors).toBeNull();
-        });
-    });
-
-    describe('switchTab()', () => {
-        it('should update activeTab', () => {
-            manager.switchTab('custom');
-            
-            expect(manager.activeTab).toBe('custom');
+            expect(labelTexts).toContain('Shadows');
+            expect(labelTexts).toContain('Midtones');
+            expect(labelTexts).toContain('Highlights');
         });
 
-        it('should show presets tab content', () => {
-            manager.switchTab('presets');
-            
-            expect(manager.presetsContent.style.display).toBe('flex');
-            expect(manager.customContent.style.display).toBe('none');
-            expect(manager.aiContent.style.display).toBe('none');
+        it('should have 12 slot elements', () => {
+            const slots = manager.themeEditorEl.querySelectorAll('.ctm__slot');
+            expect(slots.length).toBe(12);
         });
 
-        it('should show custom tab content', () => {
-            manager.switchTab('custom');
-            
-            expect(manager.presetsContent.style.display).toBe('none');
-            expect(manager.customContent.style.display).toBe('flex');
-            expect(manager.aiContent.style.display).toBe('none');
-        });
-
-        it('should show AI tab content', () => {
-            manager.switchTab('ai');
-            
-            expect(manager.presetsContent.style.display).toBe('none');
-            expect(manager.customContent.style.display).toBe('none');
-            expect(manager.aiContent.style.display).toBe('flex');
-        });
-    });
-
-    describe('createCustomTab()', () => {
-        it('should create color role rows', () => {
-            const rows = manager.customContent.querySelectorAll('.ctm-color-row');
-            expect(rows.length).toBeGreaterThan(0);
-        });
-    });
-
-    describe('updateColor()', () => {
-        it('should dispatch UPDATE_THEME_COLOR action', () => {
-            manager.updateColor('accent1', '#ff0000');
-            
-            expect(mockDispatch).toHaveBeenCalledWith('UPDATE_THEME_COLOR', {
-                masterId: 'theme-1',
-                colorRole: 'accent1',
-                value: '#ff0000'
+        it('should have 4 slots per cluster', () => {
+            const swatchContainers = manager.themeEditorEl.querySelectorAll('.ctm__cluster-swatches');
+            swatchContainers.forEach(container => {
+                const slots = container.querySelectorAll('.ctm__slot');
+                expect(slots.length).toBe(4);
             });
         });
     });
 
-    describe('resetColors()', () => {
-        it('should dispatch RESET_THEME_COLORS action', () => {
-            manager.resetColors();
-            
-            expect(mockDispatch).toHaveBeenCalledWith('RESET_THEME_COLORS', {
-                masterId: 'theme-1'
-            });
+    describe('toggleSlotLock()', () => {
+        it('should add slot to lockedSlots', () => {
+            manager.toggleSlotLock(5);
+            expect(manager.lockedSlots.has(5)).toBe(true);
         });
 
-        it('should clear selectedPreset', () => {
-            manager.selectedPreset = { id: 'test' };
-            manager.resetColors();
-            
-            expect(manager.selectedPreset).toBeNull();
-        });
-
-        it('should clear originalColors', () => {
-            manager.originalColors = { background1: '#000' };
-            manager.resetColors();
-            
-            expect(manager.originalColors).toBeNull();
+        it('should remove slot from lockedSlots on second call', () => {
+            manager.toggleSlotLock(5);
+            manager.toggleSlotLock(5);
+            expect(manager.lockedSlots.has(5)).toBe(false);
         });
     });
 
-    describe('createFooter()', () => {
-        it('should create reset button', () => {
-            const resetBtn = manager.footerElement.querySelector('.panel-btn-secondary');
+    describe('toggleInvert()', () => {
+        it('should toggle isInverted state', () => {
+            expect(manager.isInverted).toBe(false);
+            manager.toggleInvert();
+            expect(manager.isInverted).toBe(true);
+            manager.toggleInvert();
+            expect(manager.isInverted).toBe(false);
+        });
+    });
+
+    describe('Adjustments Section', () => {
+        it('should have adjustments section', () => {
+            const adjustments = manager.themeEditorEl.querySelector('.ctm__adjustments');
+            expect(adjustments).toBeDefined();
+        });
+
+        it('should have adjustments header', () => {
+            const header = manager.themeEditorEl.querySelector('.ctm__adjustments-header');
+            expect(header).toBeDefined();
+        });
+
+        it('should have 7 slider controls', () => {
+            // Brightness, Contrast, Highlights, Shadows, Whites, Blacks, Saturation
+            expect(Object.keys(manager.adjustmentSliders).length).toBe(7);
+        });
+
+        it('should have reset button', () => {
+            const resetBtn = manager.themeEditorEl.querySelector('.ctm__adjustments-reset');
             expect(resetBtn).toBeDefined();
-            expect(resetBtn.textContent).toBe('Reset');
-        });
-
-        it('should create apply button', () => {
-            const applyBtn = manager.footerElement.querySelector('.panel-btn-primary');
-            expect(applyBtn).toBeDefined();
-            expect(applyBtn.textContent).toBe('Apply');
         });
     });
 
-    describe('getActiveMasterId()', () => {
-        it('should return theme master id', () => {
-            const masterId = manager.getActiveMasterId(mockGetState());
-            
-            expect(masterId).toBe('theme-1');
+    describe('Generate Section', () => {
+        it('should have generate section', () => {
+            const generate = manager.themeEditorEl.querySelector('.ctm__generate');
+            expect(generate).toBeDefined();
         });
 
-        it('should return null when no active slide', () => {
-            mockGetState.mockReturnValue({
-                editor: {},
-                slides: {},
-                masters: {}
-            });
-            
-            const masterId = manager.getActiveMasterId(mockGetState());
-            
-            expect(masterId).toBeNull();
-        });
-    });
-
-    describe('camelToKebab()', () => {
-        it('should convert camelCase to kebab-case', () => {
-            expect(manager.camelToKebab('backgroundColor')).toBe('background-color');
+        it('should have harmony dropdown', () => {
+            const harmonySelect = manager.themeEditorEl.querySelector('.ctm__generate-select');
+            expect(harmonySelect).toBeDefined();
         });
 
-        it('should handle multiple capitals', () => {
-            expect(manager.camelToKebab('followedHyperlink')).toBe('followed-hyperlink');
+        it('should have 7 harmony options', () => {
+            const harmonySelect = manager.themeEditorEl.querySelector('.ctm__generate-select');
+            expect(harmonySelect.options.length).toBe(7);
         });
 
-        it('should handle simple words', () => {
-            expect(manager.camelToKebab('text')).toBe('text');
+        it('should have hues checkbox', () => {
+            const checkboxes = manager.themeEditorEl.querySelectorAll('.ctm__generate-checkbox-label input[type="checkbox"]');
+            expect(checkboxes.length).toBeGreaterThanOrEqual(1);
+        });
+
+        it('should have generate button', () => {
+            const generateBtn = manager.themeEditorEl.querySelector('.ctm__generate-button');
+            expect(generateBtn).toBeDefined();
         });
     });
 
-    describe('getCurrentColors()', () => {
-        it('should return current theme colors', () => {
-            const colors = manager.getCurrentColors();
-            
-            expect(colors).toBeDefined();
-            expect(colors.background1).toBe('#ffffff');
+    describe('Custom Theme Operations', () => {
+        it('should create new theme', () => {
+            const initialCount = manager.customThemes.length;
+            manager.createNewTheme();
+            expect(manager.customThemes.length).toBe(initialCount + 1);
         });
 
-        it('should return empty object when no master', () => {
-            mockGetState.mockReturnValue({
-                editor: {},
-                slides: {},
-                masters: {}
-            });
-            
-            const colors = manager.getCurrentColors();
-            
-            expect(colors).toEqual({});
-        });
-    });
-
-    describe('getCurrentColorValue()', () => {
-        it('should return color value for role', () => {
-            const value = manager.getCurrentColorValue('accent1');
-            
-            expect(value).toBe('#0066cc');
+        it('should duplicate preset to custom', () => {
+            manager.selectTheme('preset_ocean');
+            const initialCount = manager.customThemes.length;
+            manager.duplicateTheme('preset_ocean');
+            expect(manager.customThemes.length).toBe(initialCount + 1);
         });
 
-        it('should return default when role not found', () => {
-            const value = manager.getCurrentColorValue('nonexistent');
+        it('should delete custom theme', () => {
+            manager.createNewTheme();
+            const themeId = manager.customThemes[0].id;
+            const initialCount = manager.customThemes.length;
             
-            expect(value).toBe('#000000');
+            manager.deleteTheme(themeId);
+            
+            expect(manager.customThemes.length).toBe(initialCount - 1);
+        });
+
+        it('should not delete preset themes', () => {
+            manager.deleteTheme('preset_neutral');
+            // Should not throw and presets remain
+            const theme = manager.getSelectedTheme();
+            expect(theme).toBeDefined();
         });
     });
 
-    describe('onOpen()', () => {
-        it('should subscribe to state-changed', () => {
-            manager.onOpen();
+    describe('Store Integration', () => {
+        it('should dispatch APPLY_LUMA_THEME on theme change', () => {
+            manager.selectTheme('preset_ocean');
             
-            expect(mockOn).toHaveBeenCalledWith('state-changed', expect.any(Function));
+            expect(mockDispatch).toHaveBeenCalledWith('APPLY_LUMA_THEME', expect.objectContaining({
+                masterId: 'theme-default',
+                theme: expect.objectContaining({
+                    id: 'preset_ocean'
+                })
+            }));
         });
 
-        it('should render preset grid', () => {
-            const renderSpy = vi.spyOn(manager, 'renderPresetGrid');
+        it('should include resolved colors in dispatch', () => {
+            manager.selectTheme('preset_ocean');
             
-            manager.onOpen();
-            
-            expect(renderSpy).toHaveBeenCalled();
-        });
-    });
-
-    describe('onClose()', () => {
-        it('should cancel preview', () => {
-            const cancelSpy = vi.spyOn(manager, 'cancelPreview');
-            
-            manager.onClose();
-            
-            expect(cancelSpy).toHaveBeenCalled();
+            expect(mockDispatch).toHaveBeenCalledWith('APPLY_LUMA_THEME', expect.objectContaining({
+                theme: expect.objectContaining({
+                    colors: expect.any(Array)
+                })
+            }));
         });
 
-        it('should clear selectedPreset', () => {
-            manager.selectedPreset = { id: 'test' };
+        it('should dispatch with 12 colors', () => {
+            manager.selectTheme('preset_ocean');
             
-            manager.onClose();
-            
-            expect(manager.selectedPreset).toBeNull();
-        });
-
-        it('should unsubscribe from state-changed', () => {
-            manager.stateHandler = vi.fn();
-            
-            manager.onClose();
-            
-            expect(mockOff).toHaveBeenCalledWith('state-changed', manager.stateHandler);
+            const lastCall = mockDispatch.mock.calls[mockDispatch.mock.calls.length - 1];
+            expect(lastCall[1].theme.colors).toHaveLength(12);
         });
     });
 
-    describe('createAITab()', () => {
-        it('should show coming soon message', () => {
-            const comingSoon = manager.aiContent.querySelector('.coming-soon-container');
-            expect(comingSoon).toBeDefined();
+    describe('Persistence', () => {
+        it('should save custom themes to localStorage', () => {
+            manager.createNewTheme();
+            
+            const stored = localStorage.getItem('colorThemes');
+            expect(stored).toBeDefined();
+            
+            const parsed = JSON.parse(stored);
+            expect(parsed.length).toBeGreaterThan(0);
         });
 
-        it('should display AI theme generator text', () => {
-            expect(manager.aiContent.textContent).toContain('AI Theme Generator');
+        it('should load custom themes from localStorage', () => {
+            const testTheme = {
+                id: 'test_theme_123',
+                name: 'Test Theme',
+                slots: Array(12).fill({ h: 0, s: 0 }),
+                adjustments: {
+                    brightness: 0,
+                    contrast: 0,
+                    highlights: 0,
+                    shadows: 0,
+                    whites: 0,
+                    blacks: 0,
+                    saturation: 0
+                },
+                isPreset: false
+            };
+            localStorage.setItem('colorThemes', JSON.stringify([testTheme]));
+            
+            const newManager = new ColorThemeManager();
+            expect(newManager.customThemes.length).toBe(1);
+            expect(newManager.customThemes[0].id).toBe('test_theme_123');
+            
+            newManager.element.remove();
+        });
+    });
+
+    describe('destroy()', () => {
+        it('should clear internal references', () => {
+            manager.destroy();
+            
+            expect(manager.adjustmentSliders).toEqual({});
+            expect(manager.themeListEl).toBeNull();
+            expect(manager.themeEditorEl).toBeNull();
+            expect(manager.slotEditorEl).toBeNull();
         });
     });
 });

@@ -2,6 +2,77 @@
 import { getDefaultPreset } from '../../constants/ColorPresets.js';
 import { getDefaultFontPreset } from '../../constants/FontPresets.js';
 
+// ========================================
+// LUMA-LOCKED THEME HANDLERS
+// ========================================
+
+/**
+ * Apply a luma-locked color theme.
+ * The theme contains 12 slots with fixed luma values and variable H/S.
+ * @param {Object} draft - Immer draft state
+ * @param {Object} payload - { masterId: string, theme: { id, name, slots, adjustments } }
+ */
+export function handleApplyLumaTheme(draft, payload) {
+    const { masterId, theme } = payload;
+    const themeMaster = draft.masters[masterId];
+    
+    if (themeMaster && themeMaster.type === 'theme' && theme) {
+        if (!themeMaster.themeSettings) {
+            themeMaster.themeSettings = { colors: {}, fonts: {}, textStyles: {} };
+        }
+        
+        // Store the luma-locked theme data
+        themeMaster.themeSettings.lumaTheme = {
+            id: theme.id,
+            name: theme.name,
+            slots: theme.slots,
+            adjustments: theme.adjustments || {},
+            isInverted: theme.isInverted || false
+        };
+        
+        // Also compute and store the resolved colors for easy access
+        if (theme.colors && Array.isArray(theme.colors)) {
+            themeMaster.themeSettings.lumaTheme.resolvedColors = theme.colors;
+        }
+    }
+}
+
+/**
+ * Update a single slot in the luma-locked theme.
+ * @param {Object} draft - Immer draft state
+ * @param {Object} payload - { masterId: string, slotIndex: number, h: number, s: number }
+ */
+export function handleUpdateLumaThemeSlot(draft, payload) {
+    const { masterId, slotIndex, h, s } = payload;
+    const themeMaster = draft.masters[masterId];
+    
+    if (themeMaster?.themeSettings?.lumaTheme?.slots && 
+        slotIndex >= 0 && slotIndex < 12) {
+        themeMaster.themeSettings.lumaTheme.slots[slotIndex] = { h, s };
+    }
+}
+
+/**
+ * Update adjustments in the luma-locked theme.
+ * @param {Object} draft - Immer draft state
+ * @param {Object} payload - { masterId: string, adjustments: Object }
+ */
+export function handleUpdateLumaThemeAdjustments(draft, payload) {
+    const { masterId, adjustments } = payload;
+    const themeMaster = draft.masters[masterId];
+    
+    if (themeMaster?.themeSettings?.lumaTheme && adjustments) {
+        themeMaster.themeSettings.lumaTheme.adjustments = {
+            ...themeMaster.themeSettings.lumaTheme.adjustments,
+            ...adjustments
+        };
+    }
+}
+
+// ========================================
+// LEGACY COLOR HANDLERS
+// ========================================
+
 export function handleUpdateMaster(draft, payload) {
     const masters = draft.masters;
     const masterToUpdate = masters[payload.id];

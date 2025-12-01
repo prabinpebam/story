@@ -331,7 +331,7 @@ export class SolidTab {
         inputRow.appendChild(this.opacityInput.element);
         this.element.appendChild(inputRow);
 
-        // 4. Theme Swatches
+        // 4. Theme Swatches (luma-locked 12 slot system)
         this.themeSwatches = new ThemeSwatches({
             onColorSelect: (color) => {
                 // Non-linked color selection (direct color application)
@@ -352,7 +352,7 @@ export class SolidTab {
                 }
             },
             onLinkedColorSelect: (data) => {
-                // Linked color selection - includes slot ID for theme binding
+                // Linked color selection - includes slot index for theme binding
                 const rgb = ColorUtils.hexToRgb(data.color);
                 if (rgb) {
                     const hsb = ColorUtils.rgbToHsb(rgb.r, rgb.g, rgb.b);
@@ -365,12 +365,12 @@ export class SolidTab {
                         color: data.color,
                         opacity: Math.round(this.state.a),
                         value: data.color,
-                        themeSlot: data.slotId // Link to theme slot
+                        themeSlot: data.slotIndex // Link to luma slot index (0-11)
                     }, false);
                 }
             },
-            showPresetSelector: true,
-            columns: 8
+            showThemeName: true,
+            columns: 6
         });
         this.element.appendChild(this.themeSwatches.element);
 
