@@ -904,7 +904,11 @@ export class ColorThemeManager extends DraggablePanel {
         const theme = this.getSelectedTheme();
         if (!theme || this.selectedSlotIndex === null) return;
         
-        theme.slots[this.selectedSlotIndex].h = hue;
+        // Create a new slots array with the updated slot to avoid mutating frozen objects
+        const currentSlot = theme.slots[this.selectedSlotIndex];
+        theme.slots = theme.slots.map((slot, idx) => 
+            idx === this.selectedSlotIndex ? { ...currentSlot, h: hue } : { ...slot }
+        );
         theme.modifiedAt = Date.now();
         
         this.renderThemeEditor();
@@ -919,7 +923,11 @@ export class ColorThemeManager extends DraggablePanel {
         const theme = this.getSelectedTheme();
         if (!theme || this.selectedSlotIndex === null) return;
         
-        theme.slots[this.selectedSlotIndex].s = saturation;
+        // Create a new slots array with the updated slot to avoid mutating frozen objects
+        const currentSlot = theme.slots[this.selectedSlotIndex];
+        theme.slots = theme.slots.map((slot, idx) => 
+            idx === this.selectedSlotIndex ? { ...currentSlot, s: saturation } : { ...slot }
+        );
         theme.modifiedAt = Date.now();
         
         this.renderThemeEditor();
@@ -941,11 +949,9 @@ export class ColorThemeManager extends DraggablePanel {
             return;
         }
         
-        if (!theme.adjustments) {
-            theme.adjustments = { ...DEFAULT_ADJUSTMENTS };
-        }
-        
-        theme.adjustments[key] = value;
+        // Always create a new adjustments object to avoid mutating frozen objects
+        const currentAdjustments = theme.adjustments || DEFAULT_ADJUSTMENTS;
+        theme.adjustments = { ...currentAdjustments, [key]: value };
         theme.modifiedAt = Date.now();
         
         this.renderThemeEditor();
