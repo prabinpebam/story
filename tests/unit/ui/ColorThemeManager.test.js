@@ -230,19 +230,19 @@ describe('ColorThemeManager', () => {
 
     describe('selectTheme()', () => {
         it('should update selectedThemeId', () => {
-            manager.selectTheme('preset_ocean');
-            expect(manager.selectedThemeId).toBe('preset_ocean');
+            manager.selectTheme('preset_ocean_sunset');
+            expect(manager.selectedThemeId).toBe('preset_ocean_sunset');
         });
 
         it('should clear selectedSlotIndex', () => {
             manager.selectedSlotIndex = 5;
-            manager.selectTheme('preset_ocean');
+            manager.selectTheme('preset_ocean_sunset');
             expect(manager.selectedSlotIndex).toBeNull();
         });
 
         it('should reset isInverted', () => {
             manager.isInverted = true;
-            manager.selectTheme('preset_ocean');
+            manager.selectTheme('preset_ocean_sunset');
             expect(manager.isInverted).toBe(false);
         });
 
@@ -250,7 +250,7 @@ describe('ColorThemeManager', () => {
             const onThemeChange = vi.fn();
             manager.managerOptions.onThemeChange = onThemeChange;
             
-            manager.selectTheme('preset_ocean');
+            manager.selectTheme('preset_ocean_sunset');
             
             expect(onThemeChange).toHaveBeenCalled();
         });
@@ -383,9 +383,9 @@ describe('ColorThemeManager', () => {
         });
 
         it('should duplicate preset to custom', () => {
-            manager.selectTheme('preset_ocean');
+            manager.selectTheme('preset_ocean_sunset');
             const initialCount = manager.customThemes.length;
-            manager.duplicateTheme('preset_ocean');
+            manager.duplicateTheme('preset_ocean_sunset');
             expect(manager.customThemes.length).toBe(initialCount + 1);
         });
 
@@ -409,18 +409,18 @@ describe('ColorThemeManager', () => {
 
     describe('Store Integration', () => {
         it('should dispatch APPLY_LUMA_THEME on theme change', () => {
-            manager.selectTheme('preset_ocean');
+            manager.selectTheme('preset_ocean_sunset');
             
             expect(mockDispatch).toHaveBeenCalledWith('APPLY_LUMA_THEME', expect.objectContaining({
                 masterId: 'theme-default',
                 theme: expect.objectContaining({
-                    id: 'preset_ocean'
+                    id: 'preset_ocean_sunset'
                 })
             }));
         });
 
         it('should include resolved colors in dispatch', () => {
-            manager.selectTheme('preset_ocean');
+            manager.selectTheme('preset_ocean_sunset');
             
             expect(mockDispatch).toHaveBeenCalledWith('APPLY_LUMA_THEME', expect.objectContaining({
                 theme: expect.objectContaining({
@@ -430,7 +430,7 @@ describe('ColorThemeManager', () => {
         });
 
         it('should dispatch with 12 colors', () => {
-            manager.selectTheme('preset_ocean');
+            manager.selectTheme('preset_ocean_sunset');
             
             const lastCall = mockDispatch.mock.calls[mockDispatch.mock.calls.length - 1];
             expect(lastCall[1].theme.colors).toHaveLength(12);
