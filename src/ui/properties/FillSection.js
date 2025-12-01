@@ -729,7 +729,19 @@ export class FillSection {
     }
 
     updateFill(element, index, updates, isTransient = false) {
-        const style = element.style || {};
+        // IMPORTANT: Get fresh element data from store to avoid stale reference issues
+        // The element parameter may be captured in a closure and become stale
+        const state = store.getState();
+        let freshElement;
+        if (this.options.getElement) {
+            freshElement = this.options.getElement(this.selection);
+        } else {
+            freshElement = this.getElement(state, element.id);
+        }
+        
+        // Fallback to provided element if not found (shouldn't happen)
+        const currentElement = freshElement || element;
+        const style = currentElement.style || {};
         let fills = style.fills ? [...style.fills] : [];
         
         // Migration check
@@ -864,7 +876,7 @@ export class FillSection {
             this.options.onUpdate(fills, isTransient);
         } else {
             store.dispatch('UPDATE_ELEMENT', {
-                id: element.id,
+                id: currentElement.id,
                 style: {
                     ...style,
                     fills: fills,
