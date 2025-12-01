@@ -125,9 +125,12 @@ export class SlideList {
         // For masters/layouts, construct effective data
         const masterData = {
             ...slideOrMaster,
+            // Masters use standard slide dimensions
+            width: 1920,
+            height: 1080,
             effectiveBackground: slideOrMaster.background,
-            effectiveElements: slideOrMaster.elements,
-            effectiveOrder: slideOrMaster.elementOrder,
+            effectiveElements: slideOrMaster.elements || {},
+            effectiveOrder: slideOrMaster.elementOrder || [],
             themeSettings: slideOrMaster.themeSettings
         };
         
