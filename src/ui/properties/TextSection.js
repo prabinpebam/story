@@ -2,6 +2,7 @@ import { Section } from '../components/Section.js';
 import { NumberInput } from '../components/NumberInput.js';
 import { IconButton } from '../components/IconButton.js';
 import { Dropdown } from '../components/Dropdown.js';
+import { Button } from '../components/Button.js';
 import { Icons } from '../Icons.js';
 import { store } from '../../core/Store.js';
 import { StyleResolver } from '../../utils/StyleResolver.js';
@@ -56,11 +57,13 @@ export class TextSection {
         overrideText.textContent = 'Style has local overrides';
         this.overrideIndicator.appendChild(overrideText);
         
-        const resetBtn = document.createElement('button');
-        resetBtn.textContent = 'Reset';
-        resetBtn.className = 'reset-btn';
-        resetBtn.onclick = () => this.resetToStyle();
-        this.overrideIndicator.appendChild(resetBtn);
+        const resetBtn = new Button({
+            label: 'Reset',
+            variant: 'text',
+            size: 'xs',
+            onClick: () => this.resetToStyle()
+        });
+        this.overrideIndicator.appendChild(resetBtn.element);
         
         this.overrideIndicator.style.display = 'none';
         this.section.appendChild(this.overrideIndicator);

@@ -1,6 +1,8 @@
 import { store } from '../core/Store.js';
 import { ThumbnailRenderer } from '../core/renderer/ThumbnailRenderer.js';
 import { contextMenuManager, slideThumbnailConfig, masterThumbnailConfig } from './components/ContextMenu/index.js';
+import { Button } from './components/Button.js';
+import { Icons } from './Icons.js';
 
 export class SlideList {
     constructor(containerId) {
@@ -234,14 +236,16 @@ export class SlideList {
         title.innerText = 'SLIDES';
         title.style.marginBottom = '0';
         
-        const addBtn = document.createElement('button');
-        addBtn.innerHTML = '<i class="fa-solid fa-plus"></i>';
-        addBtn.className = 'icon-btn';
-        addBtn.title = 'Add Slide';
-        addBtn.onclick = () => store.dispatch('ADD_SLIDE');
+        const addBtn = new Button({
+            icon: Icons.PLUS,
+            variant: 'text',
+            size: 'xs',
+            title: 'Add Slide',
+            onClick: () => store.dispatch('ADD_SLIDE')
+        });
 
         header.appendChild(title);
-        header.appendChild(addBtn);
+        header.appendChild(addBtn.element);
         this.container.appendChild(header);
 
         // List

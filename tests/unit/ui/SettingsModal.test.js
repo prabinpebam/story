@@ -211,9 +211,9 @@ describe('SettingsModal', () => {
         });
 
         it('should render save button', () => {
-            const saveBtn = modal.body.querySelector('.btn-primary');
+            const saveBtn = modal.body.querySelector('.btn--primary');
             expect(saveBtn).toBeDefined();
-            expect(saveBtn.innerText).toBe('Save AI Settings');
+            expect(saveBtn.querySelector('.btn__label').textContent).toBe('Save AI Settings');
         });
     });
 

@@ -201,7 +201,7 @@ describe('ShareModal', () => {
         
         it('should have invite button', () => {
             expect(modal.inviteButton).toBeDefined();
-            expect(modal.inviteButton.textContent).toBe('Invite');
+            expect(modal.inviteButton.element.querySelector('.btn__label').textContent).toBe('Invite');
         });
         
         it('should disable button when cannot share', async () => {
@@ -215,7 +215,7 @@ describe('ShareModal', () => {
             });
             await modal.show();
             
-            expect(modal.inviteButton.disabled).toBe(true);
+            expect(modal.inviteButton.element.disabled).toBe(true);
         });
     });
     

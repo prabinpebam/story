@@ -4,6 +4,9 @@
  * Email input for inviting collaborators with tag-style display.
  */
 
+import { Button } from '../components/Button.js';
+import { Icons } from '../Icons.js';
+
 export class InviteInput {
     /**
      * Create an InviteInput
@@ -64,12 +67,15 @@ export class InviteInput {
             text.textContent = email;
             tag.appendChild(text);
             
-            const removeBtn = document.createElement('button');
-            removeBtn.className = 'invite-input-tag-remove';
-            removeBtn.innerHTML = '<i class="fa-solid fa-xmark"></i>';
-            removeBtn.setAttribute('aria-label', `Remove ${email}`);
-            removeBtn.addEventListener('click', () => this._removeEmail(index));
-            tag.appendChild(removeBtn);
+            const removeBtn = new Button({
+                icon: Icons.CLOSE,
+                variant: 'text',
+                size: 'xs',
+                ariaLabel: `Remove ${email}`,
+                className: 'invite-input-tag-remove',
+                onClick: () => this._removeEmail(index)
+            });
+            tag.appendChild(removeBtn.element);
             
             this.tagsContainer.appendChild(tag);
         });

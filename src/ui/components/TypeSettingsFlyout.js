@@ -3,6 +3,7 @@ import { IconButton } from './IconButton.js';
 import { NumberInput } from './NumberInput.js';
 import { Dropdown } from './Dropdown.js';
 import { Switch } from './Switch.js';
+import { Button } from './Button.js';
 import { Icons } from '../Icons.js';
 import { textEditManager } from '../../core/text/TextEditManager.js';
 import { store } from '../../core/Store.js';
@@ -448,17 +449,19 @@ export class TypeSettingsFlyout extends Flyout {
         container.appendChild(gradeRow);
 
         // Reset button
-        const resetBtn = document.createElement('button');
-        resetBtn.textContent = 'Reset to Defaults';
-        resetBtn.className = 'reset-btn';
-        resetBtn.style.marginTop = '16px';
-        resetBtn.style.width = '100%';
-        resetBtn.onclick = () => {
-            this.currentProps.variableAxes = {};
-            this.onChange({ variableAxes: {} });
-            this.render();
-        };
-        container.appendChild(resetBtn);
+        const resetBtn = new Button({
+            label: 'Reset to Defaults',
+            variant: 'text',
+            size: 'sm',
+            fullWidth: true,
+            onClick: () => {
+                this.currentProps.variableAxes = {};
+                this.onChange({ variableAxes: {} });
+                this.render();
+            }
+        });
+        resetBtn.element.style.marginTop = '16px';
+        container.appendChild(resetBtn.element);
     }
 
     createSlider({ min, max, value, step = 1, onChange }) {

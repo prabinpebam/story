@@ -564,7 +564,7 @@ describe('CodeFillPanel', () => {
             panel.showEmptyState('no-code-fills');
             
             expect(panel.emptyStateTitle.textContent).toBe('No code fills yet');
-            expect(panel.emptyStateCTA.style.display).toBe('block');
+            expect(panel.emptyStateCTA.element.style.display).toBe('block');
         });
 
         it('should hide empty state', () => {
@@ -610,8 +610,8 @@ describe('CodeFillPanel', () => {
         it('should create save preset button', () => {
             panel = new CodeFillPanel();
             
-            const saveBtn = panel.footerElement.querySelector('.cfp-btn');
-            expect(saveBtn.textContent).toBe('Save as Preset');
+            const saveBtn = panel.footerElement.querySelector('.btn');
+            expect(saveBtn.querySelector('.btn__label').textContent).toBe('Save as Preset');
         });
     });
 });

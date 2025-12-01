@@ -5,6 +5,7 @@
  */
 
 import { Icons } from '../../Icons.js';
+import { Button } from '../../components/Button.js';
 import { FillSwatch } from './FillSwatch.js';
 import { contextMenuManager, fillLayerConfig } from '../../components/ContextMenu/index.js';
 
@@ -58,12 +59,15 @@ export class FillLayerBar {
         });
         
         // Add button
-        const addBtn = document.createElement('button');
-        addBtn.className = 'cfp-fill-add-btn';
-        addBtn.innerHTML = '+';
-        addBtn.title = 'Add code fill';
-        addBtn.onclick = () => this.onAdd();
-        this.element.appendChild(addBtn);
+        const addBtn = new Button({
+            icon: Icons.PLUS,
+            variant: 'text',
+            size: 'xs',
+            title: 'Add code fill',
+            className: 'cfp-fill-add-btn',
+            onClick: () => this.onAdd()
+        });
+        this.element.appendChild(addBtn.element);
     }
 
     handleSwatchClick(index) {

@@ -462,14 +462,17 @@ export class CodeFillPanel extends DraggablePanel {
         
         // Options button for user presets
         if (isUserPreset) {
-            const optionsBtn = document.createElement('button');
-            optionsBtn.className = 'cfp-preset-options';
-            optionsBtn.innerHTML = '⋮';
-            optionsBtn.onclick = (e) => {
-                e.stopPropagation();
-                this.showPresetOptionsMenu(e, preset);
-            };
-            infoRow.appendChild(optionsBtn);
+            const optionsBtn = new Button({
+                label: '⋮',
+                variant: 'text',
+                size: 'xs',
+                className: 'cfp-preset-options',
+                onClick: (e) => {
+                    e.stopPropagation();
+                    this.showPresetOptionsMenu(e, preset);
+                }
+            });
+            infoRow.appendChild(optionsBtn.element);
         }
         
         card.appendChild(infoRow);

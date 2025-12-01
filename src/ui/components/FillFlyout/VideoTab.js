@@ -1,5 +1,6 @@
 import { NumberInput } from '../NumberInput.js';
 import { IconButton } from '../IconButton.js';
+import { Button } from '../Button.js';
 import { Icons } from '../../Icons.js';
 import { mediaAssetManager } from '../../../core/media/MediaAssetManager.js';
 import { DEFAULT_VIDEO_FILL, SUPPORTED_VIDEO_FORMATS } from '../../../core/constants/MediaDefaults.js';
@@ -47,19 +48,17 @@ export class VideoTab {
                 previewArea.appendChild(playOverlay);
                 
                 // Remove button overlay
-                const removeBtn = document.createElement('button');
-                removeBtn.className = 'media-remove-btn';
-                removeBtn.innerHTML = Icons.CLOSE;
-                const svgEl = removeBtn.querySelector('svg');
-                if (svgEl) {
-                    svgEl.style.width = '12px';
-                    svgEl.style.height = '12px';
-                }
-                removeBtn.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    this.clearVideo();
+                const removeBtn = new Button({
+                    icon: Icons.CLOSE,
+                    variant: 'text',
+                    size: 'xs',
+                    className: 'media-remove-btn',
+                    onClick: (e) => {
+                        e.stopPropagation();
+                        this.clearVideo();
+                    }
                 });
-                previewArea.appendChild(removeBtn);
+                previewArea.appendChild(removeBtn.element);
             }
         } else {
             // Empty state: video icon with upload prompt
@@ -136,12 +135,16 @@ export class VideoTab {
         ];
 
         scaleModes.forEach(mode => {
-            const btn = document.createElement('button');
-            btn.textContent = mode.label;
-            btn.title = mode.title;
-            btn.className = 'scale-mode-btn' + (this.fill.scaleMode === mode.value ? ' active' : '');
-            btn.addEventListener('click', () => this.setScaleMode(mode.value));
-            scaleModeRow.appendChild(btn);
+            const btn = new Button({
+                label: mode.label,
+                variant: 'secondary',
+                size: 'xs',
+                title: mode.title,
+                active: this.fill.scaleMode === mode.value,
+                className: 'scale-mode-btn',
+                onClick: () => this.setScaleMode(mode.value)
+            });
+            scaleModeRow.appendChild(btn.element);
         });
 
         this.element.appendChild(scaleModeRow);

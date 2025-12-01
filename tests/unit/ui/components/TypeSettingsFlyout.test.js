@@ -399,9 +399,9 @@ describe('TypeSettingsFlyout', () => {
         });
 
         it('should render reset button', () => {
-            const button = flyout.element.querySelector('.reset-btn');
+            const button = flyout.element.querySelector('.btn--text.btn--sm');
             expect(button).toBeDefined();
-            expect(button.textContent).toBe('Reset to Defaults');
+            expect(button.textContent).toContain('Reset to Defaults');
         });
 
         it('should initialize variable axes if not present', () => {
@@ -411,7 +411,7 @@ describe('TypeSettingsFlyout', () => {
         it('should reset axes on reset button click', () => {
             flyout.currentProps.variableAxes = { wght: 700, wdth: 150 };
             
-            const button = flyout.element.querySelector('.reset-btn');
+            const button = flyout.element.querySelector('.btn--text.btn--sm');
             button.click();
             
             expect(flyout.currentProps.variableAxes).toEqual({});

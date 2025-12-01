@@ -1,6 +1,8 @@
 import { ScrubbableControl } from '../../components/ScrubbableControl.js';
 import { SegmentedControl } from '../../components/SegmentedControl.js';
 import { ColorInput } from '../../components/ColorInput.js';
+import { Button } from '../../components/Button.js';
+import { Icons } from '../../Icons.js';
 import { aiService } from '../../../core/ai/AIService.js';
 import { createControlGroup, createInputRow, updateProperty, updateStyle } from './LegacyUtils.js';
 
@@ -36,13 +38,14 @@ export class LegacyTextSection {
         const contentRow = createInputRow('Content', contentInput);
         
         // AI Button
-        const aiBtn = document.createElement('button');
-        aiBtn.className = 'icon-btn';
-        aiBtn.innerHTML = '<i class="fa-solid fa-wand-magic-sparkles"></i>';
-        aiBtn.title = 'AI Text Refinement';
+        const aiBtnComponent = new Button({
+            icon: '<i class="fa-solid fa-wand-magic-sparkles"></i>',
+            variant: 'text',
+            size: 'xs',
+            title: 'AI Text Refinement'
+        });
+        const aiBtn = aiBtnComponent.element;
         aiBtn.style.marginLeft = '4px';
-        aiBtn.style.width = '24px';
-        aiBtn.style.height = '24px';
         aiBtn.style.position = 'relative'; // For popover positioning
         
         aiBtn.onclick = (e) => {

@@ -6,6 +6,8 @@
 
 import { SharingRoles } from '../../core/storage/sharing/SharingConstants.js';
 import { PermissionDropdown } from './PermissionDropdown.js';
+import { Button } from '../components/Button.js';
+import { Icons } from '../Icons.js';
 
 export class CollaboratorList {
     /**
@@ -149,16 +151,19 @@ export class CollaboratorList {
             
             // Remove button (not for current user or in readonly mode)
             if (!isCurrentUser && !this.readonly) {
-                const removeBtn = document.createElement('button');
-                removeBtn.className = 'collaborator-remove';
-                removeBtn.innerHTML = '<i class="fa-solid fa-xmark"></i>';
-                removeBtn.setAttribute('aria-label', `Remove ${collaborator.email}`);
-                removeBtn.addEventListener('click', () => {
-                    if (this.onRemove) {
-                        this.onRemove(collaborator.id);
+                const removeBtn = new Button({
+                    icon: Icons.CLOSE,
+                    variant: 'text',
+                    size: 'xs',
+                    ariaLabel: `Remove ${collaborator.email}`,
+                    className: 'collaborator-remove',
+                    onClick: () => {
+                        if (this.onRemove) {
+                            this.onRemove(collaborator.id);
+                        }
                     }
                 });
-                actions.appendChild(removeBtn);
+                actions.appendChild(removeBtn.element);
             }
         }
         

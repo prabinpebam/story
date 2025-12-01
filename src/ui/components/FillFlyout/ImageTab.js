@@ -1,5 +1,6 @@
 import { NumberInput } from '../NumberInput.js';
 import { IconButton } from '../IconButton.js';
+import { Button } from '../Button.js';
 import { Icons } from '../../Icons.js';
 import { mediaAssetManager } from '../../../core/media/MediaAssetManager.js';
 import { DEFAULT_IMAGE_FILL, SUPPORTED_IMAGE_FORMATS } from '../../../core/constants/MediaDefaults.js';
@@ -31,19 +32,17 @@ export class ImageTab {
                 previewArea.appendChild(img);
                 
                 // Remove button overlay
-                const removeBtn = document.createElement('button');
-                removeBtn.className = 'media-remove-btn';
-                removeBtn.innerHTML = Icons.CLOSE;
-                const svgEl = removeBtn.querySelector('svg');
-                if (svgEl) {
-                    svgEl.style.width = '12px';
-                    svgEl.style.height = '12px';
-                }
-                removeBtn.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    this.clearImage();
+                const removeBtn = new Button({
+                    icon: Icons.CLOSE,
+                    variant: 'text',
+                    size: 'xs',
+                    className: 'media-remove-btn',
+                    onClick: (e) => {
+                        e.stopPropagation();
+                        this.clearImage();
+                    }
                 });
-                previewArea.appendChild(removeBtn);
+                previewArea.appendChild(removeBtn.element);
             }
         } else {
             // Empty state: image icon with upload prompt
@@ -116,12 +115,16 @@ export class ImageTab {
         ];
 
         scaleModes.forEach(mode => {
-            const btn = document.createElement('button');
-            btn.textContent = mode.label;
-            btn.title = mode.title;
-            btn.className = 'scale-mode-btn' + (this.fill.scaleMode === mode.value ? ' active' : '');
-            btn.addEventListener('click', () => this.setScaleMode(mode.value));
-            scaleModeRow.appendChild(btn);
+            const btn = new Button({
+                label: mode.label,
+                variant: 'secondary',
+                size: 'xs',
+                title: mode.title,
+                active: this.fill.scaleMode === mode.value,
+                className: 'scale-mode-btn',
+                onClick: () => this.setScaleMode(mode.value)
+            });
+            scaleModeRow.appendChild(btn.element);
         });
 
         this.element.appendChild(scaleModeRow);
@@ -184,16 +187,20 @@ export class ImageTab {
 
         positions.forEach(pos => {
             const isActive = this.fill.position?.x === pos.x && this.fill.position?.y === pos.y;
-            const btn = document.createElement('button');
-            btn.className = 'position-grid-btn' + (isActive ? ' active' : '');
+            const btn = new Button({
+                variant: 'secondary',
+                size: 'xs',
+                active: isActive,
+                className: 'position-grid-btn',
+                onClick: () => this.setPosition(pos.x, pos.y)
+            });
             
-            // Dot indicator
+            // Add dot indicator inside button
             const dot = document.createElement('div');
             dot.className = 'dot';
-            btn.appendChild(dot);
+            btn.element.appendChild(dot);
             
-            btn.addEventListener('click', () => this.setPosition(pos.x, pos.y));
-            grid.appendChild(btn);
+            grid.appendChild(btn.element);
         });
 
         section.appendChild(label);

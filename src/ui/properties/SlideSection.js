@@ -3,6 +3,7 @@ import { TextInput } from '../components/TextInput.js';
 import { NumberInput } from '../components/NumberInput.js';
 import { Dropdown } from '../components/Dropdown.js';
 import { Flyout } from '../components/Flyout.js';
+import { Button } from '../components/Button.js';
 import { store } from '../../core/Store.js';
 import { FillSection } from './FillSection.js';
 import { panelManager } from '../PanelManager.js';
@@ -47,9 +48,14 @@ export class SlideSection {
         this.layoutRow.className = 'pi-row layout-picker-row';
         
         // Layout trigger button (shows current layout)
-        this.layoutTrigger = document.createElement('button');
-        this.layoutTrigger.className = 'layout-trigger-btn';
-        this.layoutTrigger.addEventListener('click', () => this.openLayoutFlyout());
+        this.layoutTriggerBtn = new Button({
+            label: 'Select Layout',
+            variant: 'secondary',
+            size: 'sm',
+            className: 'layout-trigger-btn',
+            onClick: () => this.openLayoutFlyout()
+        });
+        this.layoutTrigger = this.layoutTriggerBtn.element;
         this.layoutRow.appendChild(this.layoutTrigger);
         
         // Hidden dropdown for value storage
@@ -120,20 +126,26 @@ export class SlideSection {
         headerRow.appendChild(this.colorBadge);
 
         // Edit button
-        const editBtn = document.createElement('button');
-        editBtn.className = 'theme-detail-edit';
-        editBtn.innerHTML = '<i class="fa-solid fa-pen"></i>';
-        editBtn.title = 'Edit colors';
-        editBtn.addEventListener('click', () => panelManager.toggle('color-theme-manager'));
-        headerRow.appendChild(editBtn);
+        const colorEditBtn = new Button({
+            icon: '<i class="fa-solid fa-pen"></i>',
+            variant: 'text',
+            size: 'xs',
+            title: 'Edit colors',
+            className: 'theme-detail-edit',
+            onClick: () => panelManager.toggle('color-theme-manager')
+        });
+        headerRow.appendChild(colorEditBtn.element);
 
         // Reset button
-        this.colorResetBtn = document.createElement('button');
-        this.colorResetBtn.className = 'theme-detail-reset';
-        this.colorResetBtn.innerHTML = '<i class="fa-solid fa-arrow-rotate-left"></i>';
-        this.colorResetBtn.title = 'Reset to inherited';
-        this.colorResetBtn.addEventListener('click', () => this.resetColors());
-        headerRow.appendChild(this.colorResetBtn);
+        this.colorResetBtn = new Button({
+            icon: '<i class="fa-solid fa-arrow-rotate-left"></i>',
+            variant: 'text',
+            size: 'xs',
+            title: 'Reset to inherited',
+            className: 'theme-detail-reset',
+            onClick: () => this.resetColors()
+        });
+        headerRow.appendChild(this.colorResetBtn.element);
 
         container.appendChild(headerRow);
 
@@ -205,20 +217,26 @@ export class SlideSection {
         actionsRow.appendChild(this.typoBadge);
 
         // Edit button
-        const editBtn = document.createElement('button');
-        editBtn.className = 'theme-detail-edit';
-        editBtn.innerHTML = '<i class="fa-solid fa-pen"></i>';
-        editBtn.title = 'Edit typography';
-        editBtn.addEventListener('click', () => panelManager.toggle('typography-style-manager'));
-        actionsRow.appendChild(editBtn);
+        const typoEditBtn = new Button({
+            icon: '<i class="fa-solid fa-pen"></i>',
+            variant: 'text',
+            size: 'xs',
+            title: 'Edit typography',
+            className: 'theme-detail-edit',
+            onClick: () => panelManager.toggle('typography-style-manager')
+        });
+        actionsRow.appendChild(typoEditBtn.element);
 
         // Reset button
-        this.typoResetBtn = document.createElement('button');
-        this.typoResetBtn.className = 'theme-detail-reset';
-        this.typoResetBtn.innerHTML = '<i class="fa-solid fa-arrow-rotate-left"></i>';
-        this.typoResetBtn.title = 'Reset to inherited';
-        this.typoResetBtn.addEventListener('click', () => this.resetTypography());
-        actionsRow.appendChild(this.typoResetBtn);
+        this.typoResetBtn = new Button({
+            icon: '<i class="fa-solid fa-arrow-rotate-left"></i>',
+            variant: 'text',
+            size: 'xs',
+            title: 'Reset to inherited',
+            className: 'theme-detail-reset',
+            onClick: () => this.resetTypography()
+        });
+        actionsRow.appendChild(this.typoResetBtn.element);
 
         container.appendChild(actionsRow);
 
@@ -258,11 +276,11 @@ export class SlideSection {
         if (isOverride) {
             this.colorBadge.textContent = 'Override';
             this.colorBadge.className = 'theme-detail-badge override';
-            this.colorResetBtn.style.display = 'flex';
+            this.colorResetBtn.element.style.display = 'flex';
         } else {
             this.colorBadge.textContent = 'Inherited';
             this.colorBadge.className = 'theme-detail-badge inherited';
-            this.colorResetBtn.style.display = 'none';
+            this.colorResetBtn.element.style.display = 'none';
         }
 
         // ThemeSwatches component auto-updates from store, no manual update needed
@@ -284,11 +302,11 @@ export class SlideSection {
         if (isOverride) {
             this.typoBadge.textContent = 'Override';
             this.typoBadge.className = 'theme-detail-badge override';
-            this.typoResetBtn.style.display = 'flex';
+            this.typoResetBtn.element.style.display = 'flex';
         } else {
             this.typoBadge.textContent = 'Inherited';
             this.typoBadge.className = 'theme-detail-badge inherited';
-            this.typoResetBtn.style.display = 'none';
+            this.typoResetBtn.element.style.display = 'none';
         }
     }
 
@@ -368,7 +386,7 @@ export class SlideSection {
             
             // Update trigger button text with current layout name
             const currentLayout = layouts.find(l => l.id === currentObject.layoutId);
-            this.layoutTrigger.textContent = currentLayout ? currentLayout.name : 'Select Layout';
+            this.layoutTriggerBtn.setLabel(currentLayout ? currentLayout.name : 'Select Layout');
             
             // Store current state for flyout
             this.currentLayouts = layouts;
@@ -584,7 +602,7 @@ export class SlideSection {
                     this.layoutSelect.setValue(layout.id);
                     this.updateLayout(layout.id);
                     // Update button text
-                    this.layoutTrigger.textContent = layout.name;
+                    this.layoutTriggerBtn.setLabel(layout.name);
                 }
                 // Close flyout
                 if (this.layoutFlyout) {

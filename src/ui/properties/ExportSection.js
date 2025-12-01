@@ -2,6 +2,7 @@ import { Section } from '../components/Section.js';
 import { Dropdown } from '../components/Dropdown.js';
 import { IconButton } from '../components/IconButton.js';
 import { TextInput } from '../components/TextInput.js';
+import { Button } from '../components/Button.js';
 import { Icons } from '../Icons.js';
 import { store } from '../../core/Store.js';
 
@@ -19,14 +20,16 @@ export class ExportSection {
         this.section.appendChild(this.container);
         
         // Export Button
-        this.exportBtn = document.createElement('button');
-        this.exportBtn.className = 'btn-secondary'; // Or action-btn
-        this.exportBtn.style.width = '100%';
-        this.exportBtn.style.marginTop = 'var(--spacing-2)';
-        this.exportBtn.textContent = 'Export';
-        this.exportBtn.onclick = () => this.handleExport();
+        this.exportBtn = new Button({
+            label: 'Export',
+            variant: 'secondary',
+            size: 'md',
+            fullWidth: true,
+            onClick: () => this.handleExport()
+        });
+        this.exportBtn.element.style.marginTop = 'var(--spacing-2)';
         
-        this.section.appendChild(this.exportBtn);
+        this.section.appendChild(this.exportBtn.element);
     }
 
     update(selection) {
@@ -58,7 +61,7 @@ export class ExportSection {
 
             this.presets = element.exportPresets || [{ scale: '1x', format: 'png', suffix: '' }];
             this.renderPresets();
-            this.exportBtn.textContent = `Export ${element.name || 'Layer'}`;
+            this.exportBtn.setLabel(`Export ${element.name || 'Layer'}`);
         }
     }
 
