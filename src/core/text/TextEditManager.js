@@ -453,8 +453,101 @@ export class TextEditManager {
         // Track that user has typed something
         this.hasReceivedInput = true;
         
+        // Check for list auto-detection patterns
+        this._checkListAutoDetection();
+        
         this._markDirty();
         this._scheduleSave();
+    }
+
+    /**
+     * Check for list auto-detection patterns (e.g., "- ", "1. ", "a. ")
+     * and convert to list if pattern matches.
+     * @private
+     */
+    _checkListAutoDetection() {
+        const selection = window.getSelection();
+        if (!selection.rangeCount) return;
+        
+        const range = selection.getRangeAt(0);
+        const node = range.startContainer;
+        
+        // Only work with text nodes
+        if (node.nodeType !== Node.TEXT_NODE) return;
+        
+        // Get the current line content
+        const lineContent = this._getCurrentLineContent(node, range.startOffset);
+        if (!lineContent) return;
+        
+        // Check for bullet list patterns: "- " or "* " at start of line
+        if (/^[-*]\s$/.test(lineContent.text)) {
+            this._convertToList('ul', lineContent);
+            return;
+        }
+        
+        // Check for numbered list pattern: "1. ", "2. ", etc. at start of line
+        if (/^\d+\.\s$/.test(lineContent.text)) {
+            this._convertToList('ol', lineContent);
+            return;
+        }
+        
+        // Check for lettered list pattern: "a. ", "b. ", "A. ", "B. " at start of line
+        if (/^[a-zA-Z]\.\s$/.test(lineContent.text)) {
+            this._convertToList('ol', lineContent);
+            return;
+        }
+    }
+
+    /**
+     * Get content from start of current line to cursor.
+     * @param {Node} node - Text node
+     * @param {number} offset - Cursor offset in node
+     * @returns {Object|null} Line content info
+     * @private
+     */
+    _getCurrentLineContent(node, offset) {
+        const textContent = node.textContent;
+        const beforeCursor = textContent.substring(0, offset);
+        
+        // Find the last newline before cursor (or start of text)
+        const lastNewline = beforeCursor.lastIndexOf('\n');
+        const lineStart = lastNewline === -1 ? 0 : lastNewline + 1;
+        const lineText = beforeCursor.substring(lineStart);
+        
+        return {
+            text: lineText,
+            node: node,
+            lineStart: lineStart,
+            cursorOffset: offset
+        };
+    }
+
+    /**
+     * Convert detected pattern to a list.
+     * @param {'ul'|'ol'} listType - Type of list
+     * @param {Object} lineContent - Line content info from _getCurrentLineContent
+     * @private
+     */
+    _convertToList(listType, lineContent) {
+        const { node, lineStart, cursorOffset } = lineContent;
+        const selection = window.getSelection();
+        
+        // Select the pattern text to delete it
+        const range = document.createRange();
+        range.setStart(node, lineStart);
+        range.setEnd(node, cursorOffset);
+        selection.removeAllRanges();
+        selection.addRange(range);
+        
+        // Delete the pattern
+        document.execCommand('delete', false, null);
+        
+        // Insert list using execCommand
+        if (listType === 'ul') {
+            document.execCommand('insertUnorderedList', false, null);
+        } else {
+            document.execCommand('insertOrderedList', false, null);
+        }
     }
 
     /**

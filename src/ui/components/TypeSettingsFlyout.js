@@ -5,6 +5,7 @@ import { Dropdown } from './Dropdown.js';
 import { Switch } from './Switch.js';
 import { Icons } from '../Icons.js';
 import { textEditManager } from '../../core/text/TextEditManager.js';
+import { store } from '../../core/Store.js';
 
 export class TypeSettingsFlyout extends Flyout {
     constructor(options = {}) {
@@ -528,20 +529,102 @@ export class TypeSettingsFlyout extends Flyout {
 
     /**
      * Apply list style - uses TextEditManager when in edit mode,
-     * otherwise falls back to property update.
+     * otherwise wraps the entire content in list structure.
      * @param {'bullet'|'numbered'|'none'} listType
      */
     applyListStyle(listType) {
         // If in text edit mode, use TextEditManager to insert actual list
         if (textEditManager.isInEditMode()) {
-            // Save selection, apply list, restore focus
-            textEditManager.saveSelection();
             textEditManager.applyListStyle(listType);
-            textEditManager.restoreSelection();
+        } else {
+            // Not in edit mode - wrap the entire text content in list structure
+            this._wrapContentInList(listType);
         }
         
         // Also update the property for styling
         this.updateProp('listStyle', listType);
+    }
+
+    /**
+     * Wrap the entire text content in list structure when not in edit mode.
+     * @param {'bullet'|'numbered'|'none'} listType
+     * @private
+     */
+    _wrapContentInList(listType) {
+        const state = store.getState();
+        const selection = state.editor.selection || [];
+        const activeSlideId = state.editor.activeSlideId;
+        const mode = state.editor.mode;
+        
+        if (selection.length === 0 || !activeSlideId) return;
+        
+        // Get slides based on mode
+        const slides = mode === 'master' ? state.masters : state.slides;
+        const slide = slides?.[activeSlideId];
+        if (!slide) return;
+        
+        for (const elementId of selection) {
+            const element = slide.elements?.[elementId];
+            if (!element || element.type !== 'text') continue;
+            
+            let content = element.content || '';
+            
+            if (listType === 'none') {
+                // Remove list structure - extract text from list items
+                content = this._removeListStructure(content);
+            } else {
+                // Check if already wrapped in a list
+                const isWrapped = /<[uo]l[^>]*>/.test(content);
+                if (!isWrapped) {
+                    // Wrap content in list structure
+                    const listTag = listType === 'bullet' ? 'ul' : 'ol';
+                    // Split by line breaks and wrap each in li
+                    const lines = content.split(/<br\s*\/?>/gi);
+                    const listItems = lines.map(line => {
+                        // Remove empty p tags and clean up
+                        const cleanLine = line.replace(/<\/?p[^>]*>/gi, '').trim();
+                        return cleanLine ? `<li>${cleanLine}</li>` : '';
+                    }).filter(Boolean).join('');
+                    
+                    content = listItems ? `<${listTag}>${listItems}</${listTag}>` : content;
+                } else {
+                    // Change list type if already a list
+                    const newTag = listType === 'bullet' ? 'ul' : 'ol';
+                    content = content
+                        .replace(/<ul([^>]*)>/gi, `<${newTag}$1>`)
+                        .replace(/<\/ul>/gi, `</${newTag}>`)
+                        .replace(/<ol([^>]*)>/gi, `<${newTag}$1>`)
+                        .replace(/<\/ol>/gi, `</${newTag}>`);
+                }
+            }
+            
+            // Update the element content
+            store.dispatch('UPDATE_ELEMENT', {
+                id: elementId,
+                changes: { content }
+            });
+        }
+    }
+
+    /**
+     * Remove list structure from content, keeping the text.
+     * @param {string} content
+     * @returns {string}
+     * @private
+     */
+    _removeListStructure(content) {
+        // Replace list items with line breaks
+        let result = content
+            .replace(/<li[^>]*>/gi, '')
+            .replace(/<\/li>/gi, '<br>')
+            .replace(/<\/?[uo]l[^>]*>/gi, '');
+        
+        // Clean up multiple consecutive br tags
+        result = result.replace(/(<br\s*\/?>\s*)+/gi, '<br>');
+        // Remove trailing br
+        result = result.replace(/<br\s*\/?>$/gi, '');
+        
+        return result;
     }
 
     updateProp(prop, value) {
