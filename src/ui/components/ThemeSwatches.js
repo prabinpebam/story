@@ -3,6 +3,10 @@
  * A reusable component that displays color swatches from the current theme.
  * Automatically updates when theme colors change.
  * 
+ * Supports two modes:
+ * - Regular mode: onColorSelect receives the color hex value
+ * - Linked mode: onLinkedColorSelect receives the slot ID for linked properties
+ * 
  * Follows Design System principles:
  * - Uses .swatch CSS class for all swatches (unified styling)
  * - Uses .swatch-grid for grid layout with column variants
@@ -12,6 +16,7 @@
 import { store } from '../../core/Store.js';
 import { COLOR_PRESETS, getPresetById } from '../../core/constants/ColorPresets.js';
 import { Dropdown } from './Dropdown.js';
+import { linkedPropertyManager, COLOR_SLOTS } from '../../core/services/LinkedPropertyManager.js';
 
 /**
  * Theme color role definitions with display names
@@ -79,8 +84,14 @@ export class ThemeSwatches {
     constructor(options = {}) {
         this.options = {
             onColorSelect: options.onColorSelect || (() => {}),
+            // New: callback for linked color selection (receives slot ID)
+            onLinkedColorSelect: options.onLinkedColorSelect || null,
+            // New: enable linked mode (shows link indicators)
+            linkedMode: options.linkedMode !== false && !!options.onLinkedColorSelect,
             showPresetSelector: options.showPresetSelector !== false,
             columns: options.columns || 8,
+            // New: currently selected slot (for highlighting)
+            selectedSlot: options.selectedSlot || null,
             ...options
         };
         
@@ -99,6 +110,14 @@ export class ThemeSwatches {
         // Listen for state changes to update swatches
         this._stateChangeHandler = () => this.updateSwatches();
         store.on('state-changed', this._stateChangeHandler);
+    }
+
+    /**
+     * Set the currently selected slot (for highlighting)
+     */
+    setSelectedSlot(slotId) {
+        this.options.selectedSlot = slotId;
+        this.updateSwatches();
     }
 
     render() {
@@ -179,12 +198,13 @@ export class ThemeSwatches {
             const color = colors[role.id];
             if (!color) return;
             
-            const swatch = this.createSwatch(color, role.name);
+            // Pass slot ID for linked selection
+            const swatch = this.createSwatch(color, role.name, role.id);
             this.swatchGrid.appendChild(swatch);
         });
     }
 
-    createSwatch(color, tooltip) {
+    createSwatch(color, tooltip, slotId) {
         // Use <button> for proper semantics and keyboard accessibility
         const swatch = document.createElement('button');
         swatch.type = 'button';
@@ -194,16 +214,28 @@ export class ThemeSwatches {
         const isDark = isColorDark(color);
         swatch.className = `swatch swatch--xl${isDark ? ' swatch--dark' : ''}`;
         
+        // Add selected state if this slot matches current selection
+        if (this.options.selectedSlot === slotId) {
+            swatch.classList.add('swatch--selected');
+        }
+        
         // Color itself must be inline (dynamic per swatch)
         swatch.style.backgroundColor = color;
         
         // Accessibility
         swatch.title = `${tooltip}: ${color}`;
         swatch.setAttribute('aria-label', `Select ${tooltip} color: ${color}`);
+        swatch.dataset.slotId = slotId;
         
         // Click handler
         swatch.addEventListener('click', () => {
-            this.options.onColorSelect(color);
+            // If linked mode is enabled and callback exists, use that
+            if (this.options.linkedMode && this.options.onLinkedColorSelect) {
+                this.options.onLinkedColorSelect({ slotId, color });
+            } else {
+                // Fallback to regular color selection
+                this.options.onColorSelect(color);
+            }
         });
         
         return swatch;

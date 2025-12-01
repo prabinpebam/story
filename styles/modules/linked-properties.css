@@ -1,0 +1,475 @@
+/**
+ * linked-properties.css
+ * 
+ * Styles for the linked properties indicator system.
+ * Properties linked to theme slots or typography styles have distinctive visual styling.
+ * 
+ * Uses CSS custom properties from variables.css:
+ * - --color-accent: Primary accent color
+ * - --color-bg-hover: Hover state background
+ * - --spacing-*: Spacing scale
+ * - --radius-*: Border radius scale
+ */
+
+/* ========================================
+   LINKED PROPERTY ROW INDICATOR
+   ======================================== */
+
+/**
+ * Base linked property styling
+ * Applied to property rows that are linked to theme slots or typography styles
+ */
+.property-linked {
+    position: relative;
+    border-left: 2px solid var(--color-accent);
+    padding-left: calc(var(--spacing-2) - 2px);
+    background: var(--color-accent-bg, rgba(59, 130, 246, 0.08));
+    border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+    transition: background-color var(--transition-fast), border-color var(--transition-fast);
+}
+
+.property-linked:hover {
+    background: var(--color-accent-bg-hover, rgba(59, 130, 246, 0.12));
+}
+
+
+/* ========================================
+   LINKED VALUE DISPLAY
+   ======================================== */
+
+/**
+ * Container for linked value with slot name and resolved value
+ */
+.linked-value {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+}
+
+/**
+ * The slot/style name (e.g., "Accent 1", "Title")
+ */
+.linked-value-name {
+    font-weight: var(--font-weight-semibold);
+    color: var(--color-accent);
+    font-size: var(--font-size-sm);
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.linked-value-name .link-icon {
+    font-size: 10px;
+    opacity: 0.7;
+}
+
+/**
+ * The resolved/actual value shown below (e.g., "#18A0FB")
+ */
+.linked-value-resolved {
+    font-size: var(--font-size-xs);
+    color: var(--color-text-muted);
+    font-family: var(--font-mono);
+}
+
+
+/* ========================================
+   LINKED COLOR SWATCH
+   ======================================== */
+
+/**
+ * Color swatch with linked indicator
+ */
+.swatch-linked {
+    position: relative;
+}
+
+.swatch-linked::after {
+    content: '';
+    position: absolute;
+    inset: -2px;
+    border: 2px solid var(--color-accent);
+    border-radius: calc(var(--radius-sm) + 2px);
+    opacity: 0.6;
+    pointer-events: none;
+}
+
+.swatch-linked:hover::after {
+    opacity: 1;
+}
+
+/**
+ * Small slot label in corner of swatch
+ */
+.swatch-linked-label {
+    position: absolute;
+    bottom: 1px;
+    right: 1px;
+    font-size: 7px;
+    font-weight: var(--font-weight-bold);
+    color: var(--color-text-on-accent);
+    background: var(--color-accent);
+    padding: 1px 2px;
+    border-radius: 2px;
+    line-height: 1;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+}
+
+
+/* ========================================
+   OVERRIDE INDICATORS
+   ======================================== */
+
+/**
+ * Property row with override (still linked but modified)
+ */
+.property-overridden {
+    position: relative;
+}
+
+/**
+ * Override dot indicator
+ */
+.property-overridden::before {
+    content: '';
+    position: absolute;
+    left: -12px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--color-warning, #F59E0B);
+}
+
+/**
+ * Override asterisk in value
+ */
+.override-asterisk {
+    color: var(--color-warning, #F59E0B);
+    font-weight: var(--font-weight-bold);
+    margin-left: 2px;
+}
+
+/**
+ * Reset button (appears on overridden properties)
+ */
+.property-reset-btn {
+    opacity: 0;
+    transition: opacity 0.15s ease;
+    padding: 2px 6px;
+    font-size: var(--font-size-xs);
+    color: var(--color-text-secondary);
+    background: var(--color-bg-tertiary);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-xs);
+    cursor: pointer;
+}
+
+.property-overridden:hover .property-reset-btn,
+.property-reset-btn:focus {
+    opacity: 1;
+}
+
+.property-reset-btn:hover {
+    color: var(--color-text-primary);
+    background: var(--color-bg-hover);
+}
+
+
+/* ========================================
+   STYLE SELECTOR WITH LINKED INDICATOR
+   ======================================== */
+
+/**
+ * Typography style selector showing linked state
+ */
+.style-selector-linked {
+    position: relative;
+    border-left: 2px solid var(--color-accent);
+    padding-left: calc(var(--spacing-2) - 2px);
+    background: var(--color-accent-bg, rgba(59, 130, 246, 0.06));
+    border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+}
+
+/**
+ * Style name with optional override indicator
+ */
+.style-selector-name {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.style-selector-name.has-overrides::after {
+    content: '*';
+    color: var(--color-warning, #F59E0B);
+    font-weight: var(--font-weight-bold);
+}
+
+/**
+ * Style details (font, size, etc.)
+ */
+.style-selector-details {
+    font-size: var(--font-size-xs);
+    color: var(--color-text-muted);
+    margin-top: 2px;
+}
+
+
+/* ========================================
+   LINK/UNLINK ACTIONS
+   ======================================== */
+
+/**
+ * Detach button
+ */
+.linked-detach-btn {
+    opacity: 0;
+    transition: opacity 0.15s ease;
+}
+
+.property-linked:hover .linked-detach-btn {
+    opacity: 0.7;
+}
+
+.linked-detach-btn:hover {
+    opacity: 1;
+}
+
+/**
+ * Link button (for re-linking)
+ */
+.property-link-btn {
+    color: var(--color-text-tertiary);
+    transition: color 0.15s ease;
+}
+
+.property-link-btn:hover {
+    color: var(--color-accent);
+}
+
+
+/* ========================================
+   TOOLTIP CONTENT FOR LINKED PROPERTIES
+   ======================================== */
+
+.linked-tooltip {
+    max-width: 240px;
+}
+
+.linked-tooltip-title {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-weight: var(--font-weight-semibold);
+    margin-bottom: 8px;
+}
+
+.linked-tooltip-title .link-icon {
+    color: var(--color-accent);
+}
+
+.linked-tooltip-info {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-bottom: 8px;
+}
+
+.linked-tooltip-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: var(--font-size-sm);
+}
+
+.linked-tooltip-label {
+    color: var(--color-text-secondary);
+}
+
+.linked-tooltip-value {
+    color: var(--color-text-primary);
+    font-family: var(--font-mono);
+}
+
+.linked-tooltip-description {
+    font-size: var(--font-size-sm);
+    color: var(--color-text-muted);
+    line-height: 1.4;
+    margin-bottom: 8px;
+}
+
+.linked-tooltip-action {
+    font-size: var(--font-size-xs);
+    color: var(--color-text-secondary);
+    border-top: 1px solid var(--color-border);
+    padding-top: 8px;
+}
+
+.linked-tooltip-action kbd {
+    background: var(--color-bg-tertiary);
+    padding: 1px 4px;
+    border-radius: 3px;
+    font-family: var(--font-mono);
+    font-size: 10px;
+}
+
+
+/* ========================================
+   THEME SWATCHES IN COLOR PICKER
+   ======================================== */
+
+/**
+ * Theme swatch that creates a linked fill
+ */
+.theme-swatch {
+    position: relative;
+    cursor: pointer;
+    transition: transform 0.1s ease;
+}
+
+.theme-swatch:hover {
+    transform: scale(1.1);
+    z-index: 1;
+}
+
+.theme-swatch:active {
+    transform: scale(0.95);
+}
+
+/**
+ * Selected theme swatch
+ */
+.theme-swatch.selected {
+    box-shadow: 0 0 0 2px var(--color-accent);
+}
+
+/**
+ * Theme swatch label (shown on hover)
+ */
+.theme-swatch-label {
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 4px 8px;
+    background: var(--color-bg-elevated);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    font-size: var(--font-size-xs);
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.15s ease;
+    box-shadow: var(--shadow-md);
+    z-index: 10;
+}
+
+.theme-swatch:hover .theme-swatch-label {
+    opacity: 1;
+}
+
+
+/* ========================================
+   FILL ROW LINKED STATE
+   ======================================== */
+
+/**
+ * Fill row when linked to theme
+ */
+.pi-row.fill-linked {
+    border-left: 2px solid var(--color-accent);
+    margin-left: -2px;
+    padding-left: 2px;
+    background: var(--color-accent-bg, rgba(59, 130, 246, 0.06));
+}
+
+/**
+ * Fill hex input styling (inherits from global input but adjusts for fill row)
+ */
+.fill-hex-input {
+    flex: 1;
+    min-width: 0;
+    border: none;
+    background: transparent;
+    color: var(--color-text-secondary);
+    font-size: var(--font-size-xs);
+    font-family: var(--font-mono);
+    padding: 0 var(--spacing-0-5);
+}
+
+.fill-hex-input--linked {
+    color: var(--color-accent);
+    font-weight: var(--font-weight-medium);
+    font-family: var(--font-ui);
+    cursor: default;
+}
+
+/**
+ * Fill row linked indicator icon
+ */
+.fill-linked-icon {
+    color: var(--color-accent);
+    font-size: 10px;
+    margin-left: var(--spacing-1);
+    margin-right: var(--spacing-1);
+    display: flex;
+    align-items: center;
+}
+
+/**
+ * Selected theme swatch (when slot matches currently linked property)
+ */
+.swatch--selected {
+    box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 1), 0 0 0 var(--border-width-2) var(--color-accent);
+}
+
+.swatch--dark.swatch--selected {
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 1), 0 0 0 var(--border-width-2) var(--color-accent);
+}
+
+
+/* ========================================
+   CONFIRMATION DIALOG
+   ======================================== */
+
+.detach-confirm-dialog {
+    text-align: center;
+    padding: var(--spacing-4);
+}
+
+.detach-confirm-icon {
+    font-size: 32px;
+    color: var(--color-warning, #F59E0B);
+    margin-bottom: var(--spacing-3);
+}
+
+.detach-confirm-title {
+    font-size: var(--font-size-lg);
+    font-weight: var(--font-weight-semibold);
+    margin-bottom: var(--spacing-2);
+}
+
+.detach-confirm-message {
+    font-size: var(--font-size-md);
+    color: var(--color-text-secondary);
+    margin-bottom: var(--spacing-3);
+    line-height: 1.5;
+}
+
+.detach-confirm-value {
+    font-family: var(--font-mono);
+    background: var(--color-bg-tertiary);
+    padding: var(--spacing-1) var(--spacing-2);
+    border-radius: var(--radius-sm);
+    margin-bottom: var(--spacing-4);
+    display: inline-block;
+}
+
+.detach-confirm-actions {
+    display: flex;
+    gap: var(--spacing-2);
+    justify-content: center;
+}
+

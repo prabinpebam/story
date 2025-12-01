@@ -10,6 +10,7 @@ import { EmptyState } from '../components/EmptyState.js';
 
 import { CodeRunner } from '../../core/effects/CodeRunner.js';
 import { propertyMemory } from '../../core/services/PropertyMemoryManager.js';
+import { linkedPropertyManager, COLOR_SLOTS } from '../../core/services/LinkedPropertyManager.js';
 
 // Module-level cache for last used values (legacy, now managed by PropertyMemoryManager)
 const LastUsed = {
@@ -197,10 +198,13 @@ export class FillSection {
     createFillRow(element, fill, index, allFills) {
         const row = document.createElement('div');
         row.className = 'pi-row';
-        row.style.display = 'flex';
-        row.style.alignItems = 'center';
-        row.style.gap = '2px';
-        row.style.height = '28px';
+        
+        // Check if fill is linked to a theme slot
+        const isLinked = fill.themeSlot && COLOR_SLOTS[fill.themeSlot];
+        if (isLinked) {
+            row.classList.add('fill-linked');
+        }
+        
         row.dataset.index = index;
 
         // Drag Handle
@@ -397,20 +401,20 @@ export class FillSection {
 
         combinedInput.appendChild(swatch);
 
-        // 2. Hex Input (Editable)
+        // 2. Hex Input (Editable) or Linked Value Display
         const hexInput = document.createElement('input');
         hexInput.type = 'text';
-        hexInput.style.flex = '1';
-        hexInput.style.minWidth = '0';
-        hexInput.style.border = 'none';
-        hexInput.style.background = 'transparent';
-        hexInput.style.color = 'var(--color-text-secondary)';
-        hexInput.style.fontSize = '11px';
-        hexInput.style.fontFamily = 'monospace';
-        hexInput.style.padding = '0 2px';
+        hexInput.className = 'fill-hex-input';
         hexInput.spellcheck = false;
         
-        if (fill.type === 'solid' || !fill.type) {
+        if (isLinked && (fill.type === 'solid' || !fill.type)) {
+            // Show theme slot name for linked fills
+            const slotInfo = COLOR_SLOTS[fill.themeSlot];
+            hexInput.value = slotInfo?.label || fill.themeSlot;
+            hexInput.disabled = true;
+            hexInput.classList.add('fill-hex-input--linked');
+            hexInput.title = `Linked to theme: ${slotInfo?.label || fill.themeSlot}`;
+        } else if (fill.type === 'solid' || !fill.type) {
             hexInput.value = this.rgbToHex(fill.color || fill.value || '#000000').toUpperCase();
             hexInput.onchange = (e) => {
                 let val = e.target.value.trim();
@@ -436,6 +440,15 @@ export class FillSection {
         }
 
         combinedInput.appendChild(hexInput);
+        
+        // Add linked indicator icon if linked
+        if (isLinked) {
+            const linkIcon = document.createElement('span');
+            linkIcon.className = 'fill-linked-icon';
+            linkIcon.innerHTML = Icons.LINK || '🔗';
+            linkIcon.title = 'Linked to theme color';
+            combinedInput.appendChild(linkIcon);
+        }
 
         // Separator
         const separator = document.createElement('div');
@@ -794,6 +807,17 @@ export class FillSection {
                 if (fill.type === 'solid') {
                     fill.value = fill.color;
                     LastUsed.solid = updates.color;
+                }
+            }
+
+            // Handle themeSlot linking
+            if (updates.themeSlot !== undefined) {
+                if (updates.themeSlot === null) {
+                    // Unlink from theme
+                    delete fill.themeSlot;
+                } else {
+                    // Link to theme slot
+                    fill.themeSlot = updates.themeSlot;
                 }
             }
 

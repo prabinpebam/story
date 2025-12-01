@@ -334,6 +334,7 @@ export class SolidTab {
         // 4. Theme Swatches
         this.themeSwatches = new ThemeSwatches({
             onColorSelect: (color) => {
+                // Non-linked color selection (direct color application)
                 const rgb = ColorUtils.hexToRgb(color);
                 if (rgb) {
                     const hsb = ColorUtils.rgbToHsb(rgb.r, rgb.g, rgb.b);
@@ -341,7 +342,31 @@ export class SolidTab {
                     this.state.s = hsb.s;
                     this.state.b = hsb.b;
                     this.updateUI();
-                    this.emitChange();
+                    // Emit without themeSlot to unlink if was linked
+                    this.onChange({
+                        color: color,
+                        opacity: Math.round(this.state.a),
+                        value: color,
+                        themeSlot: null // Clear any linked slot
+                    }, false);
+                }
+            },
+            onLinkedColorSelect: (data) => {
+                // Linked color selection - includes slot ID for theme binding
+                const rgb = ColorUtils.hexToRgb(data.color);
+                if (rgb) {
+                    const hsb = ColorUtils.rgbToHsb(rgb.r, rgb.g, rgb.b);
+                    this.state.h = hsb.h;
+                    this.state.s = hsb.s;
+                    this.state.b = hsb.b;
+                    this.updateUI();
+                    // Emit with themeSlot for linked property tracking
+                    this.onChange({
+                        color: data.color,
+                        opacity: Math.round(this.state.a),
+                        value: data.color,
+                        themeSlot: data.slotId // Link to theme slot
+                    }, false);
                 }
             },
             showPresetSelector: true,
