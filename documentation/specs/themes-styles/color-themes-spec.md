@@ -188,6 +188,23 @@ Inherits from `DraggablePanel` header styling.
 - **[+] New Theme** - Creates new custom theme (duplicate of selected)
 - **[⋮] More** - Context menu with: Import, Export
 
+**Theme Actions (Right-click Context Menu on Custom Themes):**
+| Action | Shortcut | Behavior |
+|--------|----------|----------|
+| Rename | `F2` | Inline edit theme name |
+| Duplicate | `Ctrl/Cmd + D` | Create copy with " Copy" suffix |
+| Save | `Ctrl/Cmd + S` | Save current changes (clears dirty state) |
+| Delete | `Delete` | Confirm dialog, then remove theme |
+| Export | — | Download as .json file |
+
+**Theme Actions (Right-click Context Menu on Preset Themes):**
+| Action | Behavior |
+|--------|----------|
+| Duplicate to Custom | Create editable copy in Custom section |
+| Export | Download as .json file |
+
+*Note: Presets cannot be renamed, saved, or deleted.*
+
 **Header Tokens:**
 | Element | Token |
 |---------|-------|
@@ -421,9 +438,27 @@ After:  15%  20%  28%  35%  45%  55%  65%  75%  80%  90% 100% 100%  ← Clipped!
 | Size (grid) | 40px × 40px | `--swatch-size-2xl` |
 | Size (selected detail) | 48px × 48px | Custom |
 | Border radius | 4px | `--radius-sm` |
-| Border | 1px | `--color-border` |
+| Border (normal) | 1px | `--color-border` |
+| Border (clipped) | 2px solid | `--color-danger` |
 | Slot number | Centered, `--font-size-xs` |
 | Click action | Select slot for editing |
+
+**Clipped Swatch Indicator:**
+When an adjustment causes a slot's luma to clip (hit 0% or 100%):
+
+```
+┌──────┐          ┌──────┐
+│      │  Normal  │██████│  Clipped (L: 100%)
+│  5   │          │  12  │  ← Red border
+└──────┘          └──────┘
+                  2px --color-danger border
+```
+
+| State | Border | Tooltip |
+|-------|--------|--------|
+| Normal | 1px `--color-border` | — |
+| Clipped (L ≤ 0%) | 2px `--color-danger` | "Clipped at black (0%)" |
+| Clipped (L ≥ 100%) | 2px `--color-danger` | "Clipped at white (100%)" |
 
 **Input Fields (H and S):**
 Uses existing `NumberInput` component with scrubbable labels.
@@ -508,7 +543,70 @@ Uses existing `Dropdown` component.
 
 ---
 
-### 4.4 Theme Adjustments Section
+### 4.4 Create Theme from Image
+
+Users can drag and drop an image to extract colors and create a NEW theme.
+
+**Drop Zone:**
+```
+┌────────────────────────────────────────────────────────────────┐
+│  Create from Image                                             │
+├────────────────────────────────────────────────────────────────┤
+│                                                                │
+│  ┌────────────────────────────────────────────────────────┐    │
+│  │                                                        │    │
+│  │     ┌─────┐                                            │    │
+│  │     │ 🖼️  │   Drop image here                          │    │
+│  │     └─────┘   or click to browse                       │    │
+│  │                                                        │    │
+│  │     Supports: JPG, PNG, WebP                           │    │
+│  │                                                        │    │
+│  └────────────────────────────────────────────────────────┘    │
+│                                                                │
+└────────────────────────────────────────────────────────────────┘
+```
+
+**Behavior:**
+- Dropping/selecting an image **always creates a NEW theme** (never updates existing)
+- Algorithm extracts dominant colors and maps them to the 12 luma slots
+- New theme is named: "From Image" or "From {filename}"
+- Theme is added to Custom section and automatically selected
+
+**Drop Zone States:**
+| State | Visual |
+|-------|--------|
+| Default | Dashed border `--color-border`, icon + text |
+| Drag over | Solid border `--color-accent`, background `--color-accent-subtle` |
+| Processing | Spinner, "Extracting colors..." |
+| Error | Red border, error message |
+
+**Drop Zone Tokens:**
+| Element | Token |
+|---------|-------|
+| Border | 2px dashed `--color-border` |
+| Border (hover/dragover) | 2px solid `--color-accent` |
+| Background | `--color-bg-input` |
+| Background (dragover) | `--color-accent-subtle` |
+| Border radius | `--radius-md` |
+| Padding | `--spacing-4` |
+| Icon size | `--icon-size-xl` |
+| Icon color | `--color-text-tertiary` |
+| Text font | `--font-size-sm` |
+| Text color | `--color-text-secondary` |
+
+**Color Extraction Algorithm:**
+1. Resize image to max 200×200 for performance
+2. Extract dominant colors using k-means clustering (k=12)
+3. For each extracted color, calculate its luma
+4. Map extracted colors to slots by luma proximity:
+   - Each slot's fixed luma finds the closest extracted color
+   - Adjust extracted color's luma to match slot's required luma
+   - Preserve the extracted color's hue and saturation
+5. Result: 12 colors with correct luma relationships but image-derived H/S
+
+---
+
+### 4.5 Theme Adjustments Section
 
 Photo-editing style controls that affect all colors proportionally. These work like image adjustment tools - they transform the palette while **preserving the luma delta relationships** between slots.
 
@@ -662,6 +760,8 @@ Track dirty state for custom themes.
 | `Enter` | Select highlighted theme |
 | `Ctrl/Cmd + N` | New theme |
 | `Ctrl/Cmd + D` | Duplicate selected theme |
+| `Ctrl/Cmd + S` | Save current theme |
+| `F2` | Rename selected custom theme |
 | `Delete` | Delete selected custom theme |
 | `Ctrl/Cmd + Z` | Undo last change |
 | `Ctrl/Cmd + Shift + Z` | Redo |
@@ -778,6 +878,7 @@ Following BEM methodology with `ctm-` (Color Theme Manager) prefix:
 /* Color Slot */
 .ctm__slot { }
 .ctm__slot-swatch { }
+.ctm__slot-swatch--clipped { }  /* Red border for clipped luma */
 .ctm__slot-label { }
 .ctm__slot-inputs { }
 .ctm__slot-luma { }
@@ -789,6 +890,15 @@ Following BEM methodology with `ctm-` (Color Theme Manager) prefix:
 .ctm__generate-button { }
 .ctm__generate-note { }
 
+/* Image Drop Zone */
+.ctm__dropzone { }
+.ctm__dropzone--dragover { }
+.ctm__dropzone--processing { }
+.ctm__dropzone--error { }
+.ctm__dropzone-icon { }
+.ctm__dropzone-text { }
+.ctm__dropzone-formats { }
+
 /* Adjustments */
 .ctm__adjustments { }
 .ctm__slider-row { }
@@ -796,6 +906,14 @@ Following BEM methodology with `ctm-` (Color Theme Manager) prefix:
 .ctm__slider-track { }
 .ctm__slider-thumb { }
 .ctm__slider-value { }
+
+/* Footer Actions */
+.ctm__footer { }
+.ctm__footer-left { }
+.ctm__footer-right { }
+.ctm__footer-save-button { }
+.ctm__footer-action-button { }
+.ctm__footer-delete-button { }
 ```
 
 ---
@@ -815,9 +933,13 @@ All colors defined via CSS variables automatically support both modes as defined
 | Scenario | Handling |
 |----------|----------|
 | Invalid H/S value | Clamp to valid range, show brief shake animation |
+| Clipped luma values | Red border on affected swatches, tooltip explains |
 | Delete last custom theme | Disable delete button when only 1 remains |
 | Network error (future cloud sync) | Toast notification with retry |
 | Generate with all locked | Show toast "All slots are locked" |
+| Invalid image format | Toast: "Unsupported format. Use JPG, PNG, or WebP" |
+| Image too small | Toast: "Image too small to extract colors" |
+| Delete confirmation | Modal: "Delete {name}? This cannot be undone." |
 
 ---
 
