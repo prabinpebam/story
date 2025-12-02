@@ -7,6 +7,8 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import {
     LUMA_SLOTS,
+    COLUMN_DEFINITIONS,
+    COLUMN_HEADER_LUMA,
     DEFAULT_ADJUSTMENTS,
     hslToHex,
     hexToHsl,
@@ -28,7 +30,13 @@ import {
     createTheme,
     cloneTheme,
     generateThemeId,
-    generateThemeCSSVariables
+    generateThemeCSSVariables,
+    getColumnSlots,
+    getSlotColumn,
+    getSlotRow,
+    updateColumnHue,
+    getColumnHueSaturation,
+    getColumnHeaderColor
 } from '../../src/ui/panels/color-theme/ColorThemeUtils.js';
 
 describe('ColorThemeUtils', () => {
@@ -499,6 +507,180 @@ describe('ColorThemeUtils', () => {
                     expect(css).toContain(color);
                 });
             });
+        });
+    });
+
+    // =========================================
+    // 4-Column System Tests
+    // =========================================
+    
+    describe('COLUMN_DEFINITIONS', () => {
+        it('should have exactly 4 columns', () => {
+            expect(COLUMN_DEFINITIONS).toHaveLength(4);
+        });
+
+        it('should define correct roles for each column', () => {
+            expect(COLUMN_DEFINITIONS[0].role).toBe('secondary1');
+            expect(COLUMN_DEFINITIONS[1].role).toBe('primary');
+            expect(COLUMN_DEFINITIONS[2].role).toBe('accent');
+            expect(COLUMN_DEFINITIONS[3].role).toBe('secondary2');
+        });
+
+        it('should have 3 slots per column (one from each row)', () => {
+            COLUMN_DEFINITIONS.forEach(col => {
+                expect(col.slots).toHaveLength(3);
+            });
+        });
+
+        it('should map slots to correct column positions', () => {
+            // Column 1: slots 0, 4, 8 (Secondary 1)
+            expect(COLUMN_DEFINITIONS[0].slots).toEqual([0, 4, 8]);
+            // Column 2: slots 1, 5, 9 (Primary)
+            expect(COLUMN_DEFINITIONS[1].slots).toEqual([1, 5, 9]);
+            // Column 3: slots 2, 6, 10 (Accent)
+            expect(COLUMN_DEFINITIONS[2].slots).toEqual([2, 6, 10]);
+            // Column 4: slots 3, 7, 11 (Secondary 2)
+            expect(COLUMN_DEFINITIONS[3].slots).toEqual([3, 7, 11]);
+        });
+    });
+
+    describe('COLUMN_HEADER_LUMA', () => {
+        it('should be 50 for neutral midtone preview', () => {
+            expect(COLUMN_HEADER_LUMA).toBe(50);
+        });
+    });
+
+    describe('LUMA_SLOTS column/role metadata', () => {
+        it('should have column and role defined for each slot', () => {
+            LUMA_SLOTS.forEach(slot => {
+                expect(slot.column).toBeDefined();
+                expect(slot.role).toBeDefined();
+            });
+        });
+
+        it('should have correct column assignments', () => {
+            // Row 1 (Shadows): slots 0-3 -> columns 1-4
+            expect(LUMA_SLOTS[0].column).toBe(1);
+            expect(LUMA_SLOTS[1].column).toBe(2);
+            expect(LUMA_SLOTS[2].column).toBe(3);
+            expect(LUMA_SLOTS[3].column).toBe(4);
+            
+            // Row 2 (Midtones): slots 4-7 -> columns 1-4
+            expect(LUMA_SLOTS[4].column).toBe(1);
+            expect(LUMA_SLOTS[5].column).toBe(2);
+            expect(LUMA_SLOTS[6].column).toBe(3);
+            expect(LUMA_SLOTS[7].column).toBe(4);
+            
+            // Row 3 (Highlights): slots 8-11 -> columns 1-4
+            expect(LUMA_SLOTS[8].column).toBe(1);
+            expect(LUMA_SLOTS[9].column).toBe(2);
+            expect(LUMA_SLOTS[10].column).toBe(3);
+            expect(LUMA_SLOTS[11].column).toBe(4);
+        });
+    });
+
+    describe('getColumnSlots', () => {
+        it('should return correct slot indices for each column', () => {
+            expect(getColumnSlots(0)).toEqual([0, 4, 8]);
+            expect(getColumnSlots(1)).toEqual([1, 5, 9]);
+            expect(getColumnSlots(2)).toEqual([2, 6, 10]);
+            expect(getColumnSlots(3)).toEqual([3, 7, 11]);
+        });
+
+        it('should return empty array for invalid column', () => {
+            expect(getColumnSlots(4)).toEqual([]);
+            expect(getColumnSlots(-1)).toEqual([]);
+        });
+    });
+
+    describe('getSlotColumn', () => {
+        it('should return correct column index for each slot', () => {
+            // Row 1
+            expect(getSlotColumn(0)).toBe(0);
+            expect(getSlotColumn(1)).toBe(1);
+            expect(getSlotColumn(2)).toBe(2);
+            expect(getSlotColumn(3)).toBe(3);
+            // Row 2
+            expect(getSlotColumn(4)).toBe(0);
+            expect(getSlotColumn(5)).toBe(1);
+            expect(getSlotColumn(6)).toBe(2);
+            expect(getSlotColumn(7)).toBe(3);
+            // Row 3
+            expect(getSlotColumn(8)).toBe(0);
+            expect(getSlotColumn(9)).toBe(1);
+            expect(getSlotColumn(10)).toBe(2);
+            expect(getSlotColumn(11)).toBe(3);
+        });
+    });
+
+    describe('getSlotRow', () => {
+        it('should return correct row index for each slot', () => {
+            // Row 0 (Shadows)
+            expect(getSlotRow(0)).toBe(0);
+            expect(getSlotRow(1)).toBe(0);
+            expect(getSlotRow(2)).toBe(0);
+            expect(getSlotRow(3)).toBe(0);
+            // Row 1 (Midtones)
+            expect(getSlotRow(4)).toBe(1);
+            expect(getSlotRow(5)).toBe(1);
+            expect(getSlotRow(6)).toBe(1);
+            expect(getSlotRow(7)).toBe(1);
+            // Row 2 (Highlights)
+            expect(getSlotRow(8)).toBe(2);
+            expect(getSlotRow(9)).toBe(2);
+            expect(getSlotRow(10)).toBe(2);
+            expect(getSlotRow(11)).toBe(2);
+        });
+    });
+
+    describe('updateColumnHue', () => {
+        it('should update all slots in a column with new hue and saturation', () => {
+            const slots = Array(12).fill(null).map(() => ({ h: 0, s: 0 }));
+            const updated = updateColumnHue(slots, 0, 180, 75);
+            
+            // Column 0 slots (0, 4, 8) should have new values
+            expect(updated[0]).toEqual({ h: 180, s: 75 });
+            expect(updated[4]).toEqual({ h: 180, s: 75 });
+            expect(updated[8]).toEqual({ h: 180, s: 75 });
+            
+            // Other slots should remain unchanged
+            expect(updated[1]).toEqual({ h: 0, s: 0 });
+            expect(updated[5]).toEqual({ h: 0, s: 0 });
+        });
+
+        it('should not mutate original slots array', () => {
+            const slots = Array(12).fill(null).map(() => ({ h: 0, s: 0 }));
+            const updated = updateColumnHue(slots, 1, 210, 60);
+            
+            expect(slots[1]).toEqual({ h: 0, s: 0 });
+            expect(updated[1]).toEqual({ h: 210, s: 60 });
+        });
+    });
+
+    describe('getColumnHueSaturation', () => {
+        it('should return hue and saturation from first slot in column', () => {
+            const slots = Array(12).fill(null).map((_, i) => ({ h: i * 30, s: i * 5 }));
+            
+            // Column 0: first slot is index 0
+            expect(getColumnHueSaturation(slots, 0)).toEqual({ h: 0, s: 0 });
+            // Column 1: first slot is index 1
+            expect(getColumnHueSaturation(slots, 1)).toEqual({ h: 30, s: 5 });
+            // Column 2: first slot is index 2
+            expect(getColumnHueSaturation(slots, 2)).toEqual({ h: 60, s: 10 });
+        });
+    });
+
+    describe('getColumnHeaderColor', () => {
+        it('should return hex color at 60% luma', () => {
+            const slots = Array(12).fill(null).map(() => ({ h: 210, s: 50 }));
+            const headerColor = getColumnHeaderColor(slots, 0);
+            
+            // Should be a valid hex color
+            expect(headerColor).toMatch(/^#[0-9a-f]{6}$/i);
+            
+            // Convert back to HSL and check luma is 50
+            const hsl = hexToHsl(headerColor);
+            expect(hsl.l).toBe(50);
         });
     });
 });

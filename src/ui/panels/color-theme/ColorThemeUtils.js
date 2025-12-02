@@ -9,22 +9,47 @@
 /**
  * Luma-locked slot definitions.
  * Each slot has a fixed luma value (L in HSL).
- * Organized into 3 clusters: Shadows (1-4), Midtones (5-8), Highlights (9-12)
+ * Organized into 3 clusters (rows): Shadows (1-4), Midtones (5-8), Highlights (9-12)
+ * Organized into 4 columns (roles): Secondary 1, Primary, Accent, Secondary 2
+ * 
+ * Grid layout:
+ *                Col 1       Col 2      Col 3       Col 4
+ *              Secondary1   Primary    Accent    Secondary2
+ * Row 1 (Shadows):   1         2          3          4      (L: 5-25%)
+ * Row 2 (Midtones):  5         6          7          8      (L: 35-65%)
+ * Row 3 (Highlights):9        10         11         12      (L: 70-97%)
  */
 export const LUMA_SLOTS = [
-    { slot: 1, luma: 5, cluster: 'shadows', label: 'Slot 1' },
-    { slot: 2, luma: 10, cluster: 'shadows', label: 'Slot 2' },
-    { slot: 3, luma: 18, cluster: 'shadows', label: 'Slot 3' },
-    { slot: 4, luma: 25, cluster: 'shadows', label: 'Slot 4' },
-    { slot: 5, luma: 35, cluster: 'midtones', label: 'Slot 5' },
-    { slot: 6, luma: 45, cluster: 'midtones', label: 'Slot 6' },
-    { slot: 7, luma: 55, cluster: 'midtones', label: 'Slot 7' },
-    { slot: 8, luma: 65, cluster: 'midtones', label: 'Slot 8' },
-    { slot: 9, luma: 70, cluster: 'highlights', label: 'Slot 9' },
-    { slot: 10, luma: 80, cluster: 'highlights', label: 'Slot 10' },
-    { slot: 11, luma: 90, cluster: 'highlights', label: 'Slot 11' },
-    { slot: 12, luma: 97, cluster: 'highlights', label: 'Slot 12' }
+    { slot: 1, luma: 5, cluster: 'shadows', column: 1, role: 'secondary1', label: 'Slot 1' },
+    { slot: 2, luma: 10, cluster: 'shadows', column: 2, role: 'primary', label: 'Slot 2' },
+    { slot: 3, luma: 18, cluster: 'shadows', column: 3, role: 'accent', label: 'Slot 3' },
+    { slot: 4, luma: 25, cluster: 'shadows', column: 4, role: 'secondary2', label: 'Slot 4' },
+    { slot: 5, luma: 35, cluster: 'midtones', column: 1, role: 'secondary1', label: 'Slot 5' },
+    { slot: 6, luma: 45, cluster: 'midtones', column: 2, role: 'primary', label: 'Slot 6' },
+    { slot: 7, luma: 55, cluster: 'midtones', column: 3, role: 'accent', label: 'Slot 7' },
+    { slot: 8, luma: 65, cluster: 'midtones', column: 4, role: 'secondary2', label: 'Slot 8' },
+    { slot: 9, luma: 70, cluster: 'highlights', column: 1, role: 'secondary1', label: 'Slot 9' },
+    { slot: 10, luma: 80, cluster: 'highlights', column: 2, role: 'primary', label: 'Slot 10' },
+    { slot: 11, luma: 90, cluster: 'highlights', column: 3, role: 'accent', label: 'Slot 11' },
+    { slot: 12, luma: 97, cluster: 'highlights', column: 4, role: 'secondary2', label: 'Slot 12' }
 ];
+
+/**
+ * Column definitions for the 4-column system.
+ * Each column has a role and contains 3 slots (one from each tonal row).
+ */
+export const COLUMN_DEFINITIONS = [
+    { column: 1, role: 'secondary1', label: 'Secondary 1', slots: [0, 4, 8] },
+    { column: 2, role: 'primary', label: 'Primary', slots: [1, 5, 9] },
+    { column: 3, role: 'accent', label: 'Accent', slots: [2, 6, 10] },
+    { column: 4, role: 'secondary2', label: 'Secondary 2', slots: [3, 7, 11] }
+];
+
+/**
+ * Header swatch luma for column editing.
+ * Fixed at 50% for neutral midtone preview.
+ */
+export const COLUMN_HEADER_LUMA = 50;
 
 /**
  * Default adjustment values (photo-style)
@@ -870,4 +895,193 @@ export function cloneTheme(theme, newId, newName) {
  */
 export function generateThemeId() {
     return `theme_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+}
+
+/**
+ * Get all slot indices belonging to a column.
+ * @param {number} columnIndex - Column index (0-3)
+ * @returns {number[]} Array of slot indices
+ */
+export function getColumnSlots(columnIndex) {
+    return COLUMN_DEFINITIONS[columnIndex]?.slots || [];
+}
+
+/**
+ * Get the column index for a given slot index.
+ * @param {number} slotIndex - Slot index (0-11)
+ * @returns {number} Column index (0-3)
+ */
+export function getSlotColumn(slotIndex) {
+    return slotIndex % 4;
+}
+
+/**
+ * Get the row (cluster) index for a given slot index.
+ * @param {number} slotIndex - Slot index (0-11)
+ * @returns {number} Row index (0-2): 0=shadows, 1=midtones, 2=highlights
+ */
+export function getSlotRow(slotIndex) {
+    return Math.floor(slotIndex / 4);
+}
+
+/**
+ * Update all slots in a column to share the same hue and saturation.
+ * @param {Array<{h: number, s: number}>} slots - Current slot array
+ * @param {number} columnIndex - Column index (0-3)
+ * @param {number} hue - New hue value (0-360)
+ * @param {number} saturation - New saturation value (0-100)
+ * @returns {Array<{h: number, s: number}>} Updated slots array
+ */
+export function updateColumnHue(slots, columnIndex, hue, saturation) {
+    const columnSlots = getColumnSlots(columnIndex);
+    return slots.map((slot, index) => {
+        if (columnSlots.includes(index)) {
+            return { h: hue, s: saturation };
+        }
+        return { ...slot };
+    });
+}
+
+/**
+ * Get the hue and saturation for a column from the first slot in that column.
+ * All slots in a column share the same hue/saturation.
+ * @param {Array<{h: number, s: number}>} slots - Slot array
+ * @param {number} columnIndex - Column index (0-3)
+ * @returns {{h: number, s: number}} Hue and saturation
+ */
+export function getColumnHueSaturation(slots, columnIndex) {
+    const columnSlots = getColumnSlots(columnIndex);
+    const firstSlotIndex = columnSlots[0];
+    return slots[firstSlotIndex] || { h: 0, s: 0 };
+}
+
+/**
+ * Generate a hex color for a column header swatch (displayed at 60% luma).
+ * @param {Array<{h: number, s: number}>} slots - Slot array
+ * @param {number} columnIndex - Column index (0-3)
+ * @returns {string} Hex color
+ */
+export function getColumnHeaderColor(slots, columnIndex) {
+    const { h, s } = getColumnHueSaturation(slots, columnIndex);
+    return hslToHex(h, s, COLUMN_HEADER_LUMA);
+}
+
+/**
+ * Generate column hues for the 4-column system based on color harmony.
+ * Returns 4 hues, one for each column role.
+ * @param {string} harmony - Color harmony type
+ * @returns {{secondary1: number, primary: number, accent: number, secondary2: number}}
+ */
+export function generateColumnHarmonyHues(harmony) {
+    const baseHue = randomHue();
+    let hues = [];
+    
+    switch (harmony) {
+        case COLOR_HARMONIES.COMPLEMENTARY:
+            // Secondary1 and Primary share base, Accent and Secondary2 share complement
+            hues = [baseHue, baseHue, (baseHue + 180) % 360, (baseHue + 180) % 360];
+            break;
+        case COLOR_HARMONIES.MONOCHROMATIC:
+            hues = [baseHue, baseHue, baseHue, baseHue];
+            break;
+        case COLOR_HARMONIES.ANALOGOUS:
+            // Adjacent hues on wheel
+            hues = [
+                (baseHue + 330) % 360,  // -30
+                baseHue,                 // base
+                (baseHue + 30) % 360,   // +30
+                (baseHue + 15) % 360    // +15
+            ];
+            break;
+        case COLOR_HARMONIES.TRIADIC:
+            // 3 hues + one fill
+            hues = [
+                baseHue,
+                (baseHue + 120) % 360,
+                (baseHue + 240) % 360,
+                (baseHue + 60) % 360
+            ];
+            break;
+        case COLOR_HARMONIES.SPLIT_COMPLEMENTARY:
+            hues = [
+                baseHue,
+                baseHue,
+                (baseHue + 150) % 360,
+                (baseHue + 210) % 360
+            ];
+            break;
+        case COLOR_HARMONIES.TETRADIC:
+            hues = [
+                baseHue,
+                (baseHue + 60) % 360,
+                (baseHue + 180) % 360,
+                (baseHue + 240) % 360
+            ];
+            break;
+        case COLOR_HARMONIES.SQUARE:
+            hues = [
+                baseHue,
+                (baseHue + 90) % 360,
+                (baseHue + 180) % 360,
+                (baseHue + 270) % 360
+            ];
+            break;
+        default:
+            hues = [baseHue, baseHue, baseHue, baseHue];
+    }
+    
+    return {
+        secondary1: hues[0],
+        primary: hues[1],
+        accent: hues[2],
+        secondary2: hues[3]
+    };
+}
+
+/**
+ * Generate theme colors using the 4-column system.
+ * All slots in a column share the same hue.
+ * Saturation is randomized with all 4 columns within a 30-point window.
+ * @param {string} harmony - Color harmony type
+ * @param {Array<number>} lockedColumns - Indices of locked columns (won't be changed)
+ * @param {Array<{h: number, s: number}>} existingSlots - Current slot values (for locked columns)
+ * @returns {Array<{h: number, s: number}>} 12 slot colors
+ */
+export function generateColumnHarmonyTheme(harmony, lockedColumns = [], existingSlots = []) {
+    const columnHues = generateColumnHarmonyHues(harmony);
+    
+    // Generate saturation with a 30-point window that can slide through 0-100 range
+    // The window base can be 0-70 (so max saturation in window is 100)
+    const satWindowBase = Math.floor(Math.random() * 71); // 0-70
+    const satWindowEnd = satWindowBase + 30; // 30-100
+    
+    // Generate 4 random saturations within this 30-point window
+    const baseSaturations = {
+        secondary1: satWindowBase + Math.floor(Math.random() * 31),
+        primary: satWindowBase + Math.floor(Math.random() * 31),
+        accent: satWindowBase + Math.floor(Math.random() * 31),
+        secondary2: satWindowBase + Math.floor(Math.random() * 31)
+    };
+    
+    return LUMA_SLOTS.map((lumaSlot, index) => {
+        const columnIndex = getSlotColumn(index);
+        
+        // Skip locked columns
+        if (lockedColumns.includes(columnIndex) && existingSlots[index]) {
+            return { ...existingSlots[index] };
+        }
+        
+        const role = lumaSlot.role;
+        const hue = columnHues[role];
+        let saturation = baseSaturations[role];
+        
+        // Reduce saturation for extreme luma values
+        if (lumaSlot.luma < 15 || lumaSlot.luma > 90) {
+            saturation = saturation * 0.4;
+        } else if (lumaSlot.luma < 25 || lumaSlot.luma > 80) {
+            saturation = saturation * 0.7;
+        }
+        
+        return { h: hue, s: Math.round(saturation) };
+    });
 }

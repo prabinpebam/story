@@ -5,13 +5,20 @@
  * Two-column layout: Theme list (left) + Editor (right)
  * 
  * Architecture:
- * - 12 slots with fixed luma values (5%, 10%, 18%, 25%, 35%, 45%, 55%, 65%, 70%, 80%, 90%, 97%)
- * - Only H (hue) and S (saturation) are editable per slot
+ * - 12 slots organized in 4 columns (roles) × 3 rows (tonal clusters)
+ * - Columns: Secondary 1, Primary, Accent, Secondary 2
+ * - Rows: Shadows (L: 5-25%), Midtones (L: 35-65%), Highlights (L: 70-97%)
+ * - Column headers are editable via ColorPicker with luma locked at 60%
+ * - Grid swatches are read-only displays
  * - Photo-style adjustments affect all slots: Brightness, Contrast, Highlights, Shadows, Whites, Blacks, Saturation
  * 
  * Theme Hierarchy:
  * - Master slide → Layout master slide → Individual slide → Individual object property
  * - More specific theme choice overrides less specific
+ * 
+ * Light/Dark Mode:
+ * - Controlled at Master Slide level, NOT in this panel
+ * - Same theme works for both modes
  */
 
 import { DraggablePanel } from '../../components/DraggablePanel.js';
@@ -22,6 +29,8 @@ import { Icons } from '../../Icons.js';
 import { store } from '../../../core/Store.js';
 import {
     LUMA_SLOTS,
+    COLUMN_DEFINITIONS,
+    COLUMN_HEADER_LUMA,
     DEFAULT_ADJUSTMENTS,
     COLOR_HARMONIES,
     MIN_LUMA_DELTA,
@@ -30,6 +39,7 @@ import {
     generateThemeColors,
     generateInvertedThemeColors,
     generateHarmonyTheme,
+    generateColumnHarmonyTheme,
     generateRandomAdjustments,
     generateThemeName,
     calculateEffectiveLumaValues,
@@ -40,8 +50,14 @@ import {
     cloneTheme,
     generateThemeId,
     validateTheme,
-    isColorDark
+    isColorDark,
+    updateColumnHue,
+    getColumnHueSaturation,
+    getColumnHeaderColor,
+    getSlotColumn,
+    getSlotRow
 } from './ColorThemeUtils.js';
+import { HueSaturationPopover } from './HueSaturationPopover.js';
 import { THEME_PRESETS, isPresetTheme } from './ThemePresets.js';
 
 export class ColorThemeManager extends DraggablePanel {
@@ -75,14 +91,14 @@ export class ColorThemeManager extends DraggablePanel {
         this.themes = [...THEME_PRESETS];
         this.customThemes = [];
         this.selectedThemeId = null;
-        this.selectedSlotIndex = null;
-        this.isInverted = false;
+        this.selectedColumnIndex = null; // Column being edited (0-3)
         this.adjustmentsExpanded = true;
         this.generateExpanded = true;
         this.selectedHarmony = COLOR_HARMONIES.COMPLEMENTARY;
-        this.lockedSlots = new Set(); // Slots locked from Generate
+        this.lockedColumns = new Set(); // Columns locked from Generate (0-3)
         this.generateHues = true;      // Generate will randomize hues
         this.generateAdjustments = true; // Generate will randomize adjustments (default checked)
+        this.hueSatPopover = null; // Reference to open hue/saturation popover
         
         // Load custom themes from storage
         this.loadCustomThemes();
@@ -90,7 +106,7 @@ export class ColorThemeManager extends DraggablePanel {
         // DOM references
         this.themeListEl = null;
         this.themeEditorEl = null;
-        this.slotEditorEl = null;
+        this.columnEditEl = null; // Column color picker element
         this.dropzoneEl = null;
         this.adjustmentSliders = {};
         
@@ -292,6 +308,9 @@ export class ColorThemeManager extends DraggablePanel {
         const editor = this.themeEditorEl;
         editor.innerHTML = '';
         
+        // Close any open color picker
+        this.closeColorPicker();
+        
         const theme = this.getSelectedTheme();
         if (!theme) {
             this.renderEmptyState(editor);
@@ -305,15 +324,11 @@ export class ColorThemeManager extends DraggablePanel {
         // Header with name and actions
         editorContent.appendChild(this.createEditorHeader(theme));
         
-        // Slot grid
-        editorContent.appendChild(this.createSlotGrid(theme));
+        // Column headers (editable swatches at 60% luma)
+        editorContent.appendChild(this.createColumnHeaders(theme));
         
-        // Slot editor (when a slot is selected)
-        const slotEditor = document.createElement('div');
-        slotEditor.className = 'ctm__slot-editor';
-        slotEditor.style.display = 'none';
-        this.slotEditorEl = slotEditor;
-        editorContent.appendChild(slotEditor);
+        // Slot grid (4 columns × 3 rows, read-only)
+        editorContent.appendChild(this.createSlotGrid(theme));
         
         // Generate section
         editorContent.appendChild(this.createGenerateSection(theme));
@@ -325,7 +340,7 @@ export class ColorThemeManager extends DraggablePanel {
     }
     
     /**
-     * Create editor header
+     * Create editor header (without invert button - Light/Dark mode is at Master Slide level)
      */
     createEditorHeader(theme) {
         const header = document.createElement('div');
@@ -350,17 +365,7 @@ export class ColorThemeManager extends DraggablePanel {
         const actions = document.createElement('div');
         actions.className = 'ctm__editor-actions';
         
-        // Invert button
-        const invertBtn = new IconButton({
-            icon: Icons.FLIP_V,
-            size: 'small',
-            title: 'Invert (Light/Dark)',
-            active: this.isInverted,
-            onClick: () => this.toggleInvert()
-        });
-        actions.appendChild(invertBtn.element);
-        
-        // Duplicate button
+        // Duplicate button only (no invert button)
         const duplicateBtn = new IconButton({
             icon: '<i class="fa-regular fa-copy"></i>',
             size: 'small',
@@ -375,56 +380,127 @@ export class ColorThemeManager extends DraggablePanel {
     }
     
     /**
-     * Create slot grid - organized by 3 tonal clusters
+     * Create column header swatches (editable via ColorPicker at 60% luma)
+     */
+    createColumnHeaders(theme) {
+        const section = document.createElement('div');
+        section.className = 'ctm__column-headers';
+        
+        // Header row with role labels
+        const headerRow = document.createElement('div');
+        headerRow.className = 'ctm__column-header-row';
+        
+        COLUMN_DEFINITIONS.forEach((colDef, columnIndex) => {
+            const column = document.createElement('div');
+            column.className = 'ctm__column-header';
+            
+            // Get the column's current hue and saturation
+            const { h, s } = getColumnHueSaturation(theme.slots, columnIndex);
+            const headerColor = hslToHex(h, s, COLUMN_HEADER_LUMA);
+            const isLocked = this.lockedColumns.has(columnIndex);
+            
+            // Clickable swatch
+            const swatch = document.createElement('button');
+            swatch.className = 'ctm__column-swatch';
+            swatch.style.backgroundColor = headerColor;
+            swatch.title = `${colDef.label}: Click to edit hue & saturation`;
+            swatch.dataset.columnIndex = columnIndex;
+            
+            if (this.selectedColumnIndex === columnIndex) {
+                swatch.classList.add('ctm__column-swatch--selected');
+            }
+            if (isLocked) {
+                swatch.classList.add('ctm__column-swatch--locked');
+                const lockIcon = document.createElement('div');
+                lockIcon.className = 'ctm__column-lock-icon';
+                lockIcon.innerHTML = Icons.LOCK;
+                lockIcon.style.color = isColorDark(headerColor) ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.8)';
+                swatch.appendChild(lockIcon);
+            }
+            
+            // Click to open color picker
+            swatch.addEventListener('click', (e) => {
+                if (e.shiftKey) {
+                    this.toggleColumnLock(columnIndex);
+                } else {
+                    this.openColumnColorPicker(columnIndex, swatch);
+                }
+            });
+            
+            // Right-click to toggle lock
+            swatch.addEventListener('contextmenu', (e) => {
+                e.preventDefault();
+                this.toggleColumnLock(columnIndex);
+            });
+            
+            column.appendChild(swatch);
+            
+            // Role label below swatch
+            const label = document.createElement('div');
+            label.className = 'ctm__column-label';
+            label.textContent = colDef.label;
+            column.appendChild(label);
+            
+            headerRow.appendChild(column);
+        });
+        
+        section.appendChild(headerRow);
+        
+        // Hint text
+        const hint = document.createElement('div');
+        hint.className = 'ctm__hint';
+        hint.textContent = 'Click header to edit column color • Shift+click to lock';
+        section.appendChild(hint);
+        
+        return section;
+    }
+    
+    /**
+     * Create slot grid - 4 columns × 3 rows (read-only display)
+     * Rows: Shadows, Midtones, Highlights
+     * Columns: Secondary 1, Primary, Accent, Secondary 2
      */
     createSlotGrid(theme) {
         const section = document.createElement('div');
         section.className = 'ctm__section ctm__slots-section';
         
-        const colors = this.isInverted 
-            ? generateInvertedThemeColors(theme.slots, theme.adjustments || DEFAULT_ADJUSTMENTS)
-            : generateThemeColors(theme.slots, theme.adjustments || DEFAULT_ADJUSTMENTS);
+        // Generate colors using current adjustments
+        const colors = generateThemeColors(theme.slots, theme.adjustments || DEFAULT_ADJUSTMENTS);
         
         // Calculate effective luma values for real-time display
         const effectiveLumaValues = calculateEffectiveLumaValues(theme.adjustments || DEFAULT_ADJUSTMENTS);
         
-        // Define the 3 clusters
-        const clusters = [
-            { name: 'Shadows', slots: [0, 1, 2, 3] },
-            { name: 'Midtones', slots: [4, 5, 6, 7] },
-            { name: 'Highlights', slots: [8, 9, 10, 11] }
+        // Define the 3 rows (clusters) - each contains 4 slots (one per column)
+        const rows = [
+            { name: 'Shadows', slots: [0, 1, 2, 3] },      // Slots 1-4
+            { name: 'Midtones', slots: [4, 5, 6, 7] },     // Slots 5-8
+            { name: 'Highlights', slots: [8, 9, 10, 11] }   // Slots 9-12
         ];
         
-        clusters.forEach(cluster => {
-            const row = document.createElement('div');
-            row.className = 'ctm__cluster-row';
+        rows.forEach(row => {
+            const rowEl = document.createElement('div');
+            rowEl.className = 'ctm__cluster-row';
             
-            // Cluster label
+            // Row label
             const label = document.createElement('div');
             label.className = 'ctm__cluster-label';
-            label.textContent = cluster.name;
-            row.appendChild(label);
+            label.textContent = row.name;
+            rowEl.appendChild(label);
             
-            // Swatches container
+            // Swatches container (4 columns)
             const swatches = document.createElement('div');
             swatches.className = 'ctm__cluster-swatches';
             
-            cluster.slots.forEach(i => {
+            row.slots.forEach(i => {
                 const slot = LUMA_SLOTS[i];
                 const color = colors[i];
-                const isLocked = this.lockedSlots.has(i);
                 const effectiveLuma = Math.round(effectiveLumaValues[i]);
                 
-                const slotEl = document.createElement('button');
-                slotEl.className = 'ctm__slot';
+                // Read-only swatch (not a button)
+                const slotEl = document.createElement('div');
+                slotEl.className = 'ctm__slot ctm__slot--readonly';
                 slotEl.dataset.slotIndex = i;
-                
-                if (i === this.selectedSlotIndex) {
-                    slotEl.classList.add('ctm__slot--selected');
-                }
-                if (isLocked) {
-                    slotEl.classList.add('ctm__slot--locked');
-                }
+                slotEl.title = `Slot ${i + 1}: H:${theme.slots[i]?.h || 0}° S:${theme.slots[i]?.s || 0}% L:${slot.luma}%`;
                 
                 // Swatch with luma label inside
                 const swatch = document.createElement('div');
@@ -445,42 +521,13 @@ export class ColorThemeManager extends DraggablePanel {
                 lumaLabel.style.color = isColorDark(color) ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.8)';
                 swatch.appendChild(lumaLabel);
                 
-                // Lock indicator on swatch
-                if (isLocked) {
-                    const lockIcon = document.createElement('div');
-                    lockIcon.className = 'ctm__slot-lock-icon';
-                    lockIcon.innerHTML = Icons.LOCK;
-                    lockIcon.style.color = isColorDark(color) ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.8)';
-                    swatch.appendChild(lockIcon);
-                }
-                
                 slotEl.appendChild(swatch);
-                
-                slotEl.addEventListener('click', (e) => {
-                    if (e.shiftKey) {
-                        this.toggleSlotLock(i);
-                    } else {
-                        this.selectSlot(i);
-                    }
-                });
-                
-                slotEl.addEventListener('contextmenu', (e) => {
-                    e.preventDefault();
-                    this.toggleSlotLock(i);
-                });
-                
                 swatches.appendChild(slotEl);
             });
             
-            row.appendChild(swatches);
-            section.appendChild(row);
+            rowEl.appendChild(swatches);
+            section.appendChild(rowEl);
         });
-        
-        // Hint text
-        const hint = document.createElement('div');
-        hint.className = 'ctm__hint';
-        hint.textContent = 'Shift+click or right-click to lock slots';
-        section.appendChild(hint);
         
         return section;
     }
@@ -538,6 +585,7 @@ export class ColorThemeManager extends DraggablePanel {
                 min: config.min,
                 max: config.max,
                 step: 1,
+                defaultValue: 0, // All adjustments default to 0 for double-click reset
                 onChange: (value) => this.updateAdjustment(config.key, value)
             });
             
@@ -684,14 +732,14 @@ export class ColorThemeManager extends DraggablePanel {
         
         content.appendChild(controlsRow);
         
-        // Note about locked slots
+        // Note about locked columns
         const note = document.createElement('div');
         note.className = 'ctm__generate-note';
-        const lockedCount = this.lockedSlots.size;
+        const lockedCount = this.lockedColumns.size;
         if (lockedCount > 0) {
-            note.textContent = `${lockedCount} slot${lockedCount > 1 ? 's' : ''} locked`;
+            note.textContent = `${lockedCount} column${lockedCount > 1 ? 's' : ''} locked`;
         } else {
-            note.textContent = 'Lock slots to preserve during generation';
+            note.textContent = 'Lock columns to preserve during generation';
         }
         content.appendChild(note);
         
@@ -775,87 +823,6 @@ export class ColorThemeManager extends DraggablePanel {
         container.appendChild(empty);
     }
     
-    /**
-     * Render slot editor for selected slot
-     */
-    renderSlotEditor() {
-        const editor = this.slotEditorEl;
-        if (!editor) return;
-        
-        const theme = this.getSelectedTheme();
-        if (!theme || this.selectedSlotIndex === null) {
-            editor.style.display = 'none';
-            return;
-        }
-        
-        editor.style.display = 'block';
-        editor.innerHTML = '';
-        
-        const slot = theme.slots[this.selectedSlotIndex];
-        const lumaSlot = LUMA_SLOTS[this.selectedSlotIndex];
-        const color = hslToHex(slot.h, slot.s, lumaSlot.luma);
-        
-        // Header
-        const header = document.createElement('div');
-        header.className = 'ctm__slot-editor-header';
-        
-        const title = document.createElement('div');
-        title.className = 'ctm__slot-editor-title';
-        title.textContent = `Slot ${this.selectedSlotIndex + 1}`;
-        header.appendChild(title);
-        
-        const preview = document.createElement('div');
-        preview.className = 'ctm__slot-editor-preview';
-        preview.style.backgroundColor = color;
-        header.appendChild(preview);
-        
-        editor.appendChild(header);
-        
-        // Controls
-        const controls = document.createElement('div');
-        controls.className = 'ctm__slot-editor-controls';
-        
-        // Hue slider
-        const hueSlider = new SliderControl({
-            label: 'Hue',
-            value: slot.h,
-            min: 0,
-            max: 360,
-            step: 1,
-            onChange: (value) => this.updateSlotHue(value)
-        });
-        controls.appendChild(hueSlider.element);
-        
-        // Saturation slider
-        const satSlider = new SliderControl({
-            label: 'Saturation',
-            value: slot.s,
-            min: 0,
-            max: 100,
-            step: 1,
-            onChange: (value) => this.updateSlotSaturation(value)
-        });
-        controls.appendChild(satSlider.element);
-        
-        // Luma (locked, display only)
-        const lumaRow = document.createElement('div');
-        lumaRow.className = 'ctm__slot-editor-row';
-        
-        const lumaLabel = document.createElement('div');
-        lumaLabel.className = 'ctm__slot-editor-label';
-        lumaLabel.textContent = 'Lightness';
-        lumaRow.appendChild(lumaLabel);
-        
-        const lumaLocked = document.createElement('div');
-        lumaLocked.className = 'ctm__slot-editor-locked';
-        lumaLocked.innerHTML = `🔒 ${lumaSlot.luma}% (locked)`;
-        lumaRow.appendChild(lumaLocked);
-        
-        controls.appendChild(lumaRow);
-        
-        editor.appendChild(controls);
-    }
-    
     // =========================================
     // State Management
     // =========================================
@@ -877,8 +844,8 @@ export class ColorThemeManager extends DraggablePanel {
      */
     selectTheme(themeId) {
         this.selectedThemeId = themeId;
-        this.selectedSlotIndex = null;
-        this.isInverted = false;
+        this.selectedColumnIndex = null;
+        this.closeColorPicker();
         
         this.renderThemeList();
         this.renderThemeEditor();
@@ -890,58 +857,141 @@ export class ColorThemeManager extends DraggablePanel {
     }
     
     /**
-     * Select a slot
+     * Open hue/saturation popover for a column
      */
-    selectSlot(index) {
+    openColumnColorPicker(columnIndex, swatchElement) {
         const theme = this.getSelectedTheme();
-        if (!theme || isPresetTheme(theme.id)) {
-            // Can't edit presets, duplicate first
+        if (!theme) return;
+        
+        // If editing a preset, duplicate first
+        if (isPresetTheme(theme.id)) {
             this.duplicateTheme(theme.id);
-            setTimeout(() => this.selectSlot(index), 100);
+            setTimeout(() => this.openColumnColorPicker(columnIndex, swatchElement), 100);
             return;
         }
         
-        this.selectedSlotIndex = index;
-        this.renderThemeEditor();
-        this.renderSlotEditor();
+        // Close existing popover
+        this.closeColorPicker();
+        
+        this.selectedColumnIndex = columnIndex;
+        
+        // Get current column hue and saturation
+        const { h, s } = getColumnHueSaturation(theme.slots, columnIndex);
+        
+        // Create hue/saturation popover
+        this.hueSatPopover = new HueSaturationPopover({
+            hue: h,
+            saturation: s,
+            onChange: (hue, saturation) => this.updateColumnColor(columnIndex, hue, saturation),
+            onClose: () => this.closeColorPicker()
+        });
+        
+        // Position the popover near the swatch
+        this.hueSatPopover.positionRelativeTo(swatchElement, this.element);
+        
+        // Update UI to show selected state
+        this.updateColumnHeaderSelection();
     }
     
     /**
-     * Update slot hue
+     * Close color picker
      */
-    updateSlotHue(hue) {
-        const theme = this.getSelectedTheme();
-        if (!theme || this.selectedSlotIndex === null) return;
+    closeColorPicker() {
+        if (this.hueSatPopover) {
+            this.hueSatPopover.destroy();
+            this.hueSatPopover = null;
+        }
+        this.selectedColumnIndex = null;
+        this.updateColumnHeaderSelection();
+    }
+    
+    /**
+     * Update visual selection state of column headers (without full re-render)
+     */
+    updateColumnHeaderSelection() {
+        const swatches = this.themeEditorEl?.querySelectorAll('.ctm__column-swatch');
+        if (!swatches) return;
         
-        // Create a new slots array with the updated slot to avoid mutating frozen objects
-        const currentSlot = theme.slots[this.selectedSlotIndex];
-        theme.slots = theme.slots.map((slot, idx) => 
-            idx === this.selectedSlotIndex ? { ...currentSlot, h: hue } : { ...slot }
-        );
+        swatches.forEach((swatch, index) => {
+            swatch.classList.toggle('ctm__column-swatch--selected', index === this.selectedColumnIndex);
+        });
+    }
+    
+    /**
+     * Update column color (hue and saturation for all slots in column)
+     */
+    updateColumnColor(columnIndex, hue, saturation) {
+        const theme = this.getSelectedTheme();
+        if (!theme) return;
+        
+        // Update all slots in the column with the new hue and saturation
+        theme.slots = updateColumnHue(theme.slots, columnIndex, hue, saturation);
         theme.modifiedAt = Date.now();
         
-        this.renderThemeEditor();
-        this.renderThemeList(); // Update preview in left column in real-time
+        // Update only the affected column header swatch and grid column
+        this.updateColumnSwatches(columnIndex, theme);
+        this.renderThemeList();
         this.managerOptions.onThemeChange(theme);
     }
     
     /**
-     * Update slot saturation
+     * Update the visual display for a specific column (header + grid swatches)
      */
-    updateSlotSaturation(saturation) {
-        const theme = this.getSelectedTheme();
-        if (!theme || this.selectedSlotIndex === null) return;
+    updateColumnSwatches(columnIndex, theme) {
+        // Update column header swatch
+        const headerSwatch = this.themeEditorEl?.querySelector(`.ctm__column-swatch[data-column-index="${columnIndex}"]`);
+        if (headerSwatch) {
+            const { h, s } = getColumnHueSaturation(theme.slots, columnIndex);
+            const headerColor = hslToHex(h, s, COLUMN_HEADER_LUMA);
+            headerSwatch.style.backgroundColor = headerColor;
+            
+            // Update lock icon color if present
+            const lockIcon = headerSwatch.querySelector('.ctm__column-lock-icon');
+            if (lockIcon) {
+                lockIcon.style.color = isColorDark(headerColor) ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.8)';
+            }
+        }
         
-        // Create a new slots array with the updated slot to avoid mutating frozen objects
-        const currentSlot = theme.slots[this.selectedSlotIndex];
-        theme.slots = theme.slots.map((slot, idx) => 
-            idx === this.selectedSlotIndex ? { ...currentSlot, s: saturation } : { ...slot }
-        );
-        theme.modifiedAt = Date.now();
+        // Update grid swatches for this column
+        const colors = generateThemeColors(theme.slots, theme.adjustments || DEFAULT_ADJUSTMENTS);
+        const effectiveLumaValues = calculateEffectiveLumaValues(theme.adjustments || DEFAULT_ADJUSTMENTS);
         
+        // Column slots: 0,4,8 for col0; 1,5,9 for col1; etc.
+        const slotIndices = [columnIndex, columnIndex + 4, columnIndex + 8];
+        
+        slotIndices.forEach(slotIndex => {
+            const slotEl = this.themeEditorEl?.querySelector(`.ctm__slot[data-slot-index="${slotIndex}"]`);
+            if (slotEl) {
+                const swatch = slotEl.querySelector('.ctm__slot-swatch');
+                const color = colors[slotIndex];
+                if (swatch) {
+                    swatch.style.backgroundColor = color;
+                    
+                    // Update clipped state
+                    const hsl = hexToHsl(color);
+                    swatch.classList.toggle('ctm__slot-swatch--clipped', hsl.l <= 1 || hsl.l >= 99);
+                    
+                    // Update luma label color
+                    const lumaLabel = swatch.querySelector('.ctm__slot-luma-inner');
+                    if (lumaLabel) {
+                        lumaLabel.textContent = `${Math.round(effectiveLumaValues[slotIndex])}`;
+                        lumaLabel.style.color = isColorDark(color) ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.8)';
+                    }
+                }
+            }
+        });
+    }
+    
+    /**
+     * Toggle column lock
+     */
+    toggleColumnLock(columnIndex) {
+        if (this.lockedColumns.has(columnIndex)) {
+            this.lockedColumns.delete(columnIndex);
+        } else {
+            this.lockedColumns.add(columnIndex);
+        }
         this.renderThemeEditor();
-        this.renderThemeList(); // Update preview in left column in real-time
-        this.managerOptions.onThemeChange(theme);
     }
     
     /**
@@ -988,14 +1038,6 @@ export class ColorThemeManager extends DraggablePanel {
     }
     
     /**
-     * Toggle invert mode
-     */
-    toggleInvert() {
-        this.isInverted = !this.isInverted;
-        this.renderThemeEditor();
-    }
-    
-    /**
      * Toggle adjustments section
      */
     toggleAdjustments() {
@@ -1012,19 +1054,7 @@ export class ColorThemeManager extends DraggablePanel {
     }
     
     /**
-     * Toggle slot lock
-     */
-    toggleSlotLock(index) {
-        if (this.lockedSlots.has(index)) {
-            this.lockedSlots.delete(index);
-        } else {
-            this.lockedSlots.add(index);
-        }
-        this.renderThemeEditor();
-    }
-    
-    /**
-     * Generate random colors using selected harmony
+     * Generate random colors using selected harmony (4-column system)
      */
     generateRandomColors() {
         let theme = this.getSelectedTheme();
@@ -1043,17 +1073,17 @@ export class ColorThemeManager extends DraggablePanel {
             return;
         }
         
-        // Check if all slots are locked (only matters for hues)
-        if (this.generateHues && this.lockedSlots.size >= 12) {
-            console.warn('All slots are locked');
+        // Check if all columns are locked (only matters for hues)
+        if (this.generateHues && this.lockedColumns.size >= 4) {
+            console.warn('All columns are locked');
             return;
         }
         
         // Generate new hues if checkbox is checked
         if (this.generateHues) {
-            const newSlots = generateHarmonyTheme(
+            const newSlots = generateColumnHarmonyTheme(
                 this.selectedHarmony,
-                Array.from(this.lockedSlots),
+                Array.from(this.lockedColumns),
                 theme.slots
             );
             theme.slots = newSlots;
@@ -1288,9 +1318,8 @@ export class ColorThemeManager extends DraggablePanel {
         const masterId = 'theme-default'; // Always apply to the default theme master
         
         // Generate the resolved colors from slots and adjustments
-        const colors = this.isInverted
-            ? generateInvertedThemeColors(theme.slots, theme.adjustments || DEFAULT_ADJUSTMENTS)
-            : generateThemeColors(theme.slots, theme.adjustments || DEFAULT_ADJUSTMENTS);
+        // Note: Light/Dark mode is handled at Master Slide level, not here
+        const colors = generateThemeColors(theme.slots, theme.adjustments || DEFAULT_ADJUSTMENTS);
         
         // Dispatch the theme to the store
         store.dispatch('APPLY_LUMA_THEME', {
@@ -1300,7 +1329,6 @@ export class ColorThemeManager extends DraggablePanel {
                 name: theme.name,
                 slots: theme.slots,
                 adjustments: theme.adjustments || DEFAULT_ADJUSTMENTS,
-                isInverted: this.isInverted,
                 colors: colors
             }
         });
@@ -1327,10 +1355,11 @@ export class ColorThemeManager extends DraggablePanel {
      * Destroy the panel - override to clean up internal references
      */
     destroy() {
+        this.closeColorPicker();
         this.adjustmentSliders = {};
         this.themeListEl = null;
         this.themeEditorEl = null;
-        this.slotEditorEl = null;
+        this.columnEditEl = null;
         
         // Call parent destroy
         super.destroy();
