@@ -3,6 +3,14 @@
  * A reusable slider component with scrubbable label and number input.
  * Follows Design System principles - uses CSS variables for all styling.
  * 
+ * Features:
+ * - Scrubbable label for precision adjustments
+ * - Click-to-jump on track
+ * - Draggable thumb
+ * - Double-click thumb to reset to default value
+ * - Keyboard navigation (arrow keys, Home, End)
+ * - Bidirectional fill for ranges that span negative and positive
+ * 
  * Structure:
  * ┌──────────────────────────────────────────────────────────────────────┐
  * │  Label          ├─────────────●─────────────┤         [ value ]      │
@@ -19,6 +27,7 @@ export class SliderControl {
      * @param {number} options.min - Minimum value (default: -100)
      * @param {number} options.max - Maximum value (default: 100)
      * @param {number} options.step - Step increment (default: 1)
+     * @param {number} options.defaultValue - Value to reset to on double-click (default: 0)
      * @param {string} options.unit - Unit suffix (default: '')
      * @param {number} options.labelWidth - Width of label in px (default: 80)
      * @param {number} options.inputWidth - Width of input in px (default: 48)
@@ -32,6 +41,7 @@ export class SliderControl {
             min: -100,
             max: 100,
             step: 1,
+            defaultValue: 0,
             unit: '',
             labelWidth: 80,
             inputWidth: 48,
@@ -45,6 +55,7 @@ export class SliderControl {
         this.isLabelDragging = false;
         this.startX = 0;
         this.startValue = 0;
+        this.lastClickTime = 0;
         
         this.element = this.create();
     }
@@ -101,7 +112,8 @@ export class SliderControl {
         // Events for track/thumb dragging
         if (!this.options.disabled) {
             this.track.addEventListener('mousedown', (e) => this.handleTrackClick(e));
-            this.thumb.addEventListener('mousedown', (e) => this.handleThumbDragStart(e));
+            this.thumb.addEventListener('mousedown', (e) => this.handleThumbMouseDown(e));
+            this.thumb.addEventListener('dblclick', (e) => this.handleThumbDoubleClick(e));
             this.thumb.addEventListener('keydown', (e) => this.handleKeyDown(e));
         }
         
@@ -142,6 +154,44 @@ export class SliderControl {
         
         // Start dragging from click position (trackRect already cached)
         this.handleThumbDragStart(e);
+    }
+    
+    /**
+     * Handle thumb mousedown - checks for double-click timing
+     */
+    handleThumbMouseDown(e) {
+        if (this.options.disabled) return;
+        
+        const now = Date.now();
+        const timeSinceLastClick = now - this.lastClickTime;
+        this.lastClickTime = now;
+        
+        // If this is a double-click (within 300ms), let dblclick handle it
+        if (timeSinceLastClick < 300) {
+            return;
+        }
+        
+        // Otherwise, start drag
+        this.handleThumbDragStart(e);
+    }
+    
+    /**
+     * Handle thumb double-click - reset to default value
+     */
+    handleThumbDoubleClick(e) {
+        if (this.options.disabled) return;
+        
+        e.stopPropagation();
+        e.preventDefault();
+        
+        // Reset to default value
+        this.setValue(this.options.defaultValue);
+        
+        // Brief visual feedback - pulse animation
+        this.thumb.classList.add('slider-control__thumb--reset');
+        setTimeout(() => {
+            this.thumb.classList.remove('slider-control__thumb--reset');
+        }, 200);
     }
     
     /**
@@ -347,10 +397,17 @@ export class SliderControl {
     }
     
     /**
-     * Reset to default value (typically 0)
+     * Reset to default value
      */
     reset() {
-        this.setValue(0);
+        this.setValue(this.options.defaultValue);
+    }
+    
+    /**
+     * Set the default value (for reset)
+     */
+    setDefaultValue(defaultValue) {
+        this.options.defaultValue = defaultValue;
     }
     
     /**

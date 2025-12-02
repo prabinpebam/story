@@ -1689,6 +1689,13 @@
     transform: translate(-50%, -50%) scale(1.2);
 }
 
+/* Reset animation on double-click */
+.slider-control__thumb--reset {
+    background: var(--color-accent);
+    transform: translate(-50%, -50%) scale(1.3);
+    transition: transform 0.15s var(--ease-out), background 0.15s var(--ease-out);
+}
+
 /* Number Input */
 .slider-control__input {
     background: var(--color-bg-input);
