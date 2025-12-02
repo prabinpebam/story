@@ -3,6 +3,7 @@ import { IconButton } from '../IconButton.js';
 import { Icons } from '../../Icons.js';
 import { ColorUtils } from '../../../utils/ColorUtils.js';
 import { ThemeSwatches } from '../ThemeSwatches.js';
+import { ColorResolver } from '../../../utils/ColorResolver.js';
 
 export class SolidTab {
     constructor(options = {}) {
@@ -19,6 +20,12 @@ export class SolidTab {
             b: hsb.b,
             a: this.fill.opacity !== undefined ? this.fill.opacity : (rgba.a * 100)
         };
+        
+        // Track whether the current color is linked to a theme slot
+        // This is critical for the unlinking behavior - any manual edit should unlink
+        // Note: Fill objects use `themeSlot` directly, not the ColorValue format
+        this.isLinkedToTheme = this.fill.themeSlot !== undefined && this.fill.themeSlot !== null;
+        this.linkedSlot = this.isLinkedToTheme ? this.fill.themeSlot : null;
 
         this.element = document.createElement('div');
         this.element.style.display = 'flex';
@@ -335,6 +342,7 @@ export class SolidTab {
         this.themeSwatches = new ThemeSwatches({
             onColorSelect: (color) => {
                 // Non-linked color selection (direct color application)
+                // This happens when linkedMode is disabled or as fallback
                 const rgb = ColorUtils.hexToRgb(color);
                 if (rgb) {
                     const hsb = ColorUtils.rgbToHsb(rgb.r, rgb.g, rgb.b);
@@ -342,6 +350,12 @@ export class SolidTab {
                     this.state.s = hsb.s;
                     this.state.b = hsb.b;
                     this.updateUI();
+                    
+                    // Clear linked state - this is a non-linked selection
+                    this.isLinkedToTheme = false;
+                    this.linkedSlot = null;
+                    this.updateLinkIndicator();
+                    
                     // Emit without themeSlot to unlink if was linked
                     this.onChange({
                         color: color,
@@ -353,6 +367,7 @@ export class SolidTab {
             },
             onLinkedColorSelect: (data) => {
                 // Linked color selection - includes slot index for theme binding
+                // This is the ONLY path that links a color to a theme slot
                 const rgb = ColorUtils.hexToRgb(data.color);
                 if (rgb) {
                     const hsb = ColorUtils.rgbToHsb(rgb.r, rgb.g, rgb.b);
@@ -360,6 +375,14 @@ export class SolidTab {
                     this.state.s = hsb.s;
                     this.state.b = hsb.b;
                     this.updateUI();
+                    
+                    // Set linked state - this is a theme-linked selection
+                    this.isLinkedToTheme = true;
+                    this.linkedSlot = data.slotIndex;
+                    this.updateLinkIndicator();
+                    
+                    console.log('[SolidTab] Linked to theme slot:', data.slotIndex);
+                    
                     // Emit with themeSlot for linked property tracking
                     this.onChange({
                         color: data.color,
@@ -370,7 +393,9 @@ export class SolidTab {
                 }
             },
             showThemeName: true,
-            columns: 6
+            columns: 6,
+            // Highlight currently linked slot
+            selectedSlot: this.linkedSlot
         });
         this.element.appendChild(this.themeSwatches.element);
 
@@ -415,6 +440,9 @@ export class SolidTab {
 
         defaultSwatchSection.appendChild(swatches);
         this.element.appendChild(defaultSwatchSection);
+        
+        // Show link indicator if color is theme-linked
+        this.updateLinkIndicator();
     }
 
     updateUI() {
@@ -459,12 +487,114 @@ export class SolidTab {
         const rgb = ColorUtils.hsbToRgb(this.state.h, this.state.s, this.state.b);
         const hex = ColorUtils.rgbToHex(rgb.r, rgb.g, rgb.b);
         
-        console.log('[SolidTab.emitChange] Emitting:', { hex, opacity: Math.round(this.state.a), isTransient });
+        // CRITICAL: Any manual color edit (HSB picker, hex input, default swatches, eyedropper)
+        // should UNLINK from theme. This is the core fix for the "theme linking broke custom picking" bug.
+        // Only theme swatch clicks should link to theme.
+        
+        console.log('[SolidTab.emitChange] Manual edit - unlinking from theme. Hex:', hex, 'Opacity:', Math.round(this.state.a));
+        
+        // Clear linked state
+        this.isLinkedToTheme = false;
+        this.linkedSlot = null;
+        
+        // Update visual indicator if present
+        this.updateLinkIndicator();
+        
         this.onChange({
             color: hex,
             opacity: Math.round(this.state.a),
-            value: hex // For legacy support
+            value: hex,
+            themeSlot: null // Explicitly unlink from theme
         }, isTransient);
+    }
+
+    /**
+     * Update visual indicator showing linked/unlinked state
+     * Shows theme slot badge and "unlink" button when linked
+     */
+    updateLinkIndicator() {
+        // Create or update the link indicator row above the color area
+        if (!this.linkIndicatorRow) {
+            this.linkIndicatorRow = document.createElement('div');
+            this.linkIndicatorRow.className = 'color-link-indicator';
+            this.linkIndicatorRow.style.display = 'none';
+            this.linkIndicatorRow.style.alignItems = 'center';
+            this.linkIndicatorRow.style.gap = '8px';
+            this.linkIndicatorRow.style.padding = '6px 8px';
+            this.linkIndicatorRow.style.marginBottom = '8px';
+            this.linkIndicatorRow.style.backgroundColor = 'var(--color-bg-tertiary)';
+            this.linkIndicatorRow.style.borderRadius = 'var(--radius-sm)';
+            this.linkIndicatorRow.style.border = '1px solid var(--color-accent)';
+            
+            // Icon
+            const linkIcon = document.createElement('span');
+            linkIcon.innerHTML = Icons.LINK || '🔗';
+            linkIcon.style.color = 'var(--color-accent)';
+            linkIcon.style.fontSize = '12px';
+            this.linkIndicatorRow.appendChild(linkIcon);
+            
+            // Label
+            this.linkLabel = document.createElement('span');
+            this.linkLabel.style.flex = '1';
+            this.linkLabel.style.fontSize = 'var(--font-size-sm)';
+            this.linkLabel.style.color = 'var(--color-text-secondary)';
+            this.linkIndicatorRow.appendChild(this.linkLabel);
+            
+            // Unlink button
+            const unlinkBtn = document.createElement('button');
+            unlinkBtn.type = 'button';
+            unlinkBtn.textContent = 'Unlink';
+            unlinkBtn.style.fontSize = 'var(--font-size-xs)';
+            unlinkBtn.style.padding = '2px 6px';
+            unlinkBtn.style.borderRadius = 'var(--radius-xs)';
+            unlinkBtn.style.border = '1px solid var(--color-border)';
+            unlinkBtn.style.backgroundColor = 'transparent';
+            unlinkBtn.style.color = 'var(--color-text-primary)';
+            unlinkBtn.style.cursor = 'pointer';
+            unlinkBtn.addEventListener('click', () => {
+                // Emit current color without theme slot to unlink
+                const rgb = ColorUtils.hsbToRgb(this.state.h, this.state.s, this.state.b);
+                const hex = ColorUtils.rgbToHex(rgb.r, rgb.g, rgb.b);
+                
+                this.isLinkedToTheme = false;
+                this.linkedSlot = null;
+                this.updateLinkIndicator();
+                
+                // Update theme swatches selection
+                if (this.themeSwatches) {
+                    this.themeSwatches.setSelectedSlot(null);
+                }
+                
+                this.onChange({
+                    color: hex,
+                    opacity: Math.round(this.state.a),
+                    value: hex,
+                    themeSlot: null
+                }, false);
+            });
+            this.linkIndicatorRow.appendChild(unlinkBtn);
+            
+            // Insert at the top of the element
+            this.element.insertBefore(this.linkIndicatorRow, this.element.firstChild);
+        }
+        
+        // Update visibility and label
+        if (this.isLinkedToTheme && this.linkedSlot !== null) {
+            this.linkIndicatorRow.style.display = 'flex';
+            this.linkLabel.textContent = `Linked to Theme Slot ${this.linkedSlot + 1}`;
+            
+            // Update theme swatches to show selection
+            if (this.themeSwatches) {
+                this.themeSwatches.setSelectedSlot(this.linkedSlot);
+            }
+        } else {
+            this.linkIndicatorRow.style.display = 'none';
+            
+            // Clear theme swatches selection
+            if (this.themeSwatches) {
+                this.themeSwatches.setSelectedSlot(null);
+            }
+        }
     }
 
     async pickColor() {
