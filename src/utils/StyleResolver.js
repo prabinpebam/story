@@ -134,7 +134,7 @@ export const StyleResolver = {
             // Font variables
             .replace('var(--theme-font-heading)', fonts.heading)
             .replace('var(--theme-font-body)', fonts.body)
-            // 12-color schema variables
+            // 12-color schema variables (new format)
             .replace('var(--theme-background1)', colors.background1 || '#FFFFFF')
             .replace('var(--theme-background2)', colors.background2 || '#F5F5F5')
             .replace('var(--theme-text1)', colors.text1 || '#333333')
@@ -147,6 +147,13 @@ export const StyleResolver = {
             .replace('var(--theme-accent6)', colors.accent6 || '#FF006E')
             .replace('var(--theme-hyperlink)', colors.hyperlink || '#0066CC')
             .replace('var(--theme-followed-hyperlink)', colors.followedHyperlink || '#954F72')
+            // Dash-separated accent format (used in templates)
+            .replace('var(--theme-accent-1)', colors.accent1 || '#18A0FB')
+            .replace('var(--theme-accent-2)', colors.accent2 || '#7B61FF')
+            .replace('var(--theme-accent-3)', colors.accent3 || '#1BC47D')
+            .replace('var(--theme-accent-4)', colors.accent4 || '#F24822')
+            .replace('var(--theme-accent-5)', colors.accent5 || '#FFBE0B')
+            .replace('var(--theme-accent-6)', colors.accent6 || '#FF006E')
             // Legacy variables (backwards compatibility)
             .replace('var(--theme-text-primary)', colors.textPrimary || colors.text1 || '#333333')
             .replace('var(--theme-text-secondary)', colors.textSecondary || colors.text2 || '#666666')

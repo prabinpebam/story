@@ -1,12 +1,14 @@
 // DEFAULT_MASTERS - Professional presentation templates
 // Design principles: 8px grid, harmonious type scale (1.25 ratio), modern color palette
 // Canvas: 1920×1080 (16:9), Standard margins: 100px
+// All colors use theme variables for consistency and easy theme switching
 export const DEFAULT_MASTERS = {
     "theme-default": {
         id: "theme-default",
         type: "theme",
         name: "Default Theme",
-        background: { type: "solid", value: "#ffffff" },
+        // Use theme color variable for background - resolved at render time
+        background: { type: "solid", value: "var(--theme-background1, #FFFFFF)" },
         elements: {},
         elementOrder: [],
         themeSettings: {
@@ -473,7 +475,7 @@ export const DEFAULT_MASTERS = {
                 x: 100, y: 180, width: 1200, height: 840,
                 rotation: 0, opacity: 1,
                 resizing: "fixed",
-                style: { fontSize: 24, textAlign: "center", verticalAlign: "middle", color: "var(--theme-text-secondary, #64748B)", fontFamily: "var(--theme-font-body, Inter)", fontWeight: "400", backgroundColor: "rgba(248, 250, 252, 1)", borderRadius: "8px" }
+                style: { fontSize: 24, textAlign: "center", verticalAlign: "middle", color: "var(--theme-text-secondary, #64748B)", fontFamily: "var(--theme-font-body, Inter)", fontWeight: "400", backgroundColor: "var(--theme-background2, #F8FAFC)", borderRadius: "8px" }
             },
             "placeholder-caption": {
                 id: "placeholder-caption",
