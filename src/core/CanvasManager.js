@@ -1422,7 +1422,14 @@ export class CanvasManager {
             if (activeTool === 'shape') {
                 element.type = 'rect';
                 element.style = {
-                    backgroundColor: '#D9D9D9',
+                    // Use multi-fill system with theme-linked color (slot 1 = background2)
+                    fills: [{
+                        type: 'solid',
+                        color: '#F8FAFC',
+                        themeSlot: 1,  // Links to theme background2 color
+                        visible: true,
+                        opacity: 100
+                    }],
                     borderWidth: 0
                 };
             } else if (activeTool === 'image') {
