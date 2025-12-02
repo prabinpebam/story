@@ -469,6 +469,10 @@ xs     sm     md     lg     xl     2xl    full
 
 ## 9. Z-Index Tokens
 
+> **📘 Note:** For comprehensive z-index strategy, principles, and migration guidance, see the [Z-Index Strategy Specification](./z-index-strategy.md).
+
+### Core Z-Index Scale
+
 | Token | Value | Usage |
 |-------|-------|-------|
 | `--z-base` | `0` | Base layer |
@@ -480,6 +484,25 @@ xs     sm     md     lg     xl     2xl    full
 | `--z-popover` | `1500` | Popovers |
 | `--z-tooltip` | `1600` | Tooltips |
 | `--z-toast` | `1700` | Toast notifications |
+
+### Extended Z-Index Scale (Proposed)
+
+| Token | Value | Usage |
+|-------|-------|-------|
+| `--z-canvas` | `100` | Canvas layer |
+| `--z-canvas-overlay` | `200` | Canvas selection handles |
+| `--z-panel` | `1000` | Base panel layer |
+| `--z-panel-active` | `1050` | Active/focused panel |
+| `--z-modal-nested` | `1450` | Nested modal (rare) |
+| `--z-popover-nested` | `1550` | Nested popover (e.g., color picker in flyout) |
+| `--z-notification` | `1750` | System notifications |
+| `--z-alert` | `1800` | Critical alerts |
+| `--z-system-overlay` | `9000` | System-level overlays |
+| `--z-presentation` | `9500` | Presentation mode base |
+| `--z-presentation-ui` | `9600` | Presentation mode UI controls |
+| `--z-collaboration` | `9800` | Collaboration cursors |
+| `--z-master-mode` | `9900` | Master mode overlay |
+| `--z-fullscreen` | `10000` | Maximum overlay |
 
 ### Z-Index Stacking Order
 

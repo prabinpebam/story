@@ -24,6 +24,7 @@ export const DOCS_STRUCTURE = {
                 { title: 'Design System Overview', path: 'specs/design-system/design-system-overview.md', badge: 'Start Here' },
                 { title: 'Interactive Component Showcase', path: 'specs/design-system/interactive-component-showcase.md', badge: 'Interactive' },
                 { title: 'Design Tokens Reference', path: 'specs/design-system/design-tokens-reference.md', badge: 'Reference' },
+                { title: 'Z-Index Strategy', path: 'specs/design-system/z-index-strategy.md', badge: 'New' },
                 { title: 'Component Library', path: 'specs/design-system/component-library.md', badge: 'Reference' },
                 { title: 'Interaction Patterns', path: 'specs/design-system/interaction-patterns.md' },
                 {
