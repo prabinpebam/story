@@ -1,0 +1,302 @@
+/* =============================================================================
+   THEME-LINKED COLOR INDICATORS
+   =============================================================================
+   
+   Visual indicators for theme-linked vs custom colors in the UI.
+   Theme-linked colors have an accent border to show they will update
+   when the theme changes.
+   
+   Follows the Color Value Architecture spec:
+   documentation/specs/core/color-value-architecture.md
+   
+   ============================================================================= */
+
+/* -----------------------------------------------------------------------------
+   BASE COLOR SWATCH STYLES
+   Used for all color swatches throughout the application
+   ----------------------------------------------------------------------------- */
+
+.color-swatch {
+    /* Size can be overridden with CSS variable */
+    width: var(--swatch-size, 24px);
+    height: var(--swatch-size, 24px);
+    
+    /* Standard appearance */
+    border-radius: var(--radius-sm, 4px);
+    border: 1px solid var(--color-border);
+    background-color: var(--swatch-color, transparent);
+    
+    /* For positioning badge */
+    position: relative;
+    
+    /* Ensure the actual color is visible through border */
+    box-sizing: border-box;
+    
+    /* Smooth transitions for hover states */
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+/* Hover state - subtle accent highlight */
+.color-swatch:hover {
+    border-color: var(--color-accent-muted);
+}
+
+/* Focus state - accessibility */
+.color-swatch:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 2px var(--color-accent);
+}
+
+/* -----------------------------------------------------------------------------
+   THEME-LINKED INDICATOR
+   Accent border shows the color is linked to a theme slot
+   ----------------------------------------------------------------------------- */
+
+.color-swatch.theme-linked {
+    /* Accent border to indicate theme linking */
+    border: 2px solid var(--color-accent);
+    
+    /* Subtle glow effect */
+    box-shadow: 0 0 0 1px var(--color-accent-subtle);
+}
+
+/* Theme-linked hover state */
+.color-swatch.theme-linked:hover {
+    border-color: var(--color-accent-hover);
+    box-shadow: 0 0 0 2px var(--color-accent-muted);
+}
+
+/* Theme-linked focus state */
+.color-swatch.theme-linked:focus-visible {
+    box-shadow: 0 0 0 3px var(--color-accent);
+}
+
+/* -----------------------------------------------------------------------------
+   SLOT NUMBER BADGE (Optional)
+   Shows which theme slot the color is linked to
+   ----------------------------------------------------------------------------- */
+
+.color-swatch.theme-linked[data-slot]::after {
+    content: attr(data-slot);
+    
+    /* Position at bottom-right corner */
+    position: absolute;
+    bottom: -4px;
+    right: -4px;
+    
+    /* Badge appearance */
+    font-size: 8px;
+    font-weight: 600;
+    font-family: var(--font-family-mono, 'SF Mono', 'Monaco', monospace);
+    background: var(--color-accent);
+    color: var(--color-text-on-accent);
+    
+    /* Pill shape */
+    border-radius: var(--radius-xs, 2px);
+    padding: 0 3px;
+    line-height: 12px;
+    min-width: 12px;
+    text-align: center;
+    
+    /* Ensure visibility */
+    z-index: 1;
+}
+
+/* Hide badge if slot number is empty */
+.color-swatch.theme-linked[data-slot=""]::after {
+    display: none;
+}
+
+/* -----------------------------------------------------------------------------
+   GRADIENT STOP HANDLES
+   Visual indicators for theme-linked gradient stops
+   ----------------------------------------------------------------------------- */
+
+.gradient-stop-handle {
+    /* Base handle styles should be defined elsewhere */
+    position: relative;
+}
+
+/* Theme-linked gradient stop */
+.gradient-stop-handle.theme-linked {
+    /* Accent outline */
+    box-shadow: 0 0 0 2px var(--color-accent);
+}
+
+.gradient-stop-handle.theme-linked::before {
+    content: '';
+    position: absolute;
+    inset: -4px;
+    border: 1px dashed var(--color-accent);
+    border-radius: inherit;
+    pointer-events: none;
+}
+
+/* -----------------------------------------------------------------------------
+   FILL ROW / STROKE ROW SWATCHES
+   Swatches in the property inspector panels
+   ----------------------------------------------------------------------------- */
+
+.fill-row .color-swatch,
+.stroke-row .color-swatch {
+    /* Smaller size for inline rows */
+    --swatch-size: 20px;
+    flex-shrink: 0;
+}
+
+/* Theme-linked state in rows */
+.fill-row .color-swatch.theme-linked,
+.stroke-row .color-swatch.theme-linked {
+    /* Slightly smaller border for compact view */
+    border-width: 1.5px;
+}
+
+/* -----------------------------------------------------------------------------
+   COLOR PICKER SWATCHES
+   Theme swatch grid in color picker
+   ----------------------------------------------------------------------------- */
+
+.color-picker-theme-swatches {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: var(--spacing-xs, 4px);
+    padding: var(--spacing-sm, 8px);
+}
+
+.color-picker-theme-swatches .color-swatch {
+    --swatch-size: 28px;
+    cursor: pointer;
+}
+
+/* Current selection in theme grid */
+.color-picker-theme-swatches .color-swatch.selected {
+    box-shadow: 
+        0 0 0 2px var(--color-bg-panel),
+        0 0 0 4px var(--color-accent);
+}
+
+/* -----------------------------------------------------------------------------
+   LINKED STATUS INDICATOR
+   Shows "Linked to Slot N" message in color picker
+   ----------------------------------------------------------------------------- */
+
+.color-linked-status {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm, 8px);
+    padding: var(--spacing-sm, 8px);
+    background: var(--color-accent-subtle);
+    border-radius: var(--radius-md, 6px);
+    margin-top: var(--spacing-sm, 8px);
+}
+
+.color-linked-status .linked-icon {
+    width: 16px;
+    height: 16px;
+    color: var(--color-accent);
+}
+
+.color-linked-status .linked-text {
+    flex: 1;
+    font-size: var(--font-size-sm, 12px);
+    color: var(--color-text-primary);
+}
+
+.color-linked-status .linked-text .slot-number {
+    font-weight: 600;
+    color: var(--color-accent);
+}
+
+.color-linked-status .unlink-button {
+    padding: var(--spacing-xs, 4px) var(--spacing-sm, 8px);
+    font-size: var(--font-size-sm, 12px);
+    background: transparent;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm, 4px);
+    color: var(--color-text-secondary);
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.color-linked-status .unlink-button:hover {
+    background: var(--color-bg-hover);
+    border-color: var(--color-border-hover);
+    color: var(--color-text-primary);
+}
+
+/* Hidden when not theme-linked */
+.color-linked-status.hidden {
+    display: none;
+}
+
+/* -----------------------------------------------------------------------------
+   GRADIENT STOP LIST
+   Theme-linked indicators in gradient stop list
+   ----------------------------------------------------------------------------- */
+
+.gradient-stop-item {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm, 8px);
+    padding: var(--spacing-xs, 4px);
+}
+
+.gradient-stop-item .color-swatch {
+    --swatch-size: 20px;
+}
+
+.gradient-stop-item .stop-label {
+    flex: 1;
+    font-size: var(--font-size-sm, 12px);
+    color: var(--color-text-secondary);
+}
+
+/* Show "Linked" label for theme-linked stops */
+.gradient-stop-item .linked-label {
+    font-size: var(--font-size-xs, 10px);
+    color: var(--color-accent);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+/* Hide linked label if not theme-linked */
+.gradient-stop-item:not(.theme-linked) .linked-label {
+    display: none;
+}
+
+/* -----------------------------------------------------------------------------
+   TOOLTIP FOR THEME-LINKED COLORS
+   Shows slot info on hover
+   ----------------------------------------------------------------------------- */
+
+.color-swatch.theme-linked[data-tooltip]::before {
+    content: attr(data-tooltip);
+    
+    /* Position above swatch */
+    position: absolute;
+    bottom: calc(100% + 4px);
+    left: 50%;
+    transform: translateX(-50%);
+    
+    /* Tooltip appearance */
+    padding: var(--spacing-xs, 4px) var(--spacing-sm, 8px);
+    background: var(--color-bg-elevated);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm, 4px);
+    
+    font-size: var(--font-size-xs, 10px);
+    color: var(--color-text-primary);
+    white-space: nowrap;
+    
+    /* Hidden by default */
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.15s ease, visibility 0.15s ease;
+    
+    z-index: 1000;
+}
+
+.color-swatch.theme-linked[data-tooltip]:hover::before {
+    opacity: 1;
+    visibility: visible;
+}
