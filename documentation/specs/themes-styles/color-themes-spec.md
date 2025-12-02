@@ -11,17 +11,173 @@
             - Luma values have 3 clusters, Highlights, mid-tones and shadows
             - This gives us the option to tweak the color theme like how we teak photos
                 - Control contrast, brightness, highlights, shadows, whites, blacks, saturation
-## Color theme selection and enforcement
-Color theme is applied in the following heirarchy
-- Master slide
-    - Layout master slide
-        - Individual slide
-            - Individual object property
+## Color Theme Selection and Enforcement
 
-- This follows the idea of level of speceficity, the more specific color choice overrides the less specific choice
-- In the fill and color picker panel
-    - Only swatches from the current theme is shown. Indicate theme name also.
-    - User cannot select other themese here.
+### The Hierarchy Model
+
+Color themes cascade through a specificity hierarchy, similar to CSS:
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│  MASTER SLIDE (Presentation-level default)                          │
+│  └── Theme: "Ocean Sunset"                                          │
+│      ┌─────────────────────────────────────────────────────────────┐│
+│      │  LAYOUT MASTER (Template-specific override)                 ││
+│      │  └── Theme: inherits OR "Forest Green"                      ││
+│      │      ┌─────────────────────────────────────────────────────┐││
+│      │      │  INDIVIDUAL SLIDE (Slide-specific override)         │││
+│      │      │  └── Theme: inherits OR "Sunset Warm"               │││
+│      │      │      ┌─────────────────────────────────────────────┐│││
+│      │      │      │  OBJECT PROPERTY (Element-specific)         ││││
+│      │      │      │  └── themeSlot: 3 (uses slide's theme)      ││││
+│      │      │      │      OR custom hex (unlinked from theme)    ││││
+│      │      │      └─────────────────────────────────────────────┘│││
+│      │      └─────────────────────────────────────────────────────┘││
+│      └─────────────────────────────────────────────────────────────┘│
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+### Core UX Principle: "Edit with the colors you have"
+
+When working on a specific slide:
+1. That slide has an **effective theme** (either inherited or explicitly overridden)
+2. The Fill Panel shows **only those 12 swatches**
+3. There is **no dropdown to switch themes** in the Fill Panel
+
+### Why This Constraint?
+
+**Prevents "theme soup":**
+Without this constraint, a designer could:
+- Pick "Ocean Blue" for one shape's fill
+- Pick "Forest Green" for another shape's stroke  
+- Pick "Sunset Orange" for text color
+
+Result: The slide becomes a hodgepodge of unrelated colors that breaks when ANY theme changes.
+
+**Enforces intentionality:**
+If a slide needs different colors than its inherited theme, the designer must:
+1. **Explicitly override** the theme at the slide level (conscious decision)
+2. **Or** use a custom hex color (breaking theme-linkage intentionally)
+
+### Fill Panel UX
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│  Fill Panel                                                     │
+├─────────────────────────────────────────────────────────────────┤
+│  Theme: Ocean Sunset (inherited from Master)        [info icon] │
+│  ┌────┐┌────┐┌────┐┌────┐                                       │
+│  │ 1  ││ 2  ││ 3  ││ 4  │  ← Shadows                            │
+│  └────┘└────┘└────┘└────┘                                       │
+│  ┌────┐┌────┐┌────┐┌────┐                                       │
+│  │ 5  ││ 6  ││ 7  ││ 8  │  ← Midtones                           │
+│  └────┘└────┘└────┘└────┘                                       │
+│  ┌────┐┌────┐┌────┐┌────┐                                       │
+│  │ 9  ││10  ││11  ││12  │  ← Highlights                         │
+│  └────┘└────┘└────┘└────┘                                       │
+│                                                                 │
+│  ─────────────────────────                                      │
+│  Custom Color                                                   │
+│  [Color Picker] → Breaks theme linkage (explicit opt-out)       │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+**What the designer sees:**
+- Theme name with source: "(inherited from Master)" or "(inherited from Layout)" or "(slide-specific)"
+- 12 swatches from that ONE theme
+- Custom color option (with understanding that it won't auto-update with theme changes)
+
+**What the designer CANNOT do in Fill Panel:**
+- Browse or switch to other themes
+- Mix swatches from different themes
+
+### Theme Override Workflow
+
+When a designer wants different colors for a specific slide:
+
+**Option A: Override the slide's theme**
+1. Go to Property Inspector → Slide Properties
+2. In "Theme" section, click "Override"
+3. Select from available themes
+4. Fill Panel now shows the new theme's 12 swatches
+5. All theme-linked elements on this slide update
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│  Slide Property Inspector                                       │
+├─────────────────────────────────────────────────────────────────┤
+│  Theme                                                          │
+│  ┌──────────────────────────────────────┐                       │
+│  │ Ocean Sunset (from Master)        ▾  │  → Click to override  │
+│  └──────────────────────────────────────┘                       │
+│  ○ Inherit from parent                                          │
+│  ● Use specific theme: [Forest Green ▾]                         │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+**Option B: Use custom color (unlink from theme)**
+1. In Fill Panel, click "Custom Color"
+2. Pick any color via color picker
+3. This element is now NOT theme-linked
+4. If theme changes, this element stays the same color
+
+### Multi-Slide Selection Behavior
+
+When selecting elements across slides with DIFFERENT themes:
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│  Fill Panel                                                     │
+├─────────────────────────────────────────────────────────────────┤
+│  ⚠️ Selection spans multiple themes                             │
+│                                                                 │
+│  Theme swatches disabled                                        │
+│  (Elements are on slides with different themes)                 │
+│                                                                 │
+│  ─────────────────────────                                      │
+│  Custom Color                                                   │
+│  [Color Picker] → Available (applies same hex to all)           │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+**Rationale:** Clicking "Slot 3" would mean different colors on different slides—confusing. So we disable theme slots and allow only custom colors.
+
+### Where Theme Selection DOES Happen
+
+| Location | Purpose | Who Can Select Themes |
+|----------|---------|----------------------|
+| **Color Theme Manager** | Create, edit, duplicate themes | ✓ Full access |
+| **Master Slide Property Inspector** | Set presentation default | ✓ Select from all themes |
+| **Layout Master Property Inspector** | Override for layout type | ✓ Select or inherit |
+| **Slide Property Inspector** | Override for specific slide | ✓ Select or inherit |
+| **Fill Panel** | Use a slot from current theme | ✗ No theme switching |
+| **Color Picker** | Pick custom color | ✗ No theme switching |
+
+### Element Copy/Paste Behavior
+
+When copying elements between slides with different themes:
+- The `themeSlot` reference is **preserved**
+- On the destination slide, it resolves to that slide's theme
+- The shape "adapts" to its new theme context
+
+**Example:**
+- Copy shape from Slide 1 (Ocean theme, Slot 3 = dark blue)
+- Paste to Slide 2 (Forest theme, Slot 3 = dark green)
+- Shape now shows dark green (same slot, different theme)
+
+### Theme Source Indicators
+
+The Fill Panel always shows where the current theme comes from:
+
+| Indicator | Meaning |
+|-----------|---------|
+| "(inherited from Master)" | Using presentation default |
+| "(inherited from Layout)" | Layout master has override |
+| "(slide-specific)" | This slide has its own theme |
+
+This helps designers understand:
+- What controls this slide's colors
+- Where to go to change the theme
 
 ## Color theme manager/editor panel
 - 2 column layout
@@ -1650,3 +1806,638 @@ store.state.lumaTheme = {
 - **Export/Import:** JSON format for theme sharing (see Section 17)
 - **Undo/Redo:** Full integration with History Manager
 - **Collaboration:** Real-time theme editing in shared sessions
+
+---
+
+# Technical Architecture: Cascading Style System
+
+This architecture is designed to be **reusable** for both Color Themes and Typography Styles. The same inheritance model, resolution logic, and UI patterns apply to both.
+
+## 1. Core Concept: Style Tokens with Cascading Inheritance
+
+### The Problem We're Solving
+
+Elements need to reference **abstract tokens** (e.g., "theme slot 3" or "heading style") that:
+1. Resolve differently based on context (which slide, which theme)
+2. Cascade through a hierarchy (Master → Layout → Slide → Element)
+3. Support explicit overrides at any level
+4. Allow "unlinking" for custom values
+
+### The Unified Model
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│                         STYLE DEFINITION LAYER                          │
+│  ┌───────────────────────────┐    ┌───────────────────────────────┐    │
+│  │  Color Theme Definition   │    │  Typography Style Definition  │    │
+│  │  - 12 slots (H, S, fixed L)│    │  - Font families              │    │
+│  │  - Adjustments            │    │  - Size scales                │    │
+│  │  - Computed hex values    │    │  - Weight/style presets       │    │
+│  └───────────────────────────┘    └───────────────────────────────┘    │
+└─────────────────────────────────────────────────────────────────────────┘
+                                    │
+                                    ▼
+┌─────────────────────────────────────────────────────────────────────────┐
+│                         ASSIGNMENT LAYER                                │
+│  ┌─────────────────────────────────────────────────────────────────┐   │
+│  │  Master Slide                                                    │   │
+│  │  colorTheme: "ocean-sunset"  │  typographyStyle: "modern-sans"  │   │
+│  │  colorMode: "dark"           │                                   │   │
+│  └─────────────────────────────────────────────────────────────────┘   │
+│         │ (inherits unless overridden)                                  │
+│         ▼                                                               │
+│  ┌─────────────────────────────────────────────────────────────────┐   │
+│  │  Layout Master (e.g., "Title Slide")                            │   │
+│  │  colorTheme: inherit         │  typographyStyle: inherit        │   │
+│  └─────────────────────────────────────────────────────────────────┘   │
+│         │ (inherits unless overridden)                                  │
+│         ▼                                                               │
+│  ┌─────────────────────────────────────────────────────────────────┐   │
+│  │  Individual Slide                                                │   │
+│  │  colorTheme: "forest-green"  │  typographyStyle: inherit        │   │
+│  │  (explicit override)         │  (uses parent's)                  │   │
+│  └─────────────────────────────────────────────────────────────────┘   │
+└─────────────────────────────────────────────────────────────────────────┘
+                                    │
+                                    ▼
+┌─────────────────────────────────────────────────────────────────────────┐
+│                         ELEMENT REFERENCE LAYER                         │
+│  ┌─────────────────────────────────────────────────────────────────┐   │
+│  │  Element Fill                 │  Element Text                    │   │
+│  │  { themeSlot: 3 }             │  { typographyToken: "heading1" } │   │
+│  │  OR                           │  OR                               │   │
+│  │  { hex: "#ff5733" } (custom)  │  { custom: {...} } (custom)      │   │
+│  └─────────────────────────────────────────────────────────────────┘   │
+└─────────────────────────────────────────────────────────────────────────┘
+                                    │
+                                    ▼
+┌─────────────────────────────────────────────────────────────────────────┐
+│                         RESOLUTION LAYER                                │
+│  ┌─────────────────────────────────────────────────────────────────┐   │
+│  │  StyleResolver                                                   │   │
+│  │  1. Get element's slide                                          │   │
+│  │  2. Walk up hierarchy to find effective theme/style              │   │
+│  │  3. Resolve token → concrete value                               │   │
+│  │  4. Apply any mode transformations (dark mode slot mapping)      │   │
+│  │  5. Return final value for rendering                             │   │
+│  └─────────────────────────────────────────────────────────────────┘   │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+## 2. Data Model
+
+### 2.1 Style Definition Storage
+
+```javascript
+// Global style registry (stored at presentation level)
+presentation: {
+    colorThemes: {
+        "ocean-sunset": {
+            id: "ocean-sunset",
+            name: "Ocean Sunset",
+            isPreset: true,
+            slots: [
+                { h: 210, s: 75 },  // Slot 1, L=5% (fixed)
+                { h: 220, s: 80 },  // Slot 2, L=10% (fixed)
+                // ... 12 total
+            ],
+            adjustments: { brightness: 0, contrast: 0, saturation: 0 },
+            resolvedColors: ["#0d0a14", "#14101e", ...] // Cached hex values
+        },
+        "forest-green": { ... },
+        "custom-theme-1": { isPreset: false, ... }
+    },
+    
+    typographyStyles: {
+        "modern-sans": {
+            id: "modern-sans",
+            name: "Modern Sans",
+            isPreset: true,
+            headingFont: "Inter",
+            bodyFont: "Inter",
+            scales: {
+                heading1: { size: 48, weight: 700, lineHeight: 1.2 },
+                heading2: { size: 36, weight: 600, lineHeight: 1.25 },
+                body: { size: 16, weight: 400, lineHeight: 1.5 },
+                caption: { size: 12, weight: 400, lineHeight: 1.4 }
+            }
+        },
+        "classic-serif": { ... }
+    }
+}
+```
+
+### 2.2 Hierarchy Node Storage
+
+```javascript
+// Master slide (root of hierarchy)
+masterSlide: {
+    id: "master-001",
+    styleAssignments: {
+        colorTheme: "ocean-sunset",     // Theme ID
+        colorMode: "dark",              // "light" | "dark"
+        typographyStyle: "modern-sans"  // Typography ID
+    }
+}
+
+// Layout master (inherits from master)
+layoutMaster: {
+    id: "layout-title-001",
+    parentId: "master-001",
+    styleAssignments: {
+        colorTheme: null,          // null = inherit from parent
+        typographyStyle: null      // null = inherit from parent
+    }
+}
+
+// Individual slide (inherits from layout or master)
+slide: {
+    id: "slide-005",
+    layoutMasterId: "layout-title-001",
+    styleAssignments: {
+        colorTheme: "forest-green",  // Explicit override
+        typographyStyle: null        // Inherit
+    }
+}
+```
+
+### 2.3 Element Token References
+
+```javascript
+// Element with theme-linked fill
+element: {
+    id: "shape-001",
+    fill: {
+        type: "solid",
+        themeSlot: 3,       // Reference to slot (resolved at render)
+        value: null         // Populated by resolver for rendering
+    }
+}
+
+// Element with custom (unlinked) fill
+element: {
+    id: "shape-002",
+    fill: {
+        type: "solid",
+        themeSlot: null,    // No theme link
+        value: "#ff5733"    // Direct value
+    }
+}
+
+// Text with typography token
+textElement: {
+    id: "text-001",
+    typographyToken: "heading1",  // Reference to typography scale
+    customOverrides: null         // Or { size: 52 } for partial override
+}
+
+// Text with custom (unlinked) typography
+textElement: {
+    id: "text-002",
+    typographyToken: null,
+    typography: {
+        fontFamily: "Georgia",
+        size: 24,
+        weight: 400
+    }
+}
+```
+
+## 3. StyleResolver Service
+
+The central service that resolves tokens to concrete values.
+
+```javascript
+/**
+ * StyleResolver - Resolves style tokens through the cascade hierarchy
+ * 
+ * This is the SINGLE SOURCE OF TRUTH for style resolution.
+ * All UI components and renderers go through this service.
+ */
+class StyleResolver {
+    
+    /**
+     * Get the effective color theme for a slide
+     * Walks up the hierarchy: Slide → Layout → Master
+     */
+    getEffectiveColorTheme(slideId) {
+        const slide = this.getSlide(slideId);
+        
+        // Check slide's own assignment
+        if (slide.styleAssignments?.colorTheme) {
+            return {
+                themeId: slide.styleAssignments.colorTheme,
+                source: 'slide',
+                sourceId: slideId
+            };
+        }
+        
+        // Check layout master
+        const layout = this.getLayoutMaster(slide.layoutMasterId);
+        if (layout?.styleAssignments?.colorTheme) {
+            return {
+                themeId: layout.styleAssignments.colorTheme,
+                source: 'layout',
+                sourceId: layout.id
+            };
+        }
+        
+        // Fall back to master slide
+        const master = this.getMasterSlide();
+        return {
+            themeId: master.styleAssignments.colorTheme,
+            source: 'master',
+            sourceId: master.id
+        };
+    }
+    
+    /**
+     * Get the effective color mode (light/dark)
+     * Only set at master level
+     */
+    getColorMode() {
+        const master = this.getMasterSlide();
+        return master.styleAssignments?.colorMode || 'light';
+    }
+    
+    /**
+     * Resolve a theme slot to a hex color
+     * Applies dark mode mapping if needed
+     */
+    resolveThemeSlot(slideId, slotIndex) {
+        const { themeId } = this.getEffectiveColorTheme(slideId);
+        const theme = this.getColorTheme(themeId);
+        const isDarkMode = this.getColorMode() === 'dark';
+        
+        // Apply dark mode slot mapping (mirror slots)
+        const effectiveSlot = isDarkMode 
+            ? 11 - slotIndex  // 0→11, 1→10, etc.
+            : slotIndex;
+        
+        return theme.resolvedColors[effectiveSlot];
+    }
+    
+    /**
+     * Resolve a fill object - returns fill with resolved value
+     */
+    resolveFill(slideId, fill) {
+        if (!fill) return null;
+        
+        // Theme-linked fill
+        if (fill.themeSlot !== null && fill.themeSlot !== undefined) {
+            const resolvedColor = this.resolveThemeSlot(slideId, fill.themeSlot);
+            return {
+                ...fill,
+                value: resolvedColor,
+                cssVar: `var(--theme-slot${fill.themeSlot + 1})`
+            };
+        }
+        
+        // Custom fill - return as-is
+        return fill;
+    }
+    
+    /**
+     * Get full theme info for UI display
+     */
+    getThemeInfoForSlide(slideId) {
+        const { themeId, source, sourceId } = this.getEffectiveColorTheme(slideId);
+        const theme = this.getColorTheme(themeId);
+        
+        return {
+            theme,
+            source,            // 'master' | 'layout' | 'slide'
+            sourceId,
+            isInherited: source !== 'slide',
+            sourceLabel: this.getSourceLabel(source, sourceId)
+        };
+    }
+    
+    /**
+     * Get source label for UI
+     */
+    getSourceLabel(source, sourceId) {
+        switch (source) {
+            case 'master': return 'inherited from Master';
+            case 'layout': 
+                const layout = this.getLayoutMaster(sourceId);
+                return `inherited from ${layout.name}`;
+            case 'slide': return 'slide-specific';
+        }
+    }
+    
+    // Similar methods for typography...
+    getEffectiveTypographyStyle(slideId) { ... }
+    resolveTypographyToken(slideId, token) { ... }
+}
+
+// Singleton instance
+export const styleResolver = new StyleResolver();
+```
+
+## 4. CSS Variable Bridge
+
+Theme values are exposed as CSS variables for direct use in styles:
+
+```javascript
+/**
+ * Updates CSS variables when theme or mode changes
+ */
+function applyThemeToCSSVariables(themeId, isDarkMode) {
+    const theme = getColorTheme(themeId);
+    
+    theme.resolvedColors.forEach((color, index) => {
+        // Apply with dark mode mapping
+        const effectiveIndex = isDarkMode ? (11 - index) : index;
+        const effectiveColor = theme.resolvedColors[effectiveIndex];
+        
+        document.documentElement.style.setProperty(
+            `--theme-slot${index + 1}`,  // 1-indexed for CSS
+            effectiveColor
+        );
+    });
+}
+```
+
+**Usage in CSS:**
+```css
+.element-with-theme-color {
+    background-color: var(--theme-slot2);
+}
+```
+
+**Usage in Canvas rendering:**
+```javascript
+// For elements on the active slide (uses CSS vars)
+ctx.fillStyle = getComputedStyle(document.documentElement)
+    .getPropertyValue('--theme-slot3').trim();
+
+// For elements on different slides (need explicit resolution)
+ctx.fillStyle = styleResolver.resolveThemeSlot(slideId, 2);
+```
+
+## 5. Event System
+
+```javascript
+// Events fired when styles change
+const STYLE_EVENTS = {
+    // Theme definition changed (colors edited in Color Theme Manager)
+    THEME_UPDATED: 'style:theme-updated',
+    
+    // Theme assignment changed (slide now uses different theme)
+    THEME_ASSIGNMENT_CHANGED: 'style:theme-assignment-changed',
+    
+    // Color mode changed (light ↔ dark)
+    COLOR_MODE_CHANGED: 'style:color-mode-changed',
+    
+    // Typography definition changed
+    TYPOGRAPHY_UPDATED: 'style:typography-updated',
+    
+    // Typography assignment changed
+    TYPOGRAPHY_ASSIGNMENT_CHANGED: 'style:typography-assignment-changed'
+};
+
+// Example: When theme colors are edited
+document.dispatchEvent(new CustomEvent(STYLE_EVENTS.THEME_UPDATED, {
+    detail: { themeId: 'ocean-sunset' }
+}));
+
+// Listeners
+document.addEventListener(STYLE_EVENTS.THEME_UPDATED, (e) => {
+    // Recalculate CSS variables
+    applyThemeToCSSVariables(e.detail.themeId, getColorMode());
+    // Re-render canvas
+    canvasManager.requestRender();
+});
+```
+
+## 6. UI Component Integration
+
+### Fill Panel Integration
+
+```javascript
+class FillPanel {
+    render() {
+        const slideId = this.getActiveSlideId();
+        const themeInfo = styleResolver.getThemeInfoForSlide(slideId);
+        
+        // Show theme swatches
+        this.renderThemeSwatches(themeInfo.theme);
+        
+        // Show source indicator
+        this.renderSourceIndicator(themeInfo.sourceLabel, themeInfo.isInherited);
+    }
+    
+    onSwatchClick(slotIndex) {
+        const fill = {
+            type: 'solid',
+            themeSlot: slotIndex,
+            value: null  // Resolved at render time
+        };
+        this.applyFill(fill);
+    }
+    
+    onCustomColorPick(hexColor) {
+        const fill = {
+            type: 'solid',
+            themeSlot: null,  // Unlinked
+            value: hexColor
+        };
+        this.applyFill(fill);
+    }
+}
+```
+
+### Property Inspector Integration
+
+```javascript
+class SlidePropertyInspector {
+    renderThemeSection() {
+        const slideId = this.getSlideId();
+        const themeInfo = styleResolver.getThemeInfoForSlide(slideId);
+        
+        // Radio: Inherit vs Override
+        this.renderInheritOption(themeInfo.isInherited);
+        
+        // If overriding, show theme dropdown
+        if (!themeInfo.isInherited) {
+            this.renderThemeDropdown(themeInfo.theme.id);
+        }
+    }
+    
+    onOverrideTheme(themeId) {
+        const slide = this.getSlide();
+        slide.styleAssignments.colorTheme = themeId;
+        
+        document.dispatchEvent(new CustomEvent(STYLE_EVENTS.THEME_ASSIGNMENT_CHANGED, {
+            detail: { slideId: slide.id, themeId }
+        }));
+    }
+    
+    onInheritTheme() {
+        const slide = this.getSlide();
+        slide.styleAssignments.colorTheme = null;  // Remove override
+        
+        document.dispatchEvent(new CustomEvent(STYLE_EVENTS.THEME_ASSIGNMENT_CHANGED, {
+            detail: { slideId: slide.id, themeId: null }
+        }));
+    }
+}
+```
+
+## 7. Rendering Pipeline Integration
+
+```javascript
+class ShapeElement {
+    render(ctx, element, slideId) {
+        // Resolve fill through StyleResolver
+        const resolvedFill = styleResolver.resolveFill(slideId, element.fill);
+        
+        if (resolvedFill) {
+            if (resolvedFill.type === 'solid') {
+                ctx.fillStyle = resolvedFill.value;
+            } else if (resolvedFill.type === 'gradient') {
+                ctx.fillStyle = this.buildGradient(resolvedFill, slideId);
+            }
+        }
+        
+        // Draw shape...
+    }
+    
+    buildGradient(gradientFill, slideId) {
+        const stops = gradientFill.stops.map(stop => {
+            // Resolve each stop's color
+            if (stop.themeSlot !== null && stop.themeSlot !== undefined) {
+                return {
+                    ...stop,
+                    color: styleResolver.resolveThemeSlot(slideId, stop.themeSlot)
+                };
+            }
+            return stop;
+        });
+        
+        // Create canvas gradient with resolved colors...
+    }
+}
+```
+
+## 8. Multi-Slide Selection Handling
+
+```javascript
+class SelectionManager {
+    getSelectionThemeContext() {
+        const selectedElements = this.getSelectedElements();
+        const slideIds = new Set(selectedElements.map(e => e.slideId));
+        
+        if (slideIds.size === 1) {
+            // All elements on same slide
+            const slideId = [...slideIds][0];
+            return {
+                singleTheme: true,
+                themeInfo: styleResolver.getThemeInfoForSlide(slideId)
+            };
+        }
+        
+        // Check if all slides use same effective theme
+        const themes = [...slideIds].map(id => 
+            styleResolver.getEffectiveColorTheme(id).themeId
+        );
+        const uniqueThemes = new Set(themes);
+        
+        if (uniqueThemes.size === 1) {
+            // All slides use same theme (even if inherited from different sources)
+            return {
+                singleTheme: true,
+                themeInfo: styleResolver.getThemeInfoForSlide([...slideIds][0])
+            };
+        }
+        
+        // Multiple themes in selection
+        return {
+            singleTheme: false,
+            conflictingThemes: [...uniqueThemes]
+        };
+    }
+}
+```
+
+## 9. Scalability: Adding Typography Styles
+
+The same architecture applies to Typography:
+
+```javascript
+// Typography token on text element
+textElement: {
+    typographyToken: "heading1",  // Token reference
+    customOverrides: { size: 52 } // Optional partial overrides
+}
+
+// Resolution
+const typography = styleResolver.resolveTypographyToken(slideId, "heading1");
+// Returns: { fontFamily: "Inter", size: 48, weight: 700, lineHeight: 1.2 }
+
+// With overrides applied
+const final = styleResolver.resolveTypographyWithOverrides(slideId, element);
+// Returns: { fontFamily: "Inter", size: 52, weight: 700, lineHeight: 1.2 }
+```
+
+## 10. File Structure
+
+```
+src/
+├── core/
+│   └── styles/
+│       ├── StyleResolver.js         # Central resolution service
+│       ├── ColorThemeManager.js     # Theme CRUD, generation
+│       ├── TypographyStyleManager.js
+│       ├── StyleEvents.js           # Event constants
+│       └── CSSVariableBridge.js     # CSS var synchronization
+│
+├── ui/
+│   └── components/
+│       ├── FillFlyout/
+│       │   └── ThemeSwatchGrid.js   # Shows current theme swatches
+│       │
+│       ├── PropertyInspector/
+│       │   ├── SlideSection.js      # Theme override controls
+│       │   └── ThemeSelector.js     # Dropdown for theme selection
+│       │
+│       └── ColorThemeManager/       # Full theme editor panel
+│           └── ColorThemeManagerPanel.js
+│
+└── data/
+    └── presets/
+        ├── color-themes.json        # Built-in theme presets
+        └── typography-styles.json   # Built-in typography presets
+```
+
+## 11. Benefits of This Architecture
+
+| Benefit | Explanation |
+|---------|-------------|
+| **Single Source of Truth** | StyleResolver is the only place resolution happens |
+| **Scalable** | Same pattern for colors, typography, animations, etc. |
+| **Predictable Cascade** | Clear hierarchy: Master → Layout → Slide → Element |
+| **Performance** | Resolved values cached, CSS variables for fast rendering |
+| **Debugging** | Easy to trace: "Where does this color come from?" |
+| **Undo/Redo** | Clear data model makes history tracking straightforward |
+| **Collaboration** | Style assignments are simple data, easy to sync |
+
+## 12. Migration Path
+
+For existing elements without `themeSlot`:
+
+```javascript
+// Migration helper
+function migrateElementFill(element) {
+    if (element.fill?.value && !element.fill?.themeSlot) {
+        // Element has hex color but no slot reference
+        // Keep as custom (unlinked) color
+        return {
+            ...element.fill,
+            themeSlot: null  // Explicitly mark as unlinked
+        };
+    }
+    return element.fill;
+}
+```
