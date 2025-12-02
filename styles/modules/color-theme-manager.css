@@ -900,4 +900,5 @@
 
 .hs-popover__input[type="number"] {
     -moz-appearance: textfield;
+    width: auto;
 }
