@@ -8,7 +8,7 @@ body.mode-master #app::after {
     bottom: 0;
     border: var(--border-width-4) solid #F24822; /* Orange Border */
     pointer-events: none; /* Let clicks pass through */
-    z-index: 9999; /* Ensure it sits on top of everything */
+    z-index: var(--z-master-mode);
     border-radius: var(--radius-lg);
 }
 

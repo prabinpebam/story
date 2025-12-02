@@ -11,7 +11,7 @@ export class Flyout {
         this.element = document.createElement('div');
         this.element.className = 'ui-flyout';
         this.element.style.position = 'fixed';
-        this.element.style.zIndex = '1000';
+        this.element.style.zIndex = 'var(--z-dropdown, 1000)';
         this.element.style.background = 'var(--color-bg-panel)';
         this.element.style.border = '1px solid var(--color-border)';
         this.element.style.borderRadius = 'var(--radius-md)';

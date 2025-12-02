@@ -65,7 +65,7 @@ export class LegacyTextSection {
             popover.style.border = '1px solid var(--color-border)';
             popover.style.borderRadius = '4px';
             popover.style.boxShadow = '0 4px 12px rgba(0,0,0,0.2)';
-            popover.style.zIndex = '1000';
+            popover.style.zIndex = 'var(--z-dropdown, 1000)';
             popover.style.padding = '4px';
             popover.style.display = 'flex';
             popover.style.flexDirection = 'column';

@@ -14,7 +14,7 @@ export class ColorPickerFlyout {
         this.element.style.position = 'absolute';
         this.element.style.width = '240px';
         this.element.style.padding = '12px';
-        this.element.style.zIndex = '10001'; // Higher than FillFlyout
+        this.element.style.zIndex = 'var(--z-popover-nested, 1550)'; // Higher than FillFlyout
 
         // Prevent clicks from closing
         this.element.addEventListener('mousedown', (e) => e.stopPropagation());

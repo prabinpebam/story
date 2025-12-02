@@ -137,7 +137,8 @@ export class CanvasManager {
         });
         
         // Canvas needs to be on top to capture events for the Tool system.
-        this.canvas.style.zIndex = '100';
+        // Uses --z-canvas token value (100) from z-index strategy
+        this.canvas.style.zIndex = 'var(--z-canvas, 100)';
         this.canvas.style.pointerEvents = 'auto'; // Enable interaction
 
         // Resize canvas to match window/container

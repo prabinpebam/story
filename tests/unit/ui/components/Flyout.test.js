@@ -86,7 +86,8 @@ describe('Flyout', () => {
 
         it('should have high z-index', () => {
             flyout = new Flyout();
-            expect(flyout.element.style.zIndex).toBe('1000');
+            // Uses CSS variable with fallback for design token compliance
+            expect(flyout.element.style.zIndex).toBe('var(--z-dropdown, 1000)');
         });
 
         it('should use design system variables for background', () => {

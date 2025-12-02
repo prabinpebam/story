@@ -1,12 +1,17 @@
 /**
  * PanelManager.js
  * Manages multiple draggable panels - registration, z-index, keyboard shortcuts.
+ * 
+ * Z-Index Strategy: Uses --z-panel (1000) as base, increments within Tier 2 (1000-1200).
+ * See: documentation/specs/design-system/z-index-strategy.md
  */
 
 class PanelManager {
     constructor() {
         this.panels = new Map();
-        this.topZIndex = 1000;
+        this.baseZIndex = 1000; // --z-panel token value
+        this.topZIndex = this.baseZIndex;
+        this.maxStackOffset = 50; // Reset after 50 panels to avoid unbounded growth
         this.shortcuts = new Map();
         
         // Setup global keyboard shortcuts
@@ -96,12 +101,15 @@ class PanelManager {
 
     /**
      * Bring a panel to the front (highest z-index).
+     * Z-index is bounded to stay within Tier 2 (1000-1200).
      * @param {string} id - Panel identifier.
      */
     bringToFront(id) {
         const panel = this.panels.get(id);
         if (panel && panel.isOpen) {
-            this.topZIndex++;
+            // Increment but reset if we exceed maxStackOffset to prevent unbounded growth
+            const offset = (this.topZIndex - this.baseZIndex + 1) % this.maxStackOffset;
+            this.topZIndex = this.baseZIndex + offset;
             panel.element.style.zIndex = this.topZIndex;
         }
     }

@@ -13,7 +13,7 @@
     padding: 0 var(--spacing-1-5);
     gap: var(--spacing-1);
     box-shadow: var(--shadow-lg);
-    z-index: 2000;
+    z-index: var(--z-fixed);
 }
 
 #floating-toolbar .tool-btn {
@@ -55,7 +55,7 @@
     width: 100%;
     height: 100%;
     pointer-events: none;
-    z-index: 1900;
+    z-index: var(--z-panel);
 }
 
 .floating-panel {

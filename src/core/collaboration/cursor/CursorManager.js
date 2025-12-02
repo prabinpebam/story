@@ -256,7 +256,7 @@ export class CursorManager {
         element.style.cssText = `
             position: absolute;
             pointer-events: none;
-            z-index: 10000;
+            z-index: var(--z-collaboration, 9800);
             transform: translate(-2px, -2px);
             transition: opacity 0.2s ease;
         `;

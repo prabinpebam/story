@@ -656,7 +656,7 @@
    =========================================== */
 .dropdown-menu {
     position: fixed;
-    z-index: 10000;
+    z-index: var(--z-popover);
     background-color: var(--color-bg-elevated);
     border: 1px solid var(--color-border);
     border-radius: var(--radius-sm);
@@ -1230,7 +1230,7 @@
     right: 0;
     bottom: 0;
     background: rgba(0, 0, 0, 0.6);
-    z-index: 10002;
+    z-index: var(--z-popover-nested);
     display: flex;
     align-items: center;
     justify-content: center;

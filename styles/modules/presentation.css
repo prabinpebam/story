@@ -96,7 +96,7 @@ body.mode-presentation .code-canvas {
     width: 100%;
     height: 100%;
     pointer-events: none;
-    z-index: 9999;
+    z-index: var(--z-presentation);
     display: none;
 }
 
@@ -117,7 +117,7 @@ body.laser-active * {
     left: 0;
     width: 100vw;
     height: 100vh;
-    z-index: 10000; /* Above everything including laser */
+    z-index: var(--z-presentation-ui);
     pointer-events: auto; /* Block interactions */
     opacity: 1;
     transition: opacity 0.3s ease;
@@ -136,7 +136,7 @@ body.laser-active * {
     width: 100vw;
     height: 100vh;
     background-color: rgba(0, 0, 0, 0.9);
-    z-index: 10001; /* Above overlays */
+    z-index: calc(var(--z-presentation-ui) + 1);
     display: flex;
     flex-direction: column;
     padding: var(--spacing-10);
@@ -228,7 +228,7 @@ body.laser-active * {
     bottom: var(--spacing-8);
     left: 50%;
     transform: translateX(-50%);
-    z-index: 10002; /* Above everything */
+    z-index: calc(var(--z-presentation-ui) + 2);
     transition: var(--transition-normal);
 }
 

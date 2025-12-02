@@ -344,16 +344,56 @@
     
     /* -------------------------------------------------------------------------
        Z-INDEX SCALE
+       
+       7-Tier Layering Model:
+       - Tier 1: Base Content (0-999)
+       - Tier 2: Floating UI (1000-1200)
+       - Tier 3: Modals (1300-1400)
+       - Tier 4: Popovers (1500-1550)
+       - Tier 5: Tooltips (1600)
+       - Tier 6: Notifications (1700-1800)
+       - Tier 7: System Overlays (9000-10000)
+       
+       See: documentation/specs/design-system/z-index-strategy.md
        ------------------------------------------------------------------------- */
-    --z-base: 0;
-    --z-dropdown: 1000;
-    --z-sticky: 1100;
-    --z-fixed: 1200;
-    --z-modal-backdrop: 1300;
-    --z-modal: 1400;
-    --z-popover: 1500;
-    --z-tooltip: 1600;
-    --z-toast: 1700;
+    
+    /* Tier 1: Base Content (0-999) */
+    --z-base: 0;                        /* Default, background */
+    --z-canvas: 100;                    /* Canvas layer */
+    --z-canvas-overlay: 200;            /* Canvas selection, handles */
+    --z-local-elevated: 10;             /* Local elevation within component */
+    
+    /* Tier 2: Floating UI (1000-1200) */
+    --z-dropdown: 1000;                 /* Dropdown menus */
+    --z-panel: 1000;                    /* Base panel layer */
+    --z-panel-active: 1050;             /* Active/focused panel */
+    --z-sticky: 1100;                   /* Sticky headers */
+    --z-fixed: 1200;                    /* Fixed position elements */
+    
+    /* Tier 3: Modals (1300-1400) */
+    --z-modal-backdrop: 1300;           /* Modal overlay/backdrop */
+    --z-modal: 1400;                    /* Modal dialogs */
+    --z-modal-nested: 1450;             /* Nested modal (rare) */
+    
+    /* Tier 4: Popovers (1500-1550) */
+    --z-popover: 1500;                  /* Context menus, popovers */
+    --z-popover-nested: 1550;           /* Nested popover (color picker in flyout) */
+    
+    /* Tier 5: Tooltips (1600) */
+    --z-tooltip: 1600;                  /* Tooltips */
+    
+    /* Tier 6: Notifications (1700-1800) */
+    --z-toast: 1700;                    /* Toast notifications */
+    --z-notification: 1750;             /* System notifications */
+    --z-alert: 1800;                    /* Critical alerts */
+    
+    /* Tier 7: System Overlays (9000-10000) */
+    --z-system-overlay: 9000;           /* System-level overlays */
+    --z-presentation: 9500;             /* Presentation mode base */
+    --z-presentation-ui: 9600;          /* Presentation mode UI controls */
+    --z-collaboration: 9800;            /* Collaboration cursors */
+    --z-master-mode: 9900;              /* Master mode overlay */
+    --z-fullscreen: 10000;              /* Fullscreen/maximum overlay */
     
     /* -------------------------------------------------------------------------
        COMPONENT-SPECIFIC TOKENS
