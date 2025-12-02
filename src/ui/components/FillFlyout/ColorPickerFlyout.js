@@ -54,8 +54,17 @@ export class ColorPickerFlyout {
         const solidTab = new SolidTab({
             fill: { type: 'solid', color: this.color }, 
             onChange: (updates) => {
+                // Pass through the full updates object to preserve themeSlot info
+                // This enables gradient stops to support theme-linking in the future
                 if (updates.color) {
+                    // For backward compatibility, call onChange with the color string
+                    // But also call onColorChange if provided to get full update object
                     this.onChange(updates.color);
+                    
+                    // If the consumer provided an onColorChange callback, send full data
+                    if (this.options.onColorChange) {
+                        this.options.onColorChange(updates);
+                    }
                 }
             }
         });
