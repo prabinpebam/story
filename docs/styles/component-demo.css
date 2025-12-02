@@ -1,0 +1,490 @@
+/**
+ * Component Demo Styles
+ * 
+ * Styles for the interactive component showcase in documentation.
+ */
+
+/* =============================================================================
+   DEMO CONTAINER
+   ============================================================================= */
+
+.component-demo {
+    margin: var(--spacing-6) 0;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    background: var(--color-bg-secondary);
+    overflow: hidden;
+}
+
+.component-demo__header {
+    padding: var(--spacing-4);
+    border-bottom: 1px solid var(--color-border);
+    background: var(--color-bg-primary);
+}
+
+.component-demo__title {
+    margin: 0 0 var(--spacing-1) 0;
+    font-size: var(--font-size-md);
+    font-weight: var(--font-weight-semibold);
+    color: var(--color-text-primary);
+}
+
+.component-demo__description {
+    margin: 0;
+    font-size: var(--font-size-sm);
+    color: var(--color-text-secondary);
+    line-height: 1.5;
+}
+
+.component-demo__content {
+    padding: var(--spacing-5);
+    min-height: 60px;
+}
+
+/* =============================================================================
+   BUTTON DEMO LAYOUTS
+   ============================================================================= */
+
+.demo-button-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--spacing-3);
+    align-items: flex-start;
+}
+
+.demo-button-row--align-center {
+    align-items: center;
+}
+
+/* =============================================================================
+   INPUT DEMO LAYOUTS
+   ============================================================================= */
+
+.demo-input-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: var(--spacing-4);
+}
+
+.demo-transform-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: var(--spacing-2);
+}
+
+@media (max-width: 600px) {
+    .demo-transform-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+/* =============================================================================
+   SWITCH DEMO LAYOUTS
+   ============================================================================= */
+
+.demo-switch-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: var(--spacing-2);
+}
+
+/* =============================================================================
+   SLIDER DEMO LAYOUTS
+   ============================================================================= */
+
+.demo-slider-grid {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-4);
+    max-width: 400px;
+}
+
+/* =============================================================================
+   LABELED CONTROLS
+   ============================================================================= */
+
+.demo-labeled-control {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-2);
+}
+
+.demo-control-label {
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-medium);
+    color: var(--color-text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+/* =============================================================================
+   PROPERTY PANEL MOCK
+   ============================================================================= */
+
+.demo-property-panel {
+    max-width: 280px;
+    background: var(--color-bg-primary);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+}
+
+.demo-section {
+    padding: var(--spacing-3) var(--spacing-4);
+    border-bottom: 1px solid var(--color-border);
+}
+
+.demo-section:last-child {
+    border-bottom: none;
+}
+
+.demo-section-header {
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-semibold);
+    color: var(--color-text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: var(--spacing-3);
+}
+
+/* =============================================================================
+   TOAST NOTIFICATION
+   ============================================================================= */
+
+.demo-toast {
+    position: fixed;
+    bottom: var(--spacing-6);
+    left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    padding: var(--spacing-3) var(--spacing-4);
+    background: var(--color-bg-elevated);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-lg);
+    font-size: var(--font-size-sm);
+    color: var(--color-text-primary);
+    z-index: 10000;
+    opacity: 0;
+    transition: 
+        opacity var(--duration-normal) var(--ease-out),
+        transform var(--duration-normal) var(--ease-out);
+    pointer-events: none;
+}
+
+.demo-toast--visible {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+}
+
+/* =============================================================================
+   COMPONENT SHOWCASE PAGE
+   ============================================================================= */
+
+.component-showcase {
+    padding: var(--spacing-6);
+}
+
+.component-showcase__section {
+    margin-bottom: var(--spacing-8);
+}
+
+.component-showcase__section-title {
+    font-size: var(--font-size-xl);
+    font-weight: var(--font-weight-semibold);
+    color: var(--color-text-primary);
+    margin: 0 0 var(--spacing-4) 0;
+    padding-bottom: var(--spacing-2);
+    border-bottom: 2px solid var(--color-accent);
+}
+
+/* =============================================================================
+   INTERACTIVE DEMO BADGE
+   ============================================================================= */
+
+.demo-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--spacing-1);
+    padding: var(--spacing-1) var(--spacing-2);
+    background: var(--color-accent-subtle);
+    border: 1px solid var(--color-accent);
+    border-radius: var(--radius-sm);
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-medium);
+    color: var(--color-accent);
+}
+
+.demo-badge::before {
+    content: '●';
+    color: var(--color-success);
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}
+
+/* =============================================================================
+   SHOWCASE INTRO
+   ============================================================================= */
+
+.showcase-intro {
+    padding: var(--spacing-4);
+    background: var(--color-bg-tertiary);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    margin-bottom: var(--spacing-6);
+}
+
+.showcase-intro__title {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-2);
+    margin: 0 0 var(--spacing-2) 0;
+    font-size: var(--font-size-lg);
+    font-weight: var(--font-weight-semibold);
+    color: var(--color-text-primary);
+}
+
+.showcase-intro__description {
+    margin: 0;
+    font-size: var(--font-size-sm);
+    color: var(--color-text-secondary);
+    line-height: 1.6;
+}
+
+/* =============================================================================
+   COMPONENT STYLES (Property Inspector Input Styles)
+   ============================================================================= */
+
+.pi-input-group {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-1);
+}
+
+.pi-label {
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-medium);
+    color: var(--color-text-secondary);
+    cursor: ew-resize;
+    user-select: none;
+}
+
+.pi-input {
+    height: var(--control-size-md);
+    padding: 0 var(--spacing-2);
+    background: var(--color-bg-tertiary);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    font-family: var(--font-mono);
+    font-size: var(--font-size-sm);
+    color: var(--color-text-primary);
+    outline: none;
+    transition: border-color var(--duration-fast) var(--ease-out);
+}
+
+.pi-input:hover {
+    border-color: var(--color-border-hover);
+}
+
+.pi-input:focus {
+    border-color: var(--color-accent);
+}
+
+/* =============================================================================
+   DROPDOWN STYLES
+   ============================================================================= */
+
+.dropdown-container {
+    position: relative;
+}
+
+.dropdown-trigger {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    width: 100%;
+    cursor: pointer;
+}
+
+.dropdown-trigger.placeholder {
+    color: var(--color-text-tertiary);
+}
+
+.dropdown-arrow {
+    position: absolute;
+    right: var(--spacing-2);
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--color-text-tertiary);
+    pointer-events: none;
+}
+
+.dropdown-menu {
+    position: fixed;
+    background: var(--color-bg-elevated);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-lg);
+    z-index: 9999;
+    max-height: 240px;
+    overflow-y: auto;
+}
+
+.dropdown-item {
+    padding: var(--spacing-2) var(--spacing-3);
+    font-size: var(--font-size-sm);
+    color: var(--color-text-primary);
+    cursor: pointer;
+    transition: background-color var(--duration-fast) var(--ease-out);
+}
+
+.dropdown-item:hover {
+    background: var(--color-accent-subtle);
+}
+
+.dropdown-item.selected {
+    background: var(--color-accent);
+    color: var(--color-text-on-accent);
+}
+
+.dropdown-divider {
+    height: 1px;
+    background: var(--color-border);
+    margin: var(--spacing-1) 0;
+}
+
+/* =============================================================================
+   SLIDER CONTROL STYLES
+   ============================================================================= */
+
+.slider-control {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-3);
+    width: 100%;
+}
+
+.slider-control__label {
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-medium);
+    color: var(--color-text-secondary);
+    white-space: nowrap;
+    cursor: ew-resize;
+    user-select: none;
+    flex-shrink: 0;
+}
+
+.slider-control__label--active {
+    color: var(--color-accent);
+}
+
+.slider-control__track-container {
+    flex: 1;
+    height: 24px;
+    display: flex;
+    align-items: center;
+}
+
+.slider-control__track {
+    position: relative;
+    width: 100%;
+    height: 4px;
+    background: var(--color-bg-tertiary);
+    border-radius: var(--radius-full);
+    cursor: pointer;
+}
+
+.slider-control__fill {
+    position: absolute;
+    height: 100%;
+    background: var(--color-accent);
+    border-radius: var(--radius-full);
+}
+
+.slider-control__thumb {
+    position: absolute;
+    width: 12px;
+    height: 12px;
+    background: var(--color-accent);
+    border: 2px solid var(--color-bg-primary);
+    border-radius: var(--radius-full);
+    transform: translateX(-50%);
+    top: -4px;
+    cursor: grab;
+    box-shadow: var(--shadow-sm);
+    transition: transform var(--duration-fast) var(--ease-out);
+}
+
+.slider-control__thumb:hover {
+    transform: translateX(-50%) scale(1.1);
+}
+
+.slider-control__thumb--active {
+    cursor: grabbing;
+    transform: translateX(-50%) scale(1.2);
+}
+
+.slider-control__input {
+    width: 48px;
+    height: var(--control-size-md);
+    padding: 0 var(--spacing-1);
+    background: var(--color-bg-tertiary);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    font-family: var(--font-mono);
+    font-size: var(--font-size-sm);
+    color: var(--color-text-primary);
+    text-align: center;
+    outline: none;
+    flex-shrink: 0;
+    -moz-appearance: textfield;
+}
+
+.slider-control__input::-webkit-outer-spin-button,
+.slider-control__input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+.slider-control__input:focus {
+    border-color: var(--color-accent);
+}
+
+.slider-control--disabled {
+    opacity: var(--opacity-disabled);
+    pointer-events: none;
+}
+
+/* =============================================================================
+   CODE BLOCK WITH DEMO
+   ============================================================================= */
+
+.code-with-demo {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--spacing-4);
+    margin: var(--spacing-4) 0;
+}
+
+.code-with-demo__code {
+    overflow: auto;
+}
+
+.code-with-demo__preview {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--color-bg-secondary);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    padding: var(--spacing-4);
+}
+
+@media (max-width: 768px) {
+    .code-with-demo {
+        grid-template-columns: 1fr;
+    }
+}

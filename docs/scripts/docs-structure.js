@@ -21,11 +21,27 @@ export const DOCS_STRUCTURE = {
             title: 'Design System',
             icon: 'fa-solid fa-palette',
             items: [
-                { title: 'UI Design System', path: 'specs/design-system/ui-design-system.md', badge: 'Core' },
-                { title: 'Design System UX Guide', path: 'specs/design-system/design-system-ux-guide.md' },
-                { title: 'Color Theme Manager', path: 'specs/design-system/color-theme-manager.md' },
-                { title: 'Typography Style Manager', path: 'specs/design-system/typography-style-manager.md' },
-                { title: 'Theme Architecture', path: 'specs/design-system/theme-architecture.md' },
+                { title: 'Design System Overview', path: 'specs/design-system/design-system-overview.md', badge: 'Start Here' },
+                { title: 'Interactive Component Showcase', path: 'specs/design-system/interactive-component-showcase.md', badge: 'Interactive' },
+                { title: 'Design Tokens Reference', path: 'specs/design-system/design-tokens-reference.md', badge: 'Reference' },
+                { title: 'Component Library', path: 'specs/design-system/component-library.md', badge: 'Reference' },
+                { title: 'Interaction Patterns', path: 'specs/design-system/interaction-patterns.md' },
+                {
+                    title: 'Core Specifications',
+                    items: [
+                        { title: 'UI Design System', path: 'specs/design-system/ui-design-system.md' },
+                        { title: 'Design System UX Guide', path: 'specs/design-system/design-system-ux-guide.md' },
+                        { title: 'Theme Architecture', path: 'specs/design-system/theme-architecture.md' },
+                        { title: 'Linked Properties System', path: 'specs/design-system/linked-properties-system.md' },
+                    ]
+                },
+                {
+                    title: 'Theme & Style Managers',
+                    items: [
+                        { title: 'Color Theme Manager', path: 'specs/design-system/color-theme-manager.md' },
+                        { title: 'Typography Style Manager', path: 'specs/design-system/typography-style-manager.md' },
+                    ]
+                },
                 { title: 'Design Consistency Audit', path: 'specs/design-system/design-consistency-audit.md' },
             ]
         },

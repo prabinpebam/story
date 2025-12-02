@@ -15,6 +15,7 @@ import { DocsSearch } from './docs-search.js';
 import { MarkdownRenderer } from './markdown-renderer.js';
 import { TableOfContents } from './table-of-contents.js';
 import { DOCS_STRUCTURE } from './docs-structure.js';
+import { initComponentDemos, COMPONENT_DEMOS } from './component-demo.js';
 
 class DocsApp {
     constructor() {
@@ -182,6 +183,9 @@ class DocsApp {
             
             article.innerHTML = `<div class="article-content">${html}</div>`;
             
+            // Process component demos in the rendered content
+            this.processComponentDemos(article);
+            
             // Generate table of contents
             this.toc.generate(article, document.getElementById('toc-nav'));
             
@@ -225,6 +229,73 @@ class DocsApp {
         }
         
         return response.text();
+    }
+    
+    /**
+     * Process component demos embedded in the content
+     * Looks for special markers like :::demo button-variants:::
+     * and replaces them with interactive components
+     */
+    processComponentDemos(container) {
+        // Process code blocks that contain demo markers
+        const codeBlocks = container.querySelectorAll('code');
+        codeBlocks.forEach(code => {
+            const text = code.textContent.trim();
+            const demoMatch = text.match(/^:::demo\s+([\w-]+)\s*:::$/);
+            
+            if (demoMatch) {
+                const demoId = demoMatch[1];
+                const demo = COMPONENT_DEMOS[demoId];
+                
+                if (demo) {
+                    // Find the parent pre element and replace it
+                    const pre = code.closest('pre');
+                    if (pre) {
+                        const demoContainer = document.createElement('div');
+                        demoContainer.setAttribute('data-component-demo', demoId);
+                        pre.replaceWith(demoContainer);
+                        this.renderDemo(demoContainer, demo);
+                    }
+                }
+            }
+        });
+        
+        // Also process div elements with data-component-demo attribute
+        initComponentDemos();
+    }
+    
+    /**
+     * Render a single demo into a container
+     */
+    renderDemo(container, demo) {
+        container.innerHTML = '';
+        container.className = 'component-demo';
+        
+        // Header
+        if (demo.title) {
+            const header = document.createElement('div');
+            header.className = 'component-demo__header';
+            
+            const title = document.createElement('h4');
+            title.className = 'component-demo__title';
+            title.textContent = demo.title;
+            header.appendChild(title);
+            
+            if (demo.description) {
+                const desc = document.createElement('p');
+                desc.className = 'component-demo__description';
+                desc.textContent = demo.description;
+                header.appendChild(desc);
+            }
+            
+            container.appendChild(header);
+        }
+        
+        // Demo content
+        const content = document.createElement('div');
+        content.className = 'component-demo__content';
+        demo.render(content);
+        container.appendChild(content);
     }
 }
 
