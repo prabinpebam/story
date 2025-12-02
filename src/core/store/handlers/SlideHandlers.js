@@ -149,6 +149,11 @@ export function handleAddSlide(draft, payload) {
         width: 1920,
         height: 1080,
         background: null,
+        // Style Assignments - inherit from parent by default
+        styleAssignments: {
+            colorTheme: null,      // null = inherit from layout/master
+            typographyStyle: null  // null = inherit from layout/master
+        },
         elements: elements,
         elementOrder: elementOrder,
         notes: "",
@@ -191,7 +196,11 @@ export function handleDuplicateSlide(draft, payload) {
         id: dupId,
         title: `${sourceSlide.title} (Copy)`,
         elements: newElements,
-        elementOrder: [...sourceSlide.elementOrder]
+        elementOrder: [...sourceSlide.elementOrder],
+        // Copy styleAssignments (or initialize if missing)
+        styleAssignments: sourceSlide.styleAssignments 
+            ? { ...sourceSlide.styleAssignments }
+            : { colorTheme: null, typographyStyle: null }
     };
 
     const sourceIndex = draft.slideOrder.indexOf(sourceId);
@@ -217,7 +226,11 @@ export function handlePasteSlide(draft, payload) {
         id: pasteDupId,
         title: `${pasteSourceSlide.title} (Copy)`,
         elements: pasteNewElements,
-        elementOrder: [...pasteSourceSlide.elementOrder]
+        elementOrder: [...pasteSourceSlide.elementOrder],
+        // Copy styleAssignments (or initialize if missing)
+        styleAssignments: pasteSourceSlide.styleAssignments 
+            ? { ...pasteSourceSlide.styleAssignments }
+            : { colorTheme: null, typographyStyle: null }
     };
 
     const pasteTargetIndex = draft.slideOrder.indexOf(pasteTargetId);
@@ -251,3 +264,27 @@ export function handleUpdateSlide(draft, payload) {
     }
 }
 
+/**
+ * Update style assignments for a slide.
+ * Used to override or clear theme/typography assignments at the slide level.
+ * 
+ * @param {Object} draft - Immer draft
+ * @param {Object} payload - { slideId, styleAssignments: { colorTheme?, typographyStyle? }}
+ */
+export function handleUpdateSlideStyleAssignments(draft, payload) {
+    const { slideId, styleAssignments } = payload;
+    const slide = draft.slides[slideId];
+    
+    if (!slide) return;
+    
+    // Initialize styleAssignments if not present (for legacy slides)
+    if (!slide.styleAssignments) {
+        slide.styleAssignments = {
+            colorTheme: null,
+            typographyStyle: null
+        };
+    }
+    
+    // Merge the new style assignments
+    Object.assign(slide.styleAssignments, styleAssignments);
+}

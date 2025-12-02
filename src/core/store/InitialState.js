@@ -11,6 +11,16 @@ export const DEFAULT_MASTERS = {
         background: { type: "solid", value: "var(--theme-background1, #FFFFFF)" },
         elements: {},
         elementOrder: [],
+        // Style Assignments - Cascading Style System
+        // null = use defaults, non-null = explicit override
+        // colorTheme: references lumaTheme in themeSettings
+        // colorMode: 'light' or 'dark'
+        // typographyStyle: references typographyStyles (future)
+        styleAssignments: {
+            colorTheme: null,      // null means use lumaTheme from themeSettings
+            colorMode: 'dark',     // Default to dark mode
+            typographyStyle: null  // Future: typography style system
+        },
         themeSettings: {
             colors: {
                 // Background Colors - Clean and professional
@@ -163,6 +173,11 @@ export const DEFAULT_MASTERS = {
         parentId: "theme-default",
         name: "Title Slide",
         background: null,
+        // Style Assignments - null = inherit from parent theme master
+        styleAssignments: {
+            colorTheme: null,
+            typographyStyle: null
+        },
         elements: {
             "placeholder-title": {
                 id: "placeholder-title",
@@ -197,6 +212,10 @@ export const DEFAULT_MASTERS = {
         parentId: "theme-default",
         name: "Title and Content",
         background: null,
+        styleAssignments: {
+            colorTheme: null,
+            typographyStyle: null
+        },
         elements: {
             "placeholder-title": {
                 id: "placeholder-title",
@@ -231,6 +250,10 @@ export const DEFAULT_MASTERS = {
         parentId: "theme-default",
         name: "Section Header",
         background: null,
+        styleAssignments: {
+            colorTheme: null,
+            typographyStyle: null
+        },
         elements: {
             "placeholder-title": {
                 id: "placeholder-title",
@@ -265,6 +288,10 @@ export const DEFAULT_MASTERS = {
         parentId: "theme-default",
         name: "Two Column",
         background: null,
+        styleAssignments: {
+            colorTheme: null,
+            typographyStyle: null
+        },
         elements: {
             "placeholder-title": {
                 id: "placeholder-title",
@@ -310,6 +337,10 @@ export const DEFAULT_MASTERS = {
         parentId: "theme-default",
         name: "Comparison",
         background: null,
+        styleAssignments: {
+            colorTheme: null,
+            typographyStyle: null
+        },
         elements: {
             "placeholder-title": {
                 id: "placeholder-title",
@@ -376,6 +407,10 @@ export const DEFAULT_MASTERS = {
         parentId: "theme-default",
         name: "Title Only",
         background: null,
+        styleAssignments: {
+            colorTheme: null,
+            typographyStyle: null
+        },
         elements: {
             "placeholder-title": {
                 id: "placeholder-title",
@@ -398,6 +433,10 @@ export const DEFAULT_MASTERS = {
         parentId: "theme-default",
         name: "Blank",
         background: null,
+        styleAssignments: {
+            colorTheme: null,
+            typographyStyle: null
+        },
         elements: {},
         elementOrder: []
     },
@@ -409,6 +448,10 @@ export const DEFAULT_MASTERS = {
         parentId: "theme-default",
         name: "Content with Caption",
         background: null,
+        styleAssignments: {
+            colorTheme: null,
+            typographyStyle: null
+        },
         elements: {
             "placeholder-title": {
                 id: "placeholder-title",
@@ -454,6 +497,10 @@ export const DEFAULT_MASTERS = {
         parentId: "theme-default",
         name: "Picture with Caption",
         background: null,
+        styleAssignments: {
+            colorTheme: null,
+            typographyStyle: null
+        },
         elements: {
             "placeholder-title": {
                 id: "placeholder-title",
@@ -499,6 +546,10 @@ export const DEFAULT_MASTERS = {
         parentId: "theme-default",
         name: "Quote",
         background: null,
+        styleAssignments: {
+            colorTheme: null,
+            typographyStyle: null
+        },
         elements: {
             "placeholder-quote": {
                 id: "placeholder-quote",
@@ -533,6 +584,10 @@ export const DEFAULT_MASTERS = {
         parentId: "theme-default",
         name: "Big Number",
         background: null,
+        styleAssignments: {
+            colorTheme: null,
+            typographyStyle: null
+        },
         elements: {
             "placeholder-label": {
                 id: "placeholder-label",
@@ -578,6 +633,10 @@ export const DEFAULT_MASTERS = {
         parentId: "theme-default",
         name: "Three Column",
         background: null,
+        styleAssignments: {
+            colorTheme: null,
+            typographyStyle: null
+        },
         elements: {
             "placeholder-title": {
                 id: "placeholder-title",
@@ -695,6 +754,13 @@ export function createInitialState() {
                 width: 1920,
                 height: 1080,
                 background: null, // Inherit from layout/theme
+                // Style Assignments - Cascading Style System
+                // null = inherit from parent (layout/master)
+                // non-null = explicit override for this slide
+                styleAssignments: {
+                    colorTheme: null,      // null = inherit from layout/master
+                    typographyStyle: null  // null = inherit from layout/master
+                },
                 elements: {
                     // Instantiate placeholders so they are editable
                     "placeholder-title": { 

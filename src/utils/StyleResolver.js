@@ -1,7 +1,190 @@
 import { store } from '../core/Store.js';
 import { getEffectiveSlotIndex, COLOR_MODES } from '../ui/panels/color-theme/ColorThemeUtils.js';
 
+/**
+ * StyleResolver - Resolves style tokens through the cascade hierarchy
+ * 
+ * This is the SINGLE SOURCE OF TRUTH for style resolution.
+ * All UI components and renderers go through this service.
+ * 
+ * The cascade hierarchy: Master → Layout → Slide → Element
+ * 
+ * Designed to be reusable for both Color Themes and Typography Styles.
+ */
 export const StyleResolver = {
+
+    // ============================================
+    // CASCADING STYLE SYSTEM
+    // ============================================
+
+    /**
+     * Get the effective color theme for a slide by walking up the hierarchy.
+     * Hierarchy: Slide → Layout Master → Theme Master
+     * 
+     * @param {string} slideId - The slide ID to resolve theme for
+     * @returns {{themeId: string|null, source: 'slide'|'layout'|'master', sourceId: string, sourceLabel: string}}
+     */
+    getEffectiveColorTheme(slideId) {
+        const state = store.getState();
+        const slide = state.slides?.[slideId];
+        
+        if (!slide) {
+            // No slide found - return master default
+            return this._getMasterThemeInfo(state);
+        }
+        
+        // 1. Check slide's own styleAssignments
+        if (slide.styleAssignments?.colorTheme) {
+            return {
+                themeId: slide.styleAssignments.colorTheme,
+                source: 'slide',
+                sourceId: slideId,
+                sourceLabel: 'slide-specific'
+            };
+        }
+        
+        // 2. Check layout master
+        const layout = slide.layoutId ? state.masters?.[slide.layoutId] : null;
+        if (layout?.styleAssignments?.colorTheme) {
+            return {
+                themeId: layout.styleAssignments.colorTheme,
+                source: 'layout',
+                sourceId: layout.id,
+                sourceLabel: `inherited from ${layout.name || 'Layout'}`
+            };
+        }
+        
+        // 3. Check theme master (parent of layout)
+        const themeMaster = layout?.parentId ? state.masters?.[layout.parentId] : null;
+        if (themeMaster?.styleAssignments?.colorTheme) {
+            return {
+                themeId: themeMaster.styleAssignments.colorTheme,
+                source: 'master',
+                sourceId: themeMaster.id,
+                sourceLabel: 'inherited from Master'
+            };
+        }
+        
+        // 4. Fallback: Find theme master with lumaTheme
+        return this._getMasterThemeInfo(state);
+    },
+    
+    /**
+     * Get theme info from master level (fallback)
+     * @private
+     */
+    _getMasterThemeInfo(state) {
+        const themeMaster = Object.values(state.masters || {}).find(m => m.type === 'theme');
+        const themeId = themeMaster?.styleAssignments?.colorTheme || 
+                       (themeMaster?.themeSettings?.lumaTheme ? 'default' : null);
+        
+        return {
+            themeId,
+            source: 'master',
+            sourceId: themeMaster?.id || 'theme-default',
+            sourceLabel: 'inherited from Master'
+        };
+    },
+    
+    /**
+     * Get the effective color mode (light/dark).
+     * Color mode is only set at master level.
+     * 
+     * @returns {string} 'light' or 'dark'
+     */
+    getColorMode() {
+        const state = store.getState();
+        const themeMaster = Object.values(state.masters || {}).find(m => m.type === 'theme');
+        
+        // Check styleAssignments first
+        if (themeMaster?.styleAssignments?.colorMode) {
+            return themeMaster.styleAssignments.colorMode;
+        }
+        
+        // Fallback to lumaTheme colorMode
+        return themeMaster?.themeSettings?.lumaTheme?.colorMode || COLOR_MODES.LIGHT;
+    },
+    
+    /**
+     * Get the lumaTheme object for a given slide.
+     * Resolves through the cascade hierarchy.
+     * 
+     * @param {string} slideId - The slide ID (optional, uses active slide if not provided)
+     * @returns {Object|null} The lumaTheme object
+     */
+    getLumaTheme(slideId = null) {
+        const state = store.getState();
+        
+        // If no slideId, try to get active slide
+        if (!slideId) {
+            slideId = state.editor?.activeSlideId;
+        }
+        
+        // For now, lumaTheme is stored at master level only
+        // In the future, we could support per-slide lumaTheme overrides
+        const themeMaster = Object.values(state.masters || {}).find(m => m.type === 'theme');
+        return themeMaster?.themeSettings?.lumaTheme || null;
+    },
+    
+    /**
+     * Get full theme info for UI display (e.g., Fill Panel)
+     * 
+     * @param {string} slideId - The slide ID
+     * @returns {{lumaTheme: Object, source: string, sourceId: string, sourceLabel: string, isInherited: boolean}}
+     */
+    getThemeInfoForSlide(slideId) {
+        const themeInfo = this.getEffectiveColorTheme(slideId);
+        const lumaTheme = this.getLumaTheme(slideId);
+        const colorMode = this.getColorMode();
+        
+        return {
+            lumaTheme,
+            colorMode,
+            source: themeInfo.source,
+            sourceId: themeInfo.sourceId,
+            sourceLabel: themeInfo.sourceLabel,
+            isInherited: themeInfo.source !== 'slide'
+        };
+    },
+    
+    /**
+     * Check if multiple slides have the same effective theme.
+     * Used for multi-slide selection UI.
+     * 
+     * @param {string[]} slideIds - Array of slide IDs
+     * @returns {{sameTheme: boolean, themeInfo: Object|null}}
+     */
+    checkThemeConsistency(slideIds) {
+        if (!slideIds || slideIds.length === 0) {
+            return { sameTheme: true, themeInfo: null };
+        }
+        
+        const firstTheme = this.getEffectiveColorTheme(slideIds[0]);
+        const firstLumaTheme = this.getLumaTheme(slideIds[0]);
+        
+        for (let i = 1; i < slideIds.length; i++) {
+            const currentTheme = this.getEffectiveColorTheme(slideIds[i]);
+            // Compare by source hierarchy, not just themeId
+            // Different sources with same underlying theme is still consistent
+            if (currentTheme.source !== firstTheme.source || 
+                currentTheme.sourceId !== firstTheme.sourceId) {
+                return { sameTheme: false, themeInfo: null };
+            }
+        }
+        
+        return { 
+            sameTheme: true, 
+            themeInfo: {
+                ...firstTheme,
+                lumaTheme: firstLumaTheme
+            }
+        };
+    },
+
+    // ============================================
+    // SLOT RESOLUTION (with slide context)
+    // ============================================
+
     /**
      * Resolves a theme slot index to an actual hex color value.
      * Uses the current theme's lumaTheme slots.
@@ -12,17 +195,17 @@ export const StyleResolver = {
      * 
      * @param {number} slotIndex - The 0-based slot index (0-11)
      * @param {string} fallback - Fallback color if slot not found
+     * @param {string} slideId - Optional slide ID for context-aware resolution
      * @returns {string} The hex color value
      */
-    resolveThemeSlot(slotIndex, fallback = '#000000') {
+    resolveThemeSlot(slotIndex, fallback = '#000000', slideId = null) {
         if (slotIndex === undefined || slotIndex === null) return fallback;
         
-        const state = store.getState();
-        const themeMaster = Object.values(state.masters).find(m => m.type === 'theme');
-        const lumaTheme = themeMaster?.themeSettings?.lumaTheme;
+        // Get the lumaTheme (currently at master level)
+        const lumaTheme = this.getLumaTheme(slideId);
         
-        // Get the color mode (defaults to 'light')
-        const colorMode = lumaTheme?.colorMode || COLOR_MODES.LIGHT;
+        // Get the color mode
+        const colorMode = this.getColorMode();
         
         // Map the slot index based on color mode
         // In dark mode, this will flip shadow/highlight clusters
@@ -46,16 +229,63 @@ export const StyleResolver = {
     },
 
     /**
+     * Resolves a fill object - returns fill with resolved value.
+     * Handles both solid fills and gradient fills with theme slot references.
+     * 
+     * @param {Object} fill - The fill object
+     * @param {string} slideId - Optional slide ID for context-aware resolution
+     * @returns {Object} The fill object with resolved value
+     */
+    resolveFill(fill, slideId = null) {
+        if (!fill) return null;
+        
+        // Theme-linked solid fill
+        if (fill.type === 'solid' && fill.themeSlot !== null && fill.themeSlot !== undefined) {
+            const resolvedColor = this.resolveThemeSlot(fill.themeSlot, fill.value, slideId);
+            return {
+                ...fill,
+                value: resolvedColor,
+                cssVar: `var(--theme-slot${fill.themeSlot + 1})`,
+                // Preserve the themeSlot reference so we know it's theme-linked
+                themeSlot: fill.themeSlot
+            };
+        }
+        
+        // Gradient fill - resolve each stop
+        if (fill.type === 'gradient' && fill.stops) {
+            const resolvedStops = fill.stops.map(stop => {
+                if (stop.themeSlot !== null && stop.themeSlot !== undefined) {
+                    const resolvedColor = this.resolveThemeSlot(stop.themeSlot, stop.color, slideId);
+                    return {
+                        ...stop,
+                        color: resolvedColor,
+                        themeSlot: stop.themeSlot
+                    };
+                }
+                return stop;
+            });
+            return {
+                ...fill,
+                stops: resolvedStops
+            };
+        }
+        
+        // Custom fill - return as-is
+        return fill;
+    },
+
+    /**
      * Resolves a textFill object that may contain a themeSlot reference.
      * Returns a fill object with the actual hex value resolved.
      * @param {Object} fill - The textFill object
+     * @param {string} slideId - Optional slide ID for context-aware resolution
      * @returns {Object} The fill object with resolved value
      */
-    resolveTextFill(fill) {
+    resolveTextFill(fill, slideId = null) {
         if (!fill) return { type: 'solid', value: '#000000' };
         
         if (fill.type === 'solid' && fill.themeSlot !== undefined && fill.themeSlot !== null) {
-            const resolvedColor = this.resolveThemeSlot(fill.themeSlot, fill.value);
+            const resolvedColor = this.resolveThemeSlot(fill.themeSlot, fill.value, slideId);
             return {
                 ...fill,
                 value: resolvedColor,

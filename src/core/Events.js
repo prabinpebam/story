@@ -41,3 +41,25 @@ export class EventEmitter {
 
 // Singleton instance for global app events
 export const appEvents = new EventEmitter();
+
+/**
+ * Style System Events
+ * Events fired when styles change in the cascading style system.
+ * Used by UI components and renderers to respond to style updates.
+ */
+export const STYLE_EVENTS = {
+    // Theme definition changed (colors edited in Color Theme Manager)
+    THEME_UPDATED: 'style:theme-updated',
+    
+    // Theme assignment changed (slide/layout now uses different theme)
+    THEME_ASSIGNMENT_CHANGED: 'style:theme-assignment-changed',
+    
+    // Color mode changed (light ↔ dark)
+    COLOR_MODE_CHANGED: 'style:color-mode-changed',
+    
+    // Typography definition changed
+    TYPOGRAPHY_UPDATED: 'style:typography-updated',
+    
+    // Typography assignment changed
+    TYPOGRAPHY_ASSIGNMENT_CHANGED: 'style:typography-assignment-changed'
+};
