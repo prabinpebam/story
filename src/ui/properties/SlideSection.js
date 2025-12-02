@@ -13,6 +13,7 @@ import { ThemeSwatches } from '../components/ThemeSwatches.js';
 import { SLIDE_MASTER_PRESETS, getPresetById, getPresetList, getFullPresetById } from '../../core/store/SlideMasterPresets.js';
 import { THEME_PRESETS } from '../panels/color-theme/ThemePresets.js';
 import { applyThemeToCSSVariables, COLOR_MODES } from '../panels/color-theme/ColorThemeUtils.js';
+import { StyleResolver } from '../../utils/StyleResolver.js';
 
 export class SlideSection {
     constructor() {
@@ -156,7 +157,7 @@ export class SlideSection {
         this.colorThemeName.textContent = 'Default';
         headerRow.appendChild(this.colorThemeName);
 
-        // Inheritance badge
+        // Inheritance badge (cascade-aware)
         this.colorBadge = document.createElement('span');
         this.colorBadge.className = 'theme-detail-badge';
         headerRow.appendChild(this.colorBadge);
@@ -172,7 +173,7 @@ export class SlideSection {
         });
         headerRow.appendChild(colorEditBtn.element);
 
-        // Reset button
+        // Reset button (clears styleAssignments.colorTheme)
         this.colorResetBtn = new Button({
             icon: '<i class="fa-solid fa-arrow-rotate-left"></i>',
             variant: 'text',
@@ -184,6 +185,27 @@ export class SlideSection {
         headerRow.appendChild(this.colorResetBtn.element);
 
         container.appendChild(headerRow);
+
+        // Theme source indicator row (shows where the theme comes from in cascade)
+        const sourceRow = document.createElement('div');
+        sourceRow.className = 'theme-source-row';
+        sourceRow.style.cssText = `
+            font-size: var(--font-size-xs);
+            color: var(--color-text-tertiary);
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-1);
+            margin-bottom: var(--spacing-2);
+        `;
+        
+        this.themeSourceIcon = document.createElement('span');
+        this.themeSourceIcon.style.fontSize = '10px';
+        sourceRow.appendChild(this.themeSourceIcon);
+        
+        this.themeSourceLabel = document.createElement('span');
+        sourceRow.appendChild(this.themeSourceLabel);
+        
+        container.appendChild(sourceRow);
 
         // Mode toggle row (Light ☀️ / Dark 🌙)
         const modeRow = document.createElement('div');
@@ -214,10 +236,11 @@ export class SlideSection {
         container.appendChild(modeRow);
 
         // Use ThemeSwatches component for luma-locked 12-slot display
-        // Read-only display (no color selection callback)
+        // Now cascade-aware - will show theme from the correct cascade level
         this.themeSwatchesComponent = new ThemeSwatches({
             onColorSelect: () => {}, // No-op for display-only in SlideSection
             showThemeName: false, // We show the name in the header row
+            showThemeSource: false, // We show source in our own row
             columns: 6
         });
         container.appendChild(this.themeSwatchesComponent.element);
@@ -343,35 +366,78 @@ export class SlideSection {
         const themeMaster = Object.values(state.masters).find(m => m.type === 'theme');
         if (!themeMaster || !themeMaster.themeSettings) return;
 
-        // Get luma theme (new 12-slot system)
-        const lumaTheme = themeMaster.themeSettings.lumaTheme || null;
+        // Use cascade-aware StyleResolver to get theme info
+        const mode = state.editor.mode;
+        let themeInfo;
+        
+        if (mode === 'master') {
+            // For masters, we show the master's own theme (no cascade)
+            const lumaTheme = themeMaster.themeSettings.lumaTheme || null;
+            themeInfo = {
+                lumaTheme,
+                source: 'master',
+                sourceLabel: 'Master theme',
+                isInherited: false
+            };
+        } else {
+            // For slides, use cascade-aware resolution
+            const slideId = state.editor.activeSlideId;
+            themeInfo = StyleResolver.getThemeInfoForSlide(slideId);
+        }
+
         const themeFonts = themeMaster.themeSettings.fonts || {};
 
-        // Check if slide has overrides
-        const hasColorOverride = currentObject.colorOverride !== undefined;
+        // Check if slide has style assignment override (cascade-aware)
+        const hasColorOverride = mode !== 'master' && 
+            currentObject.styleAssignments?.colorTheme !== undefined && 
+            currentObject.styleAssignments?.colorTheme !== null;
         const hasTypoOverride = currentObject.typographyOverride !== undefined;
 
-        // Update Colors Section with luma theme
-        this.updateColorsSectionDisplay(lumaTheme, hasColorOverride);
+        // Update Colors Section with cascade-aware theme info
+        this.updateColorsSectionDisplay(themeInfo, hasColorOverride);
 
         // Update Typography Section
         this.updateTypographySectionDisplay(themeFonts, hasTypoOverride);
     }
 
-    updateColorsSectionDisplay(lumaTheme, isOverride) {
+    updateColorsSectionDisplay(themeInfo, isOverride) {
+        const lumaTheme = themeInfo?.lumaTheme;
+        
         // Update theme name from luma theme
         const themeName = lumaTheme?.name || 'Default';
         this.colorThemeName.textContent = themeName;
 
-        // Update badge
+        // Update badge based on cascade source
         if (isOverride) {
             this.colorBadge.textContent = 'Override';
             this.colorBadge.className = 'theme-detail-badge override';
             this.colorResetBtn.element.style.display = 'flex';
-        } else {
+        } else if (themeInfo?.isInherited) {
             this.colorBadge.textContent = 'Inherited';
             this.colorBadge.className = 'theme-detail-badge inherited';
             this.colorResetBtn.element.style.display = 'none';
+        } else {
+            this.colorBadge.textContent = '';
+            this.colorBadge.className = 'theme-detail-badge';
+            this.colorResetBtn.element.style.display = 'none';
+        }
+
+        // Update source indicator (cascade info)
+        if (this.themeSourceIcon && this.themeSourceLabel) {
+            if (themeInfo?.isInherited) {
+                this.themeSourceIcon.textContent = '↑';
+                this.themeSourceIcon.style.color = 'var(--color-text-tertiary)';
+                this.themeSourceLabel.textContent = themeInfo.sourceLabel || 'from Master';
+                this.themeSourceLabel.style.color = 'var(--color-text-tertiary)';
+            } else if (isOverride) {
+                this.themeSourceIcon.textContent = '◆';
+                this.themeSourceIcon.style.color = 'var(--color-accent)';
+                this.themeSourceLabel.textContent = 'slide-specific';
+                this.themeSourceLabel.style.color = 'var(--color-accent)';
+            } else {
+                this.themeSourceIcon.textContent = '';
+                this.themeSourceLabel.textContent = '';
+            }
         }
 
         // Update mode toggle to reflect current color mode
@@ -391,7 +457,13 @@ export class SlideSection {
             });
         }
 
-        // ThemeSwatches component auto-updates from store, no manual update needed
+        // ThemeSwatches component auto-updates from store via StyleResolver
+        // Update its slideId to ensure cascade context is correct
+        if (this.themeSwatchesComponent) {
+            const state = store.getState();
+            const slideId = state.editor.mode === 'master' ? null : state.editor.activeSlideId;
+            this.themeSwatchesComponent.setSlideId(slideId);
+        }
     }
 
     updateTypographySectionDisplay(fonts, isOverride) {
@@ -440,10 +512,22 @@ export class SlideSection {
     resetColors() {
         const state = store.getState();
         const mode = state.editor.mode;
-        const action = mode === 'master' ? 'UPDATE_MASTER' : 'UPDATE_SLIDE';
-        const id = mode === 'master' ? state.editor.activeMasterId : state.editor.activeSlideId;
         
-        store.dispatch(action, { id, colorOverride: undefined });
+        if (mode === 'master') {
+            // For masters, clear colorOverride (legacy behavior)
+            const id = state.editor.activeMasterId;
+            store.dispatch('UPDATE_MASTER', { id, colorOverride: undefined });
+        } else {
+            // For slides, use the cascade-aware style assignment system
+            const slideId = state.editor.activeSlideId;
+            store.dispatch('UPDATE_SLIDE_STYLE_ASSIGNMENTS', {
+                slideId,
+                styleAssignments: {
+                    colorTheme: null // null = inherit from cascade
+                }
+            });
+        }
+        
         this.updateThemeDisplay();
     }
 
