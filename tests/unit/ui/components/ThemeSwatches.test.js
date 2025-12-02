@@ -1,13 +1,67 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 
+// Default test state
+const defaultMockState = {
+    editor: { 
+        activeMasterId: 'theme-default',
+        activeSlideId: 'slide-1'
+    },
+    masters: {
+        'theme-default': {
+            id: 'theme-default',
+            themeSettings: {
+                lumaTheme: {
+                    id: 'preset_neutral',
+                    name: 'Neutral',
+                    resolvedColors: [
+                        '#0d0d0d', '#1a1a1a', '#2e2e2e', '#404040',
+                        '#595959', '#737373', '#8c8c8c', '#a6a6a6',
+                        '#b3b3b3', '#cccccc', '#e6e6e6', '#f8f8f8'
+                    ]
+                }
+            },
+            styleAssignments: {
+                colorTheme: null,
+                colorMode: 'dark',
+                typographyStyle: null
+            }
+        }
+    },
+    layouts: {
+        'layout-title-slide': {
+            id: 'layout-title-slide',
+            masterId: 'theme-default',
+            styleAssignments: {
+                colorTheme: null,
+                typographyStyle: null
+            }
+        }
+    },
+    slides: {
+        'slide-1': {
+            id: 'slide-1',
+            layoutId: 'layout-title-slide',
+            masterId: 'theme-default',
+            styleAssignments: {
+                colorTheme: null,
+                typographyStyle: null
+            }
+        }
+    }
+};
+
 // Mock dependencies before imports
 vi.mock('../../../../src/core/Store.js', () => ({
     store: {
         dispatch: vi.fn(),
         getState: vi.fn(() => ({
-            editor: { activeMasterId: 'theme-default' },
+            editor: { 
+                activeMasterId: 'theme-default',
+                activeSlideId: 'slide-1'
+            },
             masters: {
                 'theme-default': {
+                    id: 'theme-default',
                     themeSettings: {
                         lumaTheme: {
                             id: 'preset_neutral',
@@ -18,7 +72,20 @@ vi.mock('../../../../src/core/Store.js', () => ({
                                 '#b3b3b3', '#cccccc', '#e6e6e6', '#f8f8f8'
                             ]
                         }
+                    },
+                    styleAssignments: {
+                        colorTheme: null,
+                        colorMode: 'dark',
+                        typographyStyle: null
                     }
+                }
+            },
+            layouts: {},
+            slides: {
+                'slide-1': {
+                    id: 'slide-1',
+                    masterId: 'theme-default',
+                    styleAssignments: { colorTheme: null }
                 }
             }
         })),
@@ -27,8 +94,46 @@ vi.mock('../../../../src/core/Store.js', () => ({
     }
 }));
 
+// Mock StyleResolver to return cascade-aware theme info
+vi.mock('../../../../src/utils/StyleResolver.js', () => ({
+    StyleResolver: {
+        getThemeInfoForSlide: vi.fn(() => ({
+            lumaTheme: {
+                id: 'preset_neutral',
+                name: 'Neutral',
+                resolvedColors: [
+                    '#0d0d0d', '#1a1a1a', '#2e2e2e', '#404040',
+                    '#595959', '#737373', '#8c8c8c', '#a6a6a6',
+                    '#b3b3b3', '#cccccc', '#e6e6e6', '#f8f8f8'
+                ]
+            },
+            source: 'master',
+            sourceLabel: 'from Master',
+            isInherited: true
+        })),
+        getEffectiveColorTheme: vi.fn()
+    }
+}));
+
 import { ThemeSwatches } from '../../../../src/ui/components/ThemeSwatches.js';
 import { store } from '../../../../src/core/Store.js';
+import { StyleResolver } from '../../../../src/utils/StyleResolver.js';
+
+// Default theme info to return from StyleResolver mock
+const defaultThemeInfo = {
+    lumaTheme: {
+        id: 'preset_neutral',
+        name: 'Neutral',
+        resolvedColors: [
+            '#0d0d0d', '#1a1a1a', '#2e2e2e', '#404040',
+            '#595959', '#737373', '#8c8c8c', '#a6a6a6',
+            '#b3b3b3', '#cccccc', '#e6e6e6', '#f8f8f8'
+        ]
+    },
+    source: 'master',
+    sourceLabel: 'from Master',
+    isInherited: true
+};
 
 describe('ThemeSwatches', () => {
     let container;
@@ -37,6 +142,9 @@ describe('ThemeSwatches', () => {
         vi.clearAllMocks();
         container = document.createElement('div');
         document.body.appendChild(container);
+        
+        // Reset StyleResolver mock to return default theme info
+        StyleResolver.getThemeInfoForSlide.mockReturnValue(defaultThemeInfo);
     });
 
     afterEach(() => {
@@ -142,8 +250,12 @@ describe('ThemeSwatches', () => {
         });
 
         it('returns fallback grayscale colors when no theme', () => {
-            store.getState.mockReturnValue({
-                masters: {}
+            // When there's no theme, StyleResolver returns null lumaTheme
+            StyleResolver.getThemeInfoForSlide.mockReturnValue({
+                lumaTheme: null,
+                source: null,
+                sourceLabel: 'No theme',
+                isInherited: false
             });
             
             const swatches = new ThemeSwatches();
@@ -213,28 +325,24 @@ describe('ThemeSwatches', () => {
             container.appendChild(swatches.element);
             
             const label = swatches.element.querySelector('.swatch-section-label');
-            // The label will show theme name from lumaTheme.name, or 'Default' as fallback
-            // The test mock may not fully match the real path, so accept either
-            expect(['Neutral', 'Default']).toContain(label.textContent);
+            // The label will show theme name from lumaTheme.name
+            expect(label.textContent).toBe('Neutral');
         });
 
         it('updates theme name on state change', () => {
             const swatches = new ThemeSwatches();
             container.appendChild(swatches.element);
             
-            // Trigger state change
-            store.getState.mockReturnValue({
-                masters: {
-                    'theme-default': {
-                        themeSettings: {
-                            lumaTheme: {
-                                id: 'preset_ocean',
-                                name: 'Ocean',
-                                resolvedColors: Array(12).fill('#0000ff')
-                            }
-                        }
-                    }
-                }
+            // Update StyleResolver mock to return the new theme
+            StyleResolver.getThemeInfoForSlide.mockReturnValue({
+                lumaTheme: {
+                    id: 'preset_ocean',
+                    name: 'Ocean',
+                    resolvedColors: Array(12).fill('#0000ff')
+                },
+                source: 'master',
+                sourceLabel: 'from Master',
+                isInherited: true
             });
             
             swatches.updateSwatches();
@@ -399,6 +507,92 @@ describe('ThemeSwatches', () => {
             
             const firstSwatch = swatches.swatchGrid.querySelector('.swatch');
             expect(firstSwatch.type).toBe('button');
+        });
+    });
+
+    describe('cascade-aware theme source', () => {
+        it('shows inherited indicator when theme comes from master', () => {
+            StyleResolver.getThemeInfoForSlide.mockReturnValue({
+                lumaTheme: defaultThemeInfo.lumaTheme,
+                source: 'master',
+                sourceLabel: 'from Master',
+                isInherited: true
+            });
+            
+            const swatches = new ThemeSwatches({ showThemeSource: true });
+            container.appendChild(swatches.element);
+            
+            const sourceIndicator = swatches.element.querySelector('.theme-source-indicator');
+            expect(sourceIndicator).toBeDefined();
+            expect(sourceIndicator.textContent).toContain('from Master');
+        });
+
+        it('shows inherited indicator when theme comes from layout', () => {
+            StyleResolver.getThemeInfoForSlide.mockReturnValue({
+                lumaTheme: defaultThemeInfo.lumaTheme,
+                source: 'layout',
+                sourceLabel: 'from Layout',
+                isInherited: true
+            });
+            
+            const swatches = new ThemeSwatches({ showThemeSource: true });
+            container.appendChild(swatches.element);
+            
+            const sourceIndicator = swatches.element.querySelector('.theme-source-indicator');
+            expect(sourceIndicator.textContent).toContain('from Layout');
+        });
+
+        it('shows slide-specific indicator when theme is directly assigned', () => {
+            StyleResolver.getThemeInfoForSlide.mockReturnValue({
+                lumaTheme: defaultThemeInfo.lumaTheme,
+                source: 'slide',
+                sourceLabel: 'slide-specific',
+                isInherited: false
+            });
+            
+            const swatches = new ThemeSwatches({ showThemeSource: true });
+            container.appendChild(swatches.element);
+            
+            const sourceIndicator = swatches.element.querySelector('.theme-source-indicator');
+            expect(sourceIndicator.textContent).toContain('slide-specific');
+        });
+
+        it('can hide theme source indicator', () => {
+            const swatches = new ThemeSwatches({ showThemeSource: false });
+            container.appendChild(swatches.element);
+            
+            expect(swatches.sourceIndicator).toBeUndefined();
+        });
+
+        it('accepts slideId option for cascade context', () => {
+            const swatches = new ThemeSwatches({ slideId: 'slide-2' });
+            expect(swatches.options.slideId).toBe('slide-2');
+        });
+
+        it('can update slideId via setSlideId method', () => {
+            const swatches = new ThemeSwatches();
+            swatches.setSlideId('slide-3');
+            expect(swatches.options.slideId).toBe('slide-3');
+        });
+
+        it('calls StyleResolver.getThemeInfoForSlide with correct slideId', () => {
+            StyleResolver.getThemeInfoForSlide.mockClear();
+            
+            const swatches = new ThemeSwatches({ slideId: 'slide-5' });
+            container.appendChild(swatches.element);
+            
+            expect(StyleResolver.getThemeInfoForSlide).toHaveBeenCalledWith('slide-5');
+        });
+
+        it('uses activeSlideId when slideId not provided', () => {
+            // The mock store returns activeSlideId: 'slide-1'
+            StyleResolver.getThemeInfoForSlide.mockClear();
+            
+            const swatches = new ThemeSwatches();
+            container.appendChild(swatches.element);
+            
+            // Should have been called with 'slide-1' from the store
+            expect(StyleResolver.getThemeInfoForSlide).toHaveBeenCalledWith('slide-1');
         });
     });
 });

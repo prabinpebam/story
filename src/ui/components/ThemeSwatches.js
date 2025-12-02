@@ -16,9 +16,14 @@
  * - Uses .swatch CSS class for all swatches (unified styling)
  * - Uses .swatch-grid for grid layout with column variants
  * - Uses design tokens for all spacing and sizing
+ * 
+ * Cascade-aware:
+ * - Uses StyleResolver.getThemeInfoForSlide() to get effective theme
+ * - Shows theme source indicator (inherited from Master/Layout or slide-specific)
  */
 
 import { store } from '../../core/Store.js';
+import { StyleResolver } from '../../utils/StyleResolver.js';
 
 /**
  * Luma slot definitions (12 slots in 3 clusters)
@@ -92,9 +97,13 @@ export class ThemeSwatches {
             linkedMode: options.linkedMode !== false && !!options.onLinkedColorSelect,
             // Show theme name indicator (per spec: "Indicate theme name also")
             showThemeName: options.showThemeName !== false,
+            // Show theme source indicator (inherited from Master/Layout or slide-specific)
+            showThemeSource: options.showThemeSource !== false,
             columns: options.columns || 6,
             // Currently selected slot (for highlighting)
             selectedSlot: options.selectedSlot || null,
+            // Slide ID for cascade-aware theme resolution (optional, uses active slide if not provided)
+            slideId: options.slideId || null,
             ...options
         };
         
@@ -115,6 +124,14 @@ export class ThemeSwatches {
     }
 
     /**
+     * Set the slide ID for cascade-aware resolution
+     */
+    setSlideId(slideId) {
+        this.options.slideId = slideId;
+        this.updateSwatches();
+    }
+
+    /**
      * Set the currently selected slot (for highlighting)
      */
     setSelectedSlot(slotIndex) {
@@ -125,14 +142,31 @@ export class ThemeSwatches {
     render() {
         this.element.innerHTML = '';
         
-        // Header with theme name (per spec: indicate theme name)
+        // Header with theme name and source indicator
         const header = document.createElement('div');
         header.className = 'swatch-section-header';
+        header.style.display = 'flex';
+        header.style.flexDirection = 'column';
+        header.style.gap = 'var(--spacing-1)';
+        header.style.marginBottom = 'var(--spacing-2)';
         
+        // Theme name label
         this.themeLabel = document.createElement('div');
         this.themeLabel.className = 'swatch-section-label';
         this.themeLabel.textContent = 'Theme Colors';
         header.appendChild(this.themeLabel);
+        
+        // Theme source indicator (cascade info)
+        if (this.options.showThemeSource) {
+            this.sourceIndicator = document.createElement('div');
+            this.sourceIndicator.className = 'theme-source-indicator';
+            this.sourceIndicator.style.fontSize = 'var(--font-size-xs)';
+            this.sourceIndicator.style.color = 'var(--color-text-tertiary)';
+            this.sourceIndicator.style.display = 'flex';
+            this.sourceIndicator.style.alignItems = 'center';
+            this.sourceIndicator.style.gap = 'var(--spacing-1)';
+            header.appendChild(this.sourceIndicator);
+        }
         
         this.element.appendChild(header);
         
@@ -145,12 +179,32 @@ export class ThemeSwatches {
     }
 
     /**
-     * Get the current luma theme from store
+     * Get the current slide ID (from options or active slide)
+     */
+    getCurrentSlideId() {
+        if (this.options.slideId) {
+            return this.options.slideId;
+        }
+        const state = store.getState();
+        return state.editor?.activeSlideId || null;
+    }
+
+    /**
+     * Get theme info using the cascade-aware StyleResolver
+     * Returns { lumaTheme, source, sourceLabel, isInherited }
+     */
+    getThemeInfo() {
+        const slideId = this.getCurrentSlideId();
+        return StyleResolver.getThemeInfoForSlide(slideId);
+    }
+
+    /**
+     * Get the current luma theme from store (legacy fallback)
+     * @deprecated Use getThemeInfo() for cascade-aware resolution
      */
     getLumaTheme() {
-        const state = store.getState();
-        const themeMaster = state.masters?.['theme-default'];
-        return themeMaster?.themeSettings?.lumaTheme || null;
+        const themeInfo = this.getThemeInfo();
+        return themeInfo.lumaTheme;
     }
 
     /**
@@ -186,14 +240,20 @@ export class ThemeSwatches {
         
         this.swatchGrid.innerHTML = '';
         const colors = this.getColors();
-        const lumaTheme = this.getLumaTheme();
+        const themeInfo = this.getThemeInfo();
+        const lumaTheme = themeInfo.lumaTheme;
         
-        console.log('[ThemeSwatches] Updating swatches, theme:', lumaTheme?.name, 'colors:', colors);
+        console.log('[ThemeSwatches] Updating swatches, theme:', lumaTheme?.name, 'source:', themeInfo.source, 'colors:', colors);
         
         // Update theme name label
         if (this.options.showThemeName && this.themeLabel) {
             const themeName = lumaTheme?.name || 'Default';
             this.themeLabel.textContent = themeName;
+        }
+        
+        // Update source indicator
+        if (this.options.showThemeSource && this.sourceIndicator) {
+            this.updateSourceIndicator(themeInfo);
         }
         
         // Create swatches for all 12 luma slots
@@ -203,6 +263,38 @@ export class ThemeSwatches {
             const swatch = this.createSwatch(color, tooltip, index);
             this.swatchGrid.appendChild(swatch);
         });
+    }
+
+    /**
+     * Update the source indicator to show where the theme comes from
+     */
+    updateSourceIndicator(themeInfo) {
+        if (!this.sourceIndicator) return;
+        
+        this.sourceIndicator.innerHTML = '';
+        
+        // Icon based on source
+        const icon = document.createElement('span');
+        icon.style.fontSize = '10px';
+        
+        if (themeInfo.isInherited) {
+            // Inherited - show chain link icon or arrow
+            icon.textContent = '↑';
+            icon.style.color = 'var(--color-text-tertiary)';
+        } else {
+            // Slide-specific - show pin or override icon
+            icon.textContent = '◆';
+            icon.style.color = 'var(--color-accent)';
+        }
+        this.sourceIndicator.appendChild(icon);
+        
+        // Source label
+        const label = document.createElement('span');
+        label.textContent = themeInfo.sourceLabel;
+        if (!themeInfo.isInherited) {
+            label.style.color = 'var(--color-accent)';
+        }
+        this.sourceIndicator.appendChild(label);
     }
 
     createSwatch(color, tooltip, slotIndex) {
