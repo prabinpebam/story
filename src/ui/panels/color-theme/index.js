@@ -34,7 +34,7 @@ export {
     generateThemeId,
     getEffectiveSlotIndex,
     generateThemeColorsWithMode,
-    getDarkModeSlotMapping
+    DARK_MODE_SLOT_MAP
 } from './ColorThemeUtils.js';
 export { 
     THEME_PRESETS,
