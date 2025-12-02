@@ -946,7 +946,17 @@ export class ShapeElement extends VisualElement {
         if (typeof fillValue === 'object' && fillValue.type) {
             const { type, angle, stops } = fillValue;
             const sortedStops = [...stops].sort((a, b) => a.position - b.position);
-            const stopsStr = sortedStops.map(s => `${s.color} ${s.position}%`).join(', ');
+            // Resolve each stop's color - support theme-linked stops via CSS variables
+            const stopsStr = sortedStops.map(s => {
+                let color = s.color;
+                // If stop is linked to a theme slot, use CSS variable
+                if (s.themeSlot !== undefined && s.themeSlot !== null) {
+                    const slotNumber = s.themeSlot + 1; // CSS vars are 1-indexed
+                    const fallback = s.color || '#808080';
+                    color = `var(--theme-slot${slotNumber}, ${fallback})`;
+                }
+                return `${color} ${s.position}%`;
+            }).join(', ');
 
             if (type === 'linear') {
                 return `linear-gradient(${angle}deg, ${stopsStr})`;
@@ -955,7 +965,14 @@ export class ShapeElement extends VisualElement {
             } else if (type === 'angular') {
                 return `conic-gradient(from ${angle}deg at center, ${stopsStr})`;
             } else if (type === 'diamond') {
-                 const metaStops = sortedStops.map(s => `${s.color}@${s.position/100}`).join(';');
+                 // For diamond gradients, include themeSlot in metadata if present
+                 const metaStops = sortedStops.map(s => {
+                     let stopInfo = `${s.color}@${s.position/100}`;
+                     if (s.themeSlot !== undefined && s.themeSlot !== null) {
+                         stopInfo += `|slot:${s.themeSlot}`;
+                     }
+                     return stopInfo;
+                 }).join(';');
                  const meta = `/* diamond|${angle}|${metaStops} */`;
                  return `${meta} radial-gradient(circle at center, ${stopsStr})`;
             }
@@ -984,9 +1001,25 @@ export class ShapeElement extends VisualElement {
             const angle = parseFloat(parts[0] || '0');
             const stopsStr = parts[1] || '';
             const stops = stopsStr.split(';').map(s => {
-                const [color, pos] = s.split('@');
-                let position = parseFloat(pos);
+                // Parse stop: color@position or color@position|slot:N
+                const [colorPart, posPart] = s.split('@');
+                let position = parseFloat(posPart);
                 if (position > 1) position /= 100;
+                
+                let color = colorPart;
+                
+                // Check for theme slot metadata (slot:N after position)
+                const slotMatch = s.match(/\|slot:(\d+)/);
+                if (slotMatch) {
+                    const slotIndex = parseInt(slotMatch[1], 10);
+                    // Resolve theme slot from CSS variable
+                    const cssVar = `--theme-slot${slotIndex + 1}`;
+                    const resolvedColor = getComputedStyle(document.documentElement).getPropertyValue(cssVar).trim();
+                    if (resolvedColor) {
+                        color = resolvedColor;
+                    }
+                }
+                
                 return { color, position };
             }).filter(s => s.color && !isNaN(s.position));
             

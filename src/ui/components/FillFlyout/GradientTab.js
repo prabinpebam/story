@@ -288,8 +288,14 @@ export class GradientTab {
             handle.style.width = '16px';
             handle.style.height = '16px';
             handle.style.borderRadius = '50% 50% 0 50%';
-            handle.style.border = '2px solid var(--color-text-primary)';
-            handle.style.boxShadow = '0 0 2px rgba(0,0,0,0.5)';
+            // Theme-linked stops get accent border
+            const isThemeLinked = stop.themeSlot !== undefined && stop.themeSlot !== null;
+            handle.style.border = isThemeLinked 
+                ? '2px solid var(--color-accent)' 
+                : '2px solid var(--color-text-primary)';
+            handle.style.boxShadow = isThemeLinked
+                ? '0 0 4px var(--color-accent)'
+                : '0 0 2px rgba(0,0,0,0.5)';
             handle.style.position = 'absolute';
             handle.style.top = '0px';
             handle.style.left = `${stop.position}%`;
@@ -297,6 +303,9 @@ export class GradientTab {
             handle.style.cursor = 'grab';
             handle.style.backgroundColor = stop.color;
             handle.style.zIndex = index === this.selectedStopIndex ? '10' : '1';
+            if (isThemeLinked) {
+                handle.title = `Linked to Theme Slot ${stop.themeSlot + 1}`;
+            }
 
             if (index === this.selectedStopIndex) {
                 handle.style.borderColor = 'var(--color-accent)';
@@ -422,6 +431,10 @@ export class GradientTab {
         this.state.stops.forEach((stop, index) => {
             const row = document.createElement('div');
             row.className = 'stop-row';
+            // Add theme-linked class if stop is linked
+            if (stop.themeSlot !== undefined && stop.themeSlot !== null) {
+                row.classList.add('theme-linked');
+            }
             row.style.display = 'flex';
             row.style.alignItems = 'center';
             row.style.gap = '8px';
@@ -445,7 +458,13 @@ export class GradientTab {
             swatch.style.height = 'var(--swatch-size-md)';
             swatch.style.borderRadius = 'var(--radius-sm)';
             swatch.style.backgroundColor = stop.color;
-            swatch.style.border = 'var(--swatch-border)';
+            // Add theme-linked indicator border
+            if (stop.themeSlot !== undefined && stop.themeSlot !== null) {
+                swatch.style.border = '2px solid var(--color-accent)';
+                swatch.title = `Linked to Theme Slot ${stop.themeSlot + 1}`;
+            } else {
+                swatch.style.border = 'var(--swatch-border)';
+            }
             swatch.style.cursor = 'pointer';
             
             swatch.onclick = (e) => {
@@ -587,8 +606,19 @@ export class GradientTab {
 
         const picker = new ColorPickerFlyout({
             color: stop.color,
-            onChange: (newColor) => {
-                stop.color = newColor;
+            // Use onColorChange to get full update object including themeSlot
+            onColorChange: (updates) => {
+                // Update stop with both color and themeSlot (if present)
+                stop.color = updates.color;
+                if (updates.themeSlot !== undefined) {
+                    if (updates.themeSlot === null) {
+                        // Unlink from theme
+                        delete stop.themeSlot;
+                    } else {
+                        // Link to theme slot
+                        stop.themeSlot = updates.themeSlot;
+                    }
+                }
                 this.updateColorState();
                 this.emitChange();
                 
@@ -597,7 +627,7 @@ export class GradientTab {
                 if (listDiv && listDiv.children[index]) {
                     const row = listDiv.children[index];
                     const swatch = row.querySelector('div[style*="background-color"]');
-                    if (swatch) swatch.style.backgroundColor = newColor;
+                    if (swatch) swatch.style.backgroundColor = updates.color;
                 }
 
                 // Direct update of handle on bar
@@ -605,13 +635,17 @@ export class GradientTab {
                 if (container) {
                     // children[0] is bar. children[1..N] are handles.
                     const handle = container.children[index + 1];
-                    if (handle) handle.style.backgroundColor = newColor;
+                    if (handle) handle.style.backgroundColor = updates.color;
                     
                     // Update preview
                     const bar = container.children[0];
                     const preview = bar.firstElementChild;
                     if (preview) preview.style.background = this.getGradientString(true);
                 }
+            },
+            // Also keep onChange for backward compatibility
+            onChange: (newColor) => {
+                // This is called as well, but onColorChange has the full data
             },
             onClose: () => {
                 if (this.activeColorPicker) {
