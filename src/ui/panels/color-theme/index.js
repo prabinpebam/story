@@ -1,11 +1,11 @@
 /**
  * Color Theme Module Index
- *
+ * 
  * Exports the luma-locked color theme system components.
  */
 
 export { ColorThemeManager } from './ColorThemeManager.js';
-export {
+export { 
     LUMA_SLOTS,
     DEFAULT_ADJUSTMENTS,
     hslToHex,
@@ -32,7 +32,7 @@ export {
     cloneTheme,
     generateThemeId
 } from './ColorThemeUtils.js';
-export {
+export { 
     THEME_PRESETS,
     NEUTRAL_PRESET,
     ELECTRIC_DREAMS_PRESET,
