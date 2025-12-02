@@ -1556,8 +1556,9 @@ export class ColorThemeManager extends DraggablePanel {
         });
         
         // Get current color mode from store for CSS variable application
-        const state = store.getState();
-        const currentColorMode = state.masters?.[masterId]?.themeSettings?.lumaTheme?.colorMode || COLOR_MODES.LIGHT;
+        // Re-fetch state after dispatch to get potentially updated colorMode
+        const updatedState = store.getState();
+        const currentColorMode = updatedState.masters?.[masterId]?.themeSettings?.lumaTheme?.colorMode || COLOR_MODES.LIGHT;
         
         // Also apply CSS variables for immediate visual feedback
         applyThemeToCSSVariables(colors, document.documentElement, currentColorMode);
