@@ -706,7 +706,20 @@ const State = {
         fonts: {
           heading: { family: "Inter", weight: "700" },
           body: { family: "Inter", weight: "400" }
-        }
+        },
+        // Luma Theme (12-slot color system)
+        lumaTheme: {
+          id: "theme-001",
+          name: "Default Theme",
+          slots: [/* 12 slots with h, s values */],
+          adjustments: { brightness: 0, contrast: 0, /* ... */ },
+          resolvedColors: [/* 12 hex colors */]
+        },
+        // Light/Dark Mode Toggle
+        // Controls how theme slots are mapped at resolution time
+        // "light": slots resolve as-is (shadows=dark, highlights=light)
+        // "dark": slots are mirrored (shadows→highlights, highlights→shadows)
+        colorMode: "light"  // "light" | "dark"
       },
       
       // Text Styles (for different content levels)

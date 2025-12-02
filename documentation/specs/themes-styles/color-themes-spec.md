@@ -1334,83 +1334,151 @@ document.documentElement.style.setProperty('--theme-slot2', '#14101e');
 
 ---
 
-### Light/Dark Mode (Master Slide Property)
+### Light/Dark Mode (Slot Mapping Layer)
 
-Light/Dark mode is controlled at the **Master Slide level**, not in the Color Theme Manager. This allows the same color theme to be used for both light and dark presentations.
+Light/Dark mode is controlled at the **Theme Master level** via the Property Inspector. This allows the same color theme to work for both light and dark presentations without modifying the theme itself.
 
-**Master Slide Property Inspector:**
+#### Core Concept: Slot Resolution Mapping
+
+Instead of modifying theme slot values, we add a **mapping layer** that remaps slot indices at resolution time:
+
+- **Light Mode (default)**: Slots resolve as-is (Slot 1 → dark color, Slot 12 → light color)
+- **Dark Mode**: Slots are **mirrored** - shadows become highlights and vice versa
+
+```
+Theme Slots (Source)     →    Dark Mode Mapping    →    Resolved Color
+───────────────────────────────────────────────────────────────────────
+Slot 1 (Shadow, L:5%)    →    Maps to Slot 12      →    Light color
+Slot 2 (Shadow, L:10%)   →    Maps to Slot 11      →    Light color
+Slot 3 (Shadow, L:18%)   →    Maps to Slot 10      →    Light color
+Slot 4 (Shadow, L:25%)   →    Maps to Slot 9       →    Light color
+Slot 5 (Midtone, L:35%)  →    Maps to Slot 8       →    Mid-dark color
+Slot 6 (Midtone, L:45%)  →    Maps to Slot 7       →    Mid-light color
+Slot 7 (Midtone, L:55%)  →    Maps to Slot 6       →    Mid-dark color
+Slot 8 (Midtone, L:65%)  →    Maps to Slot 5       →    Mid-light color
+Slot 9 (Highlight, L:70%)→    Maps to Slot 4       →    Dark color
+Slot 10 (Highlight,L:80%)→    Maps to Slot 3       →    Dark color
+Slot 11 (Highlight,L:90%)→    Maps to Slot 2       →    Dark color
+Slot 12 (Highlight,L:97%)→    Maps to Slot 1       →    Darkest color
+```
+
+#### Why NOT Swap Theme Values?
+
+We **do not** swap the actual slot values in the theme because:
+- ❌ Confusing UX in Color Theme Manager (shadow/highlight labels become misleading)
+- ❌ Complex logic for generate, adjustments, and presets
+- ❌ Breaks the mental model of "shadows are dark, highlights are light"
+
+Instead, the theme definition remains unchanged; only the **resolution mapping** changes.
+
+#### Property Inspector UI
+
+The mode toggle is in the Theme Section of the Property Inspector:
+
 ```
 ┌────────────────────────────────────────────────────────────────┐
-│  Slide Properties                                              │
+│  Theme                                                         │
 ├────────────────────────────────────────────────────────────────┤
-│                                                                │
-│  Color Theme:  [ Solar Cascade          ▾ ]                    │
 │                                                                │
 │  Mode:   [☀️ Light]  [🌙 Dark]                                 │
 │              ○          ●                                      │
 │                                                                │
-│  ...other slide properties...                                  │
+│  🎨 Colors         [■■■■■■]            [Inherited]    [→]      │
+│  Aa Typography     Inter / Inter       [Inherited]    [→]      │
 │                                                                │
 └────────────────────────────────────────────────────────────────┘
 ```
 
-**How Mode Affects Slot Resolution:**
+- **Control**: SegmentedControl with Light (☀️) and Dark (🌙) options
+- **Default**: Light mode
+- **Scope**: Presentation-wide (affects all slides)
 
-The same `themeSlot` reference is interpreted differently based on mode:
+#### Slot Mapping Formula
 
-| Element Purpose | Light Mode Slot | Dark Mode Slot | Why |
-|-----------------|-----------------|----------------|-----|
-| Primary background | Slot 12 (L:97%) | Slot 1 (L:5%) | Light uses highlights, dark uses shadows |
-| Primary text | Slot 1 (L:5%) | Slot 12 (L:97%) | High contrast against background |
-| Secondary background | Slot 11 (L:90%) | Slot 2 (L:10%) | Slightly less bright/dark |
-| Secondary text | Slot 3 (L:18%) | Slot 10 (L:80%) | Secondary contrast |
-
-**Slot Mapping Formula:**
 ```javascript
-function resolveSlotForMode(slotIndex, mode) {
-    if (mode === 'light') {
-        // Invert: slot N becomes slot (13 - N)
-        return 13 - slotIndex;
+/**
+ * Dark mode slot mapping array.
+ * Index N maps to value at position N.
+ */
+const DARK_MODE_SLOT_MAP = [11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0];
+
+/**
+ * Get effective slot index based on mode.
+ * @param {number} slotIndex - Original slot index (0-11)
+ * @param {boolean} isDarkMode - Whether dark mode is active
+ * @returns {number} Effective slot index to use for color resolution
+ */
+function getEffectiveSlotIndex(slotIndex, isDarkMode) {
+    if (!isDarkMode) return slotIndex;
+    if (slotIndex < 0 || slotIndex > 11) return slotIndex;
+    return DARK_MODE_SLOT_MAP[slotIndex];  // 11 - slotIndex
+}
+
+// Example: Slot 2 (Shadow, L:10%)
+// Light mode: resolves to Slot 2 → dark background color
+// Dark mode: resolves to Slot 9 (11-2) → light background color
+```
+
+#### Storage
+
+```javascript
+// Theme master stores mode preference
+themeMaster: {
+    id: "master-theme-1",
+    type: "theme",
+    themeSettings: {
+        lumaTheme: {
+            id: "theme-001",
+            name: "Ocean Sunset",
+            slots: [...],           // 12 slots (unchanged)
+            adjustments: {...},
+            resolvedColors: [...],  // 12 hex colors (light mode base)
+        },
+        colorMode: "light",         // "light" | "dark"
+        // ...other settings
     }
-    return slotIndex; // Dark mode uses slots as-is
-}
-
-// Example: Slot 2 in a template
-// Dark mode: resolves to Slot 2 (L:10%, dark background)
-// Light mode: resolves to Slot 11 (L:90%, light background)
-```
-
-**Storage:**
-```javascript
-// Master slide stores mode preference
-masterSlide: {
-    colorThemeId: 'solar-cascade',
-    colorMode: 'dark' | 'light',  // Default: 'dark'
-    // ...other properties
 }
 ```
 
-**Benefits:**
-- No need to create separate light/dark versions of themes
-- Same color harmony works in both modes
-- Theme designer focuses on one palette
-- User controls appearance at presentation level
+#### CSS Variable Application
 
-**CSS Variable Application:**
-When mode changes, the CSS variables are re-mapped:
+When mode changes, CSS variables are regenerated with mapped colors:
 
 ```javascript
-// When colorMode === 'light', apply inverted mapping
-if (colorMode === 'light') {
-    document.documentElement.style.setProperty('--theme-slot1', theme.colors[11]);  // Slot 12 → var 1
-    document.documentElement.style.setProperty('--theme-slot2', theme.colors[10]);  // Slot 11 → var 2
-    // ... etc
-} else {
-    // Dark mode: direct mapping
-    document.documentElement.style.setProperty('--theme-slot1', theme.colors[0]);
-    // ...
+function applyThemeWithMode(theme, isDarkMode) {
+    const baseColors = generateThemeColors(theme.slots, theme.adjustments);
+    
+    // Apply with mapping for dark mode
+    baseColors.forEach((_, index) => {
+        const effectiveIndex = isDarkMode ? (11 - index) : index;
+        document.documentElement.style.setProperty(
+            `--theme-slot${index + 1}`, 
+            baseColors[effectiveIndex]
+        );
+    });
+    
+    // Trigger canvas refresh
+    document.dispatchEvent(new CustomEvent('theme-mode-changed', {
+        detail: { mode: isDarkMode ? 'dark' : 'light' }
+    }));
 }
 ```
+
+#### Benefits
+
+- ✅ Same theme works for both light and dark modes
+- ✅ Color Theme Manager UX remains intuitive (shadows are always dark in editor)
+- ✅ No complex theme modification logic
+- ✅ Presets work automatically in both modes
+- ✅ User controls appearance at presentation level
+- ✅ Mode persists with saved presentation
+
+#### Color Theme Manager Behavior
+
+The Color Theme Manager always edits the **source theme** (light mode interpretation):
+- Grid shows shadow slots as dark colors, highlight slots as light colors
+- A small badge shows current presentation mode for context
+- Optional preview toggle to see how theme looks in dark mode
 
 ---
 
@@ -1424,7 +1492,7 @@ Slide Master presets store theme-linked colors using `themeSlot` references:
     fill: {
         type: 'solid',
         themeSlot: 2,          // References Primary column, Shadows row
-        value: null            // Resolved at runtime
+        value: null            // Resolved at runtime via StyleResolver
     }
 }
 ```
@@ -1433,10 +1501,10 @@ Slide Master presets store theme-linked colors using `themeSlot` references:
 ```
 1. User selects preset → handleApplySlideMasterPreset()
 2. Template applied with themeSlot references preserved
-3. CSS variables updated from current LumaTheme
-4. StyleResolver.resolveThemeSlot() converts slot → hex
-5. Property Inspector refreshed via state-changed event
-6. Canvas re-renders with resolved colors
+3. StyleResolver.resolveThemeSlot() checks colorMode
+4. If dark mode: slot index is remapped (2 → 9)
+5. CSS variable for effective slot is returned
+6. Canvas re-renders with correct colors for current mode
 ```
 
 ---

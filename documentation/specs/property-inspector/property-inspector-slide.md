@@ -45,7 +45,34 @@ A `pi-section` with title "Layout".
 ---
 
 ## 3. Theme Section
-A `pi-section` with title "Theme". Contains two clickable rows.
+A `pi-section` with title "Theme". Contains the mode toggle and two clickable rows.
+
+### Mode Toggle (Light/Dark)
+- **Type**: SegmentedControl with two options
+- **Options**: 
+    - ☀️ Light (default)
+    - 🌙 Dark
+- **Behavior**: 
+    - Toggles between light and dark mode for the entire presentation.
+    - In dark mode, shadow slots (1-4) are mapped to highlight colors and vice versa.
+    - Midtone slots (5-8) remain unchanged.
+    - All theme-linked colors update immediately across the canvas.
+- **Storage**: Stored as `colorMode: 'light' | 'dark'` in theme master settings.
+- **Persistence**: Mode is saved with the presentation.
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│  Theme                                                          │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  Mode:   [☀️ Light]  [🌙 Dark]                                  │
+│              ●          ○                                       │
+│                                                                 │
+│  🎨 Colors         [■■■■■■]           [Inherited]    [→]        │
+│  Aa Typography     Inter / Inter      [Inherited]    [→]        │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+```
 
 ### Colors Row
 - **Icon**: Palette icon.
@@ -53,6 +80,7 @@ A `pi-section` with title "Theme". Contains two clickable rows.
 - **Display**: 
     - Color swatches showing the current theme colors (accent colors from the active theme).
     - Uses standard 16x16px swatch size consistent with the rest of the application.
+    - **Swatches reflect current mode** (light or dark mapped colors).
 - **Inheritance Indicator**: 
     - Shows "Inherited" badge if using the master/layout theme.
     - Shows "Override" badge if the slide has custom colors.
