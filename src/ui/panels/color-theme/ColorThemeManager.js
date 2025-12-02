@@ -171,11 +171,19 @@ export class ColorThemeManager extends DraggablePanel {
         });
         actions.appendChild(addBtn.element);
         
-        const importBtn = new IconButton({
+        const extractBtn = new IconButton({
             icon: Icons.IMAGE,
             size: 'small',
             title: 'Extract from Image',
             onClick: () => this.showImagePicker()
+        });
+        actions.appendChild(extractBtn.element);
+        
+        const importBtn = new IconButton({
+            icon: Icons.IMPORT,
+            size: 'small',
+            title: 'Import Theme from JSON',
+            onClick: () => this.showImportDialog()
         });
         actions.appendChild(importBtn.element);
         
@@ -365,7 +373,16 @@ export class ColorThemeManager extends DraggablePanel {
         const actions = document.createElement('div');
         actions.className = 'ctm__editor-actions';
         
-        // Duplicate button only (no invert button)
+        // Export button
+        const exportBtn = new IconButton({
+            icon: Icons.EXPORT,
+            size: 'small',
+            title: 'Export Theme as JSON',
+            onClick: () => this.exportTheme(theme.id)
+        });
+        actions.appendChild(exportBtn.element);
+        
+        // Duplicate button
         const duplicateBtn = new IconButton({
             icon: '<i class="fa-regular fa-copy"></i>',
             size: 'small',
@@ -1269,6 +1286,205 @@ export class ColorThemeManager extends DraggablePanel {
         });
         
         input.click();
+    }
+    
+    // =========================================
+    // Export/Import
+    // =========================================
+    
+    /**
+     * Export theme schema version for compatibility checking
+     */
+    static get THEME_SCHEMA_VERSION() {
+        return '1.0';
+    }
+    
+    /**
+     * Export a theme to JSON file
+     * @param {string} themeId - ID of the theme to export
+     */
+    exportTheme(themeId) {
+        const theme = this.getThemeById(themeId);
+        if (!theme) {
+            console.warn('Theme not found for export:', themeId);
+            return;
+        }
+        
+        // Create export data with schema version and metadata
+        const exportData = {
+            schemaVersion: ColorThemeManager.THEME_SCHEMA_VERSION,
+            exportedAt: new Date().toISOString(),
+            theme: {
+                name: theme.name,
+                slots: theme.slots.map(slot => ({
+                    h: slot.h,
+                    s: slot.s
+                })),
+                adjustments: { ...(theme.adjustments || DEFAULT_ADJUSTMENTS) }
+            }
+        };
+        
+        // Create JSON blob and download
+        const json = JSON.stringify(exportData, null, 2);
+        const blob = new Blob([json], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        
+        // Create download link
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `${this.sanitizeFilename(theme.name)}.theme.json`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        // Clean up
+        URL.revokeObjectURL(url);
+    }
+    
+    /**
+     * Get a theme by ID (from presets or custom themes)
+     * @param {string} themeId - Theme ID
+     * @returns {Object|null} Theme object or null
+     */
+    getThemeById(themeId) {
+        const preset = THEME_PRESETS.find(t => t.id === themeId);
+        if (preset) return preset;
+        return this.customThemes.find(t => t.id === themeId);
+    }
+    
+    /**
+     * Sanitize a string for use as filename
+     * @param {string} name - Name to sanitize
+     * @returns {string} Sanitized filename
+     */
+    sanitizeFilename(name) {
+        return name
+            .replace(/[^a-z0-9\s-]/gi, '') // Remove invalid chars
+            .replace(/\s+/g, '-')           // Replace spaces with dashes
+            .replace(/-+/g, '-')            // Replace multiple dashes with single
+            .toLowerCase()
+            .substring(0, 50);              // Limit length
+    }
+    
+    /**
+     * Show the import dialog for loading a theme from JSON
+     */
+    showImportDialog() {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = '.json,application/json';
+        input.className = 'theme-import__input';
+        
+        input.addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            
+            try {
+                const text = await file.text();
+                const result = this.importThemeFromJSON(text);
+                
+                if (result.success) {
+                    this.selectTheme(result.themeId);
+                } else {
+                    alert(`Failed to import theme: ${result.error}`);
+                }
+            } catch (err) {
+                console.error('Error reading theme file:', err);
+                alert('Failed to read theme file. Please ensure it is a valid JSON file.');
+            }
+        });
+        
+        input.click();
+    }
+    
+    /**
+     * Import a theme from JSON string
+     * @param {string} jsonString - JSON string containing theme data
+     * @returns {{success: boolean, themeId?: string, error?: string}} Import result
+     */
+    importThemeFromJSON(jsonString) {
+        try {
+            const data = JSON.parse(jsonString);
+            
+            // Validate schema version
+            if (!data.schemaVersion) {
+                return { success: false, error: 'Missing schema version. This may not be a valid theme file.' };
+            }
+            
+            // Check for future incompatible versions
+            const [major] = data.schemaVersion.split('.').map(Number);
+            const [currentMajor] = ColorThemeManager.THEME_SCHEMA_VERSION.split('.').map(Number);
+            if (major > currentMajor) {
+                return { success: false, error: `Theme file version ${data.schemaVersion} is newer than supported version ${ColorThemeManager.THEME_SCHEMA_VERSION}. Please update the application.` };
+            }
+            
+            // Validate theme data structure
+            if (!data.theme) {
+                return { success: false, error: 'Missing theme data in file.' };
+            }
+            
+            const { theme } = data;
+            
+            // Validate name
+            if (!theme.name || typeof theme.name !== 'string') {
+                return { success: false, error: 'Theme must have a valid name.' };
+            }
+            
+            // Validate slots
+            if (!Array.isArray(theme.slots) || theme.slots.length !== 12) {
+                return { success: false, error: 'Theme must have exactly 12 color slots.' };
+            }
+            
+            // Validate each slot
+            for (let i = 0; i < theme.slots.length; i++) {
+                const slot = theme.slots[i];
+                if (typeof slot.h !== 'number' || slot.h < 0 || slot.h > 360) {
+                    return { success: false, error: `Slot ${i + 1}: hue must be a number between 0 and 360.` };
+                }
+                if (typeof slot.s !== 'number' || slot.s < 0 || slot.s > 100) {
+                    return { success: false, error: `Slot ${i + 1}: saturation must be a number between 0 and 100.` };
+                }
+            }
+            
+            // Validate adjustments if present
+            const adjustmentKeys = ['brightness', 'contrast', 'highlights', 'shadows', 'whites', 'blacks', 'saturation'];
+            let adjustments = { ...DEFAULT_ADJUSTMENTS };
+            
+            if (theme.adjustments) {
+                for (const key of adjustmentKeys) {
+                    if (theme.adjustments[key] !== undefined) {
+                        const value = theme.adjustments[key];
+                        if (typeof value !== 'number' || value < -100 || value > 100) {
+                            return { success: false, error: `Adjustment "${key}" must be a number between -100 and 100.` };
+                        }
+                        adjustments[key] = value;
+                    }
+                }
+            }
+            
+            // Create the new theme
+            const id = generateThemeId();
+            const newTheme = createTheme(
+                id,
+                theme.name,
+                theme.slots.map(slot => ({ h: slot.h, s: slot.s })),
+                false
+            );
+            newTheme.adjustments = adjustments;
+            newTheme.importedAt = Date.now();
+            newTheme.importedFrom = data.exportedAt || null;
+            
+            // Add to custom themes
+            this.customThemes.push(newTheme);
+            this.saveCustomThemes();
+            this.renderThemeList();
+            
+            return { success: true, themeId: id };
+            
+        } catch (err) {
+            console.error('Error parsing theme JSON:', err);
+            return { success: false, error: 'Invalid JSON format. Please check the file contents.' };
+        }
     }
     
     // =========================================

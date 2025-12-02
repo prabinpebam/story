@@ -795,7 +795,7 @@
 }
 
 /* ============================================
-   Hue/Saturation Popover
+   Hue/Saturation Popover (Donut Color Wheel)
    ============================================ */
 
 .hs-popover {
@@ -808,10 +808,94 @@
     box-shadow: var(--shadow-lg);
     display: flex;
     flex-direction: column;
-    gap: var(--spacing-2);
-    min-width: 220px;
+    align-items: center;
+    gap: var(--spacing-3);
 }
 
+.hs-popover--donut {
+    min-width: auto;
+}
+
+/* Canvas container for donut wheel */
+.hs-popover__canvas-container {
+    position: relative;
+    width: 200px;
+    height: 200px;
+}
+
+.hs-popover__canvas {
+    display: block;
+    cursor: crosshair;
+}
+
+/* Selection indicator on the donut */
+.hs-popover__indicator {
+    position: absolute;
+    width: 16px;
+    height: 16px;
+    border-radius: var(--radius-full);
+    border: 2px solid white;
+    box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.3), 0 2px 4px rgba(0, 0, 0, 0.3);
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+    transition: none;
+}
+
+/* Values row with H and S inputs */
+.hs-popover__values-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--spacing-4);
+}
+
+.hs-popover__value-group {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-1);
+}
+
+.hs-popover__value-label {
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-medium);
+    color: var(--color-text-secondary);
+    width: 14px;
+}
+
+.hs-popover__value-input {
+    width: 48px;
+    background: var(--color-bg-input);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    color: var(--color-text-primary);
+    font-size: var(--font-size-sm);
+    padding: var(--spacing-1) var(--spacing-1-5);
+    text-align: center;
+    outline: none;
+}
+
+.hs-popover__value-input:focus {
+    border-color: var(--color-accent);
+}
+
+.hs-popover__value-input::-webkit-inner-spin-button,
+.hs-popover__value-input::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+.hs-popover__value-input[type="number"] {
+    -moz-appearance: textfield;
+    appearance: textfield;
+}
+
+.hs-popover__value-suffix {
+    font-size: var(--font-size-sm);
+    color: var(--color-text-tertiary);
+    width: 12px;
+}
+
+/* Legacy slider styles (kept for potential future use) */
 .hs-popover__row {
     display: flex;
     align-items: center;
@@ -838,7 +922,6 @@
     border: 1px solid var(--color-border);
 }
 
-/* Hue track: rainbow gradient */
 .hs-popover__track--hue {
     background: linear-gradient(
         to right,
@@ -852,7 +935,6 @@
     );
 }
 
-/* Saturation track: set dynamically via JS based on current hue */
 .hs-popover__track--sat {
     background: linear-gradient(to right, #808080, #ff0000);
 }
@@ -900,5 +982,6 @@
 
 .hs-popover__input[type="number"] {
     -moz-appearance: textfield;
+    appearance: textfield;
     width: auto;
 }

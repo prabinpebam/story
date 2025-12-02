@@ -363,7 +363,84 @@ Process:
 
 ---
 
-## 7. Footer Actions
+## 7. Export/Import Themes
+
+### 7.1 Export Theme to JSON
+Users can export any theme (presets or custom) as a JSON file for backup or sharing.
+
+#### Export Button Location
+- Located in the theme editor header (right side, next to duplicate button)
+- Icon: File export icon
+- Tooltip: "Export Theme as JSON"
+
+#### Export File Format
+```javascript
+{
+  "schemaVersion": "1.0",
+  "exportedAt": "2025-12-02T12:00:00.000Z",
+  "theme": {
+    "name": "My Custom Theme",
+    "slots": [
+      { "h": 220, "s": 15 },  // Slot 1: hue (0-360), saturation (0-100)
+      { "h": 220, "s": 20 },  // Slot 2
+      // ... 12 slots total
+    ],
+    "adjustments": {
+      "brightness": 0,      // -100 to +100
+      "contrast": 0,
+      "highlights": 0,
+      "shadows": 0,
+      "whites": 0,
+      "blacks": 0,
+      "saturation": 0
+    }
+  }
+}
+```
+
+#### Export Behavior
+1. Click export button on any theme
+2. JSON file downloads automatically
+3. Filename: `{theme-name}.theme.json` (sanitized)
+
+### 7.2 Import Theme from JSON
+Users can import previously exported theme files.
+
+#### Import Button Location
+- Located in the theme list header (top left, next to "New Theme" and "Extract from Image")
+- Icon: File import icon
+- Tooltip: "Import Theme from JSON"
+
+#### Import Process
+1. Click import button
+2. File picker opens (accepts `.json` files)
+3. File is validated against schema
+4. If valid, theme is added to Custom Themes
+5. Newly imported theme is auto-selected
+
+#### Validation Rules
+| Field | Validation |
+|-------|------------|
+| **schemaVersion** | Required, must be compatible version |
+| **theme.name** | Required, non-empty string |
+| **theme.slots** | Required, exactly 12 slot objects |
+| **slots[].h** | Number, 0-360 (hue) |
+| **slots[].s** | Number, 0-100 (saturation) |
+| **adjustments** | Optional, all values -100 to +100 |
+
+#### Error Handling
+| Error | Message |
+|-------|---------|
+| Invalid JSON | "Invalid JSON format. Please check the file contents." |
+| Missing schema | "Missing schema version. This may not be a valid theme file." |
+| Future version | "Theme file version X is newer than supported. Please update." |
+| Invalid slots | "Theme must have exactly 12 color slots." |
+| Invalid hue | "Slot N: hue must be a number between 0 and 360." |
+| Invalid saturation | "Slot N: saturation must be a number between 0 and 100." |
+
+---
+
+## 8. Footer Actions
 
 | Button | Behavior |
 |--------|----------|
@@ -372,9 +449,9 @@ Process:
 
 ---
 
-## 8. Data Model
+## 9. Data Model
 
-### 8.1 Color Theme Schema
+### 9.1 Color Theme Schema
 ```javascript
 ColorTheme: {
   id: "theme-uuid",
@@ -413,7 +490,7 @@ ColorTheme: {
 }
 ```
 
-### 8.2 Store Integration
+### 9.2 Store Integration
 ```javascript
 // In presentation store
 presentation: {
@@ -427,7 +504,7 @@ presentation: {
 
 ---
 
-## 9. Keyboard Shortcuts
+## 10. Keyboard Shortcuts
 
 | Shortcut | Action |
 |----------|--------|
@@ -439,7 +516,7 @@ presentation: {
 
 ---
 
-## 10. Accessibility
+## 11. Accessibility
 
 - Full keyboard navigation
 - ARIA labels for all interactive elements
@@ -449,26 +526,26 @@ presentation: {
 
 ---
 
-## 11. Implementation Notes
+## 12. Implementation Notes
 
-### 11.1 Image Color Extraction
+### 12.1 Image Color Extraction
 - Use canvas API for pixel access
 - Implement k-means clustering in worker thread
 - Cache extracted palettes for performance
 
-### 11.2 AI Integration
+### 12.2 AI Integration
 - Use existing AI service infrastructure
 - Structured prompt for consistent output
 - Fallback to preset if AI unavailable
 
-### 11.3 Real-time Preview
+### 12.3 Real-time Preview
 - Apply theme temporarily during hover/selection
 - Debounce preview updates (100ms)
 - Revert on cancel/close
 
 ---
 
-## 12. Related Documents
+## 13. Related Documents
 - [Design System UX Guide](./design-system-ux-guide.md) - Mental model and user experience
 - [Color Picker UI](../fills/color-picker-ui.md)
 - [Slide Master System](../slides/slide-master-system.md)

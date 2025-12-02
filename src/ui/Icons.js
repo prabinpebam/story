@@ -100,4 +100,10 @@ export const Icons = {
     CAP_BUTT: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M13.5 2H2.5C2.224 2 2 2.224 2 2.5V5H3V3H13V7H4C4 6.449 3.551 6 3 6H2C1.449 6 1 6.449 1 7V8C1 8.551 1.449 9 2 9H3C3.551 9 4 8.551 4 8H13V12H3V10H2V12.5C2 12.776 2.224 13 2.5 13H13.5C13.776 13 14 12.776 14 12.5V2.5C14 2.224 13.776 2 13.5 2ZM3 8H2V7H3V8Z" fill="currentColor" /></svg>',
     CAP_ROUND: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M13.5 2H6.5C3.467 2 1 4.467 1 7.5C1 10.533 3.467 13 6.5 13H13.5C13.776 13 14 12.776 14 12.5V2.5C14 2.224 13.776 2 13.5 2ZM13 12H6.5C4.019 12 2 9.981 2 7.5C2 5.019 4.019 3 6.5 3H13V7H8C8 6.449 7.551 6 7 6H6C5.449 6 5 6.449 5 7V8C5 8.551 5.449 9 6 9H7C7.551 9 8 8.551 8 8H13V12ZM6 8V7H7V8H6Z" fill="currentColor" /></svg>',
     CAP_SQUARE: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M13.5 2H1.5C1.224 2 1 2.224 1 2.5V12.5C1 12.776 1.224 13 1.5 13H13.5C13.776 13 14 12.776 14 12.5V2.5C14 2.224 13.776 2 13.5 2ZM13 12H2V3H13V7H8C8 6.449 7.551 6 7 6H6C5.449 6 5 6.449 5 7V8C5 8.551 5.449 9 6 9H7C7.551 9 8 8.551 8 8H13V12ZM6 8V7H7V8H6Z" fill="currentColor" /></svg>',
+    
+    // Import/Export
+    EXPORT: '<i class="fa-solid fa-file-export"></i>',
+    IMPORT: '<i class="fa-solid fa-file-import"></i>',
+    DOWNLOAD: '<i class="fa-solid fa-download"></i>',
+    UPLOAD: '<i class="fa-solid fa-upload"></i>',
 };
