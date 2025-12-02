@@ -34,6 +34,7 @@ import {
     DEFAULT_ADJUSTMENTS,
     COLOR_HARMONIES,
     MIN_LUMA_DELTA,
+    COLOR_MODES,
     hslToHex,
     hexToHsl,
     generateThemeColors,
@@ -1244,7 +1245,12 @@ export class ColorThemeManager extends DraggablePanel {
             ? generateInvertedThemeColors(theme.slots, theme.adjustments || DEFAULT_ADJUSTMENTS)
             : generateThemeColors(theme.slots, theme.adjustments || DEFAULT_ADJUSTMENTS);
         
-        applyThemeToCSSVariables(colors);
+        // Get color mode from store (light/dark mode is controlled at master slide level)
+        const state = store.getState();
+        const themeMaster = state.masters?.['theme-default'];
+        const colorMode = themeMaster?.themeSettings?.lumaTheme?.colorMode || COLOR_MODES.LIGHT;
+        
+        applyThemeToCSSVariables(colors, document.documentElement, colorMode);
         this.managerOptions.onThemeApply(theme, colors);
     }
     
@@ -1549,8 +1555,12 @@ export class ColorThemeManager extends DraggablePanel {
             }
         });
         
+        // Get current color mode from store for CSS variable application
+        const state = store.getState();
+        const currentColorMode = state.masters?.[masterId]?.themeSettings?.lumaTheme?.colorMode || COLOR_MODES.LIGHT;
+        
         // Also apply CSS variables for immediate visual feedback
-        applyThemeToCSSVariables(colors);
+        applyThemeToCSSVariables(colors, document.documentElement, currentColorMode);
     }
     
     /**

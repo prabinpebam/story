@@ -70,6 +70,23 @@ export function handleUpdateLumaThemeAdjustments(draft, payload) {
     }
 }
 
+/**
+ * Set the color mode (light/dark) for the luma-locked theme.
+ * This doesn't change the actual theme values - it changes how slots are resolved.
+ * In dark mode, slot N resolves to slot (11-N), effectively swapping shadows ↔ highlights.
+ * 
+ * @param {Object} draft - Immer draft state
+ * @param {Object} payload - { masterId: string, colorMode: 'light' | 'dark' }
+ */
+export function handleSetColorMode(draft, payload) {
+    const { masterId, colorMode } = payload;
+    const themeMaster = draft.masters[masterId];
+    
+    if (themeMaster?.themeSettings?.lumaTheme && (colorMode === 'light' || colorMode === 'dark')) {
+        themeMaster.themeSettings.lumaTheme.colorMode = colorMode;
+    }
+}
+
 // ========================================
 // LEGACY COLOR HANDLERS
 // ========================================

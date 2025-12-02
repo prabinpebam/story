@@ -224,6 +224,7 @@ class Store extends EventEmitter {
             case 'UPDATE_LUMA_THEME_SLOT':
             case 'UPDATE_LUMA_THEME_ADJUSTMENTS':
             case 'APPLY_SLIDE_MASTER_PRESET':
+            case 'SET_COLOR_MODE':
                 this.snapshot(type);
                 this.state = produce(this.state, draft => {
                     switch(type) {
@@ -242,9 +243,11 @@ class Store extends EventEmitter {
                         case 'UPDATE_LUMA_THEME_SLOT': MasterHandlers.handleUpdateLumaThemeSlot(draft, payload); break;
                         case 'UPDATE_LUMA_THEME_ADJUSTMENTS': MasterHandlers.handleUpdateLumaThemeAdjustments(draft, payload); break;
                         case 'APPLY_SLIDE_MASTER_PRESET': MasterHandlers.handleApplySlideMasterPreset(draft, payload); break;
+                        case 'SET_COLOR_MODE': MasterHandlers.handleSetColorMode(draft, payload); break;
                     }
                 });
                 this.emit('state-changed', this.state);
+                if (type === 'SET_COLOR_MODE') this.emit('color-mode-changed', payload.colorMode);
                 break;
 
             // Interaction Handlers

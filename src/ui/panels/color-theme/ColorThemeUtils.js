@@ -7,6 +7,16 @@
  */
 
 /**
+ * Color mode constants for light/dark mode support.
+ * Light mode uses slots as-is.
+ * Dark mode maps slots to their mirrored position (11 - N), swapping shadows↔highlights.
+ */
+export const COLOR_MODES = {
+    LIGHT: 'light',
+    DARK: 'dark'
+};
+
+/**
  * Luma-locked slot definitions.
  * Each slot has a fixed luma value (L in HSL).
  * Organized into 3 clusters (rows): Shadows (1-4), Midtones (5-8), Highlights (9-12)
@@ -792,24 +802,43 @@ export async function extractThemeFromImage(image) {
 
 /**
  * Apply theme colors to CSS variables
- * @param {Array<string>} colors - 12 hex colors
+ * Supports light/dark mode by remapping which color goes to which CSS variable.
+ * 
+ * In light mode: --theme-slot1 = colors[0], --theme-slot2 = colors[1], etc.
+ * In dark mode: --theme-slot1 = colors[11], --theme-slot2 = colors[10], etc.
+ * This swaps shadows↔highlights while keeping the same CSS variable names in templates.
+ * 
+ * @param {Array<string>} colors - 12 hex colors (always in light mode order)
  * @param {HTMLElement} root - Root element (defaults to :root)
+ * @param {string} colorMode - 'light' or 'dark' (defaults to 'light')
  */
-export function applyThemeToCSSVariables(colors, root = document.documentElement) {
+export function applyThemeToCSSVariables(colors, root = document.documentElement, colorMode = COLOR_MODES.LIGHT) {
     colors.forEach((color, index) => {
-        root.style.setProperty(`--theme-slot${index + 1}`, color);
+        // In dark mode, remap which color value goes to which CSS variable
+        // CSS variable --theme-slotN gets the color from the effective slot
+        const effectiveIndex = getEffectiveSlotIndex(index, colorMode);
+        const effectiveColor = colors[effectiveIndex];
+        root.style.setProperty(`--theme-slot${index + 1}`, effectiveColor);
     });
+    
+    // Also set a data attribute for debugging/styling purposes
+    root.dataset.themeMode = colorMode;
 }
 
 /**
  * Generate CSS variable declarations for a theme
- * @param {Array<string>} colors - 12 hex colors
+ * Supports light/dark mode remapping.
+ * 
+ * @param {Array<string>} colors - 12 hex colors (always in light mode order)
+ * @param {string} colorMode - 'light' or 'dark' (defaults to 'light')
  * @returns {string} CSS variable declarations
  */
-export function generateThemeCSSVariables(colors) {
-    return colors.map((color, index) => 
-        `--theme-slot${index + 1}: ${color};`
-    ).join('\n');
+export function generateThemeCSSVariables(colors, colorMode = COLOR_MODES.LIGHT) {
+    return colors.map((color, index) => {
+        const effectiveIndex = getEffectiveSlotIndex(index, colorMode);
+        const effectiveColor = colors[effectiveIndex];
+        return `--theme-slot${index + 1}: ${effectiveColor};`;
+    }).join('\n');
 }
 
 /**
@@ -1084,4 +1113,74 @@ export function generateColumnHarmonyTheme(harmony, lockedColumns = [], existing
         
         return { h: hue, s: Math.round(saturation) };
     });
+}
+
+// ============================================
+// Dark Mode Support
+// ============================================
+
+/**
+ * Dark mode slot mapping array.
+ * In dark mode, slot indices are mirrored: shadows become highlights and vice versa.
+ * Index N maps to value (11 - N).
+ * 
+ * Visual mapping:
+ * Light Mode: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11] (as-is)
+ * Dark Mode:  [11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0] (reversed)
+ */
+export const DARK_MODE_SLOT_MAP = [11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0];
+
+/**
+ * Get effective slot index based on color mode.
+ * In light mode, slots resolve as-is.
+ * In dark mode, slots are mirrored: shadows ↔ highlights.
+ * 
+ * @param {number} slotIndex - Original slot index (0-11)
+ * @param {string|boolean} colorMode - Color mode: 'light', 'dark', or boolean (true = dark)
+ * @returns {number} Effective slot index to use for color resolution
+ */
+export function getEffectiveSlotIndex(slotIndex, colorMode) {
+    // Support both string mode ('light'/'dark') and boolean (isDarkMode)
+    const isDarkMode = colorMode === COLOR_MODES.DARK || colorMode === true;
+    
+    if (!isDarkMode) return slotIndex;
+    if (slotIndex < 0 || slotIndex > 11) return slotIndex;
+    return DARK_MODE_SLOT_MAP[slotIndex]; // Same as: 11 - slotIndex
+}
+
+/**
+ * Generate theme colors with dark mode support.
+ * In dark mode, the slot mapping is reversed so shadows appear as highlights
+ * and highlights appear as shadows.
+ * 
+ * @param {Array<{h: number, s: number}>} slots - 12 slot colors (hue, saturation)
+ * @param {Object} adjustments - Adjustment values
+ * @param {string|boolean} colorMode - Color mode: 'light', 'dark', or boolean (true = dark)
+ * @returns {Array<string>} 12 hex colors (mapped for current mode)
+ */
+export function generateThemeColorsWithMode(slots, adjustments = DEFAULT_ADJUSTMENTS, colorMode = COLOR_MODES.LIGHT) {
+    // First generate the base colors (light mode)
+    const baseColors = generateThemeColors(slots, adjustments);
+    
+    const isDarkMode = colorMode === COLOR_MODES.DARK || colorMode === true;
+    
+    if (!isDarkMode) {
+        return baseColors;
+    }
+    
+    // For dark mode, remap colors: CSS variable --theme-slotN gets the color from the mirrored slot
+    // This means --theme-slot1 (used for backgrounds) gets the light color from slot 12
+    return baseColors.map((_, index) => {
+        const effectiveIndex = getEffectiveSlotIndex(index, colorMode);
+        return baseColors[effectiveIndex];
+    });
+}
+
+/**
+ * Check if the given mode string represents dark mode.
+ * @param {string} colorMode - Mode string ('light' | 'dark')
+ * @returns {boolean} True if dark mode
+ */
+export function isColorModeDark(colorMode) {
+    return colorMode === COLOR_MODES.DARK;
 }

@@ -8,6 +8,7 @@ export { ColorThemeManager } from './ColorThemeManager.js';
 export { 
     LUMA_SLOTS,
     DEFAULT_ADJUSTMENTS,
+    COLOR_MODES,
     hslToHex,
     hexToHsl,
     isColorDark,
@@ -30,7 +31,10 @@ export {
     validateTheme,
     createTheme,
     cloneTheme,
-    generateThemeId
+    generateThemeId,
+    getEffectiveSlotIndex,
+    generateThemeColorsWithMode,
+    getDarkModeSlotMapping
 } from './ColorThemeUtils.js';
 export { 
     THEME_PRESETS,

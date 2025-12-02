@@ -4,6 +4,7 @@ import { NumberInput } from '../components/NumberInput.js';
 import { Dropdown } from '../components/Dropdown.js';
 import { Flyout } from '../components/Flyout.js';
 import { Button } from '../components/Button.js';
+import { SegmentedControl } from '../components/SegmentedControl.js';
 import { store } from '../../core/Store.js';
 import { FillSection } from './FillSection.js';
 import { panelManager } from '../PanelManager.js';
@@ -11,7 +12,7 @@ import { Icons } from '../Icons.js';
 import { ThemeSwatches } from '../components/ThemeSwatches.js';
 import { SLIDE_MASTER_PRESETS, getPresetById, getPresetList, getFullPresetById } from '../../core/store/SlideMasterPresets.js';
 import { THEME_PRESETS } from '../panels/color-theme/ThemePresets.js';
-import { applyThemeToCSSVariables } from '../panels/color-theme/ColorThemeUtils.js';
+import { applyThemeToCSSVariables, COLOR_MODES } from '../panels/color-theme/ColorThemeUtils.js';
 
 export class SlideSection {
     constructor() {
@@ -184,6 +185,34 @@ export class SlideSection {
 
         container.appendChild(headerRow);
 
+        // Mode toggle row (Light ☀️ / Dark 🌙)
+        const modeRow = document.createElement('div');
+        modeRow.className = 'pi-row theme-mode-row';
+        modeRow.style.marginBottom = 'var(--spacing-2)';
+        
+        const modeLabel = document.createElement('span');
+        modeLabel.className = 'pi-label';
+        modeLabel.textContent = 'Mode';
+        modeLabel.style.marginRight = 'var(--spacing-2)';
+        modeRow.appendChild(modeLabel);
+        
+        // Get current color mode from store
+        const state = store.getState();
+        const themeMaster = state.masters?.['theme-default'];
+        const currentMode = themeMaster?.themeSettings?.lumaTheme?.colorMode || COLOR_MODES.LIGHT;
+        
+        this.modeToggle = new SegmentedControl({
+            options: [
+                { value: COLOR_MODES.LIGHT, label: 'Light', icon: '<i class="fa-solid fa-sun"></i>' },
+                { value: COLOR_MODES.DARK, label: 'Dark', icon: '<i class="fa-solid fa-moon"></i>' }
+            ],
+            value: currentMode,
+            onChange: (mode) => this.updateColorMode(mode)
+        });
+        modeRow.appendChild(this.modeToggle.element);
+        
+        container.appendChild(modeRow);
+
         // Use ThemeSwatches component for luma-locked 12-slot display
         // Read-only display (no color selection callback)
         this.themeSwatchesComponent = new ThemeSwatches({
@@ -194,6 +223,33 @@ export class SlideSection {
         container.appendChild(this.themeSwatchesComponent.element);
 
         return container;
+    }
+    
+    /**
+     * Update the color mode (light/dark)
+     * @param {string} mode - 'light' or 'dark'
+     */
+    updateColorMode(mode) {
+        const state = store.getState();
+        const themeMasterId = 'theme-default';
+        const themeMaster = state.masters?.[themeMasterId];
+        
+        if (!themeMaster) return;
+        
+        // Dispatch the color mode change
+        store.dispatch('SET_COLOR_MODE', {
+            masterId: themeMasterId,
+            colorMode: mode
+        });
+        
+        // Re-apply CSS variables with the new mode
+        const lumaTheme = themeMaster.themeSettings?.lumaTheme;
+        if (lumaTheme?.slots) {
+            const hexColors = lumaTheme.resolvedColors || lumaTheme.slots.map(slot => slot.hex);
+            applyThemeToCSSVariables(hexColors, document.documentElement, mode);
+        }
+        
+        console.log('[SlideSection] Color mode changed to:', mode);
     }
 
     createTypographySectionContent() {
@@ -316,6 +372,23 @@ export class SlideSection {
             this.colorBadge.textContent = 'Inherited';
             this.colorBadge.className = 'theme-detail-badge inherited';
             this.colorResetBtn.element.style.display = 'none';
+        }
+
+        // Update mode toggle to reflect current color mode
+        const colorMode = lumaTheme?.colorMode || COLOR_MODES.LIGHT;
+        if (this.modeToggle && this.modeToggle.selectedValue !== colorMode) {
+            this.modeToggle.selectedValue = colorMode;
+            // Update visual state of toggle buttons
+            Array.from(this.modeToggle.element.children).forEach((child, i) => {
+                const option = this.modeToggle.options[i];
+                if (colorMode === option.value) {
+                    child.style.backgroundColor = 'var(--color-accent)';
+                    child.style.color = 'var(--color-text-on-accent)';
+                } else {
+                    child.style.backgroundColor = 'transparent';
+                    child.style.color = 'var(--color-text-primary)';
+                }
+            });
         }
 
         // ThemeSwatches component auto-updates from store, no manual update needed
@@ -810,8 +883,13 @@ export class SlideSection {
             if (lumaTheme?.slots) {
                 // Apply CSS variables from the preset's resolved colors
                 const hexColors = lumaTheme.resolvedColors || lumaTheme.slots.map(slot => slot.hex);
-                console.log('[SlideSection] Applying CSS variables for preset:', presetId, hexColors);
-                applyThemeToCSSVariables(hexColors);
+                
+                // Get current color mode from store (preserves dark mode if already set)
+                const state = store.getState();
+                const colorMode = state.masters?.[themeMasterId]?.themeSettings?.lumaTheme?.colorMode || COLOR_MODES.LIGHT;
+                
+                console.log('[SlideSection] Applying CSS variables for preset:', presetId, hexColors, 'mode:', colorMode);
+                applyThemeToCSSVariables(hexColors, document.documentElement, colorMode);
             }
             
             // Update ColorThemeManager to show the selected color theme

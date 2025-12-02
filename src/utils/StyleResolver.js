@@ -1,9 +1,15 @@
 import { store } from '../core/Store.js';
+import { getEffectiveSlotIndex, COLOR_MODES } from '../ui/panels/color-theme/ColorThemeUtils.js';
 
 export const StyleResolver = {
     /**
      * Resolves a theme slot index to an actual hex color value.
      * Uses the current theme's lumaTheme slots.
+     * Respects dark mode by mapping slots through getEffectiveSlotIndex.
+     * 
+     * In light mode: slot N resolves to slot N
+     * In dark mode: slot N resolves to slot (11 - N), swapping shadows↔highlights
+     * 
      * @param {number} slotIndex - The 0-based slot index (0-11)
      * @param {string} fallback - Fallback color if slot not found
      * @returns {string} The hex color value
@@ -15,17 +21,24 @@ export const StyleResolver = {
         const themeMaster = Object.values(state.masters).find(m => m.type === 'theme');
         const lumaTheme = themeMaster?.themeSettings?.lumaTheme;
         
-        if (lumaTheme?.slots?.[slotIndex]) {
-            return lumaTheme.slots[slotIndex].hex || fallback;
+        // Get the color mode (defaults to 'light')
+        const colorMode = lumaTheme?.colorMode || COLOR_MODES.LIGHT;
+        
+        // Map the slot index based on color mode
+        // In dark mode, this will flip shadow/highlight clusters
+        const effectiveSlotIndex = getEffectiveSlotIndex(slotIndex, colorMode);
+        
+        if (lumaTheme?.slots?.[effectiveSlotIndex]) {
+            return lumaTheme.slots[effectiveSlotIndex].hex || fallback;
         }
         
         // Try resolvedColors array as fallback
-        if (lumaTheme?.resolvedColors?.[slotIndex]) {
-            return lumaTheme.resolvedColors[slotIndex];
+        if (lumaTheme?.resolvedColors?.[effectiveSlotIndex]) {
+            return lumaTheme.resolvedColors[effectiveSlotIndex];
         }
         
         // Last resort: try CSS variable
-        const slotNumber = slotIndex + 1;
+        const slotNumber = effectiveSlotIndex + 1;
         const cssValue = getComputedStyle(document.documentElement)
             .getPropertyValue(`--theme-slot${slotNumber}`).trim();
         
