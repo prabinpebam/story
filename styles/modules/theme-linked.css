@@ -152,6 +152,42 @@
 }
 
 /* -----------------------------------------------------------------------------
+   FILL ROW LINKED INDICATOR
+   Used by FillSection to indicate theme-linked fills
+   ----------------------------------------------------------------------------- */
+
+/* Row-level indicator when fill is linked to theme */
+.pi-row.fill-linked {
+    /* Subtle left border to indicate theme linking */
+    border-left: 2px solid var(--color-accent);
+    padding-left: 4px;
+    margin-left: -6px;
+}
+
+/* Linked icon in fill row */
+.fill-linked-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 16px;
+    color: var(--color-accent);
+    font-size: 10px;
+    margin-left: 4px;
+}
+
+/* Hide linked icon when not linked */
+.pi-row:not(.fill-linked) .fill-linked-icon {
+    display: none;
+}
+
+/* Linked hex input styling */
+.fill-hex-input--linked {
+    color: var(--color-accent) !important;
+    font-style: italic;
+}
+
+/* -----------------------------------------------------------------------------
    COLOR PICKER SWATCHES
    Theme swatch grid in color picker
    ----------------------------------------------------------------------------- */
@@ -188,6 +224,45 @@
     background: var(--color-accent-subtle);
     border-radius: var(--radius-md, 6px);
     margin-top: var(--spacing-sm, 8px);
+}
+
+/* SolidTab-specific link indicator (inline in flyout) */
+.color-link-indicator {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 8px;
+    background: var(--color-bg-tertiary);
+    border-radius: var(--radius-sm, 4px);
+    border: 1px solid var(--color-accent);
+    margin-bottom: 8px;
+}
+
+.color-link-indicator .link-icon {
+    color: var(--color-accent);
+    font-size: 12px;
+}
+
+.color-link-indicator .link-label {
+    flex: 1;
+    font-size: var(--font-size-sm, 12px);
+    color: var(--color-text-secondary);
+}
+
+.color-link-indicator .unlink-btn {
+    font-size: var(--font-size-xs, 10px);
+    padding: 2px 6px;
+    border-radius: var(--radius-xs, 2px);
+    border: 1px solid var(--color-border);
+    background: transparent;
+    color: var(--color-text-primary);
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.color-link-indicator .unlink-btn:hover {
+    background: var(--color-bg-hover);
+    border-color: var(--color-border-hover);
 }
 
 .color-linked-status .linked-icon {
