@@ -7,6 +7,14 @@
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { produce } from '../../../../src/vendor/immer.js';
+
+// Mock SlideMasterPresets BEFORE importing MasterHandlers
+vi.mock('../../../../src/core/store/SlideMasterPresets.js', () => ({
+    getPresetById: () => null,
+    getFullPresetById: () => null,
+    SLIDE_MASTER_PRESETS: []
+}));
+
 import {
     handleUpdateMaster,
     handleUpdateThemeSettings,
@@ -50,7 +58,16 @@ vi.mock('../../../../src/core/constants/FontPresets.js', () => ({
             heading: { family: 'Inter', weight: 700 },
             body: { family: 'Inter', weight: 400 }
         }
-    })
+    }),
+    getPresetById: (id) => ({
+        id: id || 'modern-clean',
+        name: 'Modern Clean',
+        fonts: {
+            heading: { family: 'Playfair Display', weight: 700 },
+            body: { family: 'Open Sans', weight: 400 }
+        }
+    }),
+    FONT_PRESETS: []
 }));
 
 describe('MasterHandlers', () => {

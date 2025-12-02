@@ -152,16 +152,16 @@ describe('ColorThemeManager', () => {
             expect(manager.selectedThemeId).toBeDefined();
         });
 
-        it('should have null selectedSlotIndex initially', () => {
-            expect(manager.selectedSlotIndex).toBeNull();
+        it('should have null selectedColumnIndex initially', () => {
+            expect(manager.selectedColumnIndex).toBeNull();
         });
 
         it('should initialize with COMPLEMENTARY harmony', () => {
             expect(manager.selectedHarmony).toBe('complementary');
         });
 
-        it('should have empty lockedSlots set', () => {
-            expect(manager.lockedSlots.size).toBe(0);
+        it('should have empty lockedColumns set', () => {
+            expect(manager.lockedColumns.size).toBe(0);
         });
 
         it('should have generateHues enabled by default', () => {
@@ -172,8 +172,8 @@ describe('ColorThemeManager', () => {
             expect(manager.generateAdjustments).toBe(true);
         });
 
-        it('should not be inverted initially', () => {
-            expect(manager.isInverted).toBe(false);
+        it('should have null selectedColumnIndex initially', () => {
+            expect(manager.selectedColumnIndex).toBeNull();
         });
     });
 
@@ -234,16 +234,17 @@ describe('ColorThemeManager', () => {
             expect(manager.selectedThemeId).toBe('preset_ocean_sunset');
         });
 
-        it('should clear selectedSlotIndex', () => {
-            manager.selectedSlotIndex = 5;
+        it('should clear selectedColumnIndex', () => {
+            manager.selectedColumnIndex = 2;
             manager.selectTheme('preset_ocean_sunset');
-            expect(manager.selectedSlotIndex).toBeNull();
+            expect(manager.selectedColumnIndex).toBeNull();
         });
 
-        it('should reset isInverted', () => {
-            manager.isInverted = true;
+        it('should preserve lockedColumns on theme change', () => {
+            manager.toggleColumnLock(1);
             manager.selectTheme('preset_ocean_sunset');
-            expect(manager.isInverted).toBe(false);
+            // lockedColumns should persist across theme changes
+            expect(manager.lockedColumns.has(1)).toBe(true);
         });
 
         it('should call onThemeChange callback', () => {
@@ -303,26 +304,31 @@ describe('ColorThemeManager', () => {
         });
     });
 
-    describe('toggleSlotLock()', () => {
-        it('should add slot to lockedSlots', () => {
-            manager.toggleSlotLock(5);
-            expect(manager.lockedSlots.has(5)).toBe(true);
+    describe('toggleColumnLock()', () => {
+        it('should add column to lockedColumns', () => {
+            manager.toggleColumnLock(2);
+            expect(manager.lockedColumns.has(2)).toBe(true);
         });
 
-        it('should remove slot from lockedSlots on second call', () => {
-            manager.toggleSlotLock(5);
-            manager.toggleSlotLock(5);
-            expect(manager.lockedSlots.has(5)).toBe(false);
+        it('should remove column from lockedColumns on second call', () => {
+            manager.toggleColumnLock(2);
+            manager.toggleColumnLock(2);
+            expect(manager.lockedColumns.has(2)).toBe(false);
         });
     });
 
-    describe('toggleInvert()', () => {
-        it('should toggle isInverted state', () => {
-            expect(manager.isInverted).toBe(false);
-            manager.toggleInvert();
-            expect(manager.isInverted).toBe(true);
-            manager.toggleInvert();
-            expect(manager.isInverted).toBe(false);
+    describe('lockedColumns state', () => {
+        it('should start with empty lockedColumns set', () => {
+            expect(manager.lockedColumns).toBeInstanceOf(Set);
+            expect(manager.lockedColumns.size).toBe(0);
+        });
+
+        it('should track multiple locked columns', () => {
+            manager.toggleColumnLock(0);
+            manager.toggleColumnLock(2);
+            expect(manager.lockedColumns.size).toBe(2);
+            expect(manager.lockedColumns.has(0)).toBe(true);
+            expect(manager.lockedColumns.has(2)).toBe(true);
         });
     });
 
@@ -481,7 +487,7 @@ describe('ColorThemeManager', () => {
             expect(manager.adjustmentSliders).toEqual({});
             expect(manager.themeListEl).toBeNull();
             expect(manager.themeEditorEl).toBeNull();
-            expect(manager.slotEditorEl).toBeNull();
+            expect(manager.columnEditEl).toBeNull();
         });
     });
 });

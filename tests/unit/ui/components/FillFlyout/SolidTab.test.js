@@ -7,26 +7,32 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
-// Mock the store before importing SolidTab
-const mockGetState = vi.fn(() => ({
-    editor: { mode: 'slide' },
-    masters: {
-        'theme-default': {
-            id: 'theme-default',
-            type: 'theme',
-            themeSettings: {
-                lumaTheme: {
-                    id: 'neutral',
-                    name: 'Neutral',
-                    resolvedColors: [
-                        '#0d0d0d', '#1a1a1a', '#2e2e2e', '#404040',
-                        '#595959', '#737373', '#8c8c8c', '#a6a6a6',
-                        '#b3b3b3', '#cccccc', '#e6e6e6', '#f8f8f8'
-                    ]
+// Use vi.hoisted() for mock functions that need to be available in vi.mock factories
+const { mockGetState } = vi.hoisted(() => ({
+    mockGetState: vi.fn(() => ({
+        editor: { mode: 'slide', activeSlideId: 'slide-1' },
+        masters: {
+            'theme-default': {
+                id: 'theme-default',
+                type: 'theme',
+                themeSettings: {
+                    lumaTheme: {
+                        id: 'neutral',
+                        name: 'Neutral',
+                        resolvedColors: [
+                            '#0d0d0d', '#1a1a1a', '#2e2e2e', '#404040',
+                            '#595959', '#737373', '#8c8c8c', '#a6a6a6',
+                            '#b3b3b3', '#cccccc', '#e6e6e6', '#f8f8f8'
+                        ]
+                    }
                 }
             }
+        },
+        layouts: {},
+        slides: {
+            'slide-1': { id: 'slide-1', masterId: 'theme-default', styleAssignments: {} }
         }
-    }
+    }))
 }));
 
 vi.mock('../../../../../src/core/Store.js', () => ({
@@ -123,7 +129,12 @@ vi.mock('../../../../../src/ui/components/ThemeSwatches.js', () => ({
             });
         });
         
-        return { element, destroy: vi.fn() };
+        return { 
+            element, 
+            destroy: vi.fn(),
+            setSelectedSlot: vi.fn(),
+            updateColors: vi.fn()
+        };
     })
 }));
 
