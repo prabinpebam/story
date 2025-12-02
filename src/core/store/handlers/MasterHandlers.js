@@ -1,6 +1,7 @@
 
 import { getDefaultPreset } from '../../constants/ColorPresets.js';
 import { getDefaultFontPreset } from '../../constants/FontPresets.js';
+import { getPresetById, getFullPresetById } from '../SlideMasterPresets.js';
 
 // ========================================
 // LUMA-LOCKED THEME HANDLERS
@@ -351,4 +352,121 @@ export function handleDeleteElementFromMaster(draft, payload) {
             draft.editor.selectedElementIds = draft.editor.selectedElementIds.filter(id => id !== elementId);
         }
     }
+}
+
+// ========================================
+// SLIDE MASTER PRESET HANDLER
+// ========================================
+
+/**
+ * Apply a slide master preset to a theme master.
+ * This updates the color theme, typography (from FontPresets), and background in one action.
+ * Typography properties come from the font preset, only text fill colors come from the color theme.
+ * @param {Object} draft - Immer draft state
+ * @param {Object} payload - { masterId: string, presetId: string }
+ */
+export function handleApplySlideMasterPreset(draft, payload) {
+    const { masterId, presetId } = payload;
+    const themeMaster = draft.masters[masterId];
+    
+    console.log(`[ApplyPreset] Applying preset: ${presetId} to master: ${masterId}`);
+    
+    if (!themeMaster || themeMaster.type !== 'theme') {
+        console.log(`[ApplyPreset] ERROR: Invalid theme master`, themeMaster?.type);
+        return;
+    }
+    
+    const fullPreset = getFullPresetById(presetId);
+    if (!fullPreset) {
+        return;
+    }
+    
+    const presetTheme = fullPreset.theme;
+    
+    // Store the preset ID for reference
+    themeMaster.presetId = presetId;
+    
+    // Initialize themeSettings if needed
+    if (!themeMaster.themeSettings) {
+        themeMaster.themeSettings = { colors: {}, fonts: {}, textStyles: {} };
+    }
+    
+    // 1. Apply luma theme (color theme) from preset
+    if (presetTheme.themeSettings?.lumaTheme) {
+        themeMaster.themeSettings.lumaTheme = { ...presetTheme.themeSettings.lumaTheme };
+        console.log(`[ApplyPreset] Applied lumaTheme:`, presetTheme.themeSettings.lumaTheme.name);
+        console.log(`[ApplyPreset] LumaTheme slots:`, presetTheme.themeSettings.lumaTheme.slots?.map((s, i) => `${i}: ${s.hex}`));
+    }
+    
+    // 2. Store font preset ID reference
+    if (presetTheme.themeSettings?.fontPresetId) {
+        themeMaster.themeSettings.fontPresetId = presetTheme.themeSettings.fontPresetId;
+    }
+    
+    // 3. Apply font settings (from FontPresets - includes family, weight, fallback)
+    if (presetTheme.themeSettings?.fonts) {
+        themeMaster.themeSettings.fonts = { ...presetTheme.themeSettings.fonts };
+    }
+    
+    // 4. Apply text styles (typography from FontPresets, colors from theme slots)
+    if (presetTheme.themeSettings?.textStyles) {
+        themeMaster.themeSettings.textStyles = JSON.parse(JSON.stringify(presetTheme.themeSettings.textStyles));
+        console.log(`[ApplyPreset] Applied textStyles:`, Object.keys(presetTheme.themeSettings.textStyles));
+        console.log(`[ApplyPreset] Title style textFill:`, presetTheme.themeSettings.textStyles.title?.textFill);
+    }
+    
+    // 5. Apply background from preset
+    if (presetTheme.background) {
+        themeMaster.background = JSON.parse(JSON.stringify(presetTheme.background));
+        console.log(`[ApplyPreset] Applied background:`, presetTheme.background);
+    }
+    
+    // 6. Update layout masters with preset's placeholder elements
+    // This applies the theme-linked textFill to the actual placeholders
+    const presetLayouts = fullPreset.layouts;
+    if (presetLayouts) {
+        console.log(`[ApplyPreset] Applying layouts from preset...`);
+        
+        // Find existing layout masters that belong to this theme
+        const existingLayoutIds = Object.keys(draft.masters).filter(id => {
+            const master = draft.masters[id];
+            return master.type === 'layout' && master.parentId === masterId;
+        });
+        
+        console.log(`[ApplyPreset] Existing layouts:`, existingLayoutIds);
+        
+        // Map preset layout names to existing layouts by their layout type
+        // e.g., "Title Slide" preset layout -> existing layout with same name
+        const presetLayoutArray = Object.values(presetLayouts);
+        
+        existingLayoutIds.forEach(existingLayoutId => {
+            const existingLayout = draft.masters[existingLayoutId];
+            
+            // Find matching preset layout by name
+            const matchingPresetLayout = presetLayoutArray.find(
+                pl => pl.name === existingLayout.name
+            );
+            
+            if (matchingPresetLayout) {
+                console.log(`[ApplyPreset] Updating layout "${existingLayout.name}" with preset elements`);
+                
+                // Update elements with theme-linked textFill
+                existingLayout.elements = JSON.parse(JSON.stringify(matchingPresetLayout.elements));
+                existingLayout.elementOrder = [...matchingPresetLayout.elementOrder];
+                
+                // Log the textFill of the first placeholder to verify
+                const firstEl = Object.values(existingLayout.elements)[0];
+                if (firstEl) {
+                    console.log(`[ApplyPreset] First element textFill:`, firstEl.style?.textFill);
+                }
+            }
+        });
+    }
+    
+    console.log(`[ApplyPreset] Final themeMaster.themeSettings:`, {
+        lumaTheme: themeMaster.themeSettings.lumaTheme?.name,
+        fontPresetId: themeMaster.themeSettings.fontPresetId,
+        fonts: themeMaster.themeSettings.fonts,
+        textStyleKeys: Object.keys(themeMaster.themeSettings.textStyles || {})
+    });
 }

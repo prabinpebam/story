@@ -44,7 +44,10 @@ Color theme is applied in the following heirarchy
         - reset to default button.
 
 - Preset themes can be edited but has to be saved as a new color theme
-- There should be an invert theme option that flips the Luma values in theswatch slots to convert the color theme to turn the whole theme to lightmode/dark mode version.
+- Light/Dark mode is controlled at the **Master Slide level**, not in the Color Theme Manager
+  - The same color theme works for both modes
+  - Master Slide property inspector has a Light/Dark toggle
+  - When toggled, the rendering pipeline interprets slot assignments differently (shadows ↔ highlights)
 
 ---
 
@@ -66,15 +69,152 @@ The **delta between luma values** is what makes a theme functional:
 - Any slot pairing maintains its contrast ratio across themes
 - Desaturate any theme to grayscale → it still works perfectly
 
-### Three Tonal Clusters
-Luma values cluster into shadows, midtones, and highlights (like photography):
+### HSL for Intuitive User Control
 
+HSL (Hue, Saturation, Luma) provides the most intuitive color model for user manipulation:
+- **Hue (H):** The color wheel position (0-360°) - easy to understand as "the color"
+- **Saturation (S):** Color intensity (0-100%) - from gray to vivid
+- **Luma (L):** Perceived brightness (0-100%) - locked for contrast guarantees
+
+**Technical Architecture for Color Storage:**
+
+| Layer | Format | Purpose |
+|-------|--------|---------|
+| **User Editing** | HSL | Intuitive controls for H and S adjustment |
+| **Internal State** | H, S values + fixed L | Minimal storage, luma computed from slot position |
+| **Rendered Output** | Hex (#RRGGBB) | All HSL→Hex conversion done at Color Theme Manager |
+| **CSS Variables** | Hex | Direct use in styles without runtime conversion |
+| **Export/Import** | JSON with H, S, and slot metadata | Portable, human-readable |
+
+**Conversion Flow:**
 ```
-SHADOWS          MIDTONES         HIGHLIGHTS
-(L: 5-25%)       (L: 35-65%)      (L: 70-97%)
-┌──┬──┬──┬──┐   ┌──┬──┬──┬──┐   ┌──┬──┬──┬──┐
-│1 │2 │3 │4 │   │5 │6 │7 │8 │   │9 │10│11│12│
-└──┴──┴──┴──┘   └──┴──┴──┴──┘   └──┴──┴──┴──┘
+User Input (H, S) 
+    ↓
+Color Theme Manager applies fixed L for slot position
+    ↓
+HSL→Hex conversion
+    ↓
+Stored as Hex in state
+    ↓
+CSS variables updated (--theme-slot1 through --theme-slot12)
+    ↓
+Available throughout app (Slide Master, Fill Panel, etc.)
+```
+
+**Export/Import JSON Format:**
+```json
+{
+  "name": "My Custom Theme",
+  "id": "custom-theme-001",
+  "version": "1.0",
+  "slots": [
+    { "h": 210, "s": 75, "role": "secondary1" },
+    { "h": 220, "s": 80, "role": "primary" },
+    { "h": 45, "s": 90, "role": "accent" },
+    { "h": 180, "s": 60, "role": "secondary2" },
+    // ... 12 slots total
+  ],
+  "adjustments": {
+    "brightness": 0,
+    "contrast": 0,
+    "saturation": 0
+  }
+}
+```
+
+**Integration Points:**
+- **Slide Master Templates:** Reference slots by index (1-12) for theme-linked colors
+- **Master Slide Light/Dark Mode:** Toggle in property inspector inverts slot mapping for the presentation
+- **Fill Panel:** Shows theme swatches, user selects slot not arbitrary color
+- **Color Palette Panel:** Uses theme colors as base for extended palettes
+- **Property Inspector:** Theme-linked fills show slot indicator
+
+---
+
+### The 4-Column × 3-Row Grid System
+
+The 12 slots are organized in a **4×4 logical grid** with a header row defining color roles:
+
+**4 Color Roles (Columns):**
+| Role | Column | Purpose | Typical Usage |
+|------|--------|---------|---------------|
+| **Secondary 1** | 1 | Supporting variety | Borders, dividers, subtle backgrounds |
+| **Primary** | 2 | Main brand/background | Slide backgrounds, primary fills |
+| **Accent** | 3 | Highlight & emphasis | CTAs, icons, links, key elements |
+| **Secondary 2** | 4 | Additional variety | Alternative accents, charts, tags |
+
+**3 Tonal Clusters (Rows):**
+| Cluster | Luma Range | Slots | Purpose |
+|---------|------------|-------|---------|
+| **Shadows** | L: 5-25% | 1-4 | Dark tones for dark themes or contrast |
+| **Midtones** | L: 35-65% | 5-8 | Balanced tones for subtle elements |
+| **Highlights** | L: 70-97% | 9-12 | Light tones for light themes or text |
+
+**Grid Structure:**
+```
+                    COLOR ROLES (Columns inherit hue)
+              ┌────────────┬────────┬────────┬────────────┐
+              │SECONDARY 1 │PRIMARY │ ACCENT │SECONDARY 2 │
+              │   (Col 1)  │(Col 2) │(Col 3) │  (Col 4)   │
+              └────────────┴────────┴────────┴────────────┘
+                    │           │        │          │
+                    ▼           ▼        ▼          ▼
+SHADOWS       ┌─────────┬─────────┬─────────┬─────────┐
+(L: 5-25%)    │  Slot 1 │  Slot 2 │  Slot 3 │  Slot 4 │
+              │  L: 5%  │  L: 10% │  L: 18% │  L: 25% │
+              └─────────┴─────────┴─────────┴─────────┘
+
+MIDTONES      ┌─────────┬─────────┬─────────┬─────────┐
+(L: 35-65%)   │  Slot 5 │  Slot 6 │  Slot 7 │  Slot 8 │
+              │  L: 35% │  L: 45% │  L: 55% │  L: 65% │
+              └─────────┴─────────┴─────────┴─────────┘
+
+HIGHLIGHTS    ┌─────────┬─────────┬─────────┬─────────┐
+(L: 70-97%)   │  Slot 9 │ Slot 10 │ Slot 11 │ Slot 12 │
+              │  L: 70% │  L: 80% │  L: 90% │  L: 97% │
+              └─────────┴─────────┴─────────┴─────────┘
+```
+
+**Column-Based Hue Inheritance:**
+Each column shares the same hue, creating visual coherence:
+- **Column 1 (Secondary 1):** All slots (1, 5, 9) share Hue A
+- **Column 2 (Primary):** All slots (2, 6, 10) share Hue B
+- **Column 3 (Accent):** All slots (3, 7, 11) share Hue C
+- **Column 4 (Secondary 2):** All slots (4, 8, 12) share Hue D
+
+**Contrast Pairing Rules:**
+To ensure legibility, always pair colors from different rows:
+
+| Dark Theme | Light Theme |
+|------------|-------------|
+| Background: Shadows (1-4) | Background: Highlights (9-12) |
+| Text: Highlights (9-12) | Text: Shadows (1-4) |
+| Accents: Midtones or Highlights | Accents: Midtones or Shadows |
+
+**Example - Dark Theme Pairing:**
+```
+┌──────────────────────────────────────────────────┐
+│  Background: Slot 2 (Primary, L: 10%)            │
+│  ┌──────────────────────────────────────────┐    │
+│  │  Heading: Slot 10 (Primary, L: 80%)      │    │
+│  │  Body text: Slot 12 (Secondary 2, L: 97%)│    │
+│  │  Accent button: Slot 11 (Accent, L: 90%) │    │
+│  └──────────────────────────────────────────┘    │
+└──────────────────────────────────────────────────┘
+Contrast ratio between L:10% and L:80% ≈ 8:1 ✓
+```
+
+**Example - Light Theme Pairing:**
+```
+┌──────────────────────────────────────────────────┐
+│  Background: Slot 10 (Primary, L: 80%)           │
+│  ┌──────────────────────────────────────────┐    │
+│  │  Heading: Slot 2 (Primary, L: 10%)       │    │
+│  │  Body text: Slot 1 (Secondary 1, L: 5%)  │    │
+│  │  Accent button: Slot 3 (Accent, L: 18%)  │    │
+│  └──────────────────────────────────────────┘    │
+└──────────────────────────────────────────────────┘
+Contrast ratio between L:80% and L:10% ≈ 8:1 ✓
 ```
 
 ### Interchangeability Guarantee
@@ -298,7 +438,7 @@ The preview shows the full tonal range as a mini gradient strip:
 
 ```
 ┌────────────────────────────────────────────┐
-│  Default Dark                        [🔄]  │ <- Invert Theme button
+│  Default Dark                              │
 ├────────────────────────────────────────────┤
 ```
 
@@ -309,20 +449,7 @@ The preview shows the full tonal range as a mini gradient strip:
 **If custom theme is selected:**
 - Name is editable inline (double-click or click pencil icon)
 
-**Invert Button:**
-- Tooltip: "Invert to Light/Dark mode"
-- **Flips all luma values**: L → (100 - L)
-  - Slot 1 (L:5%) becomes L:95%
-  - Slot 12 (L:97%) becomes L:3%
-  - All deltas are preserved (just mirrored)
-- Hue and Saturation remain unchanged
-- On preset: prompts to save as new
-
-**Invert Example:**
-```
-Before (Dark theme):   5%  10%  18%  25%  35%  45%  55%  65%  70%  80%  90%  97%
-After  (Light theme): 95%  90%  82%  75%  65%  55%  45%  35%  30%  20%  10%   3%
-```
+**Note:** There is no invert/flip button in the Color Theme Manager. Light/Dark mode is controlled at the Master Slide level, allowing the same theme to be used in both modes.
 
 **Header Tokens:**
 | Element | Token |
@@ -330,53 +457,106 @@ After  (Light theme): 95%  90%  82%  75%  65%  55%  45%  35%  30%  20%  10%   3%
 | Padding | `--spacing-3` |
 | Font | `--font-size-lg`, `--font-weight-semibold` |
 | Color | `--color-text-primary` |
-| Invert button | `IconButton` component |
 
 ---
 
-### 4.2 The 12-Slot Tonal System
+### 4.2 The 12-Slot Tonal System (4×3 Grid)
 
-**Core Concept:** A color theme is NOT a set of semantic roles. It is a **tonal scale** of 12 color slots with **fixed luma relationships**. The luma deltas between slots are constant - this ensures that any theme remains legible because contrast ratios are preserved.
+**Core Concept:** A color theme is a **4-column × 3-row grid** where:
+- **Columns** define color roles (Secondary 1, Primary, Accent, Secondary 2)
+- **Rows** define tonal clusters (Shadows, Midtones, Highlights)
+- **Luma is fixed** per slot - only H and S can be edited
+- **Columns share hue** - all slots in a column have the same hue
 
 **Why This Works:**
 - If you desaturate any theme to grayscale (luma only), it remains fully functional
 - Swapping themes maintains readability because contrast is preserved
-- The designer chooses which slot to use for what purpose - the slot itself has no semantic meaning
+- Pairing slots from different rows guarantees sufficient contrast
+- Column hue consistency creates visual harmony
 
-**Three Tonal Clusters (3-Row Layout):**
-The 12 slots are organized into 3 labeled clusters, displayed as 3 rows with 4 slots each:
+**The 4×3 Grid Layout:**
 
 ```
-┌────────────────────────────────────────────────────────────────┐
-│  Color Palette                                                 │
-├────────────────────────────────────────────────────────────────┤
-│                                                                │
-│  SHADOWS  (L: 5-25%)                                           │
-│  ┌────────┐ ┌────────┐ ┌────────┐ ┌────────┐                   │
-│  │   5%   │ │  10%   │ │  18%   │ │  25%   │                   │
-│  │  Slot 1│ │  Slot 2│ │  Slot 3│ │  Slot 4│                   │
-│  └────────┘ └────────┘ └────────┘ └────────┘                   │
-│                                                                │
-│  MIDTONES  (L: 35-65%)                                         │
-│  ┌────────┐ ┌────────┐ ┌────────┐ ┌────────┐                   │
-│  │  35%   │ │  45%   │ │  55%   │ │  65%   │                   │
-│  │  Slot 5│ │  Slot 6│ │  Slot 7│ │  Slot 8│                   │
-│  └────────┘ └────────┘ └────────┘ └────────┘                   │
-│                                                                │
-│  HIGHLIGHTS  (L: 70-97%)                                       │
-│  ┌────────┐ ┌────────┐ ┌────────┐ ┌────────┐                   │
-│  │  70%   │ │  80%   │ │  90%   │ │  97%   │                   │
-│  │  Slot 9│ │Slot 10 │ │Slot 11 │ │Slot 12 │                   │
-│  └────────┘ └────────┘ └────────┘ └────────┘                   │
-│                                                                │
-└────────────────────────────────────────────────────────────────┘
+┌────────────────────────────────────────────────────────────────────────┐
+│  Color Palette                                                         │
+├────────────────────────────────────────────────────────────────────────┤
+│                                                                        │
+│           SECONDARY 1    PRIMARY      ACCENT     SECONDARY 2           │
+│               ▼            ▼           ▼            ▼                  │
+│                                                                        │
+│  SHADOWS    ┌────────┐ ┌────────┐ ┌────────┐ ┌────────┐                │
+│  (L: 5-25%) │   1    │ │   2    │ │   3    │ │   4    │                │
+│             │  5%    │ │  10%   │ │  18%   │ │  25%   │                │
+│             └────────┘ └────────┘ └────────┘ └────────┘                │
+│                                                                        │
+│  MIDTONES   ┌────────┐ ┌────────┐ ┌────────┐ ┌────────┐                │
+│  (L: 35-65%)│   5    │ │   6    │ │   7    │ │   8    │                │
+│             │  35%   │ │  45%   │ │  55%   │ │  65%   │                │
+│             └────────┘ └────────┘ └────────┘ └────────┘                │
+│                                                                        │
+│  HIGHLIGHTS ┌────────┐ ┌────────┐ ┌────────┐ ┌────────┐                │
+│  (L: 70-97%)│   9    │ │  10    │ │  11    │ │  12    │                │
+│             │  70%   │ │  80%   │ │  90%   │ │  97%   │                │
+│             └────────┘ └────────┘ └────────┘ └────────┘                │
+│                                                                        │
+└────────────────────────────────────────────────────────────────────────┘
 ```
 
-**Luma Inside Swatches:**
-Each swatch displays its luma value directly inside the color:
+**Slot Index to Role Mapping:**
+
+| Slot | Column | Role | Row | Luma |
+|------|--------|------|-----|------|
+| 1 | 1 | Secondary 1 | Shadows | 5% |
+| 2 | 2 | Primary | Shadows | 10% |
+| 3 | 3 | Accent | Shadows | 18% |
+| 4 | 4 | Secondary 2 | Shadows | 25% |
+| 5 | 1 | Secondary 1 | Midtones | 35% |
+| 6 | 2 | Primary | Midtones | 45% |
+| 7 | 3 | Accent | Midtones | 55% |
+| 8 | 4 | Secondary 2 | Midtones | 65% |
+| 9 | 1 | Secondary 1 | Highlights | 70% |
+| 10 | 2 | Primary | Highlights | 80% |
+| 11 | 3 | Accent | Highlights | 90% |
+| 12 | 4 | Secondary 2 | Highlights | 97% |
+
+**Column Header Row (Editable Swatches):**
+Above the grid, display the 4 column header swatches. **These are the ONLY editable elements:**
+
+```
+┌───────────────────────────────────────────────────────────────────┐
+│  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐              │
+│  │▓▓▓▓▓▓▓▓▓▓│ │▓▓▓▓▓▓▓▓▓▓│ │▓▓▓▓▓▓▓▓▓▓│ │▓▓▓▓▓▓▓▓▓▓│  <- Clickable│
+│  │Secondary1│ │ Primary  │ │  Accent  │ │Secondary2│     swatches │
+│  └──────────┘ └──────────┘ └──────────┘ └──────────┘   (L: 60%)   │
+├───────────────────────────────────────────────────────────────────┤
+│  [Grid of 12 read-only swatches showing colors at fixed luma]     │
+└───────────────────────────────────────────────────────────────────┘
+```
+
+**Header Swatch Behavior:**
+| Action | Result |
+|--------|--------|
+| Click | Opens Color Picker with luma locked at 60% |
+| Hover | Shows pointer cursor, subtle highlight |
+| Tooltip | "{Role}: Click to edit hue & saturation" |
+
+**Header Row Tokens:**
+| Element | Token |
+|---------|-------|
+| Header cell width | Same as swatch width |
+| Swatch size | 32px × 32px |
+| Role label | `--font-size-xs`, `--font-weight-semibold`, `--color-text-secondary` |
+| Header background | `--color-bg-elevated` |
+| Header padding | `--spacing-1` |
+| Swatch border | 1px `--color-border` |
+| Swatch hover border | 2px `--color-border-focus` |
+
+**Luma Inside Grid Swatches (Read-Only):**
+Each swatch in the 3×4 grid displays its luma value directly inside the color:
 - White text for dark slots (L < 50%)
 - Black text for light slots (L >= 50%)
 - Text shadow for better legibility
+- **Not clickable** - display only
 
 **Cluster Tokens:**
 | Element | Token |
@@ -385,80 +565,108 @@ Each swatch displays its luma value directly inside the color:
 | Cluster label | `--font-size-xs`, uppercase, `--color-text-tertiary` |
 | Slot grid | 4 columns, `--spacing-1` gap |
 
-**Luma Clusters:**
-The 12 slots are distributed into 3 tonal clusters (not uniform):
+**Luma Distribution Table:**
+
+| Cluster | Slot | Luma | Typical Use in Dark Theme | Typical Use in Light Theme |
+|---------|------|------|---------------------------|----------------------------|
+| **Shadows** | 1 | 5% | Primary background | Primary text |
+| | 2 | 10% | Secondary background | Heading text |
+| | 3 | 18% | Card/elevated surface | Body text |
+| | 4 | 25% | Border, divider | Caption text |
+| **Midtones** | 5 | 35% | Muted text | Muted accent |
+| | 6 | 45% | Disabled state | Disabled state |
+| | 7 | 55% | Placeholder text | Placeholder text |
+| | 8 | 65% | Secondary accent | Secondary accent |
+| **Highlights** | 9 | 70% | Tertiary text | Border, divider |
+| | 10 | 80% | Body text | Card background |
+| | 11 | 90% | Heading text | Secondary background |
+| | 12 | 97% | Primary text, CTAs | Primary background |
+
+**Column Color Editing (Header Row Only):**
+
+Color editing is done at the **column level only**. Clicking on a column header swatch opens the Color Picker:
 
 ```
-SHADOWS (Dark)     │  MIDTONES          │  HIGHLIGHTS (Light)
-───────────────────┼────────────────────┼────────────────────
-Slot 1: L ~5%      │  Slot 5: L ~35%    │  Slot 9:  L ~70%
-Slot 2: L ~10%     │  Slot 6: L ~45%    │  Slot 10: L ~80%
-Slot 3: L ~18%     │  Slot 7: L ~55%    │  Slot 11: L ~90%
-Slot 4: L ~25%     │  Slot 8: L ~65%    │  Slot 12: L ~97%
+┌────────────────────────────────────────────────────────────────────────┐
+│  Editing: Primary Column                                               │
+├────────────────────────────────────────────────────────────────────────┤
+│  ┌─────────────────────────────────────────────────────┐               │
+│  │                                                     │               │
+│  │              COLOR PICKER                           │               │
+│  │         (Hue & Saturation only)                     │               │
+│  │                                                     │               │
+│  │    ┌───────────────────────────────┐                │               │
+│  │    │                               │                │               │
+│  │    │      Saturation/Hue Square    │                │               │
+│  │    │                               │                │               │
+│  │    │   ─────────────────────────── │ ← L: 60% line  │               │
+│  │    │                               │                │               │
+│  │    └───────────────────────────────┘                │               │
+│  │                                                     │               │
+│  │    [══════════●══════════════════]  Hue Slider      │               │
+│  │                                                     │               │
+│  └─────────────────────────────────────────────────────┘               │
+│                                                                        │
+│  Column: Primary                                                       │
+│  H: [210°]    S: [75%]    L: 60% (locked) 🔒                           │
+│  Preview: Slot 2 (10%), Slot 6 (45%), Slot 10 (80%)                    │
+│                                                                        │
+└────────────────────────────────────────────────────────────────────────┘
 ```
 
-**Visual Layout:**
+**Color Picker Behavior for Column Headers:**
+| Feature | Behavior |
+|---------|----------|
+| **Hue slider** | Full 0-360° range, updates ALL slots in column |
+| **Saturation** | Full 0-100% range via picker square X-axis |
+| **Luma (Lightness)** | **LOCKED at 60%** - Y-axis shows line but is disabled |
+| **Visual indicator** | Horizontal line at 60% luma position |
+| **Real-time preview** | All 3 slots in column update as user drags |
+| **Column preview** | Shows mini swatches of all 3 luma variants |
 
-```
-┌────────────────────────────────────────────────────────────────┐
-│  Color Palette                                                 │
-├────────────────────────────────────────────────────────────────┤
-│                                                                │
-│  ┌─────┬─────┬─────┬─────┬─────┬─────┬─────┬─────┬─────┬─────┬─────┬─────┐
-│  │  1  │  2  │  3  │  4  │  5  │  6  │  7  │  8  │  9  │ 10  │ 11  │ 12  │
-│  │░░░░░│░░░░░│░░░░░│░░░░░│▒▒▒▒▒│▒▒▒▒▒│▒▒▒▒▒│▒▒▒▒▒│▓▓▓▓▓│▓▓▓▓▓│▓▓▓▓▓│█████│
-│  │ 5%  │ 10% │ 18% │ 25% │ 35% │ 45% │ 55% │ 65% │ 70% │ 80% │ 90% │ 97% │
-│  └─────┴─────┴─────┴─────┴─────┴─────┴─────┴─────┴─────┴─────┴─────┴─────┘
-│    ▲─────── SHADOWS ───────▲     ▲──── MIDTONES ────▲    ▲── HIGHLIGHTS ─▲
-│                                                                │
-└────────────────────────────────────────────────────────────────┘
-```
+**Why Luma is Locked at 60%:**
+- 60% is a neutral midtone that shows the hue/saturation clearly
+- The actual luma values for each slot are fixed (5%, 10%, 18%, etc.)
+- This picker is for choosing the color, not the brightness
+- Adjustments section handles global brightness/contrast changes
 
-**Single Slot Editor Row:**
+**Individual Swatches (Read-Only):**
+The 12 swatches in the 3×4 grid are **read-only display**:
+- Show the computed color at their fixed luma
+- Tooltip shows: "Slot {N}: H:{h}° S:{s}% L:{l}%"
+- Click does nothing (no editing)
+- Visual indication of the column's hue applied at different luma levels
 
-```
-┌──────────────────────────────────────────────────────────────────────┐
-│ ┌──────┐   1      H: [210°]    S: [75%]    L: 5%           [🔒]      │
-│ │      │                                    ▲                        │
-│ └──────┘                                    └─ Read-only (locked)    │
-└──────────────────────────────────────────────────────────────────────┘
-   │         │           │            │                         │
-   │         │           │            │                         └─ Lock toggle (for Generate)
-   │         │           │            └─ Saturation input (editable)
-   │         │           └─ Hue input (editable)
-   │         └─ Slot number (1-12)
-   └─ Color swatch preview
-```
-
-**Slot Row Tokens:**
+**Column Header Swatch:**
 | Element | Token |
 |---------|-------|
-| Row height | 36px |
-| Row gap | `--spacing-1` |
-| Swatch size | 28px × 28px |
-| Swatch radius | `--radius-sm` |
-| Slot number font | `--font-size-sm`, `--font-weight-medium` |
-| Slot number color | `--color-text-secondary` |
-| Input width | 56px |
+| Size | 32px × 32px |
+| Border radius | `--radius-sm` |
+| Border | 1px `--color-border` |
+| Hover | 2px `--color-border-focus` |
+| Cursor | pointer |
+| Displayed at | L: 60% (midtone preview) |
 
-**Compact Grid Alternative:**
-For space efficiency, slots can be shown as a 4×3 or 6×2 grid:
+**Color Picker Tokens:**
+| Element | Token |
+|---------|-------|
+| Color picker | Existing `ColorPicker` component with luma lock mode |
+| Luma lock line | 2px solid `--color-text-tertiary` at 60% Y position |
+| Column preview swatches | 24px × 24px each, showing L: 10%, 45%, 80% |
 
+**Column Hue Editing:**
+Editing the hue in the header row updates ALL slots in that column:
+
+```javascript
+// When user changes Primary column hue from 220° to 180°
+updateColumnHue(column: 2, newHue: 180, newSat: 75)
+  → Slot 2 (Shadows): H = 180°, S = 75%
+  → Slot 6 (Midtones): H = 180°, S = 75%
+  → Slot 10 (Highlights): H = 180°, S = 75%
 ```
-┌────────────────────────────────────────────┐
-│  ┌────┐ ┌────┐ ┌────┐ ┌────┐ ┌────┐ ┌────┐ │
-│  │  1 │ │  2 │ │  3 │ │  4 │ │  5 │ │  6 │ │
-│  └────┘ └────┘ └────┘ └────┘ └────┘ └────┘ │
-│  ┌────┐ ┌────┐ ┌────┐ ┌────┐ ┌────┐ ┌────┐ │
-│  │  7 │ │  8 │ │  9 │ │ 10 │ │ 11 │ │ 12 │ │
-│  └────┘ └────┘ └────┘ └────┘ └────┘ └────┘ │
-├────────────────────────────────────────────┤
-│  Selected: Slot 5                          │
-│  ┌──────┐  H: [210°]   S: [75%]   L: 35%   │
-│  │      │                                  │
-│  └──────┘  [🔒 Lock from Generate]         │
-└────────────────────────────────────────────┘
-```
+
+**No Individual Slot Override:**
+All slots in a column share the same hue and saturation. There is no way to break column inheritance—this simplifies the mental model and ensures color harmony.
 
 **Luma Offset Behavior:**
 When adjusting Brightness (global offset):
@@ -483,7 +691,8 @@ After:  15%  20%  28%  35%  45%  55%  65%  75%  80%  90% 100% 100%  ← Clipped!
 | Border (normal) | 1px | `--color-border` |
 | Border (clipped) | 2px solid | `--color-danger` |
 | Slot number | Centered, `--font-size-xs` |
-| Click action | Select slot for editing |
+| Click action | **None (read-only)** - displays computed color only |
+| Cursor | default (not pointer) |
 
 **Clipped Swatch Indicator:**
 When an adjustment causes a slot's luma to clip (hit 0% or 100%):
@@ -556,7 +765,7 @@ The generate row contains checkboxes to control what gets randomized:
 
 | Option | Default | Effect |
 |--------|---------|--------|
-| **Hues** | ✓ Checked | Randomizes hue and saturation based on color harmony |
+| **Hues** | ✓ Checked | Randomizes the 4 column hues based on color harmony |
 | **Adjustments** | ☐ Unchecked | Randomizes adjustment values (brightness, contrast, etc.) |
 
 Both can be checked for full randomization, or either one for partial generation.
@@ -591,41 +800,72 @@ Uses existing `Dropdown` component.
 | Tetradic | Four colors in rectangle pattern |
 | Square | Four evenly spaced colors |
 
-**Color Generation Algorithm:**
+**Color Generation Algorithm (4-Column System):**
 
-The generate function creates 4 hues based on the selected harmony, then randomly assigns them to four roles: **Primary**, **Secondary**, **Tertiary**, and **Accent**. Each slot has a fixed role assignment that creates visual rhythm across the tonal range:
+The generate function creates **4 hues** based on the selected harmony and assigns them to the **4 color role columns**:
 
-| Cluster | Slot | Role |
-|---------|------|------|
-| **Shadows** | 1 | Tertiary |
-| | 2 | Secondary |
-| | 3 | Primary |
-| | 4 | Accent |
-| **Midtones** | 5 | Tertiary |
-| | 6 | Secondary |
-| | 7 | Primary |
-| | 8 | Accent |
-| **Highlights** | 9 | Accent |
-| | 10 | Primary |
-| | 11 | Secondary |
-| | 12 | Tertiary |
+| Column | Role | Hue Assignment |
+|--------|------|----------------|
+| 1 | Secondary 1 | Hue A (supporting) |
+| 2 | Primary | Hue B (dominant) |
+| 3 | Accent | Hue C (highlight) |
+| 4 | Secondary 2 | Hue D (variety) |
 
-**Why This Distribution:**
-- Each tonal cluster (Shadows, Midtones, Highlights) contains all 4 color roles
-- The pattern creates diagonal color relationships across luminance
-- Highlights mirror the shadows in reverse order (symmetrical visual weight)
-- Accent colors are positioned at transition points (slots 4, 8, 9)
+**Harmony → 4-Hue Generation:**
 
-**Harmony → Hue Generation:**
-| Harmony | Hues Generated |
-|---------|---------------|
-| Complementary | Base, Base+180°, Base+15°, Base+195° |
-| Monochromatic | Base, Base, Base, Base (same hue, saturation varies) |
-| Analogous | Base, Base+30°, Base-30°, Base+15° |
-| Triadic | Base, Base+120°, Base+240°, Base+60° |
-| Split Complementary | Base, Base+150°, Base+210°, Base+180° |
-| Tetradic | Base, Base+60°, Base+180°, Base+240° |
-| Square | Base, Base+90°, Base+180°, Base+270° |
+| Harmony | Secondary 1 | Primary | Accent | Secondary 2 |
+|---------|-------------|---------|--------|-------------|
+| Complementary | Base | Base | Base+180° | Base+180° |
+| Monochromatic | Base | Base | Base | Base |
+| Analogous | Base-30° | Base | Base+30° | Base+15° |
+| Triadic | Base | Base+120° | Base+240° | Base |
+| Split Comp. | Base | Base | Base+150° | Base+210° |
+| Tetradic | Base | Base+90° | Base+180° | Base+270° |
+| Square | Base | Base+90° | Base+180° | Base+270° |
+
+**Saturation Distribution:**
+Each role gets characteristic saturation:
+
+| Role | Saturation Range | Reasoning |
+|------|------------------|-----------|
+| Primary | 60-80% | Balanced, professional |
+| Accent | 75-95% | Vibrant, attention-grabbing |
+| Secondary 1 | 40-65% | Subtle, supporting |
+| Secondary 2 | 50-70% | Moderate variety |
+
+**Generation Flow:**
+```javascript
+function generateTheme(harmony) {
+  // 1. Pick random base hue
+  const baseHue = Math.random() * 360;
+  
+  // 2. Calculate 4 hues based on harmony
+  const hues = calculateHarmonyHues(baseHue, harmony);
+  
+  // 3. Assign to columns with characteristic saturations
+  const columnHues = {
+    secondary1: { h: hues[0], s: random(40, 65) },
+    primary:    { h: hues[1], s: random(60, 80) },
+    accent:     { h: hues[2], s: random(75, 95) },
+    secondary2: { h: hues[3], s: random(50, 70) }
+  };
+  
+  // 4. Apply column hues to all 12 slots (each column shares hue)
+  slots[1, 5, 9].forEach(s => s.h = columnHues.secondary1.h);  // Column 1
+  slots[2, 6, 10].forEach(s => s.h = columnHues.primary.h);    // Column 2
+  slots[3, 7, 11].forEach(s => s.h = columnHues.accent.h);     // Column 3
+  slots[4, 8, 12].forEach(s => s.h = columnHues.secondary2.h); // Column 4
+  
+  // 5. Skip locked slots
+  lockedSlots.forEach(slot => revert(slot));
+}
+```
+
+**Why 4 Columns Work:**
+- **Primary (Col 2):** The dominant color for backgrounds and main elements
+- **Accent (Col 3):** High-saturation highlight for CTAs and emphasis
+- **Secondary 1 & 2 (Col 1 & 4):** Provide variety without competing with Primary/Accent
+- Together they cover all UI needs while maintaining harmony
 
 **Checkbox Row Tokens:**
 | Element | Token |
@@ -721,28 +961,57 @@ Photo-editing style controls that affect all colors proportionally. These work l
 | Blacks | -100 to +100 | 0 | — |
 | Saturation | -100 to +100 | 0 | — |
 
-**Slider Tokens:**
-| Element | Token |
-|---------|-------|
-| Track height | 4px |
-| Track background | `--color-bg-input` |
-| Track filled | `--color-accent` |
-| Track radius | `--radius-full` |
-| Thumb size | 12px |
-| Thumb background | `--color-text-primary` |
-| Thumb hover | Scale 1.2× |
-| Thumb active | `--color-accent` |
-| Label width | 80px |
-| Label font | `--font-size-sm` |
-| Label color | `--color-text-secondary` |
-| Input width | 48px |
-| Row gap | `--spacing-2` |
-| Row height | 28px |
+**SliderControl Component (Standard Component):**
 
-**Reset Button:**
+This is a reusable standard component used throughout the application.
+
+| Property | Value | Token |
+|----------|-------|-------|
+| Track height | 4px | — |
+| Track background | `--color-bg-input` | |
+| Track filled | `--color-accent` | |
+| Track radius | `--radius-full` | |
+| Thumb size | 12px | — |
+| Thumb background | `--color-text-primary` | |
+| Thumb hover | Scale 1.2× | — |
+| Thumb active | `--color-accent` | |
+| Label width | 80px | — |
+| Label font | `--font-size-sm` | |
+| Label color | `--color-text-secondary` | |
+| Input width | 48px | — |
+| Row gap | `--spacing-2` | |
+| Row height | 28px | — |
+
+**SliderControl Interactions:**
+| Action | Behavior |
+|--------|----------|
+| Drag thumb | Updates value in real-time |
+| Click track | Jumps thumb to click position |
+| **Double-click thumb** | **Resets to center/default value** |
+| Scrub label | Drag label text to adjust value |
+| Arrow keys (focused) | Increment/decrement by step |
+
+**Double-Click Reset:**
+- Double-clicking the slider thumb resets it to its default value (typically 0 or center)
+- Brief animation shows the thumb snapping back to center
+- Works on all `SliderControl` instances throughout the app
+
+```javascript
+// SliderControl usage
+<SliderControl
+    label="Brightness"
+    value={brightness}
+    min={-100}
+    max={100}
+    defaultValue={0}  // Reset target for double-click
+    onChange={setBrightness}
+/>
+```
+
+**Reset All Button:**
 Uses `IconButton` with ↺ (rotate) icon.
 - Tooltip: "Reset all adjustments"
-- Resets all sliders to 0
+- Resets all sliders to their default values (0)
 
 ---
 
@@ -886,13 +1155,14 @@ This design reuses these existing components:
 | `IconButton` | All icon actions |
 | `Switch` | Lock toggles (optional, could use IconButton) |
 | `TextInput` | Theme name editing |
+| `ColorPicker` | Hue/saturation picker for slot editing (luma locked) |
 
 New components needed:
 | Component | Purpose |
 |-----------|---------|
-| `SliderControl` | Horizontal slider for adjustments |
+| `SliderControl` | **Standard component:** Horizontal slider with label, value input, and double-click reset |
 | `ThemeListItem` | Theme preview card for left column |
-| `ColorSlotRow` | Row for editing a single color slot |
+| `ColumnHeaderSwatch` | Clickable column header swatch that opens ColorPicker with luma locked at 60% |
 
 ---
 
@@ -1030,9 +1300,9 @@ All edits immediately update the theme preview in the left column:
 |--------|------------------|
 | Change slot hue | ✓ Immediate |
 | Change slot saturation | ✓ Immediate |
+| Color picker interaction | ✓ Immediate |
 | Adjust brightness/contrast/etc. | ✓ Immediate |
 | Generate new colors | ✓ Immediate |
-| Invert theme | ✓ Immediate |
 
 **Implementation:**
 - `updateSlotHue()`, `updateSlotSaturation()`, and `updateAdjustment()` all call `renderThemeList()`
@@ -1041,10 +1311,274 @@ All edits immediately update the theme preview in the left column:
 
 ---
 
-## 17. Future Considerations
+## 17. System Integration
+
+### CSS Variable Propagation
+
+When a theme is applied, colors are exposed as CSS variables on `document.documentElement`:
+
+```javascript
+// LumaTheme.applyToDocument() or ThemeManager.applyTheme()
+document.documentElement.style.setProperty('--theme-slot1', '#0d0a14');
+document.documentElement.style.setProperty('--theme-slot2', '#14101e');
+// ... through --theme-slot12
+```
+
+**Usage in CSS:**
+```css
+.element-with-theme-color {
+    background-color: var(--theme-slot2);
+    border-color: var(--theme-slot7);
+}
+```
+
+---
+
+### Light/Dark Mode (Master Slide Property)
+
+Light/Dark mode is controlled at the **Master Slide level**, not in the Color Theme Manager. This allows the same color theme to be used for both light and dark presentations.
+
+**Master Slide Property Inspector:**
+```
+┌────────────────────────────────────────────────────────────────┐
+│  Slide Properties                                              │
+├────────────────────────────────────────────────────────────────┤
+│                                                                │
+│  Color Theme:  [ Solar Cascade          ▾ ]                    │
+│                                                                │
+│  Mode:   [☀️ Light]  [🌙 Dark]                                 │
+│              ○          ●                                      │
+│                                                                │
+│  ...other slide properties...                                  │
+│                                                                │
+└────────────────────────────────────────────────────────────────┘
+```
+
+**How Mode Affects Slot Resolution:**
+
+The same `themeSlot` reference is interpreted differently based on mode:
+
+| Element Purpose | Light Mode Slot | Dark Mode Slot | Why |
+|-----------------|-----------------|----------------|-----|
+| Primary background | Slot 12 (L:97%) | Slot 1 (L:5%) | Light uses highlights, dark uses shadows |
+| Primary text | Slot 1 (L:5%) | Slot 12 (L:97%) | High contrast against background |
+| Secondary background | Slot 11 (L:90%) | Slot 2 (L:10%) | Slightly less bright/dark |
+| Secondary text | Slot 3 (L:18%) | Slot 10 (L:80%) | Secondary contrast |
+
+**Slot Mapping Formula:**
+```javascript
+function resolveSlotForMode(slotIndex, mode) {
+    if (mode === 'light') {
+        // Invert: slot N becomes slot (13 - N)
+        return 13 - slotIndex;
+    }
+    return slotIndex; // Dark mode uses slots as-is
+}
+
+// Example: Slot 2 in a template
+// Dark mode: resolves to Slot 2 (L:10%, dark background)
+// Light mode: resolves to Slot 11 (L:90%, light background)
+```
+
+**Storage:**
+```javascript
+// Master slide stores mode preference
+masterSlide: {
+    colorThemeId: 'solar-cascade',
+    colorMode: 'dark' | 'light',  // Default: 'dark'
+    // ...other properties
+}
+```
+
+**Benefits:**
+- No need to create separate light/dark versions of themes
+- Same color harmony works in both modes
+- Theme designer focuses on one palette
+- User controls appearance at presentation level
+
+**CSS Variable Application:**
+When mode changes, the CSS variables are re-mapped:
+
+```javascript
+// When colorMode === 'light', apply inverted mapping
+if (colorMode === 'light') {
+    document.documentElement.style.setProperty('--theme-slot1', theme.colors[11]);  // Slot 12 → var 1
+    document.documentElement.style.setProperty('--theme-slot2', theme.colors[10]);  // Slot 11 → var 2
+    // ... etc
+} else {
+    // Dark mode: direct mapping
+    document.documentElement.style.setProperty('--theme-slot1', theme.colors[0]);
+    // ...
+}
+```
+
+---
+
+### Slide Master Template Integration
+
+Slide Master presets store theme-linked colors using `themeSlot` references:
+
+**Template Storage Format:**
+```javascript
+{
+    fill: {
+        type: 'solid',
+        themeSlot: 2,          // References Primary column, Shadows row
+        value: null            // Resolved at runtime
+    }
+}
+```
+
+**Application Flow:**
+```
+1. User selects preset → handleApplySlideMasterPreset()
+2. Template applied with themeSlot references preserved
+3. CSS variables updated from current LumaTheme
+4. StyleResolver.resolveThemeSlot() converts slot → hex
+5. Property Inspector refreshed via state-changed event
+6. Canvas re-renders with resolved colors
+```
+
+---
+
+### StyleResolver Integration
+
+`StyleResolver.js` provides runtime resolution of theme-linked fills:
+
+```javascript
+// Resolve a single theme slot to hex
+const hex = StyleResolver.resolveThemeSlot(2);  // Returns e.g., "#14101e"
+
+// Resolve a fill object that may be theme-linked
+const fill = { type: 'solid', themeSlot: 7, value: null };
+const resolved = StyleResolver.resolveTextFill(fill);
+// Returns: { type: 'solid', themeSlot: 7, value: '#8a7db3' }
+```
+
+**Key Methods:**
+| Method | Purpose |
+|--------|---------|
+| `resolveThemeSlot(index, fallback)` | Get hex for slot index (1-12) |
+| `resolveTextFill(fill)` | Resolve fill with themeSlot to include hex value |
+| `getEffectiveTextProperties()` | Returns text props with resolved fills |
+
+---
+
+### Property Inspector Updates
+
+When theme-linked elements are selected, Property Inspector sections must:
+
+1. **FillSection:** Show resolved color in swatch, indicate theme-linked status
+2. **TextSection:** Display resolved text fill color with slot indicator
+3. **SlideSection:** After applying preset, emit `state-changed` for refresh
+
+**Theme-Linked Fill Detection:**
+```javascript
+if (fill.themeSlot !== undefined) {
+    // Show theme indicator badge or tooltip
+    // Resolve actual color via StyleResolver
+    const resolvedHex = StyleResolver.resolveThemeSlot(fill.themeSlot);
+}
+```
+
+---
+
+### Fill Panel Integration
+
+The Fill Panel uses theme slots for the primary color selection:
+
+**Theme Swatches Section:**
+- Displays all 12 slots organized by tonal row
+- Clicking a swatch sets fill to `{ type: 'solid', themeSlot: N }`
+- Not an arbitrary hex—maintains theme linkage
+
+**Slot Selection Behavior:**
+```javascript
+selectThemeSlot(slotIndex) {
+    this.setFill({
+        type: 'solid',
+        themeSlot: slotIndex,
+        value: null  // Resolved at render time
+    });
+}
+```
+
+---
+
+### Rendering Pipeline Integration
+
+The Canvas rendering pipeline resolves theme slots at draw time:
+
+```javascript
+// In CanvasRenderer or element draw methods
+if (element.fill?.themeSlot) {
+    const resolvedColor = getComputedStyle(document.documentElement)
+        .getPropertyValue(`--theme-slot${element.fill.themeSlot}`).trim();
+    ctx.fillStyle = resolvedColor;
+}
+```
+
+**Benefits:**
+- Theme changes propagate instantly to all themed elements
+- No need to update individual element fill values
+- Supports live theme preview during editing
+
+---
+
+### State Management
+
+The active LumaTheme is stored in the global store:
+
+```javascript
+// Store structure
+store.state.lumaTheme = {
+    id: 'theme-001',
+    name: 'Solar Cascade',
+    slots: [...],  // 12 slots with H, S, role
+    colors: [...], // 12 resolved hex values
+    adjustments: { brightness: 0, contrast: 0, saturation: 0 }
+};
+```
+
+**Events:**
+| Event | Purpose |
+|-------|---------|
+| `theme-changed` | Fired when active theme changes |
+| `theme-updated` | Fired when current theme is edited |
+| `state-changed` | Generic event for canvas refresh |
+
+---
+
+### Export/Import Integration
+
+**Export Format:**
+```javascript
+{
+    "storyColorTheme": "1.0",
+    "theme": {
+        "id": "...",
+        "name": "Theme Name",
+        "slots": [
+            { "h": 210, "s": 75, "role": "secondary1" },
+            // ... 12 slots
+        ],
+        "adjustments": { "brightness": 0, "contrast": 0, "saturation": 0 }
+    }
+}
+```
+
+**Import Validation:**
+- Check `storyColorTheme` version header
+- Validate 12 slots present with valid H (0-360), S (0-100)
+- Verify role assignments match expected columns
+- Regenerate colors[] from HSL + fixed luma values
+
+---
+
+## 18. Future Considerations
 
 - **AI Tab:** Placeholder reserved for AI-generated themes
 - **Cloud Sync:** Custom themes synced to user account
-- **Export/Import:** JSON format for theme sharing
+- **Export/Import:** JSON format for theme sharing (see Section 17)
 - **Undo/Redo:** Full integration with History Manager
 - **Collaboration:** Real-time theme editing in shared sessions

@@ -11,6 +11,7 @@ import { EmptyState } from '../components/EmptyState.js';
 import { CodeRunner } from '../../core/effects/CodeRunner.js';
 import { propertyMemory } from '../../core/services/PropertyMemoryManager.js';
 import { linkedPropertyManager, COLOR_SLOTS } from '../../core/services/LinkedPropertyManager.js';
+import { StyleResolver } from '../../utils/StyleResolver.js';
 
 // Module-level cache for last used values (legacy, now managed by PropertyMemoryManager)
 const LastUsed = {
@@ -331,6 +332,11 @@ export class FillSection {
         // Determine the color for the swatch border
         let swatchColor = '#000000';
         
+        // Resolve theme slot to actual hex color if present
+        if (fill.themeSlot !== undefined && fill.themeSlot !== null) {
+            swatchColor = StyleResolver.resolveThemeSlot(fill.themeSlot, fill.color || fill.value || '#000000');
+        }
+        
         if (fill.type === 'image') {
              // Check if there's actually an image asset
              if (fill.assetId || fill.value) {
@@ -368,7 +374,10 @@ export class FillSection {
              preview.innerHTML = '<i class="fa-solid fa-code" style="font-size: 10px; color: var(--color-text-primary);"></i>';
              preview.style.boxShadow = 'inset 0 0 0 1px rgba(0, 0, 0, 0.3)';
         } else {
-             swatchColor = fill.color || fill.value || '#000000';
+             // Solid fill - use resolved swatchColor (may have been resolved from themeSlot above)
+             if (!swatchColor || swatchColor === '#000000') {
+                 swatchColor = fill.color || fill.value || '#000000';
+             }
              preview.style.backgroundColor = swatchColor;
              this.updateSwatchBorder(preview, swatchColor, false);
         }

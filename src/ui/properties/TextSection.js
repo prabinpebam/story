@@ -417,11 +417,22 @@ export class TextSection {
              this.fillHexInput.disabled = true;
         } else {
              // Solid
-             this._currentFillColor = fill.value;
-             this.fillPreview.style.background = fill.value;
+             // fill.value should already be resolved from themeSlot by StyleResolver
+             const colorValue = fill.value || '#000000';
+             this._currentFillColor = colorValue;
+             this.fillPreview.style.background = colorValue;
              this.fillPreview.style.backgroundImage = 'none';
-             this.updateSwatchBorder(this.fillPreview, fill.value, false);
-             this.fillHexInput.value = fill.value;
+             this.updateSwatchBorder(this.fillPreview, colorValue, false);
+             
+             // Show hex value - if theme-linked, show a visual indicator
+             if (fill.themeSlot !== undefined && fill.themeSlot !== null) {
+                 // Theme-linked color - show slot number with hex
+                 this.fillHexInput.value = colorValue;
+                 this.fillHexInput.title = `Theme Slot ${fill.themeSlot + 1}`;
+             } else {
+                 this.fillHexInput.value = colorValue;
+                 this.fillHexInput.title = '';
+             }
              this.fillHexInput.disabled = false;
         }
         

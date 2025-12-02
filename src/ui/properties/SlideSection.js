@@ -9,6 +9,9 @@ import { FillSection } from './FillSection.js';
 import { panelManager } from '../PanelManager.js';
 import { Icons } from '../Icons.js';
 import { ThemeSwatches } from '../components/ThemeSwatches.js';
+import { SLIDE_MASTER_PRESETS, getPresetById, getPresetList, getFullPresetById } from '../../core/store/SlideMasterPresets.js';
+import { THEME_PRESETS } from '../panels/color-theme/ThemePresets.js';
+import { applyThemeToCSSVariables } from '../panels/color-theme/ColorThemeUtils.js';
 
 export class SlideSection {
     constructor() {
@@ -17,6 +20,7 @@ export class SlideSection {
         this.element.className = 'slide-properties';
         
         this.layoutFlyout = null;
+        this.presetFlyout = null;
         
         this.fillSection = new FillSection({
             title: 'Background',
@@ -39,6 +43,9 @@ export class SlideSection {
         });
         this.nameRow.appendChild(this.nameInput.element);
         this.element.appendChild(this.nameRow);
+
+        // 1.5 Master Preset Section (Theme Master only)
+        this.createPresetSection();
 
         // 2. Layout Section (Slide Mode)
         this.layoutSection = new Section({ title: 'Layout' });
@@ -91,6 +98,34 @@ export class SlideSection {
         this.createThemeSection();
 
         // 4. Background (FillSection) - Appended separately in PropertyInspector
+    }
+
+    createPresetSection() {
+        this.presetSection = new Section({ title: 'Template' });
+        
+        const presetRow = document.createElement('div');
+        presetRow.className = 'pi-row preset-picker-row';
+        
+        // Preset trigger button
+        this.presetTriggerBtn = new Button({
+            label: 'Select Template',
+            variant: 'secondary',
+            size: 'sm',
+            className: 'preset-trigger-btn',
+            onClick: () => this.openPresetFlyout()
+        });
+        this.presetTrigger = this.presetTriggerBtn.element;
+        presetRow.appendChild(this.presetTrigger);
+        
+        this.presetSection.appendChild(presetRow);
+        
+        // Description text
+        this.presetDescription = document.createElement('div');
+        this.presetDescription.className = 'preset-description';
+        this.presetDescription.style.cssText = 'font-size: var(--font-size-xs); color: var(--color-text-secondary); padding: 0 var(--spacing-1); margin-top: var(--spacing-1);';
+        this.presetSection.appendChild(this.presetDescription);
+        
+        this.element.appendChild(this.presetSection.element);
     }
 
     createThemeSection() {
@@ -364,6 +399,19 @@ export class SlideSection {
 
         if (!currentObject) return;
 
+        // 0. Template Preset (Theme Master only)
+        const isThemeMaster = mode === 'master' && currentObject.type === 'theme';
+        if (isThemeMaster) {
+            this.presetSection.element.style.display = 'block';
+            // Update preset button label with current preset name
+            const currentPresetId = currentObject.presetId || 'preset_minimal';
+            const currentPreset = getPresetById(currentPresetId);
+            this.presetTriggerBtn.setLabel(currentPreset ? currentPreset.name : 'Select Template');
+            this.presetDescription.textContent = currentPreset?.description || '';
+        } else {
+            this.presetSection.element.style.display = 'none';
+        }
+
         // 1. Name (Master only) - show standalone row
         if (mode === 'master') {
             this.nameRow.style.display = 'flex';
@@ -627,5 +675,162 @@ export class SlideSection {
         });
         
         this.layoutFlyout.open();
+    }
+
+    openPresetFlyout() {
+        // Create flyout content
+        const content = document.createElement('div');
+        content.className = 'preset-flyout-content';
+        
+        // Title
+        const title = document.createElement('div');
+        title.className = 'preset-flyout-title';
+        title.textContent = 'Select Template';
+        content.appendChild(title);
+        
+        // Grid container
+        const grid = document.createElement('div');
+        grid.className = 'preset-flyout-grid';
+        
+        // Get current preset
+        const state = store.getState();
+        const themeMaster = state.masters[state.editor.activeMasterId];
+        const currentPresetId = themeMaster?.presetId || 'preset_minimal';
+        
+        // Populate with presets
+        const presets = getPresetList();
+        
+        presets.forEach(preset => {
+            const thumbnail = document.createElement('div');
+            thumbnail.className = 'preset-thumbnail' + (preset.id === currentPresetId ? ' selected' : '');
+            thumbnail.dataset.presetId = preset.id;
+            thumbnail.title = preset.name;
+            
+            // Create preview with background color
+            const preview = document.createElement('div');
+            preview.className = 'preset-preview';
+            
+            // Set background from preset's background fill
+            const bgFill = preset.background?.[0];
+            if (bgFill) {
+                if (bgFill.themeSlot) {
+                    // Use theme color from preset's theme
+                    const themePreset = this.getThemePresetColors(preset.colorThemeId);
+                    if (themePreset) {
+                        const slot = themePreset.slots[bgFill.themeSlot - 1];
+                        if (slot) {
+                            preview.style.backgroundColor = slot.hex;
+                        }
+                    }
+                } else if (bgFill.value) {
+                    preview.style.backgroundColor = bgFill.value;
+                }
+            }
+            
+            // Add accent color swatches to preview
+            const swatches = document.createElement('div');
+            swatches.className = 'preset-swatches';
+            
+            const themePreset = this.getThemePresetColors(preset.colorThemeId);
+            if (themePreset) {
+                // Show first 4 accent colors
+                [1, 2, 3, 4].forEach(slotIndex => {
+                    const slot = themePreset.slots[slotIndex - 1];
+                    if (slot) {
+                        const swatch = document.createElement('div');
+                        swatch.className = 'preset-swatch';
+                        swatch.style.backgroundColor = slot.hex;
+                        swatches.appendChild(swatch);
+                    }
+                });
+            }
+            preview.appendChild(swatches);
+            
+            thumbnail.appendChild(preview);
+            
+            // Label
+            const label = document.createElement('div');
+            label.className = 'preset-label';
+            label.textContent = preset.name;
+            thumbnail.appendChild(label);
+            
+            // Click handler
+            thumbnail.addEventListener('click', () => {
+                if (preset.id !== currentPresetId) {
+                    this.applyPreset(preset.id);
+                    // Update button text
+                    this.presetTriggerBtn.setLabel(preset.name);
+                }
+                // Close flyout
+                if (this.presetFlyout) {
+                    this.presetFlyout.close();
+                }
+            });
+            
+            grid.appendChild(thumbnail);
+        });
+        
+        content.appendChild(grid);
+        
+        // Create or update flyout
+        if (this.presetFlyout) {
+            this.presetFlyout.close();
+        }
+        
+        this.presetFlyout = new Flyout({
+            trigger: this.presetTrigger,
+            content: content,
+            position: 'left'
+        });
+        
+        this.presetFlyout.open();
+    }
+
+    getThemePresetColors(colorThemeId) {
+        // Use the imported THEME_PRESETS to get color values for previews
+        return THEME_PRESETS.find(p => p.id === colorThemeId);
+    }
+
+    applyPreset(presetId) {
+        const state = store.getState();
+        const themeMasterId = state.editor.activeMasterId;
+        
+        // Get the full preset to access computed hex colors
+        const fullPreset = getFullPresetById(presetId);
+        
+        // First dispatch the store action to update the state
+        store.dispatch('APPLY_SLIDE_MASTER_PRESET', { 
+            masterId: themeMasterId, 
+            presetId 
+        });
+        
+        // After dispatch, apply CSS variables and update panels
+        if (fullPreset) {
+            const lumaTheme = fullPreset.theme.themeSettings?.lumaTheme;
+            if (lumaTheme?.slots) {
+                // Apply CSS variables from the preset's resolved colors
+                const hexColors = lumaTheme.resolvedColors || lumaTheme.slots.map(slot => slot.hex);
+                console.log('[SlideSection] Applying CSS variables for preset:', presetId, hexColors);
+                applyThemeToCSSVariables(hexColors);
+            }
+            
+            // Update ColorThemeManager to show the selected color theme
+            const colorThemeManager = panelManager.get('color-theme-manager');
+            if (colorThemeManager && lumaTheme?.id) {
+                console.log('[SlideSection] Selecting color theme in manager:', lumaTheme.id);
+                // Just update the visual selection without triggering another store dispatch
+                colorThemeManager.selectedThemeId = lumaTheme.id;
+                colorThemeManager.renderThemeList();
+                colorThemeManager.renderThemeEditor();
+            }
+            
+            // Force a full state refresh to ensure all UI components update
+            // This emits 'state-changed' again to re-render PropertyInspector
+            // Use setTimeout to allow CSS variables to propagate first
+            setTimeout(() => {
+                store.emit('state-changed', store.getState());
+                store.emit('selection-changed');
+            }, 0);
+        }
     }
 }

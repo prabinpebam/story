@@ -277,6 +277,83 @@ select.pi-input option {
     max-width: var(--thumbnail-width-lg);
 }
 
+/* Preset/Template Flyout */
+.preset-flyout-content {
+    padding: var(--spacing-3);
+    min-width: calc(var(--panel-width-sm) + var(--spacing-6));
+}
+
+.preset-flyout-title {
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-medium);
+    color: var(--color-text-primary);
+    margin-bottom: var(--spacing-3);
+    padding-bottom: var(--spacing-2);
+    border-bottom: 1px solid var(--color-border);
+}
+
+.preset-flyout-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--spacing-2);
+}
+
+.preset-thumbnail {
+    cursor: pointer;
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+    border: 2px solid transparent;
+    transition: border-color 0.15s, transform 0.15s;
+}
+
+.preset-thumbnail:hover {
+    border-color: var(--color-border-hover);
+    transform: scale(1.02);
+}
+
+.preset-thumbnail.selected {
+    border-color: var(--color-accent);
+}
+
+.preset-preview {
+    width: 72px;
+    height: 48px;
+    background-color: var(--color-bg-secondary);
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    padding-bottom: var(--spacing-1);
+}
+
+.preset-swatches {
+    display: flex;
+    gap: 2px;
+}
+
+.preset-swatch {
+    width: 12px;
+    height: 12px;
+    border-radius: var(--radius-xs);
+    border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.preset-label {
+    font-size: var(--font-size-xs);
+    color: var(--color-text-secondary);
+    text-align: center;
+    padding: var(--spacing-1);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.preset-description {
+    font-size: var(--font-size-xs);
+    color: var(--color-text-secondary);
+    padding: 0 var(--spacing-1);
+    margin-top: var(--spacing-1);
+}
+
 /* ===========================================
    Property Inspector Utility Classes
    These replace common JS inline styles

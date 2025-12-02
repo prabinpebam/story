@@ -160,11 +160,20 @@ export class ThemeSwatches {
     getColors() {
         const lumaTheme = this.getLumaTheme();
         
+        // Try resolvedColors array first
         if (lumaTheme?.resolvedColors && Array.isArray(lumaTheme.resolvedColors)) {
             return lumaTheme.resolvedColors;
         }
         
-        // Fallback: generate grayscale from luma values if no theme
+        // Fallback: try getting hex from individual slots
+        if (lumaTheme?.slots && Array.isArray(lumaTheme.slots)) {
+            const hexColors = lumaTheme.slots.map(slot => slot.hex);
+            if (hexColors.every(c => c)) {
+                return hexColors;
+            }
+        }
+        
+        // Final fallback: generate grayscale from luma values if no theme
         return LUMA_SLOTS.map(slot => {
             const l = slot.luma;
             const hex = Math.round(l * 2.55).toString(16).padStart(2, '0');
@@ -178,6 +187,8 @@ export class ThemeSwatches {
         this.swatchGrid.innerHTML = '';
         const colors = this.getColors();
         const lumaTheme = this.getLumaTheme();
+        
+        console.log('[ThemeSwatches] Updating swatches, theme:', lumaTheme?.name, 'colors:', colors);
         
         // Update theme name label
         if (this.options.showThemeName && this.themeLabel) {

@@ -1,4 +1,59 @@
+import { store } from '../core/Store.js';
+
 export const StyleResolver = {
+    /**
+     * Resolves a theme slot index to an actual hex color value.
+     * Uses the current theme's lumaTheme slots.
+     * @param {number} slotIndex - The 0-based slot index (0-11)
+     * @param {string} fallback - Fallback color if slot not found
+     * @returns {string} The hex color value
+     */
+    resolveThemeSlot(slotIndex, fallback = '#000000') {
+        if (slotIndex === undefined || slotIndex === null) return fallback;
+        
+        const state = store.getState();
+        const themeMaster = Object.values(state.masters).find(m => m.type === 'theme');
+        const lumaTheme = themeMaster?.themeSettings?.lumaTheme;
+        
+        if (lumaTheme?.slots?.[slotIndex]) {
+            return lumaTheme.slots[slotIndex].hex || fallback;
+        }
+        
+        // Try resolvedColors array as fallback
+        if (lumaTheme?.resolvedColors?.[slotIndex]) {
+            return lumaTheme.resolvedColors[slotIndex];
+        }
+        
+        // Last resort: try CSS variable
+        const slotNumber = slotIndex + 1;
+        const cssValue = getComputedStyle(document.documentElement)
+            .getPropertyValue(`--theme-slot${slotNumber}`).trim();
+        
+        return cssValue || fallback;
+    },
+
+    /**
+     * Resolves a textFill object that may contain a themeSlot reference.
+     * Returns a fill object with the actual hex value resolved.
+     * @param {Object} fill - The textFill object
+     * @returns {Object} The fill object with resolved value
+     */
+    resolveTextFill(fill) {
+        if (!fill) return { type: 'solid', value: '#000000' };
+        
+        if (fill.type === 'solid' && fill.themeSlot !== undefined && fill.themeSlot !== null) {
+            const resolvedColor = this.resolveThemeSlot(fill.themeSlot, fill.value);
+            return {
+                ...fill,
+                value: resolvedColor,
+                // Preserve the themeSlot reference so we know it's theme-linked
+                themeSlot: fill.themeSlot
+            };
+        }
+        
+        return fill;
+    },
+
     /**
      * Resolves the final text properties for an element.
      * @param {Object} element - The text element.
@@ -81,6 +136,11 @@ export const StyleResolver = {
         // Handle Legacy Color Migration (if element has color string but no textFill)
         if (element.color && !element.textFill) {
             finalProps.textFill = { type: 'solid', value: element.color };
+        }
+
+        // Resolve theme slot references in textFill to actual hex colors
+        if (finalProps.textFill) {
+            finalProps.textFill = this.resolveTextFill(finalProps.textFill);
         }
 
         // Compute Derived Values
