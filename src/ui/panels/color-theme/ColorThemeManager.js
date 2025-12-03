@@ -1527,43 +1527,59 @@ export class ColorThemeManager extends DraggablePanel {
     // =========================================
     // Store Integration
     // =========================================
-    
+
     /**
-     * Apply theme to the store (master slide level)
-     * This dispatches the theme to be applied to the current theme master
+     * Apply theme to the store - mode-aware
+     * In Master Mode: Updates the master's lumaTheme directly (affects all slides)
+     * In Slide Mode: Assigns the theme ID to the slide's styleAssignments.colorTheme (per-slide override)
      * @param {Object} theme - The theme to apply
      */
     applyThemeToStore(theme) {
         if (!theme) return;
         
         const state = store.getState();
-        const masterId = 'theme-default'; // Always apply to the default theme master
+        const mode = state.editor.mode;
+        const masterId = 'theme-default';
         
         // Generate the resolved colors from slots and adjustments
-        // Note: Light/Dark mode is handled at Master Slide level, not here
         const colors = generateThemeColors(theme.slots, theme.adjustments || DEFAULT_ADJUSTMENTS);
         
-        // Dispatch the theme to the store
-        store.dispatch('APPLY_LUMA_THEME', {
-            masterId,
-            theme: {
-                id: theme.id,
-                name: theme.name,
-                slots: theme.slots,
-                adjustments: theme.adjustments || DEFAULT_ADJUSTMENTS,
-                colors: colors
-            }
-        });
+        // Get current color mode for CSS variable application
+        const currentColorMode = state.masters?.[masterId]?.themeSettings?.lumaTheme?.colorMode || COLOR_MODES.LIGHT;
         
-        // Get current color mode from store for CSS variable application
-        // Re-fetch state after dispatch to get potentially updated colorMode
-        const updatedState = store.getState();
-        const currentColorMode = updatedState.masters?.[masterId]?.themeSettings?.lumaTheme?.colorMode || COLOR_MODES.LIGHT;
+        if (mode === 'master') {
+            // Master Mode: Apply the full theme to the master
+            // This updates the default theme for ALL slides that inherit from master
+            store.dispatch('APPLY_LUMA_THEME', {
+                masterId,
+                theme: {
+                    id: theme.id,
+                    name: theme.name,
+                    slots: theme.slots,
+                    adjustments: theme.adjustments || DEFAULT_ADJUSTMENTS,
+                    colors: colors
+                }
+            });
+        } else {
+            // Slide Mode: Assign theme ID to the slide's styleAssignments
+            // This creates a per-slide override, NOT affecting other slides
+            const slideId = state.editor.activeSlideId;
+            if (!slideId) return;
+            
+            // Only dispatch the style assignment - DO NOT modify the master
+            store.dispatch('UPDATE_SLIDE_STYLE_ASSIGNMENTS', {
+                slideId,
+                styleAssignments: {
+                    colorTheme: theme.id
+                }
+            });
+        }
         
-        // Also apply CSS variables for immediate visual feedback
+        // Apply CSS variables for immediate visual feedback
+        // This affects the current view only, resolved theme will be correct per-slide
         applyThemeToCSSVariables(colors, document.documentElement, currentColorMode);
     }
-    
+
     /**
      * Get the current theme from the store
      * @returns {Object|null} The current luma theme or null

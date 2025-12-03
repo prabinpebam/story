@@ -15,7 +15,10 @@ const {
     mockOff: vi.fn(),
     mockDispatch: vi.fn(),
     mockGetState: vi.fn(() => ({
-        editor: { activeSlideId: 'slide-1' },
+        editor: { 
+            activeSlideId: 'slide-1',
+            mode: 'edit' // Default to edit mode
+        },
         slides: {
             'slide-1': { id: 'slide-1', layoutId: 'layout-1' }
         },
@@ -414,7 +417,43 @@ describe('ColorThemeManager', () => {
     });
 
     describe('Store Integration', () => {
-        it('should dispatch APPLY_LUMA_THEME on theme change', () => {
+        it('should dispatch UPDATE_SLIDE_STYLE_ASSIGNMENTS in edit mode', () => {
+            // Default mock is in edit mode
+            manager.selectTheme('preset_ocean_sunset');
+            
+            expect(mockDispatch).toHaveBeenCalledWith('UPDATE_SLIDE_STYLE_ASSIGNMENTS', expect.objectContaining({
+                slideId: 'slide-1',
+                styleAssignments: {
+                    colorTheme: 'preset_ocean_sunset'
+                }
+            }));
+        });
+
+        it('should dispatch APPLY_LUMA_THEME in master mode', () => {
+            // Override mock to return master mode
+            mockGetState.mockReturnValueOnce({
+                editor: { 
+                    activeSlideId: 'slide-1',
+                    mode: 'master'
+                },
+                slides: {
+                    'slide-1': { id: 'slide-1', layoutId: 'layout-1' }
+                },
+                masters: {
+                    'theme-default': {
+                        id: 'theme-default',
+                        type: 'theme',
+                        themeSettings: {
+                            lumaTheme: {
+                                id: 'preset_neutral',
+                                name: 'Neutral',
+                                colorMode: 'light'
+                            }
+                        }
+                    }
+                }
+            });
+            
             manager.selectTheme('preset_ocean_sunset');
             
             expect(mockDispatch).toHaveBeenCalledWith('APPLY_LUMA_THEME', expect.objectContaining({
@@ -425,7 +464,29 @@ describe('ColorThemeManager', () => {
             }));
         });
 
-        it('should include resolved colors in dispatch', () => {
+        it('should include resolved colors in master mode dispatch', () => {
+            // Override mock to return master mode
+            mockGetState.mockReturnValueOnce({
+                editor: { 
+                    activeSlideId: 'slide-1',
+                    mode: 'master'
+                },
+                slides: {},
+                masters: {
+                    'theme-default': {
+                        id: 'theme-default',
+                        type: 'theme',
+                        themeSettings: {
+                            lumaTheme: {
+                                id: 'preset_neutral',
+                                name: 'Neutral',
+                                colorMode: 'light'
+                            }
+                        }
+                    }
+                }
+            });
+            
             manager.selectTheme('preset_ocean_sunset');
             
             expect(mockDispatch).toHaveBeenCalledWith('APPLY_LUMA_THEME', expect.objectContaining({
@@ -435,11 +496,34 @@ describe('ColorThemeManager', () => {
             }));
         });
 
-        it('should dispatch with 12 colors', () => {
+        it('should dispatch with 12 colors in master mode', () => {
+            // Override mock to return master mode
+            mockGetState.mockReturnValueOnce({
+                editor: { 
+                    activeSlideId: 'slide-1',
+                    mode: 'master'
+                },
+                slides: {},
+                masters: {
+                    'theme-default': {
+                        id: 'theme-default',
+                        type: 'theme',
+                        themeSettings: {
+                            lumaTheme: {
+                                id: 'preset_neutral',
+                                name: 'Neutral',
+                                colorMode: 'light'
+                            }
+                        }
+                    }
+                }
+            });
+            
             manager.selectTheme('preset_ocean_sunset');
             
-            const lastCall = mockDispatch.mock.calls[mockDispatch.mock.calls.length - 1];
-            expect(lastCall[1].theme.colors).toHaveLength(12);
+            const applyLumaCall = mockDispatch.mock.calls.find(call => call[0] === 'APPLY_LUMA_THEME');
+            expect(applyLumaCall).toBeDefined();
+            expect(applyLumaCall[1].theme.colors).toHaveLength(12);
         });
     });
 

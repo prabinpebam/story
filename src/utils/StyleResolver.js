@@ -1,5 +1,6 @@
 import { store } from '../core/Store.js';
-import { getEffectiveSlotIndex, COLOR_MODES } from '../ui/panels/color-theme/ColorThemeUtils.js';
+import { getEffectiveSlotIndex, COLOR_MODES, generateThemeColors, DEFAULT_ADJUSTMENTS } from '../ui/panels/color-theme/ColorThemeUtils.js';
+import { THEME_PRESETS, getPresetById } from '../ui/panels/color-theme/ThemePresets.js';
 
 /**
  * StyleResolver - Resolves style tokens through the cascade hierarchy
@@ -107,7 +108,10 @@ export const StyleResolver = {
     
     /**
      * Get the lumaTheme object for a given slide.
-     * Resolves through the cascade hierarchy.
+     * Resolves through the cascade hierarchy:
+     * 1. If slide has styleAssignments.colorTheme, look up that theme
+     * 2. If layout has styleAssignments.colorTheme, look up that theme
+     * 3. Fall back to master's lumaTheme
      * 
      * @param {string} slideId - The slide ID (optional, uses active slide if not provided)
      * @returns {Object|null} The lumaTheme object
@@ -120,10 +124,83 @@ export const StyleResolver = {
             slideId = state.editor?.activeSlideId;
         }
         
-        // For now, lumaTheme is stored at master level only
-        // In the future, we could support per-slide lumaTheme overrides
+        // Get the theme master
         const themeMaster = Object.values(state.masters || {}).find(m => m.type === 'theme');
-        return themeMaster?.themeSettings?.lumaTheme || null;
+        const masterLumaTheme = themeMaster?.themeSettings?.lumaTheme || null;
+        
+        // If we have a slideId, check for slide-level override
+        if (slideId) {
+            const themeInfo = this.getEffectiveColorTheme(slideId);
+            
+            // If the slide or layout has a specific theme assigned, look it up
+            if (themeInfo.themeId && themeInfo.source !== 'master') {
+                const resolvedTheme = this._lookupThemeById(themeInfo.themeId);
+                if (resolvedTheme) {
+                    return resolvedTheme;
+                }
+            }
+        }
+        
+        // Fall back to master's lumaTheme
+        return masterLumaTheme;
+    },
+    
+    /**
+     * Look up a theme by ID from presets or custom themes.
+     * Converts theme slot data to lumaTheme format.
+     * 
+     * @param {string} themeId - The theme ID to look up
+     * @returns {Object|null} The lumaTheme object or null
+     * @private
+     */
+    _lookupThemeById(themeId) {
+        if (!themeId) return null;
+        
+        // Check presets first
+        const preset = getPresetById(themeId);
+        if (preset) {
+            return this._themeToLumaTheme(preset);
+        }
+        
+        // Check custom themes from localStorage
+        try {
+            const customThemes = JSON.parse(localStorage.getItem('colorThemes') || '[]');
+            const customTheme = customThemes.find(t => t.id === themeId);
+            if (customTheme) {
+                return this._themeToLumaTheme(customTheme);
+            }
+        } catch (e) {
+            console.warn('[StyleResolver] Failed to load custom themes:', e);
+        }
+        
+        return null;
+    },
+    
+    /**
+     * Convert a theme object (from presets/custom) to lumaTheme format.
+     * 
+     * @param {Object} theme - Theme object with slots and adjustments
+     * @returns {Object} The lumaTheme object
+     * @private
+     */
+    _themeToLumaTheme(theme) {
+        if (!theme || !theme.slots) return null;
+        
+        const adjustments = theme.adjustments || DEFAULT_ADJUSTMENTS;
+        const colors = generateThemeColors(theme.slots, adjustments);
+        
+        return {
+            id: theme.id,
+            name: theme.name,
+            slots: theme.slots.map((slot, index) => ({
+                h: slot.h,
+                s: slot.s,
+                hex: colors[index]
+            })),
+            adjustments,
+            resolvedColors: colors,
+            colorMode: COLOR_MODES.LIGHT // Default, will be overridden by master setting
+        };
     },
     
     /**
