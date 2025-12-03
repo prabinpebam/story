@@ -16,6 +16,7 @@
 
 import { store } from '../core/Store.js';
 import { getEffectiveSlotIndex, COLOR_MODES } from '../ui/panels/color-theme/ColorThemeUtils.js';
+import { StyleResolver } from './StyleResolver.js';
 
 /**
  * @typedef {Object} ColorSource
@@ -98,42 +99,24 @@ export const ColorResolver = {
 
     /**
      * Resolve a theme slot to its current hex value.
-     * Handles dark mode mapping automatically.
+     * Handles dark mode mapping and slide-specific theme overrides automatically.
+     * 
+     * Uses StyleResolver.resolveThemeSlot() for cascade-aware resolution:
+     * - Checks slide's styleAssignments.colorTheme first
+     * - Falls back to layout's colorTheme
+     * - Falls back to master's lumaTheme
      * 
      * @param {number} slotIndex - Theme slot index (0-11)
+     * @param {string} [slideId=null] - Optional slide ID for cascade-aware resolution
      * @returns {string} The resolved hex color
      */
-    resolveThemeSlot(slotIndex) {
+    resolveThemeSlot(slotIndex, slideId = null) {
         if (slotIndex === undefined || slotIndex === null) return DEFAULT_COLOR;
         if (slotIndex < 0 || slotIndex > 11) return DEFAULT_COLOR;
 
-        const state = store.getState();
-        const themeMaster = Object.values(state.masters || {}).find(m => m.type === 'theme');
-        const lumaTheme = themeMaster?.themeSettings?.lumaTheme;
-
-        if (!lumaTheme?.slots) {
-            return DEFAULT_COLOR;
-        }
-
-        // Get the color mode (defaults to 'light')
-        const colorMode = lumaTheme.colorMode || COLOR_MODES.LIGHT;
-
-        // Apply dark mode mapping if needed
-        // In dark mode, slot N maps to slot (11 - N), swapping shadows ↔ highlights
-        const effectiveIndex = getEffectiveSlotIndex(slotIndex, colorMode);
-
-        // Get the hex from the effective slot
-        const slot = lumaTheme.slots[effectiveIndex];
-        if (slot?.hex) {
-            return slot.hex;
-        }
-
-        // Fallback to resolvedColors array
-        if (lumaTheme.resolvedColors?.[effectiveIndex]) {
-            return lumaTheme.resolvedColors[effectiveIndex];
-        }
-
-        return DEFAULT_COLOR;
+        // Delegate to StyleResolver which handles the cascade hierarchy
+        // If no slideId provided, StyleResolver will use activeSlideId
+        return StyleResolver.resolveThemeSlot(slotIndex, DEFAULT_COLOR, slideId);
     },
 
     /**
@@ -144,6 +127,7 @@ export const ColorResolver = {
      * For theme-linked colors: re-resolves from current theme (ensures fresh value)
      * 
      * @param {ColorValue | string | null | undefined} colorValue - The color value to resolve
+     * @param {string} [slideId=null] - Optional slide ID for cascade-aware resolution
      * @returns {string} The hex color to display
      * 
      * @example
@@ -155,7 +139,7 @@ export const ColorResolver = {
      * ColorResolver.getDisplayColor({ hex: '#old', source: { type: 'theme', themeSlot: 5 } });
      * // '#3B82F6' (current value from theme slot 5)
      */
-    getDisplayColor(colorValue) {
+    getDisplayColor(colorValue, slideId = null) {
         if (!colorValue) return DEFAULT_COLOR;
 
         // Handle string input (legacy format)
@@ -165,7 +149,7 @@ export const ColorResolver = {
 
         // If theme-linked, always re-resolve to get current theme value
         if (this.isThemeLinked(colorValue)) {
-            return this.resolveThemeSlot(colorValue.source.themeSlot);
+            return this.resolveThemeSlot(colorValue.source.themeSlot, slideId);
         }
 
         // For custom colors, return the stored hex

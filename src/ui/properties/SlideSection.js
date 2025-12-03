@@ -440,6 +440,14 @@ export class SlideSection {
             }
         }
 
+        // Update CSS variables with the slide's effective theme
+        // This ensures elements on the canvas display with correct theme colors
+        if (lumaTheme?.slots) {
+            const hexColors = lumaTheme.resolvedColors || lumaTheme.slots.map(slot => slot.hex);
+            const colorMode = themeInfo?.colorMode || COLOR_MODES.LIGHT;
+            applyThemeToCSSVariables(hexColors, document.documentElement, colorMode);
+        }
+
         // Update mode toggle to reflect current color mode
         const colorMode = lumaTheme?.colorMode || COLOR_MODES.LIGHT;
         if (this.modeToggle && this.modeToggle.selectedValue !== colorMode) {

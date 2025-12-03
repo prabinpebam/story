@@ -16,8 +16,16 @@ vi.mock('../../src/core/Store.js', () => ({
     }
 }));
 
-// Import the mocked store
+// Mock the StyleResolver module
+vi.mock('../../src/utils/StyleResolver.js', () => ({
+    StyleResolver: {
+        resolveThemeSlot: vi.fn()
+    }
+}));
+
+// Import the mocked modules
 import { store } from '../../src/core/Store.js';
+import { StyleResolver } from '../../src/utils/StyleResolver.js';
 
 /**
  * Helper to create a mock state with theme data
@@ -54,9 +62,17 @@ const DEFAULT_THEME_SLOTS = [
 
 describe('ColorResolver', () => {
     beforeEach(() => {
-        // Reset store mock before each test
+        // Reset mocks before each test
         vi.clearAllMocks();
         store.getState.mockReturnValue(createMockState(DEFAULT_THEME_SLOTS));
+        
+        // Setup StyleResolver mock to return correct slot colors
+        StyleResolver.resolveThemeSlot.mockImplementation((slotIndex, fallback = '#000000', slideId = null) => {
+            if (slotIndex === undefined || slotIndex === null || slotIndex < 0 || slotIndex > 11) {
+                return fallback;
+            }
+            return DEFAULT_THEME_SLOTS[slotIndex];
+        });
     });
 
     // =========================================================================
@@ -149,10 +165,17 @@ describe('ColorResolver', () => {
             expect(ColorResolver.resolveThemeSlot(11)).toBe('#F5F5FF');
         });
 
-        it('handles dark mode slot mapping', () => {
-            store.getState.mockReturnValue(createMockState(DEFAULT_THEME_SLOTS, 'dark'));
+        it('handles dark mode slot mapping via StyleResolver', () => {
+            // In dark mode, StyleResolver handles the mapping: slot 0 -> slot 11, slot 11 -> slot 0
+            StyleResolver.resolveThemeSlot.mockImplementation((slotIndex, fallback = '#000000', slideId = null) => {
+                if (slotIndex === undefined || slotIndex === null || slotIndex < 0 || slotIndex > 11) {
+                    return fallback;
+                }
+                // Simulate dark mode mapping: slot N -> slot (11 - N)
+                const effectiveIndex = 11 - slotIndex;
+                return DEFAULT_THEME_SLOTS[effectiveIndex];
+            });
             
-            // In dark mode: slot 0 -> slot 11, slot 11 -> slot 0
             expect(ColorResolver.resolveThemeSlot(0)).toBe('#F5F5FF');  // Maps to slot 11
             expect(ColorResolver.resolveThemeSlot(11)).toBe('#1A1A2E'); // Maps to slot 0
         });
@@ -164,9 +187,14 @@ describe('ColorResolver', () => {
             expect(ColorResolver.resolveThemeSlot(undefined)).toBe('#000000');
         });
 
-        it('returns default color when no theme exists', () => {
-            store.getState.mockReturnValue({ masters: {} });
+        it('returns default color when StyleResolver returns fallback', () => {
+            StyleResolver.resolveThemeSlot.mockReturnValue('#000000');
             expect(ColorResolver.resolveThemeSlot(5)).toBe('#000000');
+        });
+        
+        it('accepts optional slideId for cascade-aware resolution', () => {
+            ColorResolver.resolveThemeSlot(5, 'slide-1');
+            expect(StyleResolver.resolveThemeSlot).toHaveBeenCalledWith(5, '#000000', 'slide-1');
         });
     });
 
