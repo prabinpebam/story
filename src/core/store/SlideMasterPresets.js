@@ -23,11 +23,9 @@ import { generateThemeColors, LUMA_SLOTS } from '../../ui/panels/color-theme/Col
  */
 function computeThemeHexColors(colorTheme) {
     if (!colorTheme || !colorTheme.slots) {
-        console.warn('[SlideMasterPreset] No slots in color theme:', colorTheme?.name);
         return Array(12).fill('#808080');
     }
     const hexColors = generateThemeColors(colorTheme.slots, colorTheme.adjustments || {});
-    console.log(`[SlideMasterPreset] Computed hex colors for ${colorTheme.name}:`, hexColors);
     return hexColors;
 }
 
@@ -141,8 +139,6 @@ export const THEME_SLOTS = {
  */
 function createTextStyleFromPreset(id, name, presetStyle, fontPreset, textSlot, useHeadingFont = true) {
     const fontInfo = useHeadingFont ? fontPreset.fonts.heading : fontPreset.fonts.body;
-    
-    console.log(`[TextStyle] Creating style: ${id}, themeSlot: ${textSlot}, font: ${fontInfo.family}`);
     
     return {
         id,
@@ -267,11 +263,6 @@ function createSlideMasterPreset(id, name, colorTheme, fontPresetId, description
     
     // Compute hex colors from h,s slots + luma values
     const hexColors = computeThemeHexColors(colorTheme);
-    
-    console.log(`[SlideMasterPreset] Creating preset: ${id} (${isDarkTheme ? 'dark' : 'light'})`);
-    console.log(`[SlideMasterPreset] Color theme:`, colorTheme?.name, colorTheme?.id);
-    console.log(`[SlideMasterPreset] Computed hex colors:`, hexColors);
-    console.log(`[SlideMasterPreset] Font preset:`, fontPreset?.name, fontPresetId);
     
     // Create enhanced lumaTheme with computed hex values
     const lumaThemeWithHex = {

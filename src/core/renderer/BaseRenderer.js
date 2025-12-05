@@ -16,9 +16,23 @@ export class BaseRenderer {
         
         // Bind methods
         this.render = this.render.bind(this);
+        this._handleCustomThemeEdited = this._handleCustomThemeEdited.bind(this);
         
         // Listen to store
         store.on('state-changed', this.render);
+        
+        // Listen for custom theme edits (when theme ID doesn't change but colors do)
+        // This ensures real-time updates when editing custom themes
+        document.addEventListener('style:custom-theme-edited', this._handleCustomThemeEdited);
+    }
+    
+    /**
+     * Handle custom theme edit event - forces re-render even when store state doesn't change
+     * @private
+     */
+    _handleCustomThemeEdited(event) {
+        // Re-render to pick up the new theme colors from localStorage
+        this.render();
     }
 
     initStage() {
@@ -120,6 +134,7 @@ export class BaseRenderer {
 
     destroy() {
         store.off('state-changed', this.render);
+        document.removeEventListener('style:custom-theme-edited', this._handleCustomThemeEdited);
         this.activeSlideViews.forEach(view => view.unmount());
         this.activeSlideViews.clear();
         this.container.innerHTML = '';

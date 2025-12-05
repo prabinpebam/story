@@ -60,6 +60,7 @@ import {
 } from './ColorThemeUtils.js';
 import { HueSaturationPopover } from './HueSaturationPopover.js';
 import { THEME_PRESETS, isPresetTheme } from './ThemePresets.js';
+import { ThemeDiag } from '../../../utils/ThemeDiagnostics.js';
 
 export class ColorThemeManager extends DraggablePanel {
     constructor(options = {}) {
@@ -870,6 +871,19 @@ export class ColorThemeManager extends DraggablePanel {
         
         const theme = this.getSelectedTheme();
         if (theme) {
+            // Diagnostic logging for ColorThemeManager panel display
+            const state = store.getState();
+            ThemeDiag.logUIDisplay('ColorThemeManager', {
+                selectedThemeId: themeId,
+                selectedThemeName: theme.name,
+                editorMode: state.editor.mode,
+                activeSlideId: state.editor.activeSlideId,
+                activeMasterId: state.editor.activeMasterId,
+                willApplyTo: state.editor.mode === 'master' ? 
+                    (state.masters?.[state.editor.activeMasterId]?.type === 'theme' ? 'Theme Master' : `Layout: ${state.masters?.[state.editor.activeMasterId]?.name}`) :
+                    `Slide: ${state.editor.activeSlideId}`
+            });
+            
             this.managerOptions.onThemeChange(theme);
         }
     }
@@ -949,6 +963,13 @@ export class ColorThemeManager extends DraggablePanel {
         // Update only the affected column header swatch and grid column
         this.updateColumnSwatches(columnIndex, theme);
         this.renderThemeList();
+        
+        // Save custom theme changes to localStorage BEFORE applying
+        // This ensures StyleResolver can look up the updated colors
+        if (!isPresetTheme(theme.id)) {
+            this.saveCustomThemes();
+        }
+        
         this.managerOptions.onThemeChange(theme);
     }
     
@@ -1033,6 +1054,11 @@ export class ColorThemeManager extends DraggablePanel {
         
         this.renderThemeEditor();
         this.renderThemeList(); // Update preview in left column in real-time
+        
+        // Save custom theme changes to localStorage BEFORE applying
+        // This ensures StyleResolver can look up the updated colors
+        this.saveCustomThemes();
+        
         this.managerOptions.onThemeChange(theme);
     }
     
@@ -1120,6 +1146,11 @@ export class ColorThemeManager extends DraggablePanel {
         
         this.renderThemeEditor();
         this.renderThemeList(); // Update preview in left column
+        
+        // Save custom theme changes to localStorage BEFORE applying
+        // This ensures StyleResolver can look up the updated colors
+        this.saveCustomThemes();
+        
         this.managerOptions.onThemeChange(theme);
     }
     
@@ -1245,12 +1276,11 @@ export class ColorThemeManager extends DraggablePanel {
             ? generateInvertedThemeColors(theme.slots, theme.adjustments || DEFAULT_ADJUSTMENTS)
             : generateThemeColors(theme.slots, theme.adjustments || DEFAULT_ADJUSTMENTS);
         
-        // Get color mode from store (light/dark mode is controlled at master slide level)
-        const state = store.getState();
-        const themeMaster = state.masters?.['theme-default'];
-        const colorMode = themeMaster?.themeSettings?.lumaTheme?.colorMode || COLOR_MODES.LIGHT;
+        // NOTE: We no longer apply CSS variables globally here.
+        // CSS variables are applied per-slide in SlideView.update() via StyleResolver.
+        // This prevents theme changes from polluting all slides.
+        // The applyThemeToStore() method handles dispatching the appropriate store action.
         
-        applyThemeToCSSVariables(colors, document.documentElement, colorMode);
         this.managerOptions.onThemeApply(theme, colors);
     }
     
@@ -1530,7 +1560,9 @@ export class ColorThemeManager extends DraggablePanel {
 
     /**
      * Apply theme to the store - mode-aware
-     * In Master Mode: Updates the master's lumaTheme directly (affects all slides)
+     * In Master Mode: 
+     *   - If editing theme master: Updates the master's lumaTheme directly (affects all slides)
+     *   - If editing layout master: Assigns theme ID to layout's styleAssignments.colorTheme (layout-level override)
      * In Slide Mode: Assigns the theme ID to the slide's styleAssignments.colorTheme (per-slide override)
      * @param {Object} theme - The theme to apply
      */
@@ -1539,45 +1571,127 @@ export class ColorThemeManager extends DraggablePanel {
         
         const state = store.getState();
         const mode = state.editor.mode;
-        const masterId = 'theme-default';
+        const themeMasterId = 'theme-default';
+        
+        console.log('[ColorThemeManager.applyThemeToStore]', {
+            mode,
+            activeMasterId: state.editor.activeMasterId,
+            activeSlideId: state.editor.activeSlideId,
+            themeId: theme.id,
+            themeName: theme.name
+        });
+        
+        // Diagnostic logging
+        ThemeDiag.logColorThemeManagerApply(mode, state.editor.activeSlideId, theme);
         
         // Generate the resolved colors from slots and adjustments
         const colors = generateThemeColors(theme.slots, theme.adjustments || DEFAULT_ADJUSTMENTS);
         
         // Get current color mode for CSS variable application
-        const currentColorMode = state.masters?.[masterId]?.themeSettings?.lumaTheme?.colorMode || COLOR_MODES.LIGHT;
+        const currentColorMode = state.masters?.[themeMasterId]?.themeSettings?.lumaTheme?.colorMode || COLOR_MODES.LIGHT;
         
         if (mode === 'master') {
-            // Master Mode: Apply the full theme to the master
-            // This updates the default theme for ALL slides that inherit from master
-            store.dispatch('APPLY_LUMA_THEME', {
-                masterId,
-                theme: {
-                    id: theme.id,
-                    name: theme.name,
-                    slots: theme.slots,
-                    adjustments: theme.adjustments || DEFAULT_ADJUSTMENTS,
-                    colors: colors
-                }
+            // Master Mode: Check what type of master we're editing
+            const activeMasterId = state.editor.activeMasterId;
+            const activeMaster = state.masters?.[activeMasterId];
+            
+            console.log('[ColorThemeManager.applyThemeToStore] Master mode:', {
+                activeMasterId,
+                masterType: activeMaster?.type,
+                masterName: activeMaster?.name
             });
+            
+            if (!activeMaster) {
+                console.warn('[ColorThemeManager] No active master found');
+                return;
+            }
+            
+            if (activeMaster.type === 'theme') {
+                // Editing the Theme Master itself - apply the full lumaTheme
+                // This sets the default theme for all slides that inherit from master
+                console.log('[ColorThemeManager] Applying lumaTheme to theme master:', themeMasterId);
+                store.dispatch('APPLY_LUMA_THEME', {
+                    masterId: themeMasterId,
+                    theme: {
+                        id: theme.id,
+                        name: theme.name,
+                        slots: theme.slots,
+                        adjustments: theme.adjustments || DEFAULT_ADJUSTMENTS,
+                        colors: colors
+                    }
+                });
+                
+                // NOTE: CSS variables are NOT applied globally.
+                // SlideView.update() applies per-slide CSS vars via StyleResolver.
+                // Dispatch event to notify listeners that the master theme changed.
+                document.dispatchEvent(new CustomEvent('style:theme-updated', {
+                    detail: { masterId: themeMasterId, themeId: theme.id, affectedSlides: 'all' }
+                }));
+            } else if (activeMaster.type === 'layout') {
+                // Editing a Layout Master - assign styleAssignments.colorTheme override
+                // This only affects slides using this specific layout
+                console.log('[ColorThemeManager] Applying styleAssignments.colorTheme to layout master:', activeMasterId);
+                store.dispatch('UPDATE_MASTER_STYLE_ASSIGNMENTS', {
+                    masterId: activeMasterId,
+                    styleAssignments: {
+                        colorTheme: theme.id
+                    }
+                });
+                
+                // NOTE: CSS variables are NOT applied globally.
+                // Only slides using this layout should show the new theme.
+                // Dispatch event to notify listeners that a layout theme changed.
+                document.dispatchEvent(new CustomEvent('style:theme-assignment-changed', {
+                    detail: { 
+                        targetType: 'layout', 
+                        targetId: activeMasterId, 
+                        themeId: theme.id 
+                    }
+                }));
+                
+                // Also emit custom-theme-edited for real-time updates when editing
+                // This handles the case where the theme ID doesn't change but colors do
+                if (!isPresetTheme(theme.id)) {
+                    document.dispatchEvent(new CustomEvent('style:custom-theme-edited', {
+                        detail: { 
+                            themeId: theme.id,
+                            colors: colors
+                        }
+                    }));
+                }
+            }
         } else {
             // Slide Mode: Assign theme ID to the slide's styleAssignments
             // This creates a per-slide override, NOT affecting other slides
             const slideId = state.editor.activeSlideId;
             if (!slideId) return;
             
-            // Only dispatch the style assignment - DO NOT modify the master
+            console.log('[ColorThemeManager] Applying styleAssignments.colorTheme to slide:', slideId);
+            
+            // Only dispatch the style assignment - DO NOT apply global CSS vars
+            // SlideView will handle applying the theme's CSS vars locally on the slide DOM
             store.dispatch('UPDATE_SLIDE_STYLE_ASSIGNMENTS', {
                 slideId,
                 styleAssignments: {
                     colorTheme: theme.id
                 }
             });
+            
+            // Also emit custom-theme-edited for real-time updates when editing
+            // This handles the case where the theme ID doesn't change but colors do
+            if (!isPresetTheme(theme.id)) {
+                document.dispatchEvent(new CustomEvent('style:custom-theme-edited', {
+                    detail: { 
+                        themeId: theme.id,
+                        colors: colors
+                    }
+                }));
+            }
+            
+            // NOTE: We no longer apply CSS variables globally here in slide mode.
+            // CSS variables are now applied per-slide in SlideView.update()
+            // This prevents per-slide themes from polluting other slides.
         }
-        
-        // Apply CSS variables for immediate visual feedback
-        // This affects the current view only, resolved theme will be correct per-slide
-        applyThemeToCSSVariables(colors, document.documentElement, currentColorMode);
     }
 
     /**

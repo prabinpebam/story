@@ -14,6 +14,7 @@ import { SLIDE_MASTER_PRESETS, getPresetById, getPresetList, getFullPresetById }
 import { THEME_PRESETS } from '../panels/color-theme/ThemePresets.js';
 import { applyThemeToCSSVariables, COLOR_MODES } from '../panels/color-theme/ColorThemeUtils.js';
 import { StyleResolver } from '../../utils/StyleResolver.js';
+import { ThemeDiag } from '../../utils/ThemeDiagnostics.js';
 
 export class SlideSection {
     constructor() {
@@ -265,14 +266,12 @@ export class SlideSection {
             colorMode: mode
         });
         
-        // Re-apply CSS variables with the new mode
-        const lumaTheme = themeMaster.themeSettings?.lumaTheme;
-        if (lumaTheme?.slots) {
-            const hexColors = lumaTheme.resolvedColors || lumaTheme.slots.map(slot => slot.hex);
-            applyThemeToCSSVariables(hexColors, document.documentElement, mode);
-        }
-        
-        console.log('[SlideSection] Color mode changed to:', mode);
+        // NOTE: CSS variables are NOT applied globally.
+        // SlideView.update() applies per-slide CSS vars via StyleResolver.
+        // The state-changed event from dispatch will trigger re-renders.
+        document.dispatchEvent(new CustomEvent('style:color-mode-changed', {
+            detail: { masterId: themeMasterId, colorMode: mode }
+        }));
     }
 
     createTypographySectionContent() {
@@ -385,6 +384,10 @@ export class SlideSection {
             themeInfo = StyleResolver.getThemeInfoForSlide(slideId);
         }
 
+        // Diagnostic logging
+        const slideId = mode === 'master' ? null : state.editor.activeSlideId;
+        ThemeDiag.logPropertyInspectorDisplay(slideId, themeInfo, mode);
+
         const themeFonts = themeMaster.themeSettings.fonts || {};
 
         // Check if slide has style assignment override (cascade-aware)
@@ -406,6 +409,21 @@ export class SlideSection {
         // Update theme name from luma theme
         const themeName = lumaTheme?.name || 'Default';
         this.colorThemeName.textContent = themeName;
+        
+        // Diagnostic logging for Property Inspector display
+        const state = store.getState();
+        const slideId = state.editor.mode === 'master' ? null : state.editor.activeSlideId;
+        ThemeDiag.logUIDisplay('PropertyInspector', {
+            slideId,
+            mode: state.editor.mode,
+            displayedTheme: {
+                name: themeName,
+                id: lumaTheme?.id || null,
+                source: themeInfo?.source,
+                isOverride,
+                isInherited: themeInfo?.isInherited
+            }
+        });
 
         // Update badge based on cascade source
         if (isOverride) {
@@ -440,13 +458,9 @@ export class SlideSection {
             }
         }
 
-        // Update CSS variables with the slide's effective theme
-        // This ensures elements on the canvas display with correct theme colors
-        if (lumaTheme?.slots) {
-            const hexColors = lumaTheme.resolvedColors || lumaTheme.slots.map(slot => slot.hex);
-            const colorMode = themeInfo?.colorMode || COLOR_MODES.LIGHT;
-            applyThemeToCSSVariables(hexColors, document.documentElement, colorMode);
-        }
+        // NOTE: We no longer apply CSS variables globally here.
+        // CSS variables are now applied per-slide in SlideView.update()
+        // This prevents per-slide themes from polluting other slides.
 
         // Update mode toggle to reflect current color mode
         const colorMode = lumaTheme?.colorMode || COLOR_MODES.LIGHT;
@@ -969,25 +983,22 @@ export class SlideSection {
             presetId 
         });
         
-        // After dispatch, apply CSS variables and update panels
+        // After dispatch, update panels (CSS vars are applied per-slide by SlideView)
         if (fullPreset) {
             const lumaTheme = fullPreset.theme.themeSettings?.lumaTheme;
-            if (lumaTheme?.slots) {
-                // Apply CSS variables from the preset's resolved colors
-                const hexColors = lumaTheme.resolvedColors || lumaTheme.slots.map(slot => slot.hex);
-                
-                // Get current color mode from store (preserves dark mode if already set)
-                const state = store.getState();
-                const colorMode = state.masters?.[themeMasterId]?.themeSettings?.lumaTheme?.colorMode || COLOR_MODES.LIGHT;
-                
-                console.log('[SlideSection] Applying CSS variables for preset:', presetId, hexColors, 'mode:', colorMode);
-                applyThemeToCSSVariables(hexColors, document.documentElement, colorMode);
+            
+            // NOTE: CSS variables are NOT applied globally.
+            // SlideView.update() applies per-slide CSS vars via StyleResolver.
+            // Dispatch event to notify listeners that the master theme changed.
+            if (lumaTheme?.id) {
+                document.dispatchEvent(new CustomEvent('style:theme-updated', {
+                    detail: { masterId: themeMasterId, themeId: lumaTheme.id, affectedSlides: 'all' }
+                }));
             }
             
             // Update ColorThemeManager to show the selected color theme
             const colorThemeManager = panelManager.get('color-theme-manager');
             if (colorThemeManager && lumaTheme?.id) {
-                console.log('[SlideSection] Selecting color theme in manager:', lumaTheme.id);
                 // Just update the visual selection without triggering another store dispatch
                 colorThemeManager.selectedThemeId = lumaTheme.id;
                 colorThemeManager.renderThemeList();

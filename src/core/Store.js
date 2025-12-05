@@ -11,6 +11,38 @@ import * as UIHandlers from './store/handlers/UIHandlers.js';
 import * as AuthHandlers from './store/handlers/AuthHandlers.js';
 import * as TextEditHandlers from './store/handlers/TextEditHandlers.js';
 
+// Lazy-loaded modules to avoid circular dependency (StyleResolver imports store)
+let _StyleResolver = null;
+let _ThemeDiag = null;
+let _modulesLoaded = false;
+
+// Load modules after a microtask (when module initialization is complete)
+async function ensureModulesLoaded() {
+    if (_modulesLoaded) return;
+    try {
+        const [styleResolverMod, themeDiagMod] = await Promise.all([
+            import('../utils/StyleResolver.js'),
+            import('../utils/ThemeDiagnostics.js')
+        ]);
+        _StyleResolver = styleResolverMod.StyleResolver;
+        _ThemeDiag = themeDiagMod.ThemeDiag;
+        _modulesLoaded = true;
+    } catch (e) {
+        // Modules not yet available
+    }
+}
+
+// Start loading immediately after module init
+Promise.resolve().then(ensureModulesLoaded);
+
+function getStyleResolver() {
+    return _StyleResolver;
+}
+
+function getThemeDiag() {
+    return _ThemeDiag;
+}
+
 class Store extends EventEmitter {
     constructor() {
         super();
@@ -178,6 +210,13 @@ class Store extends EventEmitter {
                 // Emit style event for theme assignment changes
                 if (type === 'UPDATE_SLIDE_STYLE_ASSIGNMENTS') {
                     this.emit('style-assignment-changed', payload);
+                    // Log CTA for theme diagnostics
+                    if (_ThemeDiag) {
+                        _ThemeDiag.logCTA('UPDATE_SLIDE_STYLE_ASSIGNMENTS', {
+                            slideId: payload.slideId,
+                            colorTheme: payload.styleAssignments?.colorTheme
+                        });
+                    }
                 }
                 break;
 
@@ -231,6 +270,7 @@ class Store extends EventEmitter {
             case 'UPDATE_LUMA_THEME_ADJUSTMENTS':
             case 'APPLY_SLIDE_MASTER_PRESET':
             case 'SET_COLOR_MODE':
+            case 'UPDATE_MASTER_STYLE_ASSIGNMENTS':
                 this.snapshot(type);
                 this.state = produce(this.state, draft => {
                     switch(type) {
@@ -250,10 +290,43 @@ class Store extends EventEmitter {
                         case 'UPDATE_LUMA_THEME_ADJUSTMENTS': MasterHandlers.handleUpdateLumaThemeAdjustments(draft, payload); break;
                         case 'APPLY_SLIDE_MASTER_PRESET': MasterHandlers.handleApplySlideMasterPreset(draft, payload); break;
                         case 'SET_COLOR_MODE': MasterHandlers.handleSetColorMode(draft, payload); break;
+                        case 'UPDATE_MASTER_STYLE_ASSIGNMENTS': MasterHandlers.handleUpdateMasterStyleAssignments(draft, payload); break;
                     }
                 });
                 this.emit('state-changed', this.state);
-                if (type === 'SET_COLOR_MODE') this.emit('color-mode-changed', payload.colorMode);
+                
+                // Emit theme-related events for coordinated re-renders
+                if (type === 'SET_COLOR_MODE') {
+                    this.emit('color-mode-changed', payload.colorMode);
+                    // Log CTA for theme diagnostics
+                    if (_ThemeDiag) {
+                        _ThemeDiag.logCTA('SET_COLOR_MODE', { colorMode: payload.colorMode });
+                    }
+                }
+                if (type === 'APPLY_LUMA_THEME' || type === 'APPLY_SLIDE_MASTER_PRESET') {
+                    this.emit('theme-updated', { masterId: payload.masterId, affectedSlides: 'all' });
+                    // Log CTA for theme diagnostics
+                    if (_ThemeDiag) {
+                        _ThemeDiag.logCTA(type, { 
+                            masterId: payload.masterId, 
+                            themeName: payload.theme?.name || payload.presetId 
+                        });
+                    }
+                }
+                if (type === 'UPDATE_MASTER_STYLE_ASSIGNMENTS') {
+                    this.emit('style-assignment-changed', { 
+                        targetType: 'layout', 
+                        targetId: payload.masterId,
+                        styleAssignments: payload.styleAssignments
+                    });
+                    // Log CTA for theme diagnostics
+                    if (_ThemeDiag) {
+                        _ThemeDiag.logCTA('UPDATE_MASTER_STYLE_ASSIGNMENTS', {
+                            masterId: payload.masterId,
+                            colorTheme: payload.styleAssignments?.colorTheme
+                        });
+                    }
+                }
                 break;
 
             // Interaction Handlers
@@ -406,13 +479,27 @@ class Store extends EventEmitter {
         const slide = this.state.slides[slideId];
         if (!slide) return null;
 
+        // Import StyleResolver lazily to avoid circular dependency
+        // StyleResolver handles cascade resolution for color themes
+        let resolvedLumaTheme = null;
+        let themeSource = null;
+        
+        const StyleResolver = getStyleResolver();
+        if (StyleResolver) {
+            const themeInfo = StyleResolver.getThemeInfoForSlide(slideId);
+            resolvedLumaTheme = themeInfo?.lumaTheme || null;
+            themeSource = themeInfo?.source || 'master';
+        }
+
         // If no layout, return slide as is (legacy support)
         if (!slide.layoutId || !this.state.masters || !this.state.masters[slide.layoutId]) {
             return {
                 ...slide,
                 effectiveBackground: slide.background || { type: 'solid', value: '#ffffff' },
                 effectiveElements: slide.elements,
-                effectiveOrder: slide.elementOrder
+                effectiveOrder: slide.elementOrder,
+                resolvedLumaTheme,
+                themeSource
             };
         }
 
@@ -473,13 +560,23 @@ class Store extends EventEmitter {
             }
         });
 
-        return {
+        const result = {
             ...slide,
             effectiveBackground: background,
             effectiveElements,
             effectiveOrder,
-            themeSettings
+            themeSettings,
+            resolvedLumaTheme,
+            themeSource
         };
+        
+        // Diagnostic logging
+        const ThemeDiag = getThemeDiag();
+        if (ThemeDiag) {
+            ThemeDiag.logStoreResolve(slideId, result);
+        }
+        
+        return result;
     }
 
     getActiveContainer() {
@@ -492,3 +589,8 @@ class Store extends EventEmitter {
 }
 
 export const store = new Store();
+
+// Make store available globally for lazy-loaded modules that need to avoid circular imports
+if (typeof window !== 'undefined') {
+    window._storyAppStore = store;
+}

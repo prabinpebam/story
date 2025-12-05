@@ -352,7 +352,6 @@ export class TextElement extends VisualElement {
         }
 
         // Text Fill
-        console.log('[TextElement] Element:', el.id, 'style.textFill:', el.style?.textFill, 'props.textFill:', props.textFill);
         this.applyTextFill(div, props.textFill);
         
         this.applyEffects(div, el);

@@ -68,18 +68,20 @@ describe('PresentationHandlers', () => {
         });
 
         it('should not move past last slide', () => {
+            const lastSlideIndex = initialState.slideOrder.length - 1;
             let state = produce(initialState, draft => {
-                draft.presentation.currentSlideIndex = 2; // Last slide
+                draft.presentation.currentSlideIndex = lastSlideIndex;
             });
 
             state = produce(state, draft => {
                 handlePresentationNext(draft);
             });
 
-            expect(state.presentation.currentSlideIndex).toBe(2);
+            expect(state.presentation.currentSlideIndex).toBe(lastSlideIndex);
         });
 
         it('should navigate through all slides sequentially', () => {
+            const lastSlideIndex = initialState.slideOrder.length - 1;
             let state = initialState;
 
             // First -> Second
@@ -88,17 +90,19 @@ describe('PresentationHandlers', () => {
             });
             expect(state.presentation.currentSlideIndex).toBe(1);
 
-            // Second -> Third
-            state = produce(state, draft => {
-                handlePresentationNext(draft);
-            });
-            expect(state.presentation.currentSlideIndex).toBe(2);
+            // Navigate to last slide
+            for (let i = 1; i < lastSlideIndex; i++) {
+                state = produce(state, draft => {
+                    handlePresentationNext(draft);
+                });
+            }
+            expect(state.presentation.currentSlideIndex).toBe(lastSlideIndex);
 
-            // Third -> Still Third (last)
+            // Try to go past last - should stay at last
             state = produce(state, draft => {
                 handlePresentationNext(draft);
             });
-            expect(state.presentation.currentSlideIndex).toBe(2);
+            expect(state.presentation.currentSlideIndex).toBe(lastSlideIndex);
         });
     });
 

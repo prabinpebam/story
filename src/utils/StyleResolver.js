@@ -1,6 +1,12 @@
-import { store } from '../core/Store.js';
 import { getEffectiveSlotIndex, COLOR_MODES, generateThemeColors, DEFAULT_ADJUSTMENTS } from '../ui/panels/color-theme/ColorThemeUtils.js';
 import { THEME_PRESETS, getPresetById } from '../ui/panels/color-theme/ThemePresets.js';
+import { ThemeDiag } from './ThemeDiagnostics.js';
+
+// Lazy import to avoid circular dependency with Store
+// We access store through window global which is set after Store is initialized
+function getStore() {
+    return window._storyAppStore;
+}
 
 /**
  * StyleResolver - Resolves style tokens through the cascade hierarchy
@@ -26,6 +32,11 @@ export const StyleResolver = {
      * @returns {{themeId: string|null, source: 'slide'|'layout'|'master', sourceId: string, sourceLabel: string}}
      */
     getEffectiveColorTheme(slideId) {
+        const store = getStore();
+        if (!store) {
+            // Store not yet initialized
+            return { themeId: null, source: 'master', sourceId: null, sourceLabel: 'master-default' };
+        }
         const state = store.getState();
         const slide = state.slides?.[slideId];
         
@@ -94,6 +105,8 @@ export const StyleResolver = {
      * @returns {string} 'light' or 'dark'
      */
     getColorMode() {
+        const store = getStore();
+        if (!store) return COLOR_MODES.LIGHT;
         const state = store.getState();
         const themeMaster = Object.values(state.masters || {}).find(m => m.type === 'theme');
         
@@ -117,6 +130,8 @@ export const StyleResolver = {
      * @returns {Object|null} The lumaTheme object
      */
     getLumaTheme(slideId = null) {
+        const store = getStore();
+        if (!store) return null;
         const state = store.getState();
         
         // If no slideId, try to get active slide
@@ -214,7 +229,7 @@ export const StyleResolver = {
         const lumaTheme = this.getLumaTheme(slideId);
         const colorMode = this.getColorMode();
         
-        return {
+        const result = {
             lumaTheme,
             colorMode,
             source: themeInfo.source,
@@ -222,8 +237,102 @@ export const StyleResolver = {
             sourceLabel: themeInfo.sourceLabel,
             isInherited: themeInfo.source !== 'slide'
         };
+        
+        // Diagnostic logging
+        ThemeDiag.logStyleResolverCascade(slideId, result);
+        
+        return result;
     },
     
+    /**
+     * Get theme info for master mode (theme master or layout master).
+     * This is used when editing in master mode to show the effective theme for that master.
+     * 
+     * @param {string} masterId - The master ID being edited
+     * @returns {{lumaTheme: Object, source: string, sourceId: string, sourceLabel: string, isInherited: boolean}}
+     */
+    getThemeInfoForMaster(masterId) {
+        const store = getStore();
+        if (!store) {
+            return { lumaTheme: null, source: 'master', sourceId: null, sourceLabel: 'Not available', isInherited: true };
+        }
+        const state = store.getState();
+        const master = state.masters?.[masterId];
+        
+        if (!master) {
+            return { lumaTheme: null, source: 'master', sourceId: null, sourceLabel: 'Master not found', isInherited: true };
+        }
+        
+        const colorMode = this.getColorMode();
+        
+        if (master.type === 'theme') {
+            // Theme master - show its lumaTheme directly
+            const lumaTheme = master.themeSettings?.lumaTheme || null;
+            return {
+                lumaTheme,
+                colorMode,
+                source: 'master',
+                sourceId: masterId,
+                sourceLabel: master.name || 'Theme Master',
+                isInherited: false
+            };
+        } else if (master.type === 'layout') {
+            // Layout master - check for override, otherwise inherit from parent (theme master)
+            if (master.styleAssignments?.colorTheme) {
+                // Layout has its own theme override
+                const lumaTheme = this._lookupThemeById(master.styleAssignments.colorTheme);
+                return {
+                    lumaTheme,
+                    colorMode,
+                    source: 'layout',
+                    sourceId: masterId,
+                    sourceLabel: `${master.name || 'Layout'} (override)`,
+                    isInherited: false
+                };
+            } else {
+                // Layout inherits from parent theme master
+                const parentMaster = master.parentId ? state.masters?.[master.parentId] : null;
+                const lumaTheme = parentMaster?.themeSettings?.lumaTheme || null;
+                return {
+                    lumaTheme,
+                    colorMode,
+                    source: 'master',
+                    sourceId: parentMaster?.id || 'theme-default',
+                    sourceLabel: `Inherited from ${parentMaster?.name || 'Theme Master'}`,
+                    isInherited: true
+                };
+            }
+        }
+        
+        // Fallback
+        return { lumaTheme: null, source: 'master', sourceId: null, sourceLabel: 'Unknown', isInherited: true };
+    },
+    
+    /**
+     * Get theme info based on current editor mode.
+     * Automatically switches between slide and master context.
+     * 
+     * @returns {{lumaTheme: Object, source: string, sourceId: string, sourceLabel: string, isInherited: boolean}}
+     */
+    getThemeInfoForCurrentContext() {
+        const store = getStore();
+        if (!store) {
+            return { lumaTheme: null, source: 'master', sourceId: null, sourceLabel: 'Not available', isInherited: true };
+        }
+        const state = store.getState();
+        const mode = state.editor?.mode;
+        
+        if (mode === 'master') {
+            // Master mode - use the active master
+            const activeMasterId = state.editor?.activeMasterId;
+            return this.getThemeInfoForMaster(activeMasterId);
+        } else {
+            // Edit mode - use the active slide
+            const activeSlideId = state.editor?.activeSlideId;
+            return this.getThemeInfoForSlide(activeSlideId);
+        }
+    },
+
     /**
      * Check if multiple slides have the same effective theme.
      * Used for multi-slide selection UI.

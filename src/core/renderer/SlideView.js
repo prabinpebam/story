@@ -1,6 +1,8 @@
 import { ElementFactory } from './ElementFactory.js';
 import { CodeRunner } from '../effects/CodeRunner.js';
 import { store } from '../Store.js';
+import { ThemeDiag } from '../../utils/ThemeDiagnostics.js';
+import { StyleResolver } from '../../utils/StyleResolver.js';
 
 export class SlideView {
     constructor(slideId) {
@@ -42,11 +44,48 @@ export class SlideView {
         this.domElement.style.width = `${slideData.width}px`;
         this.domElement.style.height = `${slideData.height}px`;
         
-        // Inject Theme Variables
+        // =====================================================
+        // THEME CSS VARIABLES (per-slide cascade resolution)
+        // =====================================================
+        // Use StyleResolver as the SINGLE SOURCE OF TRUTH for theme resolution.
+        // StyleResolver resolves through the cascade: Slide → Layout → Theme Master.
+        // CSS variables are applied ONLY to this slide's DOM element, not globally.
+        // This allows different slides to have different themes without pollution.
+        
+        const themeInfo = StyleResolver.getThemeInfoForSlide(this.slideId);
+        
+        if (themeInfo?.lumaTheme) {
+            const lumaTheme = themeInfo.lumaTheme;
+            // Apply resolved colors from luma theme to this slide's container
+            const colors = lumaTheme.resolvedColors || lumaTheme.slots?.map(s => s.hex) || [];
+            colors.forEach((hex, index) => {
+                if (hex) {
+                    // --theme-slot1 through --theme-slot12 on this slide's DOM element
+                    this.domElement.style.setProperty(`--theme-slot${index + 1}`, hex);
+                }
+            });
+            
+            // Diagnostic logging
+            ThemeDiag.logSlideViewApply(this.slideId, lumaTheme, this.domElement);
+        } else if (slideData.resolvedLumaTheme) {
+            // Fallback to slideData.resolvedLumaTheme if StyleResolver returns nothing
+            // This handles edge cases during initialization
+            const lumaTheme = slideData.resolvedLumaTheme;
+            const colors = lumaTheme.resolvedColors || lumaTheme.slots?.map(s => s.hex) || [];
+            colors.forEach((hex, index) => {
+                if (hex) {
+                    this.domElement.style.setProperty(`--theme-slot${index + 1}`, hex);
+                }
+            });
+            
+            ThemeDiag.logSlideViewApply(this.slideId, lumaTheme, this.domElement);
+        }
+        
+        // Inject Legacy Theme Variables (for backwards compatibility)
         if (slideData.themeSettings) {
             const { colors, fonts } = slideData.themeSettings;
             if (colors) {
-                // 12-color theme schema
+                // 12-color theme schema (legacy)
                 if (colors.background1) this.domElement.style.setProperty('--theme-background1', colors.background1);
                 if (colors.background2) this.domElement.style.setProperty('--theme-background2', colors.background2);
                 if (colors.text1) this.domElement.style.setProperty('--theme-text1', colors.text1);

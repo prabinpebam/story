@@ -122,9 +122,20 @@ describe('SlideHandlers', () => {
         });
 
         it('should not delete the last remaining slide', () => {
-            const slideId = initialState.slideOrder[0];
+            // Create a state with only one slide to test "cannot delete last slide" behavior
+            let singleSlideState = produce(initialState, draft => {
+                const firstSlideId = draft.slideOrder[0];
+                // Delete all slides except the first one
+                const slidesToDelete = draft.slideOrder.slice(1);
+                slidesToDelete.forEach(slideId => {
+                    delete draft.slides[slideId];
+                });
+                draft.slideOrder = [firstSlideId];
+            });
             
-            const newState = produce(initialState, draft => {
+            const slideId = singleSlideState.slideOrder[0];
+            
+            const newState = produce(singleSlideState, draft => {
                 handleDeleteSlide(draft, slideId);
             });
 
@@ -262,12 +273,13 @@ describe('SlideHandlers', () => {
     describe('handlePasteSlide()', () => {
         it('should paste slide after target', () => {
             const sourceId = initialState.slideOrder[0];
+            const initialLength = initialState.slideOrder.length;
             
             const newState = produce(initialState, draft => {
                 handlePasteSlide(draft, { sourceId, targetId: sourceId });
             });
 
-            expect(newState.slideOrder.length).toBe(2);
+            expect(newState.slideOrder.length).toBe(initialLength + 1);
         });
 
         it('should copy content from source slide', () => {
@@ -297,12 +309,13 @@ describe('SlideHandlers', () => {
 
         it('should append to end if target not found', () => {
             const sourceId = initialState.slideOrder[0];
+            const initialLength = initialState.slideOrder.length;
             
             const newState = produce(initialState, draft => {
                 handlePasteSlide(draft, { sourceId, targetId: 'non-existent' });
             });
 
-            expect(newState.slideOrder.length).toBe(2);
+            expect(newState.slideOrder.length).toBe(initialLength + 1);
             // Should be appended at the end
             const pastedId = newState.slideOrder[newState.slideOrder.length - 1];
             expect(newState.slides[pastedId].title).toContain('(Copy)');

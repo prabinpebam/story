@@ -128,29 +128,6 @@ class App {
         });
 
         this.bindEvents();
-        
-        // Initial Data
-        store.dispatch('ADD_SLIDE'); // Adds slide-1 (timestamped)
-        
-        // Add a default text element to the new slide
-        const state = store.getState();
-        const activeSlideId = state.editor.activeSlideId;
-        
-        store.dispatch('ADD_ELEMENT', {
-            id: `text-${Date.now()}`,
-            type: 'text',
-            x: 400,
-            y: 300,
-            width: 600,
-            height: 100,
-            content: '<h1>Hello Story</h1>',
-            style: {
-                fontSize: 64,
-                fontFamily: 'Inter',
-                color: '#000000',
-                textAlign: 'center'
-            }
-        });
     }
 
     setupRenderer(mode) {

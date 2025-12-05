@@ -381,8 +381,6 @@ export class SolidTab {
                     this.linkedSlot = data.slotIndex;
                     this.updateLinkIndicator();
                     
-                    console.log('[SolidTab] Linked to theme slot:', data.slotIndex);
-                    
                     // Emit with themeSlot for linked property tracking
                     this.onChange({
                         color: data.color,
@@ -490,8 +488,6 @@ export class SolidTab {
         // CRITICAL: Any manual color edit (HSB picker, hex input, default swatches, eyedropper)
         // should UNLINK from theme. This is the core fix for the "theme linking broke custom picking" bug.
         // Only theme swatch clicks should link to theme.
-        
-        console.log('[SolidTab.emitChange] Manual edit - unlinking from theme. Hex:', hex, 'Opacity:', Math.round(this.state.a));
         
         // Clear linked state
         this.isLinkedToTheme = false;

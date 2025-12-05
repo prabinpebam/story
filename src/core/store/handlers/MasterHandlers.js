@@ -87,6 +87,38 @@ export function handleSetColorMode(draft, payload) {
     }
 }
 
+/**
+ * Update styleAssignments on a master (theme or layout).
+ * Used for assigning colorTheme overrides to layout masters.
+ * 
+ * @param {Object} draft - Immer draft state
+ * @param {Object} payload - { masterId: string, styleAssignments: { colorTheme?: string, ... } }
+ */
+export function handleUpdateMasterStyleAssignments(draft, payload) {
+    const { masterId, styleAssignments } = payload;
+    const master = draft.masters[masterId];
+    
+    if (!master) {
+        console.warn('[handleUpdateMasterStyleAssignments] Master not found:', masterId);
+        return;
+    }
+    
+    // Initialize styleAssignments if needed
+    if (!master.styleAssignments) {
+        master.styleAssignments = {};
+    }
+    
+    // Merge the new styleAssignments
+    Object.assign(master.styleAssignments, styleAssignments);
+    
+    console.log('[handleUpdateMasterStyleAssignments] Updated:', {
+        masterId,
+        masterType: master.type,
+        masterName: master.name,
+        newStyleAssignments: master.styleAssignments
+    });
+}
+
 // ========================================
 // LEGACY COLOR HANDLERS
 // ========================================
@@ -386,10 +418,8 @@ export function handleApplySlideMasterPreset(draft, payload) {
     const { masterId, presetId } = payload;
     const themeMaster = draft.masters[masterId];
     
-    console.log(`[ApplyPreset] Applying preset: ${presetId} to master: ${masterId}`);
-    
     if (!themeMaster || themeMaster.type !== 'theme') {
-        console.log(`[ApplyPreset] ERROR: Invalid theme master`, themeMaster?.type);
+        console.warn(`[ApplyPreset] Invalid theme master`, masterId, themeMaster?.type);
         return;
     }
     
@@ -411,8 +441,6 @@ export function handleApplySlideMasterPreset(draft, payload) {
     // 1. Apply luma theme (color theme) from preset
     if (presetTheme.themeSettings?.lumaTheme) {
         themeMaster.themeSettings.lumaTheme = { ...presetTheme.themeSettings.lumaTheme };
-        console.log(`[ApplyPreset] Applied lumaTheme:`, presetTheme.themeSettings.lumaTheme.name);
-        console.log(`[ApplyPreset] LumaTheme slots:`, presetTheme.themeSettings.lumaTheme.slots?.map((s, i) => `${i}: ${s.hex}`));
     }
     
     // 2. Store font preset ID reference
@@ -428,29 +456,23 @@ export function handleApplySlideMasterPreset(draft, payload) {
     // 4. Apply text styles (typography from FontPresets, colors from theme slots)
     if (presetTheme.themeSettings?.textStyles) {
         themeMaster.themeSettings.textStyles = JSON.parse(JSON.stringify(presetTheme.themeSettings.textStyles));
-        console.log(`[ApplyPreset] Applied textStyles:`, Object.keys(presetTheme.themeSettings.textStyles));
-        console.log(`[ApplyPreset] Title style textFill:`, presetTheme.themeSettings.textStyles.title?.textFill);
     }
     
     // 5. Apply background from preset
     if (presetTheme.background) {
         themeMaster.background = JSON.parse(JSON.stringify(presetTheme.background));
-        console.log(`[ApplyPreset] Applied background:`, presetTheme.background);
     }
     
     // 6. Update layout masters with preset's placeholder elements
     // This applies the theme-linked textFill to the actual placeholders
     const presetLayouts = fullPreset.layouts;
     if (presetLayouts) {
-        console.log(`[ApplyPreset] Applying layouts from preset...`);
         
         // Find existing layout masters that belong to this theme
         const existingLayoutIds = Object.keys(draft.masters).filter(id => {
             const master = draft.masters[id];
             return master.type === 'layout' && master.parentId === masterId;
         });
-        
-        console.log(`[ApplyPreset] Existing layouts:`, existingLayoutIds);
         
         // Map preset layout names to existing layouts by their layout type
         // e.g., "Title Slide" preset layout -> existing layout with same name
@@ -465,25 +487,11 @@ export function handleApplySlideMasterPreset(draft, payload) {
             );
             
             if (matchingPresetLayout) {
-                console.log(`[ApplyPreset] Updating layout "${existingLayout.name}" with preset elements`);
-                
                 // Update elements with theme-linked textFill
                 existingLayout.elements = JSON.parse(JSON.stringify(matchingPresetLayout.elements));
                 existingLayout.elementOrder = [...matchingPresetLayout.elementOrder];
-                
-                // Log the textFill of the first placeholder to verify
-                const firstEl = Object.values(existingLayout.elements)[0];
-                if (firstEl) {
-                    console.log(`[ApplyPreset] First element textFill:`, firstEl.style?.textFill);
-                }
             }
         });
     }
     
-    console.log(`[ApplyPreset] Final themeMaster.themeSettings:`, {
-        lumaTheme: themeMaster.themeSettings.lumaTheme?.name,
-        fontPresetId: themeMaster.themeSettings.fontPresetId,
-        fonts: themeMaster.themeSettings.fonts,
-        textStyleKeys: Object.keys(themeMaster.themeSettings.textStyles || {})
-    });
 }

@@ -85,7 +85,6 @@ export class ShapeElement extends VisualElement {
 
         if (!div) return;
 
-        console.log('[ShapeElement.update] Element:', el.id, 'style.fills:', el.style?.fills);
         this.applyFills(div, el);
         this.applyStrokes(div, el);
         this.applyEffects(div, el);
@@ -205,13 +204,11 @@ export class ShapeElement extends VisualElement {
                                 const slotNumber = fill.themeSlot + 1;
                                 const cssVar = `--theme-slot${slotNumber}`;
                                 const fallbackColor = fill.color || fill.value || '#808080';
-                                console.log('[ShapeElement.applyFills] Applying theme slot:', fill.themeSlot, '-> CSS var:', cssVar, 'fallback:', fallbackColor);
                                 // Use CSS variable with fallback to the actual color value
                                 layer.style.backgroundColor = `var(${cssVar}, ${fallbackColor})`;
                             } else {
                                 // Support both 'color' and 'value' properties for solid fills
                                 const bgColor = fill.color || fill.value;
-                                console.log('[ShapeElement.applyFills] Applying solid fill:', { color: fill.color, value: fill.value, applied: bgColor });
                                 layer.style.backgroundColor = bgColor;
                             }
                         } else if (fill.type === 'gradient') {

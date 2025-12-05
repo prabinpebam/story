@@ -24,6 +24,7 @@
 
 import { store } from '../../core/Store.js';
 import { StyleResolver } from '../../utils/StyleResolver.js';
+import { ThemeDiag } from '../../utils/ThemeDiagnostics.js';
 
 /**
  * Luma slot definitions (12 slots in 3 clusters)
@@ -191,11 +192,12 @@ export class ThemeSwatches {
 
     /**
      * Get theme info using the cascade-aware StyleResolver
+     * Mode-aware: In master mode, uses master context; in edit mode, uses slide context.
      * Returns { lumaTheme, source, sourceLabel, isInherited }
      */
     getThemeInfo() {
-        const slideId = this.getCurrentSlideId();
-        return StyleResolver.getThemeInfoForSlide(slideId);
+        // Use mode-aware method that automatically handles master vs edit mode
+        return StyleResolver.getThemeInfoForCurrentContext();
     }
 
     /**
@@ -243,7 +245,7 @@ export class ThemeSwatches {
         const themeInfo = this.getThemeInfo();
         const lumaTheme = themeInfo.lumaTheme;
         
-        console.log('[ThemeSwatches] Updating swatches, theme:', lumaTheme?.name, 'source:', themeInfo.source, 'colors:', colors);
+        ThemeDiag.logThemeSwatchesUpdate(this.getCurrentSlideId(), themeInfo);
         
         // Update theme name label
         if (this.options.showThemeName && this.themeLabel) {

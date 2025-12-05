@@ -42,6 +42,18 @@ class ThumbnailRendererClass {
          * @type {Map<string, number>}
          */
         this.updateTimers = new Map();
+        
+        // Listen for custom theme edits to invalidate thumbnails
+        this._handleCustomThemeEdited = this._handleCustomThemeEdited.bind(this);
+        document.addEventListener('style:custom-theme-edited', this._handleCustomThemeEdited);
+    }
+    
+    /**
+     * Handle custom theme edit event - invalidates all thumbnails to pick up new colors
+     * @private
+     */
+    _handleCustomThemeEdited() {
+        this.invalidateAll();
     }
 
     /**

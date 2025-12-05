@@ -111,6 +111,20 @@ vi.mock('../../../../src/utils/StyleResolver.js', () => ({
             sourceLabel: 'from Master',
             isInherited: true
         })),
+        getThemeInfoForCurrentContext: vi.fn(() => ({
+            lumaTheme: {
+                id: 'preset_neutral',
+                name: 'Neutral',
+                resolvedColors: [
+                    '#0d0d0d', '#1a1a1a', '#2e2e2e', '#404040',
+                    '#595959', '#737373', '#8c8c8c', '#a6a6a6',
+                    '#b3b3b3', '#cccccc', '#e6e6e6', '#f8f8f8'
+                ]
+            },
+            source: 'master',
+            sourceLabel: 'from Master',
+            isInherited: true
+        })),
         getEffectiveColorTheme: vi.fn()
     }
 }));
@@ -334,7 +348,7 @@ describe('ThemeSwatches', () => {
             container.appendChild(swatches.element);
             
             // Update StyleResolver mock to return the new theme
-            StyleResolver.getThemeInfoForSlide.mockReturnValue({
+            StyleResolver.getThemeInfoForCurrentContext.mockReturnValue({
                 lumaTheme: {
                     id: 'preset_ocean',
                     name: 'Ocean',
@@ -512,7 +526,7 @@ describe('ThemeSwatches', () => {
 
     describe('cascade-aware theme source', () => {
         it('shows inherited indicator when theme comes from master', () => {
-            StyleResolver.getThemeInfoForSlide.mockReturnValue({
+            StyleResolver.getThemeInfoForCurrentContext.mockReturnValue({
                 lumaTheme: defaultThemeInfo.lumaTheme,
                 source: 'master',
                 sourceLabel: 'from Master',
@@ -528,7 +542,7 @@ describe('ThemeSwatches', () => {
         });
 
         it('shows inherited indicator when theme comes from layout', () => {
-            StyleResolver.getThemeInfoForSlide.mockReturnValue({
+            StyleResolver.getThemeInfoForCurrentContext.mockReturnValue({
                 lumaTheme: defaultThemeInfo.lumaTheme,
                 source: 'layout',
                 sourceLabel: 'from Layout',
@@ -543,7 +557,7 @@ describe('ThemeSwatches', () => {
         });
 
         it('shows slide-specific indicator when theme is directly assigned', () => {
-            StyleResolver.getThemeInfoForSlide.mockReturnValue({
+            StyleResolver.getThemeInfoForCurrentContext.mockReturnValue({
                 lumaTheme: defaultThemeInfo.lumaTheme,
                 source: 'slide',
                 sourceLabel: 'slide-specific',
@@ -575,24 +589,25 @@ describe('ThemeSwatches', () => {
             expect(swatches.options.slideId).toBe('slide-3');
         });
 
-        it('calls StyleResolver.getThemeInfoForSlide with correct slideId', () => {
-            StyleResolver.getThemeInfoForSlide.mockClear();
+        it('calls StyleResolver.getThemeInfoForCurrentContext for mode-aware theme resolution', () => {
+            StyleResolver.getThemeInfoForCurrentContext.mockClear();
             
             const swatches = new ThemeSwatches({ slideId: 'slide-5' });
             container.appendChild(swatches.element);
             
-            expect(StyleResolver.getThemeInfoForSlide).toHaveBeenCalledWith('slide-5');
+            // Now uses mode-aware method that handles both master and edit modes
+            expect(StyleResolver.getThemeInfoForCurrentContext).toHaveBeenCalled();
         });
 
-        it('uses activeSlideId when slideId not provided', () => {
+        it('uses mode-aware context resolution when slideId not provided', () => {
             // The mock store returns activeSlideId: 'slide-1'
-            StyleResolver.getThemeInfoForSlide.mockClear();
+            StyleResolver.getThemeInfoForCurrentContext.mockClear();
             
             const swatches = new ThemeSwatches();
             container.appendChild(swatches.element);
             
-            // Should have been called with 'slide-1' from the store
-            expect(StyleResolver.getThemeInfoForSlide).toHaveBeenCalledWith('slide-1');
+            // Should use the mode-aware method
+            expect(StyleResolver.getThemeInfoForCurrentContext).toHaveBeenCalled();
         });
     });
 });

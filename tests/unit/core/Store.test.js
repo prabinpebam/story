@@ -174,8 +174,15 @@ describe('Store', () => {
         });
 
         it('should not delete the last slide', () => {
-            // Make sure we only have one slide
-            store.restoreState(createInitialState());
+            // Create a state with only one slide to test the "cannot delete last slide" behavior
+            const singleSlideState = createInitialState();
+            // Keep only the first slide
+            const firstSlideId = singleSlideState.slideOrder[0];
+            singleSlideState.slideOrder = [firstSlideId];
+            const otherSlideIds = Object.keys(singleSlideState.slides).filter(id => id !== firstSlideId);
+            otherSlideIds.forEach(id => delete singleSlideState.slides[id]);
+            
+            store.restoreState(singleSlideState);
             const initialCount = store.getState().slideOrder.length;
             expect(initialCount).toBe(1);
             

@@ -738,8 +738,6 @@ export class FillSection {
     }
 
     updateFill(element, index, updates, isTransient = false) {
-        console.log('[FillSection.updateFill] Called with:', { elementId: element?.id, index, updates, isTransient });
-        
         // IMPORTANT: Get fresh element data from store to avoid stale reference issues
         // The element parameter may be captured in a closure and become stale
         const state = store.getState();
@@ -749,7 +747,6 @@ export class FillSection {
         } else {
             freshElement = this.getElement(state, element.id);
         }
-        console.log('[FillSection.updateFill] Fresh element from store:', freshElement?.id, 'style.fills:', freshElement?.style?.fills);
         
         // Fallback to provided element if not found (shouldn't happen)
         const currentElement = freshElement || element;
@@ -881,8 +878,6 @@ export class FillSection {
         }
 
         fills[index] = fill;
-        console.log('[FillSection.updateFill] Updated fill at index', index, ':', fill);
-        console.log('[FillSection.updateFill] All fills to dispatch:', fills);
 
         if (this.options.onUpdate) {
             this.options.onUpdate(fills, isTransient);
@@ -895,7 +890,6 @@ export class FillSection {
                     backgroundColor: this.getCompositeColor(fills)
                 }
             };
-            console.log('[FillSection.updateFill] Dispatching UPDATE_ELEMENT:', payload);
             store.dispatch('UPDATE_ELEMENT', payload, { skipHistory: isTransient });
         }
     }

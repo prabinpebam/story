@@ -158,6 +158,56 @@ export const DEFAULT_MASTERS = {
                     textTransform: "uppercase",
                     textFill: { type: "solid", value: "var(--theme-text-secondary)" }
                 }
+            },
+            // ============================================
+            // DEFAULT LUMA THEME: Tropical Paradise
+            // ============================================
+            // This is the default color theme for new presentations.
+            // 12 luma-locked slots with pre-computed colors.
+            // Teal, coral, and golden yellow - vibrant and joyful
+            lumaTheme: {
+                id: "preset_tropical_paradise",
+                name: "Tropical Paradise",
+                slots: [
+                    { h: 175, s: 50 },  // Slot 1 - deep teal shadow
+                    { h: 5, s: 65 },    // Slot 2 - coral
+                    { h: 45, s: 70 },   // Slot 3 - golden yellow
+                    { h: 180, s: 80 },  // Slot 4 - vivid teal accent
+                    { h: 10, s: 85 },   // Slot 5 - bright coral
+                    { h: 50, s: 90 },   // Slot 6 - sunny yellow
+                    { h: 175, s: 70 },  // Slot 7 - teal
+                    { h: 0, s: 60 },    // Slot 8 - soft coral
+                    { h: 55, s: 65 },   // Slot 9 - light gold
+                    { h: 180, s: 45 },  // Slot 10 - soft teal
+                    { h: 45, s: 40 },   // Slot 11 - pale yellow
+                    { h: 5, s: 25 }     // Slot 12 - blush
+                ],
+                adjustments: {
+                    brightness: 0,
+                    contrast: 0,
+                    saturation: 0,
+                    highlights: 0,
+                    shadows: 0,
+                    whites: 0,
+                    blacks: 0
+                },
+                // Pre-computed resolved colors for the 12 slots
+                // These match the luma values: 5, 10, 18, 25, 35, 45, 55, 65, 70, 80, 90, 97
+                resolvedColors: [
+                    "#061312",  // Slot 1 - L:5
+                    "#291110",  // Slot 2 - L:10
+                    "#4d3d13",  // Slot 3 - L:18
+                    "#126664",  // Slot 4 - L:25
+                    "#91291c",  // Slot 5 - L:35
+                    "#dab80b",  // Slot 6 - L:45
+                    "#35a39f",  // Slot 7 - L:55
+                    "#d98c85",  // Slot 8 - L:65
+                    "#d4c361",  // Slot 9 - L:70
+                    "#9fd4d2",  // Slot 10 - L:80
+                    "#f0e6c4",  // Slot 11 - L:90
+                    "#f9f6f5"   // Slot 12 - L:97
+                ],
+                isInverted: false
             }
         }
     },
@@ -706,23 +756,22 @@ export function createInitialState() {
             isInteracting: false
         },
         editor: {
-            mode: "edit", // 'edit', 'presentation', 'master'
+            mode: "edit",
             activeSlideId: "slide-1",
-            activeMasterId: "theme-default", // Default to the first theme
-            selectedSlideIds: [], // IDs of selected slides (for operations)
+            activeMasterId: "theme-default",
+            selectedSlideIds: [],
             selectedElementIds: [],
-            editingElementId: null, // ID of element currently being edited (text)
-            editModeSelectionType: null, // 'all' | 'caret' | null - how text should be selected on edit mode entry
-            textEditClickPosition: null, // { clientX, clientY } - click position for caret placement
-            activeTool: "select", // 'select', 'text', 'rect', 'circle', 'hand', 'placeholder'
-            activeToolOptions: null, // Additional options for tools, e.g., { tool: 'placeholder', placeholderType: 'title' }
-            dragPlaceholderType: null, // Type of placeholder being dragged from palette
+            editingElementId: null,
+            editModeSelectionType: null,
+            textEditClickPosition: null,
+            activeTool: "select",
+            activeToolOptions: null,
+            dragPlaceholderType: null,
             zoom: 1.0,
             pan: { x: 0, y: 0 },
             gridEnabled: true,
             snapToGrid: true,
             constrainProportions: false,
-            // Text editing v2 state
             textEdit: {
                 isEditing: false,
                 elementId: null,
@@ -733,7 +782,7 @@ export function createInitialState() {
         presentation: {
             isActive: false,
             currentSlideIndex: 0,
-            buildIndex: -1, // -1 means "base slide", 0+ are build steps
+            buildIndex: -1,
             buildCount: 0,
             isPaused: false,
             blackScreen: false,
@@ -747,36 +796,59 @@ export function createInitialState() {
         },
         masters: DEFAULT_MASTERS,
         slides: {
+            // Slide 1: Title Slide - all properties inherited, no overrides
             "slide-1": {
                 id: "slide-1",
-                layoutId: "layout-title", // Default to Title Layout
-                title: "Introduction",
+                layoutId: "layout-title",
+                title: "Title Slide",
                 width: 1920,
                 height: 1080,
-                background: null, // Inherit from layout/theme
-                // Style Assignments - Cascading Style System
-                // null = inherit from parent (layout/master)
-                // non-null = explicit override for this slide
+                background: null,
                 styleAssignments: {
-                    colorTheme: null,      // null = inherit from layout/master
-                    typographyStyle: null  // null = inherit from layout/master
+                    colorTheme: null,
+                    typographyStyle: null
                 },
                 elements: {
-                    // Instantiate placeholders so they are editable
                     "placeholder-title": { 
                         ...DEFAULT_MASTERS["layout-title"].elements["placeholder-title"],
-                        content: "<h1>Your Presentation Title</h1>"
+                        content: "<h1>Click to add title</h1>"
                     },
                     "placeholder-subtitle": {
                         ...DEFAULT_MASTERS["layout-title"].elements["placeholder-subtitle"],
-                        content: "<p>Add your subtitle or tagline here</p>"
+                        content: "<p>Click to add subtitle</p>"
                     }
                 }, 
-                elementOrder: ["placeholder-title", "placeholder-subtitle"], // Array of IDs (z-index)
+                elementOrder: ["placeholder-title", "placeholder-subtitle"],
                 notes: "",
-                transition: "magic" // Default transition
+                transition: "magic"
+            },
+            // Slide 2: Title and Content - all properties inherited, no overrides
+            "slide-2": {
+                id: "slide-2",
+                layoutId: "layout-title-content",
+                title: "Title and Content",
+                width: 1920,
+                height: 1080,
+                background: null,
+                styleAssignments: {
+                    colorTheme: null,
+                    typographyStyle: null
+                },
+                elements: {
+                    "placeholder-title": { 
+                        ...DEFAULT_MASTERS["layout-title-content"].elements["placeholder-title"],
+                        content: "<h1>Click to add title</h1>"
+                    },
+                    "placeholder-body": {
+                        ...DEFAULT_MASTERS["layout-title-content"].elements["placeholder-body"],
+                        content: "<p>Click to add text</p>"
+                    }
+                }, 
+                elementOrder: ["placeholder-title", "placeholder-body"],
+                notes: "",
+                transition: "magic"
             }
         },
-        slideOrder: ["slide-1"]
+        slideOrder: ["slide-1", "slide-2"]
     };
 }

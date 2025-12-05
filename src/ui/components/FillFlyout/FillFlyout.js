@@ -206,10 +206,8 @@ export class FillFlyout extends Flyout {
     }
 
     updateFill(updates, isTransient = false) {
-        console.log('[FillFlyout.updateFill] Received updates:', updates);
         const oldType = this.fill.type;
         this.fill = { ...this.fill, ...updates };
-        console.log('[FillFlyout.updateFill] Merged fill:', this.fill);
         
         // Update cache if it's a gradient (backward compatibility)
         if (this.fill.type === 'gradient' && this.fill.value) {
