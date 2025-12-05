@@ -243,6 +243,7 @@ export class SlideList {
             title: 'Add Slide',
             onClick: () => store.dispatch('ADD_SLIDE')
         });
+        addBtn.element.setAttribute('data-testid', 'add-slide-btn');
 
         header.appendChild(title);
         header.appendChild(addBtn.element);
@@ -270,6 +271,7 @@ export class SlideList {
                 
                 const item = document.createElement('div');
                 item.className = `slide-thumbnail ${isActive ? 'active' : ''} ${isSelected ? 'selected' : ''}`;
+                item.setAttribute('data-testid', `slide-thumbnail-${index}`);
                 item.style.padding = '12px';
                 item.style.backgroundColor = (isActive || isSelected) ? 'var(--color-bg-active)' : 'transparent';
                 

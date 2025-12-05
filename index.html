@@ -53,12 +53,12 @@
             </div>
             <div class="sidebar-content">
                 <!-- Slide Thumbnails will go here -->
-                <div id="slide-list" class="panel-section">
+                <div id="slide-list" class="panel-section" data-testid="slide-list">
                     <div class="section-title">SLIDES</div>
                     <!-- Dynamic Content -->
                 </div>
                 
-                <div id="layer-tree" class="panel-section">
+                <div id="layer-tree" class="panel-section" data-testid="layer-tree">
                     <!-- Dynamic Content -->
                 </div>
             </div>
@@ -68,13 +68,13 @@
         <main id="main-stage">
             <!-- Top Right Controls -->
             <div id="top-controls">
-                <button class="action-btn" id="edit-master-btn">
+                <button class="action-btn" id="edit-master-btn" data-testid="edit-master-btn">
                     <i class="fa-solid fa-layer-group"></i> Edit Master
                 </button>
-                <button class="action-btn hidden" id="close-master-btn">
+                <button class="action-btn hidden" id="close-master-btn" data-testid="close-master-btn">
                     <i class="fa-solid fa-xmark"></i> Close Master
                 </button>
-                <button class="action-btn" id="play-btn">
+                <button class="action-btn" id="play-btn" data-testid="play-btn">
                     <i class="fa-solid fa-play"></i> PLAY
                 </button>
                 <!-- Profile Button Container (for auth) -->
@@ -83,24 +83,24 @@
 
             <!-- Floating Toolbar (Bottom Center) -->
             <div id="floating-toolbar">
-                <button class="tool-btn active" data-tool="select" title="Move (V)">
+                <button class="tool-btn active" data-tool="select" title="Move (V)" data-testid="tool-select">
                     <i class="fa-solid fa-arrow-pointer"></i>
                 </button>
-                <button class="tool-btn" data-tool="hand" title="Hand Tool (H)">
+                <button class="tool-btn" data-tool="hand" title="Hand Tool (H)" data-testid="tool-hand">
                     <i class="fa-solid fa-hand"></i>
                 </button>
                 <div class="divider"></div>
-                <button class="tool-btn" data-tool="shape" title="Rectangle (R)">
+                <button class="tool-btn" data-tool="shape" title="Rectangle (R)" data-testid="tool-shape">
                     <i class="fa-regular fa-square"></i>
                 </button>
-                <button class="tool-btn" data-tool="text" title="Text (T)">
+                <button class="tool-btn" data-tool="text" title="Text (T)" data-testid="tool-text">
                     <i class="fa-solid fa-font"></i>
                 </button>
-                <button class="tool-btn" data-tool="image" title="Image (Shift+K)">
+                <button class="tool-btn" data-tool="image" title="Image (Shift+K)" data-testid="tool-image">
                     <i class="fa-regular fa-image"></i>
                 </button>
                 <div class="divider"></div>
-                <button class="tool-btn" data-tool="resources" title="Resources (Shift+I)">
+                <button class="tool-btn" data-tool="resources" title="Resources (Shift+I)" data-testid="tool-resources">
                     <i class="fa-solid fa-shapes"></i>
                 </button>
             </div>
@@ -110,7 +110,7 @@
                 <div id="icon-library" class="floating-panel hidden">
                     <div class="panel-header">
                         <span>Icons</span>
-                        <button class="close-btn"><i class="fa-solid fa-xmark"></i></button>
+                        <button class="close-btn" data-testid="icon-library-close-btn"><i class="fa-solid fa-xmark"></i></button>
                     </div>
                     <div id="icon-library-content" class="panel-content">
                         <!-- Dynamic Content -->
@@ -122,7 +122,7 @@
             <div id="presentation-grid-view" class="hidden">
                 <div class="grid-header">
                     <h2>Slide Navigator</h2>
-                    <button id="close-grid-btn" class="icon-btn"><i class="fa-solid fa-xmark"></i></button>
+                    <button id="close-grid-btn" class="icon-btn" data-testid="close-grid-btn"><i class="fa-solid fa-xmark"></i></button>
                 </div>
                 <div id="grid-content" class="grid-content">
                     <!-- Thumbnails injected here -->
@@ -158,11 +158,11 @@
 
                 <!-- Viewport Controls -->
                 <div id="viewport-controls">
-                    <button id="btn-fit" class="icon-btn" title="Fit to View"><i class="fa-solid fa-compress"></i></button>
+                    <button id="btn-fit" class="icon-btn" title="Fit to View" data-testid="btn-fit"><i class="fa-solid fa-compress"></i></button>
                     <div class="zoom-group">
-                        <button id="btn-zoom-out" class="icon-btn"><i class="fa-solid fa-minus"></i></button>
+                        <button id="btn-zoom-out" class="icon-btn" data-testid="btn-zoom-out"><i class="fa-solid fa-minus"></i></button>
                         <span id="zoom-display">100%</span>
-                        <button id="btn-zoom-in" class="icon-btn"><i class="fa-solid fa-plus"></i></button>
+                        <button id="btn-zoom-in" class="icon-btn" data-testid="btn-zoom-in"><i class="fa-solid fa-plus"></i></button>
                     </div>
                 </div>
             </div>

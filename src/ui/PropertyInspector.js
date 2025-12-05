@@ -53,6 +53,7 @@ export class PropertyInspector {
 
     render() {
         this.container.classList.add('property-inspector');
+        this.container.setAttribute('data-testid', 'property-inspector');
         
         const state = store.getState();
         const selection = state.editor.selectedElementIds;

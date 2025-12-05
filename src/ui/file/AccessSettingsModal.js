@@ -39,6 +39,7 @@ export class AccessSettingsModal {
     create() {
         this.overlay = document.createElement('div');
         this.overlay.className = 'access-settings-overlay';
+        this.overlay.setAttribute('data-testid', 'access-settings-modal');
         
         this.modal = document.createElement('div');
         this.modal.className = 'access-settings-modal';
@@ -55,7 +56,7 @@ export class AccessSettingsModal {
                     <i class="fa-solid fa-shield-halved"></i>
                     Access Settings
                 </h2>
-                <button class="access-settings__close" aria-label="Close">
+                <button class="access-settings__close" aria-label="Close" data-testid="access-settings-close-btn">
                     <i class="fa-solid fa-xmark"></i>
                 </button>
             </div>

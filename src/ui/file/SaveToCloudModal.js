@@ -46,6 +46,7 @@ export class SaveToCloudModal {
         // Create overlay
         this.overlay = document.createElement('div');
         this.overlay.className = 'save-cloud-overlay';
+        this.overlay.setAttribute('data-testid', 'save-to-cloud-modal');
         
         // Create modal
         this.modal = document.createElement('div');
@@ -63,7 +64,7 @@ export class SaveToCloudModal {
         this.modal.innerHTML = `
             <div class="save-cloud__header">
                 <h2 id="save-cloud-title" class="save-cloud__title">Save to ${providerName}</h2>
-                <button class="save-cloud__close" aria-label="Close">
+                <button class="save-cloud__close" aria-label="Close" data-testid="save-to-cloud-close-btn">
                     <i class="fa-solid fa-xmark"></i>
                 </button>
             </div>
@@ -75,6 +76,7 @@ export class SaveToCloudModal {
                         <input type="text" 
                                id="save-cloud-filename" 
                                class="save-cloud__filename-input"
+                               data-testid="save-to-cloud-filename-input"
                                value="${this.escapeHtml(baseName)}" 
                                placeholder="Untitled">
                         <span class="save-cloud__filename-ext">.str</span>

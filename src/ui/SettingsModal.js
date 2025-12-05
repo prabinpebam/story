@@ -13,6 +13,7 @@ export class SettingsModal {
     createModal() {
         this.overlay = document.createElement('div');
         this.overlay.className = 'modal-overlay';
+        this.overlay.setAttribute('data-testid', 'settings-modal');
         this.overlay.style.display = 'none';
         
         this.modal = document.createElement('div');
@@ -31,7 +32,7 @@ export class SettingsModal {
         this.header.className = 'modal-header';
         this.header.innerHTML = `
             <h3 id="modal-title">Settings</h3>
-            <button class="close-btn"><i class="fa-solid fa-xmark"></i></button>
+            <button class="close-btn" data-testid="settings-modal-close-btn"><i class="fa-solid fa-xmark"></i></button>
         `;
 
         // Body

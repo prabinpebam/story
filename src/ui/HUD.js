@@ -31,15 +31,15 @@ export class HUD {
     render() {
         this.container.innerHTML = `
             <div class="hud-controls">
-                <button id="hud-prev" class="hud-btn" title="Previous (Left Arrow)"><i class="fa-solid fa-chevron-left"></i></button>
+                <button id="hud-prev" class="hud-btn" data-testid="hud-prev-btn" title="Previous (Left Arrow)"><i class="fa-solid fa-chevron-left"></i></button>
                 <div class="hud-divider"></div>
-                <button id="hud-laser" class="hud-btn" title="Laser Pointer (L)"><i class="fa-solid fa-wand-magic-sparkles"></i></button>
-                <button id="hud-grid" class="hud-btn" title="Slide Navigator (G)"><i class="fa-solid fa-border-all"></i></button>
-                <button id="hud-black" class="hud-btn" title="Black Screen (B)"><i class="fa-solid fa-eye-slash"></i></button>
+                <button id="hud-laser" class="hud-btn" data-testid="hud-laser-btn" title="Laser Pointer (L)"><i class="fa-solid fa-wand-magic-sparkles"></i></button>
+                <button id="hud-grid" class="hud-btn" data-testid="hud-grid-btn" title="Slide Navigator (G)"><i class="fa-solid fa-border-all"></i></button>
+                <button id="hud-black" class="hud-btn" data-testid="hud-black-btn" title="Black Screen (B)"><i class="fa-solid fa-eye-slash"></i></button>
                 <div class="hud-divider"></div>
-                <button id="hud-next" class="hud-btn" title="Next (Right Arrow)"><i class="fa-solid fa-chevron-right"></i></button>
+                <button id="hud-next" class="hud-btn" data-testid="hud-next-btn" title="Next (Right Arrow)"><i class="fa-solid fa-chevron-right"></i></button>
                 <div class="hud-divider"></div>
-                <button id="hud-exit" class="hud-btn" title="Exit (Esc)"><i class="fa-solid fa-xmark"></i></button>
+                <button id="hud-exit" class="hud-btn" data-testid="hud-exit-btn" title="Exit (Esc)"><i class="fa-solid fa-xmark"></i></button>
             </div>
         `;
 
