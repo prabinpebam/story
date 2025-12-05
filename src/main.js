@@ -245,3 +245,9 @@ class App {
 window.addEventListener('DOMContentLoaded', () => {
     window.app = new App();
 });
+
+// Expose store for E2E testing
+if (import.meta.env.MODE === 'development' || import.meta.env.MODE === 'test') {
+    window.__TEST_STORE__ = store;
+    console.log('[TEST MODE] Store exposed on window.__TEST_STORE__');
+}

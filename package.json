@@ -10,10 +10,17 @@
     "test": "vitest",
     "test:ui": "vitest --ui",
     "test:coverage": "vitest run --coverage",
+    "test:e2e": "playwright test",
+    "test:e2e:headed": "playwright test --headed",
+    "test:e2e:debug": "playwright test --debug",
+    "test:e2e:ui": "playwright test --ui",
+    "test:e2e:report": "playwright show-report",
     "lint": "eslint src/**/*.js",
     "lint:fix": "eslint src/**/*.js --fix"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.11.0",
+    "@playwright/test": "^1.57.0",
     "@vitest/coverage-v8": "^1.0.0",
     "@vitest/ui": "^1.0.0",
     "eslint": "^8.55.0",
