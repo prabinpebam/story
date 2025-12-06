@@ -98,12 +98,12 @@ This document outlines the comprehensive list of testable frontend interactions,
 | FL11 | Switch Fill Type to Angular Gradient | P2 | ✅ |
 | FL12 | Switch Fill Type to Diamond Gradient | P2 | ✅ |
 | FL13 | Add Gradient Stop (Flyout) | P2 | ✅ |
-| FL14 | Remove Gradient Stop (Flyout) | P2 | ⬜ |
-| FL15 | Move Gradient Stop position (Flyout input) | P2 | ⬜ |
-| FL16 | Change Gradient Stop Color | P2 | ⬜ |
-| FL17 | Change Gradient Stop Opacity | P2 | ⬜ |
-| FL18 | Reverse Gradient Direction | P2 | ⬜ |
-| FL19 | Rotate Gradient (90 deg step) | P2 | ⬜ |
+| FL14 | Remove Gradient Stop (Flyout) | P2 | ✅ |
+| FL15 | Move Gradient Stop position (Flyout input) | P2 | ✅ |
+| FL16 | Change Gradient Stop Color | P2 | ✅ |
+| FL17 | Change Gradient Stop Opacity | P2 | ✅ |
+| FL18 | Reverse Gradient Direction | P2 | ✅ |
+| FL19 | Rotate Gradient (90 deg step) | P2 | ✅ |
 | FL20 | Manipulate Gradient Handles on Canvas (Start/End) | P2 | ⬜ |
 | **Image & Video Fills** | | | |
 | FL21 | Switch Fill Type to Image | P1 | ⬜ |
