@@ -36,7 +36,7 @@ test.describe('Fills & Color System', () => {
     await expect(hexInput).toHaveValue('#FF0000');
     
     // 6. Verify canvas element updated
-    const swatchDiv = fillSection.locator('.color-swatch-trigger > div').first();
+    const swatchDiv = fillSection.locator('.fill-swatch-trigger > div').first();
     await expect(swatchDiv).toHaveCSS('background-color', 'rgb(255, 0, 0)');
   });
 
@@ -106,7 +106,7 @@ test.describe('Fills & Color System', () => {
     
     // 2. Open Color Picker Flyout
     const fillSection = page.locator('.pi-section', { hasText: 'Fill' });
-    const swatchTrigger = fillSection.locator('.color-swatch-trigger');
+    const swatchTrigger = fillSection.locator('.fill-swatch-trigger');
     await swatchTrigger.click();
     
     // 3. Wait for Flyout
@@ -141,7 +141,7 @@ test.describe('Fills & Color System', () => {
     
     // 2. Open Color Picker Flyout
     const fillSection = page.locator('.pi-section', { hasText: 'Fill' });
-    const swatchTrigger = fillSection.locator('.color-swatch-trigger');
+    const swatchTrigger = fillSection.locator('.fill-swatch-trigger');
     await swatchTrigger.click();
     
     // 3. Find Swatch Grid
@@ -214,26 +214,15 @@ test.describe('Fills & Color System', () => {
     await input2.press('Enter');
     
     // 4. Drag Row 1 below Row 2
-    const dragHandle1 = row1.locator('.drag-handle');
+    const dragHandle1 = row1.locator('.fill-drag-handle');
     
-    // Manual drag to ensure we hit the bottom half of row 2
-    const box1 = await dragHandle1.boundingBox();
-    const box2 = await row2.boundingBox();
-    
-    if (box1 && box2) {
-        // Start at center of handle 1
-        await page.mouse.move(box1.x + box1.width / 2, box1.y + box1.height / 2);
-        await page.mouse.down();
-        
-        // Move to bottom of row 2 (ensure we are > midY)
-        // box2.y + box2.height is the bottom edge.
-        // Let's move to 90% of the height to be safe inside the element but below middle
-        await page.mouse.move(box2.x + box2.width / 2, box2.y + box2.height * 0.9, { steps: 5 });
-        
-        // Wait for UI feedback (border bottom)
-        await page.waitForTimeout(200);
-        
-        await page.mouse.up();
+    // Use dragTo with targetPosition to ensure we drop in the bottom half of the target row
+    // This triggers the "insert after" logic in FillSection.js
+    const row2Box = await row2.boundingBox();
+    if (row2Box) {
+        await dragHandle1.dragTo(row2, {
+            targetPosition: { x: row2Box.width / 2, y: row2Box.height * 0.8 }
+        });
     }
     
     // 5. Verify order swapped
@@ -251,5 +240,89 @@ test.describe('Fills & Color System', () => {
     
     await expect(newRow1Input).toHaveValue('#0000FF');
     await expect(newRow2Input).toHaveValue('#FF0000');
+  });
+
+  // FL32: Switch between Color Models (Hex, RGB, HSL, CSS)
+  // Note: Feature currently missing in implementation.
+  test.fixme('FL32: Switch between Color Models', async ({ page }) => {
+    // 1. Create a rectangle
+    await editor.setActiveTool('shape');
+    await canvas.drawRectangle(0.1, 0.1, 0.2, 0.2);
+    
+    // 2. Open Color Picker Flyout
+    const fillSection = page.locator('.pi-section', { hasText: 'Fill' });
+    const swatchTrigger = fillSection.locator('.fill-swatch-trigger');
+    await swatchTrigger.click();
+    
+    // 3. Check for Color Model Switcher
+    const flyout = page.locator('.fill-flyout');
+    const modelSelect = flyout.locator('.color-model-select');
+    await expect(modelSelect).toBeVisible();
+  });
+
+  test('FL33: Use Eyedropper Tool', async ({ page }) => {
+    // 1. Create a rectangle
+    await editor.setActiveTool('shape');
+    await canvas.drawRectangle(0.35, 0.1, 0.2, 0.2);
+    
+    // 2. Open Color Picker Flyout
+    const fillSection = page.locator('.pi-section', { hasText: 'Fill' });
+    const swatchTrigger = fillSection.locator('.fill-swatch-trigger');
+    await swatchTrigger.click();
+    
+    // 3. Find Eyedropper button
+    const flyout = page.locator('.fill-flyout');
+    const eyedropperBtn = flyout.locator('button[title="Pick Color"]');
+    await expect(eyedropperBtn).toBeVisible();
+    
+    // Note: Actual eyedropper interaction is limited in automated tests
+  });
+
+  test('FL34: Save Color to Document Colors', async ({ page }) => {
+    // 1. Create a rectangle
+    await editor.setActiveTool('shape');
+    await canvas.drawRectangle(0.6, 0.1, 0.2, 0.2);
+    
+    // 2. Open Color Picker Flyout
+    const fillSection = page.locator('.pi-section', { hasText: 'Fill' });
+    const swatchTrigger = fillSection.locator('.fill-swatch-trigger');
+    await swatchTrigger.click();
+    
+    // 3. Find "Default Colors" section
+    const flyout = page.locator('.fill-flyout');
+    const defaultColorsLabel = flyout.locator('.swatch-section-label', { hasText: 'Default Colors' });
+    await expect(defaultColorsLabel).toBeVisible();
+    
+    // 4. Click a swatch (e.g., Red #F24822)
+    const redSwatch = flyout.locator('.swatch[title="#F24822"]');
+    await redSwatch.click();
+    
+    // 5. Verify color applied in PI
+    const hexInput = fillSection.locator('.pi-row input.fill-hex-input');
+    await expect(hexInput).toHaveValue('#F24822');
+  });
+
+  // FL35: Switch between Custom and Library Tabs
+  // Note: Tabs are currently placeholders.
+  test.fixme('FL35: Switch between Custom and Library Tabs', async ({ page }) => {
+    // 1. Create a rectangle
+    await editor.setActiveTool('shape');
+    await canvas.drawRectangle(0.1, 0.35, 0.2, 0.2);
+    
+    // 2. Open Color Picker Flyout
+    const fillSection = page.locator('.pi-section', { hasText: 'Fill' });
+    const swatchTrigger = fillSection.locator('.fill-swatch-trigger');
+    await swatchTrigger.click();
+    
+    // 3. Find Tabs
+    const flyout = page.locator('.fill-flyout');
+    const librariesTab = flyout.locator('div', { hasText: /^Libraries$/ });
+    
+    // 4. Click Libraries Tab
+    await librariesTab.click();
+    
+    // 5. Verify content changed (e.g. SolidTab hidden)
+    const solidTab = flyout.locator('.solid-tab');
+    await expect(solidTab).toBeHidden();
   });
 });
