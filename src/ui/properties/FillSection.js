@@ -201,7 +201,7 @@ export class FillSection {
         row.className = 'pi-row';
         
         // Check if fill is linked to a theme slot
-        const isLinked = fill.themeSlot && COLOR_SLOTS[fill.themeSlot];
+        const isLinked = fill.themeSlot !== undefined && fill.themeSlot !== null;
         if (isLinked) {
             row.classList.add('fill-linked');
         }
@@ -210,6 +210,7 @@ export class FillSection {
 
         // Drag Handle
         const dragHandle = document.createElement('div');
+        dragHandle.className = 'drag-handle';
         dragHandle.innerHTML = Icons.DRAG_HANDLE;
         dragHandle.style.color = 'var(--color-text-tertiary)';
         dragHandle.style.cursor = 'grab';
@@ -418,13 +419,29 @@ export class FillSection {
         
         if (isLinked && (fill.type === 'solid' || !fill.type)) {
             // Show theme slot name for linked fills
-            const slotInfo = COLOR_SLOTS[fill.themeSlot];
-            hexInput.value = slotInfo?.label || fill.themeSlot;
-            hexInput.disabled = true;
+            let label = fill.themeSlot;
+            if (COLOR_SLOTS[fill.themeSlot]) {
+                label = COLOR_SLOTS[fill.themeSlot].name || fill.themeSlot;
+            } else if (typeof fill.themeSlot === 'number') {
+                label = `Slot ${fill.themeSlot + 1}`;
+            }
+
+            hexInput.value = label;
+            // hexInput.disabled = true; // Allow editing to unlink
             hexInput.classList.add('fill-hex-input--linked');
-            hexInput.title = `Linked to theme: ${slotInfo?.label || fill.themeSlot}`;
+            hexInput.title = `Linked to theme: ${label}`;
         } else if (fill.type === 'solid' || !fill.type) {
             hexInput.value = this.rgbToHex(fill.color || fill.value || '#000000').toUpperCase();
+        } else if (fill.type === 'code') {
+            hexInput.value = 'Code Fill';
+            hexInput.disabled = true;
+        } else {
+            hexInput.value = fill.type.charAt(0).toUpperCase() + fill.type.slice(1);
+            hexInput.disabled = true;
+        }
+
+        // Attach onchange for solid fills (linked or not)
+        if (fill.type === 'solid' || !fill.type) {
             hexInput.onchange = (e) => {
                 let val = e.target.value.trim();
                 if (!val.startsWith('#')) val = '#' + val;
@@ -433,15 +450,19 @@ export class FillSection {
                     this.updateFill(element, index, { color: val });
                 } else {
                     // Revert
-                    e.target.value = this.rgbToHex(fill.color || fill.value || '#000000').toUpperCase();
+                    if (isLinked) {
+                        let label = fill.themeSlot;
+                        if (COLOR_SLOTS[fill.themeSlot]) {
+                            label = COLOR_SLOTS[fill.themeSlot].name || fill.themeSlot;
+                        } else if (typeof fill.themeSlot === 'number') {
+                            label = `Slot ${fill.themeSlot + 1}`;
+                        }
+                        e.target.value = label;
+                    } else {
+                        e.target.value = this.rgbToHex(fill.color || fill.value || '#000000').toUpperCase();
+                    }
                 }
             };
-        } else if (fill.type === 'code') {
-            hexInput.value = 'Code Fill';
-            hexInput.disabled = true;
-        } else {
-            hexInput.value = fill.type.charAt(0).toUpperCase() + fill.type.slice(1);
-            hexInput.disabled = true;
         }
         
         if (!fill.visible) {
