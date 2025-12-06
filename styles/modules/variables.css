@@ -465,9 +465,12 @@
 
 /* =============================================================================
    LIGHT THEME
-   Applied via body.theme-light class
+   Applied via body.theme-light class OR data-theme="light" on html
    ============================================================================= */
-body.theme-light {
+html[data-theme="light"],
+html[data-theme="light"] *,
+body.theme-light,
+body.theme-light * {
     /* Background Hierarchy */
     --color-bg-app: #E8E8E8;
     --color-bg-canvas: #FFFFFF;

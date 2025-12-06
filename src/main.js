@@ -127,6 +127,7 @@ class App {
             this.settingsModal.open();
         });
 
+        this.setupThemeListener();
         this.bindEvents();
     }
 
@@ -238,6 +239,40 @@ class App {
                 }
             }
         });
+    }
+
+    setupThemeListener() {
+        const updateTheme = (theme) => {
+            const isLight = theme === 'light';
+            const buttons = [
+                document.getElementById('edit-master-btn'),
+                document.getElementById('close-master-btn'),
+                document.getElementById('play-btn')
+            ];
+
+            buttons.forEach(btn => {
+                if (btn) {
+                    if (isLight) {
+                        btn.style.setProperty('transition', 'none', 'important');
+                        btn.style.setProperty('background-color', '#FFFFFF', 'important');
+                        btn.style.setProperty('color', '#333333', 'important');
+                        btn.style.setProperty('border-color', '#E0E0E0', 'important');
+                    } else {
+                        btn.style.removeProperty('background-color');
+                        btn.style.removeProperty('color');
+                        btn.style.removeProperty('border-color');
+                        btn.style.removeProperty('transition');
+                    }
+                }
+            });
+        };
+
+        // Initial check
+        const initialTheme = localStorage.getItem('story-theme') || localStorage.getItem('themeMode');
+        updateTheme(initialTheme);
+
+        // Listen for changes
+        window.addEventListener('theme-changed', (e) => updateTheme(e.detail.theme));
     }
 }
 

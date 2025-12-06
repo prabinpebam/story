@@ -409,7 +409,7 @@ select.pi-input option {
     align-items: center;
     justify-content: space-between;
     padding: var(--spacing-1-5) var(--spacing-2-5);
-    background: var(--color-bg-well);
+    background-color: var(--color-bg-well);
     border: 1px solid var(--color-border);
     border-radius: var(--radius-sm);
     color: var(--color-text-primary);
@@ -634,4 +634,7 @@ select.pi-input option {
     border-radius: var(--radius-sm);
     overflow: hidden;
 }
+
+
+
 

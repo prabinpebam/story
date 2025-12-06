@@ -33,6 +33,7 @@ export class SlideSection {
         });
 
         this.createContent();
+        this.setupThemeListener();
     }
 
     createContent() {
@@ -1013,5 +1014,32 @@ export class SlideSection {
                 store.emit('selection-changed');
             }, 0);
         }
+    }
+
+    setupThemeListener() {
+        const updateTheme = (theme) => {
+            const isLight = theme === 'light';
+            // Target the layout trigger button element
+            if (this.layoutTriggerBtn && this.layoutTriggerBtn.element) {
+                if (isLight) {
+                    this.layoutTriggerBtn.element.style.setProperty('transition', 'none', 'important');
+                    this.layoutTriggerBtn.element.style.setProperty('background-color', '#FFFFFF', 'important');
+                    this.layoutTriggerBtn.element.style.setProperty('color', '#333333', 'important');
+                    this.layoutTriggerBtn.element.style.setProperty('border-color', '#E0E0E0', 'important');
+                } else {
+                    this.layoutTriggerBtn.element.style.removeProperty('background-color');
+                    this.layoutTriggerBtn.element.style.removeProperty('color');
+                    this.layoutTriggerBtn.element.style.removeProperty('border-color');
+                    this.layoutTriggerBtn.element.style.removeProperty('transition');
+                }
+            }
+        };
+
+        // Initial check
+        const initialTheme = localStorage.getItem('story-theme') || localStorage.getItem('themeMode');
+        updateTheme(initialTheme);
+
+        // Listen for changes
+        window.addEventListener('theme-changed', (e) => updateTheme(e.detail.theme));
     }
 }

@@ -199,3 +199,13 @@ This document outlines the comprehensive list of testable frontend interactions,
 | F03 | Load Document (Local) | P1 | ⬜ |
 | F04 | Export to JSON | P2 | ⬜ |
 | F05 | Change Document Title | P2 | ⬜ |
+
+## 11. App Theming & Design System
+| ID | Scenario | Priority | Status |
+|----|----------|----------|--------|
+| SYS01 | Verify Default Dark Theme | P1 | ✅ |
+| SYS02 | Switch to Light Theme | P1 | ✅ |
+| SYS03 | Switch Accent Color (Purple, Teal, etc.) | P2 | ✅ |
+| SYS04 | Verify Theme Persistence on Reload | P2 | ✅ |
+| SYS05 | Verify Design System Token Usage (Computed Styles) | P2 | ✅ |
+

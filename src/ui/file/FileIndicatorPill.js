@@ -71,6 +71,23 @@ export class FileIndicatorPill extends EventEmitter {
         this.createElement();
         this.bindEvents();
         this.subscribeToFileService();
+        
+        // Initial theme check
+        const theme = localStorage.getItem('themeMode') || localStorage.getItem('theme');
+        if (theme === 'light') {
+            this.element.style.setProperty('background-color', '#FFFFFF', 'important');
+        }
+        
+        // Listen for theme changes
+        window.addEventListener('theme-changed', (e) => {
+            if (e.detail.theme === 'light') {
+                this.element.style.setProperty('transition', 'none', 'important');
+                this.element.style.setProperty('background-color', '#FFFFFF', 'important');
+            } else {
+                this.element.style.removeProperty('background-color');
+                this.element.style.removeProperty('transition');
+            }
+        });
     }
     
     createElement() {

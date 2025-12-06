@@ -208,11 +208,16 @@ export class SettingsModal {
             onChange: (value) => {
                 if (value === 'light') {
                     document.body.classList.add('theme-light');
+                    document.documentElement.setAttribute('data-theme', 'light');
                     localStorage.setItem('themeMode', 'light');
+                    localStorage.setItem('story-theme', 'light');
                 } else {
                     document.body.classList.remove('theme-light');
+                    document.documentElement.removeAttribute('data-theme');
                     localStorage.setItem('themeMode', 'dark');
+                    localStorage.setItem('story-theme', 'dark');
                 }
+                window.dispatchEvent(new CustomEvent('theme-changed', { detail: { theme: value } }));
             }
         });
 
@@ -496,7 +501,14 @@ export class SettingsModal {
         // Dark is default (no class needed), Light applies theme-light class
         if (themeMode === 'light') {
             document.body.classList.add('theme-light');
+            document.documentElement.setAttribute('data-theme', 'light');
+        } else {
+            document.body.classList.remove('theme-light');
+            document.documentElement.removeAttribute('data-theme');
         }
+        
+        // Dispatch theme change event for components that need manual updates
+        window.dispatchEvent(new CustomEvent('theme-changed', { detail: { theme: themeMode || 'dark' } }));
         
         // Load accent theme
         const accentTheme = localStorage.getItem('accentTheme');
