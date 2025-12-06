@@ -84,12 +84,12 @@ This document outlines the comprehensive list of testable frontend interactions,
 | ID | Scenario | Priority | Status |
 |----|----------|----------|--------|
 | **Solid Fills** | | | |
-| FL01 | Apply Solid Fill color via Hex input | P0 | ⬜ |
+| FL01 | Apply Solid Fill color via Hex input | P0 | ✅ |
 | FL02 | Apply Solid Fill via Color Picker (HSB area) | P1 | ⬜ |
 | FL03 | Apply Solid Fill via Swatch Grid | P1 | ⬜ |
-| FL04 | Change Solid Fill Opacity | P1 | ⬜ |
-| FL05 | Toggle Fill Visibility | P1 | ⬜ |
-| FL06 | Remove Fill Layer | P1 | ⬜ |
+| FL04 | Change Solid Fill Opacity | P1 | ✅ |
+| FL05 | Toggle Fill Visibility | P1 | ✅ |
+| FL06 | Remove Fill Layer | P1 | ✅ |
 | FL07 | Add Multiple Fill Layers | P2 | ⬜ |
 | FL08 | Reorder Fill Layers | P2 | ⬜ |
 | **Gradient Fills** | | | |

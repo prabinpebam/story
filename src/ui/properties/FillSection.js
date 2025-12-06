@@ -826,6 +826,11 @@ export class FillSection {
                 // Do NOT bake opacity into the color, as the renderer applies opacity on the layer
                 fill.color = updates.color;
                 
+                // Unlink from theme if color is manually changed
+                if (fill.themeSlot) {
+                    delete fill.themeSlot;
+                }
+                
                 if (fill.type === 'solid') {
                     fill.value = updates.color;
                     LastUsed.solid = updates.color;
