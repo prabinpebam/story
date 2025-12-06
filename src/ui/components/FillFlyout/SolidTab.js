@@ -28,6 +28,7 @@ export class SolidTab {
         this.linkedSlot = this.isLinkedToTheme ? this.fill.themeSlot : null;
 
         this.element = document.createElement('div');
+        this.element.className = 'solid-tab';
         this.element.style.display = 'flex';
         this.element.style.flexDirection = 'column';
         this.element.style.gap = '12px';
@@ -40,6 +41,7 @@ export class SolidTab {
 
         // 1. Main Color Area (HSB)
         const colorArea = document.createElement('div');
+        colorArea.className = 'color-hsb-area';
         colorArea.style.width = '100%';
         colorArea.style.height = '160px';
         colorArea.style.borderRadius = '4px';

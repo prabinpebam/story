@@ -64,3 +64,36 @@ Before merging automation code:
 - [ ] Are there any hard-coded waits? (Must be removed)
 - [ ] Does the test run successfully 5 times in a row locally?
 - [ ] Is the test independent?
+
+## 8. Design System & UI Integrity
+Automation is not just about functionality; it must verify that the UI adheres to the Design System.
+
+### 8.1 Strict Adherence to Design Tokens
+*   **No Hardcoded Values:** Tests should verify that styles use CSS variables, not hardcoded hex codes or pixels.
+    *   ✅ Verify `background-color` matches `var(--color-bg-app)` (resolved value).
+    *   ❌ Do not accept arbitrary hex values unless they are specific user overrides.
+*   **Component Consistency:**
+    *   New UI features MUST use existing components (`Button`, `IconButton`, `Input`, etc.).
+    *   Do not introduce new DOM structures for standard controls (dropdowns, flyouts) without updating the core component library.
+
+### 8.2 Theming & Modes
+*   **Theme Agnostic:** Tests should pass regardless of the active theme (Default, Minimal, etc.).
+*   **Mode Verification:**
+    *   Critical flows must be tested in both **Light** and **Dark** modes.
+    *   Verify that switching themes updates the UI immediately without reload.
+
+### 8.3 Visual Consistency Principle
+*   **"If it looks the same, it is the same":**
+    *   A context menu in the canvas must match the dropdown menu in the toolbar.
+    *   Automation should verify that shared classes are used (e.g., `.ui-flyout`, `.ui-menu-item`).
+*   **CSS Architecture:**
+    *   New features must add styles to `styles/modules/` using BEM naming.
+    *   **NEVER** use inline styles for structural layout or theming (except for dynamic values like coordinates or user-picked colors).
+
+### 8.4 Implementation Requirements for Developers
+When implementing UI that will be tested:
+1.  **Use Global CSS Variables:** Always use `--color-*`, `--spacing-*`, `--font-*`.
+2.  **Extend, Don't Duplicate:** If a component (e.g., `MediaTab`) needs a new button style, add a variant to `Button.js` and `button.css`, do not style a `div` manually.
+3.  **Dark Mode First:** Develop for Dark mode, then verify Light mode.
+4.  **Accessibility:** Ensure all interactive elements have `aria-label` or visible text, and are keyboard navigable.
+

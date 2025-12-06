@@ -21,7 +21,7 @@ test.describe('Fills - Gradient System', () => {
     
     // 2. Open Fill Flyout
     const fillSection = page.locator('.pi-section', { hasText: 'Fill' });
-    const swatchTrigger = fillSection.locator('.color-swatch-trigger');
+    const swatchTrigger = fillSection.locator('.fill-swatch-trigger');
     await swatchTrigger.click();
     
     // 3. Find Fill Type Selector and switch to Gradient
@@ -41,7 +41,7 @@ test.describe('Fills - Gradient System', () => {
     await closeBtn.click();
     
     // The swatch preview should now look like a gradient (or have gradient style)
-    const piSwatchPreview = fillSection.locator('.color-swatch-trigger > div').first();
+    const piSwatchPreview = fillSection.locator('.fill-swatch-trigger > .fill-preview').first();
     const style = await piSwatchPreview.getAttribute('style');
     expect(style).toContain('linear-gradient');
   });
@@ -53,7 +53,7 @@ test.describe('Fills - Gradient System', () => {
     
     // 2. Open Fill Flyout & Switch to Gradient
     const fillSection = page.locator('.pi-section', { hasText: 'Fill' });
-    await fillSection.locator('.color-swatch-trigger').click();
+    await fillSection.locator('.fill-swatch-trigger').click();
     
     const flyout = page.locator('.fill-flyout');
     await flyout.locator('.fill-type-selector button[title="Gradient"]').click();
@@ -73,7 +73,7 @@ test.describe('Fills - Gradient System', () => {
     
     // 5. Verify PI update
     await flyout.locator('button[title="Close"]').click();
-    const piSwatchPreview = fillSection.locator('.color-swatch-trigger > div').first();
+    const piSwatchPreview = fillSection.locator('.fill-swatch-trigger > .fill-preview').first();
     const style = await piSwatchPreview.getAttribute('style');
     expect(style).toContain('radial-gradient');
   });
@@ -85,7 +85,7 @@ test.describe('Fills - Gradient System', () => {
     
     // 2. Open Fill Flyout & Switch to Gradient
     const fillSection = page.locator('.pi-section', { hasText: 'Fill' });
-    await fillSection.locator('.color-swatch-trigger').click();
+    await fillSection.locator('.fill-swatch-trigger').click();
     
     const flyout = page.locator('.fill-flyout');
     await flyout.locator('.fill-type-selector button[title="Gradient"]').click();
@@ -102,7 +102,7 @@ test.describe('Fills - Gradient System', () => {
     
     // 5. Verify PI update (conic-gradient is usually used for angular)
     await flyout.locator('button[title="Close"]').click();
-    const piSwatchPreview = fillSection.locator('.color-swatch-trigger > div').first();
+    const piSwatchPreview = fillSection.locator('.fill-swatch-trigger > .fill-preview').first();
     const style = await piSwatchPreview.getAttribute('style');
     expect(style).toContain('conic-gradient');
   });
@@ -114,7 +114,7 @@ test.describe('Fills - Gradient System', () => {
     
     // 2. Open Fill Flyout & Switch to Gradient
     const fillSection = page.locator('.pi-section', { hasText: 'Fill' });
-    await fillSection.locator('.color-swatch-trigger').click();
+    await fillSection.locator('.fill-swatch-trigger').click();
     
     const flyout = page.locator('.fill-flyout');
     await flyout.locator('.fill-type-selector button[title="Gradient"]').click();
@@ -136,7 +136,7 @@ test.describe('Fills - Gradient System', () => {
     // Let's check if the style contains something unique or just check the type in state if possible.
     // For now, let's assume it updates the preview.
     await flyout.locator('button[title="Close"]').click();
-    const piSwatchPreview = fillSection.locator('.color-swatch-trigger > div').first();
+    const piSwatchPreview = fillSection.locator('.fill-swatch-trigger > .fill-preview').first();
     // The preview might use a fallback or specific rendering.
     // Let's just check that it's not empty.
     await expect(piSwatchPreview).toBeVisible();
@@ -149,7 +149,7 @@ test.describe('Fills - Gradient System', () => {
     
     // 2. Open Fill Flyout & Switch to Gradient
     const fillSection = page.locator('.pi-section', { hasText: 'Fill' });
-    await fillSection.locator('.color-swatch-trigger').click();
+    await fillSection.locator('.fill-swatch-trigger').click();
     
     const flyout = page.locator('.fill-flyout');
     await flyout.locator('.fill-type-selector button[title="Gradient"]').click();
@@ -183,7 +183,7 @@ test.describe('Fills - Gradient System', () => {
     
     // 2. Open Fill Flyout & Switch to Gradient
     const fillSection = page.locator('.pi-section', { hasText: 'Fill' });
-    await fillSection.locator('.color-swatch-trigger').click();
+    await fillSection.locator('.fill-swatch-trigger').click();
     
     const flyout = page.locator('.fill-flyout');
     await flyout.locator('.fill-type-selector button[title="Gradient"]').click();
@@ -215,7 +215,7 @@ test.describe('Fills - Gradient System', () => {
     
     // 2. Open Fill Flyout & Switch to Gradient
     const fillSection = page.locator('.pi-section', { hasText: 'Fill' });
-    await fillSection.locator('.color-swatch-trigger').click();
+    await fillSection.locator('.fill-swatch-trigger').click();
     
     const flyout = page.locator('.fill-flyout');
     await flyout.locator('.fill-type-selector button[title="Gradient"]').click();
@@ -242,7 +242,7 @@ test.describe('Fills - Gradient System', () => {
     
     // 2. Open Fill Flyout & Switch to Gradient
     const fillSection = page.locator('.pi-section', { hasText: 'Fill' });
-    await fillSection.locator('.color-swatch-trigger').click();
+    await fillSection.locator('.fill-swatch-trigger').click();
     
     const flyout = page.locator('.fill-flyout');
     await flyout.locator('.fill-type-selector button[title="Gradient"]').click();
@@ -283,7 +283,7 @@ test.describe('Fills - Gradient System', () => {
     
     // 2. Open Fill Flyout & Switch to Gradient
     const fillSection = page.locator('.pi-section', { hasText: 'Fill' });
-    await fillSection.locator('.color-swatch-trigger').click();
+    await fillSection.locator('.fill-swatch-trigger').click();
     
     const flyout = page.locator('.fill-flyout');
     await flyout.locator('.fill-type-selector button[title="Gradient"]').click();
@@ -310,7 +310,7 @@ test.describe('Fills - Gradient System', () => {
     
     // 2. Open Fill Flyout & Switch to Gradient
     const fillSection = page.locator('.pi-section', { hasText: 'Fill' });
-    await fillSection.locator('.color-swatch-trigger').click();
+    await fillSection.locator('.fill-swatch-trigger').click();
     
     const flyout = page.locator('.fill-flyout');
     await flyout.locator('.fill-type-selector button[title="Gradient"]').click();
@@ -346,7 +346,7 @@ test.describe('Fills - Gradient System', () => {
     
     // 2. Open Fill Flyout & Switch to Gradient
     const fillSection = page.locator('.pi-section', { hasText: 'Fill' });
-    await fillSection.locator('.color-swatch-trigger').click();
+    await fillSection.locator('.fill-swatch-trigger').click();
     
     const flyout = page.locator('.fill-flyout');
     await flyout.locator('.fill-type-selector button[title="Gradient"]').click();

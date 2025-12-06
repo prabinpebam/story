@@ -106,11 +106,11 @@ This document outlines the comprehensive list of testable frontend interactions,
 | FL19 | Rotate Gradient (90 deg step) | P2 | ✅ |
 | FL20 | Manipulate Gradient Handles on Canvas (Start/End) | P2 | ⬜ |
 | **Image & Video Fills** | | | |
-| FL21 | Switch Fill Type to Image | P1 | ⬜ |
-| FL22 | Upload Image file | P1 | ⬜ |
-| FL23 | Change Image Scale Mode (Fill, Fit, Tile, Crop) | P2 | ⬜ |
-| FL24 | Switch Fill Type to Video | P2 | ⬜ |
-| FL25 | Upload Video file | P2 | ⬜ |
+| FL21 | Switch Fill Type to Image | P1 | ✅ |
+| FL22 | Upload Image file | P1 | ✅ |
+| FL23 | Change Image Scale Mode (Fill, Fit, Tile, Crop) | P2 | ✅ |
+| FL24 | Switch Fill Type to Video | P2 | ✅ |
+| FL25 | Upload Video file | P2 | ✅ |
 | **Code Fills** | | | |
 | FL26 | Switch Fill Type to Code | P2 | ⬜ |
 | FL27 | Open Code Fill Panel | P2 | ⬜ |

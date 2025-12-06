@@ -12,6 +12,7 @@ import { CodeRunner } from '../../core/effects/CodeRunner.js';
 import { propertyMemory } from '../../core/services/PropertyMemoryManager.js';
 import { linkedPropertyManager, COLOR_SLOTS } from '../../core/services/LinkedPropertyManager.js';
 import { StyleResolver } from '../../utils/StyleResolver.js';
+import { mediaAssetManager } from '../../core/media/MediaAssetManager.js';
 
 // Module-level cache for last used values (legacy, now managed by PropertyMemoryManager)
 const LastUsed = {
@@ -113,9 +114,7 @@ export class FillSection {
 
         // Container for the list of fills
         const list = document.createElement('div');
-        list.style.display = 'flex';
-        list.style.flexDirection = 'column';
-        list.style.gap = '8px';
+        list.className = 'fill-list';
         
         // Check for inherited fill (for slide/master backgrounds)
         const inheritedFill = element.inheritedFill;
@@ -198,7 +197,7 @@ export class FillSection {
 
     createFillRow(element, fill, index, allFills) {
         const row = document.createElement('div');
-        row.className = 'pi-row';
+        row.className = 'pi-row fill-row';
         
         // Check if fill is linked to a theme slot
         const isLinked = fill.themeSlot !== undefined && fill.themeSlot !== null;
@@ -210,16 +209,8 @@ export class FillSection {
 
         // Drag Handle
         const dragHandle = document.createElement('div');
-        dragHandle.className = 'drag-handle';
+        dragHandle.className = 'fill-drag-handle';
         dragHandle.innerHTML = Icons.DRAG_HANDLE;
-        dragHandle.style.color = 'var(--color-text-tertiary)';
-        dragHandle.style.cursor = 'grab';
-        dragHandle.style.fontSize = '12px';
-        dragHandle.style.display = 'flex';
-        dragHandle.style.alignItems = 'center';
-        dragHandle.style.justifyContent = 'center';
-        dragHandle.style.width = '16px';
-        dragHandle.style.height = '100%';
         dragHandle.draggable = true;
         
         dragHandle.addEventListener('dragstart', (e) => {
@@ -274,21 +265,6 @@ export class FillSection {
             const midY = rect.top + rect.height / 2;
             
             if (e.clientY > midY) {
-                // Dropped below this item
-                // If moving down: from 0 to 2 (below 2) -> insert at 3? No.
-                // If we are at index 2, and drop below, we want to be at index 3?
-                // But splice logic is tricky.
-                // Let's just say we want to insert AFTER this index.
-                // But if we are moving down, the index shifts.
-                // Let's simplify:
-                // We want the target index in the NEW array.
-            }
-            
-            // Actually, let's just use the visual indicator logic.
-            // If borderTop, we drop BEFORE (index).
-            // If borderBottom, we drop AFTER (index + 1).
-            
-            if (e.clientY > midY) {
                 toIndex = index + 1;
             }
             
@@ -304,31 +280,15 @@ export class FillSection {
 
         // Combined Input Group (Swatch + Opacity)
         const combinedInput = document.createElement('div');
-        combinedInput.style.flex = '1';
-        combinedInput.style.display = 'flex';
-        combinedInput.style.alignItems = 'center';
-        combinedInput.style.border = '1px solid var(--color-border)';
-        combinedInput.style.borderRadius = 'var(--radius-sm)';
-        combinedInput.style.height = '24px';
-        combinedInput.style.overflow = 'hidden';
-        combinedInput.style.backgroundColor = 'var(--color-bg-input)';
+        combinedInput.className = 'fill-input-group';
 
         // 1. Color Swatch (Trigger for Flyout)
         const swatch = document.createElement('div');
-        swatch.className = 'color-swatch-trigger';
-        swatch.style.width = '22px'; // Fixed width
-        swatch.style.height = '100%';
-        swatch.style.cursor = 'pointer';
-        swatch.style.display = 'flex';
-        swatch.style.alignItems = 'center';
-        swatch.style.justifyContent = 'center';
-        // swatch.style.borderRight = '1px solid #444'; // Removed separator
+        swatch.className = 'fill-swatch-trigger';
         
         // Preview
         const preview = document.createElement('div');
-        preview.style.width = 'var(--swatch-size-sm)';
-        preview.style.height = 'var(--swatch-size-sm)';
-        preview.style.borderRadius = 'var(--radius-xs)';
+        preview.className = 'fill-preview';
         
         // Determine the color for the swatch border
         let swatchColor = '#000000';
@@ -341,15 +301,13 @@ export class FillSection {
         if (fill.type === 'image') {
              // Check if there's actually an image asset
              if (fill.assetId || fill.value) {
-                 preview.style.backgroundImage = `url(${fill.value})`;
-                 preview.style.backgroundSize = 'cover';
+                 const url = fill.value || mediaAssetManager.getBlobUrl(fill.assetId);
+                 preview.style.backgroundImage = `url(${url})`;
              } else {
                  // No image - show placeholder icon
                  preview.style.backgroundColor = 'var(--color-surface-tertiary)';
                  preview.innerHTML = '<i class="fa-solid fa-image" style="font-size: 10px; color: var(--color-text-tertiary);"></i>';
              }
-             // Use a neutral border for images
-             preview.style.boxShadow = 'inset 0 0 0 1px rgba(0, 0, 0, 0.3)';
         } else if (fill.type === 'video') {
              // Check if there's actually a video asset
              if (fill.assetId || fill.value) {
@@ -361,45 +319,25 @@ export class FillSection {
                  preview.style.backgroundColor = 'var(--color-surface-tertiary)';
                  preview.innerHTML = '<i class="fa-solid fa-video" style="font-size: 10px; color: var(--color-text-tertiary);"></i>';
              }
-             preview.style.boxShadow = 'inset 0 0 0 1px rgba(0, 0, 0, 0.3)';
         } else if (fill.type === 'gradient') {
              if (typeof fill.value === 'string') {
                  preview.style.background = fill.value;
              } else {
                  preview.style.background = this.getGradientCss(fill.value);
              }
-             // Use a neutral border for gradients
-             preview.style.boxShadow = 'inset 0 0 0 1px rgba(0, 0, 0, 0.3)';
         } else if (fill.type === 'code') {
              preview.style.backgroundColor = 'var(--color-surface-tertiary)';
              preview.innerHTML = '<i class="fa-solid fa-code" style="font-size: 10px; color: var(--color-text-primary);"></i>';
-             preview.style.boxShadow = 'inset 0 0 0 1px rgba(0, 0, 0, 0.3)';
         } else {
              // Solid fill - use resolved swatchColor (may have been resolved from themeSlot above)
              if (!swatchColor || swatchColor === '#000000') {
                  swatchColor = fill.color || fill.value || '#000000';
              }
              preview.style.backgroundColor = swatchColor;
-             this.updateSwatchBorder(preview, swatchColor, false);
+             // Border update logic is now handled by CSS hover on .fill-preview
         }
         swatch.appendChild(preview);
         
-        // Hover handlers for border opacity
-        swatch.addEventListener('mouseenter', () => {
-            if (fill.type === 'solid' || !fill.type) {
-                this.updateSwatchBorder(preview, swatchColor, true);
-            } else {
-                preview.style.boxShadow = 'inset 0 0 0 1px rgba(0, 0, 0, 1)';
-            }
-        });
-        swatch.addEventListener('mouseleave', () => {
-            if (fill.type === 'solid' || !fill.type) {
-                this.updateSwatchBorder(preview, swatchColor, false);
-            } else {
-                preview.style.boxShadow = 'inset 0 0 0 1px rgba(0, 0, 0, 0.3)';
-            }
-        });
-
         swatch.onclick = (e) => {
             e.stopPropagation();
             this.openFlyout(swatch, fill, index, element);
@@ -482,9 +420,7 @@ export class FillSection {
 
         // Separator
         const separator = document.createElement('div');
-        separator.style.width = '1px';
-        separator.style.height = '12px'; // Reduced height
-        separator.style.backgroundColor = 'var(--color-border)';
+        separator.className = 'fill-separator';
         combinedInput.appendChild(separator);
 
         // Opacity Input
@@ -508,12 +444,7 @@ export class FillSection {
         });
         
         // Style opacity input to fit in group
-        opacityInput.element.style.width = '50px';
-        opacityInput.element.style.flex = '0 0 50px';
-        opacityInput.element.style.border = 'none';
-        opacityInput.element.style.background = 'transparent';
-        opacityInput.element.querySelector('input').style.padding = '0';
-        opacityInput.element.querySelector('input').style.textAlign = 'center';
+        opacityInput.element.classList.add('fill-opacity-input');
         
         if (!fill.visible) {
             opacityInput.element.style.opacity = '0.5';
@@ -525,10 +456,7 @@ export class FillSection {
 
         // Button Group
         const buttonGroup = document.createElement('div');
-        buttonGroup.style.display = 'flex';
-        buttonGroup.style.alignItems = 'center';
-        buttonGroup.style.gap = '0px'; // Minimize space
-        buttonGroup.style.marginLeft = '4px';
+        buttonGroup.className = 'fill-actions';
 
         // Blend Mode Button
         const isNormalBlend = !fill.blendMode || fill.blendMode === 'normal';
@@ -585,43 +513,19 @@ export class FillSection {
     openBlendModeMenu(target, fill, index, element) {
         // Create a simple dropdown menu
         const menu = document.createElement('div');
-        menu.style.position = 'fixed';
-        menu.style.zIndex = 'var(--z-popover)';
-        menu.style.backgroundColor = 'var(--menu-bg)';
-        menu.style.border = '1px solid var(--color-border)';
-        menu.style.borderRadius = 'var(--radius-sm)';
-        menu.style.padding = '4px 0';
-        menu.style.boxShadow = 'var(--shadow-floating)';
-        menu.style.width = '140px';
-        menu.style.maxHeight = '300px';
-        menu.style.overflowY = 'auto';
-        menu.style.fontFamily = 'var(--font-ui)';
+        menu.className = 'blend-mode-menu';
         
         // Prevent clicks/scroll inside menu from closing it
         menu.addEventListener('mousedown', (e) => e.stopPropagation());
 
         BlendModes.forEach(({ id: mode, label }) => {
             const item = document.createElement('div');
+            item.className = 'blend-mode-item';
             item.textContent = label;
-            item.style.padding = '6px 12px';
-            item.style.fontSize = 'var(--font-size-md)';
-            item.style.color = 'var(--color-text-primary)';
-            item.style.cursor = 'pointer';
-            item.style.display = 'flex';
-            item.style.alignItems = 'center';
-            item.style.justifyContent = 'space-between';
 
             if ((fill.blendMode || 'normal') === mode) {
-                item.style.backgroundColor = 'var(--color-accent)';
-                item.style.color = 'var(--color-text-on-accent)';
+                item.classList.add('active');
             }
-
-            item.onmouseenter = () => {
-                if ((fill.blendMode || 'normal') !== mode) item.style.backgroundColor = 'var(--color-bg-hover)';
-            };
-            item.onmouseleave = () => {
-                if ((fill.blendMode || 'normal') !== mode) item.style.backgroundColor = 'transparent';
-            };
 
             item.onclick = () => {
                 this.updateFill(element, index, { blendMode: mode });
