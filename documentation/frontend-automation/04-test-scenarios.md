@@ -93,11 +93,11 @@ This document outlines the comprehensive list of testable frontend interactions,
 | FL07 | Add Multiple Fill Layers | P2 | ✅ |
 | FL08 | Reorder Fill Layers | P2 | ✅ |
 | **Gradient Fills** | | | |
-| FL09 | Switch Fill Type to Linear Gradient | P1 | ⬜ |
-| FL10 | Switch Fill Type to Radial Gradient | P2 | ⬜ |
-| FL11 | Switch Fill Type to Angular Gradient | P2 | ⬜ |
-| FL12 | Switch Fill Type to Diamond Gradient | P2 | ⬜ |
-| FL13 | Add Gradient Stop (Flyout) | P2 | ⬜ |
+| FL09 | Switch Fill Type to Linear Gradient | P1 | ✅ |
+| FL10 | Switch Fill Type to Radial Gradient | P2 | ✅ |
+| FL11 | Switch Fill Type to Angular Gradient | P2 | ✅ |
+| FL12 | Switch Fill Type to Diamond Gradient | P2 | ✅ |
+| FL13 | Add Gradient Stop (Flyout) | P2 | ✅ |
 | FL14 | Remove Gradient Stop (Flyout) | P2 | ⬜ |
 | FL15 | Move Gradient Stop position (Flyout input) | P2 | ⬜ |
 | FL16 | Change Gradient Stop Color | P2 | ⬜ |
