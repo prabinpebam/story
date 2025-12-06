@@ -28,23 +28,23 @@ This document outlines the comprehensive list of testable frontend interactions,
 |----|----------|----------|--------|
 | **Core Editing** | | | |
 | T01 | Create text element via tool | P0 | ✅ |
-| T02 | Enter edit mode (Double click) | P0 | ⬜ |
-| T03 | Type text content (Alphanumeric) | P0 | ⬜ |
-| T04 | Type special characters & symbols | P1 | ⬜ |
-| T05 | Commit text changes (Click outside) | P0 | ⬜ |
-| T06 | Commit text changes (Cmd+Enter) | P1 | ⬜ |
-| T07 | Cancel text changes (Esc) - Reverts to previous state | P1 | ⬜ |
-| T08 | Delete empty text element on commit | P1 | ⬜ |
+| T02 | Enter edit mode (Double click) | P0 | ✅ |
+| T03 | Type text content (Alphanumeric) | P0 | ✅ |
+| T04 | Type special characters & symbols | P1 | ✅ |
+| T05 | Commit text changes (Click outside) | P0 | ✅ |
+| T06 | Commit text changes (Cmd+Enter) | P1 | ✅ |
+| T07 | Cancel text changes (Esc) - Reverts to previous state | P1 | ✅ |
+| T08 | Delete empty text element on commit | P1 | ✅ |
 | **Selection & Navigation** | | | |
-| T09 | Select all text (Cmd+A) inside edit mode | P1 | ⬜ |
-| T10 | Move caret with Arrow keys | P1 | ⬜ |
-| T11 | Select text range with Shift+Arrow | P1 | ⬜ |
-| T12 | Select word (Double click) | P2 | ⬜ |
-| T13 | Select paragraph (Triple click) | P2 | ⬜ |
+| T09 | Select all text (Cmd+A) inside edit mode | P1 | ✅ |
+| T10 | Move caret with Arrow keys | P1 | ✅ |
+| T11 | Select text range with Shift+Arrow | P1 | ✅ |
+| T12 | Select word (Double click) | P2 | ✅ |
+| T13 | Select paragraph (Triple click) | P2 | ✅ |
 | **Typography Properties** | | | |
-| T14 | Change Font Family (Dropdown selection) | P1 | ⬜ |
-| T15 | Change Font Weight/Style (Bold, Italic, etc.) | P1 | ⬜ |
-| T16 | Change Font Size (Input value) | P1 | ⬜ |
+| T14 | Change Font Family (Dropdown selection) | P1 | ✅ |
+| T15 | Change Font Weight/Style (Bold, Italic, etc.) | P1 | ✅ |
+| T16 | Change Font Size (Input value) | P1 | ✅ |
 | T17 | Change Font Size (Keyboard shortcuts Cmd+Shift+>/<) | P2 | ⬜ |
 | T18 | Change Line Height (Auto vs Fixed) | P2 | ⬜ |
 | T19 | Change Letter Spacing (Tracking) | P2 | ⬜ |

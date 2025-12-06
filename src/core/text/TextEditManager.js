@@ -567,7 +567,7 @@ export class TextEditManager {
         // Exit shortcuts
         if (event.key === 'Escape') {
             event.preventDefault();
-            this.exitEditMode({ keepSelection: true });
+            this.exitEditMode({ keepSelection: true, save: false });
             return;
         }
 

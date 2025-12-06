@@ -1381,7 +1381,7 @@ export class CanvasManager {
                     width: 200, // Initial width, will auto-size
                     height: 50, // Initial height, will auto-size
                     rotation: 0,
-                    content: '<p>Text</p>',
+                    content: '',
                     fontSize: 32,
                     fontFamily: 'Inter',
                     textFill: { type: 'solid', value: '#000000' },
