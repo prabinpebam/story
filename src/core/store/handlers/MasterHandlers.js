@@ -17,7 +17,7 @@ export function handleApplyLumaTheme(draft, payload) {
     const { masterId, theme } = payload;
     const themeMaster = draft.slideMasterPresets[masterId];
     
-    if (themeMaster && themeMaster.type === 'theme' && theme) {
+    if (themeMaster && themeMaster.type === 'slideMasterPreset' && theme) {
         if (!themeMaster.themeSettings) {
             themeMaster.themeSettings = { colors: {}, fonts: {}, textStyles: {} };
         }
@@ -136,7 +136,7 @@ export function handleUpdateThemeSettings(draft, payload) {
     const { id, settings } = payload;
     const themeMaster = draft.slideMasterPresets[id];
     
-    if (themeMaster && themeMaster.type === 'theme') {
+    if (themeMaster && themeMaster.type === 'slideMasterPreset') {
         if (!themeMaster.themeSettings) {
             themeMaster.themeSettings = { colors: {}, fonts: {} };
         }
@@ -161,7 +161,7 @@ export function handleApplyColorPreset(draft, payload) {
     const { masterId, preset } = payload;
     const themeMaster = draft.slideMasterPresets[masterId];
     
-    if (themeMaster && themeMaster.type === 'theme' && preset?.colors) {
+    if (themeMaster && themeMaster.type === 'slideMasterPreset' && preset?.colors) {
         if (!themeMaster.themeSettings) {
             themeMaster.themeSettings = { colors: {}, fonts: {} };
         }
@@ -186,7 +186,7 @@ export function handleResetThemeColors(draft, payload) {
     const { masterId } = payload;
     const themeMaster = draft.slideMasterPresets[masterId];
     
-    if (themeMaster && themeMaster.type === 'theme') {
+    if (themeMaster && themeMaster.type === 'slideMasterPreset') {
         const defaultPreset = getDefaultPreset();
         
         if (!themeMaster.themeSettings) {
@@ -212,7 +212,7 @@ export function handleUpdateThemeColor(draft, payload) {
     const { masterId, colorRole, value } = payload;
     const themeMaster = draft.slideMasterPresets[masterId];
     
-    if (themeMaster && themeMaster.type === 'theme') {
+    if (themeMaster && themeMaster.type === 'slideMasterPreset') {
         if (!themeMaster.themeSettings) {
             themeMaster.themeSettings = { colors: {}, fonts: {} };
         }
@@ -247,7 +247,7 @@ export function handleApplyFontPreset(draft, payload) {
     const { masterId, preset } = payload;
     const themeMaster = draft.slideMasterPresets[masterId];
     
-    if (themeMaster && themeMaster.type === 'theme' && preset) {
+    if (themeMaster && themeMaster.type === 'slideMasterPreset' && preset) {
         if (!themeMaster.themeSettings) {
             themeMaster.themeSettings = { colors: {}, fonts: {}, textStyles: {} };
         }
@@ -281,7 +281,7 @@ export function handleResetThemeFonts(draft, payload) {
     const { masterId } = payload;
     const themeMaster = draft.slideMasterPresets[masterId];
     
-    if (themeMaster && themeMaster.type === 'theme') {
+    if (themeMaster && themeMaster.type === 'slideMasterPreset') {
         const defaultPreset = getDefaultFontPreset();
         
         if (!themeMaster.themeSettings) {
@@ -307,7 +307,7 @@ export function handleUpdateThemeFont(draft, payload) {
     const { masterId, fontType, value } = payload;
     const themeMaster = draft.slideMasterPresets[masterId];
     
-    if (themeMaster && themeMaster.type === 'theme' && (fontType === 'heading' || fontType === 'body')) {
+    if (themeMaster && themeMaster.type === 'slideMasterPreset' && (fontType === 'heading' || fontType === 'body')) {
         if (!themeMaster.themeSettings) {
             themeMaster.themeSettings = { colors: {}, fonts: {}, textStyles: {} };
         }
@@ -328,7 +328,7 @@ export function handleUpdateTextStyle(draft, payload) {
     const { masterId, styleId, property, value } = payload;
     const themeMaster = draft.slideMasterPresets[masterId];
     
-    if (themeMaster && themeMaster.type === 'theme') {
+    if (themeMaster && themeMaster.type === 'slideMasterPreset') {
         if (!themeMaster.themeSettings) {
             themeMaster.themeSettings = { colors: {}, fonts: {}, textStyles: {} };
         }
@@ -495,4 +495,5 @@ export function handleApplySlideMasterPreset(draft, payload) {
     }
     
 }
+
 

@@ -93,7 +93,7 @@ describe('MasterHandlers', () => {
 
             expect(newState.slideMasterPresets['layout-blank'].customProp).toBe('test');
             // Original properties should still exist
-            expect(newState.slideMasterPresets['layout-blank'].type).toBe('layout');
+            expect(newState.slideMasterPresets['layout-blank'].type).toBe('layoutMaster');
         });
 
         it('should handle non-existent master gracefully', () => {
