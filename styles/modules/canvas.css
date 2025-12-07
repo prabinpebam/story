@@ -165,7 +165,9 @@ body.cursor-hidden * {
 }
 
 .story-placeholder-empty {
-    /* Visual cue for empty placeholders */
+    border: 2px dashed var(--color-text-tertiary);
+    border-radius: var(--radius-sm);
+    /* Ensure text is centered vertically if needed, or handled by flex in TextElement */
 }
 
 /* Placeholder Icon Container */

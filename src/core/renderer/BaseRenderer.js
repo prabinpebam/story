@@ -77,18 +77,18 @@ export class BaseRenderer {
             
             if (!item) return null;
 
-            if (item.type === 'theme') {
+            if (item.type === 'theme' || item.type === 'slideMasterPreset') {
                 return {
                     ...item,
                     width: item.width || 1920,
                     height: item.height || 1080,
                     effectiveBackground: item.background || { type: 'solid', value: '#ffffff' },
-                    effectiveElements: item.elements,
+                    effectiveElements: item.elements || {},
                     effectiveOrder: item.elementOrder || [],
                     themeSettings: item.themeSettings
                 };
-            } else if (item.type === 'layout') {
-                const masterId = item.parentId;
+            } else if (item.type === 'layout' || item.type === 'layoutMaster') {
+                const masterId = item.parentId || item.parentMasterId;
                 const master = masters[masterId];
                 
                 // Mark master elements as inherited/locked
@@ -96,19 +96,25 @@ export class BaseRenderer {
                 const effectiveOrder = [];
                 
                 // Master elements first (bottom layer, locked)
-                (master.elementOrder || []).forEach(elId => {
-                    effectiveElements[elId] = { ...master.elements[elId], isLocked: true, source: 'theme' };
-                    effectiveOrder.push(elId);
-                });
+                if (master) {
+                    (master.elementOrder || []).forEach(elId => {
+                        if (master.elements && master.elements[elId]) {
+                            effectiveElements[elId] = { ...master.elements[elId], isLocked: true, source: 'theme' };
+                            effectiveOrder.push(elId);
+                        }
+                    });
+                }
                 
                 // Layout elements on top (editable)
                 (item.elementOrder || []).forEach(elId => {
-                    effectiveElements[elId] = { ...item.elements[elId], source: 'layout' };
-                    effectiveOrder.push(elId);
+                    if (item.elements && item.elements[elId]) {
+                        effectiveElements[elId] = { ...item.elements[elId], source: 'layout' };
+                        effectiveOrder.push(elId);
+                    }
                 });
                 
                 let effectiveBackground = item.background;
-                if (!effectiveBackground || effectiveBackground.type === 'inherited') {
+                if ((!effectiveBackground || effectiveBackground.type === 'inherited') && master) {
                     effectiveBackground = master.background;
                 }
                 
@@ -123,7 +129,7 @@ export class BaseRenderer {
                     effectiveBackground,
                     effectiveElements,
                     effectiveOrder,
-                    themeSettings: master.themeSettings
+                    themeSettings: master ? master.themeSettings : {}
                 };
             }
             return null;

@@ -112,6 +112,7 @@ export const canvasElementMenuConfig = {
         let isGroup = false;
         let isLocked = false;
         let isHidden = false;
+        let isPlaceholder = false;
         
         if (container && elementIds && elementIds.length === 1) {
             const element = container.elements[elementIds[0]];
@@ -119,10 +120,23 @@ export const canvasElementMenuConfig = {
                 isGroup = element.type === 'group';
                 isLocked = !!element.locked;
                 isHidden = !!element.hidden;
+                isPlaceholder = !!element.isPlaceholder;
             }
         }
         
         return [
+            {
+                id: 'reset-placeholder',
+                label: 'Reset to Placeholder',
+                icon: 'fa-solid fa-rotate-left',
+                disabled: !isPlaceholder || isLocked,
+                hidden: !isPlaceholder,
+                action: () => {
+                    // Removing the slide-level element reveals the underlying layout placeholder
+                    elementIds.forEach(id => store.dispatch('REMOVE_ELEMENT', id));
+                }
+            },
+            { type: 'separator', hidden: !isPlaceholder },
             {
                 id: 'cut',
                 label: 'Cut',

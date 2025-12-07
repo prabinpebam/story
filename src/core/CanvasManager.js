@@ -499,6 +499,14 @@ export class CanvasManager {
                     placeholderId: hit.id,
                     element: hit.element
                 });
+                
+                // Enter edit mode immediately for text placeholders
+                if (hit.element.type === 'text') {
+                    store.dispatch('SET_EDITING_ELEMENT', { 
+                        id: hit.id, 
+                        selectionType: 'all'
+                    });
+                }
                 return;
             } else {
                 return;
@@ -1183,6 +1191,24 @@ export class CanvasManager {
         this._broadcastMouseState(mouseX, mouseY, e, state, false);
 
         if (this.interactionState === 'RESIZING' || this.interactionState === 'DRAGGING') {
+            // Check for click (no drag) on local placeholder
+            if (this.interactionState === 'DRAGGING') {
+                const dist = Math.hypot(mouseX - this.dragStart.x, mouseY - this.dragStart.y);
+                if (dist < 3) {
+                    const hit = this.hitTest(mouseX, mouseY);
+                    if (hit && hit.type === 'element' && !hit.isInherited) {
+                        const container = this.getActiveContainer(state);
+                        const el = container?.elements?.[hit.id];
+                        if (el && el.isPlaceholder && el.type === 'text') {
+                            store.dispatch('SET_EDITING_ELEMENT', { 
+                                id: hit.id, 
+                                selectionType: 'all'
+                            });
+                        }
+                    }
+                }
+            }
+
             store.dispatch('END_INTERACTION');
         }
 

@@ -201,7 +201,12 @@ export class TextElement extends VisualElement {
         div.style.margin = '0';
         div.style.boxSizing = 'border-box';
         div.style.overflow = 'visible'; // Allow text to be seen, but box is defined by ResizeObserver
-        div.style.border = 'none'; // No DOM border - placeholder overlay is drawn on canvas
+        
+        if (isPlaceholder && isEmptyPlaceholder) {
+            div.style.border = ''; // Allow CSS to apply dashed border
+        } else {
+            div.style.border = 'none';
+        }
 
         // Placeholder visual styling
         if (isPlaceholder) {
