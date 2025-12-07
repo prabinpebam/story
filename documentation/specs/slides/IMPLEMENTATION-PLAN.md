@@ -236,7 +236,25 @@ interface UndoableAction {
 
 ---
 
-## Phase 1: Master Slide System (3 weeks) 🔄 **IN PROGRESS**
+## Phase 1: Master Slide System (3 weeks) ⚠️ **REQUIRES REFACTORING**
+
+### ⚠️ ARCHITECTURE VIOLATION NOTICE
+
+**Phase 1.1 (Theme Management) MUST BE ROLLED BACK:**
+- ❌ Violates preset separation architecture
+- ❌ Embeds colors directly in master (`themeSettings.colors`)
+- ❌ Should use REFERENCES to separate `colorThemePresets` library
+- ❌ Prevents independent color/typography manipulation
+
+**See:** 
+- [TERMINOLOGY-AND-ARCHITECTURE.md](./TERMINOLOGY-AND-ARCHITECTURE.md) - Correct architecture
+- [ARCHITECTURE-REFACTORING-PLAN.md](./ARCHITECTURE-REFACTORING-PLAN.md) - Detailed rollback plan
+
+**Refactoring Required:**
+1. Remove Phase 1.1 code (ThemePicker, ThemeManager - 1,201 lines)
+2. Restructure state: Add `colorThemePresets`, `typographyStylePresets`, `slideMasterPresets`
+3. Build new components: ColorThemePicker, TypographyStylePicker, SlideMasterPresetPicker
+4. Update terminology throughout codebase
 
 ### Current Status
 **Existing Implementation:**
@@ -245,8 +263,10 @@ interface UndoableAction {
 - ✅ Basic master data structure in state
 - ✅ Layout change with content remapping logic
 - ✅ Undo/redo support for slide operations
+- ⚠️ Phase 1.1 Theme Management (REQUIRES ROLLBACK - architecture violation)
 
 **Gaps to Address:**
+- 🔄 Rollback Phase 1.1 and implement correct preset separation
 - ⏸️ Placeholder system needs enhancement
 - ⏸️ Theme management UI incomplete
 - ⏸️ Built-in layouts need expansion
@@ -283,14 +303,18 @@ interface UndoableAction {
 - **Undo:** Add/remove/move placeholders
 - **Risk:** MEDIUM - Complex interaction
 
-**Task 1.3: Theme System (Colors/Fonts)**
-- [ ] Implement `PresentationTheme` interface
-- [ ] 12-color palette system
-- [ ] Theme fonts (heading + body)
-- [ ] Theme application to masters
-- **Test:** Apply theme, verify colors propagate
-- **Undo:** Change theme
-- **Risk:** LOW - Color mapping
+**Task 1.3: Preset System (Color Themes & Typography Styles)** ⚠️ REQUIRES REFACTORING
+- [ ] Implement `ColorThemePreset` interface (separate library)
+- [ ] Implement `TypographyStylePreset` interface (separate library)
+- [ ] 12-color semantic palette system
+- [ ] Font families + text style definitions
+- [ ] Preset application at master/layout/slide level (cascading)
+- [ ] Slide masters REFERENCE presets (never embed)
+- **Test:** Apply color theme, verify colors propagate via CSS variables
+- **Test:** Apply typography style, verify fonts/sizes update
+- **Undo:** Change color theme, change typography style
+- **Risk:** LOW - Reference resolution
+- **Note:** Phase 1.1 implementation violates this - see ARCHITECTURE-REFACTORING-PLAN.md
 
 #### Week 4: Master Editor UI
 
@@ -323,51 +347,82 @@ interface UndoableAction {
 - **Undo:** All placeholder operations
 - **Risk:** MEDIUM - Interaction complexity
 
-#### Week 5: Theme Management UI
+#### Week 5: Preset Management UI ⚠️ REQUIRES REFACTORING
 
-**Task 1.7: Theme Picker UI**
-- [ ] Create `<ThemePicker>` modal
-- [ ] Theme preview thumbnails
-- [ ] Color variant selector
-- [ ] Built-in themes (5 themes)
-- **Test:** Switch between themes rapidly
-- **Design:** Use existing picker pattern
-- **Undo:** Apply theme
+**Task 1.7: Color Theme Picker UI**
+- [ ] Create `<ColorThemePicker>` modal (separate from master picker)
+- [ ] Color theme preview cards (show all 12 colors)
+- [ ] Apply at master/layout/slide level
+- [ ] Built-in color themes (10+ themes)
+- **Test:** Switch between color themes rapidly at different levels
+- **Design:** Use existing modal pattern
+- **Undo:** Apply color theme
+- **Risk:** LOW - UI only
+- **Note:** Phase 1.1 ThemePicker violates separation - must be removed
+
+**Task 1.8: Typography Style Picker UI**
+- [ ] Create `<TypographyStylePicker>` modal (separate component)
+- [ ] Typography preview cards (show heading + body samples)
+- [ ] Apply at master/layout/slide level
+- [ ] Built-in typography styles (8+ styles)
+- [ ] Font family selection (Google Fonts integration)
+- **Test:** Switch typography styles, verify font loading
+- **Design:** Use existing modal pattern
+- **Undo:** Apply typography style
 - **Risk:** LOW - UI only
 
-**Task 1.8: Custom Theme Colors Dialog**
-- [ ] Create `<CustomThemeColors>` dialog
-- [ ] 12 color inputs with pickers
-- [ ] Preview panel
-- [ ] Save custom theme
-- **Test:** Create custom theme, verify it persists
-- **Design:** Use existing color picker
-- **Undo:** Create/modify theme
+**Task 1.9: Slide Master Preset Picker UI**
+- [ ] Create `<SlideMasterPresetPicker>` modal
+- [ ] Master preset preview cards (show layouts + referenced presets)
+- [ ] Built-in master presets (5+ presets)
+- [ ] "Create from Current" option
+- **Test:** Apply master preset, verify structure + color + typography
+- **Design:** Use existing modal pattern
+- **Undo:** Apply master preset
+- **Risk:** MEDIUM - Complex preview rendering
+
+**Task 1.10: Custom Preset Editors**
+- [ ] Custom color theme editor (12 color inputs)
+- [ ] Custom typography editor (font picker + size scale)
+- [ ] Save to preset libraries
+- **Test:** Create custom presets, verify persistence
+- **Design:** Use existing ColorInput component
+- **Undo:** Create/modify presets
 - **Risk:** LOW - Form UI
 
-**Task 1.9: Multiple Masters Support**
-- [ ] Add "New Master" button in master view
-- [ ] Master management (rename, delete, duplicate)
-- [ ] Switch slide to different master
-- [ ] Master usage tracking
-- **Test:** Create 3 masters, assign slides to each
+**Task 1.11: Multiple Slide Master Presets Support**
+- [ ] Add "New Master Preset" button in master view
+- [ ] Master preset management (rename, delete, duplicate)
+- [ ] Switch slide to different master preset
+- [ ] Master preset usage tracking
+- [ ] Each master references color theme + typography style
+- **Test:** Create 3 master presets, assign slides to each, change their color themes independently
 - **Design:** Use existing + button pattern
-- **Undo:** All master management operations
-- **Risk:** MEDIUM - Data relationships
+- **Undo:** All master preset management operations
+- **Risk:** MEDIUM - Data relationships and reference resolution
 
 ### Deliverables
-- ✅ Master editing mode functional
+- ⚠️ Master editing mode functional (needs preset refactoring)
 - ✅ 10 built-in layouts available
 - ✅ Placeholder system working
-- ✅ 5 built-in themes + custom themes
+- ⚠️ 10+ color theme presets in separate library (Phase 1.1 needs refactoring)
+- ⚠️ 8+ typography style presets in separate library (not yet implemented)
+- ⚠️ 5+ slide master presets (structure only, reference color/typography)
 - ✅ Multiple masters per presentation
+- ⚠️ Mix-and-match capability (Corporate master + Sunset colors + Serif typography)
 
 ### Exit Criteria
-- Can create master with 3 layouts
+- Can create master preset with 3 layouts
 - Can insert all placeholder types
-- Theme changes propagate to all slides
-- All Phase 1 tests passing
+- Can apply color theme at master/layout/slide level independently
+- Can apply typography style at master/layout/slide level independently
+- Color theme changes propagate via cascading inheritance
+- Typography style changes propagate via cascading inheritance
+- Masters NEVER embed colors or fonts (only references)
+- All Phase 1 tests passing (including preset separation tests)
 - Performance: Master change < 200ms
+- Performance: Color theme change < 100ms
+- Performance: Typography style change < 100ms
 
 ---
 

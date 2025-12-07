@@ -1,8 +1,18 @@
 # Slide System - Master Feature Specification
 
-**Version:** 1.0  
+**Version:** 2.0  
 **Last Updated:** December 7, 2025  
 **Status:** Comprehensive Specification
+
+## ⚠️ Architecture Update Notice
+
+**Critical architectural refinement** has been made to ensure proper separation of concerns:
+
+- **Slide Master Presets**: Structure and layout templates (NEVER embed colors/typography)
+- **Color Theme Presets**: Reusable 12-color palettes (separate library)
+- **Typography Style Presets**: Reusable font systems (separate library)
+
+**See:** [TERMINOLOGY-AND-ARCHITECTURE.md](./TERMINOLOGY-AND-ARCHITECTURE.md) for complete definitions.
 
 ## Document Structure
 
@@ -14,7 +24,9 @@ The slide system is documented across multiple focused specifications:
 
 | Document | Description |
 |----------|-------------|
-| **[01-slide-master-system.md](./01-slide-master-system.md)** | Master slides, layout masters, multiple masters, inheritance |
+| **[TERMINOLOGY-AND-ARCHITECTURE.md](./TERMINOLOGY-AND-ARCHITECTURE.md)** | ⭐ Authoritative terminology reference, preset separation architecture |
+| **[ARCHITECTURE-REFACTORING-PLAN.md](./ARCHITECTURE-REFACTORING-PLAN.md)** | Detailed refactoring plan for preset separation |
+| **[01-slide-master-system.md](./01-slide-master-system.md)** | Slide master presets, layout masters, color themes, typography styles |
 | **[02-slide-navigation.md](./02-slide-navigation.md)** | Navigation UI/UX, keyboard shortcuts, slide sorter |
 | **[03-slide-sections.md](./03-slide-sections.md)** | Section management, organization, collapsing |
 | **[04-slide-operations.md](./04-slide-operations.md)** | CRUD operations, copy/paste, duplicate, transitions |
@@ -33,18 +45,28 @@ The slide system is documented across multiple focused specifications:
 
 ### 1.1 Core Concepts
 
-The slide system implements a hierarchical template-based architecture with four primary layers:
+The slide system implements a hierarchical template-based architecture with **preset separation**:
 
 ```
 ┌─────────────────────────────────────────────────────────┐
 │                    PRESENTATION                         │
-│  • Global settings (size, theme, metadata)              │
-│  • Multiple slide masters                               │
+│  • Global settings (size, metadata)                    │
+│  • Color Theme Presets (library, reusable)            │
+│  • Typography Style Presets (library, reusable)       │
+│  • Slide Master Presets (structure + references)      │
 │  • Sections for organization                            │
 │  • Presentation-level assets (fonts, media)             │
-└────────────────┬────────────────────────────────────────┘
+└─────────────────────────────────────────────────────────┘
                  │
-                 ├─► Slide Masters (Multiple allowed)
+                 ├─► Color Theme Presets (10+)
+                 │   └─► 12 semantic colors each
+                 │
+                 ├─► Typography Style Presets (8+)
+                 │   └─► Font families + text styles
+                 │
+                 ├─► Slide Master Presets (Multiple allowed)
+                 │   ├─ colorThemeId (reference, not embedded)
+                 │   ├─ typographyStyleId (reference, not embedded)
                  │   └─► Layout Masters (1+ per master)
                  │       └─► Slides (instances of layouts)
                  │
@@ -120,13 +142,74 @@ interface PresentationSettings {
   snapToGuides: boolean;
 }
 
-interface SlideMaster {
+interface SlideMasterPreset {
   id: string;
+  type: 'slideMasterPreset';
   name: string;
-  theme: ThemeSettings;
-  layouts: LayoutMaster[];
+  
+  // REFERENCES ONLY (never embed actual colors/fonts)
+  colorThemeId: string;              // Points to ColorThemePreset
+  typographyStyleId: string;         // Points to TypographyStylePreset
+  
+  layoutIds: string[];               // References to LayoutMasters
+  elements: Element[];               // Master-level elements (logo, footer)
+  background: FillSettings | null;
   preserveAspectRatio: boolean;
   headerFooter: HeaderFooterSettings;
+}
+
+interface ColorThemePreset {
+  id: string;
+  type: 'colorThemePreset';
+  name: string;
+  description: string;
+  category: string;
+  isDark: boolean;
+  
+  // Actual color definitions (12 semantic colors)
+  colors: {
+    background1: string;             // Hex color
+    background2: string;
+    text1: string;
+    text2: string;
+    accent1: string;
+    accent2: string;
+    accent3: string;
+    accent4: string;
+    accent5: string;
+    accent6: string;
+    hyperlink: string;
+    followedHyperlink: string;
+  };
+}
+
+interface TypographyStylePreset {
+  id: string;
+  type: 'typographyStylePreset';
+  name: string;
+  description: string;
+  category: string;
+  
+  // Font families
+  fonts: {
+    heading: string;
+    body: string;
+    monospace?: string;
+  };
+  
+  // Text style definitions
+  textStyles: {
+    display: TextStyleDefinition;
+    title: TextStyleDefinition;
+    heading1: TextStyleDefinition;
+    heading2: TextStyleDefinition;
+    heading3: TextStyleDefinition;
+    body: TextStyleDefinition;
+    bodyLarge: TextStyleDefinition;
+    bodySmall: TextStyleDefinition;
+    caption: TextStyleDefinition;
+    label: TextStyleDefinition;
+  };
 }
 
 interface LayoutMaster {

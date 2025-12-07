@@ -1,56 +1,101 @@
-# Slide Master System - Masters, Layouts, Themes, Placeholders
+# Slide Master System - Presets, Layouts, Cascading Styles
 
-**Version:** 1.0  
+**Version:** 2.0  
 **Last Updated:** December 7, 2025
 
 ## 1. Overview
 
-The Slide Master system is the foundation of presentation design, providing template-based consistency across all slides. This document specifies the complete master slide architecture, layout management, placeholder system, and theme integration.
+The Slide Master system is the foundation of presentation design, providing template-based consistency across all slides. This document specifies the complete master slide architecture with clear separation of concerns:
+
+- **Slide Master Presets**: Structure and layout templates (NEVER embed colors/typography)
+- **Color Theme Presets**: Reusable color palettes (12 semantic colors)
+- **Typography Style Presets**: Reusable font systems (families, sizes, weights)
+
+**Critical Principle:** Slide Master Presets ONLY reference Color Theme and Typography Style Presets via IDs. They never embed actual color values or font definitions. This separation enables independent manipulation without conflicts.
+
+For complete terminology definitions, see [TERMINOLOGY-AND-ARCHITECTURE.md](./TERMINOLOGY-AND-ARCHITECTURE.md).
 
 ---
 
 ## 2. Master Slide Hierarchy
 
-### 2.1 Three-Tier Architecture
+### 2.1 Architecture with Preset Separation
 
 ```
 PRESENTATION
 │
-├─► SLIDE MASTER (Multiple allowed)
-│   ├─ Theme (colors, fonts, effects)
-│   ├─ Background
-│   ├─ Global elements (logo, footer, etc.)
-│   └─► LAYOUT MASTERS (1+ per master)
-│       ├─ Title Slide Layout
-│       ├─ Title + Content Layout
-│       ├─ Two Column Layout
-│       ├─ Blank Layout
-│       └─ Custom Layouts...
-│           └─► SLIDES (instances)
-│               ├─ Slide 1 (uses Title Layout)
-│               ├─ Slide 2 (uses Content Layout)
-│               └─ Slide 3 (uses Two Column)
+├─► COLOR THEME PRESETS (Library, reusable)
+│   ├─ Default Colors (12 semantic colors)
+│   ├─ Ocean Blue
+│   ├─ Sunset Warm
+│   └─ Forest Green ...
+│
+├─► TYPOGRAPHY STYLE PRESETS (Library, reusable)
+│   ├─ Modern Sans (Inter, size scale)
+│   ├─ Formal Serif (Merriweather)
+│   └─ Technical Mono ...
+│
+├─► SLIDE MASTER PRESETS (Multiple allowed)
+│   │
+│   ├─ SLIDE MASTER: "Corporate"
+│   │   ├─ colorThemeId: "color-theme-default" ← REFERENCE
+│   │   ├─ typographyStyleId: "typo-style-modern" ← REFERENCE
+│   │   ├─ Background
+│   │   ├─ Master elements (logo, footer, etc.)
+│   │   │
+│   │   └─► LAYOUT MASTERS (1+ per master)
+│   │       ├─ Title Slide Layout
+│   │       ├─ Title + Content Layout
+│   │       ├─ Two Column Layout
+│   │       ├─ Blank Layout
+│   │       └─ Custom Layouts...
+│   │           │
+│   │           └─► SLIDES (instances)
+│   │               ├─ Slide 1 (uses Title Layout)
+│   │               │   ├─ colorThemeId: null (inherit)
+│   │               │   └─ typographyStyleId: null (inherit)
+│   │               │
+│   │               ├─ Slide 2 (uses Content Layout)
+│   │               │   ├─ colorThemeId: "sunset" (OVERRIDE)
+│   │               │   └─ typographyStyleId: null (inherit)
+│   │               │
+│   │               └─ Slide 3 (uses Two Column)
 ```
 
-### 2.2 Master Slide Purpose
+### 2.2 Component Purposes
 
-**Slide Master:**
-- Defines presentation-wide design
-- Sets default fonts, colors, effects
-- Contains elements that appear on all slides
-- Can have multiple masters per presentation
+**Slide Master Preset:**
+- Defines presentation-wide structure and layout templates
+- REFERENCES color theme preset (via `colorThemeId`)
+- REFERENCES typography style preset (via `typographyStyleId`)
+- Contains master elements that appear on all slides (logo, footer)
+- Can have multiple master presets per presentation
+- **NEVER embeds actual colors or font definitions**
 
 **Layout Master:**
-- Defines specific slide arrangements
-- Contains placeholders for content
-- Inherits from parent slide master
-- Can override master settings
+- Defines specific slide arrangements within a master preset
+- Contains placeholders for content (position, size, type)
+- Inherits color theme and typography from parent master (if not overridden)
+- Can override with different color theme or typography style
 
 **Slide:**
-- Instance of a layout
-- Contains actual content
-- Can override layout/master settings
+- Instance of a layout master
+- Contains actual content (text, images, shapes)
+- Inherits color theme and typography from layout (if not overridden)
+- Can override with different color theme or typography style
 - Preserves content through template changes
+
+**Color Theme Preset:**
+- Standalone 12-color palette (background1-2, text1-2, accent1-6, hyperlink, followedHyperlink)
+- Reusable across ANY master preset
+- Can be applied at master/layout/slide/element level
+- Stored in separate `colorThemePresets` library
+
+**Typography Style Preset:**
+- Standalone font system (heading/body fonts + text style definitions)
+- Reusable across ANY master preset
+- Can be applied at master/layout/slide/element level
+- Stored in separate `typographyStylePresets` library
 
 ---
 
