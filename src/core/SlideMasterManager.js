@@ -151,6 +151,71 @@ export class SlideMasterManager {
             }
         });
     }
+
+    /**
+     * Apply a font preset to a master.
+     * This creates/updates a TypographyStylePreset and sets the master to reference it.
+     * 
+     * @param {string} masterId 
+     * @param {Object} preset - { id, name, fonts, styles }
+     */
+    applyFontPreset(masterId, preset) {
+        if (!masterId || !preset) return;
+
+        store.dispatch('APPLY_FONT_PRESET', {
+            masterId,
+            preset
+        });
+    }
+
+    /**
+     * Reset theme fonts to default.
+     * 
+     * @param {string} masterId 
+     */
+    resetThemeFonts(masterId) {
+        if (!masterId) return;
+
+        store.dispatch('RESET_THEME_FONTS', {
+            masterId
+        });
+    }
+
+    /**
+     * Update a specific font (heading/body) in the referenced typography style.
+     * 
+     * @param {string} masterId 
+     * @param {string} fontType - 'heading' or 'body'
+     * @param {string} value - Font family name
+     */
+    updateThemeFont(masterId, fontType, value) {
+        if (!masterId || !fontType || !value) return;
+
+        store.dispatch('UPDATE_THEME_FONT', {
+            masterId,
+            fontType,
+            value
+        });
+    }
+
+    /**
+     * Update a text style property in the referenced typography style.
+     * 
+     * @param {string} masterId 
+     * @param {string} styleId 
+     * @param {string} property 
+     * @param {any} value 
+     */
+    updateTextStyle(masterId, styleId, property, value) {
+        if (!masterId || !styleId || !property) return;
+
+        store.dispatch('UPDATE_TEXT_STYLE', {
+            masterId,
+            styleId,
+            property,
+            value
+        });
+    }
 }
 
 // Export singleton instance

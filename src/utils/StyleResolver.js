@@ -518,6 +518,58 @@ export const StyleResolver = {
     },
 
     /**
+     * Get the effective typography style for a given slide.
+     * Resolves through the cascade hierarchy:
+     * 1. If slide has typographyStyleId, look up that style
+     * 2. If layout has typographyStyleId, look up that style
+     * 3. Fall back to master's typographyStyleId
+     * 
+     * @param {string} slideId - The slide ID (optional, uses active slide if not provided)
+     * @returns {Object} The resolved typography style object { fonts, textStyles }
+     */
+    getTypographyStyle(slideId = null) {
+        const store = getStore();
+        if (!store) return { fonts: { heading: 'Inter', body: 'Inter' }, textStyles: {} };
+        const state = store.getState();
+        
+        // If no slideId, try to get active slide
+        if (!slideId) {
+            slideId = state.editor?.activeSlideId;
+        }
+        
+        // Get the theme master
+        const themeMaster = Object.values(state.slideMasterPresets || {}).find(m => m.type === 'slideMasterPreset');
+        
+        // Resolve Master Typography
+        let masterTypography = null;
+        
+        // 1. Try Reference (New Architecture)
+        if (themeMaster?.typographyStyleId) {
+            const preset = state.typographyStylePresets?.[themeMaster.typographyStyleId];
+            if (preset) {
+                masterTypography = {
+                    fonts: preset.fonts,
+                    textStyles: preset.textStyles
+                };
+            }
+        }
+        
+        // 2. Fallback to Embedded (Legacy)
+        if (!masterTypography) {
+            masterTypography = {
+                fonts: themeMaster?.themeSettings?.fonts || { heading: 'Inter', body: 'Inter' },
+                textStyles: themeMaster?.themeSettings?.textStyles || {}
+            };
+        }
+        
+        // If we have a slideId, check for slide-level override
+        // TODO: Implement slide/layout level overrides if needed
+        // For now, we just return the master typography
+        
+        return masterTypography;
+    },
+
+    /**
      * Resolves the final text properties for an element.
      * @param {Object} element - The text element.
      * @param {Object} globalStyles - Map of styleId -> styleObject (from theme.themeSettings.textStyles).
@@ -626,15 +678,23 @@ export const StyleResolver = {
     /**
      * Resolves CSS variable references to actual values.
      * @param {string} value - The value that may contain CSS variables.
-     * @param {Object} theme - The theme object with themeSettings.
+     * @param {string} slideId - Optional slide ID for context.
      * @returns {string} The resolved value.
      */
-    resolveThemeVariable(value, theme) {
-        if (typeof value !== 'string' || !value.includes('var(')) return value;
+    resolveVariables(value, slideId = null) {
+        if (!value || typeof value !== 'string' || !value.includes('var(--')) {
+            return value;
+        }
+
+        // Get theme info
+        const lumaTheme = this.getLumaTheme(slideId);
+        const typography = this.getTypographyStyle(slideId);
         
-        const fonts = theme?.themeSettings?.fonts || { heading: 'Inter', body: 'Inter' };
-        const colors = theme?.themeSettings?.colors || { 
-            // 12-color schema defaults
+        const colors = lumaTheme?.resolvedColors || lumaTheme?.slots?.map(s => s.hex) || {};
+        const fonts = typography?.fonts || { heading: 'Inter', body: 'Inter' };
+        
+        // Legacy fallback for colors object
+        const legacyColors = {
             background1: '#FFFFFF',
             background2: '#F5F5F5',
             text1: '#333333',
@@ -658,28 +718,33 @@ export const StyleResolver = {
             .replace('var(--theme-font-heading)', fonts.heading)
             .replace('var(--theme-font-body)', fonts.body)
             // 12-color schema variables (new format)
-            .replace('var(--theme-background1)', colors.background1 || '#FFFFFF')
-            .replace('var(--theme-background2)', colors.background2 || '#F5F5F5')
-            .replace('var(--theme-text1)', colors.text1 || '#333333')
-            .replace('var(--theme-text2)', colors.text2 || '#666666')
-            .replace('var(--theme-accent1)', colors.accent1 || '#18A0FB')
-            .replace('var(--theme-accent2)', colors.accent2 || '#7B61FF')
-            .replace('var(--theme-accent3)', colors.accent3 || '#1BC47D')
-            .replace('var(--theme-accent4)', colors.accent4 || '#F24822')
-            .replace('var(--theme-accent5)', colors.accent5 || '#FFBE0B')
-            .replace('var(--theme-accent6)', colors.accent6 || '#FF006E')
-            .replace('var(--theme-hyperlink)', colors.hyperlink || '#0066CC')
-            .replace('var(--theme-followed-hyperlink)', colors.followedHyperlink || '#954F72')
-            // Dash-separated accent format (used in templates)
-            .replace('var(--theme-accent-1)', colors.accent1 || '#18A0FB')
-            .replace('var(--theme-accent-2)', colors.accent2 || '#7B61FF')
-            .replace('var(--theme-accent-3)', colors.accent3 || '#1BC47D')
-            .replace('var(--theme-accent-4)', colors.accent4 || '#F24822')
-            .replace('var(--theme-accent-5)', colors.accent5 || '#FFBE0B')
-            .replace('var(--theme-accent-6)', colors.accent6 || '#FF006E')
+            .replace('var(--theme-slot1)', colors[0] || '#000000')
+            .replace('var(--theme-slot2)', colors[1] || '#000000')
+            .replace('var(--theme-slot3)', colors[2] || '#000000')
+            .replace('var(--theme-slot4)', colors[3] || '#000000')
+            .replace('var(--theme-slot5)', colors[4] || '#000000')
+            .replace('var(--theme-slot6)', colors[5] || '#000000')
+            .replace('var(--theme-slot7)', colors[6] || '#000000')
+            .replace('var(--theme-slot8)', colors[7] || '#000000')
+            .replace('var(--theme-slot9)', colors[8] || '#000000')
+            .replace('var(--theme-slot10)', colors[9] || '#000000')
+            .replace('var(--theme-slot11)', colors[10] || '#000000')
+            .replace('var(--theme-slot12)', colors[11] || '#000000')
             // Legacy variables (backwards compatibility)
-            .replace('var(--theme-text-primary)', colors.textPrimary || colors.text1 || '#333333')
-            .replace('var(--theme-text-secondary)', colors.textSecondary || colors.text2 || '#666666')
-            .replace('var(--theme-accent)', colors.accent || colors.accent1 || '#18A0FB');
+            .replace('var(--theme-background1)', legacyColors.background1)
+            .replace('var(--theme-background2)', legacyColors.background2)
+            .replace('var(--theme-text1)', legacyColors.text1)
+            .replace('var(--theme-text2)', legacyColors.text2)
+            .replace('var(--theme-accent1)', legacyColors.accent1)
+            .replace('var(--theme-accent2)', legacyColors.accent2)
+            .replace('var(--theme-accent3)', legacyColors.accent3)
+            .replace('var(--theme-accent4)', legacyColors.accent4)
+            .replace('var(--theme-accent5)', legacyColors.accent5)
+            .replace('var(--theme-accent6)', legacyColors.accent6)
+            .replace('var(--theme-hyperlink)', legacyColors.hyperlink)
+            .replace('var(--theme-followed-hyperlink)', legacyColors.followedHyperlink)
+            .replace('var(--theme-text-primary)', legacyColors.textPrimary)
+            .replace('var(--theme-text-secondary)', legacyColors.textSecondary)
+            .replace('var(--theme-accent)', legacyColors.accent);
     }
 };
