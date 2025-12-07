@@ -115,7 +115,20 @@ export const StyleResolver = {
             return themeMaster.colorModeId;
         }
         
-        // Fallback to lumaTheme colorMode
+        // Check referenced color theme (New Architecture)
+        if (themeMaster?.colorThemeId) {
+            const preset = state.colorThemePresets?.[themeMaster.colorThemeId];
+            if (preset) {
+                // Check lumaTheme specific mode
+                if (preset.lumaTheme?.colorMode) {
+                    return preset.lumaTheme.colorMode;
+                }
+                // Check standard isDark property
+                return preset.isDark ? COLOR_MODES.DARK : COLOR_MODES.LIGHT;
+            }
+        }
+        
+        // Fallback to lumaTheme colorMode (Legacy)
         return themeMaster?.themeSettings?.lumaTheme?.colorMode || COLOR_MODES.LIGHT;
     },
     
@@ -141,7 +154,22 @@ export const StyleResolver = {
         
         // Get the theme master
         const themeMaster = Object.values(state.slideMasterPresets || {}).find(m => m.type === 'slideMasterPreset');
-        const masterLumaTheme = themeMaster?.themeSettings?.lumaTheme || null;
+        
+        // Resolve Master Luma Theme
+        let masterLumaTheme = null;
+        
+        // 1. Try Reference (New Architecture)
+        if (themeMaster?.colorThemeId) {
+            const preset = state.colorThemePresets?.[themeMaster.colorThemeId];
+            if (preset?.lumaTheme) {
+                masterLumaTheme = preset.lumaTheme;
+            }
+        }
+        
+        // 2. Fallback to Embedded (Legacy)
+        if (!masterLumaTheme) {
+            masterLumaTheme = themeMaster?.themeSettings?.lumaTheme || null;
+        }
         
         // If we have a slideId, check for slide-level override
         if (slideId) {
@@ -149,6 +177,12 @@ export const StyleResolver = {
             
             // If the slide or layout has a specific theme assigned, look it up
             if (themeInfo.themeId && themeInfo.source !== 'master') {
+                // Try to find in state first
+                const statePreset = state.colorThemePresets?.[themeInfo.themeId];
+                if (statePreset?.lumaTheme) {
+                    return statePreset.lumaTheme;
+                }
+
                 const resolvedTheme = this._lookupThemeById(themeInfo.themeId);
                 if (resolvedTheme) {
                     return resolvedTheme;

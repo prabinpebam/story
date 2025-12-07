@@ -4,42 +4,66 @@ import { getDefaultFontPreset } from '../../constants/FontPresets.js';
 import { getPresetById, getFullPresetById } from '../SlideMasterPresets.js';
 
 // ========================================
-// LUMA-LOCKED THEME HANDLERS
+// LUMA-LOCKED THEME HANDLERS (REFACTORED)
 // ========================================
 
 /**
  * Apply a luma-locked color theme.
- * The theme contains 12 slots with fixed luma values and variable H/S.
+ * Updates the master to REFERENCE a ColorThemePreset.
+ * Creates/Updates the preset in the library.
+ * 
  * @param {Object} draft - Immer draft state
- * @param {Object} payload - { masterId: string, theme: { id, name, slots, adjustments } }
+ * @param {Object} payload - { masterId: string, theme: { id, name, slots, adjustments, colors } }
  */
 export function handleApplyLumaTheme(draft, payload) {
     const { masterId, theme } = payload;
     const themeMaster = draft.slideMasterPresets[masterId];
     
     if (themeMaster && themeMaster.type === 'slideMasterPreset' && theme) {
-        if (!themeMaster.themeSettings) {
-            themeMaster.themeSettings = { colors: {}, fonts: {}, textStyles: {} };
+        // 1. Ensure colorThemePresets exists
+        if (!draft.colorThemePresets) {
+            draft.colorThemePresets = {};
         }
-        
-        // Store the luma-locked theme data
-        themeMaster.themeSettings.lumaTheme = {
+
+        // 2. Create or Update the ColorThemePreset
+        // We store the luma definition within the preset for editing support
+        draft.colorThemePresets[theme.id] = {
             id: theme.id,
+            type: 'colorThemePreset',
             name: theme.name,
-            slots: theme.slots,
-            adjustments: theme.adjustments || {},
-            isInverted: theme.isInverted || false
+            description: theme.description || "Custom Luma Theme",
+            category: "Custom",
+            isDark: theme.isDark || false, // Default to light if not specified
+            
+            // Store luma-specific data for the generator/editor
+            lumaTheme: {
+                id: theme.id,
+                name: theme.name,
+                slots: theme.slots,
+                adjustments: theme.adjustments || {},
+                isInverted: theme.isInverted || false,
+                resolvedColors: theme.colors // Store the array for backward compatibility
+            },
+            
+            // Populate standard colors object if possible
+            // For now, we leave it empty or partial as we rely on lumaTheme.resolvedColors
+            colors: {} 
         };
+
+        // 3. Update the Master to REFERENCE the preset
+        themeMaster.colorThemeId = theme.id;
         
-        // Also compute and store the resolved colors for easy access
-        if (theme.colors && Array.isArray(theme.colors)) {
-            themeMaster.themeSettings.lumaTheme.resolvedColors = theme.colors;
+        // 4. Cleanup old embedded settings (Migration)
+        if (themeMaster.themeSettings) {
+            delete themeMaster.themeSettings;
         }
     }
 }
 
 /**
  * Update a single slot in the luma-locked theme.
+ * Updates the REFERENCED preset.
+ * 
  * @param {Object} draft - Immer draft state
  * @param {Object} payload - { masterId: string, slotIndex: number, h: number, s: number }
  */
@@ -47,14 +71,20 @@ export function handleUpdateLumaThemeSlot(draft, payload) {
     const { masterId, slotIndex, h, s } = payload;
     const themeMaster = draft.slideMasterPresets[masterId];
     
-    if (themeMaster?.themeSettings?.lumaTheme?.slots && 
-        slotIndex >= 0 && slotIndex < 12) {
-        themeMaster.themeSettings.lumaTheme.slots[slotIndex] = { h, s };
+    if (themeMaster?.colorThemeId) {
+        const themeId = themeMaster.colorThemeId;
+        const preset = draft.colorThemePresets?.[themeId];
+        
+        if (preset?.lumaTheme?.slots && slotIndex >= 0 && slotIndex < 12) {
+            preset.lumaTheme.slots[slotIndex] = { h, s };
+        }
     }
 }
 
 /**
  * Update adjustments in the luma-locked theme.
+ * Updates the REFERENCED preset.
+ * 
  * @param {Object} draft - Immer draft state
  * @param {Object} payload - { masterId: string, adjustments: Object }
  */
@@ -62,18 +92,22 @@ export function handleUpdateLumaThemeAdjustments(draft, payload) {
     const { masterId, adjustments } = payload;
     const themeMaster = draft.slideMasterPresets[masterId];
     
-    if (themeMaster?.themeSettings?.lumaTheme && adjustments) {
-        themeMaster.themeSettings.lumaTheme.adjustments = {
-            ...themeMaster.themeSettings.lumaTheme.adjustments,
-            ...adjustments
-        };
+    if (themeMaster?.colorThemeId) {
+        const themeId = themeMaster.colorThemeId;
+        const preset = draft.colorThemePresets?.[themeId];
+        
+        if (preset?.lumaTheme && adjustments) {
+            preset.lumaTheme.adjustments = {
+                ...preset.lumaTheme.adjustments,
+                ...adjustments
+            };
+        }
     }
 }
 
 /**
  * Set the color mode (light/dark) for the luma-locked theme.
- * This doesn't change the actual theme values - it changes how slots are resolved.
- * In dark mode, slot N resolves to slot (11-N), effectively swapping shadows ↔ highlights.
+ * Updates the REFERENCED preset.
  * 
  * @param {Object} draft - Immer draft state
  * @param {Object} payload - { masterId: string, colorMode: 'light' | 'dark' }
@@ -82,8 +116,19 @@ export function handleSetColorMode(draft, payload) {
     const { masterId, colorMode } = payload;
     const themeMaster = draft.slideMasterPresets[masterId];
     
-    if (themeMaster?.themeSettings?.lumaTheme && (colorMode === 'light' || colorMode === 'dark')) {
-        themeMaster.themeSettings.lumaTheme.colorMode = colorMode;
+    if (themeMaster?.colorThemeId && (colorMode === 'light' || colorMode === 'dark')) {
+        const themeId = themeMaster.colorThemeId;
+        const preset = draft.colorThemePresets?.[themeId];
+        
+        if (preset) {
+            // Update standard property
+            preset.isDark = (colorMode === 'dark');
+            
+            // Update luma specific property if it exists
+            if (preset.lumaTheme) {
+                preset.lumaTheme.colorMode = colorMode;
+            }
+        }
     }
 }
 
@@ -98,25 +143,20 @@ export function handleUpdateMasterStyleAssignments(draft, payload) {
     const { masterId, styleAssignments } = payload;
     const master = draft.slideMasterPresets[masterId];
     
-    if (!master) {
-        console.warn('[handleUpdateMasterStyleAssignments] Master not found:', masterId);
-        return;
+    if (master && styleAssignments) {
+        // Direct property updates for references
+        if (styleAssignments.colorTheme !== undefined) {
+            master.colorThemeId = styleAssignments.colorTheme;
+        }
+        if (styleAssignments.typographyStyle !== undefined) {
+            master.typographyStyleId = styleAssignments.typographyStyle;
+        }
+        
+        // Legacy cleanup if needed
+        if (master.styleAssignments) {
+            delete master.styleAssignments;
+        }
     }
-    
-    // Initialize styleAssignments if needed
-    if (!master.styleAssignments) {
-        master.styleAssignments = {};
-    }
-    
-    // Merge the new styleAssignments
-    Object.assign(master.styleAssignments, styleAssignments);
-    
-    console.log('[handleUpdateMasterStyleAssignments] Updated:', {
-        masterId,
-        masterType: master.type,
-        masterName: master.name,
-        newStyleAssignments: master.styleAssignments
-    });
 }
 
 // ========================================
