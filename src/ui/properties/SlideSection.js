@@ -795,13 +795,19 @@ export class SlideSection {
             thumbnail.title = layout.name;
             
             // Get effective layout data (with theme inheritance)
-            const effectiveLayout = store.getEffectiveSlide(layout.id);
+            const effectiveLayout = store.getEffectiveMaster(layout.id);
             
-            // Create accurate preview using ThumbnailRenderer
-            const preview = ThumbnailRenderer.createThumbnail(layout.id, effectiveLayout);
-            preview.className = 'layout-preview';
-            
-            thumbnail.appendChild(preview);
+            // Create accurate preview using ThumbnailRenderer (only if effectiveLayout exists)
+            if (effectiveLayout) {
+                const preview = ThumbnailRenderer.createThumbnail(layout.id, effectiveLayout);
+                preview.className = 'layout-preview';
+                thumbnail.appendChild(preview);
+            } else {
+                // Fallback: create empty preview if layout data unavailable
+                const preview = document.createElement('div');
+                preview.className = 'layout-preview';
+                thumbnail.appendChild(preview);
+            }
             
             // Label
             const label = document.createElement('div');

@@ -587,6 +587,65 @@ export class Store extends EventEmitter {
         return result;
     }
 
+    /**
+     * Helper to get the effective master/layout composition (merging Theme -> Layout)
+     * Used for rendering layout thumbnails in the layout picker
+     * @param {string} masterId - ID of the master/layout
+     */
+    getEffectiveMaster(masterId) {
+        const master = this.state.slideMasterPresets[masterId];
+        if (!master) return null;
+
+        // If it's a theme master, return as-is (no parent)
+        if (master.type === 'themeMaster' || !master.parentMasterId) {
+            return {
+                ...master,
+                effectiveBackground: master.background || { type: 'solid', value: '#ffffff' },
+                effectiveElements: master.elements || {},
+                effectiveOrder: master.elementOrder || []
+            };
+        }
+
+        // Layout master - inherit from theme
+        const theme = this.state.slideMasterPresets[master.parentMasterId];
+        
+        // Resolve background
+        let background = master.background;
+        if (!background || background.type === 'inherited') {
+            if (theme && theme.background) {
+                background = theme.background;
+            }
+        }
+        if (!background || background.type === 'inherited') {
+            background = { type: 'solid', value: '#ffffff' };
+        }
+
+        // Merge elements (theme elements + layout elements)
+        const effectiveElements = {};
+        const effectiveOrder = [];
+
+        // Theme elements first (if not hidden)
+        if (theme && !master.hideBackgroundGraphics) {
+            (theme.elementOrder || []).forEach(id => {
+                effectiveElements[id] = { ...theme.elements[id], isLocked: true, source: 'theme' };
+                effectiveOrder.push(id);
+            });
+        }
+
+        // Layout elements on top
+        (master.elementOrder || []).forEach(id => {
+            effectiveElements[id] = { ...master.elements[id], source: 'layout' };
+            effectiveOrder.push(id);
+        });
+
+        return {
+            ...master,
+            effectiveBackground: background,
+            effectiveElements,
+            effectiveOrder
+        };
+    }
+
     getActiveContainer() {
         if (this.state.editor.mode === 'master') {
             return this.state.slideMasterPresets[this.state.editor.activeMasterId];
