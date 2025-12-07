@@ -27,6 +27,7 @@ import { AppMenu } from './ui/components/AppMenu/AppMenu.js';
 import { fileService } from './ui/services/FileService.js';
 import { menuActionHandler } from './ui/services/MenuActionHandler.js';
 import { FileIndicatorController } from './ui/services/FileIndicatorController.js';
+import { MasterView } from './ui/MasterView.js';
 
 class App {
     constructor() {
@@ -97,6 +98,10 @@ class App {
         this.settingsModal = new SettingsModal();
         this.gridView = new GridView('presentation-grid-view');
         this.hud = new HUD('presentation-hud');
+        
+        // Initialize Master View
+        this.masterView = new MasterView();
+        document.getElementById('app').appendChild(this.masterView.element);
 
         // Initialize App Menu (file menu in sidebar header)
         this.appMenu = new AppMenu('app-menu-container');

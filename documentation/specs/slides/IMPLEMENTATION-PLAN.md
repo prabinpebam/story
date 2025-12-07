@@ -178,8 +178,8 @@ interface UndoableAction {
 - **Undo:** Create/delete/rename master
 
 **Task 1.2: Placeholder System**
-- [ ] Implement `Placeholder` interface (10 types)
-- [ ] Placeholder rendering logic
+- [x] Implement `Placeholder` interface (10 types)
+- [x] Placeholder rendering logic
 - [ ] Content placeholder icon grid
 - [ ] Placeholder edit/resize in master mode
 - **Test:** Insert all placeholder types, verify behavior
@@ -189,7 +189,7 @@ interface UndoableAction {
 - [x] Implement `ColorThemePreset` interface (separate library)
 - [x] Implement `TypographyStylePreset` interface (separate library)
 - [x] 12-color semantic palette system
-- [ ] Font families + text style definitions
+- [x] Font families + text style definitions
 - [x] Preset application at master/layout/slide level (cascading)
 - [x] Slide masters REFERENCE presets (never embed)
 - **Test:** Apply color theme, verify colors propagate via CSS variables
@@ -199,9 +199,9 @@ interface UndoableAction {
 #### Week 4: Master Editor UI
 
 **Task 1.4: Master View Mode**
-- [ ] Create `<MasterView>` component
-- [ ] Mode toggle button in toolbar
-- [ ] Master thumbnail sidebar (left panel)
+- [x] Create `<MasterView>` component
+- [x] Mode toggle button in toolbar
+- [x] Master thumbnail sidebar (left panel)
 - [ ] Master canvas (different from slide canvas)
 - **Test:** Enter/exit master mode smoothly
 
@@ -232,11 +232,11 @@ interface UndoableAction {
 - **Undo:** Apply color theme
 
 **Task 1.8: Typography Style Picker UI**
-- [ ] Create `<TypographyStylePicker>` modal
-- [ ] Typography preview cards (show heading + body samples)
-- [ ] Apply at master/layout/slide level
-- [ ] Built-in typography styles (8+ styles)
-- [ ] Font family selection (Google Fonts integration)
+- [x] Create `<TypographyStylePicker>` modal (Implemented as TypographyStyleManager panel)
+- [x] Typography preview cards (show heading + body samples)
+- [x] Apply at master/layout/slide level
+- [x] Built-in typography styles (8+ styles)
+- [x] Font family selection (Google Fonts integration)
 - **Test:** Switch typography styles, verify font loading
 - **Undo:** Apply typography style
 

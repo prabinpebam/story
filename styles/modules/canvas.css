@@ -158,3 +158,20 @@ body.cursor-hidden * {
 .resize-handle-e, .resize-handle-w { cursor: var(--cursor-resize-ew); }
 .resize-handle-nw, .resize-handle-se { cursor: var(--cursor-resize-nwse); }
 .resize-handle-ne, .resize-handle-sw { cursor: var(--cursor-resize-nesw); }
+
+/* Placeholder Styles */
+.story-placeholder {
+    /* Ensure placeholders don't block interaction when empty/transparent */
+}
+
+.story-placeholder-empty {
+    /* Visual cue for empty placeholders */
+}
+
+/* Placeholder Icon Container */
+.placeholder-icon-container {
+    pointer-events: none;
+    z-index: 1;
+    /* Icon color and opacity are set inline by JS currently */
+}
+

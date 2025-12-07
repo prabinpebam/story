@@ -88,6 +88,55 @@ export class ShapeElement extends VisualElement {
         this.applyFills(div, el);
         this.applyStrokes(div, el);
         this.applyEffects(div, el);
+
+        // Handle Placeholder Icon
+        if (el.isPlaceholder && !el.src) {
+            this.renderPlaceholderIcon(div, el);
+        } else {
+            // Remove icon if it exists but shouldn't (e.g. filled with image)
+            const icon = div.querySelector('.placeholder-icon-container');
+            if (icon) icon.remove();
+        }
+    }
+
+    renderPlaceholderIcon(div, el) {
+        let iconContainer = div.querySelector('.placeholder-icon-container');
+        if (!iconContainer) {
+            iconContainer = document.createElement('div');
+            iconContainer.className = 'placeholder-icon-container';
+            iconContainer.style.position = 'absolute';
+            iconContainer.style.top = '50%';
+            iconContainer.style.left = '50%';
+            iconContainer.style.transform = 'translate(-50%, -50%)';
+            iconContainer.style.pointerEvents = 'none';
+            iconContainer.style.display = 'flex';
+            iconContainer.style.flexDirection = 'column';
+            iconContainer.style.alignItems = 'center';
+            iconContainer.style.justifyContent = 'center';
+            iconContainer.style.color = 'var(--color-text-secondary)';
+            iconContainer.style.opacity = '0.5';
+            div.appendChild(iconContainer);
+        }
+
+        const iconClass = this.getIconClassForType(el.placeholderType);
+        // Simple check to avoid re-rendering if same icon
+        if (iconContainer.dataset.icon !== iconClass) {
+            iconContainer.innerHTML = `<i class="${iconClass}" style="font-size: 48px;"></i>`;
+            iconContainer.dataset.icon = iconClass;
+        }
+    }
+
+    getIconClassForType(type) {
+        switch (type) {
+            case 'picture':
+            case 'image': return 'fa-regular fa-image';
+            case 'media': return 'fa-solid fa-film';
+            case 'chart': return 'fa-solid fa-chart-bar';
+            case 'table': return 'fa-solid fa-table';
+            case 'smartArt': return 'fa-solid fa-sitemap';
+            case 'content': return 'fa-solid fa-plus';
+            default: return 'fa-regular fa-image';
+        }
     }
 
     applyFills(div, el) {

@@ -189,7 +189,12 @@ export class TextElement extends VisualElement {
         const isEditing = div.isContentEditable || state.editor.editingElementId === el.id;
         
         // Check if placeholder still has default prompt text (not yet filled with actual content)
-        const isEmptyPlaceholder = isPlaceholder && el.content && el.content.includes('Click to add');
+        // We consider it "empty" (showing prompt) if it matches standard prompt patterns
+        const promptPatterns = [
+            'Click to add',
+            'Click to edit Master'
+        ];
+        const isEmptyPlaceholder = isPlaceholder && el.content && promptPatterns.some(p => el.content.includes(p));
 
         // Ensure no padding/border/margin interferes with size calculations
         div.style.padding = '0';
@@ -198,12 +203,21 @@ export class TextElement extends VisualElement {
         div.style.overflow = 'visible'; // Allow text to be seen, but box is defined by ResizeObserver
         div.style.border = 'none'; // No DOM border - placeholder overlay is drawn on canvas
 
-        // Placeholder visual styling (opacity only - dashed border is rendered by GizmoRenderer)
-        if (isEmptyPlaceholder && !isEditing) {
-            // Empty placeholder on slide - dim the text
-            div.style.opacity = '0.5';
+        // Placeholder visual styling
+        if (isPlaceholder) {
+            div.classList.add('story-placeholder');
+            if (isEmptyPlaceholder) {
+                div.classList.add('story-placeholder-empty');
+                if (!isEditing) {
+                    div.style.opacity = '0.5';
+                } else {
+                    div.style.opacity = '1';
+                }
+            } else {
+                div.classList.remove('story-placeholder-empty');
+                div.style.opacity = '1';
+            }
         } else {
-            // Normal styling - full opacity
             div.style.opacity = '1';
         }
 

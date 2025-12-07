@@ -68,15 +68,17 @@ PRESENTATION
 - Defines presentation-wide structure and layout templates
 - REFERENCES color theme preset (via `colorThemeId`)
 - REFERENCES typography style preset (via `typographyStyleId`)
-- Contains master elements that appear on all slides (logo, footer)
+- Contains master elements that appear on all slides (logo, footer, **images, videos**)
 - Can have multiple master presets per presentation
 - **NEVER embeds actual colors or font definitions**
+- **Can be exported as a standalone package (.strmaster) containing all dependencies**
 
 **Layout Master:**
 - Defines specific slide arrangements within a master preset
 - Contains placeholders for content (position, size, type)
 - Inherits color theme and typography from parent master (if not overridden)
-- Can override with different color theme or typography style
+- Can override with different color theme or typography style (persisted in preset)
+- **Supports unlimited number of custom layouts**
 
 **Slide:**
 - Instance of a layout master
@@ -90,18 +92,99 @@ PRESENTATION
 - Reusable across ANY master preset
 - Can be applied at master/layout/slide/element level
 - Stored in separate `colorThemePresets` library
+- **Custom themes are bundled when exporting a Master Preset**
 
 **Typography Style Preset:**
 - Standalone font system (heading/body fonts + text style definitions)
 - Reusable across ANY master preset
 - Can be applied at master/layout/slide/element level
 - Stored in separate `typographyStylePresets` library
+- **Custom styles are bundled when exporting a Master Preset**
 
 ---
 
-## 3. Slide Master Editor
+## 3. User Stories & Requirements
 
-### 3.1 Accessing Master View
+### 3.1 Core Requirements
+- **Save & Reuse:** Users must be able to save a presentation's Master configuration as a reusable "Master Preset" for future projects.
+- **Custom Creation:** Users can create custom Master Presets by editing masters and layouts, adding/removing layouts as needed.
+- **Sharing:** Master Presets must be portable (shareable files) that include all necessary dependencies (colors, fonts, images, videos).
+- **Overrides:** Color and Typography overrides at the Layout level must be preserved when saving a Master Preset.
+- **Media Support:** Master Presets must support embedded media (logos, background videos) on masters and layouts.
+- **Flexibility:** Users can create an unlimited number of Layout Masters within a Master Preset.
+
+### 3.2 User Stories
+1.  **As a user**, I want to save the current Master setup as a "My Custom Master" so I can use it in other presentations.
+2.  **As a user**, I want to add a video background to a Layout Master so that every slide using that layout has the video.
+3.  **As a user**, I want to create a specific "Dark Mode Layout" within my Master by overriding the Color Theme for just that layout.
+4.  **As a user**, I want to share my Master Preset with a colleague, ensuring they get my custom fonts and logo images.
+5.  **As a user**, I want to delete unused layouts from my Master to keep it clean.
+
+---
+
+## 4. Data Model
+
+### 4.1 Slide Master Preset (The Container)
+```typescript
+interface SlideMasterPreset {
+  id: string;              // Unique ID (UUID)
+  type: 'slideMasterPreset';
+  name: string;            // Display name (e.g., "Corporate Dark")
+  thumbnail?: string;      // Preview image URL/DataURI
+  
+  // References to separate preset libraries
+  colorThemeId: string;       // ID of the ColorThemePreset
+  typographyStyleId: string;  // ID of the TypographyStylePreset
+  
+  // Visual properties
+  background: Background;  // Solid, Gradient, Image, Video
+  
+  // Content
+  elements: Record<string, StoryElement>; // Logos, footers, media
+  elementOrder: string[];
+  
+  // Metadata
+  isCustom?: boolean;      // True if created by user
+  version: number;         // For migration
+}
+```
+
+### 4.2 Layout Master (The Template)
+```typescript
+interface LayoutMaster {
+  id: string;              // Unique ID (UUID)
+  type: 'layoutMaster';
+  parentId: string;        // ID of the parent SlideMasterPreset
+  name: string;            // Display name (e.g., "Title Slide")
+  thumbnail?: string;
+  
+  // Overrides (Optional)
+  colorThemeId?: string;      // Override parent theme
+  typographyStyleId?: string; // Override parent typography
+  
+  // Visual properties
+  background?: Background; // Override parent background
+  
+  // Content
+  elements: Record<string, StoryElement>; // Placeholders, layout-specific media
+  elementOrder: string[];
+}
+```
+
+### 4.3 Master Preset Package (Export Format)
+When exporting a Master Preset for sharing (e.g., `.strmaster` file), the package is a ZIP containing:
+1.  `manifest.json`: Metadata and version info.
+2.  `master.json`: The `SlideMasterPreset` object.
+3.  `layouts/`: Folder containing all `LayoutMaster` objects.
+4.  `theme.json`: The referenced `ColorThemePreset` (if custom).
+5.  `typography.json`: The referenced `TypographyStylePreset` (if custom).
+6.  `assets/`: Folder containing all referenced images/videos (logos, backgrounds).
+
+---
+
+## 5. Slide Master Editor
+
+### 5.1 Accessing Master View
 
 **Methods:**
 - View menu → Master → Slide Master
@@ -125,7 +208,7 @@ MASTER EDIT MODE
 EDIT MODE (changes applied)
 ```
 
-### 3.2 Master View Interface
+### 5.2 Master View Interface
 
 ```
 ┌──────────────────────────────────────────────────────────────────────────┐
@@ -160,7 +243,7 @@ EDIT MODE (changes applied)
 └──────────────────────────────────────────────────────────────────────────┘
 ```
 
-### 3.3 Master Slide Elements
+### 5.3 Master Slide Elements
 
 **Global Elements (appear on all layouts):**
 - Logo/branding
@@ -177,9 +260,9 @@ EDIT MODE (changes applied)
 
 ---
 
-## 4. Multiple Slide Masters
+## 6. Multiple Slide Masters
 
-### 4.1 Use Cases
+### 6.1 Use Cases
 
 **Multiple Masters in One Presentation:**
 1. **Section Branding**: Different masters for different sections
@@ -188,7 +271,7 @@ EDIT MODE (changes applied)
 4. **Transitions**: Before/after, problem/solution
 5. **Themed Sections**: Different color schemes per topic
 
-### 4.2 Adding New Master
+### 6.2 Adding New Master
 
 **Dialog:**
 ```
@@ -276,9 +359,9 @@ Select slides → Right-click → Change Master → [Choose Master]
 
 ---
 
-## 5. Layout Masters
+## 7. Layout Masters
 
-### 5.1 Built-in Layouts
+### 7.1 Built-in Layouts
 
 **Standard Layouts (PowerPoint-Compatible):**
 
@@ -324,7 +407,7 @@ Select slides → Right-click → Change Master → [Choose Master]
     - Vertical title bar (left)
     - Content area (right)
 
-### 5.2 Creating Custom Layouts
+### 7.2 Creating Custom Layouts
 
 **Process:**
 1. Enter Master View
@@ -355,7 +438,7 @@ Select slides → Right-click → Change Master → [Choose Master]
 └────────────────────────────────────────────────┘
 ```
 
-### 5.3 Layout Management
+### 7.3 Layout Management
 
 **Operations:**
 - Insert new layout
@@ -394,7 +477,7 @@ Select slides → Right-click → Change Master → [Choose Master]
 └──────────────────────────────────────────────────────────────┘
 ```
 
-### 5.4 Layout Data Model
+### 7.4 Layout Data Model
 
 ```typescript
 interface LayoutMaster {
@@ -423,9 +506,9 @@ interface LayoutMaster {
 
 ---
 
-## 6. Placeholder System
+## 8. Placeholder System
 
-### 6.1 Placeholder Types
+### 8.1 Placeholder Types
 
 **Content Placeholders:**
 
@@ -476,7 +559,7 @@ interface LayoutMaster {
 11. **Footer Placeholder**
     - Text defined in header/footer settings
 
-### 6.2 Placeholder Properties
+### 8.2 Placeholder Properties
 
 ```typescript
 interface Placeholder {
@@ -533,7 +616,7 @@ type ContentType =
   | 'smartart';
 ```
 
-### 6.3 Inserting Placeholders
+### 8.3 Inserting Placeholders
 
 **Master View Toolbar:**
 ```
@@ -654,9 +737,9 @@ class ContentPlaceholder {
 
 ---
 
-## 7. Theme System
+## 9. Theme System
 
-### 7.1 Theme Components
+### 9.1 Theme Components
 
 **PowerPoint Theme (.thmx) Equivalent:**
 
@@ -682,7 +765,7 @@ class ContentPlaceholder {
    - Textures
    - Patterns
 
-### 7.2 Theme Data Model
+### 9.2 Theme Data Model
 
 ```typescript
 interface PresentationTheme {
@@ -737,7 +820,7 @@ interface ColorScheme {
 }
 ```
 
-### 7.3 Theme Picker UI
+### 9.3 Theme Picker UI
 
 ```
 ┌────────────────────────────────────────────────────────────┐
@@ -766,7 +849,7 @@ interface ColorScheme {
 └────────────────────────────────────────────────────────────┘
 ```
 
-### 7.4 Custom Theme Colors
+### 9.4 Custom Theme Colors
 
 **Color Customization Dialog:**
 ```
@@ -806,9 +889,9 @@ interface ColorScheme {
 
 ---
 
-## 8. Header and Footer System
+## 10. Header and Footer System
 
-### 8.1 Header/Footer Settings
+### 10.1 Header/Footer Settings
 
 **Dialog:**
 ```
@@ -842,7 +925,7 @@ interface ColorScheme {
 └────────────────────────────────────────────────┘
 ```
 
-### 8.2 Header/Footer Placeholders
+### 10.2 Header/Footer Placeholders
 
 **Master View Placeholders:**
 - Date placeholder (left footer)
@@ -876,9 +959,9 @@ interface HeaderFooterSettings {
 
 ---
 
-## 9. Master Inheritance and Overrides
+## 11. Master Inheritance and Overrides
 
-### 9.1 Inheritance Chain
+### 11.1 Inheritance Chain
 
 ```
 MASTER → LAYOUT → SLIDE
@@ -904,7 +987,7 @@ Slide inherits but can override:
   + Adds free-form elements
 ```
 
-### 9.2 Reset to Layout
+### 11.2 Reset to Layout
 
 **Purpose:** Remove all user overrides and restore layout defaults
 
@@ -932,7 +1015,7 @@ Right-click slide → Reset to Layout
 └────────────────────────────────────────────────┘
 ```
 
-### 9.3 Preserve Master Option
+### 11.3 Preserve Master Option
 
 **Purpose:** Lock slide to current master even if moved to different presentation
 
@@ -952,9 +1035,9 @@ Master View → Select Master → [✓] Preserve
 
 ---
 
-## 10. Background Management
+## 12. Background Management
 
-### 10.1 Background Types
+### 12.1 Background Types
 
 1. **Solid Fill**
 2. **Gradient Fill** (linear, radial, rectangular, path)
@@ -962,7 +1045,7 @@ Master View → Select Master → [✓] Preserve
 4. **Texture Fill** (built-in patterns)
 5. **Pattern Fill** (dots, stripes, grid, etc.)
 
-### 10.2 Format Background Panel
+### 12.2 Format Background Panel
 
 ```
 ┌────────────────────────────────────────────────┐
@@ -991,7 +1074,7 @@ Master View → Select Master → [✓] Preserve
 └────────────────────────────────────────────────┘
 ```
 
-### 10.3 Hide Background Graphics
+### 12.3 Hide Background Graphics
 
 **Toggle:**
 - Per-slide setting
@@ -1013,9 +1096,9 @@ interface SlideBackground {
 
 ---
 
-## 11. Implementation Guide
+## 13. Implementation Guide
 
-### 11.1 Master Manager Class
+### 13.1 Master Manager Class
 
 ```typescript
 class SlideMasterManager {
@@ -1127,7 +1210,7 @@ class SlideMasterManager {
 }
 ```
 
-### 11.2 Placeholder Manager
+### 13.2 Placeholder Manager
 
 ```typescript
 class PlaceholderManager {

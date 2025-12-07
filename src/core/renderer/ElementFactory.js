@@ -12,6 +12,13 @@ export class ElementFactory {
                 return new ImageElement(data);
             case 'group':
                 return new GroupElement(data);
+            case 'placeholder':
+                // Text-based placeholders use TextElement
+                if (['title', 'subtitle', 'body', 'text', 'date', 'footer', 'slideNumber'].includes(data.placeholderType)) {
+                    return new TextElement(data);
+                }
+                // Media/Content placeholders use ShapeElement (initially)
+                return new ShapeElement(data);
             case 'rect':
             case 'circle':
             default:

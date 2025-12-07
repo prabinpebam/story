@@ -304,9 +304,11 @@ describe('MasterHandlers', () => {
     describe('handleApplyFontPreset()', () => {
         it('should apply font preset to theme', () => {
             const preset = {
+                id: 'custom-font-preset',
+                name: 'Custom Font Preset',
                 fonts: {
-                    heading: { family: 'Roboto' },
-                    body: { family: 'Open Sans' }
+                    heading: 'Roboto',
+                    body: 'Open Sans'
                 }
             };
 
@@ -314,35 +316,43 @@ describe('MasterHandlers', () => {
                 handleApplyFontPreset(draft, { masterId: 'master-default', preset });
             });
 
-            expect(newState.slideMasterPresets['master-default'].themeSettings.fonts.heading).toBe('Roboto');
-            expect(newState.slideMasterPresets['master-default'].themeSettings.fonts.body).toBe('Open Sans');
+            const master = newState.slideMasterPresets['master-default'];
+            expect(master.typographyStyleId).toBe('custom-font-preset');
+            
+            const appliedPreset = newState.typographyStylePresets['custom-font-preset'];
+            expect(appliedPreset).toBeDefined();
+            expect(appliedPreset.fonts.heading).toBe('Roboto');
+            expect(appliedPreset.fonts.body).toBe('Open Sans');
         });
 
         it('should default to Inter if family not specified', () => {
             const preset = {
-                fonts: {
-                    heading: {},
-                    body: {}
-                }
+                id: 'empty-font-preset',
+                name: 'Empty Font Preset',
+                fonts: undefined // Simulate missing fonts
             };
 
             const newState = produce(initialState, draft => {
                 handleApplyFontPreset(draft, { masterId: 'master-default', preset });
             });
 
-            expect(newState.slideMasterPresets['master-default'].themeSettings.fonts.heading).toBe('Inter');
-            expect(newState.slideMasterPresets['master-default'].themeSettings.fonts.body).toBe('Inter');
+            const appliedPreset = newState.typographyStylePresets['empty-font-preset'];
+            expect(appliedPreset.fonts.heading).toBe('Inter');
+            expect(appliedPreset.fonts.body).toBe('Inter');
         });
     });
 
     describe('handleResetThemeFonts()', () => {
         it('should reset fonts to default preset', () => {
-            // First modify fonts
+            // Setup: Create a master with a custom font preset
             let state = produce(initialState, draft => {
-                if (!draft.slideMasterPresets['master-default'].themeSettings) {
-                    draft.slideMasterPresets['master-default'].themeSettings = { colors: {}, fonts: {} };
-                }
-                draft.slideMasterPresets['master-default'].themeSettings.fonts = { heading: 'Comic Sans', body: 'Comic Sans' };
+                draft.typographyStylePresets = {
+                    'custom-preset': {
+                        id: 'custom-preset',
+                        fonts: { heading: 'Comic Sans', body: 'Comic Sans' }
+                    }
+                };
+                draft.slideMasterPresets['master-default'].typographyStyleId = 'custom-preset';
             });
 
             // Then reset
@@ -350,14 +360,30 @@ describe('MasterHandlers', () => {
                 handleResetThemeFonts(draft, { masterId: 'master-default' });
             });
 
-            expect(state.slideMasterPresets['master-default'].themeSettings.fonts.heading).toBe('Inter');
-            expect(state.slideMasterPresets['master-default'].themeSettings.fonts.body).toBe('Inter');
+            // Should point to default preset
+            const master = state.slideMasterPresets['master-default'];
+            const presetId = master.typographyStyleId;
+            const preset = state.typographyStylePresets[presetId];
+            
+            expect(preset.fonts.heading.family).toBe('Inter');
+            expect(preset.fonts.body.family).toBe('Inter');
         });
     });
 
     describe('handleUpdateThemeFont()', () => {
         it('should update heading font', () => {
-            const newState = produce(initialState, draft => {
+            // Setup: Ensure master has a typography preset
+            let state = produce(initialState, draft => {
+                draft.typographyStylePresets = {
+                    'default-typography': {
+                        id: 'default-typography',
+                        fonts: { heading: 'Inter', body: 'Inter' }
+                    }
+                };
+                draft.slideMasterPresets['master-default'].typographyStyleId = 'default-typography';
+            });
+
+            const newState = produce(state, draft => {
                 handleUpdateThemeFont(draft, {
                     masterId: 'master-default',
                     fontType: 'heading',
@@ -365,11 +391,23 @@ describe('MasterHandlers', () => {
                 });
             });
 
-            expect(newState.slideMasterPresets['master-default'].themeSettings.fonts.heading).toBe('Roboto');
+            const presetId = newState.slideMasterPresets['master-default'].typographyStyleId;
+            expect(newState.typographyStylePresets[presetId].fonts.heading).toBe('Roboto');
         });
 
         it('should update body font', () => {
-            const newState = produce(initialState, draft => {
+             // Setup: Ensure master has a typography preset
+             let state = produce(initialState, draft => {
+                draft.typographyStylePresets = {
+                    'default-typography': {
+                        id: 'default-typography',
+                        fonts: { heading: 'Inter', body: 'Inter' }
+                    }
+                };
+                draft.slideMasterPresets['master-default'].typographyStyleId = 'default-typography';
+            });
+
+            const newState = produce(state, draft => {
                 handleUpdateThemeFont(draft, {
                     masterId: 'master-default',
                     fontType: 'body',
@@ -377,17 +415,23 @@ describe('MasterHandlers', () => {
                 });
             });
 
-            expect(newState.slideMasterPresets['master-default'].themeSettings.fonts.body).toBe('Open Sans');
+            const presetId = newState.slideMasterPresets['master-default'].typographyStyleId;
+            expect(newState.typographyStylePresets[presetId].fonts.body).toBe('Open Sans');
         });
 
         it('should ignore invalid font type', () => {
-            let state = produce(initialState, draft => {
-                if (!draft.slideMasterPresets['master-default'].themeSettings) {
-                    draft.slideMasterPresets['master-default'].themeSettings = { colors: {}, fonts: { heading: 'Inter', body: 'Inter' } };
-                }
+             // Setup: Ensure master has a typography preset
+             let state = produce(initialState, draft => {
+                draft.typographyStylePresets = {
+                    'default-typography': {
+                        id: 'default-typography',
+                        fonts: { heading: 'Inter', body: 'Inter' }
+                    }
+                };
+                draft.slideMasterPresets['master-default'].typographyStyleId = 'default-typography';
             });
 
-            state = produce(state, draft => {
+            const newState = produce(state, draft => {
                 handleUpdateThemeFont(draft, {
                     masterId: 'master-default',
                     fontType: 'invalid',
@@ -395,14 +439,27 @@ describe('MasterHandlers', () => {
                 });
             });
 
-            // Fonts should remain unchanged
-            expect(state.slideMasterPresets['master-default'].themeSettings.fonts.invalid).toBeUndefined();
+            const presetId = newState.slideMasterPresets['master-default'].typographyStyleId;
+            expect(newState.typographyStylePresets[presetId].fonts.invalid).toBeUndefined();
         });
     });
 
     describe('handleUpdateTextStyle()', () => {
         it('should update text style property', () => {
-            const newState = produce(initialState, draft => {
+             // Setup: Ensure master has a typography preset
+             let state = produce(initialState, draft => {
+                draft.typographyStylePresets = {
+                    'default-typography': {
+                        id: 'default-typography',
+                        textStyles: {
+                            heading1: { fontSize: 32 }
+                        }
+                    }
+                };
+                draft.slideMasterPresets['master-default'].typographyStyleId = 'default-typography';
+            });
+
+            const newState = produce(state, draft => {
                 handleUpdateTextStyle(draft, {
                     masterId: 'master-default',
                     styleId: 'heading1',
@@ -411,11 +468,23 @@ describe('MasterHandlers', () => {
                 });
             });
 
-            expect(newState.slideMasterPresets['master-default'].themeSettings.textStyles.heading1.fontSize).toBe(48);
+            const presetId = newState.slideMasterPresets['master-default'].typographyStyleId;
+            expect(newState.typographyStylePresets[presetId].textStyles.heading1.fontSize).toBe(48);
         });
 
         it('should create text style if not exists', () => {
-            const newState = produce(initialState, draft => {
+             // Setup: Ensure master has a typography preset
+             let state = produce(initialState, draft => {
+                draft.typographyStylePresets = {
+                    'default-typography': {
+                        id: 'default-typography',
+                        textStyles: {}
+                    }
+                };
+                draft.slideMasterPresets['master-default'].typographyStyleId = 'default-typography';
+            });
+
+            const newState = produce(state, draft => {
                 handleUpdateTextStyle(draft, {
                     masterId: 'master-default',
                     styleId: 'newStyle',
@@ -424,12 +493,26 @@ describe('MasterHandlers', () => {
                 });
             });
 
-            expect(newState.slideMasterPresets['master-default'].themeSettings.textStyles.newStyle).toBeDefined();
-            expect(newState.slideMasterPresets['master-default'].themeSettings.textStyles.newStyle.fontSize).toBe(24);
+            const presetId = newState.slideMasterPresets['master-default'].typographyStyleId;
+            expect(newState.typographyStylePresets[presetId].textStyles.newStyle).toBeDefined();
+            expect(newState.typographyStylePresets[presetId].textStyles.newStyle.fontSize).toBe(24);
         });
 
         it('should update multiple properties sequentially', () => {
-            let state = produce(initialState, draft => {
+             // Setup: Ensure master has a typography preset
+             let state = produce(initialState, draft => {
+                draft.typographyStylePresets = {
+                    'default-typography': {
+                        id: 'default-typography',
+                        textStyles: {
+                            heading1: { fontSize: 32 }
+                        }
+                    }
+                };
+                draft.slideMasterPresets['master-default'].typographyStyleId = 'default-typography';
+            });
+
+            state = produce(state, draft => {
                 handleUpdateTextStyle(draft, {
                     masterId: 'master-default',
                     styleId: 'heading1',
@@ -447,8 +530,9 @@ describe('MasterHandlers', () => {
                 });
             });
 
-            expect(state.slideMasterPresets['master-default'].themeSettings.textStyles.heading1.fontSize).toBe(48);
-            expect(state.slideMasterPresets['master-default'].themeSettings.textStyles.heading1.fontWeight).toBe(700);
+            const presetId = state.slideMasterPresets['master-default'].typographyStyleId;
+            expect(state.typographyStylePresets[presetId].textStyles.heading1.fontSize).toBe(48);
+            expect(state.typographyStylePresets[presetId].textStyles.heading1.fontWeight).toBe(700);
         });
     });
 
