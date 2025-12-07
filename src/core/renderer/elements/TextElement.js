@@ -528,7 +528,7 @@ export class TextElement extends VisualElement {
         }
     }
 
-    setEditing(isEditing, selectionType = null, clickPosition = null, isNewlyCreated = false) {
+    setEditing(isEditing, selectionType = null, clickPosition = null, isNewlyCreated = false, initialChar = null) {
         const div = this.domElement;
         if (!div) return;
 
@@ -559,7 +559,8 @@ export class TextElement extends VisualElement {
                         success = textEditManager.enterEditMode(this.data.id, div, {
                             entryMode,
                             clickPosition,
-                            isNewlyCreated
+                            isNewlyCreated,
+                            initialChar
                         });
                     } catch (err) {
                         console.error('[TextElement] TextEditManager.enterEditMode failed:', err);

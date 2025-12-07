@@ -1843,6 +1843,38 @@ export class CanvasManager {
             }
         }
 
+        // Type-to-Edit
+        if (!e.ctrlKey && !e.metaKey && !e.altKey && e.key.length === 1) {
+            if (!state.editor.editingElementId && state.editor.selectedElementIds.length === 1) {
+                const elementId = state.editor.selectedElementIds[0];
+                const container = this.getActiveContainer(state);
+                let el = container?.elements?.[elementId];
+                
+                // If not in container, check effective elements (for placeholders from layout)
+                if (!el) {
+                    const effectiveSlide = store.getEffectiveSlide(container?.id);
+                    el = effectiveSlide?.effectiveElements?.[elementId];
+                }
+                
+                if (el && (el.type === 'text' || (el.isPlaceholder && el.type === 'text'))) {
+                    e.preventDefault();
+                    // Instantiate placeholder if needed
+                    if (el.isPlaceholder && !container?.elements?.[elementId]) {
+                        store.dispatch('INSTANTIATE_PLACEHOLDER', { 
+                            placeholderId: elementId,
+                            element: el
+                        });
+                    }
+                    store.dispatch('SET_EDITING_ELEMENT', { 
+                        id: elementId, 
+                        selectionType: 'all',
+                        initialChar: e.key 
+                    });
+                    return;
+                }
+            }
+        }
+
         // Duplicate (Ctrl+D)
         if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'd') {
             e.preventDefault();

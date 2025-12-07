@@ -50,13 +50,14 @@ export class EditorRenderer extends BaseRenderer {
         const selectionType = state.editor.editModeSelectionType;
         const clickPosition = state.editor.textEditClickPosition;
         const isNewlyCreated = state.editor.editModeIsNewlyCreated || false;
+        const initialChar = state.editor.editModeInitialChar || null;
         const view = this.activeSlideViews.get(this.currentSlideId);
         
         if (view) {
             view.elements.forEach(el => {
                 if (el.setEditing) {
                     if (el.data.id === editingId) {
-                        el.setEditing(true, selectionType, clickPosition, isNewlyCreated);
+                        el.setEditing(true, selectionType, clickPosition, isNewlyCreated, initialChar);
                         
                         if (!el.domElement._hasBlurListener) {
                             el.domElement.addEventListener('blur', (event) => {

@@ -120,8 +120,21 @@ export class TextEditManager {
             imeHandler.attach(domElement);
         }
 
-        // Set initial selection based on entry mode
-        this._setInitialSelection(domElement, options);
+        // Handle initial character input (Type-to-Edit)
+        if (options.initialChar) {
+            // Replace content with the typed character
+            domElement.textContent = options.initialChar;
+            this.hasReceivedInput = true;
+            
+            // Move caret to end
+            selectionManager.setCaretToEnd(domElement);
+            
+            // Trigger input event to ensure state is updated
+            this._handleInput({ target: domElement });
+        } else {
+            // Set initial selection based on entry mode
+            this._setInitialSelection(domElement, options);
+        }
 
         // Focus the element
         domElement.focus();
