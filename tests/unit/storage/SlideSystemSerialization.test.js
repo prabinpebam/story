@@ -40,13 +40,13 @@ describe('Slide System Serialization (Phase 0.2)', () => {
             const blob = await serializer.serialize();
             expect(blob).toBeInstanceOf(Blob);
 
-            // Deserialize to verify masters are included
+            // Deserialize to verify slideMasterPresets are included
             const deserializer = new PresentationDeserializer(blob);
             const restored = await deserializer.deserialize();
 
-            // Should have masters in the restored state
-            expect(restored.masters).toBeDefined();
-            expect(typeof restored.masters).toBe('object');
+            // Should have slideMasterPresets in the restored state
+            expect(restored.slideMasterPresets).toBeDefined();
+            expect(typeof restored.slideMasterPresets).toBe('object');
         });
 
         it('should preserve master slide structure', async () => {
@@ -59,13 +59,13 @@ describe('Slide System Serialization (Phase 0.2)', () => {
             const deserializer = new PresentationDeserializer(blob);
             const restored = await deserializer.deserialize();
 
-            // Verify theme master exists
-            const themeMaster = restored.masters?.['master-default'];
-            expect(themeMaster).toBeDefined();
-            if (themeMaster) {
-                expect(themeMaster.id).toBe('master-default');
-                expect(themeMaster.type).toBe('theme');
-                expect(themeMaster.themeSettings).toBeDefined();
+            // Verify slide master preset exists
+            const slideMaster = restored.slideMasterPresets?.['master-default'];
+            expect(slideMaster).toBeDefined();
+            if (slideMaster) {
+                expect(slideMaster.id).toBe('master-default');
+                expect(slideMaster.type).toBe('slideMasterPreset');
+                expect(slideMaster.colorThemeId).toBeDefined();
             }
         });
 
@@ -80,11 +80,11 @@ describe('Slide System Serialization (Phase 0.2)', () => {
             const restored = await deserializer.deserialize();
 
             // Verify layout masters exist
-            const blankLayout = restored.masters?.['layout-blank'];
+            const blankLayout = restored.slideMasterPresets?.['layout-blank'];
             expect(blankLayout).toBeDefined();
             if (blankLayout) {
                 expect(blankLayout.id).toBe('layout-blank');
-                expect(blankLayout.type).toBe('layout');
+                expect(blankLayout.type).toBe('layoutMaster');
             }
         });
 
@@ -99,7 +99,7 @@ describe('Slide System Serialization (Phase 0.2)', () => {
             const restored = await deserializer.deserialize();
 
             // Check a layout with placeholders (e.g., layout-title)
-            const titleLayout = restored.masters?.['layout-title'];
+            const titleLayout = restored.slideMasterPresets?.['layout-title'];
             if (titleLayout) {
                 expect(titleLayout.elements).toBeDefined();
                 // Title layout should have placeholder elements
@@ -391,7 +391,7 @@ describe('Slide System Serialization (Phase 0.2)', () => {
             const restored = await deserializer.deserialize();
 
             // Verify everything
-            expect(restored.masters).toBeDefined();
+            expect(restored.slideMasterPresets).toBeDefined();
             expect(restored.slideOrder).toEqual([slide1, slide2]);
             expect(restored.slides[slide1]).toBeDefined();
             expect(restored.slides[slide2]).toBeDefined();

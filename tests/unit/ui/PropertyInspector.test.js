@@ -288,7 +288,7 @@ describe('PropertyInspector', () => {
                     selectedElementIds: []
                 },
                 slides: {},
-                masters: {
+                slideMasterPresets: {
                     'master-1': { id: 'master-1', name: 'Title Slide' }
                 }
             };

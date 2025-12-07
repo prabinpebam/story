@@ -704,14 +704,14 @@ export class TextSection {
     }
 
     getActiveThemeId(state) {
-        // Find the theme master (type === 'theme')
-        const masters = state.masters;
+        // Find the slide master preset (type === 'slideMasterPreset')
+        const masters = state.slideMasterPresets;
         for (const id in masters) {
-            if (masters[id].type === 'theme') {
+            if (masters[id].type === 'slideMasterPreset') {
                 return id;
             }
         }
-        return 'theme-default';
+        return 'master-default';
     }
 
     applyTextStyle(styleId) {

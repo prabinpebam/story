@@ -35,8 +35,8 @@ export class PresentationDeserializer {
         // 3. Read theme
         const theme = await this.reader.readTheme() || this.getDefaultTheme();
 
-        // 4. Read masters
-        const masters = await this.reader.readMasters();
+        // 4. Read slide master presets
+        const slideMasterPresets = await this.reader.readMasters();
 
         // 5. Read slide order
         const slideOrder = await this.reader.readSlideOrder();
@@ -57,7 +57,7 @@ export class PresentationDeserializer {
             manifest,
             metadata: this.deserializeMetadata(metadata),
             theme: this.deserializeTheme(theme),
-            masters,
+            slideMasterPresets,
             slideOrder,
             sections,
             slides,

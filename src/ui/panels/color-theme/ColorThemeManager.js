@@ -880,7 +880,7 @@ export class ColorThemeManager extends DraggablePanel {
                 activeSlideId: state.editor.activeSlideId,
                 activeMasterId: state.editor.activeMasterId,
                 willApplyTo: state.editor.mode === 'master' ? 
-                    (state.masters?.[state.editor.activeMasterId]?.type === 'theme' ? 'Theme Master' : `Layout: ${state.masters?.[state.editor.activeMasterId]?.name}`) :
+                    (state.slideMasterPresets?.[state.editor.activeMasterId]?.type === 'slideMasterPreset' ? 'Theme Master' : `Layout: ${state.slideMasterPresets?.[state.editor.activeMasterId]?.name}`) :
                     `Slide: ${state.editor.activeSlideId}`
             });
             
@@ -1588,12 +1588,12 @@ export class ColorThemeManager extends DraggablePanel {
         const colors = generateThemeColors(theme.slots, theme.adjustments || DEFAULT_ADJUSTMENTS);
         
         // Get current color mode for CSS variable application
-        const currentColorMode = state.masters?.[themeMasterId]?.themeSettings?.lumaTheme?.colorMode || COLOR_MODES.LIGHT;
+        const currentColorMode = state.slideMasterPresets?.[themeMasterId]?.colorModeId || COLOR_MODES.LIGHT;
         
         if (mode === 'master') {
             // Master Mode: Check what type of master we're editing
             const activeMasterId = state.editor.activeMasterId;
-            const activeMaster = state.masters?.[activeMasterId];
+            const activeMaster = state.slideMasterPresets?.[activeMasterId];
             
             console.log('[ColorThemeManager.applyThemeToStore] Master mode:', {
                 activeMasterId,
@@ -1606,7 +1606,7 @@ export class ColorThemeManager extends DraggablePanel {
                 return;
             }
             
-            if (activeMaster.type === 'theme') {
+            if (activeMaster.type === 'slideMasterPreset') {
                 // Editing the Theme Master itself - apply the full lumaTheme
                 // This sets the default theme for all slides that inherit from master
                 console.log('[ColorThemeManager] Applying lumaTheme to theme master:', themeMasterId);
@@ -1700,8 +1700,9 @@ export class ColorThemeManager extends DraggablePanel {
      */
     getThemeFromStore() {
         const state = store.getState();
-        const themeMaster = state.masters?.['theme-default'];
-        return themeMaster?.themeSettings?.lumaTheme || null;
+        const themeMaster = state.slideMasterPresets?.['master-default'];
+        if (!themeMaster?.colorThemeId) return null;
+        return state.colorThemePresets?.[themeMaster.colorThemeId] || null;
     }
     
     // =========================================

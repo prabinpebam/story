@@ -43,9 +43,9 @@ export class PresentationSerializer {
             this.writer.addTheme(this.serializeTheme(this.state.theme));
         }
 
-        // 4. Add masters (slide masters and layouts)
-        if (this.state.masters) {
-            this.writer.addMasters(this.state.masters);
+        // 4. Add slide master presets (slide masters and layouts)
+        if (this.state.slideMasterPresets) {
+            this.writer.addMasters(this.state.slideMasterPresets);
         }
 
         // 5. Add slide order
