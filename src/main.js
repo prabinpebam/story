@@ -1,4 +1,5 @@
 import { store } from './core/Store.js';
+import './ui/components/Shimmer.js'; // Register Shimmer web component
 import { InputManager } from './core/InputManager.js';
 import { CanvasManager } from './core/CanvasManager.js';
 import { cursorManager } from './core/CursorManager.js';
@@ -54,6 +55,11 @@ class App {
         // This handles the case where user was redirected to OAuth from CloudFileBrowser
         if (this.authBootResult.wasCallback && this.authBootResult.isAuthenticated) {
             this.resumePendingCloudAction();
+        }
+
+        // Signal that the app is ready (removes boot screen)
+        if (window.appReady) {
+            window.appReady();
         }
     }
     
