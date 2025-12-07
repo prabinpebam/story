@@ -161,7 +161,7 @@ describe('Slide Data Model Validation (Phase 0.3)', () => {
 
     describe('Master/Layout Relationship Validation', () => {
         it('should have valid masters object structure', () => {
-            state.masters = {
+            state.slideMasterPresets = {
                 theme: 'default-theme',
                 layouts: {
                     'layout-1': {
@@ -172,13 +172,13 @@ describe('Slide Data Model Validation (Phase 0.3)', () => {
                 }
             };
 
-            expect(state.masters).toHaveProperty('theme');
-            expect(state.masters).toHaveProperty('layouts');
-            expect(typeof state.masters.layouts).toBe('object');
+            expect(state.slideMasterPresets).toHaveProperty('theme');
+            expect(state.slideMasterPresets).toHaveProperty('layouts');
+            expect(typeof state.slideMasterPresets.layouts).toBe('object');
         });
 
         it('should validate layout references in slides exist in masters', () => {
-            state.masters = {
+            state.slideMasterPresets = {
                 theme: 'default-theme',
                 layouts: {
                     'layout-1': { id: 'layout-1', name: 'Title', placeholders: [] },
@@ -203,13 +203,13 @@ describe('Slide Data Model Validation (Phase 0.3)', () => {
             // Validate all layoutIds reference existing layouts
             for (const slide of Object.values(state.slides)) {
                 if (slide.layoutId) {
-                    expect(state.masters.layouts).toHaveProperty(slide.layoutId);
+                    expect(state.slideMasterPresets.layouts).toHaveProperty(slide.layoutId);
                 }
             }
         });
 
         it('should validate layout structure has required fields', () => {
-            state.masters = {
+            state.slideMasterPresets = {
                 theme: 'default-theme',
                 layouts: {
                     'layout-1': {
@@ -220,7 +220,7 @@ describe('Slide Data Model Validation (Phase 0.3)', () => {
                 }
             };
 
-            const layout = state.masters.layouts['layout-1'];
+            const layout = state.slideMasterPresets.layouts['layout-1'];
             expect(layout).toHaveProperty('id');
             expect(layout).toHaveProperty('name');
             expect(layout).toHaveProperty('placeholders');
@@ -240,7 +240,7 @@ describe('Slide Data Model Validation (Phase 0.3)', () => {
         });
 
         it('should validate placeholder structure in layouts', () => {
-            state.masters = {
+            state.slideMasterPresets = {
                 theme: 'default-theme',
                 layouts: {
                     'layout-1': {
@@ -260,7 +260,7 @@ describe('Slide Data Model Validation (Phase 0.3)', () => {
                 }
             };
 
-            const placeholder = state.masters.layouts['layout-1'].placeholders[0];
+            const placeholder = state.slideMasterPresets.layouts['layout-1'].placeholders[0];
             expect(placeholder).toHaveProperty('id');
             expect(placeholder).toHaveProperty('type');
             expect(placeholder).toHaveProperty('x');
@@ -566,14 +566,15 @@ describe('Slide Data Model Validation (Phase 0.3)', () => {
         });
 
         it('should handle masters with no layouts', () => {
-            state.masters = {
+            state.slideMasterPresets = {
                 theme: 'default-theme',
                 layouts: {}
             };
 
-            expect(state.masters.layouts).toBeDefined();
-            expect(typeof state.masters.layouts).toBe('object');
-            expect(Object.keys(state.masters.layouts).length).toBe(0);
+            expect(state.slideMasterPresets.layouts).toBeDefined();
+            expect(typeof state.slideMasterPresets.layouts).toBe('object');
+            expect(Object.keys(state.slideMasterPresets.layouts).length).toBe(0);
         });
     });
 });
+

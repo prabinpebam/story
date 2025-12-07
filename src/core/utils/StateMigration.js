@@ -134,9 +134,12 @@ export function migrateState(state) {
     
     const migrated = { ...state };
     
-    // Migrate masters
+    // Migrate masters (legacy support - now called slideMasterPresets)
     if (state.masters) {
-        migrated.masters = migrateMasters(state.masters);
+        migrated.slideMasterPresets = migrateMasters(state.masters);
+        delete migrated.masters; // Remove old property
+    } else if (state.slideMasterPresets) {
+        migrated.slideMasterPresets = migrateMasters(state.slideMasterPresets);
     }
     
     return migrated;

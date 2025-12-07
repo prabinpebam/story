@@ -426,7 +426,7 @@ class Store extends EventEmitter {
                         
                         // Replace masters if provided
                         if (payload.masters) {
-                            draft.masters = payload.masters;
+                            draft.slideMasterPresets = payload.masters;
                         }
                         
                         // Update metadata if provided
@@ -492,7 +492,7 @@ class Store extends EventEmitter {
         }
 
         // If no layout, return slide as is (legacy support)
-        if (!slide.layoutId || !this.state.masters || !this.state.masters[slide.layoutId]) {
+        if (!slide.layoutId || !this.state.slideMasterPresets || !this.state.slideMasterPresets[slide.layoutId]) {
             return {
                 ...slide,
                 effectiveBackground: slide.background || { type: 'solid', value: '#ffffff' },
@@ -503,11 +503,11 @@ class Store extends EventEmitter {
             };
         }
 
-        const layout = this.state.masters[slide.layoutId];
-        const theme = this.state.masters[layout.parentId];
+        const layout = this.state.slideMasterPresets[slide.layoutId];
+        const theme = this.state.slideMasterPresets[layout.parentMasterId];
 
-        // Resolve Theme Settings
-        const themeSettings = theme ? theme.themeSettings : (this.state.masters['theme-default']?.themeSettings || {});
+        // Resolve Theme Settings (legacy support - will be replaced by preset resolution)
+        const themeSettings = theme ? theme.themeSettings : (this.state.slideMasterPresets['master-default']?.themeSettings || {});
 
         // 1. Resolve Background
         let background = slide.background;
@@ -581,7 +581,7 @@ class Store extends EventEmitter {
 
     getActiveContainer() {
         if (this.state.editor.mode === 'master') {
-            return this.state.masters[this.state.editor.activeMasterId];
+            return this.state.slideMasterPresets[this.state.editor.activeMasterId];
         } else {
             return this.state.slides[this.state.editor.activeSlideId];
         }

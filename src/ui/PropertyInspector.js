@@ -146,7 +146,7 @@ export class PropertyInspector {
             // No selection: show Slide or Master/Layout
             const mode = state.editor.mode;
             if (mode === 'master') {
-                const master = state.masters[state.editor.activeMasterId];
+                const master = state.slideMasterPresets[state.editor.activeMasterId];
                 this.headerTitle.textContent = master?.name || 'Master';
             } else {
                 this.headerTitle.textContent = 'Slide';

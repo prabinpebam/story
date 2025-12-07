@@ -178,7 +178,7 @@ describe('EditorHandlers', () => {
 
         it('should change from one master to another', () => {
             let state = produce(initialState, draft => {
-                draft.editor.activeMasterId = 'theme-default';
+                draft.editor.activeMasterId = 'master-default';
             });
             
             state = produce(state, draft => {
@@ -497,3 +497,4 @@ describe('EditorHandlers', () => {
         });
     });
 });
+

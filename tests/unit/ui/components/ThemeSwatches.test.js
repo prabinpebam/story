@@ -3,12 +3,12 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 // Default test state
 const defaultMockState = {
     editor: { 
-        activeMasterId: 'theme-default',
+        activeMasterId: 'master-default',
         activeSlideId: 'slide-1'
     },
     masters: {
-        'theme-default': {
-            id: 'theme-default',
+        'master-default': {
+            id: 'master-default',
             themeSettings: {
                 lumaTheme: {
                     id: 'preset_neutral',
@@ -30,7 +30,7 @@ const defaultMockState = {
     layouts: {
         'layout-title-slide': {
             id: 'layout-title-slide',
-            masterId: 'theme-default',
+            masterId: 'master-default',
             styleAssignments: {
                 colorTheme: null,
                 typographyStyle: null
@@ -41,7 +41,7 @@ const defaultMockState = {
         'slide-1': {
             id: 'slide-1',
             layoutId: 'layout-title-slide',
-            masterId: 'theme-default',
+            masterId: 'master-default',
             styleAssignments: {
                 colorTheme: null,
                 typographyStyle: null
@@ -56,12 +56,12 @@ vi.mock('../../../../src/core/Store.js', () => ({
         dispatch: vi.fn(),
         getState: vi.fn(() => ({
             editor: { 
-                activeMasterId: 'theme-default',
+                activeMasterId: 'master-default',
                 activeSlideId: 'slide-1'
             },
             masters: {
-                'theme-default': {
-                    id: 'theme-default',
+                'master-default': {
+                    id: 'master-default',
                     themeSettings: {
                         lumaTheme: {
                             id: 'preset_neutral',
@@ -84,7 +84,7 @@ vi.mock('../../../../src/core/Store.js', () => ({
             slides: {
                 'slide-1': {
                     id: 'slide-1',
-                    masterId: 'theme-default',
+                    masterId: 'master-default',
                     styleAssignments: { colorTheme: null }
                 }
             }
@@ -611,3 +611,4 @@ describe('ThemeSwatches', () => {
         });
     });
 });
+

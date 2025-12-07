@@ -10,8 +10,8 @@
  */
 function remapContent(draft, slide, newLayoutId) {
     const oldLayoutId = slide.layoutId;
-    const oldLayout = draft.masters[oldLayoutId];
-    const newLayout = draft.masters[newLayoutId];
+    const oldLayout = draft.slideMasterPresets[oldLayoutId];
+    const newLayout = draft.slideMasterPresets[newLayoutId];
 
     if (!oldLayout || !newLayout) return;
 
@@ -125,7 +125,7 @@ export function handleAddSlide(draft, payload) {
     
     // Determine layout - use payload.layoutId if provided, otherwise default
     const layoutId = payload?.layoutId || "layout-blank";
-    const layout = draft.masters[layoutId];
+    const layout = draft.slideMasterPresets[layoutId];
     
     // Copy placeholder elements from layout so they can be edited on the slide
     const elements = {};

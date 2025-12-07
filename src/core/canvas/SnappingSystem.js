@@ -132,7 +132,7 @@ export class SnappingSystem {
 
         // 2. Inherited Elements (if editing a Layout)
         if (state.editor.mode === 'master' && slide.type === 'layout' && slide.parentId) {
-            const master = state.masters[slide.parentId];
+            const master = state.slideMasterPresets[slide.parentId];
             if (master && master.elements) {
                 Object.values(master.elements).forEach(rawEl => {
                     others.push(GeometryUtils.getAbsoluteElement(rawEl, master));
@@ -326,7 +326,7 @@ export class SnappingSystem {
 
         // 2. Inherited Elements (if editing a Layout)
         if (state.editor.mode === 'master' && slide.type === 'layout' && slide.parentId) {
-            const master = state.masters[slide.parentId];
+            const master = state.slideMasterPresets[slide.parentId];
             addSnapTargets(master);
         }
         
@@ -480,3 +480,4 @@ export class SnappingSystem {
         return { x: snappedX, y: snappedY, width: snappedW, height: snappedH, guides };
     }
 }
+

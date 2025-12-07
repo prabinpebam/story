@@ -33,7 +33,7 @@ import { StyleResolver } from '../../src/utils/StyleResolver.js';
 function createMockState(themeSlots = [], colorMode = 'light') {
     return {
         masters: {
-            'theme-default': {
+            'master-default': {
                 type: 'theme',
                 themeSettings: {
                     lumaTheme: {
@@ -564,3 +564,4 @@ describe('ColorResolver', () => {
         });
     });
 });
+

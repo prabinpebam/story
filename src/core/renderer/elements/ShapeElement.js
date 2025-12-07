@@ -19,7 +19,7 @@ export class ShapeElement extends VisualElement {
     _getWorldBounds(el) {
         const state = store.getState();
         const slide = state.editor.mode === 'master' 
-            ? state.masters[state.editor.activeMasterId]
+            ? state.slideMasterPresets[state.editor.activeMasterId]
             : state.slides[state.editor.activeSlideId];
         
         if (!slide) {

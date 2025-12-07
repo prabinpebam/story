@@ -7,8 +7,8 @@ describe('StyleResolver', () => {
     // Mock state for testing
     const createMockState = (overrides = {}) => ({
         masters: {
-            'theme-default': {
-                id: 'theme-default',
+            'master-default': {
+                id: 'master-default',
                 type: 'theme',
                 name: 'Default Theme',
                 styleAssignments: {
@@ -39,7 +39,7 @@ describe('StyleResolver', () => {
             'layout-title': {
                 id: 'layout-title',
                 type: 'layout',
-                parentId: 'theme-default',
+                parentId: 'master-default',
                 name: 'Title Slide',
                 styleAssignments: {
                     colorTheme: null,
@@ -49,7 +49,7 @@ describe('StyleResolver', () => {
             'layout-custom': {
                 id: 'layout-custom',
                 type: 'layout',
-                parentId: 'theme-default',
+                parentId: 'master-default',
                 name: 'Custom Layout',
                 styleAssignments: {
                     colorTheme: 'forest-theme',
@@ -114,7 +114,7 @@ describe('StyleResolver', () => {
             const result = StyleResolver.getEffectiveColorTheme('slide-1');
 
             expect(result.source).toBe('master');
-            expect(result.sourceId).toBe('theme-default');
+            expect(result.sourceId).toBe('master-default');
             expect(result.sourceLabel).toBe('inherited from Master');
         });
 
@@ -149,7 +149,7 @@ describe('StyleResolver', () => {
             const result = StyleResolver.getEffectiveColorTheme('slide-legacy');
 
             expect(result.source).toBe('master');
-            expect(result.sourceId).toBe('theme-default');
+            expect(result.sourceId).toBe('master-default');
         });
 
         it('should return master default for non-existent slide', () => {
@@ -174,8 +174,8 @@ describe('StyleResolver', () => {
 
         it('should return light mode when master uses light mode', () => {
             const mockState = createMockState();
-            mockState.masters['theme-default'].styleAssignments.colorMode = 'light';
-            mockState.masters['theme-default'].themeSettings.lumaTheme.colorMode = 'light';
+            mockState.slideMasterPresets['master-default'].styleAssignments.colorMode = 'light';
+            mockState.slideMasterPresets['master-default'].themeSettings.lumaTheme.colorMode = 'light';
             store.getState = vi.fn(() => mockState);
 
             const result = StyleResolver.getColorMode();
@@ -185,7 +185,7 @@ describe('StyleResolver', () => {
 
         it('should fallback to lumaTheme colorMode if styleAssignments not present', () => {
             const mockState = createMockState();
-            delete mockState.masters['theme-default'].styleAssignments;
+            delete mockState.slideMasterPresets['master-default'].styleAssignments;
             store.getState = vi.fn(() => mockState);
 
             const result = StyleResolver.getColorMode();
@@ -216,7 +216,7 @@ describe('StyleResolver', () => {
 
         it('should return null when no theme master exists', () => {
             const mockState = createMockState();
-            delete mockState.masters['theme-default'];
+            delete mockState.slideMasterPresets['master-default'];
             store.getState = vi.fn(() => mockState);
 
             const result = StyleResolver.getLumaTheme('slide-1');
@@ -299,7 +299,7 @@ describe('StyleResolver', () => {
 
         it('should use fallback when slot not found', () => {
             const mockState = createMockState();
-            mockState.masters['theme-default'].themeSettings.lumaTheme.slots = [];
+            mockState.slideMasterPresets['master-default'].themeSettings.lumaTheme.slots = [];
             store.getState = vi.fn(() => mockState);
 
             const result = StyleResolver.resolveThemeSlot(0, '#fallback', 'slide-1');
@@ -332,8 +332,8 @@ describe('StyleResolver', () => {
 
         it('should not apply mapping in light mode', () => {
             const mockState = createMockState();
-            mockState.masters['theme-default'].styleAssignments.colorMode = 'light';
-            mockState.masters['theme-default'].themeSettings.lumaTheme.colorMode = 'light';
+            mockState.slideMasterPresets['master-default'].styleAssignments.colorMode = 'light';
+            mockState.slideMasterPresets['master-default'].themeSettings.lumaTheme.colorMode = 'light';
             store.getState = vi.fn(() => mockState);
 
             const slot0Result = StyleResolver.resolveThemeSlot(0);
@@ -420,3 +420,5 @@ describe('StyleResolver', () => {
         });
     });
 });
+
+

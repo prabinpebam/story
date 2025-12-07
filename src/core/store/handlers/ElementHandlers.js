@@ -1,7 +1,7 @@
 
 function getActiveContainer(draft) {
     if (draft.editor.mode === 'master') {
-        return draft.masters[draft.editor.activeMasterId];
+        return draft.slideMasterPresets[draft.editor.activeMasterId];
     } else {
         return draft.slides[draft.editor.activeSlideId];
     }
@@ -213,7 +213,7 @@ export function handleReorderElements(draft, payload) {
     
     let slide = draft.slides[reorderContainerId];
     if (!slide) {
-        slide = draft.masters[reorderContainerId];
+        slide = draft.slideMasterPresets[reorderContainerId];
     }
     
     if (!slide) return;

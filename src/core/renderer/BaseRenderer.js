@@ -72,7 +72,7 @@ export class BaseRenderer {
     getEffectiveSlideData(id, mode) {
         if (mode === 'master') {
             const state = store.getState();
-            const masters = state.masters;
+            const masters = state.slideMasterPresets;
             const item = masters[id];
             
             if (!item) return null;

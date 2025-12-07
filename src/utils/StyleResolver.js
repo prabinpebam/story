@@ -56,10 +56,10 @@ export const StyleResolver = {
         }
         
         // 2. Check layout master
-        const layout = slide.layoutId ? state.masters?.[slide.layoutId] : null;
-        if (layout?.styleAssignments?.colorTheme) {
+        const layout = slide.layoutId ? state.slideMasterPresets?.[slide.layoutId] : null;
+        if (layout?.colorThemeId) {
             return {
-                themeId: layout.styleAssignments.colorTheme,
+                themeId: layout.colorThemeId,
                 source: 'layout',
                 sourceId: layout.id,
                 sourceLabel: `inherited from ${layout.name || 'Layout'}`
@@ -67,10 +67,10 @@ export const StyleResolver = {
         }
         
         // 3. Check theme master (parent of layout)
-        const themeMaster = layout?.parentId ? state.masters?.[layout.parentId] : null;
-        if (themeMaster?.styleAssignments?.colorTheme) {
+        const themeMaster = layout?.parentMasterId ? state.slideMasterPresets?.[layout.parentMasterId] : null;
+        if (themeMaster?.colorThemeId) {
             return {
-                themeId: themeMaster.styleAssignments.colorTheme,
+                themeId: themeMaster.colorThemeId,
                 source: 'master',
                 sourceId: themeMaster.id,
                 sourceLabel: 'inherited from Master'
@@ -86,14 +86,14 @@ export const StyleResolver = {
      * @private
      */
     _getMasterThemeInfo(state) {
-        const themeMaster = Object.values(state.masters || {}).find(m => m.type === 'theme');
-        const themeId = themeMaster?.styleAssignments?.colorTheme || 
+        const themeMaster = Object.values(state.slideMasterPresets || {}).find(m => m.type === 'slideMasterPreset');
+        const themeId = themeMaster?.colorThemeId || 
                        (themeMaster?.themeSettings?.lumaTheme ? 'default' : null);
         
         return {
             themeId,
             source: 'master',
-            sourceId: themeMaster?.id || 'theme-default',
+            sourceId: themeMaster?.id || 'master-default',
             sourceLabel: 'inherited from Master'
         };
     },

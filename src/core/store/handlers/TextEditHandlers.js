@@ -61,7 +61,7 @@ export function handleSaveTextContent(draft, payload) {
     // Determine which container has the element (slides or masters)
     const mode = draft.editor.mode;
     const activeId = mode === 'master' ? draft.editor.activeMasterId : draft.editor.activeSlideId;
-    const container = mode === 'master' ? draft.masters[activeId] : draft.slides[activeId];
+    const container = mode === 'master' ? draft.slideMasterPresets[activeId] : draft.slides[activeId];
     
     if (!container) return;
     
@@ -91,7 +91,7 @@ export function handleSaveTextContent(draft, payload) {
         // Element doesn't exist in slide - check if it's a layout placeholder
         // that needs to be copied to the slide for editing
         const slide = draft.slides[activeId];
-        const layout = slide?.layoutId ? draft.masters[slide.layoutId] : null;
+        const layout = slide?.layoutId ? draft.slideMasterPresets[slide.layoutId] : null;
         
         if (layout?.elements?.[elementId]) {
             // Copy the layout placeholder to the slide

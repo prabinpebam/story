@@ -23,7 +23,7 @@ export function handleSetActiveSlide(draft, payload) {
 }
 
 export function handleSetActiveMaster(draft, payload) {
-    if (draft.masters[payload]) {
+    if (draft.slideMasterPresets[payload]) {
         draft.editor.activeMasterId = payload;
     }
 }
@@ -54,7 +54,7 @@ export function handleSetMode(draft, payload) {
     draft.editor.mode = payload;
     
     if (payload === 'master' && !draft.editor.activeMasterId) {
-        const firstMaster = Object.keys(draft.masters)[0];
+        const firstMaster = Object.keys(draft.slideMasterPresets)[0];
         if (firstMaster) {
             draft.editor.activeMasterId = firstMaster;
         }

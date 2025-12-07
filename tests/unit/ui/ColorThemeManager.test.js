@@ -23,8 +23,8 @@ const {
             'slide-1': { id: 'slide-1', layoutId: 'layout-1' }
         },
         masters: {
-            'theme-default': {
-                id: 'theme-default',
+            'master-default': {
+                id: 'master-default',
                 type: 'theme',
                 themeSettings: {
                     lumaTheme: {
@@ -41,7 +41,7 @@ const {
             'layout-1': {
                 id: 'layout-1',
                 type: 'layout',
-                parentId: 'theme-default'
+                parentId: 'master-default'
             }
         }
     }))
@@ -434,15 +434,15 @@ describe('ColorThemeManager', () => {
             mockGetState.mockReturnValue({
                 editor: { 
                     activeSlideId: 'slide-1',
-                    activeMasterId: 'theme-default',
+                    activeMasterId: 'master-default',
                     mode: 'master'
                 },
                 slides: {
                     'slide-1': { id: 'slide-1', layoutId: 'layout-1' }
                 },
                 masters: {
-                    'theme-default': {
-                        id: 'theme-default',
+                    'master-default': {
+                        id: 'master-default',
                         type: 'theme',
                         themeSettings: {
                             lumaTheme: {
@@ -458,7 +458,7 @@ describe('ColorThemeManager', () => {
             manager.selectTheme('preset_ocean_sunset');
             
             expect(mockDispatch).toHaveBeenCalledWith('APPLY_LUMA_THEME', expect.objectContaining({
-                masterId: 'theme-default',
+                masterId: 'master-default',
                 theme: expect.objectContaining({
                     id: 'preset_ocean_sunset'
                 })
@@ -477,8 +477,8 @@ describe('ColorThemeManager', () => {
                     'slide-1': { id: 'slide-1', layoutId: 'layout-title-content' }
                 },
                 masters: {
-                    'theme-default': {
-                        id: 'theme-default',
+                    'master-default': {
+                        id: 'master-default',
                         type: 'theme',
                         themeSettings: {
                             lumaTheme: {
@@ -491,7 +491,7 @@ describe('ColorThemeManager', () => {
                     'layout-title-content': {
                         id: 'layout-title-content',
                         type: 'layout',
-                        parentId: 'theme-default',
+                        parentId: 'master-default',
                         name: 'Title and Content'
                     }
                 }
@@ -512,13 +512,13 @@ describe('ColorThemeManager', () => {
             mockGetState.mockReturnValue({
                 editor: { 
                     activeSlideId: 'slide-1',
-                    activeMasterId: 'theme-default',
+                    activeMasterId: 'master-default',
                     mode: 'master'
                 },
                 slides: {},
                 masters: {
-                    'theme-default': {
-                        id: 'theme-default',
+                    'master-default': {
+                        id: 'master-default',
                         type: 'theme',
                         themeSettings: {
                             lumaTheme: {
@@ -546,13 +546,13 @@ describe('ColorThemeManager', () => {
             const masterModeState = {
                 editor: { 
                     activeSlideId: 'slide-1',
-                    activeMasterId: 'theme-default',
+                    activeMasterId: 'master-default',
                     mode: 'master'
                 },
                 slides: {},
                 masters: {
-                    'theme-default': {
-                        id: 'theme-default',
+                    'master-default': {
+                        id: 'master-default',
                         type: 'theme',
                         name: 'Default Theme',
                         themeSettings: {
@@ -641,8 +641,8 @@ describe('ColorThemeManager', () => {
                         'slide-1': { id: 'slide-1', layoutId: 'layout-1' }
                     },
                     masters: {
-                        'theme-default': {
-                            id: 'theme-default',
+                        'master-default': {
+                            id: 'master-default',
                             type: 'theme',
                             themeSettings: {
                                 lumaTheme: {
@@ -655,7 +655,7 @@ describe('ColorThemeManager', () => {
                         'layout-1': {
                             id: 'layout-1',
                             type: 'layout',
-                            parentId: 'theme-default'
+                            parentId: 'master-default'
                         }
                     }
                 });
@@ -686,8 +686,8 @@ describe('ColorThemeManager', () => {
                     },
                     slides: {},
                     masters: {
-                        'theme-default': {
-                            id: 'theme-default',
+                        'master-default': {
+                            id: 'master-default',
                             type: 'theme',
                             themeSettings: {
                                 lumaTheme: {
@@ -700,7 +700,7 @@ describe('ColorThemeManager', () => {
                         'layout-title-content': {
                             id: 'layout-title-content',
                             type: 'layout',
-                            parentId: 'theme-default',
+                            parentId: 'master-default',
                             name: 'Title and Content'
                         }
                     }
@@ -728,13 +728,13 @@ describe('ColorThemeManager', () => {
                 mockGetState.mockReturnValue({
                     editor: { 
                         activeSlideId: 'slide-1',
-                        activeMasterId: 'theme-default',
+                        activeMasterId: 'master-default',
                         mode: 'master'
                     },
                     slides: {},
                     masters: {
-                        'theme-default': {
-                            id: 'theme-default',
+                        'master-default': {
+                            id: 'master-default',
                             type: 'theme',
                             themeSettings: {
                                 lumaTheme: {
@@ -752,7 +752,7 @@ describe('ColorThemeManager', () => {
                 // Should have dispatched the event
                 expect(eventSpy).toHaveBeenCalled();
                 const eventDetail = eventSpy.mock.calls[0][0].detail;
-                expect(eventDetail.masterId).toBe('theme-default');
+                expect(eventDetail.masterId).toBe('master-default');
                 expect(eventDetail.themeId).toBe('preset_ocean_sunset');
                 expect(eventDetail.affectedSlides).toBe('all');
             } finally {
@@ -761,3 +761,4 @@ describe('ColorThemeManager', () => {
         });
     });
 });
+

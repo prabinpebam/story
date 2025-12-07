@@ -65,7 +65,7 @@ export class CanvasManager {
     getActiveContainer(state) {
         if (state.editor.mode === 'master') {
             const activeId = state.editor.activeMasterId;
-            const masters = state.masters;
+            const masters = state.slideMasterPresets;
             return masters[activeId] || null;
         } else {
             return state.slides[state.editor.activeSlideId];

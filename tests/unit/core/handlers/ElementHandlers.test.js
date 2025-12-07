@@ -86,7 +86,7 @@ describe('ElementHandlers', () => {
                 handleAddElement(draft, element);
             });
 
-            expect(state.masters['layout-blank'].elements['placeholder-1']).toBeDefined();
+            expect(state.slideMasterPresets['layout-blank'].elements['placeholder-1']).toBeDefined();
         });
     });
 
@@ -658,3 +658,4 @@ describe('ElementHandlers', () => {
         });
     });
 });
+

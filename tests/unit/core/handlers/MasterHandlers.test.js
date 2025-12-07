@@ -80,10 +80,10 @@ describe('MasterHandlers', () => {
     describe('handleUpdateMaster()', () => {
         it('should update master properties', () => {
             const newState = produce(initialState, draft => {
-                handleUpdateMaster(draft, { id: 'theme-default', name: 'Updated Theme' });
+                handleUpdateMaster(draft, { id: 'master-default', name: 'Updated Theme' });
             });
 
-            expect(newState.masters['theme-default'].name).toBe('Updated Theme');
+            expect(newState.slideMasterPresets['master-default'].name).toBe('Updated Theme');
         });
 
         it('should merge properties with existing master', () => {
@@ -91,9 +91,9 @@ describe('MasterHandlers', () => {
                 handleUpdateMaster(draft, { id: 'layout-blank', customProp: 'test' });
             });
 
-            expect(newState.masters['layout-blank'].customProp).toBe('test');
+            expect(newState.slideMasterPresets['layout-blank'].customProp).toBe('test');
             // Original properties should still exist
-            expect(newState.masters['layout-blank'].type).toBe('layout');
+            expect(newState.slideMasterPresets['layout-blank'].type).toBe('layout');
         });
 
         it('should handle non-existent master gracefully', () => {
@@ -101,7 +101,7 @@ describe('MasterHandlers', () => {
                 handleUpdateMaster(draft, { id: 'nonexistent', name: 'Test' });
             });
 
-            expect(newState.masters['nonexistent']).toBeUndefined();
+            expect(newState.slideMasterPresets['nonexistent']).toBeUndefined();
         });
     });
 
@@ -109,27 +109,27 @@ describe('MasterHandlers', () => {
         it('should update theme colors', () => {
             const newState = produce(initialState, draft => {
                 handleUpdateThemeSettings(draft, {
-                    id: 'theme-default',
+                    id: 'master-default',
                     settings: { colors: { accent1: '#ff0000' } }
                 });
             });
 
-            expect(newState.masters['theme-default'].themeSettings.colors.accent1).toBe('#ff0000');
+            expect(newState.slideMasterPresets['master-default'].themeSettings.colors.accent1).toBe('#ff0000');
         });
 
         it('should update theme fonts', () => {
             const newState = produce(initialState, draft => {
                 handleUpdateThemeSettings(draft, {
-                    id: 'theme-default',
+                    id: 'master-default',
                     settings: { fonts: { heading: 'Roboto' } }
                 });
             });
 
-            expect(newState.masters['theme-default'].themeSettings.fonts.heading).toBe('Roboto');
+            expect(newState.slideMasterPresets['master-default'].themeSettings.fonts.heading).toBe('Roboto');
         });
 
         it('should not update non-theme masters', () => {
-            const originalLayout = initialState.masters['layout-blank'];
+            const originalLayout = initialState.slideMasterPresets['layout-blank'];
             
             const newState = produce(initialState, draft => {
                 handleUpdateThemeSettings(draft, {
@@ -139,23 +139,23 @@ describe('MasterHandlers', () => {
             });
 
             // Layout should not have themeSettings modified
-            expect(newState.masters['layout-blank'].themeSettings).toEqual(originalLayout.themeSettings);
+            expect(newState.slideMasterPresets['layout-blank'].themeSettings).toEqual(originalLayout.themeSettings);
         });
 
         it('should create themeSettings if not exists', () => {
             let state = produce(initialState, draft => {
-                draft.masters['theme-default'].themeSettings = undefined;
+                draft.slideMasterPresets['master-default'].themeSettings = undefined;
             });
 
             state = produce(state, draft => {
                 handleUpdateThemeSettings(draft, {
-                    id: 'theme-default',
+                    id: 'master-default',
                     settings: { colors: { accent1: '#ff0000' } }
                 });
             });
 
-            expect(state.masters['theme-default'].themeSettings).toBeDefined();
-            expect(state.masters['theme-default'].themeSettings.colors.accent1).toBe('#ff0000');
+            expect(state.slideMasterPresets['master-default'].themeSettings).toBeDefined();
+            expect(state.slideMasterPresets['master-default'].themeSettings.colors.accent1).toBe('#ff0000');
         });
     });
 
@@ -170,12 +170,12 @@ describe('MasterHandlers', () => {
             };
 
             const newState = produce(initialState, draft => {
-                handleApplyColorPreset(draft, { masterId: 'theme-default', preset });
+                handleApplyColorPreset(draft, { masterId: 'master-default', preset });
             });
 
-            expect(newState.masters['theme-default'].themeSettings.colors.background1).toBe('#000000');
-            expect(newState.masters['theme-default'].themeSettings.colors.text1).toBe('#ffffff');
-            expect(newState.masters['theme-default'].themeSettings.colors.accent1).toBe('#00ff00');
+            expect(newState.slideMasterPresets['master-default'].themeSettings.colors.background1).toBe('#000000');
+            expect(newState.slideMasterPresets['master-default'].themeSettings.colors.text1).toBe('#ffffff');
+            expect(newState.slideMasterPresets['master-default'].themeSettings.colors.accent1).toBe('#00ff00');
         });
 
         it('should set legacy aliases when applying preset', () => {
@@ -188,22 +188,22 @@ describe('MasterHandlers', () => {
             };
 
             const newState = produce(initialState, draft => {
-                handleApplyColorPreset(draft, { masterId: 'theme-default', preset });
+                handleApplyColorPreset(draft, { masterId: 'master-default', preset });
             });
 
-            expect(newState.masters['theme-default'].themeSettings.colors.accent).toBe('#00ff00');
-            expect(newState.masters['theme-default'].themeSettings.colors.textPrimary).toBe('#ffffff');
-            expect(newState.masters['theme-default'].themeSettings.colors.textSecondary).toBe('#cccccc');
+            expect(newState.slideMasterPresets['master-default'].themeSettings.colors.accent).toBe('#00ff00');
+            expect(newState.slideMasterPresets['master-default'].themeSettings.colors.textPrimary).toBe('#ffffff');
+            expect(newState.slideMasterPresets['master-default'].themeSettings.colors.textSecondary).toBe('#cccccc');
         });
 
         it('should handle null preset gracefully', () => {
-            const originalColors = initialState.masters['theme-default'].themeSettings?.colors;
+            const originalColors = initialState.slideMasterPresets['master-default'].themeSettings?.colors;
             
             const newState = produce(initialState, draft => {
-                handleApplyColorPreset(draft, { masterId: 'theme-default', preset: null });
+                handleApplyColorPreset(draft, { masterId: 'master-default', preset: null });
             });
 
-            expect(newState.masters['theme-default'].themeSettings?.colors).toEqual(originalColors);
+            expect(newState.slideMasterPresets['master-default'].themeSettings?.colors).toEqual(originalColors);
         });
     });
 
@@ -211,27 +211,27 @@ describe('MasterHandlers', () => {
         it('should reset colors to default preset', () => {
             // First modify colors
             let state = produce(initialState, draft => {
-                if (!draft.masters['theme-default'].themeSettings) {
-                    draft.masters['theme-default'].themeSettings = { colors: {}, fonts: {} };
+                if (!draft.slideMasterPresets['master-default'].themeSettings) {
+                    draft.slideMasterPresets['master-default'].themeSettings = { colors: {}, fonts: {} };
                 }
-                draft.masters['theme-default'].themeSettings.colors.accent1 = '#ff0000';
+                draft.slideMasterPresets['master-default'].themeSettings.colors.accent1 = '#ff0000';
             });
 
             // Then reset
             state = produce(state, draft => {
-                handleResetThemeColors(draft, { masterId: 'theme-default' });
+                handleResetThemeColors(draft, { masterId: 'master-default' });
             });
 
-            expect(state.masters['theme-default'].themeSettings.colors.accent1).toBe('#0066cc');
+            expect(state.slideMasterPresets['master-default'].themeSettings.colors.accent1).toBe('#0066cc');
         });
 
         it('should set legacy aliases on reset', () => {
             const newState = produce(initialState, draft => {
-                handleResetThemeColors(draft, { masterId: 'theme-default' });
+                handleResetThemeColors(draft, { masterId: 'master-default' });
             });
 
-            expect(newState.masters['theme-default'].themeSettings.colors.accent).toBe('#0066cc');
-            expect(newState.masters['theme-default'].themeSettings.colors.textPrimary).toBe('#1a1a1a');
+            expect(newState.slideMasterPresets['master-default'].themeSettings.colors.accent).toBe('#0066cc');
+            expect(newState.slideMasterPresets['master-default'].themeSettings.colors.textPrimary).toBe('#1a1a1a');
         });
     });
 
@@ -239,65 +239,65 @@ describe('MasterHandlers', () => {
         it('should update a single color role', () => {
             const newState = produce(initialState, draft => {
                 handleUpdateThemeColor(draft, {
-                    masterId: 'theme-default',
+                    masterId: 'master-default',
                     colorRole: 'accent1',
                     value: '#ff5500'
                 });
             });
 
-            expect(newState.masters['theme-default'].themeSettings.colors.accent1).toBe('#ff5500');
+            expect(newState.slideMasterPresets['master-default'].themeSettings.colors.accent1).toBe('#ff5500');
         });
 
         it('should update legacy alias when updating accent1', () => {
             const newState = produce(initialState, draft => {
                 handleUpdateThemeColor(draft, {
-                    masterId: 'theme-default',
+                    masterId: 'master-default',
                     colorRole: 'accent1',
                     value: '#ff5500'
                 });
             });
 
-            expect(newState.masters['theme-default'].themeSettings.colors.accent).toBe('#ff5500');
+            expect(newState.slideMasterPresets['master-default'].themeSettings.colors.accent).toBe('#ff5500');
         });
 
         it('should update legacy alias when updating text1', () => {
             const newState = produce(initialState, draft => {
                 handleUpdateThemeColor(draft, {
-                    masterId: 'theme-default',
+                    masterId: 'master-default',
                     colorRole: 'text1',
                     value: '#333333'
                 });
             });
 
-            expect(newState.masters['theme-default'].themeSettings.colors.textPrimary).toBe('#333333');
+            expect(newState.slideMasterPresets['master-default'].themeSettings.colors.textPrimary).toBe('#333333');
         });
 
         it('should update legacy alias when updating text2', () => {
             const newState = produce(initialState, draft => {
                 handleUpdateThemeColor(draft, {
-                    masterId: 'theme-default',
+                    masterId: 'master-default',
                     colorRole: 'text2',
                     value: '#888888'
                 });
             });
 
-            expect(newState.masters['theme-default'].themeSettings.colors.textSecondary).toBe('#888888');
+            expect(newState.slideMasterPresets['master-default'].themeSettings.colors.textSecondary).toBe('#888888');
         });
 
         it('should create themeSettings structure if missing', () => {
             let state = produce(initialState, draft => {
-                draft.masters['theme-default'].themeSettings = undefined;
+                draft.slideMasterPresets['master-default'].themeSettings = undefined;
             });
 
             state = produce(state, draft => {
                 handleUpdateThemeColor(draft, {
-                    masterId: 'theme-default',
+                    masterId: 'master-default',
                     colorRole: 'accent1',
                     value: '#ff5500'
                 });
             });
 
-            expect(state.masters['theme-default'].themeSettings.colors.accent1).toBe('#ff5500');
+            expect(state.slideMasterPresets['master-default'].themeSettings.colors.accent1).toBe('#ff5500');
         });
     });
 
@@ -311,11 +311,11 @@ describe('MasterHandlers', () => {
             };
 
             const newState = produce(initialState, draft => {
-                handleApplyFontPreset(draft, { masterId: 'theme-default', preset });
+                handleApplyFontPreset(draft, { masterId: 'master-default', preset });
             });
 
-            expect(newState.masters['theme-default'].themeSettings.fonts.heading).toBe('Roboto');
-            expect(newState.masters['theme-default'].themeSettings.fonts.body).toBe('Open Sans');
+            expect(newState.slideMasterPresets['master-default'].themeSettings.fonts.heading).toBe('Roboto');
+            expect(newState.slideMasterPresets['master-default'].themeSettings.fonts.body).toBe('Open Sans');
         });
 
         it('should default to Inter if family not specified', () => {
@@ -327,11 +327,11 @@ describe('MasterHandlers', () => {
             };
 
             const newState = produce(initialState, draft => {
-                handleApplyFontPreset(draft, { masterId: 'theme-default', preset });
+                handleApplyFontPreset(draft, { masterId: 'master-default', preset });
             });
 
-            expect(newState.masters['theme-default'].themeSettings.fonts.heading).toBe('Inter');
-            expect(newState.masters['theme-default'].themeSettings.fonts.body).toBe('Inter');
+            expect(newState.slideMasterPresets['master-default'].themeSettings.fonts.heading).toBe('Inter');
+            expect(newState.slideMasterPresets['master-default'].themeSettings.fonts.body).toBe('Inter');
         });
     });
 
@@ -339,19 +339,19 @@ describe('MasterHandlers', () => {
         it('should reset fonts to default preset', () => {
             // First modify fonts
             let state = produce(initialState, draft => {
-                if (!draft.masters['theme-default'].themeSettings) {
-                    draft.masters['theme-default'].themeSettings = { colors: {}, fonts: {} };
+                if (!draft.slideMasterPresets['master-default'].themeSettings) {
+                    draft.slideMasterPresets['master-default'].themeSettings = { colors: {}, fonts: {} };
                 }
-                draft.masters['theme-default'].themeSettings.fonts = { heading: 'Comic Sans', body: 'Comic Sans' };
+                draft.slideMasterPresets['master-default'].themeSettings.fonts = { heading: 'Comic Sans', body: 'Comic Sans' };
             });
 
             // Then reset
             state = produce(state, draft => {
-                handleResetThemeFonts(draft, { masterId: 'theme-default' });
+                handleResetThemeFonts(draft, { masterId: 'master-default' });
             });
 
-            expect(state.masters['theme-default'].themeSettings.fonts.heading).toBe('Inter');
-            expect(state.masters['theme-default'].themeSettings.fonts.body).toBe('Inter');
+            expect(state.slideMasterPresets['master-default'].themeSettings.fonts.heading).toBe('Inter');
+            expect(state.slideMasterPresets['master-default'].themeSettings.fonts.body).toBe('Inter');
         });
     });
 
@@ -359,44 +359,44 @@ describe('MasterHandlers', () => {
         it('should update heading font', () => {
             const newState = produce(initialState, draft => {
                 handleUpdateThemeFont(draft, {
-                    masterId: 'theme-default',
+                    masterId: 'master-default',
                     fontType: 'heading',
                     value: 'Roboto'
                 });
             });
 
-            expect(newState.masters['theme-default'].themeSettings.fonts.heading).toBe('Roboto');
+            expect(newState.slideMasterPresets['master-default'].themeSettings.fonts.heading).toBe('Roboto');
         });
 
         it('should update body font', () => {
             const newState = produce(initialState, draft => {
                 handleUpdateThemeFont(draft, {
-                    masterId: 'theme-default',
+                    masterId: 'master-default',
                     fontType: 'body',
                     value: 'Open Sans'
                 });
             });
 
-            expect(newState.masters['theme-default'].themeSettings.fonts.body).toBe('Open Sans');
+            expect(newState.slideMasterPresets['master-default'].themeSettings.fonts.body).toBe('Open Sans');
         });
 
         it('should ignore invalid font type', () => {
             let state = produce(initialState, draft => {
-                if (!draft.masters['theme-default'].themeSettings) {
-                    draft.masters['theme-default'].themeSettings = { colors: {}, fonts: { heading: 'Inter', body: 'Inter' } };
+                if (!draft.slideMasterPresets['master-default'].themeSettings) {
+                    draft.slideMasterPresets['master-default'].themeSettings = { colors: {}, fonts: { heading: 'Inter', body: 'Inter' } };
                 }
             });
 
             state = produce(state, draft => {
                 handleUpdateThemeFont(draft, {
-                    masterId: 'theme-default',
+                    masterId: 'master-default',
                     fontType: 'invalid',
                     value: 'Roboto'
                 });
             });
 
             // Fonts should remain unchanged
-            expect(state.masters['theme-default'].themeSettings.fonts.invalid).toBeUndefined();
+            expect(state.slideMasterPresets['master-default'].themeSettings.fonts.invalid).toBeUndefined();
         });
     });
 
@@ -404,34 +404,34 @@ describe('MasterHandlers', () => {
         it('should update text style property', () => {
             const newState = produce(initialState, draft => {
                 handleUpdateTextStyle(draft, {
-                    masterId: 'theme-default',
+                    masterId: 'master-default',
                     styleId: 'heading1',
                     property: 'fontSize',
                     value: 48
                 });
             });
 
-            expect(newState.masters['theme-default'].themeSettings.textStyles.heading1.fontSize).toBe(48);
+            expect(newState.slideMasterPresets['master-default'].themeSettings.textStyles.heading1.fontSize).toBe(48);
         });
 
         it('should create text style if not exists', () => {
             const newState = produce(initialState, draft => {
                 handleUpdateTextStyle(draft, {
-                    masterId: 'theme-default',
+                    masterId: 'master-default',
                     styleId: 'newStyle',
                     property: 'fontSize',
                     value: 24
                 });
             });
 
-            expect(newState.masters['theme-default'].themeSettings.textStyles.newStyle).toBeDefined();
-            expect(newState.masters['theme-default'].themeSettings.textStyles.newStyle.fontSize).toBe(24);
+            expect(newState.slideMasterPresets['master-default'].themeSettings.textStyles.newStyle).toBeDefined();
+            expect(newState.slideMasterPresets['master-default'].themeSettings.textStyles.newStyle.fontSize).toBe(24);
         });
 
         it('should update multiple properties sequentially', () => {
             let state = produce(initialState, draft => {
                 handleUpdateTextStyle(draft, {
-                    masterId: 'theme-default',
+                    masterId: 'master-default',
                     styleId: 'heading1',
                     property: 'fontSize',
                     value: 48
@@ -440,15 +440,15 @@ describe('MasterHandlers', () => {
 
             state = produce(state, draft => {
                 handleUpdateTextStyle(draft, {
-                    masterId: 'theme-default',
+                    masterId: 'master-default',
                     styleId: 'heading1',
                     property: 'fontWeight',
                     value: 700
                 });
             });
 
-            expect(state.masters['theme-default'].themeSettings.textStyles.heading1.fontSize).toBe(48);
-            expect(state.masters['theme-default'].themeSettings.textStyles.heading1.fontWeight).toBe(700);
+            expect(state.slideMasterPresets['master-default'].themeSettings.textStyles.heading1.fontSize).toBe(48);
+            expect(state.slideMasterPresets['master-default'].themeSettings.textStyles.heading1.fontWeight).toBe(700);
         });
     });
 
@@ -468,8 +468,8 @@ describe('MasterHandlers', () => {
                 handleAddElementToMaster(draft, { masterId: 'layout-title', element });
             });
 
-            expect(newState.masters['layout-title'].elements['placeholder-1']).toBeDefined();
-            expect(newState.masters['layout-title'].elements['placeholder-1'].type).toBe('placeholder');
+            expect(newState.slideMasterPresets['layout-title'].elements['placeholder-1']).toBeDefined();
+            expect(newState.slideMasterPresets['layout-title'].elements['placeholder-1'].type).toBe('placeholder');
         });
 
         it('should add element to elementOrder', () => {
@@ -482,13 +482,13 @@ describe('MasterHandlers', () => {
                 handleAddElementToMaster(draft, { masterId: 'layout-blank', element });
             });
 
-            expect(newState.masters['layout-blank'].elementOrder).toContain('placeholder-new');
+            expect(newState.slideMasterPresets['layout-blank'].elementOrder).toContain('placeholder-new');
         });
 
         it('should not duplicate element in order if already present', () => {
             let state = produce(initialState, draft => {
-                draft.masters['layout-blank'].elements = { 'elem-1': { id: 'elem-1' } };
-                draft.masters['layout-blank'].elementOrder = ['elem-1'];
+                draft.slideMasterPresets['layout-blank'].elements = { 'elem-1': { id: 'elem-1' } };
+                draft.slideMasterPresets['layout-blank'].elementOrder = ['elem-1'];
             });
 
             state = produce(state, draft => {
@@ -498,14 +498,14 @@ describe('MasterHandlers', () => {
                 });
             });
 
-            const count = state.masters['layout-blank'].elementOrder.filter(id => id === 'elem-1').length;
+            const count = state.slideMasterPresets['layout-blank'].elementOrder.filter(id => id === 'elem-1').length;
             expect(count).toBe(1);
         });
 
         it('should initialize elements and elementOrder if not present', () => {
             let state = produce(initialState, draft => {
-                delete draft.masters['layout-blank'].elements;
-                delete draft.masters['layout-blank'].elementOrder;
+                delete draft.slideMasterPresets['layout-blank'].elements;
+                delete draft.slideMasterPresets['layout-blank'].elementOrder;
             });
 
             state = produce(state, draft => {
@@ -515,42 +515,42 @@ describe('MasterHandlers', () => {
                 });
             });
 
-            expect(state.masters['layout-blank'].elements).toBeDefined();
-            expect(state.masters['layout-blank'].elementOrder).toContain('new-elem');
+            expect(state.slideMasterPresets['layout-blank'].elements).toBeDefined();
+            expect(state.slideMasterPresets['layout-blank'].elementOrder).toContain('new-elem');
         });
     });
 
     describe('handleDeleteElementFromMaster()', () => {
         it('should delete element from master', () => {
             let state = produce(initialState, draft => {
-                draft.masters['layout-blank'].elements = { 'elem-1': { id: 'elem-1' } };
-                draft.masters['layout-blank'].elementOrder = ['elem-1'];
+                draft.slideMasterPresets['layout-blank'].elements = { 'elem-1': { id: 'elem-1' } };
+                draft.slideMasterPresets['layout-blank'].elementOrder = ['elem-1'];
             });
 
             state = produce(state, draft => {
                 handleDeleteElementFromMaster(draft, { masterId: 'layout-blank', elementId: 'elem-1' });
             });
 
-            expect(state.masters['layout-blank'].elements['elem-1']).toBeUndefined();
+            expect(state.slideMasterPresets['layout-blank'].elements['elem-1']).toBeUndefined();
         });
 
         it('should remove element from elementOrder', () => {
             let state = produce(initialState, draft => {
-                draft.masters['layout-blank'].elements = { 'elem-1': { id: 'elem-1' } };
-                draft.masters['layout-blank'].elementOrder = ['elem-1'];
+                draft.slideMasterPresets['layout-blank'].elements = { 'elem-1': { id: 'elem-1' } };
+                draft.slideMasterPresets['layout-blank'].elementOrder = ['elem-1'];
             });
 
             state = produce(state, draft => {
                 handleDeleteElementFromMaster(draft, { masterId: 'layout-blank', elementId: 'elem-1' });
             });
 
-            expect(state.masters['layout-blank'].elementOrder).not.toContain('elem-1');
+            expect(state.slideMasterPresets['layout-blank'].elementOrder).not.toContain('elem-1');
         });
 
         it('should clear selection if deleted element was selected', () => {
             let state = produce(initialState, draft => {
-                draft.masters['layout-blank'].elements = { 'elem-1': { id: 'elem-1' } };
-                draft.masters['layout-blank'].elementOrder = ['elem-1'];
+                draft.slideMasterPresets['layout-blank'].elements = { 'elem-1': { id: 'elem-1' } };
+                draft.slideMasterPresets['layout-blank'].elementOrder = ['elem-1'];
                 draft.editor.selectedElementIds = ['elem-1', 'elem-2'];
             });
 
@@ -572,3 +572,5 @@ describe('MasterHandlers', () => {
         });
     });
 });
+
+

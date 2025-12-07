@@ -144,7 +144,7 @@ describe('TextSection', () => {
                 }
             },
             masters: {
-                'theme-default': {
+                'master-default': {
                     type: 'theme',
                     themeSettings: {
                         textStyles: {},
@@ -275,7 +275,7 @@ describe('TextSection', () => {
         it('should return theme master id', () => {
             const state = store.getState();
             const themeId = textSection.getActiveThemeId(state);
-            expect(themeId).toBe('theme-default');
+            expect(themeId).toBe('master-default');
         });
 
         it('should return default if no theme master found', () => {
@@ -286,7 +286,7 @@ describe('TextSection', () => {
             });
             const state = store.getState();
             const themeId = textSection.getActiveThemeId(state);
-            expect(themeId).toBe('theme-default');
+            expect(themeId).toBe('master-default');
         });
     });
 
@@ -491,3 +491,4 @@ describe('TextSection', () => {
         });
     });
 });
+

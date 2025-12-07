@@ -12,8 +12,8 @@ const { mockGetState } = vi.hoisted(() => ({
     mockGetState: vi.fn(() => ({
         editor: { mode: 'slide', activeSlideId: 'slide-1' },
         masters: {
-            'theme-default': {
-                id: 'theme-default',
+            'master-default': {
+                id: 'master-default',
                 type: 'theme',
                 themeSettings: {
                     lumaTheme: {
@@ -30,7 +30,7 @@ const { mockGetState } = vi.hoisted(() => ({
         },
         layouts: {},
         slides: {
-            'slide-1': { id: 'slide-1', masterId: 'theme-default', styleAssignments: {} }
+            'slide-1': { id: 'slide-1', masterId: 'master-default', styleAssignments: {} }
         }
     }))
 }));
@@ -444,3 +444,4 @@ describe('SolidTab', () => {
         });
     });
 });
+

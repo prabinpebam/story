@@ -31,7 +31,7 @@ describe('Store', () => {
             expect(state).toBeDefined();
             expect(state.slides).toBeDefined();
             expect(state.editor).toBeDefined();
-            expect(state.masters).toBeDefined();
+            expect(state.slideMasterPresets).toBeDefined();
         });
 
         it('should have default editor settings', () => {
@@ -55,8 +55,8 @@ describe('Store', () => {
 
         it('should have default masters defined', () => {
             const state = store.getState();
-            expect(state.masters['theme-default']).toBeDefined();
-            expect(state.masters['layout-blank']).toBeDefined();
+            expect(state.slideMasterPresets['master-default']).toBeDefined();
+            expect(state.slideMasterPresets['layout-blank']).toBeDefined();
         });
     });
 

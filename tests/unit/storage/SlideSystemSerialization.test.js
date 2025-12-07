@@ -60,10 +60,10 @@ describe('Slide System Serialization (Phase 0.2)', () => {
             const restored = await deserializer.deserialize();
 
             // Verify theme master exists
-            const themeMaster = restored.masters?.['theme-default'];
+            const themeMaster = restored.masters?.['master-default'];
             expect(themeMaster).toBeDefined();
             if (themeMaster) {
-                expect(themeMaster.id).toBe('theme-default');
+                expect(themeMaster.id).toBe('master-default');
                 expect(themeMaster.type).toBe('theme');
                 expect(themeMaster.themeSettings).toBeDefined();
             }
@@ -402,3 +402,4 @@ describe('Slide System Serialization (Phase 0.2)', () => {
         });
     });
 });
+

@@ -518,7 +518,7 @@ describe('SnappingSystem', () => {
     describe('Edge cases', () => {
         it('should handle inherited elements in layout mode', () => {
             mockState.editor.mode = 'master';
-            mockState.masters = {
+            mockState.slideMasterPresets = {
                 'master-1': {
                     elements: {
                         'master-el': { id: 'master-el', x: 100, y: 100, width: 100, height: 100, rotation: 0 }
@@ -567,3 +567,4 @@ describe('SnappingSystem', () => {
         });
     });
 });
+

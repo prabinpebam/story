@@ -15,7 +15,7 @@ import { getPresetById, getFullPresetById } from '../SlideMasterPresets.js';
  */
 export function handleApplyLumaTheme(draft, payload) {
     const { masterId, theme } = payload;
-    const themeMaster = draft.masters[masterId];
+    const themeMaster = draft.slideMasterPresets[masterId];
     
     if (themeMaster && themeMaster.type === 'theme' && theme) {
         if (!themeMaster.themeSettings) {
@@ -45,7 +45,7 @@ export function handleApplyLumaTheme(draft, payload) {
  */
 export function handleUpdateLumaThemeSlot(draft, payload) {
     const { masterId, slotIndex, h, s } = payload;
-    const themeMaster = draft.masters[masterId];
+    const themeMaster = draft.slideMasterPresets[masterId];
     
     if (themeMaster?.themeSettings?.lumaTheme?.slots && 
         slotIndex >= 0 && slotIndex < 12) {
@@ -60,7 +60,7 @@ export function handleUpdateLumaThemeSlot(draft, payload) {
  */
 export function handleUpdateLumaThemeAdjustments(draft, payload) {
     const { masterId, adjustments } = payload;
-    const themeMaster = draft.masters[masterId];
+    const themeMaster = draft.slideMasterPresets[masterId];
     
     if (themeMaster?.themeSettings?.lumaTheme && adjustments) {
         themeMaster.themeSettings.lumaTheme.adjustments = {
@@ -80,7 +80,7 @@ export function handleUpdateLumaThemeAdjustments(draft, payload) {
  */
 export function handleSetColorMode(draft, payload) {
     const { masterId, colorMode } = payload;
-    const themeMaster = draft.masters[masterId];
+    const themeMaster = draft.slideMasterPresets[masterId];
     
     if (themeMaster?.themeSettings?.lumaTheme && (colorMode === 'light' || colorMode === 'dark')) {
         themeMaster.themeSettings.lumaTheme.colorMode = colorMode;
@@ -96,7 +96,7 @@ export function handleSetColorMode(draft, payload) {
  */
 export function handleUpdateMasterStyleAssignments(draft, payload) {
     const { masterId, styleAssignments } = payload;
-    const master = draft.masters[masterId];
+    const master = draft.slideMasterPresets[masterId];
     
     if (!master) {
         console.warn('[handleUpdateMasterStyleAssignments] Master not found:', masterId);
@@ -124,7 +124,7 @@ export function handleUpdateMasterStyleAssignments(draft, payload) {
 // ========================================
 
 export function handleUpdateMaster(draft, payload) {
-    const masters = draft.masters;
+    const masters = draft.slideMasterPresets;
     const masterToUpdate = masters[payload.id];
 
     if (masterToUpdate) {
@@ -134,7 +134,7 @@ export function handleUpdateMaster(draft, payload) {
 
 export function handleUpdateThemeSettings(draft, payload) {
     const { id, settings } = payload;
-    const themeMaster = draft.masters[id];
+    const themeMaster = draft.slideMasterPresets[id];
     
     if (themeMaster && themeMaster.type === 'theme') {
         if (!themeMaster.themeSettings) {
@@ -159,7 +159,7 @@ export function handleUpdateThemeSettings(draft, payload) {
  */
 export function handleApplyColorPreset(draft, payload) {
     const { masterId, preset } = payload;
-    const themeMaster = draft.masters[masterId];
+    const themeMaster = draft.slideMasterPresets[masterId];
     
     if (themeMaster && themeMaster.type === 'theme' && preset?.colors) {
         if (!themeMaster.themeSettings) {
@@ -184,7 +184,7 @@ export function handleApplyColorPreset(draft, payload) {
  */
 export function handleResetThemeColors(draft, payload) {
     const { masterId } = payload;
-    const themeMaster = draft.masters[masterId];
+    const themeMaster = draft.slideMasterPresets[masterId];
     
     if (themeMaster && themeMaster.type === 'theme') {
         const defaultPreset = getDefaultPreset();
@@ -210,7 +210,7 @@ export function handleResetThemeColors(draft, payload) {
  */
 export function handleUpdateThemeColor(draft, payload) {
     const { masterId, colorRole, value } = payload;
-    const themeMaster = draft.masters[masterId];
+    const themeMaster = draft.slideMasterPresets[masterId];
     
     if (themeMaster && themeMaster.type === 'theme') {
         if (!themeMaster.themeSettings) {
@@ -245,7 +245,7 @@ export function handleUpdateThemeColor(draft, payload) {
  */
 export function handleApplyFontPreset(draft, payload) {
     const { masterId, preset } = payload;
-    const themeMaster = draft.masters[masterId];
+    const themeMaster = draft.slideMasterPresets[masterId];
     
     if (themeMaster && themeMaster.type === 'theme' && preset) {
         if (!themeMaster.themeSettings) {
@@ -279,7 +279,7 @@ export function handleApplyFontPreset(draft, payload) {
  */
 export function handleResetThemeFonts(draft, payload) {
     const { masterId } = payload;
-    const themeMaster = draft.masters[masterId];
+    const themeMaster = draft.slideMasterPresets[masterId];
     
     if (themeMaster && themeMaster.type === 'theme') {
         const defaultPreset = getDefaultFontPreset();
@@ -305,7 +305,7 @@ export function handleResetThemeFonts(draft, payload) {
  */
 export function handleUpdateThemeFont(draft, payload) {
     const { masterId, fontType, value } = payload;
-    const themeMaster = draft.masters[masterId];
+    const themeMaster = draft.slideMasterPresets[masterId];
     
     if (themeMaster && themeMaster.type === 'theme' && (fontType === 'heading' || fontType === 'body')) {
         if (!themeMaster.themeSettings) {
@@ -326,7 +326,7 @@ export function handleUpdateThemeFont(draft, payload) {
  */
 export function handleUpdateTextStyle(draft, payload) {
     const { masterId, styleId, property, value } = payload;
-    const themeMaster = draft.masters[masterId];
+    const themeMaster = draft.slideMasterPresets[masterId];
     
     if (themeMaster && themeMaster.type === 'theme') {
         if (!themeMaster.themeSettings) {
@@ -354,7 +354,7 @@ export function handleUpdateTextStyle(draft, payload) {
  */
 export function handleAddElementToMaster(draft, payload) {
     const { masterId, element } = payload;
-    const master = draft.masters[masterId];
+    const master = draft.slideMasterPresets[masterId];
     
     if (master && element && element.id) {
         // Initialize elements object if needed
@@ -382,7 +382,7 @@ export function handleAddElementToMaster(draft, payload) {
  */
 export function handleDeleteElementFromMaster(draft, payload) {
     const { masterId, elementId } = payload;
-    const master = draft.masters[masterId];
+    const master = draft.slideMasterPresets[masterId];
     
     if (master && master.elements && master.elements[elementId]) {
         // Remove from elements
@@ -416,7 +416,7 @@ export function handleDeleteElementFromMaster(draft, payload) {
  */
 export function handleApplySlideMasterPreset(draft, payload) {
     const { masterId, presetId } = payload;
-    const themeMaster = draft.masters[masterId];
+    const themeMaster = draft.slideMasterPresets[masterId];
     
     if (!themeMaster || themeMaster.type !== 'theme') {
         console.warn(`[ApplyPreset] Invalid theme master`, masterId, themeMaster?.type);
@@ -469,8 +469,8 @@ export function handleApplySlideMasterPreset(draft, payload) {
     if (presetLayouts) {
         
         // Find existing layout masters that belong to this theme
-        const existingLayoutIds = Object.keys(draft.masters).filter(id => {
-            const master = draft.masters[id];
+        const existingLayoutIds = Object.keys(draft.slideMasterPresets).filter(id => {
+            const master = draft.slideMasterPresets[id];
             return master.type === 'layout' && master.parentId === masterId;
         });
         
@@ -479,7 +479,7 @@ export function handleApplySlideMasterPreset(draft, payload) {
         const presetLayoutArray = Object.values(presetLayouts);
         
         existingLayoutIds.forEach(existingLayoutId => {
-            const existingLayout = draft.masters[existingLayoutId];
+            const existingLayout = draft.slideMasterPresets[existingLayoutId];
             
             // Find matching preset layout by name
             const matchingPresetLayout = presetLayoutArray.find(
@@ -495,3 +495,4 @@ export function handleApplySlideMasterPreset(draft, payload) {
     }
     
 }
+

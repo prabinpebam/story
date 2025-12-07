@@ -53,12 +53,12 @@ describe('Theme Cascade Architecture', () => {
     const createCascadeTestState = () => ({
         editor: {
             activeSlideId: 'slide-1',
-            activeMasterId: 'theme-default',
+            activeMasterId: 'master-default',
             mode: 'edit'
         },
         masters: {
-            'theme-default': {
-                id: 'theme-default',
+            'master-default': {
+                id: 'master-default',
                 type: 'theme',
                 name: 'Default Theme Master',
                 styleAssignments: {
@@ -87,7 +87,7 @@ describe('Theme Cascade Architecture', () => {
             'layout-title': {
                 id: 'layout-title',
                 type: 'layout',
-                parentId: 'theme-default',
+                parentId: 'master-default',
                 name: 'Title Slide',
                 styleAssignments: {
                     colorTheme: 'preset_tropical_paradise'  // Override for this layout
@@ -96,7 +96,7 @@ describe('Theme Cascade Architecture', () => {
             'layout-blank': {
                 id: 'layout-blank',
                 type: 'layout',
-                parentId: 'theme-default',
+                parentId: 'master-default',
                 name: 'Blank',
                 styleAssignments: {
                     colorTheme: null  // No override, inherits from theme master
@@ -105,7 +105,7 @@ describe('Theme Cascade Architecture', () => {
             'layout-content': {
                 id: 'layout-content',
                 type: 'layout',
-                parentId: 'theme-default',
+                parentId: 'master-default',
                 name: 'Content',
                 styleAssignments: {
                     colorTheme: 'preset_forest_green'  // Different override
@@ -157,7 +157,7 @@ describe('Theme Cascade Architecture', () => {
             const result = StyleResolver.getEffectiveColorTheme('slide-3');
             
             expect(result.source).toBe('master');
-            expect(result.sourceId).toBe('theme-default');
+            expect(result.sourceId).toBe('master-default');
             expect(result.sourceLabel).toBe('inherited from Master');
         });
 
@@ -285,7 +285,7 @@ describe('Theme Cascade Architecture', () => {
         it('should fall back to theme master when layout override is cleared', () => {
             const state = createCascadeTestState();
             // Clear layout-title's override
-            state.masters['layout-title'].styleAssignments.colorTheme = null;
+            state.slideMasterPresets['layout-title'].styleAssignments.colorTheme = null;
             // Clear slide-2's override (already null)
             mockGetState.mockReturnValue(state);
             
@@ -293,7 +293,7 @@ describe('Theme Cascade Architecture', () => {
             
             // Should now inherit from theme master
             expect(result.source).toBe('master');
-            expect(result.sourceId).toBe('theme-default');
+            expect(result.sourceId).toBe('master-default');
         });
     });
 
@@ -305,7 +305,7 @@ describe('Theme Cascade Architecture', () => {
             
             // Should fall through to theme master (layout-blank has no override)
             expect(result.source).toBe('master');
-            expect(result.sourceId).toBe('theme-default');
+            expect(result.sourceId).toBe('master-default');
         });
     });
 
@@ -374,8 +374,8 @@ describe('Theme Cascade Architecture', () => {
         it('should get color mode from theme master styleAssignments', () => {
             const state = createCascadeTestState();
             // StyleResolver.getColorMode() checks styleAssignments.colorMode first
-            state.masters['theme-default'].styleAssignments.colorMode = 'dark';
-            state.masters['theme-default'].themeSettings.lumaTheme.colorMode = 'dark';
+            state.slideMasterPresets['master-default'].styleAssignments.colorMode = 'dark';
+            state.slideMasterPresets['master-default'].themeSettings.lumaTheme.colorMode = 'dark';
             mockGetState.mockReturnValue(state);
             
             const colorMode = StyleResolver.getColorMode();
@@ -385,7 +385,7 @@ describe('Theme Cascade Architecture', () => {
 
         it('should default to light mode if not specified', () => {
             const state = createCascadeTestState();
-            delete state.masters['theme-default'].themeSettings.lumaTheme.colorMode;
+            delete state.slideMasterPresets['master-default'].themeSettings.lumaTheme.colorMode;
             mockGetState.mockReturnValue(state);
             
             const colorMode = StyleResolver.getColorMode();
@@ -395,8 +395,8 @@ describe('Theme Cascade Architecture', () => {
 
         it('should use color mode in getThemeInfoForSlide', () => {
             const state = createCascadeTestState();
-            state.masters['theme-default'].styleAssignments.colorMode = 'dark';
-            state.masters['theme-default'].themeSettings.lumaTheme.colorMode = 'dark';
+            state.slideMasterPresets['master-default'].styleAssignments.colorMode = 'dark';
+            state.slideMasterPresets['master-default'].themeSettings.lumaTheme.colorMode = 'dark';
             mockGetState.mockReturnValue(state);
             
             const info = StyleResolver.getThemeInfoForSlide('slide-1');
@@ -418,8 +418,8 @@ describe('CSS Variable Scoping (SlideView Integration)', () => {
     const createMultiThemeState = () => ({
         editor: { activeSlideId: 'slide-1', mode: 'edit' },
         masters: {
-            'theme-default': {
-                id: 'theme-default',
+            'master-default': {
+                id: 'master-default',
                 type: 'theme',
                 themeSettings: {
                     lumaTheme: {
@@ -433,13 +433,13 @@ describe('CSS Variable Scoping (SlideView Integration)', () => {
             'layout-1': {
                 id: 'layout-1',
                 type: 'layout',
-                parentId: 'theme-default',
+                parentId: 'master-default',
                 styleAssignments: { colorTheme: null }
             },
             'layout-2': {
                 id: 'layout-2',
                 type: 'layout',
-                parentId: 'theme-default',
+                parentId: 'master-default',
                 styleAssignments: { colorTheme: 'theme-b' }
             }
         },
@@ -535,12 +535,12 @@ function createCascadeTestState() {
     return {
         editor: {
             activeSlideId: 'slide-1',
-            activeMasterId: 'theme-default',
+            activeMasterId: 'master-default',
             mode: 'edit'
         },
         masters: {
-            'theme-default': {
-                id: 'theme-default',
+            'master-default': {
+                id: 'master-default',
                 type: 'theme',
                 name: 'Default Theme Master',
                 styleAssignments: {
@@ -561,7 +561,7 @@ function createCascadeTestState() {
             'layout-title': {
                 id: 'layout-title',
                 type: 'layout',
-                parentId: 'theme-default',
+                parentId: 'master-default',
                 name: 'Title Slide',
                 styleAssignments: {
                     colorTheme: 'preset_tropical_paradise'
@@ -570,7 +570,7 @@ function createCascadeTestState() {
             'layout-blank': {
                 id: 'layout-blank',
                 type: 'layout',
-                parentId: 'theme-default',
+                parentId: 'master-default',
                 name: 'Blank',
                 styleAssignments: {
                     colorTheme: null
@@ -579,7 +579,7 @@ function createCascadeTestState() {
             'layout-content': {
                 id: 'layout-content',
                 type: 'layout',
-                parentId: 'theme-default',
+                parentId: 'master-default',
                 name: 'Content',
                 styleAssignments: {
                     colorTheme: 'preset_forest_green'
@@ -623,3 +623,5 @@ function createCascadeTestState() {
         slideOrder: ['slide-1', 'slide-2', 'slide-3', 'slide-4', 'slide-legacy']
     };
 }
+
+
