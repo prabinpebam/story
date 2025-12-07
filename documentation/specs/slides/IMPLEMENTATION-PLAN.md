@@ -187,7 +187,7 @@ interface UndoableAction {
 
 **Task 1.3: Preset System (Color Themes & Typography Styles)**
 - [x] Implement `ColorThemePreset` interface (separate library)
-- [ ] Implement `TypographyStylePreset` interface (separate library)
+- [x] Implement `TypographyStylePreset` interface (separate library)
 - [x] 12-color semantic palette system
 - [ ] Font families + text style definitions
 - [x] Preset application at master/layout/slide level (cascading)

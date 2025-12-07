@@ -258,13 +258,18 @@ export class TypographyStyleManager extends DraggablePanel {
     }
 
     cancelPreview() {
-        if (this.originalFonts) {
+        if (this.originalFonts || this.originalTypographyStyleId) {
             const masterId = store.getState().editor.activeMasterId;
-            const state = store.getState();
-            const master = state.slideMasterPresets[masterId];
             
-            if (master && master.themeSettings) {
-                // Restore original fonts
+            // Restore original typography style reference if available
+            if (this.originalTypographyStyleId) {
+                 store.dispatch('UPDATE_MASTER_STYLE_ASSIGNMENTS', {
+                    masterId,
+                    styleAssignments: { typographyStyle: this.originalTypographyStyleId }
+                }, { skipHistory: true });
+            } 
+            // Fallback to restoring embedded fonts (legacy)
+            else if (this.originalFonts) {
                 store.dispatch('UPDATE_THEME_SETTINGS', {
                     id: masterId,
                     settings: { fonts: this.originalFonts }
@@ -278,8 +283,12 @@ export class TypographyStyleManager extends DraggablePanel {
         const masterId = state.editor.activeMasterId;
         const master = state.slideMasterPresets[masterId];
         
-        if (master?.themeSettings?.fonts) {
-            this.originalFonts = { ...master.themeSettings.fonts };
+        if (master) {
+            this.originalTypographyStyleId = master.typographyStyleId;
+            // Also store fonts just in case (legacy support)
+            if (master.themeSettings?.fonts) {
+                this.originalFonts = { ...master.themeSettings.fonts };
+            }
         }
     }
 
@@ -522,14 +531,27 @@ export class TypographyStyleManager extends DraggablePanel {
         const masterId = state.editor.activeMasterId;
         const master = state.slideMasterPresets[masterId];
         
-        if (!master?.themeSettings) return;
+        if (!master) return;
+        
+        // Get current fonts from referenced preset
+        let currentFonts = { heading: 'Inter', body: 'Inter' };
+        
+        if (master.typographyStyleId) {
+            const preset = state.typographyStylePresets?.[master.typographyStyleId];
+            if (preset?.fonts) {
+                currentFonts = preset.fonts;
+            }
+        } else if (master.themeSettings?.fonts) {
+            // Legacy fallback
+            currentFonts = master.themeSettings.fonts;
+        }
         
         // Update font dropdowns
-        if (this.headingFontDropdown && master.themeSettings.fonts?.heading) {
-            this.headingFontDropdown.setValue(master.themeSettings.fonts.heading);
+        if (this.headingFontDropdown) {
+            this.headingFontDropdown.setValue(currentFonts.heading.family || currentFonts.heading);
         }
-        if (this.bodyFontDropdown && master.themeSettings.fonts?.body) {
-            this.bodyFontDropdown.setValue(master.themeSettings.fonts.body);
+        if (this.bodyFontDropdown) {
+            this.bodyFontDropdown.setValue(currentFonts.body.family || currentFonts.body);
         }
     }
 
@@ -641,6 +663,7 @@ export class TypographyStyleManager extends DraggablePanel {
                 
                 // Clear original fonts reference
                 this.originalFonts = null;
+                this.originalTypographyStyleId = null;
                 
                 // Show feedback
                 this.showToast(`Applied "${this.selectedPreset.name}" typography`);
@@ -654,6 +677,7 @@ export class TypographyStyleManager extends DraggablePanel {
         
         this.selectedPreset = null;
         this.originalFonts = null;
+        this.originalTypographyStyleId = null;
         
         // Update UI
         this.renderPresetGrid();
