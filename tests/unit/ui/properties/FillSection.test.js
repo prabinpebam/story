@@ -263,7 +263,7 @@ describe('FillSection', () => {
         it('should reduce swatch opacity for hidden fills', () => {
             const fill = { type: 'solid', color: '#FF0000', visible: false };
             const row = fillSection.createFillRow({ id: 'el-1', style: { fills: [fill] } }, fill, 0, [fill]);
-            const swatch = row.querySelector('.color-swatch-trigger');
+            const swatch = row.querySelector('.fill-swatch-trigger');
             expect(swatch.style.opacity).toBe('0.5');
         });
     });

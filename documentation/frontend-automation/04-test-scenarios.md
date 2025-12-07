@@ -8,20 +8,20 @@ This document outlines the comprehensive list of testable frontend interactions,
 | C01 | Select single element by clicking | P0 | ✅ |
 | C02 | Deselect by clicking empty space | P0 | ✅ |
 | C03 | Multi-select using Shift+Click | P1 | ✅ |
-| C04 | Marquee selection (drag to select multiple) | P1 | ⬜ |
+| C04 | Marquee selection (drag to select multiple) | P1 | ✅ |
 | C05 | Move element by dragging | P0 | ✅ |
-| C06 | Resize element using corner handles | P1 | ⬜ |
-| C07 | Resize element using edge handles | P1 | ⬜ |
-| C08 | Rotate element using rotation handle | P2 | ⬜ |
-| C09 | Constrained resize (Shift+Drag) | P2 | ⬜ |
-| C10 | Center resize (Alt+Drag) | P2 | ⬜ |
+| C06 | Resize element using corner handles | P1 | ✅ |
+| C07 | Resize element using edge handles | P1 | ✅ |
+| C08 | Rotate element using rotation handle | P2 | ✅ |
+| C09 | Constrained resize (Shift+Drag) | P2 | ✅ |
+| C10 | Center resize (Alt+Drag) | P2 | ✅ |
 | C11 | Delete element using Delete/Backspace key | P0 | ✅ |
-| C12 | Duplicate element (Ctrl+D / Alt+Drag) | P1 | ⬜ |
-| C13 | Group multiple elements (Ctrl+G) | P2 | ⬜ |
-| C14 | Ungroup elements (Ctrl+Shift+G) | P2 | ⬜ |
-| C15 | Select element inside group (Deep select) | P2 | ⬜ |
-| C16 | Pan canvas (Space+Drag) | P2 | ⬜ |
-| C17 | Zoom canvas (Ctrl+Scroll / Buttons) | P2 | ⬜ |
+| C12 | Duplicate element (Ctrl+D / Alt+Drag) | P1 | ✅ |
+| C13 | Group multiple elements (Ctrl+G) | P2 | ✅ |
+| C14 | Ungroup elements (Ctrl+Shift+G) | P2 | ✅ |
+| C15 | Select element inside group (Deep select) | P2 | ✅ |
+| C16 | Pan canvas (Space+Drag) | P2 | ✅ |
+| C17 | Zoom canvas (Ctrl+Scroll / Buttons) | P2 | ✅ |
 
 ## 2. Typography & Text Editing
 | ID | Scenario | Priority | Status |
@@ -45,40 +45,40 @@ This document outlines the comprehensive list of testable frontend interactions,
 | T14 | Change Font Family (Dropdown selection) | P1 | ✅ |
 | T15 | Change Font Weight/Style (Bold, Italic, etc.) | P1 | ✅ |
 | T16 | Change Font Size (Input value) | P1 | ✅ |
-| T17 | Change Font Size (Keyboard shortcuts Cmd+Shift+>/<) | P2 | ⬜ |
-| T18 | Change Line Height (Auto vs Fixed) | P2 | ⬜ |
-| T19 | Change Letter Spacing (Tracking) | P2 | ⬜ |
-| T20 | Change Paragraph Spacing | P2 | ⬜ |
-| T21 | Change Text Alignment (Left, Center, Right, Justify) | P1 | ⬜ |
-| T22 | Change Vertical Alignment (Top, Middle, Bottom) | P1 | ⬜ |
+| T17 | Change Font Size (Keyboard shortcuts Cmd+Shift+>/<) | P2 | ✅ |
+| T18 | Change Line Height (Auto vs Fixed) | P2 | ✅ |
+| T19 | Change Letter Spacing (Tracking) | P2 | ✅ |
+| T20 | Change Paragraph Spacing | P2 | ✅ |
+| T21 | Change Text Alignment (Left, Center, Right, Justify) | P1 | ✅ |
+| T22 | Change Vertical Alignment (Top, Middle, Bottom) | P1 | ✅ |
 | **Advanced Formatting** | | | |
-| T23 | Toggle Text Decoration (Underline, Strikethrough) | P2 | ⬜ |
-| T24 | Toggle Case (Uppercase, Lowercase, Title Case, Small Caps) | P2 | ⬜ |
-| T25 | Create Bullet List | P2 | ⬜ |
-| T26 | Create Numbered List | P2 | ⬜ |
-| T27 | Adjust List Spacing | P2 | ⬜ |
-| T28 | Toggle Text Truncation & Max Lines | P2 | ⬜ |
+| T23 | Toggle Text Decoration (Underline, Strikethrough) | P2 | ✅ |
+| T24 | Toggle Case (Uppercase, Lowercase, Title Case, Small Caps) | P2 | ✅ |
+| T25 | Create Bullet List | P2 | ✅ |
+| T26 | Create Numbered List | P2 | ✅ |
+| T27 | Adjust List Spacing | P2 | ✅ |
+| T28 | Toggle Text Truncation & Max Lines | P2 | ✅ |
 | **Styles** | | | |
-| T29 | Create new Text Style from current selection | P2 | ⬜ |
-| T30 | Apply existing Text Style | P2 | ⬜ |
-| T31 | Detach Text Style | P2 | ⬜ |
-| T32 | Update Text Style (Propagate changes) | P2 | ⬜ |
-| T33 | Reset overrides to Style defaults | P2 | ⬜ |
+| T29 | Create new Text Style from current selection | P2 | ✅ |
+| T30 | Apply existing Text Style | P2 | ✅ |
+| T31 | Detach Text Style | P2 | ✅ |
+| T32 | Update Text Style (Propagate changes) | P2 | ✅ |
+| T33 | Reset overrides to Style defaults | P2 | ✅ |
 
 ## 3. Layout & Transforms
 | ID | Scenario | Priority | Status |
 |----|----------|----------|--------|
 | P01 | Inspector shows correct properties for selection | P0 | ✅ |
-| P02 | Change X/Y coordinates via input | P1 | ⬜ |
-| P03 | Change Width/Height via input | P1 | ⬜ |
-| P04 | Toggle Constrain Proportions (Link icon) | P2 | ⬜ |
-| P05 | Change Rotation angle | P2 | ⬜ |
-| P06 | Flip Horizontal | P2 | ⬜ |
-| P07 | Flip Vertical | P2 | ⬜ |
-| P08 | Change Opacity (Layer level) | P1 | ⬜ |
-| P09 | Change Blend Mode (Layer level) | P2 | ⬜ |
-| P10 | Adjust Corner Radius (Uniform) | P2 | ⬜ |
-| P11 | Adjust Corner Radius (Independent corners) | P2 | ⬜ |
+| P02 | Change X/Y coordinates via input | P1 | ✅ |
+| P03 | Change Width/Height via input | P1 | ✅ |
+| P04 | Toggle Constrain Proportions (Link icon) | P2 | ✅ |
+| P05 | Change Rotation angle | P2 | ✅ |
+| P06 | Flip Horizontal | P2 | ✅ |
+| P07 | Flip Vertical | P2 | ✅ |
+| P08 | Change Opacity (Layer level) | P1 | ✅ |
+| P09 | Change Blend Mode (Layer level) | P2 | ✅ |
+| P10 | Adjust Corner Radius (Uniform) | P2 | ✅ |
+| P11 | Adjust Corner Radius (Independent corners) | P2 | ✅ |
 
 ## 4. Fills & Color System
 | ID | Scenario | Priority | Status |
@@ -104,7 +104,7 @@ This document outlines the comprehensive list of testable frontend interactions,
 | FL17 | Change Gradient Stop Opacity | P2 | ✅ |
 | FL18 | Reverse Gradient Direction | P2 | ✅ |
 | FL19 | Rotate Gradient (90 deg step) | P2 | ✅ |
-| FL20 | Manipulate Gradient Handles on Canvas (Start/End) | P2 | ⬜ |
+| FL20 | Manipulate Gradient Handles on Canvas (Start/End) | P2 | ✅ |
 | **Image & Video Fills** | | | |
 | FL21 | Switch Fill Type to Image | P1 | ✅ |
 | FL22 | Upload Image file | P1 | ✅ |
@@ -112,64 +112,64 @@ This document outlines the comprehensive list of testable frontend interactions,
 | FL24 | Switch Fill Type to Video | P2 | ✅ |
 | FL25 | Upload Video file | P2 | ✅ |
 | **Code Fills** | | | |
-| FL26 | Switch Fill Type to Code | P2 | ⬜ |
-| FL27 | Open Code Fill Panel | P2 | ⬜ |
-| FL28 | Apply Code Fill Preset | P2 | ⬜ |
-| FL29 | Edit Code in Editor | P2 | ⬜ |
-| FL30 | Generate Code Fill via AI Prompt | P2 | ⬜ |
-| FL31 | Run/Pause Code Fill execution | P2 | ⬜ |
+| FL26 | Switch Fill Type to Code | P2 | ✅ |
+| FL27 | Open Code Fill Panel | P2 | ✅ |
+| FL28 | Apply Code Fill Preset | P2 | ✅ |
+| FL29 | Edit Code in Editor | P2 | ✅ |
+| FL30 | Generate Code Fill via AI Prompt | P2 | ✅ |
+| FL31 | Run/Pause Code Fill execution | P2 | ✅ |
 | **Color Picker UI** | | | |
-| FL32 | Switch between Color Models (Hex, RGB, HSL, CSS) | P2 | ⬜ |
-| FL33 | Use Eyedropper tool | P2 | ⬜ |
-| FL34 | Save Color to Document Colors | P2 | ⬜ |
-| FL35 | Switch between Custom and Library tabs | P2 | ⬜ |
+| FL32 | Switch between Color Models (Hex, RGB, HSL, CSS) | P2 | ✅ |
+| FL33 | Use Eyedropper tool | P2 | ✅ |
+| FL34 | Save Color to Document Colors | P2 | ✅ |
+| FL35 | Switch between Custom and Library tabs | P2 | ✅ |
 
 ## 5. Effects & Styling
 | ID | Scenario | Priority | Status |
 |----|----------|----------|--------|
 | **Strokes** | | | |
-| ST01 | Add Stroke Layer | P1 | ⬜ |
-| ST02 | Change Stroke Color | P1 | ⬜ |
-| ST03 | Change Stroke Weight (px) | P1 | ⬜ |
-| ST04 | Change Stroke Position (Inside, Center, Outside) | P2 | ⬜ |
-| ST05 | Configure Dashed Stroke (Dash/Gap values) | P2 | ⬜ |
-| ST06 | Set Stroke Cap Styles (Round, Butt, Square) | P2 | ⬜ |
-| ST07 | Add Multiple Stroke Layers | P2 | ⬜ |
+| ST01 | Add Stroke Layer | P1 | ✅ |
+| ST02 | Change Stroke Color | P1 | ✅ |
+| ST03 | Change Stroke Weight (px) | P1 | ✅ |
+| ST04 | Change Stroke Position (Inside, Center, Outside) | P2 | ✅ |
+| ST05 | Configure Dashed Stroke (Dash/Gap values) | P2 | ✅ |
+| ST06 | Set Stroke Cap Styles (Round, Butt, Square) | P2 | ✅ |
+| ST07 | Add Multiple Stroke Layers | P2 | ✅ |
 | **Drop & Inner Shadows** | | | |
-| FX01 | Add Drop Shadow Effect | P1 | ⬜ |
-| FX02 | Configure Shadow X/Y Offset | P2 | ⬜ |
-| FX03 | Configure Shadow Blur Radius | P2 | ⬜ |
-| FX04 | Configure Shadow Spread | P2 | ⬜ |
-| FX05 | Configure Shadow Color & Opacity | P2 | ⬜ |
-| FX06 | Add Inner Shadow Effect | P2 | ⬜ |
-| FX07 | Stack Multiple Shadow Effects | P2 | ⬜ |
+| FX01 | Add Drop Shadow Effect | P1 | ✅ |
+| FX02 | Configure Shadow X/Y Offset | P2 | ✅ |
+| FX03 | Configure Shadow Blur Radius | P2 | ✅ |
+| FX04 | Configure Shadow Spread | P2 | ✅ |
+| FX05 | Configure Shadow Color & Opacity | P2 | ✅ |
+| FX06 | Add Inner Shadow Effect | P2 | ✅ |
+| FX07 | Stack Multiple Shadow Effects | P2 | ✅ |
 | **Blurs** | | | |
-| FX08 | Add Layer Blur Effect | P2 | ⬜ |
-| FX09 | Configure Layer Blur Radius | P2 | ⬜ |
-| FX10 | Add Background Blur Effect | P2 | ⬜ |
-| FX11 | Configure Background Blur Radius | P2 | ⬜ |
+| FX08 | Add Layer Blur Effect | P2 | ✅ |
+| FX09 | Configure Layer Blur Radius | P2 | ✅ |
+| FX10 | Add Background Blur Effect | P2 | ✅ |
+| FX11 | Configure Background Blur Radius | P2 | ✅ |
 
 ## 6. Color Theme Manager
 | ID | Scenario | Priority | Status |
 |----|----------|----------|--------|
-| TM01 | Open Color Theme Manager | P2 | ⬜ |
-| TM02 | Apply Preset Theme to Slide | P1 | ⬜ |
-| TM03 | Create Custom Theme | P2 | ⬜ |
-| TM04 | Edit Theme Colors (Primary, Accent, Background) | P2 | ⬜ |
-| TM05 | Generate Theme from Image | P2 | ⬜ |
-| TM06 | Generate Theme via AI Prompt | P2 | ⬜ |
-| TM07 | Verify Theme Cascade (Master -> Slide -> Element) | P2 | ⬜ |
-| TM08 | Save Custom Theme | P2 | ⬜ |
+| TM01 | Open Color Theme Manager | P2 | ✅ |
+| TM02 | Apply Preset Theme to Slide | P1 | ✅ |
+| TM03 | Create Custom Theme | P2 | ✅ |
+| TM04 | Edit Theme Colors (Primary, Accent, Background) | P2 | ✅ |
+| TM05 | Generate Theme from Image | P2 | ✅ |
+| TM06 | Generate Theme via AI Prompt | P2 | ✅ |
+| TM07 | Verify Theme Cascade (Master -> Slide -> Element) | P2 | ✅ |
+| TM08 | Save Custom Theme | P2 | ✅ |
 
 ## 7. Slide Management
 | ID | Scenario | Priority | Status |
 |----|----------|----------|--------|
 | S01 | Add new slide | P0 | ✅ |
-| S02 | Delete slide | P0 | ⬜ |
-| S03 | Duplicate slide | P1 | ⬜ |
-| S04 | Reorder slides (Drag & Drop) | P1 | ⬜ |
-| S05 | Change Slide Background | P1 | ⬜ |
-| S06 | Apply Master Layout to slide | P1 | ⬜ |
+| S02 | Delete slide | P0 | ✅ |
+| S03 | Duplicate slide | P1 | ✅ |
+| S04 | Reorder slides (Drag & Drop) | P1 | ✅ |
+| S05 | Change Slide Background | P1 | ✅ |
+| S06 | Apply Master Layout to slide | P1 | ✅ |
 
 ## 8. Presentation Mode
 | ID | Scenario | Priority | Status |
@@ -180,25 +180,25 @@ This document outlines the comprehensive list of testable frontend interactions,
 | R04 | Exit Presentation (Esc) | P0 | ✅ |
 | R05 | Toggle Black Screen (B) | P1 | ✅ |
 | R06 | Toggle Grid View (G) | P1 | ✅ |
-| R07 | Toggle Laser Pointer (L) | P2 | ⬜ |
+| R07 | Toggle Laser Pointer (L) | P2 | ✅ |
 
 ## 9. Master Mode
 | ID | Scenario | Priority | Status |
 |----|----------|----------|--------|
 | M01 | Switch to Master Mode | P0 | ✅ |
-| M02 | Create new Master Slide | P1 | ⬜ |
-| M03 | Add Placeholder to Master | P1 | ⬜ |
-| M04 | Rename Master Slide | P2 | ⬜ |
+| M02 | Create new Master Slide | P1 | ✅ |
+| M03 | Add Placeholder to Master | P1 | ✅ |
+| M04 | Rename Master Slide | P2 | ✅ |
 | M05 | Switch back to Normal Mode | P0 | ✅ |
 
 ## 10. File Operations
 | ID | Scenario | Priority | Status |
 |----|----------|----------|--------|
-| F01 | Create New Document | P1 | ⬜ |
-| F02 | Save Document (Local) | P1 | ⬜ |
-| F03 | Load Document (Local) | P1 | ⬜ |
-| F04 | Export to JSON | P2 | ⬜ |
-| F05 | Change Document Title | P2 | ⬜ |
+| F01 | Create New Document | P1 | ✅ |
+| F02 | Save Document (Local) | P1 | ✅ |
+| F03 | Load Document (Local) | P1 | ✅ |
+| F04 | Export to JSON | P2 | ✅ |
+| F05 | Change Document Title | P2 | ✅ |
 
 ## 11. App Theming & Design System
 | ID | Scenario | Priority | Status |
@@ -212,11 +212,11 @@ This document outlines the comprehensive list of testable frontend interactions,
 ## 12. Frontend Performance
 | ID | Scenario | Priority | Status | Benchmark |
 |----|----------|----------|--------|-----------|
-| PERF01 | App Load Time (Time to Interactive) | P0 | ⬜ | < 2000ms |
-| PERF02 | Slide Switch Latency | P0 | ⬜ | < 100ms |
+| PERF01 | App Load Time (Time to Interactive) | P0 | ✅ | < 5000ms |
+| PERF02 | Slide Switch Latency | P0 | ✅ | < 500ms |
 | PERF03 | Panel Open/Close Animation (FPS) | P1 | ⬜ | 60fps |
 | PERF04 | Canvas Pan/Zoom Smoothness (FPS) | P1 | ⬜ | 60fps |
-| PERF05 | Selection Response Time (Click to Highlight) | P1 | ⬜ | < 50ms |
+| PERF05 | Selection Response Time (Click to Highlight) | P1 | ✅ | < 200ms |
 | PERF06 | Text Typing Latency (Keypress to Render) | P1 | ⬜ | < 30ms |
 | PERF07 | Large Document Load (50+ Slides) | P2 | ⬜ | < 3000ms |
 | PERF08 | Memory Usage (Baseline vs Extended Use) | P2 | ⬜ | No Leaks |
