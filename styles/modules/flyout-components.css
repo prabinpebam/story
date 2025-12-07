@@ -889,13 +889,15 @@
 .swatch-grid {
     display: grid;
     gap: var(--spacing-1);
+    justify-content: center;
+    justify-items: center;
 }
 
 /* Grid column variants */
-.swatch-grid--cols-4  { grid-template-columns: repeat(4, 1fr); }
-.swatch-grid--cols-6  { grid-template-columns: repeat(6, 1fr); }
-.swatch-grid--cols-8  { grid-template-columns: repeat(8, 1fr); }
-.swatch-grid--cols-12 { grid-template-columns: repeat(12, 1fr); }
+.swatch-grid--cols-4  { grid-template-columns: repeat(4, auto); }
+.swatch-grid--cols-6  { grid-template-columns: repeat(6, auto); }
+.swatch-grid--cols-8  { grid-template-columns: repeat(8, auto); }
+.swatch-grid--cols-12 { grid-template-columns: repeat(12, auto); }
 
 /* ----- Base Swatch ----- */
 .swatch {
