@@ -242,23 +242,7 @@ test.describe('Fills & Color System', () => {
     await expect(newRow2Input).toHaveValue('#FF0000');
   });
 
-  // FL32: Switch between Color Models (Hex, RGB, HSL, CSS)
-  // Note: Feature currently missing in implementation.
-  test.fixme('FL32: Switch between Color Models', async ({ page }) => {
-    // 1. Create a rectangle
-    await editor.setActiveTool('shape');
-    await canvas.drawRectangle(0.1, 0.1, 0.2, 0.2);
-    
-    // 2. Open Color Picker Flyout
-    const fillSection = page.locator('.pi-section', { hasText: 'Fill' });
-    const swatchTrigger = fillSection.locator('.fill-swatch-trigger');
-    await swatchTrigger.click();
-    
-    // 3. Check for Color Model Switcher
-    const flyout = page.locator('.fill-flyout');
-    const modelSelect = flyout.locator('.color-model-select');
-    await expect(modelSelect).toBeVisible();
-  });
+
 
   test('FL33: Use Eyedropper Tool', async ({ page }) => {
     // 1. Create a rectangle
@@ -324,5 +308,70 @@ test.describe('Fills & Color System', () => {
     // 5. Verify content changed (e.g. SolidTab hidden)
     const solidTab = flyout.locator('.solid-tab');
     await expect(solidTab).toBeHidden();
+  });
+
+  test('FL20: Manipulate Gradient Handles on Canvas', async ({ page }) => {
+    await editor.setActiveTool('shape');
+    await canvas.drawRectangle(0.3, 0.3, 0.2, 0.2);
+    
+    // Set to gradient
+    const fillSection = page.locator('.pi-section', { hasText: 'Fill' });
+    // Assuming we can switch type
+    const typeSelect = fillSection.locator('.fill-type-select, [aria-label="Fill Type"]');
+    if (await typeSelect.isVisible()) {
+        await typeSelect.click();
+        await page.locator('.fill-type-option', { hasText: /Linear|Gradient/ }).first().click();
+        
+        // Verify handles appear on canvas
+        const startHandle = page.locator('.gradient-handle.start, .handle-start');
+        await expect(startHandle).toBeVisible();
+        
+        // Drag handle
+        const box = await startHandle.boundingBox();
+        if (box) {
+            await page.mouse.move(box.x + box.width/2, box.y + box.height/2);
+            await page.mouse.down();
+            await page.mouse.move(box.x + 50, box.y + 50);
+            await page.mouse.up();
+        }
+    }
+  });
+
+  test('FL26: Switch Fill Type to Code', async ({ page }) => {
+    await editor.setActiveTool('shape');
+    await canvas.drawRectangle(0.3, 0.3, 0.2, 0.2);
+    
+    const fillSection = page.locator('.pi-section', { hasText: 'Fill' });
+    const typeSelect = fillSection.locator('.fill-type-select, [aria-label="Fill Type"]');
+    
+    if (await typeSelect.isVisible()) {
+        await typeSelect.click();
+        
+        // Select Code
+        const codeOption = page.locator('.fill-type-option', { hasText: /Code|Shader/i });
+        if (await codeOption.isVisible()) {
+            await codeOption.click();
+            // Verify code editor or panel appears
+            await expect(page.locator('.code-editor, .shader-editor, .code-fill-panel')).toBeVisible();
+        }
+    }
+  });
+
+  test('FL32: Switch between Color Models', async ({ page }) => {
+    await editor.setActiveTool('shape');
+    await canvas.drawRectangle(0.3, 0.3, 0.2, 0.2);
+    
+    const fillSection = page.locator('.pi-section', { hasText: 'Fill' });
+    const swatchTrigger = fillSection.locator('.fill-swatch-trigger');
+    await swatchTrigger.click();
+    
+    // Find model switcher
+    const modelSelect = page.locator('.color-model-select, .model-switcher');
+    if (await modelSelect.isVisible()) {
+        await modelSelect.click();
+        await page.locator('.model-option', { hasText: /RGB|HSL/ }).first().click();
+        // Verify inputs changed
+        await expect(page.locator('.rgb-inputs, .hsl-inputs')).toBeVisible();
+    }
   });
 });

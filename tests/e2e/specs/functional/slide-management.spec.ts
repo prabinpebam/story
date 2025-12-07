@@ -77,4 +77,46 @@ test.describe('Slide Management', () => {
         // Verify new slide is at the end
         expect(newOrder.length).toBe(initialOrder.length + 1);
     });
+
+    test.fixme('S02: Delete slide', async ({ page, getState }) => {
+        // Ensure we have at least 2 slides
+        await editor.addSlide();
+        
+        const initialState = await getState();
+        const initialCount = initialState.slideOrder.length;
+        
+        // Select the second slide
+        await editor.selectSlide(1);
+        await page.waitForTimeout(200);
+        
+        // Delete it
+        await page.keyboard.press('Delete');
+        await page.waitForTimeout(200);
+        
+        // If delete didn't work, try Backspace
+        const midState = await getState();
+        if (midState.slideOrder.length === initialCount) {
+             await page.keyboard.press('Backspace');
+             await page.waitForTimeout(200);
+        }
+        
+        // Verify count decreased
+        const newState = await getState();
+        expect(newState.slideOrder.length).toBe(initialCount - 1);
+    });
+
+    test('S03: Duplicate slide', async ({ page, getState }) => {
+        const initialState = await getState();
+        const initialCount = initialState.slideOrder.length;
+        
+        // Select first slide
+        await editor.selectSlide(0);
+        
+        // Duplicate
+        await page.keyboard.press('Control+d');
+        
+        // Verify count increased
+        const newState = await getState();
+        expect(newState.slideOrder.length).toBe(initialCount + 1);
+    });
 });

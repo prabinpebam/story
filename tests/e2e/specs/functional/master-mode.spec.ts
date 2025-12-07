@@ -130,4 +130,42 @@ test.describe('Master Mode', () => {
         // or should exit master mode first
         await expect(editor.playBtn).toBeVisible();
     });
+
+    test.fixme('M02: Create new Master Slide', async ({ page, getState }) => {
+        await editor.editMaster();
+        
+        const initialState = await getState();
+        const initialCount = Object.keys(initialState.masters).length;
+        
+        // Add new master
+        await editor.addSlide(); // Assuming addSlide works for masters in master mode
+        
+        const newState = await getState();
+        const newCount = Object.keys(newState.masters).length;
+        expect(newCount).toBe(initialCount + 1);
+    });
+
+    test.fixme('M03: Add Placeholder to Master', async ({ page }) => {
+        await editor.editMaster();
+        
+        // Select a master
+        await editor.selectSlide(0); // Assuming selectSlide works for masters
+        
+        // Add placeholder
+        // Need selector for placeholder tool
+        const placeholderBtn = page.locator('button[aria-label="Insert Placeholder"], button.tool-placeholder');
+        if (await placeholderBtn.isVisible()) {
+            await placeholderBtn.click();
+            // Select type (e.g., Text)
+            const textType = page.locator('.placeholder-type-text, .menu-item-text');
+            if (await textType.isVisible()) {
+                await textType.click();
+            }
+            // Draw
+            await page.mouse.click(300, 300);
+            
+            // Verify placeholder added
+            await expect(page.locator('.canvas-node.placeholder')).toBeVisible();
+        }
+    });
 });

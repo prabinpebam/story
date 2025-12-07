@@ -209,3 +209,16 @@ This document outlines the comprehensive list of testable frontend interactions,
 | SYS04 | Verify Theme Persistence on Reload | P2 | ✅ |
 | SYS05 | Verify Design System Token Usage (Computed Styles) | P2 | ✅ |
 
+## 12. Frontend Performance
+| ID | Scenario | Priority | Status | Benchmark |
+|----|----------|----------|--------|-----------|
+| PERF01 | App Load Time (Time to Interactive) | P0 | ⬜ | < 2000ms |
+| PERF02 | Slide Switch Latency | P0 | ⬜ | < 100ms |
+| PERF03 | Panel Open/Close Animation (FPS) | P1 | ⬜ | 60fps |
+| PERF04 | Canvas Pan/Zoom Smoothness (FPS) | P1 | ⬜ | 60fps |
+| PERF05 | Selection Response Time (Click to Highlight) | P1 | ⬜ | < 50ms |
+| PERF06 | Text Typing Latency (Keypress to Render) | P1 | ⬜ | < 30ms |
+| PERF07 | Large Document Load (50+ Slides) | P2 | ⬜ | < 3000ms |
+| PERF08 | Memory Usage (Baseline vs Extended Use) | P2 | ⬜ | No Leaks |
+
+

@@ -11,6 +11,8 @@
             - Luma values have 3 clusters, Highlights, mid-tones and shadows
             - This gives us the option to tweak the color theme like how we teak photos
                 - Control contrast, brightness, highlights, shadows, whites, blacks, saturation
+
+
 ## Color Theme Selection and Enforcement
 
 ### The Hierarchy Model
