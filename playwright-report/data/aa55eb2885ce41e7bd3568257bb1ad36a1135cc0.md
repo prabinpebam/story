@@ -1,0 +1,235 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - complementary [ref=e3]:
+      - button "Story application menu" [ref=e5] [cursor=pointer]:
+        - generic [ref=e6]: STORY
+        - img [ref=e7]
+      - generic [ref=e9]:
+        - generic [ref=e10]:
+          - generic [ref=e11] [cursor=pointer]:
+            - generic [ref=e12]: 
+            - generic [ref=e13]: SLIDES
+          - generic [ref=e15]:
+            - button "Add Slide" [ref=e17] [cursor=pointer]:
+              - generic [ref=e19]: +
+            - generic [ref=e20]:
+              - generic [ref=e21] [cursor=pointer]:
+                - generic [ref=e22]:
+                  - generic [ref=e23]: "1"
+                  - generic [ref=e24]: Title Slide
+                - generic [ref=e25]:
+                  - generic:
+                    - generic:
+                      - heading "Click to add title" [level=1] [ref=e27]
+                      - paragraph [ref=e29]: Click to add subtitle
+              - generic [ref=e32] [cursor=pointer]:
+                - generic [ref=e33]:
+                  - generic [ref=e34]: "2"
+                  - generic [ref=e35]: Title and Content
+                - generic [ref=e36]:
+                  - generic:
+                    - generic:
+                      - heading "Click to add title" [level=1] [ref=e38]
+                      - paragraph [ref=e40]: Click to add text
+        - generic [ref=e42]:
+          - generic [ref=e43] [cursor=pointer]:
+            - generic [ref=e44]: 
+            - generic [ref=e45]: LAYERS
+          - generic [ref=e48]:
+            - generic [ref=e50] [cursor=pointer]:
+              - generic [ref=e52]: 
+              - generic [ref=e53]: Rect
+              - generic [ref=e54]:
+                - generic [ref=e55]: 
+                - generic [ref=e56]: 
+            - generic [ref=e58] [cursor=pointer]:
+              - generic [ref=e59]:
+                - generic [ref=e60]: H
+                - generic "Empty placeholder" [ref=e61]
+              - generic [ref=e62]: Subtitle Placeholder
+              - generic [ref=e63]:
+                - generic [ref=e64]: 
+                - generic [ref=e65]: 
+            - generic [ref=e67] [cursor=pointer]:
+              - generic [ref=e68]:
+                - generic [ref=e69]: 
+                - generic "Empty placeholder" [ref=e70]
+              - generic [ref=e71]: Title Placeholder
+              - generic [ref=e72]:
+                - generic [ref=e73]: 
+                - generic [ref=e74]: 
+    - main [ref=e75]:
+      - generic [ref=e76]:
+        - button " Edit Master" [ref=e77] [cursor=pointer]:
+          - generic [ref=e78]: 
+          - text: Edit Master
+        - text: 
+        - button " PLAY" [ref=e79] [cursor=pointer]:
+          - generic [ref=e80]: 
+          - text: PLAY
+        - button "User profile" [ref=e82] [cursor=pointer]:
+          - generic [ref=e83]: 
+      - generic [ref=e84]:
+        - button "" [ref=e85] [cursor=pointer]:
+          - generic [ref=e86]: 
+        - button "" [ref=e87] [cursor=pointer]:
+          - generic [ref=e88]: 
+        - button "" [ref=e90] [cursor=pointer]:
+          - generic [ref=e91]: 
+        - button "" [ref=e92] [cursor=pointer]:
+          - generic [ref=e93]: 
+        - button "" [ref=e94] [cursor=pointer]:
+          - generic [ref=e95]: 
+        - button "" [ref=e97] [cursor=pointer]:
+          - generic [ref=e98]: 
+      - generic:                                 
+      - text:       
+      - generic [ref=e99]:
+        - button "File options" [ref=e100] [cursor=pointer]:
+          - generic "Untitled" [ref=e103]
+          - img [ref=e104]
+        - generic:
+          - generic:
+            - generic:
+              - generic:
+                - generic:
+                  - generic:
+                    - heading "Click to add title" [level=1] [ref=e107]
+                    - paragraph [ref=e109]: Click to add subtitle
+        - generic [ref=e113]:
+          - button "" [ref=e114] [cursor=pointer]:
+            - generic [ref=e115]: 
+          - generic [ref=e116]:
+            - button "" [ref=e117] [cursor=pointer]:
+              - generic [ref=e118]: 
+            - generic [ref=e119]: 35%
+            - button "+" [ref=e120] [cursor=pointer]:
+              - generic [ref=e121]: +
+    - complementary [ref=e122]:
+      - generic [ref=e124]: Object
+      - generic [ref=e126]:
+        - generic [ref=e127]:
+          - generic [ref=e129] [cursor=pointer]:
+            - generic [ref=e131]: 
+            - generic [ref=e132]: Position
+          - generic [ref=e133]:
+            - generic [ref=e134]:
+              - button "Align Left" [ref=e135] [cursor=pointer]:
+                - img [ref=e137]
+              - button "Align Horizontal Center" [ref=e141] [cursor=pointer]:
+                - img [ref=e143]
+              - button "Align Right" [ref=e147] [cursor=pointer]:
+                - img [ref=e149]
+              - button "Align Top" [ref=e153] [cursor=pointer]:
+                - img [ref=e155]
+              - button "Align Vertical Center" [ref=e159] [cursor=pointer]:
+                - img [ref=e161]
+              - button "Align Bottom" [ref=e165] [cursor=pointer]:
+                - img [ref=e167]
+            - generic [ref=e171]:
+              - generic [ref=e172]:
+                - generic [ref=e173]: X
+                - textbox [ref=e174]: "734.12"
+              - generic [ref=e175]:
+                - generic [ref=e176]: "Y"
+                - textbox [ref=e177]: "-273.18"
+            - generic [ref=e178]:
+              - generic [ref=e179]:
+                - generic [ref=e180]: °
+                - textbox [ref=e181]: 0°
+              - generic [ref=e182]:
+                - button "Rotate -90°" [ref=e183] [cursor=pointer]:
+                  - generic [ref=e185]: 
+                - button "Flip Horizontal" [ref=e186] [cursor=pointer]:
+                  - img [ref=e188]
+                - button "Flip Vertical" [ref=e191] [cursor=pointer]:
+                  - img [ref=e193]
+        - generic [ref=e196]:
+          - generic [ref=e198] [cursor=pointer]:
+            - generic [ref=e200]: 
+            - generic [ref=e201]: Layout
+          - generic [ref=e203]:
+            - generic [ref=e204]:
+              - generic [ref=e205]: W
+              - textbox [ref=e206]: "451.76"
+            - generic [ref=e207]:
+              - generic [ref=e208]: H
+              - textbox [ref=e209]: "406.59"
+            - button "Constrain Proportions" [ref=e210] [cursor=pointer]:
+              - generic [ref=e211]: 
+        - generic [ref=e212]:
+          - generic [ref=e213] [cursor=pointer]:
+            - generic [ref=e214]:
+              - generic [ref=e216]: 
+              - generic [ref=e217]: Appearance
+            - button "Toggle Visibility" [ref=e219]:
+              - generic [ref=e221]: 
+          - generic [ref=e222]:
+            - generic [ref=e223]:
+              - generic [ref=e224]:
+                - generic [ref=e225]: Opacity
+                - textbox [ref=e226]: 100%
+              - generic [ref=e227] [cursor=pointer]:
+                - generic [ref=e228]: Normal
+                - generic:
+                  - img
+            - generic [ref=e230]:
+              - generic [ref=e231]: Radius
+              - textbox [ref=e232]: "0"
+        - text:  
+        - generic [ref=e233]:
+          - generic [ref=e234] [cursor=pointer]:
+            - generic [ref=e235]:
+              - generic [ref=e237]: 
+              - generic [ref=e238]: Fill
+            - button "Add Fill" [ref=e240]:
+              - generic [ref=e242]: +
+          - generic [ref=e246]:
+            - generic [ref=e248]: 
+            - generic [ref=e249]:
+              - 'textbox "Linked to theme: Slot 2" [ref=e252]': Slot 2
+              - generic "Linked to theme color" [ref=e253]:
+                - generic [ref=e254]: 
+              - textbox [ref=e257]: 100%
+            - generic [ref=e258]:
+              - 'button "Blend Mode: Normal" [ref=e259] [cursor=pointer]':
+                - generic [ref=e261]: 
+              - button "Hide Fill" [ref=e262] [cursor=pointer]:
+                - generic [ref=e264]: 
+              - button "Remove Fill" [ref=e265] [cursor=pointer]:
+                - generic [ref=e267]: 
+        - generic [ref=e268]:
+          - generic [ref=e269] [cursor=pointer]:
+            - generic [ref=e270]:
+              - generic [ref=e272]: 
+              - generic [ref=e273]: Stroke
+            - generic [ref=e274]:
+              - button "Add Stroke" [ref=e275]:
+                - generic [ref=e277]: +
+              - button "Stroke Presets" [ref=e278]:
+                - generic [ref=e280]: 
+          - generic [ref=e285]: No stroke
+        - generic [ref=e286]:
+          - generic [ref=e287] [cursor=pointer]:
+            - generic [ref=e288]:
+              - generic [ref=e290]: 
+              - generic [ref=e291]: Effects
+            - generic [ref=e292]:
+              - button "Effect Styles" [ref=e293]:
+                - generic [ref=e295]: 
+              - button "Add Effect" [ref=e296]:
+                - generic [ref=e298]: +
+          - generic [ref=e303]: No effects
+        - generic [ref=e304]:
+          - generic [ref=e305] [cursor=pointer]:
+            - generic [ref=e306]:
+              - generic [ref=e308]: 
+              - generic [ref=e309]: Export
+            - button "Add Export Preset" [ref=e311]:
+              - generic [ref=e313]: +
+          - text: 
+  - text:    +                           
+```

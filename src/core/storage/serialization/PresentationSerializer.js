@@ -43,20 +43,35 @@ export class PresentationSerializer {
             this.writer.addTheme(this.serializeTheme(this.state.theme));
         }
 
-        // 4. Add slides (one file per slide)
+        // 4. Add masters (slide masters and layouts)
+        if (this.state.masters) {
+            this.writer.addMasters(this.state.masters);
+        }
+
+        // 5. Add slide order
+        if (this.state.slideOrder) {
+            this.writer.addSlideOrder(this.state.slideOrder);
+        }
+
+        // 6. Add sections
+        if (this.state.sections) {
+            this.writer.addSections(this.state.sections);
+        }
+
+        // 7. Add slides (one file per slide)
         await this.addSlides();
 
-        // 5. Add assets
+        // 8. Add assets
         if (this.options.includeAssets) {
             await this.addAssets();
         }
 
-        // 6. Generate thumbnail
+        // 9. Generate thumbnail
         if (this.options.includeThumbnail) {
             await this.addThumbnail();
         }
 
-        // 7. Generate the final ZIP
+        // 10. Generate the final ZIP
         return this.writer.generate();
     }
 

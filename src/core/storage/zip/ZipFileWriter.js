@@ -46,6 +46,39 @@ export class ZipFileWriter {
     }
 
     /**
+     * Add masters (slide masters and layouts)
+     * @param {Object} masters - Masters object
+     */
+    addMasters(masters) {
+        this.zip.file(
+            ARCHIVE_PATHS.MASTERS,
+            JSON.stringify(masters, null, 2)
+        );
+    }
+
+    /**
+     * Add slide order array
+     * @param {string[]} slideOrder - Array of slide IDs
+     */
+    addSlideOrder(slideOrder) {
+        this.zip.file(
+            ARCHIVE_PATHS.SLIDE_ORDER,
+            JSON.stringify(slideOrder, null, 2)
+        );
+    }
+
+    /**
+     * Add sections array
+     * @param {Array} sections - Array of section objects
+     */
+    addSections(sections) {
+        this.zip.file(
+            ARCHIVE_PATHS.SECTIONS,
+            JSON.stringify(sections, null, 2)
+        );
+    }
+
+    /**
      * Add a slide to the archive
      * @param {string} slideId - Slide identifier
      * @param {Object} slideData - Slide data

@@ -85,6 +85,54 @@ export class ZipFileReader {
     }
 
     /**
+     * Read masters (slide masters and layouts)
+     * @returns {Promise<Object>} Parsed masters object
+     */
+    async readMasters() {
+        this._ensureInit();
+        
+        const file = this.zip.file(ARCHIVE_PATHS.MASTERS);
+        if (!file) {
+            return null;
+        }
+
+        const content = await file.async('text');
+        return JSON.parse(content);
+    }
+
+    /**
+     * Read slide order array
+     * @returns {Promise<string[]>} Array of slide IDs
+     */
+    async readSlideOrder() {
+        this._ensureInit();
+        
+        const file = this.zip.file(ARCHIVE_PATHS.SLIDE_ORDER);
+        if (!file) {
+            return null;
+        }
+
+        const content = await file.async('text');
+        return JSON.parse(content);
+    }
+
+    /**
+     * Read sections array
+     * @returns {Promise<Array>} Array of section objects
+     */
+    async readSections() {
+        this._ensureInit();
+        
+        const file = this.zip.file(ARCHIVE_PATHS.SECTIONS);
+        if (!file) {
+            return null;
+        }
+
+        const content = await file.async('text');
+        return JSON.parse(content);
+    }
+
+    /**
      * List all slide IDs in the archive
      * @returns {Promise<string[]>} Array of slide IDs
      */

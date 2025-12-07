@@ -35,19 +35,31 @@ export class PresentationDeserializer {
         // 3. Read theme
         const theme = await this.reader.readTheme() || this.getDefaultTheme();
 
-        // 4. Read all slides
+        // 4. Read masters
+        const masters = await this.reader.readMasters();
+
+        // 5. Read slide order
+        const slideOrder = await this.reader.readSlideOrder();
+
+        // 6. Read sections
+        const sections = await this.reader.readSections();
+
+        // 7. Read all slides
         const slides = await this.loadSlides();
 
-        // 5. Build asset loader (lazy loading)
+        // 8. Build asset loader (lazy loading)
         const assetLoader = this.createAssetLoader();
 
-        // 6. Read thumbnail if available
+        // 9. Read thumbnail if available
         const thumbnail = await this.reader.readThumbnail();
 
         return {
             manifest,
             metadata: this.deserializeMetadata(metadata),
             theme: this.deserializeTheme(theme),
+            masters,
+            slideOrder,
+            sections,
             slides,
             assetLoader,
             thumbnail
@@ -83,19 +95,17 @@ export class PresentationDeserializer {
 
     /**
      * Load all slides from the archive
-     * @returns {Promise<Object[]>} Array of slide objects
+     * @returns {Promise<Object>} Object dictionary of slides keyed by slideId
      */
     async loadSlides() {
         const slideIds = await this.reader.listSlideIds();
-        const slides = [];
+        const slides = {};
 
         for (const slideId of slideIds) {
             const slideData = await this.reader.readSlide(slideId);
-            slides.push(this.deserializeSlide(slideData));
+            const deserializedSlide = this.deserializeSlide(slideData);
+            slides[slideId] = deserializedSlide;
         }
-
-        // Sort by order
-        slides.sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
 
         return slides;
     }
