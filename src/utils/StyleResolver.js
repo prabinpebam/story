@@ -45,10 +45,10 @@ export const StyleResolver = {
             return this._getMasterThemeInfo(state);
         }
         
-        // 1. Check slide's own styleAssignments
-        if (slide.styleAssignments?.colorTheme) {
+        // 1. Check slide's own colorThemeId
+        if (slide.colorThemeId) {
             return {
-                themeId: slide.styleAssignments.colorTheme,
+                themeId: slide.colorThemeId,
                 source: 'slide',
                 sourceId: slideId,
                 sourceLabel: 'slide-specific'
@@ -108,11 +108,11 @@ export const StyleResolver = {
         const store = getStore();
         if (!store) return COLOR_MODES.LIGHT;
         const state = store.getState();
-        const themeMaster = Object.values(state.masters || {}).find(m => m.type === 'theme');
+        const themeMaster = Object.values(state.slideMasterPresets || {}).find(m => m.type === 'slideMasterPreset');
         
-        // Check styleAssignments first
-        if (themeMaster?.styleAssignments?.colorMode) {
-            return themeMaster.styleAssignments.colorMode;
+        // Check colorModeId first
+        if (themeMaster?.colorModeId) {
+            return themeMaster.colorModeId;
         }
         
         // Fallback to lumaTheme colorMode
@@ -122,8 +122,8 @@ export const StyleResolver = {
     /**
      * Get the lumaTheme object for a given slide.
      * Resolves through the cascade hierarchy:
-     * 1. If slide has styleAssignments.colorTheme, look up that theme
-     * 2. If layout has styleAssignments.colorTheme, look up that theme
+     * 1. If slide has colorThemeId, look up that theme
+     * 2. If layout has colorThemeId, look up that theme
      * 3. Fall back to master's lumaTheme
      * 
      * @param {string} slideId - The slide ID (optional, uses active slide if not provided)
@@ -140,7 +140,7 @@ export const StyleResolver = {
         }
         
         // Get the theme master
-        const themeMaster = Object.values(state.masters || {}).find(m => m.type === 'theme');
+        const themeMaster = Object.values(state.slideMasterPresets || {}).find(m => m.type === 'slideMasterPreset');
         const masterLumaTheme = themeMaster?.themeSettings?.lumaTheme || null;
         
         // If we have a slideId, check for slide-level override
@@ -265,7 +265,7 @@ export const StyleResolver = {
         
         const colorMode = this.getColorMode();
         
-        if (master.type === 'theme') {
+        if (master.type === 'slideMasterPreset') {
             // Theme master - show its lumaTheme directly
             const lumaTheme = master.themeSettings?.lumaTheme || null;
             return {
@@ -276,11 +276,11 @@ export const StyleResolver = {
                 sourceLabel: master.name || 'Theme Master',
                 isInherited: false
             };
-        } else if (master.type === 'layout') {
+        } else if (master.type === 'layoutMaster') {
             // Layout master - check for override, otherwise inherit from parent (theme master)
-            if (master.styleAssignments?.colorTheme) {
+            if (master.colorThemeId) {
                 // Layout has its own theme override
-                const lumaTheme = this._lookupThemeById(master.styleAssignments.colorTheme);
+                const lumaTheme = this._lookupThemeById(master.colorThemeId);
                 return {
                     lumaTheme,
                     colorMode,
