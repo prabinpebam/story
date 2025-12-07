@@ -149,11 +149,6 @@ The following phases from the original implementation are complete and provide t
 - [ ] Logo, Footer, Date, Slide Number visibility toggles
 - [ ] Stored as `hiddenMasterElements: ['footer', 'date']` on layout
 
-#### 18.2 Hide Background Graphics Option
-- [ ] Toggle to hide all master background elements
-- [ ] Applies to both layout and individual slides
-- [ ] Already partially implemented - verify working
-
 ---
 
 ### Phase 19: Slide Properties Enhancement

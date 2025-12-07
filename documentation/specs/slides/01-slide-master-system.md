@@ -432,7 +432,6 @@ Select slides → Right-click → Change Master → [Choose Master]
 │  Settings:                                     │
 │  ☑ Show master background graphics            │
 │  ☑ Show header and footer                     │
-│  ☐ Hide background graphics by default        │
 │                                                │
 │  [ Cancel ]           [ Create ]               │
 └────────────────────────────────────────────────┘
@@ -1066,28 +1065,13 @@ Master View → Select Master → [✓] Preserve
 │                                                │
 │  ─────────────────────────────────────         │
 │                                                │
-│  ☐ Hide background graphics                   │
-│                                                │
 │  [Apply to All]  [Reset Background]            │
 │                                                │
 │  [ Close ]                                     │
 └────────────────────────────────────────────────┘
 ```
 
-### 12.3 Hide Background Graphics
-
-**Toggle:**
-- Per-slide setting
-- Hides master shapes (logos, decorations)
-- Keeps background fill
-- Useful for special slides (title, section)
-
-**Implementation:**
-```typescript
-interface SlideBackground {
-  type: 'inherit' | 'override';
-  
-  fill?: FillSettings;
+```
   
   hideMasterShapes: boolean;  // Hide logos, graphics
   hideHeaderFooter: boolean;   // Hide footer elements

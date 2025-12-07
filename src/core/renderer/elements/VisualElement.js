@@ -1,3 +1,5 @@
+import { store } from '../../Store.js';
+
 export class VisualElement {
     constructor(data) {
         this.data = data;
@@ -57,7 +59,25 @@ export class VisualElement {
         
         // Handle inherited/locked elements - they should appear dimmed
         // source: 'theme' or 'layout' means inherited, source: 'slide' means editable
-        const isInherited = el.isLocked || el.source === 'theme' || el.source === 'layout';
+        
+        // Check editor mode to determine if 'layout' elements are editable
+        // In Master Mode, if we are editing a layout, its elements (source='layout') are editable
+        const state = store.getState(); // store is imported at top
+        const isMasterMode = state.editor?.mode === 'master';
+        
+        let isInherited = el.isLocked || el.source === 'theme' || el.source === 'layout';
+        
+        if (isMasterMode && el.source === 'layout') {
+            // If we are in master mode, check if we are editing the layout that owns this element
+            const activeMasterId = state.editor.activeMasterId;
+            const activeMaster = state.slideMasterPresets?.[activeMasterId];
+            
+            // If we are editing a layout, then 'layout' source elements are local/editable
+            if (activeMaster && (activeMaster.type === 'layout' || activeMaster.type === 'layoutMaster')) {
+                isInherited = false;
+            }
+        }
+        
         const baseOpacity = (el.opacity !== undefined && el.opacity !== null) ? el.opacity : 1;
         
         // Apply 50% opacity to inherited elements for visual distinction

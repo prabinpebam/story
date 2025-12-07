@@ -15,10 +15,15 @@ export class SlideList {
         contextMenuManager.register(slideThumbnailConfig);
         contextMenuManager.register(masterThumbnailConfig);
         
+        this.isRenaming = false;
         this.render();
 
         // Subscribe to store
-        store.on('state-changed', () => this.render());
+        store.on('state-changed', () => {
+            if (!this.isRenaming) {
+                this.render();
+            }
+        });
     }
 
     render() {
@@ -121,6 +126,7 @@ export class SlideList {
         
         const item = document.createElement('div');
         item.className = `slide-thumbnail ${isActive ? 'active' : ''}`;
+        item.setAttribute('data-testid', 'slide-list-item');
         item.style.padding = '8px'; // Slightly smaller for masters
         item.style.backgroundColor = isActive ? 'var(--color-bg-active)' : 'transparent';
         item.style.border = isActive ? '1px solid var(--color-accent)' : '1px solid var(--color-border)';
@@ -166,7 +172,7 @@ export class SlideList {
         
         // If layout, inherit background from parent theme
         if (!isMasterRoot && (!masterData.effectiveBackground || masterData.effectiveBackground.type === 'inherited')) {
-            const parentId = slideOrMaster.parentId;
+            const parentId = slideOrMaster.parentMasterId || slideOrMaster.parentId;
             if (parentId && state.slideMasterPresets[parentId]) {
                 masterData.effectiveBackground = state.slideMasterPresets[parentId].background;
                 // Note: themeSettings no longer exists, use colorThemeId instead
@@ -208,6 +214,7 @@ export class SlideList {
      * Start inline rename for a master/layout
      */
     startMasterRename(item, titleElement, masterId) {
+        this.isRenaming = true;
         const currentName = titleElement.innerText;
         
         const input = document.createElement('input');
@@ -238,6 +245,7 @@ export class SlideList {
             }
             input.remove();
             titleElement.style.display = '';
+            this.isRenaming = false;
         };
         
         input.addEventListener('blur', finishRename);

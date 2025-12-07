@@ -28,9 +28,14 @@ export class HitTesting {
 
         // Reverse order (top to bottom)
         let elementsToCheck = [];
-        if (state.editor.mode === 'master' && slide.type === 'layout') {
-             // Layout mode: Check layout elements only (for now)
-             elementsToCheck = (slide.elementOrder || []).map(id => slide.elements[id]).filter(e => e);
+        if (state.editor.mode === 'master') {
+             // Master mode: Check effective elements (includes inherited + local)
+             const effectiveSlide = this.cm.canvasManager?.currentRenderer?.getEffectiveSlideData?.(slide.id, 'master') || slide;
+             if (effectiveSlide.effectiveElements && effectiveSlide.effectiveOrder) {
+                 elementsToCheck = effectiveSlide.effectiveOrder.map(id => effectiveSlide.effectiveElements[id]).filter(e => e);
+             } else {
+                 elementsToCheck = (slide.elementOrder || []).map(id => slide.elements[id]).filter(e => e);
+             }
         } else if (state.editor.mode === 'edit') {
              // Edit Mode: Check effective elements (including placeholders)
              const effectiveSlide = store.getEffectiveSlide(slide.id);

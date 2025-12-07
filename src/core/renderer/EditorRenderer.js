@@ -111,8 +111,14 @@ export class EditorRenderer extends BaseRenderer {
         const isEmptyContent = textContent === '' || content === '<br>' || content === '<br/>';
         
         if (isEmptyContent) {
-            // Delete the element if it's empty
-            store.dispatch('REMOVE_ELEMENT', el.data.id);
+            // Don't delete placeholder elements - they should persist even when empty
+            if (!el.data.isPlaceholder) {
+                // Delete the element if it's empty
+                store.dispatch('REMOVE_ELEMENT', el.data.id);
+                store.dispatch('SET_EDITING_ELEMENT', null);
+                return;
+            }
+            // For placeholders, just exit edit mode without deleting
             store.dispatch('SET_EDITING_ELEMENT', null);
             return;
         }
