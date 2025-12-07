@@ -276,10 +276,10 @@ function getAvailableLayouts(state) {
     
     // Get all layouts
     Object.values(masters).forEach(master => {
-        if (master.type === 'layoutMaster' || master.type === 'slideMasterPreset') {
+        if (master.type === 'layout' || master.type === 'layoutMaster') {
             layouts.push({
                 id: master.id,
-                name: master.name || (master.type === 'slideMasterPreset' ? 'Master' : 'Layout'),
+                name: master.name || 'Layout',
                 type: master.type
             });
         }
@@ -293,7 +293,21 @@ function getAvailableLayouts(state) {
  */
 function isMasterInUse(state, masterId) {
     const slides = state.slides || {};
-    return Object.values(slides).some(slide => slide.masterId === masterId);
+    const masters = state.slideMasterPresets || {};
+    const targetMaster = masters[masterId];
+    
+    if (!targetMaster) return false;
+
+    return Object.values(slides).some(slide => {
+        if (targetMaster.type === 'layout' || targetMaster.type === 'layoutMaster') {
+            return slide.layoutId === masterId;
+        }
+        if (targetMaster.type === 'theme' || targetMaster.type === 'slideMasterPreset') {
+            const layout = masters[slide.layoutId];
+            return layout && (layout.parentId === masterId || layout.parentMasterId === masterId);
+        }
+        return false;
+    });
 }
 
 /**

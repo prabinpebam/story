@@ -271,6 +271,10 @@ export class Store extends EventEmitter {
             case 'APPLY_SLIDE_MASTER_PRESET':
             case 'SET_COLOR_MODE':
             case 'UPDATE_MASTER_STYLE_ASSIGNMENTS':
+            case 'ADD_LAYOUT':
+            case 'DUPLICATE_MASTER':
+            case 'DELETE_MASTER':
+            case 'RENAME_MASTER':
                 this.snapshot(type);
                 this.state = produce(this.state, draft => {
                     switch(type) {
@@ -291,6 +295,10 @@ export class Store extends EventEmitter {
                         case 'APPLY_SLIDE_MASTER_PRESET': MasterHandlers.handleApplySlideMasterPreset(draft, payload); break;
                         case 'SET_COLOR_MODE': MasterHandlers.handleSetColorMode(draft, payload); break;
                         case 'UPDATE_MASTER_STYLE_ASSIGNMENTS': MasterHandlers.handleUpdateMasterStyleAssignments(draft, payload); break;
+                        case 'ADD_LAYOUT': MasterHandlers.handleAddLayout(draft, payload); break;
+                        case 'DUPLICATE_MASTER': MasterHandlers.handleDuplicateMaster(draft, payload); break;
+                        case 'DELETE_MASTER': MasterHandlers.handleDeleteMaster(draft, payload); break;
+                        case 'RENAME_MASTER': MasterHandlers.handleRenameMaster(draft, payload); break;
                     }
                 });
                 this.emit('state-changed', this.state);

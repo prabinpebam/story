@@ -45,7 +45,35 @@ export class SlideList {
         title.innerText = 'MASTERS';
         title.style.marginBottom = '0';
         
+        const addBtn = new Button({
+            icon: Icons.PLUS,
+            variant: 'text',
+            size: 'xs',
+            title: 'Add Layout',
+            onClick: () => {
+                // Determine parent ID
+                const activeId = state.editor.activeMasterId;
+                const activeMaster = state.slideMasterPresets[activeId];
+                let parentId = activeId;
+                
+                if (activeMaster && activeMaster.type === 'layout') {
+                    parentId = activeMaster.parentId;
+                }
+                
+                // If we still don't have a valid parent (e.g. no selection), pick the first theme
+                if (!parentId || (state.slideMasterPresets[parentId]?.type !== 'theme' && state.slideMasterPresets[parentId]?.type !== 'slideMasterPreset')) {
+                    const firstTheme = Object.values(state.slideMasterPresets).find(m => m.type === 'theme' || m.type === 'slideMasterPreset');
+                    if (firstTheme) parentId = firstTheme.id;
+                }
+                
+                if (parentId) {
+                    store.dispatch('ADD_LAYOUT', { parentId });
+                }
+            }
+        });
+        
         header.appendChild(title);
+        header.appendChild(addBtn.element);
         this.container.appendChild(header);
 
         // List Container
@@ -56,7 +84,7 @@ export class SlideList {
 
         // Iterate Masters
         const allMasters = state.slideMasterPresets;
-        const themes = Object.values(allMasters).filter(m => m.type === 'theme');
+        const themes = Object.values(allMasters).filter(m => m.type === 'theme' || m.type === 'slideMasterPreset');
 
         themes.forEach(theme => {
             // 1. Render the Master Slide itself
@@ -64,7 +92,7 @@ export class SlideList {
             list.appendChild(masterItem);
 
             // 2. Render Layouts
-            const layouts = Object.values(allMasters).filter(m => m.type === 'layout' && m.parentId === theme.id);
+            const layouts = Object.values(allMasters).filter(m => (m.type === 'layout' || m.type === 'layoutMaster') && (m.parentId === theme.id || m.parentMasterId === theme.id));
             
             if (layouts.length > 0) {
                 const layoutsContainer = document.createElement('div');

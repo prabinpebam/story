@@ -543,4 +543,163 @@ export function handleApplySlideMasterPreset(draft, payload) {
     
 }
 
+// ========================================
+// MASTER/LAYOUT MANAGEMENT HANDLERS
+// ========================================
+
+/**
+ * Add a new layout to a theme master.
+ * @param {Object} draft - Immer draft state
+ * @param {Object} payload - { parentId: string }
+ */
+export function handleAddLayout(draft, payload) {
+    const { parentId } = payload;
+    const parentTheme = draft.slideMasterPresets[parentId];
+    
+    if (parentTheme && (parentTheme.type === 'theme' || parentTheme.type === 'slideMasterPreset')) {
+        const newLayoutId = `layout-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+        
+        // Create new blank layout
+        const newLayout = {
+            id: newLayoutId,
+            type: 'layout',
+            parentId: parentId,
+            name: 'Custom Layout',
+            background: { type: 'inherited' },
+            elements: {},
+            elementOrder: []
+        };
+        
+        draft.slideMasterPresets[newLayoutId] = newLayout;
+        
+        // Select the new layout
+        draft.editor.activeMasterId = newLayoutId;
+    }
+}
+
+/**
+ * Duplicate a master (theme or layout).
+ * @param {Object} draft - Immer draft state
+ * @param {Object} payload - { id: string }
+ */
+export function handleDuplicateMaster(draft, payload) {
+    const { id } = payload;
+    const master = draft.slideMasterPresets[id];
+    
+    if (!master) return;
+    
+    if (master.type === 'layout' || master.type === 'layoutMaster') {
+        // Duplicate Layout
+        const newId = `layout-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+        const newLayout = JSON.parse(JSON.stringify(master));
+        newLayout.id = newId;
+        newLayout.name = `${master.name} (Copy)`;
+        
+        draft.slideMasterPresets[newId] = newLayout;
+        draft.editor.activeMasterId = newId;
+        
+    } else if (master.type === 'theme' || master.type === 'slideMasterPreset') {
+        // Duplicate Theme
+        const newThemeId = `theme-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+        const newTheme = JSON.parse(JSON.stringify(master));
+        newTheme.id = newThemeId;
+        newTheme.name = `${master.name} (Copy)`;
+        
+        // Add new theme
+        draft.slideMasterPresets[newThemeId] = newTheme;
+        
+        // Duplicate all child layouts
+        Object.values(draft.slideMasterPresets).forEach(m => {
+            if (m.type === 'layout' && m.parentId === id) {
+                const newLayoutId = `layout-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
+                const newLayout = JSON.parse(JSON.stringify(m));
+                newLayout.id = newLayoutId;
+                newLayout.parentId = newThemeId;
+                draft.slideMasterPresets[newLayoutId] = newLayout;
+            }
+        });
+        
+        draft.editor.activeMasterId = newThemeId;
+    }
+}
+
+/**
+ * Delete a master (theme or layout).
+ * @param {Object} draft - Immer draft state
+ * @param {Object} payload - { id: string }
+ */
+export function handleDeleteMaster(draft, payload) {
+    const { id } = payload;
+    const master = draft.slideMasterPresets[id];
+    
+    if (!master) return;
+    
+    // Helper: Check if master is in use
+    const isInUse = Object.values(draft.slides).some(slide => {
+        if (master.type === 'layout' || master.type === 'layoutMaster') return slide.layoutId === id;
+        // For theme, check if any of its layouts are used
+        if (master.type === 'theme' || master.type === 'slideMasterPreset') {
+            const layout = draft.slideMasterPresets[slide.layoutId];
+            return layout && layout.parentId === id;
+        }
+        return false;
+    });
+    
+    if (isInUse) {
+        console.warn('Cannot delete master/layout that is in use');
+        return;
+    }
+    
+    if (master.type === 'layout' || master.type === 'layoutMaster') {
+        // Delete layout
+        delete draft.slideMasterPresets[id];
+        
+        // If active, switch to parent theme
+        if (draft.editor.activeMasterId === id) {
+            draft.editor.activeMasterId = master.parentId;
+        }
+        
+    } else if (master.type === 'theme' || master.type === 'slideMasterPreset') {
+        // Check if it's the last theme
+        const themeCount = Object.values(draft.slideMasterPresets).filter(m => m.type === 'theme' || m.type === 'slideMasterPreset').length;
+        if (themeCount <= 1) {
+            console.warn('Cannot delete the last theme');
+            return;
+        }
+        
+        // Delete theme
+        delete draft.slideMasterPresets[id];
+        
+        // Delete all child layouts
+        Object.keys(draft.slideMasterPresets).forEach(key => {
+            const m = draft.slideMasterPresets[key];
+            if ((m.type === 'layout' || m.type === 'layoutMaster') && m.parentId === id) {
+                delete draft.slideMasterPresets[key];
+            }
+        });
+        
+        // If active was this theme or one of its layouts, switch to another theme
+        if (draft.editor.activeMasterId === id || draft.slideMasterPresets[draft.editor.activeMasterId]?.parentId === id) {
+            const otherTheme = Object.values(draft.slideMasterPresets).find(m => m.type === 'theme' || m.type === 'slideMasterPreset');
+            if (otherTheme) {
+                draft.editor.activeMasterId = otherTheme.id;
+            }
+        }
+    }
+}
+
+/**
+ * Rename a master (theme or layout).
+ * @param {Object} draft - Immer draft state
+ * @param {Object} payload - { id: string, name: string }
+ */
+export function handleRenameMaster(draft, payload) {
+    const { id, name } = payload;
+    const master = draft.slideMasterPresets[id];
+    
+    if (master) {
+        master.name = name;
+    }
+}
+
 
