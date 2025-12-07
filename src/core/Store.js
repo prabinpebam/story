@@ -43,10 +43,10 @@ function getThemeDiag() {
     return _ThemeDiag;
 }
 
-class Store extends EventEmitter {
-    constructor() {
+export class Store extends EventEmitter {
+    constructor(initialState = null) {
         super();
-        this.state = createInitialState();
+        this.state = initialState || createInitialState();
         this.isInteracting = false;
     }
 

@@ -22,6 +22,48 @@ type StoryFixtures = {
  */
 export const test = base.extend<StoryFixtures>({
   /**
+   * Enhanced page fixture with error monitoring
+   */
+  page: async ({ page }, use) => {
+    const errors: Array<{ type: string; message: string; stack?: string }> = [];
+    
+    // Catch console errors
+    page.on('console', msg => {
+      if (msg.type() === 'error') {
+        errors.push({ type: 'console', message: msg.text() });
+      }
+    });
+    
+    // Catch uncaught exceptions (CRITICAL!)
+    page.on('pageerror', error => {
+      errors.push({
+        type: 'exception',
+        message: error.message,
+        stack: error.stack
+      });
+    });
+    
+    // Catch unhandled promise rejections/failed requests
+    page.on('requestfailed', request => {
+      // Ignore cancelled requests
+      if (request.failure()?.errorText === 'net::ERR_ABORTED') return;
+      
+      errors.push({
+        type: 'request',
+        message: `Failed: ${request.url()} - ${request.failure()?.errorText}`
+      });
+    });
+    
+    await use(page);
+    
+    // Report any errors at the end of the test
+    if (errors.length > 0) {
+      const errorMsg = errors.map(e => `[${e.type}] ${e.message}`).join('\n');
+      throw new Error(`Page errors detected during test:\n${errorMsg}`);
+    }
+  },
+
+  /**
    * Fixture to get store state
    */
   getState: async ({ page }, use) => {

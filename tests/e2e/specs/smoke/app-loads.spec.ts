@@ -7,13 +7,8 @@ import { test, expect } from '../../fixtures/base-test';
 
 test.describe('Application Load', () => {
   test('should load the application without errors', async ({ page }) => {
-    // Listen for console errors
-    const consoleErrors: string[] = [];
-    page.on('console', msg => {
-      if (msg.type() === 'error') {
-        consoleErrors.push(msg.text());
-      }
-    });
+    // Note: Console errors and page errors are now caught by the base fixture
+    // and will cause the test to fail automatically.
 
     // Navigate to the app
     await page.goto('/');
@@ -21,11 +16,32 @@ test.describe('Application Load', () => {
     // Wait for the app to be fully loaded
     await page.waitForLoadState('networkidle');
 
-    // Verify no JavaScript errors occurred
-    expect(consoleErrors).toHaveLength(0);
-
     // Verify page title
     await expect(page).toHaveTitle(/Story/i);
+  });
+
+  test('should initialize with correct Phase 1 architecture', async ({ page, getState }) => {
+    await page.goto('/');
+    await page.waitForLoadState('networkidle');
+    
+    const state = await getState();
+    
+    // Verify Phase 1 architecture presets exist
+    expect(state.slideMasterPresets).toBeDefined();
+    expect(state.colorThemePresets).toBeDefined();
+    expect(state.typographyStylePresets).toBeDefined();
+    
+    // Verify deprecated properties are GONE
+    expect(state.masters).toBeUndefined();
+    expect(state.themeSettings).toBeUndefined();
+    
+    // Verify slides use references
+    const firstSlideId = state.slideOrder[0];
+    const firstSlide = state.slides[firstSlideId];
+    
+    expect(firstSlide.colorThemeId).toBeDefined();
+    expect(firstSlide.typographyStyleId).toBeDefined();
+    expect(firstSlide.styleAssignments).toBeUndefined();
   });
 
   test('should render the main editor interface', async ({ page }) => {
