@@ -1,52 +1,62 @@
-// DEFAULT_MASTERS - Professional presentation templates
+// ============================================
+// PRESET SEPARATION ARCHITECTURE
+// ============================================
 // Design principles: 8px grid, harmonious type scale (1.25 ratio), modern color palette
 // Canvas: 1920×1080 (16:9), Standard margins: 100px
-// All colors use theme variables for consistency and easy theme switching
-export const DEFAULT_MASTERS = {
-    "theme-default": {
-        id: "theme-default",
-        type: "theme",
-        name: "Default Theme",
-        // Use theme color variable for background - resolved at render time
-        background: { type: "solid", value: "var(--theme-background1, #FFFFFF)" },
-        elements: {},
-        elementOrder: [],
-        // Style Assignments - Cascading Style System
-        // null = use defaults, non-null = explicit override
-        // colorTheme: references lumaTheme in themeSettings
-        // colorMode: 'light' or 'dark'
-        // typographyStyle: references typographyStyles (future)
-        styleAssignments: {
-            colorTheme: null,      // null means use lumaTheme from themeSettings
-            colorMode: 'dark',     // Default to dark mode
-            typographyStyle: null  // Future: typography style system
+// 
+// CRITICAL: Slide Master Presets NEVER embed colors or typography.
+// They only REFERENCE separate ColorThemePresets and TypographyStylePresets.
+// This enables independent manipulation without conflicts.
+
+// ============================================
+// COLOR THEME PRESETS (Separate Library)
+// ============================================
+export const DEFAULT_COLOR_THEME_PRESETS = {
+    "color-theme-default": {
+        id: "color-theme-default",
+        type: "colorThemePreset",
+        name: "Default Colors",
+        description: "Clean and professional",
+        category: "Professional",
+        isDark: false,
+        colors: {
+            // Background Colors - Clean and professional
+            background1: "#FFFFFF",         // Pure white
+            background2: "#F8FAFC",         // Slate 50 - subtle gray-blue
+            // Text Colors - High contrast, easy to read
+            text1: "#0F172A",               // Slate 900 - near black, softer than pure black
+            text2: "#64748B",               // Slate 500 - medium gray for secondary text
+            // Accent Colors - Vibrant, modern palette
+            accent1: "#3B82F6",             // Blue 500 - Primary brand color
+            accent2: "#8B5CF6",             // Violet 500 - Creative/highlight
+            accent3: "#10B981",             // Emerald 500 - Success/positive
+            accent4: "#F59E0B",             // Amber 500 - Warning/attention
+            accent5: "#EF4444",             // Red 500 - Alert/important
+            accent6: "#06B6D4",             // Cyan 500 - Info/cool accent
+            // Link Colors
+            hyperlink: "#2563EB",           // Blue 600
+            followedHyperlink: "#7C3AED"    // Violet 600
+        }
+    }
+};
+
+// ============================================
+// TYPOGRAPHY STYLE PRESETS (Separate Library)
+// ============================================
+export const DEFAULT_TYPOGRAPHY_STYLE_PRESETS = {
+    "typo-style-default": {
+        id: "typo-style-default",
+        type: "typographyStylePreset",
+        name: "Modern Sans",
+        description: "Clean geometric sans-serif for contemporary presentations",
+        category: "Sans Serif",
+        fonts: {
+            heading: "Inter",
+            body: "Inter",
+            monospace: "Fira Code"
         },
-        themeSettings: {
-            colors: {
-                // Background Colors - Clean and professional
-                background1: "#FFFFFF",         // Pure white
-                background2: "#F8FAFC",         // Slate 50 - subtle gray-blue
-                // Text Colors - High contrast, easy to read
-                text1: "#0F172A",               // Slate 900 - near black, softer than pure black
-                text2: "#64748B",               // Slate 500 - medium gray for secondary text
-                // Accent Colors - Vibrant, modern palette
-                accent1: "#3B82F6",             // Blue 500 - Primary brand color
-                accent2: "#8B5CF6",             // Violet 500 - Creative/highlight
-                accent3: "#10B981",             // Emerald 500 - Success/positive
-                accent4: "#F59E0B",             // Amber 500 - Warning/attention
-                accent5: "#EF4444",             // Red 500 - Alert/important
-                accent6: "#06B6D4",             // Cyan 500 - Info/cool accent
-                // Link Colors
-                hyperlink: "#2563EB",           // Blue 600
-                followedHyperlink: "#7C3AED",   // Violet 600
-                // Legacy aliases (for backwards compatibility)
-                accent: "#3B82F6",
-                textPrimary: "#0F172A",
-                textSecondary: "#64748B"
-            },
-            fonts: { heading: "Inter", body: "Inter" },
-            // Text Styles - Harmonious type scale using 1.25 ratio
-            textStyles: {
+        // Text Styles - Harmonious type scale using 1.25 ratio
+        textStyles: {
                 "display": {
                     id: "display",
                     name: "Display",
@@ -158,58 +168,34 @@ export const DEFAULT_MASTERS = {
                     textTransform: "uppercase",
                     textFill: { type: "solid", value: "var(--theme-text-secondary)" }
                 }
-            },
-            // ============================================
-            // DEFAULT LUMA THEME: Tropical Paradise
-            // ============================================
-            // This is the default color theme for new presentations.
-            // 12 luma-locked slots with pre-computed colors.
-            // Teal, coral, and golden yellow - vibrant and joyful
-            lumaTheme: {
-                id: "preset_tropical_paradise",
-                name: "Tropical Paradise",
-                slots: [
-                    { h: 175, s: 50 },  // Slot 1 - deep teal shadow
-                    { h: 5, s: 65 },    // Slot 2 - coral
-                    { h: 45, s: 70 },   // Slot 3 - golden yellow
-                    { h: 180, s: 80 },  // Slot 4 - vivid teal accent
-                    { h: 10, s: 85 },   // Slot 5 - bright coral
-                    { h: 50, s: 90 },   // Slot 6 - sunny yellow
-                    { h: 175, s: 70 },  // Slot 7 - teal
-                    { h: 0, s: 60 },    // Slot 8 - soft coral
-                    { h: 55, s: 65 },   // Slot 9 - light gold
-                    { h: 180, s: 45 },  // Slot 10 - soft teal
-                    { h: 45, s: 40 },   // Slot 11 - pale yellow
-                    { h: 5, s: 25 }     // Slot 12 - blush
-                ],
-                adjustments: {
-                    brightness: 0,
-                    contrast: 0,
-                    saturation: 0,
-                    highlights: 0,
-                    shadows: 0,
-                    whites: 0,
-                    blacks: 0
-                },
-                // Pre-computed resolved colors for the 12 slots
-                // These match the luma values: 5, 10, 18, 25, 35, 45, 55, 65, 70, 80, 90, 97
-                resolvedColors: [
-                    "#061312",  // Slot 1 - L:5
-                    "#291110",  // Slot 2 - L:10
-                    "#4d3d13",  // Slot 3 - L:18
-                    "#126664",  // Slot 4 - L:25
-                    "#91291c",  // Slot 5 - L:35
-                    "#dab80b",  // Slot 6 - L:45
-                    "#35a39f",  // Slot 7 - L:55
-                    "#d98c85",  // Slot 8 - L:65
-                    "#d4c361",  // Slot 9 - L:70
-                    "#9fd4d2",  // Slot 10 - L:80
-                    "#f0e6c4",  // Slot 11 - L:90
-                    "#f9f6f5"   // Slot 12 - L:97
-                ],
-                isInverted: false
             }
         }
+};
+
+// ============================================
+// SLIDE MASTER PRESETS (Structure + References)
+// ============================================
+export const DEFAULT_MASTERS = {
+    "master-default": {
+        id: "master-default",
+        type: "slideMasterPreset",
+        name: "Default Master",
+        // REFERENCES ONLY (never embed actual colors/typography)
+        colorThemeId: "color-theme-default",
+        typographyStyleId: "typo-style-default",
+        // Use theme color variable for background - resolved at render time
+        background: { type: "solid", value: "var(--theme-background1, #FFFFFF)" },
+        elements: {},
+        elementOrder: [],
+        // Layout IDs managed by this master
+        layoutIds: [
+            "layout-title",
+            "layout-title-content",
+            "layout-section-header",
+            "layout-two-column",
+            "layout-comparison",
+            "layout-blank"
+        ]
     },
     // ============================================
     // LAYOUT MASTERS
@@ -219,15 +205,13 @@ export const DEFAULT_MASTERS = {
     // Centered layout with large display text
     "layout-title": {
         id: "layout-title",
-        type: "layout",
-        parentId: "theme-default",
+        type: "layoutMaster",
+        parentMasterId: "master-default",
         name: "Title Slide",
         background: null,
-        // Style Assignments - null = inherit from parent theme master
-        styleAssignments: {
-            colorTheme: null,
-            typographyStyle: null
-        },
+        // Preset references (null = inherit from parent master)
+        colorThemeId: null,
+        typographyStyleId: null,
         elements: {
             "placeholder-title": {
                 id: "placeholder-title",
@@ -258,14 +242,12 @@ export const DEFAULT_MASTERS = {
     // Clean layout with ample breathing room
     "layout-title-content": {
         id: "layout-title-content",
-        type: "layout",
-        parentId: "theme-default",
+        type: "layoutMaster",
+        parentMasterId: "master-default",
         name: "Title and Content",
         background: null,
-        styleAssignments: {
-            colorTheme: null,
-            typographyStyle: null
-        },
+        colorThemeId: null,
+        typographyStyleId: null,
         elements: {
             "placeholder-title": {
                 id: "placeholder-title",
@@ -296,14 +278,12 @@ export const DEFAULT_MASTERS = {
     // Large left-aligned title, vertically centered
     "layout-section-header": {
         id: "layout-section-header",
-        type: "layout",
-        parentId: "theme-default",
+        type: "layoutMaster",
+        parentMasterId: "master-default",
         name: "Section Header",
         background: null,
-        styleAssignments: {
-            colorTheme: null,
-            typographyStyle: null
-        },
+        colorThemeId: null,
+        typographyStyleId: null,
         elements: {
             "placeholder-title": {
                 id: "placeholder-title",
@@ -332,16 +312,14 @@ export const DEFAULT_MASTERS = {
     },
     // Two Column - Side-by-side content layout
     // Equal columns with 60px gutter for visual separation
-    "layout-two-content": {
-        id: "layout-two-content",
-        type: "layout",
-        parentId: "theme-default",
+    "layout-two-column": {
+        id: "layout-two-column",
+        type: "layoutMaster",
+        parentMasterId: "master-default",
         name: "Two Column",
         background: null,
-        styleAssignments: {
-            colorTheme: null,
-            typographyStyle: null
-        },
+        colorThemeId: null,
+        typographyStyleId: null,
         elements: {
             "placeholder-title": {
                 id: "placeholder-title",
@@ -383,14 +361,12 @@ export const DEFAULT_MASTERS = {
     // Each column has its own header for labeling
     "layout-comparison": {
         id: "layout-comparison",
-        type: "layout",
-        parentId: "theme-default",
+        type: "layoutMaster",
+        parentMasterId: "master-default",
         name: "Comparison",
         background: null,
-        styleAssignments: {
-            colorTheme: null,
-            typographyStyle: null
-        },
+        colorThemeId: null,
+        typographyStyleId: null,
         elements: {
             "placeholder-title": {
                 id: "placeholder-title",
@@ -453,14 +429,12 @@ export const DEFAULT_MASTERS = {
     // Title Only - Minimal layout for custom content
     "layout-title-only": {
         id: "layout-title-only",
-        type: "layout",
-        parentId: "theme-default",
+        type: "layoutMaster",
+        parentMasterId: "master-default",
         name: "Title Only",
         background: null,
-        styleAssignments: {
-            colorTheme: null,
-            typographyStyle: null
-        },
+        colorThemeId: null,
+        typographyStyleId: null,
         elements: {
             "placeholder-title": {
                 id: "placeholder-title",
@@ -479,14 +453,12 @@ export const DEFAULT_MASTERS = {
     // Blank - Empty canvas for complete freedom
     "layout-blank": {
         id: "layout-blank",
-        type: "layout",
-        parentId: "theme-default",
+        type: "layoutMaster",
+        parentMasterId: "master-default",
         name: "Blank",
         background: null,
-        styleAssignments: {
-            colorTheme: null,
-            typographyStyle: null
-        },
+        colorThemeId: null,
+        typographyStyleId: null,
         elements: {},
         elementOrder: []
     },
@@ -494,14 +466,12 @@ export const DEFAULT_MASTERS = {
     // 2/3 content, 1/3 caption for notes or supporting info
     "layout-content-caption": {
         id: "layout-content-caption",
-        type: "layout",
-        parentId: "theme-default",
+        type: "layoutMaster",
+        parentMasterId: "master-default",
         name: "Content with Caption",
         background: null,
-        styleAssignments: {
-            colorTheme: null,
-            typographyStyle: null
-        },
+        colorThemeId: null,
+        typographyStyleId: null,
         elements: {
             "placeholder-title": {
                 id: "placeholder-title",
@@ -541,16 +511,14 @@ export const DEFAULT_MASTERS = {
     },
     // Picture with Caption - Image-focused with descriptive text
     // Large image area with sidebar for context
-    "layout-picture-caption": {
-        id: "layout-picture-caption",
-        type: "layout",
-        parentId: "theme-default",
+    "layout-picture-with-caption": {
+        id: "layout-picture-with-caption",
+        type: "layoutMaster",
+        parentMasterId: "master-default",
         name: "Picture with Caption",
         background: null,
-        styleAssignments: {
-            colorTheme: null,
-            typographyStyle: null
-        },
+        colorThemeId: null,
+        typographyStyleId: null,
         elements: {
             "placeholder-title": {
                 id: "placeholder-title",
@@ -592,14 +560,12 @@ export const DEFAULT_MASTERS = {
     // Centered large text with attribution
     "layout-quote": {
         id: "layout-quote",
-        type: "layout",
-        parentId: "theme-default",
+        type: "layoutMaster",
+        parentMasterId: "master-default",
         name: "Quote",
         background: null,
-        styleAssignments: {
-            colorTheme: null,
-            typographyStyle: null
-        },
+        colorThemeId: null,
+        typographyStyleId: null,
         elements: {
             "placeholder-quote": {
                 id: "placeholder-quote",
@@ -630,14 +596,12 @@ export const DEFAULT_MASTERS = {
     // Large centered number with label and description
     "layout-big-number": {
         id: "layout-big-number",
-        type: "layout",
-        parentId: "theme-default",
+        type: "layoutMaster",
+        parentMasterId: "master-default",
         name: "Big Number",
         background: null,
-        styleAssignments: {
-            colorTheme: null,
-            typographyStyle: null
-        },
+        colorThemeId: null,
+        typographyStyleId: null,
         elements: {
             "placeholder-label": {
                 id: "placeholder-label",
@@ -679,14 +643,12 @@ export const DEFAULT_MASTERS = {
     // Three equal columns with optional headers
     "layout-three-column": {
         id: "layout-three-column",
-        type: "layout",
-        parentId: "theme-default",
+        type: "layoutMaster",
+        parentMasterId: "master-default",
         name: "Three Column",
         background: null,
-        styleAssignments: {
-            colorTheme: null,
-            typographyStyle: null
-        },
+        colorThemeId: null,
+        typographyStyleId: null,
         elements: {
             "placeholder-title": {
                 id: "placeholder-title",
@@ -758,7 +720,7 @@ export function createInitialState() {
         editor: {
             mode: "edit",
             activeSlideId: "slide-1",
-            activeMasterId: "theme-default",
+            activeMasterId: "master-default",
             selectedSlideIds: [],
             selectedElementIds: [],
             editingElementId: null,
@@ -794,9 +756,14 @@ export function createInitialState() {
             isInteracting: false,
             interactionType: null
         },
-        masters: DEFAULT_MASTERS,
+        // Preset Libraries (Separate)
+        colorThemePresets: DEFAULT_COLOR_THEME_PRESETS,
+        typographyStylePresets: DEFAULT_TYPOGRAPHY_STYLE_PRESETS,
+        slideMasterPresets: DEFAULT_MASTERS,
+        // Note: layoutMasters are embedded in DEFAULT_MASTERS for now
+        // In future, can separate into DEFAULT_LAYOUT_MASTERS if needed
         slides: {
-            // Slide 1: Title Slide - all properties inherited, no overrides
+            // Slide 1: Title Slide
             "slide-1": {
                 id: "slide-1",
                 layoutId: "layout-title",
@@ -804,10 +771,8 @@ export function createInitialState() {
                 width: 1920,
                 height: 1080,
                 background: null,
-                styleAssignments: {
-                    colorTheme: null,
-                    typographyStyle: null
-                },
+                colorThemeId: null,
+                typographyStyleId: null,
                 elements: {
                     "placeholder-title": { 
                         ...DEFAULT_MASTERS["layout-title"].elements["placeholder-title"],
@@ -830,10 +795,32 @@ export function createInitialState() {
                 width: 1920,
                 height: 1080,
                 background: null,
-                styleAssignments: {
-                    colorTheme: null,
-                    typographyStyle: null
-                },
+                colorThemeId: null,
+                typographyStyleId: null,
+                elements: {
+                    "placeholder-title": { 
+                        ...DEFAULT_MASTERS["layout-title"].elements["placeholder-title"],
+                        content: "<h1>Click to add title</h1>"
+                    },
+                    "placeholder-subtitle": {
+                        ...DEFAULT_MASTERS["layout-title"].elements["placeholder-subtitle"],
+                        content: "<p>Click to add subtitle</p>"
+                    }
+                }, 
+                elementOrder: ["placeholder-title", "placeholder-subtitle"],
+                notes: "",
+                transition: "magic"
+            },
+            // Slide 2: Title and Content - all properties inherited, no overrides
+            "slide-2": {
+                id: "slide-2",
+                layoutId: "layout-title-content",
+                title: "Title and Content",
+                width: 1920,
+                height: 1080,
+                background: null,
+                colorThemeId: null,
+                typographyStyleId: null,
                 elements: {
                     "placeholder-title": { 
                         ...DEFAULT_MASTERS["layout-title-content"].elements["placeholder-title"],
