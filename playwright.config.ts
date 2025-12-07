@@ -35,6 +35,9 @@ export default defineConfig({
     
     /* Video on failure */
     video: 'retain-on-failure',
+    
+    /* Emulate dark color scheme for consistent test environment */
+    colorScheme: 'dark',
   },
 
   /* Configure projects for major browsers */
