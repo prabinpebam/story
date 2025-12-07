@@ -1,8 +1,8 @@
 # Slide System - Comprehensive Implementation Plan
 
-**Version:** 1.0  
+**Version:** 2.0  
 **Last Updated:** December 7, 2025  
-**Status:** Ready for Implementation
+**Status:** Active Implementation Guide
 
 ---
 
@@ -120,7 +120,7 @@ interface UndoableAction {
 | Phase | Focus | Duration | Risk |
 |-------|-------|----------|------|
 | **Phase 0** | Foundation & Infrastructure | 2 weeks | LOW |
-| **Phase 1** | Master Slide System | 3 weeks | MEDIUM |
+| **Phase 1** | Master Slide System (Preset Separation) | 3 weeks | MEDIUM |
 | **Phase 2** | Slide Operations & Navigation | 2 weeks | LOW |
 | **Phase 3** | Presenter View & Modes | 3 weeks | MEDIUM |
 | **Phase 4** | Comments & Collaboration | 4 weeks | HIGH |
@@ -133,10 +133,7 @@ interface UndoableAction {
 
 ---
 
-## Phase 0: Foundation & Infrastructure (2 weeks) ✅ **COMPLETED**
-
-### Status: COMPLETED - December 7, 2025
-**Commits:** 4884d58 (Phase 0.1), b3b21b2 (Phase 0.2), [Phase 0.3 pending]
+## Phase 0: Foundation & Infrastructure (Completed)
 
 ### Goals
 - ✅ Establish core data models
@@ -144,155 +141,41 @@ interface UndoableAction {
 - ✅ Setup testing infrastructure  
 - ✅ Validate data model integrity
 
-### Completed Tasks
-
-#### Phase 0.1: Undo/Redo Testing ✅ (Commit: 4884d58)
-
-**Task 0.1: Comprehensive Slide Operation Tests**
-- ✅ Created 21 undo/redo tests for all slide CRUD operations
-- ✅ Tests cover: ADD_SLIDE, DELETE_SLIDE, DUPLICATE_SLIDE, REORDER_SLIDES, UPDATE_SLIDE
-- ✅ Complex scenarios (multiple operations, batch updates)
-- ✅ Edge cases (empty state, single slide, boundary conditions)
-- **Test Results:** 21/21 tests passing, 1300/1300 core tests passing
-- **File:** `tests/unit/core/handlers/SlideHandlers.undo.test.js` (578 lines)
-- **Risk:** NONE - All tests pass
-
-#### Phase 0.2: File Serialization ✅ (Commit: b3b21b2)
-
-**Task 0.2: Slide System Serialization**
-- ✅ Added storage constants (MASTERS, SLIDE_ORDER, SECTIONS)
-- ✅ Implemented ZipFileWriter methods (addMasters, addSlideOrder, addSections)
-- ✅ Implemented ZipFileReader methods (readMasters, readSlideOrder, readSections)
-- ✅ Updated PresentationSerializer to save masters/slideOrder/sections
-- ✅ Updated PresentationDeserializer to restore masters/slideOrder/sections
-- ✅ Fixed slides deserialization (object dictionary instead of array)
-- ✅ Created 16 comprehensive serialization tests
-- **Test Results:** 16/16 tests passing, 1316/1316 total tests passing
-- **Files:**
-  - `tests/unit/storage/SlideSystemSerialization.test.js` (407 lines)
-  - `src/core/storage/constants/StorageConstants.js` (modified)
-  - `src/core/storage/zip/ZipFileWriter.js` (modified)
-  - `src/core/storage/zip/ZipFileReader.js` (modified)
-  - `src/core/storage/serialization/PresentationSerializer.js` (modified)
-  - `src/core/storage/serialization/PresentationDeserializer.js` (modified)
-- **Risk:** NONE - Backward compatible, all tests pass
-
-#### Phase 0.3: Data Model Validation ✅ (Current)
-
-**Task 0.3: Comprehensive Data Validation Tests**
-- ✅ Created 35 validation tests for slide data models
-- ✅ Slide structure validation (required fields, types, background)
-- ✅ Slide order validation (uniqueness, consistency, sequential)
-- ✅ Master/Layout relationship validation
-- ✅ Sections validation (structure, references, ordering)
-- ✅ State consistency validation (add/delete/reorder operations)
-- ✅ Data type constraints (string, number, boolean, hex colors)
-- ✅ Edge cases (empty state, single slide, 150+ slides)
-- **Test Results:** 35/35 tests passing, 3898/3908 total tests passing (10 skipped)
-- **File:** `tests/unit/core/validation/SlideDataModelValidation.test.js` (573 lines)
-- **Coverage:** Validates all slide-related data structures
-- **Risk:** NONE - Validates existing state, no implementation changes
-
-### Deliverables ✅
-- ✅ Undo/redo testing infrastructure (21 tests)
-- ✅ File serialization for slides/masters/sections (16 tests)
-- ✅ Data model validation (35 tests)
-- ✅ Test coverage: 3898 tests passing
-- ✅ No regressions in existing functionality
-- ✅ Backward compatible .str file format
-
-### Exit Criteria ✅
-- ✅ All slide CRUD operations are undoable
-- ✅ Slides, masters, layouts, sections serialize/deserialize correctly
-- ✅ Data model integrity validated across all operations
-- ✅ All Phase 0 tests passing (72 new tests + 3826 existing)
-- ✅ Zero regressions in core functionality
-
-### Phase 0 Summary
-
-**Total Tests Created:** 72 tests (1023 lines of test code)
-- 21 undo/redo tests (578 lines)
-- 16 serialization tests (407 lines)
-- 35 validation tests (573 lines, includes 438 lines of test setup)
-
-**Test Results:**
-- Phase 0.1: 21/21 passing ✅
-- Phase 0.2: 16/16 passing ✅
-- Phase 0.3: 35/35 passing ✅
-- **Total: 3898/3908 passing (10 skipped)**
-
-**Code Modified:**
-- Storage constants (1 file)
-- ZipFileWriter/Reader (2 files)
-- PresentationSerializer/Deserializer (2 files)
-- Test files (3 new files)
-
-**Git Commits:**
-1. 4884d58 - Phase 0.1: Undo/redo testing
-2. b3b21b2 - Phase 0.2: Serialization support
-3. [Pending] - Phase 0.3: Data model validation
-
-**Next Phase:** Phase 1 - Basic Slide Functionality
+### Deliverables
+- Undo/redo testing infrastructure
+- File serialization for slides/masters/sections
+- Data model validation
+- Test coverage: ~3900 tests passing
+- No regressions in existing functionality
+- Backward compatible .str file format
 
 ---
 
-## Phase 1: Master Slide System (3 weeks) ⚠️ **REQUIRES REFACTORING**
+## Phase 1: Master Slide System (3 weeks)
 
-### ⚠️ ARCHITECTURE VIOLATION NOTICE
-
-**Phase 1.1 (Theme Management) MUST BE ROLLED BACK:**
-- ❌ Violates preset separation architecture
-- ❌ Embeds colors directly in master (`themeSettings.colors`)
-- ❌ Should use REFERENCES to separate `colorThemePresets` library
-- ❌ Prevents independent color/typography manipulation
-
-**See:** 
-- [TERMINOLOGY-AND-ARCHITECTURE.md](./TERMINOLOGY-AND-ARCHITECTURE.md) - Correct architecture
-- [ARCHITECTURE-REFACTORING-PLAN.md](./ARCHITECTURE-REFACTORING-PLAN.md) - Detailed rollback plan
-
-**Refactoring Required:**
-1. Remove Phase 1.1 code (ThemePicker, ThemeManager - 1,201 lines)
-2. Restructure state: Add `colorThemePresets`, `typographyStylePresets`, `slideMasterPresets`
-3. Build new components: ColorThemePicker, TypographyStylePicker, SlideMasterPresetPicker
-4. Update terminology throughout codebase
-
-### Current Status
-**Existing Implementation:**
-- ✅ Basic slide handlers (ADD_SLIDE, DELETE_SLIDE, DUPLICATE_SLIDE, REORDER_SLIDES, UPDATE_SLIDE)
-- ✅ SlideList UI component with master/slide mode switching
-- ✅ Basic master data structure in state
-- ✅ Layout change with content remapping logic
-- ✅ Undo/redo support for slide operations
-- ⚠️ Phase 1.1 Theme Management (REQUIRES ROLLBACK - architecture violation)
-
-**Gaps to Address:**
-- 🔄 Rollback Phase 1.1 and implement correct preset separation
-- ⏸️ Placeholder system needs enhancement
-- ⏸️ Theme management UI incomplete
-- ⏸️ Built-in layouts need expansion
-- ⏸️ Master editor UX refinement
+### Architecture: Preset Separation
+**Strict adherence to [TERMINOLOGY-AND-ARCHITECTURE.md](./TERMINOLOGY-AND-ARCHITECTURE.md) is required.**
+- **Slide Master Presets**: Structure and layout templates (NEVER embed colors/typography)
+- **Color Theme Presets**: Reusable 12-color palettes (separate library)
+- **Typography Style Presets**: Reusable font systems (separate library)
 
 ### Goals
-- Complete slide masters and layouts system
-- Enhance master editing mode UI
-- Implement comprehensive placeholder system
-- Build theme management UI
-
-### Dependencies
-- Phase 0 complete ✅
+- Implement Slide Master Presets, Color Theme Presets, and Typography Style Presets
+- Build UI for managing these presets independently
+- Implement cascading inheritance for properties
+- Complete placeholder system
 
 ### Tasks
 
 #### Week 3: Master Data & Logic
 
 **Task 1.1: Master Slide Data Model**
-- [ ] Implement `SlideMaster` interface
+- [ ] Implement `SlideMasterPreset` interface (referencing themes/styles)
 - [ ] Implement `LayoutMaster` interface
 - [ ] Implement `SlideMasterManager` class
 - [ ] Master-Layout-Slide inheritance chain
 - **Test:** Create master with 3 layouts, verify inheritance
 - **Undo:** Create/delete/rename master
-- **Risk:** LOW - Data layer only
 
 **Task 1.2: Placeholder System**
 - [ ] Implement `Placeholder` interface (10 types)
@@ -301,9 +184,8 @@ interface UndoableAction {
 - [ ] Placeholder edit/resize in master mode
 - **Test:** Insert all placeholder types, verify behavior
 - **Undo:** Add/remove/move placeholders
-- **Risk:** MEDIUM - Complex interaction
 
-**Task 1.3: Preset System (Color Themes & Typography Styles)** ⚠️ REQUIRES REFACTORING
+**Task 1.3: Preset System (Color Themes & Typography Styles)**
 - [ ] Implement `ColorThemePreset` interface (separate library)
 - [ ] Implement `TypographyStylePreset` interface (separate library)
 - [ ] 12-color semantic palette system
@@ -313,8 +195,6 @@ interface UndoableAction {
 - **Test:** Apply color theme, verify colors propagate via CSS variables
 - **Test:** Apply typography style, verify fonts/sizes update
 - **Undo:** Change color theme, change typography style
-- **Risk:** LOW - Reference resolution
-- **Note:** Phase 1.1 implementation violates this - see ARCHITECTURE-REFACTORING-PLAN.md
 
 #### Week 4: Master Editor UI
 
@@ -324,8 +204,6 @@ interface UndoableAction {
 - [ ] Master thumbnail sidebar (left panel)
 - [ ] Master canvas (different from slide canvas)
 - **Test:** Enter/exit master mode smoothly
-- **Design:** Use existing toolbar button style
-- **Risk:** MEDIUM - Mode switching complexity
 
 **Task 1.5: Layout Picker UI**
 - [ ] Create `<LayoutPicker>` modal component
@@ -333,9 +211,7 @@ interface UndoableAction {
 - [ ] Apply layout to selected slides
 - [ ] Built-in layouts (10 types)
 - **Test:** Change layout, verify content preservation
-- **Design:** Use existing modal component
 - **Undo:** Change layout
-- **Risk:** LOW - UI only
 
 **Task 1.6: Insert Placeholder Tool**
 - [ ] Add "Insert Placeholder" dropdown to master toolbar
@@ -343,33 +219,26 @@ interface UndoableAction {
 - [ ] Placeholder properties panel
 - [ ] Visual bounds/handles
 - **Test:** Insert 5 placeholders, resize, delete
-- **Design:** Matches shape insert tool
 - **Undo:** All placeholder operations
-- **Risk:** MEDIUM - Interaction complexity
 
-#### Week 5: Preset Management UI ⚠️ REQUIRES REFACTORING
+#### Week 5: Preset Management UI
 
 **Task 1.7: Color Theme Picker UI**
-- [ ] Create `<ColorThemePicker>` modal (separate from master picker)
+- [ ] Create `<ColorThemePicker>` modal
 - [ ] Color theme preview cards (show all 12 colors)
 - [ ] Apply at master/layout/slide level
 - [ ] Built-in color themes (10+ themes)
 - **Test:** Switch between color themes rapidly at different levels
-- **Design:** Use existing modal pattern
 - **Undo:** Apply color theme
-- **Risk:** LOW - UI only
-- **Note:** Phase 1.1 ThemePicker violates separation - must be removed
 
 **Task 1.8: Typography Style Picker UI**
-- [ ] Create `<TypographyStylePicker>` modal (separate component)
+- [ ] Create `<TypographyStylePicker>` modal
 - [ ] Typography preview cards (show heading + body samples)
 - [ ] Apply at master/layout/slide level
 - [ ] Built-in typography styles (8+ styles)
 - [ ] Font family selection (Google Fonts integration)
 - **Test:** Switch typography styles, verify font loading
-- **Design:** Use existing modal pattern
 - **Undo:** Apply typography style
-- **Risk:** LOW - UI only
 
 **Task 1.9: Slide Master Preset Picker UI**
 - [ ] Create `<SlideMasterPresetPicker>` modal
@@ -377,18 +246,14 @@ interface UndoableAction {
 - [ ] Built-in master presets (5+ presets)
 - [ ] "Create from Current" option
 - **Test:** Apply master preset, verify structure + color + typography
-- **Design:** Use existing modal pattern
 - **Undo:** Apply master preset
-- **Risk:** MEDIUM - Complex preview rendering
 
 **Task 1.10: Custom Preset Editors**
 - [ ] Custom color theme editor (12 color inputs)
 - [ ] Custom typography editor (font picker + size scale)
 - [ ] Save to preset libraries
 - **Test:** Create custom presets, verify persistence
-- **Design:** Use existing ColorInput component
 - **Undo:** Create/modify presets
-- **Risk:** LOW - Form UI
 
 **Task 1.11: Multiple Slide Master Presets Support**
 - [ ] Add "New Master Preset" button in master view
@@ -397,19 +262,17 @@ interface UndoableAction {
 - [ ] Master preset usage tracking
 - [ ] Each master references color theme + typography style
 - **Test:** Create 3 master presets, assign slides to each, change their color themes independently
-- **Design:** Use existing + button pattern
 - **Undo:** All master preset management operations
-- **Risk:** MEDIUM - Data relationships and reference resolution
 
 ### Deliverables
-- ⚠️ Master editing mode functional (needs preset refactoring)
-- ✅ 10 built-in layouts available
-- ✅ Placeholder system working
-- ⚠️ 10+ color theme presets in separate library (Phase 1.1 needs refactoring)
-- ⚠️ 8+ typography style presets in separate library (not yet implemented)
-- ⚠️ 5+ slide master presets (structure only, reference color/typography)
-- ✅ Multiple masters per presentation
-- ⚠️ Mix-and-match capability (Corporate master + Sunset colors + Serif typography)
+- Master editing mode functional
+- 10 built-in layouts available
+- Placeholder system working
+- 10+ color theme presets in separate library
+- 8+ typography style presets in separate library
+- 5+ slide master presets (structure only, reference color/typography)
+- Multiple masters per presentation
+- Mix-and-match capability (Corporate master + Sunset colors + Serif typography)
 
 ### Exit Criteria
 - Can create master preset with 3 layouts
@@ -419,7 +282,7 @@ interface UndoableAction {
 - Color theme changes propagate via cascading inheritance
 - Typography style changes propagate via cascading inheritance
 - Masters NEVER embed colors or fonts (only references)
-- All Phase 1 tests passing (including preset separation tests)
+- All Phase 1 tests passing
 - Performance: Master change < 200ms
 - Performance: Color theme change < 100ms
 - Performance: Typography style change < 100ms
@@ -434,9 +297,6 @@ interface UndoableAction {
 - Section management
 - Keyboard navigation
 
-### Dependencies
-- Phase 1 complete
-
 ### Tasks
 
 #### Week 6: Slide Operations
@@ -448,7 +308,6 @@ interface UndoableAction {
 - [ ] Delete slide with confirmation
 - **Test:** Create 10 slides, duplicate, delete
 - **Undo:** All CRUD operations
-- **Risk:** LOW - Standard operations
 
 **Task 2.2: Copy/Cut/Paste Slides**
 - [ ] Implement clipboard for slides
@@ -458,7 +317,6 @@ interface UndoableAction {
 - [ ] Cross-presentation paste with master mapping
 - **Test:** Copy 5 slides, paste to new presentation
 - **Undo:** Paste/cut operations
-- **Risk:** MEDIUM - Cross-presentation complexity
 
 **Task 2.3: Slide Reordering**
 - [ ] Drag-and-drop slide reordering in thumbnail panel
@@ -466,9 +324,7 @@ interface UndoableAction {
 - [ ] Multi-select drag
 - [ ] "Move to position" dialog
 - **Test:** Reorder 20 slides smoothly (60fps)
-- **Design:** Use accent color for drop indicator
 - **Undo:** Reorder operation
-- **Risk:** LOW - Standard drag-drop
 
 **Task 2.4: Hide/Show Slides**
 - [ ] Toggle slide visibility (H key)
@@ -476,9 +332,7 @@ interface UndoableAction {
 - [ ] Skip hidden slides in presentation
 - [ ] "Show all hidden slides" command
 - **Test:** Hide 3 slides, verify skip in presentation
-- **Design:** Use consistent icon library
 - **Undo:** Hide/show operation
-- **Risk:** LOW - Toggle state
 
 #### Week 7: Sections & Navigation
 
@@ -489,7 +343,6 @@ interface UndoableAction {
 - [ ] Drag slides between sections
 - **Test:** Create 3 sections with 5 slides each
 - **Undo:** All section operations
-- **Risk:** MEDIUM - Hierarchical data
 
 **Task 2.6: Section Collapse/Expand**
 - [ ] Collapse section (hide slides)
@@ -497,9 +350,6 @@ interface UndoableAction {
 - [ ] Chevron icon indicator
 - [ ] Remember collapsed state
 - **Test:** Collapse 2 sections, navigate, verify state persists
-- **Design:** Use accent color for section headers
-- **Undo:** Not applicable (UI state)
-- **Risk:** LOW - Visual state
 
 **Task 2.7: Keyboard Shortcuts**
 - [ ] Implement 30+ keyboard shortcuts (see 02-slide-navigation.md)
@@ -508,7 +358,6 @@ interface UndoableAction {
 - [ ] Editing: Ctrl+M (new), Ctrl+D (duplicate), Delete
 - [ ] Keyboard shortcut cheat sheet UI
 - **Test:** Verify all shortcuts work consistently
-- **Risk:** LOW - Event handling
 
 **Task 2.8: Slide Sorter View**
 - [ ] Create `<SlideSorterView>` component
@@ -516,16 +365,14 @@ interface UndoableAction {
 - [ ] Zoom levels (50%-200%)
 - [ ] Responsive grid reflow
 - **Test:** Switch to sorter view, reorder slides
-- **Design:** Use existing grid pattern
 - **Performance:** 100 slides render < 2s
-- **Risk:** MEDIUM - Layout complexity
 
 ### Deliverables
-- ✅ Full slide CRUD with undo
-- ✅ Copy/paste working cross-presentation
-- ✅ Section management functional
-- ✅ Keyboard navigation complete
-- ✅ Slide sorter view
+- Full slide CRUD with undo
+- Copy/paste working cross-presentation
+- Section management functional
+- Keyboard navigation complete
+- Slide sorter view
 
 ### Exit Criteria
 - Can create 50 slides in 3 sections
@@ -544,9 +391,6 @@ interface UndoableAction {
 - Reading view
 - Dual-screen support
 
-### Dependencies
-- Phase 2 complete
-
 ### Tasks
 
 #### Week 8: Presenter Notes
@@ -557,7 +401,6 @@ interface UndoableAction {
 - [ ] Auto-save notes (debounced)
 - **Test:** Add notes to 10 slides, verify save
 - **Undo:** Edit notes
-- **Risk:** LOW - Text field
 
 **Task 3.2: Notes Editor UI**
 - [ ] Create `<NotesEditor>` component below canvas
@@ -565,16 +408,13 @@ interface UndoableAction {
 - [ ] Character count
 - [ ] Resizable panel
 - **Test:** Edit notes with formatting, verify HTML output
-- **Design:** Use existing text editor component
 - **Undo:** Text editing
-- **Risk:** LOW - Reuse existing editor
 
 **Task 3.3: Notes Export**
 - [ ] Export notes to PDF (slide + notes)
 - [ ] Export notes to plain text
 - [ ] Export options dialog
 - **Test:** Export 10 slides with notes, verify PDF
-- **Risk:** MEDIUM - PDF generation library
 
 #### Week 9: Presentation Modes
 
@@ -584,9 +424,7 @@ interface UndoableAction {
 - [ ] Auto-hide mouse after 3s
 - [ ] Click navigation (left/right sides)
 - **Test:** Present 20 slides, verify navigation smooth
-- **Design:** Minimal UI, accent color for HUD
 - **Performance:** < 50ms slide switch
-- **Risk:** LOW - Standard API
 
 **Task 3.5: Reading View**
 - [ ] Create `<ReadingView>` component
@@ -594,8 +432,6 @@ interface UndoableAction {
 - [ ] Navigation controls
 - [ ] Exit button
 - **Test:** Navigate in reading view, verify no jank
-- **Design:** Consistent with app chrome
-- **Risk:** LOW - Simple view
 
 **Task 3.6: Presentation Timer**
 - [ ] Implement timer (elapsed, countdown, target, pacer)
@@ -603,9 +439,6 @@ interface UndoableAction {
 - [ ] Alerts at 5min, 1min remaining
 - [ ] Restart/pause controls
 - **Test:** Run timer for 30min, verify accuracy
-- **Design:** Use existing time display patterns
-- **Undo:** Not applicable (runtime state)
-- **Risk:** LOW - Timer logic
 
 #### Week 10: Presenter View & Dual Screen
 
@@ -616,8 +449,6 @@ interface UndoableAction {
 - [ ] Timer and navigation controls
 - [ ] Customizable layout
 - **Test:** Present with presenter view, verify sync
-- **Design:** Consistent panel styling
-- **Risk:** MEDIUM - Complex layout
 
 **Task 3.8: Dual-Screen Support**
 - [ ] Detect multiple displays
@@ -625,8 +456,6 @@ interface UndoableAction {
 - [ ] Open presentation on secondary display
 - [ ] Sync navigation between screens
 - **Test:** Present on dual screen, verify sync
-- **Risk:** HIGH - Browser API limitations
-- **Fallback:** Single-screen presenter overlay
 
 **Task 3.9: Blank Screen & Pointer Control**
 - [ ] Black screen (B key)
@@ -634,14 +463,13 @@ interface UndoableAction {
 - [ ] Show/hide pointer (A key)
 - [ ] Auto-hide pointer after 3s
 - **Test:** Toggle blank screens during presentation
-- **Risk:** LOW - Simple toggles
 
 ### Deliverables
-- ✅ Presenter notes with rich text
-- ✅ Full-screen presentation mode
-- ✅ Presenter view with dual-screen
-- ✅ Reading view
-- ✅ Timer with multiple modes
+- Presenter notes with rich text
+- Full-screen presentation mode
+- Presenter view with dual-screen
+- Reading view
+- Timer with multiple modes
 
 ### Exit Criteria
 - Can present with notes on dual screen
@@ -660,10 +488,6 @@ interface UndoableAction {
 - Version history
 - Real-time co-authoring
 
-### Dependencies
-- Phase 3 complete
-- Backend API for collaboration
-
 ### Tasks
 
 #### Week 11: Comments System
@@ -674,7 +498,6 @@ interface UndoableAction {
 - [ ] Comment storage in presentation file
 - **Test:** Add 20 comments with replies, verify structure
 - **Undo:** Add/delete/edit comment
-- **Risk:** LOW - Data structure
 
 **Task 4.2: Comments Panel UI**
 - [ ] Create `<CommentsPanel>` component
@@ -682,8 +505,6 @@ interface UndoableAction {
 - [ ] Resolved/unresolved states
 - [ ] Reply threading
 - **Test:** Add comments, reply, resolve, filter
-- **Design:** Use existing panel component
-- **Risk:** LOW - UI list
 
 **Task 4.3: Add Comment UI**
 - [ ] Comment button in toolbar
@@ -691,9 +512,7 @@ interface UndoableAction {
 - [ ] Comment indicators on thumbnails
 - [ ] Mention system (@username)
 - **Test:** Add 10 comments to different elements
-- **Design:** Use accent color for comment indicators
 - **Undo:** Add comment
-- **Risk:** LOW - Modal UI
 
 **Task 4.4: Comment Notifications**
 - [ ] In-app notification system
@@ -701,7 +520,6 @@ interface UndoableAction {
 - [ ] Notification for replies
 - [ ] Email notification integration
 - **Test:** Mention user, verify notification
-- **Risk:** MEDIUM - Notification backend
 
 #### Week 12: Review Workflow
 
@@ -711,7 +529,6 @@ interface UndoableAction {
 - [ ] Review request dialog
 - **Test:** Send for review, approve, verify state changes
 - **Undo:** State changes
-- **Risk:** LOW - State enum
 
 **Task 4.6: Review Panel UI**
 - [ ] Create `<ReviewPanel>` component
@@ -719,8 +536,6 @@ interface UndoableAction {
 - [ ] Progress indicator
 - [ ] Complete review button
 - **Test:** Complete review as reviewer
-- **Design:** Use existing form components
-- **Risk:** LOW - Form UI
 
 **Task 4.7: Accept/Reject Changes**
 - [ ] Track changes with before/after
@@ -729,7 +544,6 @@ interface UndoableAction {
 - [ ] Accept/reject all
 - **Test:** Make 10 changes, review as second user
 - **Undo:** Accept/reject operations
-- **Risk:** MEDIUM - Change tracking
 
 #### Week 13: Version History
 
@@ -738,8 +552,6 @@ interface UndoableAction {
 - [ ] Manual save version
 - [ ] Version metadata (author, timestamp, label)
 - **Test:** Make changes, verify auto-save creates versions
-- **Storage:** Incremental deltas for efficiency
-- **Risk:** MEDIUM - Delta compression
 
 **Task 4.9: Version History Panel UI**
 - [ ] Create `<VersionHistoryPanel>` component
@@ -747,9 +559,7 @@ interface UndoableAction {
 - [ ] Restore version
 - [ ] Name/label versions
 - **Test:** Restore version 5, verify state
-- **Design:** Use existing timeline component pattern
 - **Undo:** Restore version creates new version
-- **Risk:** LOW - List UI
 
 **Task 4.10: Version Comparison UI**
 - [ ] Create `<VersionCompare>` view
@@ -757,8 +567,6 @@ interface UndoableAction {
 - [ ] Highlight differences
 - [ ] Navigation between differences
 - **Test:** Compare version 1 vs version 10
-- **Design:** Split-view layout
-- **Risk:** MEDIUM - Diff algorithm
 
 #### Week 14: Real-Time Collaboration
 
@@ -768,895 +576,274 @@ interface UndoableAction {
 - [ ] Cursor position sync
 - [ ] Edit operation sync
 - **Test:** Two users editing simultaneously
-- **Risk:** HIGH - Concurrency
 
 **Task 4.12: Conflict Resolution**
 - [ ] Operational transformation (OT) implementation
 - [ ] Last-write-wins fallback
 - [ ] Conflict notification UI
 - **Test:** Simultaneous edits to same element
-- **Risk:** HIGH - OT complexity
 
 **Task 4.13: Presence Indicators**
 - [ ] User avatars in toolbar
 - [ ] Remote cursors with name labels
 - [ ] User activity indicators (editing, viewing)
 - **Test:** 3 users in same presentation
-- **Design:** Use accent colors for user cursors
-- **Risk:** MEDIUM - Performance with many users
-
-**Task 4.14: Share & Permissions**
-- [ ] Share dialog UI
-- [ ] Permission levels (Owner, Editor, Commenter, Viewer)
-- [ ] Share link generation
-- [ ] Permission checks before operations
-- **Test:** Share with 3 users with different permissions
-- **Security:** Token-based auth, permission validation
-- **Risk:** HIGH - Security critical
 
 ### Deliverables
-- ✅ Full comments system
-- ✅ Review workflow functional
-- ✅ Version history with restore
-- ✅ Real-time co-authoring (basic)
-- ✅ Share and permissions
+- Comments system with threads
+- Review workflow with states
+- Version history with restore
+- Real-time collaboration with cursors
 
 ### Exit Criteria
-- Comments work on slides and elements
-- Review workflow tested with 2 users
-- Version history with 50+ versions loads quickly
-- 3 users can edit simultaneously without data loss
+- Can comment, reply, and resolve
+- Can review and approve changes
+- Can restore previous versions
+- Real-time editing works for 2+ users
 - All Phase 4 tests passing
-- Security audit passed
 
 ---
 
 ## Phase 5: Animations System (4 weeks)
 
 ### Goals
-- Animation effects library (50+ effects)
-- Animation pane UI
-- Text animation (by paragraph, word, letter)
+- Entrance, exit, emphasis animations
 - Motion paths
-
-### Dependencies
-- Phase 2 complete (for element selection)
+- Animation pane
+- Timeline control
 
 ### Tasks
 
-#### Week 15: Animation Data & Engine
+#### Week 15: Animation Engine
 
 **Task 5.1: Animation Data Model**
 - [ ] Create `Animation` interface
-- [ ] 4 categories: Entrance, Exit, Emphasis, Motion Paths
-- [ ] Trigger types: On Click, With Previous, After Previous
-- **Test:** Create animations with all trigger types
-- **Undo:** Add/remove/reorder animations
-- **Risk:** LOW - Data structure
+- [ ] Animation types (fade, fly, zoom, etc.)
+- [ ] Timing properties (duration, delay, easing)
+- [ ] Trigger types (on click, with previous, after previous)
+- **Test:** Add animations to elements, verify data
 
-**Task 5.2: Animation Engine Core**
-- [ ] Implement `AnimationEngine` class
+**Task 5.2: Animation Runner**
 - [ ] Web Animations API integration
-- [ ] Keyframe generation for effects
-- [ ] Timing and sequencing logic
-- **Test:** Play 10 animations in sequence
-- **Performance:** 60fps animation playback
-- **Risk:** MEDIUM - Performance critical
+- [ ] Play/pause/stop control
+- [ ] Sequence management
+- [ ] Performance optimization (will-change)
+- **Test:** Play complex sequence smoothly (60fps)
 
-**Task 5.3: Basic Effects (20 effects)**
-- [ ] Entrance: Fade, Fly In, Zoom, Wipe, Appear (10 effects)
-- [ ] Exit: Fade Out, Fly Out, Disappear (5 effects)
-- [ ] Emphasis: Pulse, Spin, Grow/Shrink (5 effects)
-- **Test:** Apply each effect, verify appearance
-- **Performance:** Hardware acceleration (CSS transforms)
-- **Risk:** LOW - Standard animations
+#### Week 16: Animation UI
 
-#### Week 16: Animation Pane UI
+**Task 5.3: Animation Pane**
+- [ ] Create `<AnimationPane>` component
+- [ ] List of animations on slide
+- [ ] Reorder animations
+- [ ] Play from selected
+- **Test:** Reorder animations, verify playback order
 
-**Task 5.4: Animation Pane Component**
-- [ ] Create `<AnimationPane>` component (right panel)
-- [ ] Animation list with timeline bars
-- [ ] Reorder animations via drag-drop
-- [ ] Play/pause controls
-- **Test:** Add 10 animations, reorder, play
-- **Design:** Matches property inspector style
-- **Risk:** MEDIUM - Complex UI
+**Task 5.4: Animation Toolbar**
+- [ ] Add animation tab to toolbar
+- [ ] Animation gallery (preview on hover)
+- [ ] Effect options (direction, amount)
+- [ ] Timing controls
+- **Test:** Apply animations from toolbar
 
-**Task 5.5: Add Animation Dialog**
-- [ ] Create `<AddAnimation>` modal
-- [ ] Effect picker with categories
-- [ ] Effect preview
-- [ ] Quick add from toolbar
-- **Test:** Add all effect types
-- **Design:** Use existing modal component
-- **Risk:** LOW - Picker UI
+#### Week 17: Advanced Animations
 
-**Task 5.6: Effect Options Dialog**
-- [ ] Create `<EffectOptions>` dialog
-- [ ] Direction picker
-- [ ] Duration slider
-- [ ] After animation options (dim, hide)
-- **Test:** Customize 10 animations
-- **Design:** Use existing form controls
-- **Undo:** Change effect options
-- **Risk:** LOW - Form UI
+**Task 5.5: Motion Paths**
+- [ ] Custom path drawing tool
+- [ ] Predefined paths (line, arc, loop)
+- [ ] Path editing (points, handles)
+- **Test:** Create custom motion path, animate element
 
-**Task 5.7: Timing Options Dialog**
-- [ ] Create `<TimingOptions>` dialog
-- [ ] Start trigger radio buttons
-- [ ] Delay input
-- [ ] Duration presets + custom
-- [ ] Repeat options
-- **Test:** Configure complex timing
-- **Design:** Consistent form styling
-- **Undo:** Change timing
-- **Risk:** LOW - Form UI
+**Task 5.6: Text Animations**
+- [ ] Animate by paragraph/bullet
+- [ ] Animate by word/letter
+- [ ] Reverse order option
+- **Test:** Animate bullet list one by one
 
-#### Week 17: Text & Motion Path Animations
+#### Week 18: Timeline & Polish
 
-**Task 5.8: Text Animation (By Paragraph)**
-- [ ] Implement text splitting by paragraph
-- [ ] Sequential paragraph animation
-- [ ] Stagger delay between paragraphs
-- **Test:** Animate 5-paragraph text
-- **Performance:** Smooth stagger animation
-- **Risk:** MEDIUM - DOM manipulation
+**Task 5.7: Advanced Timeline**
+- [ ] Visual timeline view
+- [ ] Drag to adjust duration/delay
+- [ ] Parallel execution visualization
+- **Test:** Adjust timing via timeline
 
-**Task 5.9: Text Animation (By Word/Letter)**
-- [ ] Implement text splitting by word
-- [ ] Implement text splitting by letter (typewriter)
-- [ ] Configurable stagger timing
-- **Test:** Typewriter effect on 100 letters
-- **Performance:** 60fps with many elements
-- **Risk:** MEDIUM - Performance with many DOM nodes
-
-**Task 5.10: Motion Paths (Basic)**
-- [ ] Implement Line and Arc paths
-- [ ] Path preview while drawing
-- [ ] Path editing (control points)
-- **Test:** Animate object along path
-- **Risk:** MEDIUM - Path math
-
-**Task 5.11: Motion Paths (Custom)**
-- [ ] Freeform path drawing
-- [ ] Bezier curve smoothing
-- [ ] Closed vs open paths
-- **Test:** Draw complex custom path
-- **Risk:** MEDIUM - Path editing UI
-
-#### Week 18: Advanced Animation Features
-
-**Task 5.12: Animation Painter (Copy/Paste)**
-- [ ] Copy animations from one element
-- [ ] Paste animations to multiple elements
-- [ ] Animation painter cursor
-- **Test:** Copy animation to 10 elements
-- **Undo:** Paste animations
-- **Risk:** LOW - Copy operation
-
-**Task 5.13: Animation Timeline View**
-- [ ] Timeline scrubber
-- [ ] Visual bars showing duration
-- [ ] Zoom in/out timeline
-- [ ] Scrub to preview
-- **Test:** Scrub through 20-second animation
-- **Design:** Use accent color for timeline
-- **Risk:** MEDIUM - Timeline UI complexity
-
-**Task 5.14: Advanced Effects (30 more effects)**
-- [ ] Entrance: Bounce, Spiral, Swirl, Boomerang, etc. (15)
-- [ ] Exit: Sink Down, Collapse, Whip Out, etc. (10)
-- [ ] Emphasis: Wave, Shimmer, Blink, etc. (5)
-- **Test:** Visual verification of all effects
-- **Risk:** LOW - More keyframe definitions
-
-**Task 5.15: Performance Optimization**
-- [ ] Animation caching
-- [ ] GPU acceleration validation
-- [ ] Batch simultaneous animations
-- [ ] Memory cleanup after animations
-- **Test:** 50 animations on single slide play smoothly
-- **Performance:** Maintain 60fps
-- **Risk:** MEDIUM - Optimization required
+**Task 5.8: Animation Painter**
+- [ ] Copy animation settings
+- [ ] Paste to other elements
+- **Test:** Copy complex animation to another object
 
 ### Deliverables
-- ✅ 50+ animation effects
-- ✅ Animation pane with timeline
-- ✅ Text animation (paragraph, word, letter)
-- ✅ Motion paths (lines, arcs, custom)
-- ✅ Animation painter
-- ✅ 60fps animation playback
+- Full animation engine
+- Animation pane and toolbar
+- Motion paths
+- Timeline editor
 
 ### Exit Criteria
-- All 50+ effects visually verified
-- Animation pane renders 100 animations smoothly
-- Text animation works with 1000-word document
-- Custom motion path drawing functional
+- Can create complex animation sequences
+- Playback is smooth (60fps)
 - All Phase 5 tests passing
-- Performance: 60fps maintained
 
 ---
 
 ## Phase 6: Advanced Features (3 weeks)
 
 ### Goals
-- Slide thumbnails with caching
-- Slide sizing options
-- Grid and guides
-- Additional polish features
-
-### Dependencies
-- Phase 1 (for masters)
-- Phase 2 (for slides)
+- Media handling (video/audio)
+- Charts and graphs
+- Tables
+- Smart art / diagrams
 
 ### Tasks
 
-#### Week 19: Thumbnail Generation & Caching
+#### Week 19: Media
 
-**Task 6.1: Thumbnail Generator (Web Worker)**
-- [ ] Implement thumbnail generation in Web Worker
-- [ ] Canvas-based rendering
-- [ ] Multiple resolutions (small, medium, large)
-- **Test:** Generate 100 thumbnails < 5s
-- **Performance:** Use worker to avoid blocking UI
-- **Risk:** MEDIUM - Worker communication
+**Task 6.1: Video Support**
+- [ ] Video element type
+- [ ] Playback controls
+- [ ] Trim video
+- [ ] Poster frame selection
+- **Test:** Insert video, trim, play
 
-**Task 6.2: Thumbnail Cache System**
-- [ ] Implement LRU cache for thumbnails
-- [ ] IndexedDB persistence
-- [ ] Lazy loading on scroll
-- **Test:** Load 500 slides, verify lazy loading
-- **Performance:** < 100ms per thumbnail
-- **Risk:** LOW - Caching strategy
+**Task 6.2: Audio Support**
+- [ ] Audio element type
+- [ ] Background audio (play across slides)
+- [ ] Audio recording
+- **Test:** Record audio, play across slides
 
-**Task 6.3: Thumbnail Updates**
-- [ ] Detect slide changes
-- [ ] Invalidate cache on edit
-- [ ] Progressive rendering (low-res → high-res)
-- **Test:** Edit slide, verify thumbnail updates
-- **Risk:** LOW - Change detection
+#### Week 20: Data Visualization
 
-#### Week 20: Slide Sizing & Grid System
+**Task 6.3: Chart Engine**
+- [ ] Integrate charting library (e.g., Chart.js or D3)
+- [ ] Chart data editor (spreadsheet-like)
+- [ ] Chart types (bar, line, pie, scatter)
+- **Test:** Create chart, edit data, verify update
 
-**Task 6.4: Slide Size Options**
-- [ ] Standard (4:3), Widescreen (16:9), Widescreen (16:10)
-- [ ] Custom dimensions dialog
-- [ ] Portrait orientation
-- [ ] Slide size migration (resize all slides)
-- **Test:** Create presentation in 4:3, convert to 16:9
-- **Undo:** Change slide size
-- **Risk:** MEDIUM - Content reflow
+**Task 6.4: Tables**
+- [ ] Table element type
+- [ ] Row/column manipulation
+- [ ] Cell formatting
+- [ ] Table styles
+- **Test:** Create 5x5 table, merge cells, format
 
-**Task 6.5: Grid System**
-- [ ] Configurable grid (spacing, subdivisions)
-- [ ] Grid visibility toggle
-- [ ] Snap to grid option
-- [ ] Grid settings persist
-- **Test:** Enable grid, snap elements
-- **Design:** Use subtle grid lines
-- **Risk:** LOW - Visual overlay
+#### Week 21: Diagrams
 
-**Task 6.6: Ruler & Guides**
-- [ ] Horizontal and vertical rulers
-- [ ] Drag to create guides
-- [ ] Snap to guides
-- [ ] Smart guides (alignment)
-- **Test:** Create 5 guides, align elements
-- **Design:** Match canvas ruler style
-- **Risk:** LOW - Overlay UI
-
-**Task 6.7: Alignment Tools**
-- [ ] Align left, center, right, top, middle, bottom
-- [ ] Distribute horizontally/vertically
-- [ ] Align to slide vs align to selection
-- **Test:** Align 10 elements
-- **Undo:** Alignment operations
-- **Risk:** LOW - Math calculations
-
-#### Week 21: Additional Features
-
-**Task 6.8: Slide Background Options**
-- [ ] Solid fill
-- [ ] Gradient fill (linear, radial)
-- [ ] Picture fill
-- [ ] Texture fill
-- [ ] Format background panel
-- **Test:** Apply each background type
-- **Design:** Use existing color/gradient pickers
-- **Undo:** Change background
-- **Risk:** LOW - Reuse existing fills
-
-**Task 6.9: Header & Footer System**
-- [ ] Header/footer settings dialog
-- [ ] Date/time placeholder (auto-update)
-- [ ] Slide number placeholder
-- [ ] Footer text placeholder
-- [ ] "Don't show on title slide" option
-- **Test:** Enable footer, verify on all slides except title
-- **Undo:** Header/footer changes
-- **Risk:** LOW - Placeholder system
-
-**Task 6.10: Slide Library (Reusable Slides)**
-- [ ] Browse slides from other presentations
-- [ ] Import selected slides
-- [ ] Keep vs update formatting
-- [ ] Recently used presentations
-- **Test:** Import 5 slides from another presentation
-- **Risk:** MEDIUM - Cross-presentation operations
-
-**Task 6.11: Format Painter**
-- [ ] Copy formatting from element
-- [ ] Apply to single element
-- [ ] Apply to multiple elements (lock painter)
-- [ ] Visual painter cursor
-- **Test:** Copy format to 10 elements
-- **Undo:** Apply format
-- **Risk:** LOW - Copy properties
+**Task 6.5: Smart Diagrams**
+- [ ] Flowchart shapes
+- [ ] Connectors (lines that stick)
+- [ ] Auto-layout algorithms
+- **Test:** Create flowchart, move shapes, verify connections
 
 ### Deliverables
-- ✅ Thumbnail generation with caching
-- ✅ Slide size options (4:3, 16:9, 16:10, custom)
-- ✅ Grid and guides system
-- ✅ Alignment tools
-- ✅ Header/footer system
-- ✅ Format painter
+- Video/audio support
+- Charts with data editor
+- Tables with formatting
+- Smart connectors
 
 ### Exit Criteria
-- 100 thumbnails generate in < 5s
-- Slide size change works without breaking content
-- Grid and guides functional
+- Can insert and manipulate all media types
+- Charts render correctly
+- Tables are fully editable
 - All Phase 6 tests passing
-- Performance: Thumbnail cache hit rate > 90%
 
 ---
 
 ## Phase 7: Transitions (Basic) (2 weeks)
 
 ### Goals
-- Basic slide transitions (10 effects)
-- Transition settings UI
-- Transition preview
-- Apply to all slides
-
-### Dependencies
-- Phase 2 complete (for slides)
+- Slide transitions
+- Transition timing
+- Sound effects
 
 ### Tasks
 
-#### Week 22: Basic Transitions
+#### Week 22: Transition Engine
 
 **Task 7.1: Transition Data Model**
-- [ ] Create `SlideTransition` interface
-- [ ] Transition types: None, Fade, Push, Wipe, Cover, Zoom
-- [ ] Duration and easing options
-- [ ] Direction options (left, right, up, down)
-- **Test:** Apply transitions to 10 slides
-- **Undo:** Change transition
-- **Risk:** LOW - Data structure
+- [ ] Add `transition` field to Slide model
+- [ ] Transition types (fade, push, wipe, etc.)
+- [ ] Duration and easing
+- **Test:** Set transitions on slides
 
-**Task 7.2: Transition Engine**
-- [ ] Implement transition playback
-- [ ] CSS-based transitions for performance
-- [ ] Transition between slides in presentation mode
-- **Test:** Play transitions in full-screen mode
-- **Performance:** Smooth 60fps transitions
-- **Risk:** LOW - CSS animations
+**Task 7.2: Transition Renderer**
+- [ ] Implement transition logic (CSS/JS)
+- [ ] Handle incoming/outgoing slides
+- [ ] Performance optimization
+- **Test:** Play transitions smoothly
 
-**Task 7.3: Basic Transition Effects (10)**
-- [ ] None (cut)
-- [ ] Fade
-- [ ] Push (4 directions)
-- [ ] Wipe (4 directions)
-- [ ] Cover/Uncover (4 directions)
-- [ ] Zoom In/Out
-- **Test:** Visual verification of each effect
-- **Risk:** LOW - Standard transitions
+#### Week 23: Transition UI
 
-**Task 7.4: Transition Settings UI**
-- [ ] Create `<TransitionSettings>` panel
-- [ ] Effect dropdown
-- [ ] Duration slider
-- [ ] Direction selector
-- [ ] Preview button
-- **Test:** Configure transitions, preview
-- **Design:** Matches effect options panel
-- **Undo:** Change transition
-- **Risk:** LOW - Settings UI
+**Task 7.3: Transition Gallery**
+- [ ] Transition tab in toolbar
+- [ ] Preview on hover
+- [ ] Apply to all slides button
+- **Test:** Apply transition to all slides
 
-#### Week 23: Transition Features
-
-**Task 7.5: Transition Preview**
-- [ ] Preview in thumbnail
-- [ ] Full-size preview on canvas
-- [ ] Scrub through transition
-- **Test:** Preview 5 different transitions
-- **Risk:** LOW - Playback control
-
-**Task 7.6: Apply to All Slides**
-- [ ] "Apply to all" checkbox
-- [ ] Confirmation dialog
-- [ ] Bulk transition update
-- **Test:** Apply fade to 50 slides
-- **Undo:** Bulk apply
-- **Risk:** LOW - Batch operation
-
-**Task 7.7: Transition Sound Effects (Optional)**
-- [ ] Sound effect library (10 sounds)
-- [ ] Volume control
-- [ ] Sound preview
-- **Test:** Add sound to transition
-- **Risk:** LOW - Audio playback
-
-**Task 7.8: Random Transition (Optional)**
-- [ ] Random transition option
-- [ ] Exclude certain effects from random pool
-- **Test:** Present with random transitions
-- **Risk:** LOW - Random selection
+**Task 7.4: Morph Transition**
+- [ ] Implement "Magic Move" / Morph
+- [ ] Object matching algorithm
+- [ ] Interpolation logic
+- **Test:** Morph between two slides with moved objects
 
 ### Deliverables
-- ✅ 10 basic transition effects
-- ✅ Transition settings panel
-- ✅ Transition preview
-- ✅ Apply to all functionality
-- ✅ Smooth 60fps transitions
+- Basic transitions (Fade, Push, Wipe)
+- Morph transition
+- Transition UI
 
 ### Exit Criteria
-- All 10 transitions work smoothly
-- Transition settings easy to configure
-- Preview functional
+- Transitions play smoothly
+- Morph works for moved/resized objects
 - All Phase 7 tests passing
-- Performance: Transitions run at 60fps
-
-**Note:** Advanced transitions (Morph, 3D effects) deferred to future phases.
 
 ---
 
 ## Phase 8: Polish & Optimization (2 weeks)
 
 ### Goals
-- Performance optimization
-- Accessibility improvements
-- Bug fixes
-- Documentation
-- Launch preparation
-
-### Dependencies
-- All previous phases complete
+- Performance tuning
+- Accessibility
+- Mobile support
+- Final bug fixes
 
 ### Tasks
 
-#### Week 24: Performance & Optimization
+#### Week 24: Optimization
 
-**Task 8.1: Performance Audit**
-- [ ] Run Lighthouse on all views
-- [ ] Identify performance bottlenecks
-- [ ] Optimize slow operations
-- **Target:** All operations meet benchmarks
-- **Risk:** LOW - Measurement
+**Task 8.1: Performance Profiling**
+- [ ] Identify bottlenecks
+- [ ] Optimize rendering loop
+- [ ] Reduce bundle size
+- **Test:** Verify benchmarks met
 
-**Task 8.2: Bundle Size Optimization**
-- [ ] Code splitting by feature
-- [ ] Lazy load heavy features (animations, collaboration)
-- [ ] Tree shaking
-- **Target:** Initial bundle < 200KB gzipped
-- **Risk:** LOW - Build optimization
+**Task 8.2: Accessibility**
+- [ ] Keyboard navigation audit
+- [ ] Screen reader support (ARIA)
+- [ ] High contrast mode check
+- **Test:** Pass accessibility audit
 
-**Task 8.3: Memory Leak Detection**
-- [ ] Profile memory usage
-- [ ] Fix any leaks (event listeners, timers)
-- [ ] Test long-running sessions (1 hour+)
-- **Target:** No memory growth over time
-- **Risk:** MEDIUM - Debugging required
+#### Week 25: Final Polish
 
-**Task 8.4: Rendering Optimization**
-- [ ] Virtual scrolling validation
-- [ ] Canvas caching validation
-- [ ] Minimize reflows/repaints
-- **Target:** 60fps maintained at all times
-- **Risk:** LOW - Verification
+**Task 8.3: Mobile/Tablet Support**
+- [ ] Touch gestures (swipe to change slide)
+- [ ] Responsive UI layout
+- [ ] Mobile editor view
+- **Test:** Edit on tablet
 
-#### Week 25: Accessibility & Polish
-
-**Task 8.5: Accessibility Audit**
-- [ ] WCAG AA compliance check
-- [ ] Keyboard navigation verification
-- [ ] Screen reader testing (NVDA, JAWS)
-- [ ] Focus indicators on all interactive elements
-- **Target:** WCAG AA compliance
-- **Risk:** MEDIUM - Remediation work
-
-**Task 8.6: Keyboard Shortcut Coverage**
-- [ ] Verify all 50+ shortcuts work
-- [ ] Keyboard shortcut cheat sheet
-- [ ] Shortcut conflicts resolution
-- **Test:** Navigate entire app with keyboard only
-- **Risk:** LOW - Testing
-
-**Task 8.7: Error Handling & Empty States**
-- [ ] Add error boundaries
-- [ ] User-friendly error messages
-- [ ] Empty state designs (no slides, no animations, etc.)
-- [ ] Offline mode handling
-- **Test:** Force errors, verify graceful degradation
-- **Risk:** LOW - UI polish
-
-**Task 8.8: Browser Compatibility**
-- [ ] Test on Chrome, Firefox, Safari, Edge
-- [ ] Mobile browser testing (iOS Safari, Android Chrome)
-- [ ] Fallbacks for unsupported features
-- **Target:** Works on latest 2 versions of major browsers
-- **Risk:** MEDIUM - Cross-browser issues
-
-**Task 8.9: Documentation**
-- [ ] User guide for slide features
-- [ ] Developer documentation
-- [ ] API documentation
-- [ ] Keyboard shortcut reference
-- **Risk:** LOW - Writing
-
-**Task 8.10: Final Bug Fixes**
-- [ ] Triage and fix P0/P1 bugs
-- [ ] Regression testing
-- [ ] UAT (user acceptance testing)
-- **Target:** Zero P0 bugs, < 5 P1 bugs
-- **Risk:** MEDIUM - Bug volume
+**Task 8.4: Final QA**
+- [ ] Full regression testing
+- [ ] Bug bashing
+- [ ] User acceptance testing
 
 ### Deliverables
-- ✅ Performance benchmarks met
-- ✅ WCAG AA compliance
-- ✅ Browser compatibility verified
-- ✅ Documentation complete
-- ✅ All P0 bugs fixed
+- Optimized, accessible, mobile-friendly application
+- Zero critical bugs
 
 ### Exit Criteria
-- Lighthouse score > 90
 - All benchmarks met
-- WCAG AA compliant
-- Works on 4 major browsers
-- Zero P0 bugs
-- All tests passing (unit + E2E + integration)
-- Ready for production release
+- Accessibility compliance
+- Mobile support verified
+- Ready for launch
 
 ---
 
-## Testing Strategy
-
-### Unit Tests (Vitest)
-- Data models (Presentation, Slide, Master, Layout, etc.)
-- Business logic (SlideManager, AnimationEngine, etc.)
-- Utility functions
-- **Target:** > 80% code coverage
-
-### Integration Tests (Vitest)
-- Master-Layout-Slide inheritance
-- Animation sequencing
-- Undo/redo operations
-- File serialization
-- **Target:** All critical paths tested
-
-### E2E Tests (Playwright)
-- User workflows (create presentation, add slides, present)
-- Keyboard navigation
-- Collaboration (multi-user scenarios)
-- Cross-browser compatibility
-- **Target:** 30+ E2E test scenarios
-
-### Performance Tests (Lighthouse + Custom)
-- Slide switch time < 50ms
-- Thumbnail render < 100ms
-- 100 slides load < 2s
-- Animation playback 60fps
-- Memory usage stable
-
-### Accessibility Tests
-- axe DevTools automated scan
-- Manual keyboard navigation
-- Screen reader testing (NVDA, JAWS)
-- WCAG AA compliance
-
-### Security Tests
-- Input sanitization
-- XSS prevention
-- Permission checks
-- Audit log verification
-
----
-
-## Risk Mitigation
-
-### High-Risk Areas
-
-**1. Real-Time Collaboration (Phase 4)**
-- **Risk:** Conflict resolution complexity, data loss
-- **Mitigation:**
-  - Start with simple last-write-wins
-  - Add OT incrementally
-  - Extensive multi-user testing
-  - Auto-save every 10 seconds
-  - Version history as safety net
-
-**2. Animation Performance (Phase 5)**
-- **Risk:** Janky animations, dropped frames
-- **Mitigation:**
-  - Use CSS transforms (GPU accelerated)
-  - Limit simultaneous animations
-  - Profiling with Chrome DevTools
-  - Fallback to simpler effects on low-end devices
-
-**3. Browser Compatibility (Phase 8)**
-- **Risk:** Features not working on Safari/Firefox
-- **Mitigation:**
-  - Progressive enhancement
-  - Polyfills for missing APIs
-  - Feature detection with fallbacks
-  - Cross-browser testing throughout
-
-**4. Dual-Screen Support (Phase 3)**
-- **Risk:** Limited browser API support
-- **Mitigation:**
-  - Fallback to single-screen presenter overlay
-  - Clear messaging about requirements
-  - Test on different OS/browser combinations
-
-### Medium-Risk Areas
-
-**1. Thumbnail Generation Performance (Phase 6)**
-- **Risk:** Slow thumbnail rendering
-- **Mitigation:**
-  - Web Workers for off-main-thread rendering
-  - Progressive rendering (low-res first)
-  - Aggressive caching
-  - Virtual scrolling
-
-**2. File Size Growth (All Phases)**
-- **Risk:** Large presentation files
-- **Mitigation:**
-  - Delta compression for versions
-  - Asset deduplication
-  - Lazy loading of media
-  - External asset references
-
-**3. Undo/Redo Complexity (All Phases)**
-- **Risk:** Undo breaking state
-- **Mitigation:**
-  - Comprehensive undo tests
-  - State snapshots for complex operations
-  - Undo limit (50 operations)
-  - Clear undo stack on certain actions
-
----
-
-## Design System Integration Checklist
-
-**Every new component must:**
-- [ ] Use CSS variables from `styles/modules/variables.css`
-- [ ] Support theme switching (test with purple/green accents)
-- [ ] Work in dark and light modes
-- [ ] Use existing components where possible
-- [ ] Match visual language of similar components
-- [ ] No inline styles
-- [ ] No hardcoded colors
-
-**Theme Switch Test:**
-```javascript
-// Before merging, test this sequence:
-1. Switch accent color: Blue → Purple → Green → Orange
-2. Toggle dark/light mode for each
-3. Verify all interactions use new accent color:
-   - Hover states
-   - Active states
-   - Selected states
-   - Focus rings
-4. No hardcoded colors should remain
-```
-
-**Visual Consistency Map:**
-| New Component | Matches Design Of |
-|---------------|-------------------|
-| Slide Panel | Layers Panel |
-| Animation Pane | Property Inspector |
-| Master View Toolbar | Main Toolbar |
-| Layout Picker | Component Picker |
-| Comments Panel | Activity Panel |
-| Version History | File History |
-| Theme Picker | Color Picker |
-| Transition Settings | Effect Options |
-
----
-
-## Performance Benchmarks
-
-**Mandatory Targets:**
-| Operation | Target | Test Method |
-|-----------|--------|-------------|
-| Slide switch | < 50ms | Lighthouse, manual timing |
-| Thumbnail render | < 100ms | Chrome DevTools profiler |
-| Master change | < 200ms | Manual timing with 50 slides |
-| Animation playback | 60fps | requestAnimationFrame counter |
-| 100 slides load | < 2s | Lighthouse, manual timing |
-| Search 1000 slides | < 500ms | Manual timing |
-| Undo operation | < 30ms | Manual timing |
-| Redo operation | < 30ms | Manual timing |
-
-**Performance Testing Script:**
-```javascript
-// Run this before each phase release
-async function performanceBenchmark() {
-  // Test 1: Slide switch time
-  const start = performance.now();
-  await slideManager.switchToSlide(slideId);
-  const switchTime = performance.now() - start;
-  console.assert(switchTime < 50, `Slide switch too slow: ${switchTime}ms`);
-  
-  // Test 2: Thumbnail render
-  const thumbStart = performance.now();
-  await thumbnailGenerator.generateThumbnail(slideId);
-  const thumbTime = performance.now() - thumbStart;
-  console.assert(thumbTime < 100, `Thumbnail render too slow: ${thumbTime}ms`);
-  
-  // Test 3: Load 100 slides
-  const loadStart = performance.now();
-  await presentation.loadSlides(100);
-  const loadTime = performance.now() - loadStart;
-  console.assert(loadTime < 2000, `Load too slow: ${loadTime}ms`);
-  
-  // Test 4: Animation FPS
-  let frameCount = 0;
-  const fpsStart = performance.now();
-  function countFrames() {
-    frameCount++;
-    if (performance.now() - fpsStart < 1000) {
-      requestAnimationFrame(countFrames);
-    } else {
-      console.assert(frameCount >= 55, `FPS too low: ${frameCount}`);
-    }
-  }
-  requestAnimationFrame(countFrames);
-}
-```
-
----
-
-## Security Checklist
-
-**Every feature must:**
-- [ ] Sanitize user input (text, URLs, file names)
-- [ ] Prevent XSS attacks (no `innerHTML` with user content)
-- [ ] Validate permissions before operations
-- [ ] Use HTTPS for all API calls
-- [ ] Implement CSRF protection
-- [ ] Rate limit API requests
-- [ ] Audit log for sensitive operations (delete, share, export)
-- [ ] Encrypt sensitive data at rest
-
-**Security Review Points:**
-- Before Phase 4 (Collaboration): Review permission system
-- Before Phase 7 (Transitions): Review asset loading (XSS risk)
-- Before Phase 8 (Launch): Full security audit
-
----
-
-## Success Criteria
-
-**Phase-by-Phase:**
-- Each phase has exit criteria (see above)
-- All tests passing before moving to next phase
-- Performance benchmarks met
-- Design system compliance verified
-- Undo/redo working for all operations
-
-**Overall Launch Criteria:**
-- All 8 phases complete
-- 500+ unit tests passing
-- 30+ E2E tests passing
-- Lighthouse score > 90
-- WCAG AA compliant
-- Works on 4 major browsers (Chrome, Firefox, Safari, Edge)
-- Zero P0 bugs, < 5 P1 bugs
-- User documentation complete
-- Developer documentation complete
-- Security audit passed
-- Performance benchmarks met
-
----
-
-## Timeline & Resources
-
-**Total Duration:** 25 weeks (6 months)
-
-**Team Composition (Suggested):**
-- 2 Frontend Engineers (full-time)
-- 1 Backend Engineer (50% for collaboration features)
-- 1 Designer (30% for UI reviews)
-- 1 QA Engineer (50% for testing)
-
-**Milestones:**
-- **Month 1:** Phases 0-1 complete (Foundation + Masters)
-- **Month 2:** Phases 2-3 complete (Operations + Presenter View)
-- **Month 3:** Phase 4 complete (Collaboration)
-- **Month 4:** Phase 5 complete (Animations)
-- **Month 5:** Phase 6-7 complete (Advanced Features + Transitions)
-- **Month 6:** Phase 8 complete (Polish + Launch)
-
-**Review Cadence:**
-- Weekly: Progress review, risk assessment
-- End of Phase: Demo, performance review, design review
-- Month 3: Mid-project review (collaboration ready?)
-- Month 6: Launch readiness review
-
----
-
-## Future Phases (Post-Launch)
-
-**Phase 9: Advanced Transitions (1 month)**
-- Morph transition (intelligent object animation)
-- 3D transitions (Cube, Flip, Rotate)
-- Dissolve, Origami, Fracture
-- Transition preview improvements
-
-**Phase 10: Slide Zoom (2 weeks)**
-- Slide zoom, section zoom, summary zoom
-- Interactive navigation
-- Zoom transition effects
-
-**Phase 11: Design Assistant (3 weeks)**
-- AI-powered design suggestions
-- Layout recommendations
-- Color scheme suggestions
-- Image placement optimization
-
-**Phase 12: SmartArt & Diagrams (4 weeks)**
-- SmartArt layouts (process, hierarchy, relationship, etc.)
-- Diagram editor
-- Convert text to SmartArt
-- Custom diagram templates
-
-**Phase 13: Media Management (2 weeks)**
-- Video editing tools (trim, fade, bookmarks)
-- Audio editing (trim, fade in/out)
-- Media compression
-- Media library
-
-**Phase 14: Export & Print (2 weeks)**
-- PowerPoint (.pptx) export
-- PDF export with notes
-- Handout master
-- Notes master
-- Print settings
-
-**Phase 15: Advanced Features (4 weeks)**
-- Equation editor (LaTeX)
-- Action buttons and hyperlinks
-- Rehearse timings with auto-save
-- Compare presentations
-- Package presentation (with fonts/media)
-
----
-
-## Appendix: Principles Compliance Matrix
-
-| Phase | Small Increments | Design System | Performance | Undo/Redo | Security | Collaboration | File Format |
-|-------|------------------|---------------|-------------|-----------|----------|---------------|-------------|
-| 0 | ✅ Data models only | ✅ CSS variables | ✅ Benchmarks set | ✅ Extended | ✅ Input validation | ✅ Data structure | ✅ Serialization |
-| 1 | ✅ Masters per week | ✅ Theme tokens | ✅ < 200ms propagate | ✅ All ops | ✅ Safe HTML | ✅ Master sharing | ✅ Masters serialized |
-| 2 | ✅ CRUD then sections | ✅ Accent colors | ✅ < 50ms switch | ✅ All ops | ✅ Sanitize input | ✅ Section sync | ✅ Sections serialized |
-| 3 | ✅ Notes then modes | ✅ Minimal UI | ✅ < 50ms present | ✅ Notes edits | ✅ Notes sanitized | ✅ Notes sync | ✅ Notes in file |
-| 4 | ✅ Comments then collab | ✅ Panels match | ✅ Optimistic UI | ✅ Comments | ✅ CRITICAL | ✅ CORE FEATURE | ✅ Comments delta |
-| 5 | ✅ 20 effects then 50 | ✅ Timeline accent | ✅ 60fps MANDATORY | ✅ Add/remove | ✅ Safe effects | ✅ Animation sync | ✅ Animations array |
-| 6 | ✅ Thumbnails first | ✅ Grid subtle | ✅ < 100ms thumb | ✅ Size/align | ✅ Asset URLs | ✅ Thumbnails shared | ✅ Settings persist |
-| 7 | ✅ 10 basic only | ✅ Settings panel | ✅ 60fps MANDATORY | ✅ Transition change | ✅ Safe CSS | ✅ Transitions sync | ✅ Transition object |
-| 8 | ✅ Audit then fix | ✅ Consistency check | ✅ Final validation | ✅ Final test | ✅ Final audit | ✅ Final test | ✅ Migration test |
-
----
-
-**Next Steps:**
-1. Review and approve this plan
-2. Setup project board with all tasks
-3. Assign Phase 0 tasks to team
-4. Begin implementation Week 1
-
----
-
-**Document Status:** READY FOR REVIEW  
-**Approval Required:** Product Manager, Engineering Lead, Design Lead  
-**Tracking:** This document will be the source of truth for implementation progress
+**End of Implementation Plan**
