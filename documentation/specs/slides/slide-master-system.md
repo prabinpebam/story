@@ -1031,8 +1031,8 @@ If a slide references a non-existent layout:
 ### Phase 4: Integration (Week 4)
 - [ ] Add layout selector to slide properties
 - [ ] Implement background inheritance via Fill System
-- [ ] Integrate Color Theme Manager panel (see [color-theme-manager.md](../design-system/color-theme-manager.md))
-- [ ] Integrate Typography Style Manager panel (see [typography-style-manager.md](../design-system/typography-style-manager.md))
+- [ ] Integrate Color Theme Manager panel (see [color-theme-manager.md](../slide-themes-styles/color-theme-manager.md))
+- [ ] Integrate Typography Style Manager panel (see [typography-style-manager.md](../slide-themes-styles/typography-style-manager.md))
 - [ ] Add keyboard shortcuts
 
 ### Phase 5: Polish (Week 5)
@@ -1045,9 +1045,9 @@ If a slide references a non-existent layout:
 
 ## 12. Related Documents
 
-- [Color Theme Manager](../design-system/color-theme-manager.md) - Draggable panel for managing color themes
-- [Typography Style Manager](../design-system/typography-style-manager.md) - Draggable panel for managing text styles
+- [Color Theme Manager](../slide-themes-styles/color-theme-manager.md) - Draggable panel for managing color themes
+- [Typography Style Manager](../slide-themes-styles/typography-style-manager.md) - Draggable panel for managing text styles
 - [Property Inspector: Slide](../property-inspector/property-inspector-slide.md) - Slide-level property inspector
 - [Property Inspector: Typography](../property-inspector/property-inspector-typography.md) - Text element typography controls
-- [UI Design System](../design-system/ui-design-system.md) - Core design tokens and components
+- [UI Design System](../app-ui-design-system/ui-design-system.md) - Core design tokens and components
 - [Color Picker UI](../fills/color-picker-ui.md) - Unified color picker component

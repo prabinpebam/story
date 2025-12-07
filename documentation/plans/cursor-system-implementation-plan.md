@@ -434,4 +434,4 @@ describe('CursorManager', () => {
 
 - [Cursor Behavior Specification](../specs/canvas/cursor-behavior.md)
 - [Canvas Interaction Spec](../specs/canvas/canvas-interaction.md)
-- [UI Design System](../specs/design-system/ui-design-system.md)
+- [UI Design System](../specs/app-ui-design-system/ui-design-system.md)

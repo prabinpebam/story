@@ -120,4 +120,4 @@ story.styles.effects
 ## 5. Related Documents
 - [Property Memory System](../core/property-memory-system.md) - Memory persistence rules
 - [Property Inspector Overview](./property-inspector-overview.md)
-- [Design System UX Guide](../design-system/design-system-ux-guide.md)
+- [Presentation Design UX Guide](../slide-themes-styles/presentation-design-ux-guide.md)

@@ -48,7 +48,7 @@ This document lists all frontend features derived from the `documentation/specs/
 - **Export:** PDF, PNG, JSON export.
 - **Settings:** Document settings, User preferences.
 
-## 8. Design System (`specs/design-system/`)
+## 8. App UI Design System (`specs/app-ui-design-system/`)
 - **Themes:** Light/Dark mode switching.
 - **Colors:** Theme color application.
 - **UI Components:** Modals, Dropdowns, Inputs, Sliders, Color Pickers.

@@ -58,7 +58,8 @@ documentation/
 │   ├── canvas/                   # Canvas interaction & layers
 │   ├── collaboration/            # Real-time collaboration & auth
 │   ├── core/                     # Core behaviors (input, undo, text)
-│   ├── design-system/            # UI design system & theming
+│   ├── app-ui-design-system/     # App UI design system & theming
+│   ├── slide-themes-styles/      # Presentation themes & styles
 │   ├── fills/                    # Fill system (color, gradient, code)
 │   ├── identity/                 # Identity & user preferences
 │   ├── presentation/             # Presentation mode & animations

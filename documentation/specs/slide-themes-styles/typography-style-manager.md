@@ -5,7 +5,7 @@ The **Typography Style Manager** is a draggable, resizable flyout panel that all
 
 **Panel Type:** Draggable, Resizable Flyout Panel
 
-> **📖 User Experience Guide**: For a comprehensive understanding of how users should think about and use the Typography Style system, see the [Design System UX Guide](./design-system-ux-guide.md).
+> **📖 User Experience Guide**: For a comprehensive understanding of how users should think about and use the Typography Style system, see the [Presentation Design UX Guide](./presentation-design-ux-guide.md).
 
 ---
 
@@ -681,9 +681,9 @@ Text color uses the fill memory system with context key `fill.text`. This is sep
 ---
 
 ## 14. Related Documents
-- [Design System UX Guide](./design-system-ux-guide.md) - Mental model and user experience
+- [Presentation Design UX Guide](./presentation-design-ux-guide.md) - Mental model and user experience
 - [Property Memory System](../core/property-memory-system.md) - Memory persistence rules
 - [Property Inspector: Typography](../property-inspector/property-inspector-typography.md)
 - [Slide Master System](../slides/slide-master-system.md)
-- [UI Design System](./ui-design-system.md)
+- [App UI Design System](../app-ui-design-system/ui-design-system.md)
 - [Color Theme Manager](./color-theme-manager.md)

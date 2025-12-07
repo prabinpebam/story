@@ -1099,10 +1099,10 @@ function getLinkSource(element, propertyPath) {
 
 - [Color Theme Manager Specification](./color-theme-manager.md)
 - [Typography Style Manager Specification](./typography-style-manager.md)
-- [Design System UX Guide](./design-system-ux-guide.md)
+- [Presentation Design UX Guide](./presentation-design-ux-guide.md)
 - [Property Inspector: Fill](../property-inspector/property-inspector-fill.md)
 - [Property Inspector: Typography](../property-inspector/property-inspector-typography.md)
-- [UI Design System](./ui-design-system.md)
+- [App UI Design System](../app-ui-design-system/ui-design-system.md)
 - [Master Slide System](../slides/slide-master-system.md)
 
 ---

@@ -580,5 +580,5 @@ When user switches from one element to another:
 - [Gradient Fill Specification](../fills/gradient-fill.md)
 - [Code Fill Panel Specification](../fills/code-fill-panel.md)
 - [Media Fill System](../fills/media-fill-system.md)
-- [Typography Style Manager](../design-system/typography-style-manager.md)
+- [Typography Style Manager](../slide-themes-styles/typography-style-manager.md)
 - [Data Model Properties](../storage/data-model-properties.md)
