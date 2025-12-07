@@ -257,7 +257,7 @@ export const StyleResolver = {
             return { lumaTheme: null, source: 'master', sourceId: null, sourceLabel: 'Not available', isInherited: true };
         }
         const state = store.getState();
-        const master = state.masters?.[masterId];
+        const master = state.slideMasterPresets?.[masterId];
         
         if (!master) {
             return { lumaTheme: null, source: 'master', sourceId: null, sourceLabel: 'Master not found', isInherited: true };
@@ -291,7 +291,7 @@ export const StyleResolver = {
                 };
             } else {
                 // Layout inherits from parent theme master
-                const parentMaster = master.parentId ? state.masters?.[master.parentId] : null;
+                const parentMaster = master.parentMasterId ? state.slideMasterPresets?.[master.parentMasterId] : null;
                 const lumaTheme = parentMaster?.themeSettings?.lumaTheme || null;
                 return {
                     lumaTheme,

@@ -75,7 +75,7 @@ vi.mock('../../../src/core/Store.js', () => ({
                     elementOrder: []
                 }
             },
-            masters: {},
+            slideMasterPresets: {},
             ui: { isInteracting: false }
         })),
         dispatch: vi.fn(),
@@ -137,7 +137,7 @@ describe('PropertyInspector', () => {
                     elementOrder: []
                 }
             },
-            masters: {},
+            slideMasterPresets: {},
             ui: { isInteracting: false }
         });
 
@@ -206,7 +206,7 @@ describe('PropertyInspector', () => {
                     selectedElementIds: []
                 },
                 slides: { 'slide-1': { id: 'slide-1', elements: {} } },
-                masters: {},
+                slideMasterPresets: {},
                 ui: { isInteracting: false }
             });
 
@@ -231,7 +231,7 @@ describe('PropertyInspector', () => {
                         }
                     }
                 },
-                masters: {},
+                slideMasterPresets: {},
                 ui: { isInteracting: false }
             });
 
@@ -271,7 +271,7 @@ describe('PropertyInspector', () => {
                     selectedElementIds: []
                 },
                 slides: { 'slide-1': { id: 'slide-1' } },
-                masters: {}
+                slideMasterPresets: {}
             };
 
             propertyInspector.updateHeaderTitle(state, []);
@@ -316,7 +316,7 @@ describe('PropertyInspector', () => {
                         }
                     }
                 },
-                masters: {}
+                slideMasterPresets: {}
             };
 
             propertyInspector.updateHeaderTitle(state, ['el-1', 'el-2', 'el-3']);
@@ -341,7 +341,7 @@ describe('PropertyInspector', () => {
                         }
                     }
                 },
-                masters: {}
+                slideMasterPresets: {}
             };
 
             const element = propertyInspector.getElement(state, 'el-1');
@@ -357,7 +357,7 @@ describe('PropertyInspector', () => {
                     activeMasterId: 'master-1'
                 },
                 slides: {},
-                masters: {
+                slideMasterPresets: {
                     'master-1': {
                         id: 'master-1',
                         elements: {
@@ -385,7 +385,7 @@ describe('PropertyInspector', () => {
                         elements: {}
                     }
                 },
-                masters: {}
+                slideMasterPresets: {}
             };
 
             const element = propertyInspector.getElement(state, 'non-existent');

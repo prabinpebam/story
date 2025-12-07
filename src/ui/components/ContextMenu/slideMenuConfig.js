@@ -271,15 +271,15 @@ export const masterThumbnailConfig = {
  * Helper: Get available layouts for the slide's theme
  */
 function getAvailableLayouts(state) {
-    const masters = state.masters || {};
+    const masters = state.slideMasterPresets || {};
     const layouts = [];
     
     // Get all layouts
     Object.values(masters).forEach(master => {
-        if (master.type === 'layout' || master.type === 'theme') {
+        if (master.type === 'layoutMaster' || master.type === 'slideMasterPreset') {
             layouts.push({
                 id: master.id,
-                name: master.name || (master.type === 'theme' ? 'Master' : 'Layout'),
+                name: master.name || (master.type === 'slideMasterPreset' ? 'Master' : 'Layout'),
                 type: master.type
             });
         }
@@ -300,11 +300,11 @@ function isMasterInUse(state, masterId) {
  * Helper: Check if this is the only theme master
  */
 function isOnlyTheme(state, masterId) {
-    const masters = state.masters || {};
+    const masters = state.slideMasterPresets || {};
     const master = masters[masterId];
-    if (!master || master.type !== 'theme') return false;
+    if (!master || master.type !== 'slideMasterPreset') return false;
     
-    const themeCount = Object.values(masters).filter(m => m.type === 'theme').length;
+    const themeCount = Object.values(masters).filter(m => m.type === 'slideMasterPreset').length;
     return themeCount <= 1;
 }
 

@@ -17,7 +17,7 @@ vi.mock('../../../src/core/Store.js', () => ({
                     elementOrder: []
                 }
             },
-            masters: {}
+            slideMasterPresets: {}
         })),
         dispatch: vi.fn(),
         on: vi.fn(),
@@ -56,7 +56,7 @@ describe('LayerTree', () => {
                     elementOrder: []
                 }
             },
-            masters: {}
+            slideMasterPresets: {}
         });
 
         layerTree = new LayerTree('layer-tree');
@@ -118,7 +118,7 @@ describe('LayerTree', () => {
                         elementOrder: ['el-1', 'el-2'] // el-1 is back, el-2 is front
                     }
                 },
-                masters: {}
+                slideMasterPresets: {}
             });
 
             layerTree.render();
@@ -140,7 +140,7 @@ describe('LayerTree', () => {
                     selectedElementIds: []
                 },
                 slides: {},
-                masters: {
+                slideMasterPresets: {
                     'master-1': {
                         id: 'master-1',
                         elements: {
@@ -177,7 +177,7 @@ describe('LayerTree', () => {
                         elementOrder: ['rect-1']
                     }
                 },
-                masters: {}
+                slideMasterPresets: {}
             });
 
             layerTree.render();
@@ -204,7 +204,7 @@ describe('LayerTree', () => {
                         elementOrder: ['rect-1']
                     }
                 },
-                masters: {}
+                slideMasterPresets: {}
             });
 
             layerTree.render();
@@ -230,7 +230,7 @@ describe('LayerTree', () => {
                         elementOrder: ['text-1']
                     }
                 },
-                masters: {}
+                slideMasterPresets: {}
             });
 
             layerTree.render();
@@ -256,7 +256,7 @@ describe('LayerTree', () => {
                         elementOrder: ['img-1']
                     }
                 },
-                masters: {}
+                slideMasterPresets: {}
             });
 
             layerTree.render();
@@ -282,7 +282,7 @@ describe('LayerTree', () => {
                         elementOrder: ['group-1']
                     }
                 },
-                masters: {}
+                slideMasterPresets: {}
             });
 
             layerTree.render();
@@ -308,7 +308,7 @@ describe('LayerTree', () => {
                         elementOrder: ['rect-1']
                     }
                 },
-                masters: {}
+                slideMasterPresets: {}
             });
 
             layerTree.render();
@@ -338,7 +338,7 @@ describe('LayerTree', () => {
                         elementOrder: ['rect-1']
                     }
                 },
-                masters: {}
+                slideMasterPresets: {}
             });
 
             layerTree.render();
@@ -368,7 +368,7 @@ describe('LayerTree', () => {
                         elementOrder: ['rect-1', 'rect-2']
                     }
                 },
-                masters: {}
+                slideMasterPresets: {}
             });
 
             layerTree.render();
@@ -399,7 +399,7 @@ describe('LayerTree', () => {
                         elementOrder: ['rect-1', 'rect-2']
                     }
                 },
-                masters: {}
+                slideMasterPresets: {}
             });
 
             layerTree.render();
@@ -431,7 +431,7 @@ describe('LayerTree', () => {
                         elementOrder: ['rect-1']
                     }
                 },
-                masters: {}
+                slideMasterPresets: {}
             });
 
             layerTree.render();
@@ -460,7 +460,7 @@ describe('LayerTree', () => {
                         elementOrder: ['rect-1']
                     }
                 },
-                masters: {}
+                slideMasterPresets: {}
             });
 
             layerTree.render();
@@ -489,7 +489,7 @@ describe('LayerTree', () => {
                         elementOrder: ['rect-1']
                     }
                 },
-                masters: {}
+                slideMasterPresets: {}
             });
 
             layerTree.render();
@@ -516,7 +516,7 @@ describe('LayerTree', () => {
                         elementOrder: ['rect-1']
                     }
                 },
-                masters: {}
+                slideMasterPresets: {}
             });
 
             layerTree.render();
@@ -544,7 +544,7 @@ describe('LayerTree', () => {
                         elementOrder: ['rect-1']
                     }
                 },
-                masters: {}
+                slideMasterPresets: {}
             });
 
             layerTree.render();
@@ -576,7 +576,7 @@ describe('LayerTree', () => {
                         elementOrder: ['rect-1']
                     }
                 },
-                masters: {}
+                slideMasterPresets: {}
             });
 
             layerTree.render();
@@ -609,7 +609,7 @@ describe('LayerTree', () => {
                         elementOrder: ['rect-1', 'rect-2']
                     }
                 },
-                masters: {}
+                slideMasterPresets: {}
             });
 
             layerTree.render();
@@ -654,7 +654,7 @@ describe('LayerTree', () => {
                     selectedElementIds: []
                 },
                 slides: {},
-                masters: {
+                slideMasterPresets: {
                     'master-1': {
                         id: 'master-1',
                         elements: {
@@ -680,7 +680,7 @@ describe('LayerTree', () => {
                     selectedElementIds: []
                 },
                 slides: {},
-                masters: {
+                slideMasterPresets: {
                     'master-1': {
                         id: 'master-1',
                         elements: {
@@ -716,7 +716,7 @@ describe('LayerTree', () => {
                         elementOrder: ['rect-1']
                     }
                 },
-                masters: {}
+                slideMasterPresets: {}
             });
 
             layerTree.render();

@@ -46,7 +46,7 @@ export class LayerTree {
         let effectiveSlide = null;
         
         if (state.editor.mode === 'master') {
-            currentContainer = state.masters[state.editor.activeMasterId];
+            currentContainer = state.slideMasterPresets[state.editor.activeMasterId];
         } else {
             currentContainer = state.slides[state.editor.activeSlideId];
             // Get effective slide with inherited elements
@@ -567,7 +567,7 @@ export class LayerTree {
         let element;
         
         if (state.editor.mode === 'master') {
-            element = state.masters[state.editor.activeMasterId]?.elements?.[elementId];
+            element = state.slideMasterPresets[state.editor.activeMasterId]?.elements?.[elementId];
         } else {
             const effectiveSlide = store.getEffectiveSlide(state.editor.activeSlideId);
             element = effectiveSlide?.effectiveElements?.[elementId];
@@ -599,7 +599,7 @@ export class LayerTree {
         if (!slide) return;
         
         // Get the original from layout
-        const layout = state.masters[slide.layoutId];
+        const layout = state.slideMasterPresets[slide.layoutId];
         const masterElement = layout?.elements?.[elementId];
         
         // Dispatch reset action

@@ -116,7 +116,7 @@ export class PropertyInspector {
     getElement(state, id) {
         const mode = state.editor.mode;
         if (mode === 'master') {
-            const master = state.masters[state.editor.activeMasterId];
+            const master = state.slideMasterPresets[state.editor.activeMasterId];
             return master?.elements[id];
         } else {
             const slide = state.slides[state.editor.activeSlideId];

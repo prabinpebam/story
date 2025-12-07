@@ -98,7 +98,7 @@ describe('AppearanceSection', () => {
                     }
                 }
             },
-            masters: {}
+            slideMasterPresets: {}
         });
 
         appearanceSection = new AppearanceSection();
@@ -264,7 +264,7 @@ describe('AppearanceSection', () => {
             store.getState.mockReturnValue({
                 editor: { mode: 'master', activeMasterId: 'master-1' },
                 slides: {},
-                masters: {
+                slideMasterPresets: {
                     'master-1': {
                         elements: {
                             'el-m1': { id: 'el-m1', opacity: 0.5 }

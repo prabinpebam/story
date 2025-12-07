@@ -1186,7 +1186,7 @@ export class CodeFillPanel extends DraggablePanel {
         // Get container (slide or master)
         let container;
         if (state.editor.mode === 'master') {
-            container = state.masters[state.editor.activeMasterId];
+            container = state.slideMasterPresets[state.editor.activeMasterId];
         } else {
             container = state.slides[state.editor.activeSlideId];
         }

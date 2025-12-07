@@ -55,7 +55,7 @@ export class SlideList {
         list.style.gap = '12px';
 
         // Iterate Masters
-        const allMasters = state.masters;
+        const allMasters = state.slideMasterPresets;
         const themes = Object.values(allMasters).filter(m => m.type === 'theme');
 
         themes.forEach(theme => {
@@ -139,9 +139,10 @@ export class SlideList {
         // If layout, inherit background from parent theme
         if (!isMasterRoot && (!masterData.effectiveBackground || masterData.effectiveBackground.type === 'inherited')) {
             const parentId = slideOrMaster.parentId;
-            if (parentId && state.masters[parentId]) {
-                masterData.effectiveBackground = state.masters[parentId].background;
-                masterData.themeSettings = state.masters[parentId].themeSettings;
+            if (parentId && state.slideMasterPresets[parentId]) {
+                masterData.effectiveBackground = state.slideMasterPresets[parentId].background;
+                // Note: themeSettings no longer exists, use colorThemeId instead
+                masterData.colorThemeId = state.slideMasterPresets[parentId].colorThemeId;
             }
         }
         

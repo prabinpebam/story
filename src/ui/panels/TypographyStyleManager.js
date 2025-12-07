@@ -261,7 +261,7 @@ export class TypographyStyleManager extends DraggablePanel {
         if (this.originalFonts) {
             const masterId = store.getState().editor.activeMasterId;
             const state = store.getState();
-            const master = state.masters[masterId];
+            const master = state.slideMasterPresets[masterId];
             
             if (master && master.themeSettings) {
                 // Restore original fonts
@@ -276,7 +276,7 @@ export class TypographyStyleManager extends DraggablePanel {
     saveOriginalFonts() {
         const state = store.getState();
         const masterId = state.editor.activeMasterId;
-        const master = state.masters[masterId];
+        const master = state.slideMasterPresets[masterId];
         
         if (master?.themeSettings?.fonts) {
             this.originalFonts = { ...master.themeSettings.fonts };
@@ -520,7 +520,7 @@ export class TypographyStyleManager extends DraggablePanel {
     refreshCustomTab() {
         const state = store.getState();
         const masterId = state.editor.activeMasterId;
-        const master = state.masters[masterId];
+        const master = state.slideMasterPresets[masterId];
         
         if (!master?.themeSettings) return;
         

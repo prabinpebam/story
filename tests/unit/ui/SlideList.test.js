@@ -17,7 +17,7 @@ const mockState = {
         }
     },
     slideOrder: ['slide-1'],
-    masters: {},
+    slideMasterPresets: {},
     masterOrder: []
 };
 
@@ -70,7 +70,7 @@ describe('SlideList', () => {
                 }
             },
             slideOrder: ['slide-1'],
-            masters: {},
+            slideMasterPresets: {},
             masterOrder: []
         });
 
@@ -128,7 +128,7 @@ describe('SlideList', () => {
                     }
                 },
                 slideOrder: ['slide-1', 'slide-2'],
-                masters: {},
+                slideMasterPresets: {},
                 masterOrder: []
             });
 
@@ -148,7 +148,7 @@ describe('SlideList', () => {
                 },
                 slides: {},
                 slideOrder: [],
-                masters: {
+                slideMasterPresets: {
                     'master-1': {
                         id: 'master-1',
                         type: 'theme',
@@ -208,7 +208,7 @@ describe('SlideList', () => {
                     'slide-2': { id: 'slide-2', elements: {}, elementOrder: [], background: { type: 'solid', value: '#fff' } }
                 },
                 slideOrder: ['slide-1', 'slide-2'],
-                masters: {},
+                slideMasterPresets: {},
                 masterOrder: []
             });
 
@@ -231,7 +231,7 @@ describe('SlideList', () => {
                     'slide-1': { id: 'slide-1', elements: {}, elementOrder: [], background: { type: 'solid', value: '#fff' } }
                 },
                 slideOrder: ['slide-1'],
-                masters: {},
+                slideMasterPresets: {},
                 masterOrder: []
             });
 
@@ -272,7 +272,7 @@ describe('SlideList', () => {
                     }
                 },
                 slideOrder: ['slide-1'],
-                masters: {},
+                slideMasterPresets: {},
                 masterOrder: []
             });
 
@@ -311,7 +311,7 @@ describe('SlideList', () => {
                     }
                 },
                 slideOrder: ['slide-1'],
-                masters: {},
+                slideMasterPresets: {},
                 masterOrder: []
             });
 
@@ -362,7 +362,7 @@ describe('SlideList', () => {
                     'slide-2': { id: 'slide-2', elements: {}, elementOrder: [], background: { type: 'solid', value: '#fff' } }
                 },
                 slideOrder: ['slide-1', 'slide-2'],
-                masters: {},
+                slideMasterPresets: {},
                 masterOrder: []
             });
 
@@ -398,7 +398,7 @@ describe('SlideList', () => {
                 },
                 slides: {},
                 slideOrder: [],
-                masters: {
+                slideMasterPresets: {
                     'master-1': {
                         id: 'master-1',
                         type: 'theme',

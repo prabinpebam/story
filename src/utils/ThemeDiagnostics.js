@@ -141,10 +141,11 @@ export const ThemeDiag = {
             colorMode: null
         };
         
-        // Find and capture theme master
-        const themeMaster = Object.values(state.masters || {}).find(m => m.type === 'theme');
+        // Find and capture slide master preset
+        const themeMaster = Object.values(state.slideMasterPresets || {}).find(m => m.type === 'slideMasterPreset');
         if (themeMaster) {
-            const lumaTheme = themeMaster.themeSettings?.lumaTheme;
+            const colorThemeId = themeMaster.colorThemeId;
+            const lumaTheme = colorThemeId ? state.colorThemePresets?.[colorThemeId] : null;
             snapshot.themeMaster = {
                 id: themeMaster.id,
                 lumaTheme: lumaTheme ? {
@@ -159,7 +160,7 @@ export const ThemeDiag = {
         }
         
         // Capture all layout masters
-        Object.values(state.masters || {}).forEach(master => {
+        Object.values(state.slideMasterPresets || {}).forEach(master => {
             if (master.type === 'layout') {
                 snapshot.layoutMasters[master.id] = {
                     id: master.id,
@@ -179,7 +180,7 @@ export const ThemeDiag = {
             const slide = state.slides?.[slideId];
             if (!slide) return;
             
-            const layout = slide.layoutId ? state.masters?.[slide.layoutId] : null;
+            const layout = slide.layoutId ? state.slideMasterPresets?.[slide.layoutId] : null;
             
             snapshot.slides[slideId] = {
                 id: slideId,
@@ -597,21 +598,23 @@ export const ThemeDiag = {
         }
         
         // Check layout override
-        const layout = slide.layoutId ? state.masters?.[slide.layoutId] : null;
-        if (layout?.styleAssignments?.colorTheme) {
+        const layout = slide.layoutId ? state.slideMasterPresets?.[slide.layoutId] : null;
+        if (layout?.colorThemeId) {
+            const colorTheme = state.colorThemePresets?.[layout.colorThemeId];
             return { 
-                id: layout.styleAssignments.colorTheme, 
+                id: layout.colorThemeId, 
                 source: 'layout',
-                name: this._getThemeName(layout.styleAssignments.colorTheme)
+                name: colorTheme?.name || layout.colorThemeId
             };
         }
         
-        // Fall back to theme master
-        const themeMaster = Object.values(state.masters || {}).find(m => m.type === 'theme');
-        if (themeMaster?.themeSettings?.lumaTheme) {
+        // Fall back to slide master preset
+        const themeMaster = Object.values(state.slideMasterPresets || {}).find(m => m.type === 'slideMasterPreset');
+        if (themeMaster?.colorThemeId) {
+            const colorTheme = state.colorThemePresets?.[themeMaster.colorThemeId];
             return {
-                id: themeMaster.themeSettings.lumaTheme.id,
-                name: themeMaster.themeSettings.lumaTheme.name,
+                id: themeMaster.colorThemeId,
+                name: colorTheme?.name || themeMaster.colorThemeId,
                 source: 'master',
                 resolvedColors: themeMaster.themeSettings.lumaTheme.resolvedColors
             };
@@ -916,8 +919,8 @@ export const ThemeDiag = {
         if (!isDebugEnabled()) return;
         
         const slide = state.slides?.[slideId];
-        const layout = slide?.layoutId ? state.masters?.[slide.layoutId] : null;
-        const themeMaster = Object.values(state.masters || {}).find(m => m.type === 'theme');
+        const layout = slide?.layoutId ? state.slideMasterPresets?.[slide.layoutId] : null;
+        const themeMaster = Object.values(state.slideMasterPresets || {}).find(m => m.type === 'slideMasterPreset');
         
         const hierarchy = {
             slideId,

@@ -117,7 +117,7 @@ describe('EffectsSection', () => {
                     }
                 }
             },
-            masters: {}
+            slideMasterPresets: {}
         });
 
         effectsSection = new EffectsSection();
@@ -199,7 +199,7 @@ describe('EffectsSection', () => {
             store.getState.mockReturnValue({
                 editor: { mode: 'master', activeMasterId: 'master-1' },
                 slides: {},
-                masters: {
+                slideMasterPresets: {
                     'master-1': {
                         elements: {
                             'el-m1': { id: 'el-m1', style: {} }
