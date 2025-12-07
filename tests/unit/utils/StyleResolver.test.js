@@ -6,16 +6,14 @@ import { COLOR_MODES } from '../../../src/ui/panels/color-theme/ColorThemeUtils.
 describe('StyleResolver', () => {
     // Mock state for testing
     const createMockState = (overrides = {}) => ({
-        masters: {
+        slideMasterPresets: {
             'master-default': {
                 id: 'master-default',
-                type: 'theme',
+                type: 'slideMasterPreset',
                 name: 'Default Theme',
-                styleAssignments: {
-                    colorTheme: null,
-                    colorMode: 'dark',
-                    typographyStyle: null
-                },
+                colorThemeId: null,
+                colorModeId: 'dark',
+                typographyStyleId: null,
                 themeSettings: {
                     lumaTheme: {
                         colorMode: 'dark',
@@ -38,54 +36,45 @@ describe('StyleResolver', () => {
             },
             'layout-title': {
                 id: 'layout-title',
-                type: 'layout',
-                parentId: 'master-default',
+                type: 'layoutMaster',
+                parentMasterId: 'master-default',
                 name: 'Title Slide',
-                styleAssignments: {
-                    colorTheme: null,
-                    typographyStyle: null
-                }
+                colorThemeId: null,
+                typographyStyleId: null
             },
             'layout-custom': {
                 id: 'layout-custom',
-                type: 'layout',
-                parentId: 'master-default',
+                type: 'layoutMaster',
+                parentMasterId: 'master-default',
                 name: 'Custom Layout',
-                styleAssignments: {
-                    colorTheme: 'forest-theme',
-                    typographyStyle: null
-                }
+                colorThemeId: 'forest-theme',
+                typographyStyleId: null
             }
         },
         slides: {
             'slide-1': {
                 id: 'slide-1',
                 layoutId: 'layout-title',
-                styleAssignments: {
-                    colorTheme: null,
-                    typographyStyle: null
-                }
+                colorThemeId: null,
+                typographyStyleId: null
             },
             'slide-2': {
                 id: 'slide-2',
                 layoutId: 'layout-title',
-                styleAssignments: {
-                    colorTheme: 'sunset-theme',
-                    typographyStyle: null
-                }
+                colorThemeId: 'sunset-theme',
+                typographyStyleId: null
             },
             'slide-3': {
                 id: 'slide-3',
                 layoutId: 'layout-custom',
-                styleAssignments: {
-                    colorTheme: null,
-                    typographyStyle: null
-                }
+                colorThemeId: null,
+                typographyStyleId: null
             },
             'slide-legacy': {
                 id: 'slide-legacy',
-                layoutId: 'layout-title'
-                // No styleAssignments - legacy slide
+                layoutId: 'layout-title',
+                colorThemeId: null,
+                typographyStyleId: null
             }
         },
         editor: {
@@ -174,7 +163,7 @@ describe('StyleResolver', () => {
 
         it('should return light mode when master uses light mode', () => {
             const mockState = createMockState();
-            mockState.slideMasterPresets['master-default'].styleAssignments.colorMode = 'light';
+            mockState.slideMasterPresets['master-default'].colorModeId = 'light';
             mockState.slideMasterPresets['master-default'].themeSettings.lumaTheme.colorMode = 'light';
             store.getState = vi.fn(() => mockState);
 
@@ -185,7 +174,7 @@ describe('StyleResolver', () => {
 
         it('should fallback to lumaTheme colorMode if styleAssignments not present', () => {
             const mockState = createMockState();
-            delete mockState.slideMasterPresets['master-default'].styleAssignments;
+            delete mockState.slideMasterPresets['master-default'].colorModeId;
             store.getState = vi.fn(() => mockState);
 
             const result = StyleResolver.getColorMode();
@@ -332,7 +321,7 @@ describe('StyleResolver', () => {
 
         it('should not apply mapping in light mode', () => {
             const mockState = createMockState();
-            mockState.slideMasterPresets['master-default'].styleAssignments.colorMode = 'light';
+            mockState.slideMasterPresets['master-default'].colorModeId = 'light';
             mockState.slideMasterPresets['master-default'].themeSettings.lumaTheme.colorMode = 'light';
             store.getState = vi.fn(() => mockState);
 
@@ -420,5 +409,6 @@ describe('StyleResolver', () => {
         });
     });
 });
+
 
 
