@@ -119,7 +119,7 @@ describe('StrokeSection', () => {
                     }
                 }
             },
-            masters: {}
+            slideMasterPresets: {}
         });
 
         strokeSection = new StrokeSection();
@@ -195,7 +195,7 @@ describe('StrokeSection', () => {
             store.getState.mockReturnValue({
                 editor: { mode: 'master', activeMasterId: 'master-1' },
                 slides: {},
-                masters: {
+                slideMasterPresets: {
                     'master-1': {
                         elements: {
                             'el-m1': { id: 'el-m1', style: {} }

@@ -17,7 +17,7 @@ const { mockDispatch, mockGetState, MockSection, MockNumberInput, MockIconButton
                 }
             }
         },
-        masters: {}
+        slideMasterPresets: {}
     })),
     MockSection: vi.fn(),
     MockNumberInput: vi.fn(),
@@ -89,7 +89,7 @@ describe('PositionSection', () => {
                     }
                 }
             },
-            masters: {}
+            slideMasterPresets: {}
         });
         
         // Set up mock elements
@@ -246,7 +246,7 @@ describe('PositionSection', () => {
                     activeMasterId: 'master-1'
                 },
                 slides: {},
-                masters: {
+                slideMasterPresets: {
                     'master-1': {
                         id: 'master-1',
                         elements: {

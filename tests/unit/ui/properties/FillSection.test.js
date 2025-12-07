@@ -123,7 +123,7 @@ describe('FillSection', () => {
                     }
                 }
             },
-            masters: {}
+            slideMasterPresets: {}
         });
 
         fillSection = new FillSection();
@@ -198,7 +198,7 @@ describe('FillSection', () => {
             store.getState.mockReturnValue({
                 editor: { mode: 'master', activeMasterId: 'master-1' },
                 slides: {},
-                masters: {
+                slideMasterPresets: {
                     'master-1': {
                         elements: {
                             'el-m1': { id: 'el-m1', style: {} }

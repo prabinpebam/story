@@ -342,8 +342,8 @@ export class TextSection {
         // Check for style overrides
         if (this.currentStyleId) {
             const themeId = this.getActiveThemeId(state);
-            const theme = state.masters[themeId];
-            const style = theme?.themeSettings?.textStyles?.[this.currentStyleId];
+            const master = state.slideMasterPresets?.[themeId];
+            const style = master?.themeSettings?.textStyles?.[this.currentStyleId];
             this.hasStyleOverrides = this.checkForStyleOverrides(el, style);
         } else {
             this.hasStyleOverrides = false;
@@ -474,7 +474,7 @@ export class TextSection {
     getElement(state, id) {
         const mode = state.editor.mode;
         if (mode === 'master') {
-            const master = state.masters[state.editor.activeMasterId];
+            const master = state.slideMasterPresets[state.editor.activeMasterId];
             return master?.elements[id];
         } else {
             const slide = state.slides[state.editor.activeSlideId];
@@ -684,8 +684,9 @@ export class TextSection {
     getTextStyleOptions() {
         const state = store.getState();
         const themeId = this.getActiveThemeId(state);
-        const theme = state.masters[themeId];
-        const textStyles = theme?.themeSettings?.textStyles || {};
+        const master = state.slideMasterPresets?.[themeId];
+        // TODO Phase 3: Use typographyStylePresets instead of embedded textStyles
+        const textStyles = master?.themeSettings?.textStyles || {};
         
         const options = [{ label: 'No Style', value: '' }];
         
@@ -736,8 +737,8 @@ export class TextSection {
         
         // Get the style definition
         const themeId = this.getActiveThemeId(state);
-        const theme = state.masters[themeId];
-        const style = theme?.themeSettings?.textStyles?.[styleId];
+        const master = state.slideMasterPresets?.[themeId];
+        const style = master?.themeSettings?.textStyles?.[styleId];
         
         if (!style) return;
         
@@ -891,8 +892,8 @@ export class TextSection {
         
         const state = store.getState();
         const themeId = this.getActiveThemeId(state);
-        const theme = state.masters[themeId];
-        const resolvedStyle = this.resolveStyleVariables(style, theme);
+        const master = state.slideMasterPresets?.[themeId];
+        const resolvedStyle = this.resolveStyleVariables(style, master);
         
         // Check if any style property differs from element
         for (const key of Object.keys(resolvedStyle)) {

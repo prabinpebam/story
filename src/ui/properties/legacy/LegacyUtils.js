@@ -2,7 +2,7 @@ import { store } from '../../../core/Store.js';
 
 export function getActiveContainer(state) {
     if (state.editor.mode === 'master') {
-        return state.masters[state.editor.activeMasterId];
+        return state.slideMasterPresets[state.editor.activeMasterId];
     } else {
         return state.slides[state.editor.activeSlideId];
     }

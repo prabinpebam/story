@@ -70,7 +70,7 @@ export class TextEditManager {
         const state = store.getState();
         const mode = state.editor.mode;
         const activeId = mode === 'master' ? state.editor.activeMasterId : state.editor.activeSlideId;
-        const container = mode === 'master' ? state.masters[activeId] : state.slides[activeId];
+        const container = mode === 'master' ? state.slideMasterPresets[activeId] : state.slides[activeId];
         const elementData = container?.elements?.[elementId];
 
         if (!elementData) {
@@ -165,7 +165,7 @@ export class TextEditManager {
         const state = store.getState();
         const mode = state.editor.mode;
         const activeId = mode === 'master' ? state.editor.activeMasterId : state.editor.activeSlideId;
-        const container = mode === 'master' ? state.masters[activeId] : state.slides[activeId];
+        const container = mode === 'master' ? state.slideMasterPresets[activeId] : state.slides[activeId];
         const elementData = container?.elements?.[this.currentElementId];
 
         // Handle exit based on placeholder status
@@ -829,7 +829,7 @@ export class TextEditManager {
         const state = store.getState();
         const mode = state.editor.mode;
         const activeId = mode === 'master' ? state.editor.activeMasterId : state.editor.activeSlideId;
-        const container = mode === 'master' ? state.masters[activeId] : state.slides[activeId];
+        const container = mode === 'master' ? state.slideMasterPresets[activeId] : state.slides[activeId];
         
         if (!container) return;
 

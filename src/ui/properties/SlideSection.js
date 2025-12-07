@@ -222,8 +222,8 @@ export class SlideSection {
         
         // Get current color mode from store
         const state = store.getState();
-        const themeMaster = state.masters?.['theme-default'];
-        const currentMode = themeMaster?.themeSettings?.lumaTheme?.colorMode || COLOR_MODES.LIGHT;
+        const themeMaster = state.slideMasterPresets?.['master-default'];
+        const currentMode = themeMaster?.colorModeId || COLOR_MODES.LIGHT;
         
         this.modeToggle = new SegmentedControl({
             options: [
@@ -257,7 +257,7 @@ export class SlideSection {
     updateColorMode(mode) {
         const state = store.getState();
         const themeMasterId = 'theme-default';
-        const themeMaster = state.masters?.[themeMasterId];
+        const themeMaster = state.slideMasterPresets?.[themeMasterId];
         
         if (!themeMaster) return;
         
@@ -363,7 +363,7 @@ export class SlideSection {
         if (!currentObject) return;
 
         // Get theme master for inherited values
-        const themeMaster = Object.values(state.masters).find(m => m.type === 'theme');
+        const themeMaster = Object.values(state.slideMasterPresets || {}).find(m => m.type === 'slideMasterPreset');
         if (!themeMaster || !themeMaster.themeSettings) return;
 
         // Use cascade-aware StyleResolver to get theme info
@@ -607,7 +607,7 @@ export class SlideSection {
             this.layoutRow.style.display = 'flex';
             
             // Update layout options for hidden dropdown
-            const layouts = Object.values(state.masters).filter(m => m.type === 'layout');
+            const layouts = Object.values(state.slideMasterPresets || {}).filter(m => m.type === 'layoutMaster');
             const options = layouts.map(l => ({ label: l.name, value: l.id }));
             this.layoutSelect.setOptions(options);
             this.layoutSelect.setValue(currentObject.layoutId);
@@ -675,8 +675,8 @@ export class SlideSection {
         if (mode === 'master') {
             // Masters don't inherit (except layouts from theme master)
             const master = currentObject;
-            if (master.type === 'layout' && master.parentId) {
-                const themeMaster = state.masters[master.parentId];
+            if (master.type === 'layoutMaster' && master.parentMasterId) {
+                const themeMaster = state.slideMasterPresets[master.parentMasterId];
                 if (themeMaster && themeMaster.background) {
                     return this.normalizeFill(themeMaster.background);
                 }
@@ -685,7 +685,7 @@ export class SlideSection {
         } else {
             // Slides inherit from layout, which may inherit from theme master
             const slide = currentObject;
-            const layout = state.masters[slide.layoutId];
+            const layout = state.slideMasterPresets[slide.layoutId];
             
             if (layout) {
                 // Check if layout has its own background
@@ -694,8 +694,8 @@ export class SlideSection {
                 }
                 
                 // Otherwise, get from theme master
-                if (layout.parentId) {
-                    const themeMaster = state.masters[layout.parentId];
+                if (layout.parentMasterId) {
+                    const themeMaster = state.slideMasterPresets[layout.parentMasterId];
                     if (themeMaster && themeMaster.background) {
                         return this.normalizeFill(themeMaster.background);
                     }
@@ -728,7 +728,7 @@ export class SlideSection {
 
     getActiveContainer(state) {
         if (state.editor.mode === 'master') {
-            return state.masters[state.editor.activeMasterId];
+            return state.slideMasterPresets[state.editor.activeMasterId];
         } else {
             return state.slides[state.editor.activeSlideId];
         }
@@ -874,7 +874,7 @@ export class SlideSection {
         
         // Get current preset
         const state = store.getState();
-        const themeMaster = state.masters[state.editor.activeMasterId];
+        const themeMaster = state.slideMasterPresets[state.editor.activeMasterId];
         const currentPresetId = themeMaster?.presetId || 'preset_minimal';
         
         // Populate with presets

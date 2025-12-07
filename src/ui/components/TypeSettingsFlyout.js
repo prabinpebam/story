@@ -562,7 +562,7 @@ export class TypeSettingsFlyout extends Flyout {
         if (selection.length === 0 || !activeSlideId) return;
         
         // Get slides based on mode
-        const slides = mode === 'master' ? state.masters : state.slides;
+        const slides = mode === 'master' ? state.slideMasterPresets : state.slides;
         const slide = slides?.[activeSlideId];
         if (!slide) return;
         

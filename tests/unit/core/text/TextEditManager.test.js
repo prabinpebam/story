@@ -308,7 +308,7 @@ describe('TextEditManager', () => {
                     activeMasterId: 'master-1',
                     editingElementId: null
                 },
-                masters: {
+                slideMasterPresets: {
                     'master-1': {
                         elements: {
                             'text-1': {

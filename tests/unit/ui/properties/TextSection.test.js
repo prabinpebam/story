@@ -143,7 +143,7 @@ describe('TextSection', () => {
                     }
                 }
             },
-            masters: {
+            slideMasterPresets: {
                 'master-default': {
                     type: 'theme',
                     themeSettings: {
@@ -200,7 +200,7 @@ describe('TextSection', () => {
                         }
                     }
                 },
-                masters: {}
+                slideMasterPresets: {}
             });
 
             textSection.update(['el-1']);
@@ -230,7 +230,7 @@ describe('TextSection', () => {
             store.getState.mockReturnValue({
                 editor: { mode: 'master', activeMasterId: 'master-1' },
                 slides: {},
-                masters: {
+                slideMasterPresets: {
                     'master-1': {
                         elements: {
                             'el-m1': { id: 'el-m1', type: 'text' }
@@ -261,7 +261,7 @@ describe('TextSection', () => {
                     editingElementId: null
                 },
                 slides: { 'slide-1': { elements: {} } },
-                masters: {}
+                slideMasterPresets: {}
             });
 
             textSection.updateProperty('fontSize', 24);
@@ -282,7 +282,7 @@ describe('TextSection', () => {
             store.getState.mockReturnValue({
                 editor: {},
                 slides: {},
-                masters: {}
+                slideMasterPresets: {}
             });
             const state = store.getState();
             const themeId = textSection.getActiveThemeId(state);
@@ -356,7 +356,7 @@ describe('TextSection', () => {
                     selectedElementIds: ['el-1']
                 },
                 slides: { 'slide-1': { elements: {} } },
-                masters: {}
+                slideMasterPresets: {}
             });
 
             textSection.applyTextStyle('');
@@ -375,7 +375,7 @@ describe('TextSection', () => {
                     selectedElementIds: ['el-1']
                 },
                 slides: { 'slide-1': { elements: {} } },
-                masters: {}
+                slideMasterPresets: {}
             });
 
             textSection.detachStyle();
@@ -388,7 +388,7 @@ describe('TextSection', () => {
             store.getState.mockReturnValue({
                 editor: { selectedElementIds: [] },
                 slides: {},
-                masters: {}
+                slideMasterPresets: {}
             });
 
             textSection.detachStyle();

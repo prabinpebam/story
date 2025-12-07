@@ -171,9 +171,9 @@ export class PlaceholderSection {
     addPlaceholder(type) {
         const state = store.getState();
         const layoutId = state.editor.activeMasterId;
-        const layout = state.masters[layoutId];
+        const layout = state.slideMasterPresets[layoutId];
 
-        if (!layout || layout.type !== 'layout') return;
+        if (!layout || layout.type !== 'layoutMaster') return;
 
         // Generate unique ID
         const existingCount = Object.values(layout.elements || {})
@@ -322,7 +322,7 @@ export class PlaceholderSection {
     update(selection) {
         const state = store.getState();
         const mode = state.editor.mode;
-        const activeMaster = state.masters[state.editor.activeMasterId];
+        const activeMaster = state.slideMasterPresets[state.editor.activeMasterId];
 
         // Only show for layout masters in master mode
         if (mode !== 'master' || !activeMaster || activeMaster.type !== 'layout') {

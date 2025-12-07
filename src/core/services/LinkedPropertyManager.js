@@ -391,7 +391,7 @@ class LinkedPropertyManager extends EventEmitter {
         });
         
         // Index all masters
-        Object.values(state.masters || {}).forEach(master => {
+        Object.values(state.slideMasterPresets || {}).forEach(master => {
             this.indexSlideElements(master);
         });
     }
@@ -451,17 +451,17 @@ class LinkedPropertyManager extends EventEmitter {
         if (activeSlideId) {
             const slide = state.slides[activeSlideId];
             if (slide?.layoutId) {
-                const layout = state.masters[slide.layoutId];
-                if (layout?.parentId) {
-                    const theme = state.masters[layout.parentId];
+                const layout = state.slideMasterPresets[slide.layoutId];
+                if (layout?.parentMasterId) {
+                    const theme = state.slideMasterPresets[layout.parentMasterId];
                     return theme?.themeSettings?.colors || {};
                 }
             }
         }
         
-        // Fallback to first theme master
-        for (const master of Object.values(state.masters)) {
-            if (master.type === 'theme') {
+        // Fallback to first slide master preset
+        for (const master of Object.values(state.slideMasterPresets || {})) {
+            if (master.type === 'slideMasterPreset') {
                 return master.themeSettings?.colors || {};
             }
         }
@@ -480,17 +480,17 @@ class LinkedPropertyManager extends EventEmitter {
         if (activeSlideId) {
             const slide = state.slides[activeSlideId];
             if (slide?.layoutId) {
-                const layout = state.masters[slide.layoutId];
-                if (layout?.parentId) {
-                    const theme = state.masters[layout.parentId];
+                const layout = state.slideMasterPresets[slide.layoutId];
+                if (layout?.parentMasterId) {
+                    const theme = state.slideMasterPresets[layout.parentMasterId];
                     return theme?.themeSettings?.textStyles || {};
                 }
             }
         }
         
-        // Fallback to first theme master
-        for (const master of Object.values(state.masters)) {
-            if (master.type === 'theme') {
+        // Fallback to first slide master preset
+        for (const master of Object.values(state.slideMasterPresets || {})) {
+            if (master.type === 'slideMasterPreset') {
                 return master.themeSettings?.textStyles || {};
             }
         }
@@ -509,16 +509,16 @@ class LinkedPropertyManager extends EventEmitter {
         if (activeSlideId) {
             const slide = state.slides[activeSlideId];
             if (slide?.layoutId) {
-                const layout = state.masters[slide.layoutId];
-                if (layout?.parentId) {
-                    const theme = state.masters[layout.parentId];
+                const layout = state.slideMasterPresets[slide.layoutId];
+                if (layout?.parentMasterId) {
+                    const theme = state.slideMasterPresets[layout.parentMasterId];
                     return theme?.themeSettings?.fonts || { heading: 'Inter', body: 'Inter' };
                 }
             }
         }
         
         // Fallback
-        for (const master of Object.values(state.masters)) {
+        for (const master of Object.values(state.slideMasterPresets || {})) {
             if (master.type === 'theme') {
                 return master.themeSettings?.fonts || { heading: 'Inter', body: 'Inter' };
             }
