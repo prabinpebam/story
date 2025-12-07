@@ -450,8 +450,10 @@ select.pi-input option {
 
 .layout-flyout-grid {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(3, auto);
     gap: var(--spacing-2);
+    justify-content: center;
+    justify-items: center;
 }
 
 .layout-flyout-grid .layout-thumbnail {
