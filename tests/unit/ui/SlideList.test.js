@@ -424,4 +424,155 @@ describe('SlideList', () => {
             }
         });
     });
+
+    describe('createThumbnailItem - background inheritance', () => {
+        it('should render layouts with parentMasterId for background inheritance', () => {
+            // Setup state with theme and layout
+            store.getState.mockReturnValue({
+                editor: {
+                    mode: 'master',
+                    activeSlideId: null,
+                    activeMasterId: 'layout-1',
+                    selectedSlideIds: []
+                },
+                slides: {},
+                slideOrder: [],
+                slideMasterPresets: {
+                    'master-default': {
+                        id: 'master-default',
+                        type: 'slideMasterPreset',
+                        name: 'Default Theme',
+                        background: { type: 'solid', value: '#18A0FB' },
+                        elements: {},
+                        elementOrder: [],
+                        layoutIds: ['layout-1']
+                    },
+                    'layout-1': {
+                        id: 'layout-1',
+                        type: 'layoutMaster',
+                        name: 'Title Slide',
+                        parentMasterId: 'master-default',
+                        background: null,  // Should inherit from parent
+                        elements: {},
+                        elementOrder: []
+                    }
+                },
+                masterOrder: ['master-default', 'layout-1']
+            });
+
+            expect(() => slideList.render()).not.toThrow();
+
+            // Verify at least 2 items were rendered (theme + layout)
+            const items = mockContainer.querySelectorAll('[data-testid="slide-list-item"]');
+            expect(items.length).toBeGreaterThanOrEqual(2);
+        });
+
+        it('should handle layouts with explicit backgrounds', () => {
+            store.getState.mockReturnValue({
+                editor: {
+                    mode: 'master',
+                    activeSlideId: null,
+                    activeMasterId: 'layout-1',
+                    selectedSlideIds: []
+                },
+                slides: {},
+                slideOrder: [],
+                slideMasterPresets: {
+                    'master-default': {
+                        id: 'master-default',
+                        type: 'slideMasterPreset',
+                        name: 'Default Theme',
+                        background: { type: 'solid', value: '#18A0FB' },
+                        elements: {},
+                        elementOrder: [],
+                        layoutIds: ['layout-1']
+                    },
+                    'layout-1': {
+                        id: 'layout-1',
+                        type: 'layoutMaster',
+                        name: 'Custom Layout',
+                        parentMasterId: 'master-default',
+                        background: { type: 'solid', value: '#FF0000' },  // Explicit background
+                        elements: {},
+                        elementOrder: []
+                    }
+                },
+                masterOrder: ['master-default', 'layout-1']
+            });
+
+            expect(() => slideList.render()).not.toThrow();
+            
+            const items = mockContainer.querySelectorAll('[data-testid="slide-list-item"]');
+            expect(items.length).toBeGreaterThanOrEqual(2);
+        });
+
+        it('should fallback gracefully if parent theme not found', () => {
+            store.getState.mockReturnValue({
+                editor: {
+                    mode: 'master',
+                    activeSlideId: null,
+                    activeMasterId: 'layout-orphan',
+                    selectedSlideIds: []
+                },
+                slides: {},
+                slideOrder: [],
+                slideMasterPresets: {
+                    'layout-orphan': {
+                        id: 'layout-orphan',
+                        type: 'layoutMaster',
+                        name: 'Orphan Layout',
+                        parentMasterId: 'non-existent-master',
+                        background: null,
+                        elements: {},
+                        elementOrder: []
+                    }
+                },
+                masterOrder: ['layout-orphan']
+            });
+
+            // Should not throw error even with missing parent
+            // This tests the || fallback in parentMasterId || parentId lookup
+            expect(() => slideList.render()).not.toThrow();
+        });
+
+        it('should support both parentMasterId and legacy parentId', () => {
+            // Test that the code handles both property names
+            store.getState.mockReturnValue({
+                editor: {
+                    mode: 'master',
+                    activeSlideId: null,
+                    activeMasterId: 'layout-legacy',
+                    selectedSlideIds: []
+                },
+                slides: {},
+                slideOrder: [],
+                slideMasterPresets: {
+                    'master-1': {
+                        id: 'master-1',
+                        type: 'slideMasterPreset',
+                        name: 'Master',
+                        background: { type: 'solid', value: '#AABBCC' },
+                        elements: {},
+                        elementOrder: [],
+                        layoutIds: ['layout-legacy']
+                    },
+                    'layout-legacy': {
+                        id: 'layout-legacy',
+                        type: 'layoutMaster',
+                        name: 'Legacy Layout',
+                        parentId: 'master-1',  // Old property name (should also work)
+                        background: null,
+                        elements: {},
+                        elementOrder: []
+                    }
+                },
+                masterOrder: ['master-1', 'layout-legacy']
+            });
+
+            expect(() => slideList.render()).not.toThrow();
+
+            const items = mockContainer.querySelectorAll('[data-testid="slide-list-item"]');
+            expect(items.length).toBeGreaterThanOrEqual(2);
+        });
+    });
 });

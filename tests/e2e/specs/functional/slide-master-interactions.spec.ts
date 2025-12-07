@@ -221,5 +221,107 @@ test.describe('Slide Master Interactions', () => {
     });
     
     expect(hasBackground).toBe(true);
+    
+    // Visual regression: Take screenshot of slide list (optional - may need baseline generation)
+    // Uncomment after first run to generate baseline:
+    // await expect(page.locator('#slide-list')).toHaveScreenshot('master-mode-layout-thumbnails.png', {
+    //   maxDiffPixels: 100
+    // });
+  });
+
+  test('should verify DOM structure of layout thumbnails', async ({ page }) => {
+    // Detailed DOM validation to catch structural issues
+    const domStructure = await page.evaluate(() => {
+      const items = Array.from(document.querySelectorAll('[data-testid="slide-list-item"]'));
+      
+      return items.map((item) => {
+        const preview = item.querySelector('.slide-thumbnail-preview');
+        const scaleWrapper = preview?.querySelector('.thumbnail-scale-wrapper');
+        const slideView = scaleWrapper?.querySelector('.slide-view');
+        const bgContainer = slideView?.querySelector('.slide-background');
+        const bgLayers = bgContainer?.querySelectorAll('.bg-layer');
+        
+        return {
+          hasPreview: !!preview,
+          hasScaleWrapper: !!scaleWrapper,
+          hasSlideView: !!slideView,
+          hasBgContainer: !!bgContainer,
+          bgLayerCount: bgLayers?.length || 0,
+          bgContainerStyles: bgContainer ? {
+            zIndex: window.getComputedStyle(bgContainer).zIndex,
+            position: window.getComputedStyle(bgContainer).position
+          } : null
+        };
+      });
+    });
+    
+    // All thumbnails should have complete DOM structure
+    for (const structure of domStructure) {
+      expect(structure.hasPreview).toBe(true);
+      expect(structure.hasScaleWrapper).toBe(true);
+      expect(structure.hasSlideView).toBe(true);
+      expect(structure.hasBgContainer).toBe(true);
+      expect(structure.bgLayerCount).toBeGreaterThanOrEqual(1);
+      expect(structure.bgContainerStyles).not.toBeNull();
+    }
+  });
+
+  test('should verify element count consistency after interactions', async ({ page }) => {
+    // Get initial element counts
+    const initialCounts = await page.evaluate(() => {
+      const store = (window as any)._storyAppStore || (window as any).__TEST_STORE__;
+      const state = store.getState();
+      const activeId = state.editor.activeMasterId;
+      const master = state.slideMasterPresets[activeId];
+      
+      return {
+        elementCount: Object.keys(master.elements || {}).length,
+        placeholderCount: Object.values(master.elements || {}).filter((el: any) => el.isPlaceholder).length
+      };
+    });
+    
+    // Click on a placeholder (instantiate it)
+    await page.evaluate(() => {
+      const store = (window as any)._storyAppStore || (window as any).__TEST_STORE__;
+      const state = store.getState();
+      const activeId = state.editor.activeMasterId;
+      const master = state.slideMasterPresets[activeId];
+      const elements = Object.values(master.elements) as any[];
+      const ph = elements.find((el: any) => el.isPlaceholder && el.type === 'text');
+      
+      if (ph) {
+        store.dispatch('INSTANTIATE_PLACEHOLDER', {
+          placeholderId: ph.id,
+          element: ph
+        });
+        store.dispatch('SET_EDITING_ELEMENT', ph.id);
+      }
+    });
+    
+    await page.waitForTimeout(100);
+    
+    // Click outside to blur
+    await page.evaluate(() => {
+      const store = (window as any)._storyAppStore || (window as any).__TEST_STORE__;
+      store.dispatch('SET_EDITING_ELEMENT', null);
+    });
+    
+    await page.waitForTimeout(100);
+    
+    // Verify element count is unchanged (placeholder should persist)
+    const finalCounts = await page.evaluate(() => {
+      const store = (window as any)._storyAppStore || (window as any).__TEST_STORE__;
+      const state = store.getState();
+      const activeId = state.editor.activeMasterId;
+      const master = state.slideMasterPresets[activeId];
+      
+      return {
+        elementCount: Object.keys(master.elements || {}).length,
+        placeholderCount: Object.values(master.elements || {}).filter((el: any) => el.isPlaceholder).length
+      };
+    });
+    
+    expect(finalCounts.elementCount).toBe(initialCounts.elementCount);
+    expect(finalCounts.placeholderCount).toBe(initialCounts.placeholderCount);
   });
 });

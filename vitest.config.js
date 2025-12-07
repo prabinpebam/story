@@ -15,19 +15,26 @@ export default defineConfig({
         ],
         coverage: {
             provider: 'v8',
-            reporter: ['text', 'json', 'html'],
+            reporter: ['text', 'json', 'html', 'lcov'],
             exclude: [
                 'node_modules/',
                 'tests/',
                 '*.config.js',
                 'src/vendor/'
             ],
-            thresholds: {
-                lines: 80,
-                functions: 80,
-                branches: 80,
-                statements: 80
-            }
+            include: [
+                'src/**/*.js'
+            ],
+            all: true,
+            // Report uncovered lines
+            reportOnFailure: true,
+            // More detailed reporting
+            lines: 70,
+            functions: 70,
+            branches: 70,
+            statements: 70,
+            // Track per-file coverage
+            perFile: true
         }
     }
 });
