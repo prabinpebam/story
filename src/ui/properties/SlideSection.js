@@ -15,6 +15,7 @@ import { THEME_PRESETS } from '../panels/color-theme/ThemePresets.js';
 import { applyThemeToCSSVariables, COLOR_MODES } from '../panels/color-theme/ColorThemeUtils.js';
 import { StyleResolver } from '../../utils/StyleResolver.js';
 import { ThemeDiag } from '../../utils/ThemeDiagnostics.js';
+import { ThumbnailRenderer } from '../../core/renderer/ThumbnailRenderer.js';
 
 export class SlideSection {
     constructor() {
@@ -793,28 +794,12 @@ export class SlideSection {
             thumbnail.dataset.layoutId = layout.id;
             thumbnail.title = layout.name;
             
-            // Create preview
-            const preview = document.createElement('div');
-            preview.className = 'layout-preview';
+            // Get effective layout data (with theme inheritance)
+            const effectiveLayout = store.getEffectiveSlide(layout.id);
             
-            // Draw placeholder representations
-            if (layout.elements) {
-                Object.values(layout.elements).forEach(el => {
-                    if (el.isPlaceholder) {
-                        const placeholder = document.createElement('div');
-                        placeholder.className = 'layout-placeholder';
-                        
-                        // Scale down to thumbnail size
-                        const scale = 80 / 1920;
-                        placeholder.style.left = (el.x * scale) + 'px';
-                        placeholder.style.top = (el.y * scale) + 'px';
-                        placeholder.style.width = (el.width * scale) + 'px';
-                        placeholder.style.height = (el.height * scale) + 'px';
-                        
-                        preview.appendChild(placeholder);
-                    }
-                });
-            }
+            // Create accurate preview using ThumbnailRenderer
+            const preview = ThumbnailRenderer.createThumbnail(layout.id, effectiveLayout);
+            preview.className = 'layout-preview';
             
             thumbnail.appendChild(preview);
             
