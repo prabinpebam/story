@@ -19,6 +19,7 @@ describe('SlideSection', () => {
             url: 'http://localhost',
             pretendToBeVisual: true,
         });
+        document = dom.window.document;
         global.document = dom.window.document;
         global.window = dom.window;
         global.HTMLElement = dom.window.HTMLElement;
@@ -126,6 +127,19 @@ describe('SlideSection', () => {
                     effectiveElements: { ...layout?.elements, ...slide.elements },
                     effectiveOrder: [...(layout?.elementOrder || []), ...slide.elementOrder]
                 };
+            },
+            getEffectiveMaster(masterId) {
+                const master = this.state.slideMasterPresets[masterId];
+                if (!master) return null;
+                
+                const parent = master.parentMasterId ? this.state.slideMasterPresets[master.parentMasterId] : null;
+                
+                return {
+                    ...master,
+                    effectiveBackground: master.background || parent?.background || { type: 'solid', value: '#ffffff' },
+                    effectiveElements: { ...parent?.elements, ...master.elements },
+                    effectiveOrder: [...(parent?.elementOrder || []), ...master.elementOrder]
+                };
             }
         };
 
@@ -152,7 +166,7 @@ describe('SlideSection', () => {
         vi.doMock('../../../src/ui/components/Section.js', () => ({
             Section: class {
                 constructor({ title }) {
-                    this.element = document.createElement('div');
+                    this.element = global.document.createElement('div');
                     this.element.className = 'section';
                     this.title = title;
                 }
@@ -165,7 +179,7 @@ describe('SlideSection', () => {
         vi.doMock('../../../src/ui/components/Button.js', () => ({
             Button: class {
                 constructor({ label, onClick }) {
-                    this.element = document.createElement('button');
+                    this.element = global.document.createElement('button');
                     this.element.textContent = label;
                     this.element.onclick = onClick;
                     this.label = label;
@@ -180,7 +194,7 @@ describe('SlideSection', () => {
         vi.doMock('../../../src/ui/components/Dropdown.js', () => ({
             Dropdown: class {
                 constructor({ onChange }) {
-                    this.element = document.createElement('select');
+                    this.element = global.document.createElement('select');
                     this.onChange = onChange;
                 }
                 setValue(val) {
@@ -210,7 +224,7 @@ describe('SlideSection', () => {
         vi.doMock('../../../src/ui/components/TextInput.js', () => ({
             TextInput: class {
                 constructor() {
-                    this.element = document.createElement('input');
+                    this.element = global.document.createElement('input');
                 }
             }
         }));
@@ -218,7 +232,7 @@ describe('SlideSection', () => {
         vi.doMock('../../../src/ui/components/NumberInput.js', () => ({
             NumberInput: class {
                 constructor() {
-                    this.element = document.createElement('input');
+                    this.element = global.document.createElement('input');
                 }
             }
         }));
@@ -226,21 +240,64 @@ describe('SlideSection', () => {
         vi.doMock('../../../src/ui/properties/FillSection.js', () => ({
             FillSection: class {
                 constructor() {
-                    this.element = document.createElement('div');
+                    this.element = global.document.createElement('div');
                 }
                 update() {}
             }
         }));
 
+        vi.doMock('../../../src/ui/components/ThemeSwatches.js', () => ({
+            ThemeSwatches: class {
+                constructor() {
+                    this.element = global.document.createElement('div');
+                }
+            }
+        }));
+
+        vi.doMock('../../../src/ui/Icons.js', () => ({
+            Icons: {
+                SELECT: 'icon-select',
+                TEXT: 'icon-text',
+                SHAPE: 'icon-shape',
+                IMAGE: 'icon-image',
+                PLAY: 'icon-play',
+                PAUSE: 'icon-pause',
+                SETTINGS: 'icon-settings',
+                MORE: 'icon-more',
+                EDIT: 'icon-edit',
+                TRASH: 'icon-trash',
+                LOCK: 'icon-lock',
+                UNLOCK: 'icon-unlock',
+                VISIBLE: 'icon-visible',
+                HIDDEN: 'icon-hidden',
+                CHEVRON_RIGHT: 'icon-chevron-right',
+                CHEVRON_DOWN: 'icon-chevron-down',
+                PLUS: 'icon-plus',
+                MINUS: 'icon-minus'
+            }
+        }));
+
+        vi.doMock('../../../src/ui/PanelManager.js', () => ({
+            panelManager: {
+                register: vi.fn(),
+                unregister: vi.fn()
+            }
+        }));
+
         // Import after mocks are set up
-        const modules = await import('../../../src/ui/properties/SlideSection.js');
-        SlideSection = modules.SlideSection;
-        
-        const storeModule = await import('../../../src/core/Store.js');
-        store = storeModule.store;
-        
-        const thumbModule = await import('../../../src/core/renderer/ThumbnailRenderer.js');
-        ThumbnailRenderer = thumbModule.ThumbnailRenderer;
+        try {
+            const modules = await import('../../../src/ui/properties/SlideSection.js');
+            SlideSection = modules.SlideSection;
+            
+            const storeModule = await import('../../../src/core/Store.js');
+            store = storeModule.store;
+            
+            const thumbModule = await import('../../../src/core/renderer/ThumbnailRenderer.js');
+            ThumbnailRenderer = thumbModule.ThumbnailRenderer;
+        } catch (error) {
+            console.error('Error importing modules in beforeEach:', error);
+            throw error;
+        }
     });
 
     afterEach(() => {
@@ -291,9 +348,9 @@ describe('SlideSection', () => {
             );
         });
 
-        it('should call store.getEffectiveSlide for each layout thumbnail', () => {
+        it('should call store.getEffectiveMaster for each layout thumbnail', () => {
             const slideSection = new SlideSection();
-            const getEffectiveSlideSpy = vi.spyOn(store, 'getEffectiveSlide');
+            const getEffectiveMasterSpy = vi.spyOn(store, 'getEffectiveMaster');
             
             slideSection.currentLayouts = [
                 store.state.slideMasterPresets['layout-title'],
@@ -304,8 +361,8 @@ describe('SlideSection', () => {
             
             slideSection.openLayoutFlyout();
             
-            expect(getEffectiveSlideSpy).toHaveBeenCalledWith('layout-title');
-            expect(getEffectiveSlideSpy).toHaveBeenCalledWith('layout-content');
+            expect(getEffectiveMasterSpy).toHaveBeenCalledWith('layout-title');
+            expect(getEffectiveMasterSpy).toHaveBeenCalledWith('layout-content');
         });
 
         it('should mark current layout as selected', () => {
@@ -358,8 +415,7 @@ describe('SlideSection', () => {
                 expect.objectContaining({ 
                     id: 'slide-1', 
                     layoutId: 'layout-content' 
-                }),
-                undefined
+                })
             );
         });
 
@@ -455,9 +511,9 @@ describe('SlideSection', () => {
             
             slideSection.openLayoutFlyout();
             
-            // Verify getEffectiveSlide returns theme background
-            const effectiveSlide = store.getEffectiveSlide('layout-title');
-            expect(effectiveSlide.effectiveBackground.value).toBe('#ff0000');
+            // Verify getEffectiveMaster returns theme background
+            const effectiveMaster = store.getEffectiveMaster('layout-title');
+            expect(effectiveMaster.effectiveBackground.value).toBe('#ff0000');
         });
 
         it('should handle explicit layout background overriding theme', () => {
@@ -483,8 +539,8 @@ describe('SlideSection', () => {
             
             slideSection.openLayoutFlyout();
             
-            const effectiveSlide = store.getEffectiveSlide('layout-title');
-            expect(effectiveSlide.effectiveBackground.value).toBe('#00ff00');
+            const effectiveMaster = store.getEffectiveMaster('layout-title');
+            expect(effectiveMaster.effectiveBackground.value).toBe('#00ff00');
         });
     });
 });
