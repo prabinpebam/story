@@ -170,10 +170,10 @@ interface UndoableAction {
 #### Week 3: Master Data & Logic
 
 **Task 1.1: Master Slide Data Model**
-- [ ] Implement `SlideMasterPreset` interface (referencing themes/styles)
-- [ ] Implement `LayoutMaster` interface
-- [ ] Implement `SlideMasterManager` class
-- [ ] Master-Layout-Slide inheritance chain
+- [x] Implement `SlideMasterPreset` interface (referencing themes/styles)
+- [x] Implement `LayoutMaster` interface
+- [x] Implement `SlideMasterManager` class
+- [x] Master-Layout-Slide inheritance chain
 - **Test:** Create master with 3 layouts, verify inheritance
 - **Undo:** Create/delete/rename master
 
@@ -186,12 +186,12 @@ interface UndoableAction {
 - **Undo:** Add/remove/move placeholders
 
 **Task 1.3: Preset System (Color Themes & Typography Styles)**
-- [ ] Implement `ColorThemePreset` interface (separate library)
+- [x] Implement `ColorThemePreset` interface (separate library)
 - [ ] Implement `TypographyStylePreset` interface (separate library)
-- [ ] 12-color semantic palette system
+- [x] 12-color semantic palette system
 - [ ] Font families + text style definitions
-- [ ] Preset application at master/layout/slide level (cascading)
-- [ ] Slide masters REFERENCE presets (never embed)
+- [x] Preset application at master/layout/slide level (cascading)
+- [x] Slide masters REFERENCE presets (never embed)
 - **Test:** Apply color theme, verify colors propagate via CSS variables
 - **Test:** Apply typography style, verify fonts/sizes update
 - **Undo:** Change color theme, change typography style
