@@ -17,18 +17,17 @@ This specification defines the multi-theme architecture for Story. Theming is no
 3. **Context Adaptation**: Presentation mode may need a different theme than editing mode
 4. **Enterprise Customization**: Corporate clients may want branded themes
 
-### 1.2 Theme Components
+### 1.3 Scope of Theming
 
-A theme is composed of:
+It is critical to distinguish between the **App Chrome Theme** and the **Slide Content Theme**.
 
-| Component | What It Controls |
-|-----------|------------------|
-| **Colors** | Accent, backgrounds, text, borders, semantic colors |
-| **Typography** | Font family, size scale, weight scale |
-| **Spacing** | Base grid, padding/margin scale |
-| **Radii** | Corner radius values |
-| **Shadows** | Shadow intensity and spread |
-| **Motion** | Animation timing and easing |
+*   **App Chrome Theme**: Controls the UI of the editor itself (panels, toolbars, menus, modal dialogs). This is what the user switches between "Light Mode" and "Dark Mode" in the application settings.
+*   **Slide Content Theme**: Controls the visual appearance of the presentation content (slide background, text colors, shapes). This is controlled by the "Design" tab or "Slide Master" settings.
+
+**Key Principle**: Changing the App Chrome Theme (e.g., switching to Dark Mode) MUST NOT affect the Slide Content Theme.
+*   The App Chrome background (`--color-bg-app`) changes.
+*   The Canvas Viewport background (`--color-bg-canvas`) changes (the infinite space around the slide).
+*   The Slide Background (`.bg-layer`) remains as defined by the user (defaulting to White `#FFFFFF`).
 
 ---
 

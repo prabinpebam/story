@@ -233,6 +233,10 @@ test.describe('Theme Consistency Audit', () => {
                 const style = window.getComputedStyle(el);
                 if (style.display === 'none' || style.visibility === 'hidden' || style.opacity === '0') return;
 
+                // Skip Slide Content (bg-layer, inherited-fill-swatch)
+                // These are user content and should be allowed to be white in Dark Mode
+                if (el.classList.contains('bg-layer') || el.classList.contains('inherited-fill-swatch')) return;
+
                 // Check Background Color
                 const bg = style.backgroundColor;
                 if (forbiddenColors.includes(bg)) {

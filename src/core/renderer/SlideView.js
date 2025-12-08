@@ -187,8 +187,9 @@ export class SlideView {
         } else if (bg) {
             fills = [bg];
         } else {
-            // Use canvas background color as default to support dark mode
-            fills = [{ type: 'solid', value: 'var(--color-bg-canvas)' }];
+            // Use fixed white background as default for slide content
+            // This ensures slide content is independent of app theme (Dark/Light mode)
+            fills = [{ type: 'solid', value: '#FFFFFF' }];
         }
 
         fills.forEach((fill, index) => {

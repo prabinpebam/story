@@ -183,8 +183,8 @@ export const DEFAULT_MASTERS = {
         // REFERENCES ONLY (never embed actual colors/typography)
         colorThemeId: "color-theme-default",
         typographyStyleId: "typo-style-default",
-        // Use theme color variable for background - resolved at render time
-        background: { type: "solid", value: "var(--color-bg-canvas)" },
+        // Use fixed white background for slide content - independent of app theme
+        background: { type: "solid", value: "#FFFFFF" },
         elements: {},
         elementOrder: [],
         // Layout IDs managed by this master
