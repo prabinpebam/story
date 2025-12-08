@@ -33,9 +33,12 @@
             theme = storedTheme === 'light' ? 'light' : 'dark';
         } else {
             // Fallback to system preference
-            if (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) {
-                theme = 'light';
-            }
+            // if (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) {
+            //     theme = 'light';
+            // }
+            // FORCE DARK MODE DEFAULT (Professional Tool Convention)
+            // We ignore system preference for the first load to ensure consistent experience
+            theme = 'dark';
         }
 
         // 3. Determine accent theme (must match SettingsModal.js)

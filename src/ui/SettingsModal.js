@@ -206,6 +206,12 @@ export class SettingsModal {
             value: document.body.classList.contains('theme-light') ? 'light' : 'dark',
             size: 'fill',
             onChange: (value) => {
+                // Clear inline styles that might have been set by theme-hydration.js
+                // This ensures we don't have conflicting inline styles when switching themes
+                document.documentElement.style.removeProperty('--color-bg-app');
+                document.documentElement.style.removeProperty('--color-bg-panel');
+                document.documentElement.style.removeProperty('--color-text-primary');
+
                 if (value === 'light') {
                     document.body.classList.add('theme-light');
                     document.documentElement.setAttribute('data-theme', 'light');

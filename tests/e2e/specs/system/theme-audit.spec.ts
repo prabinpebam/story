@@ -158,6 +158,17 @@ test.describe('Theme Consistency Audit', () => {
     });
 
     test('AUDIT03: Full UI Scan in Dark Mode', async ({ page }) => {
+        // Disable transitions to avoid race conditions during theme switch
+        await page.addStyleTag({ content: '*, *::before, *::after { transition: none !important; animation: none !important; }' });
+
+        // Simulate Theme Hydration (Light Mode preference causing inline styles)
+        // This reproduces the bug where hydration styles persist after switching themes
+        await page.evaluate(() => {
+            document.documentElement.style.setProperty('--color-bg-app', '#E8E8E8');
+            document.documentElement.style.setProperty('--color-bg-panel', '#F5F5F5');
+            document.documentElement.style.setProperty('--color-text-primary', '#1A1A1A');
+        });
+
         // 1. Switch to Dark Mode (Default)
         await page.locator('.app-menu-trigger').click();
         await page.locator('.app-menu-dropdown .app-menu-item', { hasText: 'Settings...' }).click();
@@ -168,7 +179,8 @@ test.describe('Theme Consistency Audit', () => {
         const themeDropdown = modal.locator('.dropdown-trigger').first();
         await themeDropdown.click();
         await page.locator('.dropdown-item', { hasText: 'Dark' }).click();
-        await modal.locator('.close-btn').click();
+        // Keep modal open to check overlay
+        // await modal.locator('.close-btn').click(); 
 
         // 2. Run Audit on Main Interface
         // Light Mode Colors that should NOT appear in Dark Mode
@@ -179,9 +191,44 @@ test.describe('Theme Consistency Audit', () => {
         ];
 
         const violations = await page.evaluate((forbiddenColors) => {
-            const allElements = document.querySelectorAll('*');
             const violations: { tag: string, class: string, color: string, property: string }[] = [];
+            
+            // Helper to check brightness
+            const isLight = (colorStr: string) => {
+                const rgb = colorStr.match(/\d+/g)?.map(Number);
+                if (!rgb || rgb.length < 3) return false;
+                // Perceived brightness
+                const brightness = (rgb[0] * 299 + rgb[1] * 587 + rgb[2] * 114) / 1000;
+                return brightness > 200; // Threshold for "light"
+            };
 
+            // Check Specific UI Elements
+            const uiChecks = [
+                { selector: 'body', name: 'Body' },
+                { selector: '.modal-overlay', name: 'Modal Overlay' },
+                { selector: '.draggable-panel', name: 'Draggable Panel' },
+                { selector: '.action-btn', name: 'Action Button' }
+            ];
+
+            uiChecks.forEach(check => {
+                const el = document.querySelector(check.selector);
+                if (el) {
+                    const style = window.getComputedStyle(el);
+                    const bg = style.backgroundColor;
+                    
+                    if (isLight(bg)) {
+                        violations.push({
+                            tag: check.selector,
+                            class: el.className,
+                            color: bg,
+                            property: `background-color (UI Check: ${check.name})`
+                        });
+                    }
+                }
+            });
+
+            const allElements = document.querySelectorAll('*');
+            
             allElements.forEach(el => {
                 const style = window.getComputedStyle(el);
                 if (style.display === 'none' || style.visibility === 'hidden' || style.opacity === '0') return;
