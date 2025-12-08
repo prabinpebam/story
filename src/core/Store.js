@@ -503,7 +503,7 @@ export class Store extends EventEmitter {
         if (!slide.layoutId || !this.state.slideMasterPresets || !this.state.slideMasterPresets[slide.layoutId]) {
             return {
                 ...slide,
-                effectiveBackground: slide.background || { type: 'solid', value: '#ffffff' },
+                effectiveBackground: slide.background || { type: 'solid', value: 'var(--color-bg-canvas)' },
                 effectiveElements: slide.elements,
                 effectiveOrder: slide.elementOrder,
                 resolvedLumaTheme,
@@ -530,7 +530,7 @@ export class Store extends EventEmitter {
         }
         
         if (!background || background.type === 'inherited') {
-             background = { type: 'solid', value: '#ffffff' };
+             background = { type: 'solid', value: 'var(--color-bg-canvas)' };
         }
 
         // 2. Resolve Elements
@@ -600,7 +600,7 @@ export class Store extends EventEmitter {
         if (master.type === 'themeMaster' || !master.parentMasterId) {
             return {
                 ...master,
-                effectiveBackground: master.background || { type: 'solid', value: '#ffffff' },
+                effectiveBackground: master.background || { type: 'solid', value: 'var(--color-bg-canvas)' },
                 effectiveElements: master.elements || {},
                 effectiveOrder: master.elementOrder || []
             };
@@ -617,7 +617,7 @@ export class Store extends EventEmitter {
             }
         }
         if (!background || background.type === 'inherited') {
-            background = { type: 'solid', value: '#ffffff' };
+            background = { type: 'solid', value: 'var(--color-bg-canvas)' };
         }
 
         // Merge elements (theme elements + layout elements)

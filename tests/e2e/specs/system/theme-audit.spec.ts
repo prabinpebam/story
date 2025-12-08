@@ -156,4 +156,56 @@ test.describe('Theme Consistency Audit', () => {
         
         expect(violations.length).toBe(0);
     });
+
+    test('AUDIT03: Full UI Scan in Dark Mode', async ({ page }) => {
+        // 1. Switch to Dark Mode (Default)
+        await page.locator('.app-menu-trigger').click();
+        await page.locator('.app-menu-dropdown .app-menu-item', { hasText: 'Settings...' }).click();
+        
+        const modal = page.getByTestId('settings-modal');
+        await modal.locator('.modal-nav-item', { hasText: 'Appearance' }).click();
+
+        const themeDropdown = modal.locator('.dropdown-trigger').first();
+        await themeDropdown.click();
+        await page.locator('.dropdown-item', { hasText: 'Dark' }).click();
+        await modal.locator('.close-btn').click();
+
+        // 2. Run Audit on Main Interface
+        // Light Mode Colors that should NOT appear in Dark Mode
+        const LIGHT_MODE_FORBIDDEN_COLORS = [
+            // 'rgb(232, 232, 232)', // #E8E8E8 (App Bg) - Valid in Dark Mode as Text Primary
+            'rgb(255, 255, 255)', // #FFFFFF (Canvas/Elevated/Input Bg)
+            'rgb(245, 245, 245)', // #F5F5F5 (Panel Bg)
+        ];
+
+        const violations = await page.evaluate((forbiddenColors) => {
+            const allElements = document.querySelectorAll('*');
+            const violations: { tag: string, class: string, color: string, property: string }[] = [];
+
+            allElements.forEach(el => {
+                const style = window.getComputedStyle(el);
+                if (style.display === 'none' || style.visibility === 'hidden' || style.opacity === '0') return;
+
+                // Check Background Color
+                const bg = style.backgroundColor;
+                if (forbiddenColors.includes(bg)) {
+                    violations.push({
+                        tag: el.tagName.toLowerCase(),
+                        class: el.className,
+                        color: bg,
+                        property: 'background-color'
+                    });
+                }
+            });
+
+            return violations;
+        }, LIGHT_MODE_FORBIDDEN_COLORS);
+
+        if (violations.length > 0) {
+            console.error(`[Theme Audit] Violations found in Dark Mode:`);
+            console.table(violations);
+        }
+
+        expect(violations.length).toBe(0);
+    });
 });

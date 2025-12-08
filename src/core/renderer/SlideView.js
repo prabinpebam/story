@@ -187,7 +187,8 @@ export class SlideView {
         } else if (bg) {
             fills = [bg];
         } else {
-            fills = [{ type: 'solid', value: '#ffffff' }];
+            // Use canvas background color as default to support dark mode
+            fills = [{ type: 'solid', value: 'var(--color-bg-canvas)' }];
         }
 
         fills.forEach((fill, index) => {

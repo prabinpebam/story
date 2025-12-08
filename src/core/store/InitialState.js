@@ -184,7 +184,7 @@ export const DEFAULT_MASTERS = {
         colorThemeId: "color-theme-default",
         typographyStyleId: "typo-style-default",
         // Use theme color variable for background - resolved at render time
-        background: { type: "solid", value: "var(--theme-background1, #FFFFFF)" },
+        background: { type: "solid", value: "var(--color-bg-canvas)" },
         elements: {},
         elementOrder: [],
         // Layout IDs managed by this master
