@@ -9,7 +9,13 @@ vi.mock('../../../../src/core/Store.js', () => ({
 }));
 
 vi.mock('../../../../src/ui/components/Section.js', () => ({
-    Section: vi.fn()
+    Section: vi.fn(() => {
+        const el = document.createElement('div');
+        return {
+            element: el,
+            appendChild: (child) => el.appendChild(child)
+        };
+    })
 }));
 
 vi.mock('../../../../src/ui/components/NumberInput.js', () => ({
@@ -17,11 +23,24 @@ vi.mock('../../../../src/ui/components/NumberInput.js', () => ({
 }));
 
 vi.mock('../../../../src/ui/components/IconButton.js', () => ({
-    IconButton: vi.fn()
+    IconButton: vi.fn(() => ({
+        element: document.createElement('button'),
+        setActive: vi.fn()
+    }))
+}));
+
+vi.mock('../../../../src/ui/components/Button.js', () => ({
+    Button: vi.fn(() => ({
+        element: document.createElement('button')
+    }))
 }));
 
 vi.mock('../../../../src/ui/components/Dropdown.js', () => ({
-    Dropdown: vi.fn()
+    Dropdown: vi.fn(() => ({
+        element: document.createElement('div'),
+        setValue: vi.fn(),
+        setOptions: vi.fn()
+    }))
 }));
 
 vi.mock('../../../../src/ui/components/FillFlyout/FillFlyout.js', () => ({
@@ -83,6 +102,20 @@ vi.mock('../../../../src/utils/ColorUtils.js', () => ({
     }
 }));
 
+vi.mock('../../../../src/core/text/TextEditManager.js', () => ({
+    textEditManager: {
+        saveSelection: vi.fn(),
+        restoreSelection: vi.fn()
+    }
+}));
+
+vi.mock('../../../../src/core/services/PropertyMemoryManager.js', () => ({
+    propertyMemory: {
+        getMemory: vi.fn(),
+        setMemory: vi.fn()
+    }
+}));
+
 // Import after mocks
 import { TextSection } from '../../../../src/ui/properties/TextSection.js';
 import { store } from '../../../../src/core/Store.js';
@@ -90,7 +123,9 @@ import { Section } from '../../../../src/ui/components/Section.js';
 import { NumberInput } from '../../../../src/ui/components/NumberInput.js';
 import { IconButton } from '../../../../src/ui/components/IconButton.js';
 import { Dropdown } from '../../../../src/ui/components/Dropdown.js';
+import { Button } from '../../../../src/ui/components/Button.js';
 import { StyleResolver } from '../../../../src/utils/StyleResolver.js';
+import { textEditManager } from '../../../../src/core/text/TextEditManager.js';
 
 describe('TextSection', () => {
     let textSection;
@@ -98,6 +133,7 @@ describe('TextSection', () => {
 
     beforeEach(() => {
         vi.clearAllMocks();
+        vi.useFakeTimers({ shouldAdvanceTime: true });
         vi.useFakeTimers({ shouldAdvanceTime: true });
 
         mockSectionElement = document.createElement('div');
@@ -109,9 +145,19 @@ describe('TextSection', () => {
 
         NumberInput.mockImplementation(() => {
             const el = document.createElement('div');
-            el.innerHTML = '<input type="text" />';
+            const input = document.createElement('input');
+            input.type = 'text';
+            el.appendChild(input);
             return { element: el, setValue: vi.fn() };
         });
+
+        // Mock window.getSelection
+        window.getSelection = vi.fn(() => ({
+            isCollapsed: false,
+            getRangeAt: vi.fn(),
+            removeAllRanges: vi.fn(),
+            addRange: vi.fn()
+        }));
 
         IconButton.mockImplementation(() => ({
             element: document.createElement('button')
@@ -154,6 +200,9 @@ describe('TextSection', () => {
                 }
             }
         });
+
+        // Mock isColorDark to avoid canvas issues in JSDOM
+        vi.spyOn(TextSection.prototype, 'isColorDark').mockReturnValue(false);
 
         textSection = new TextSection();
     });

@@ -35,6 +35,9 @@ export class TextEditManager {
         // Debounce timer for saves
         this.saveTimer = null;
         
+        // Saved selection state
+        this.savedSelection = null;
+
         // Event callbacks
         this.eventCallbacks = new Map();
         
@@ -872,6 +875,35 @@ export class TextEditManager {
         
         // Select the next element
         store.dispatch('UPDATE_SELECTION', [nextElementId]);
+    }
+
+    /**
+     * Save the current selection range.
+     * Used by UI controls to preserve selection when focus is lost.
+     */
+    saveSelection() {
+        const selection = window.getSelection();
+        if (selection.rangeCount > 0) {
+            this.savedSelection = selection.getRangeAt(0).cloneRange();
+        } else {
+            this.savedSelection = null;
+        }
+    }
+
+    /**
+     * Restore the saved selection range.
+     */
+    restoreSelection() {
+        if (this.savedSelection) {
+            const selection = window.getSelection();
+            selection.removeAllRanges();
+            selection.addRange(this.savedSelection);
+            
+            // Ensure the element is focused
+            if (this.currentElement) {
+                this.currentElement.focus();
+            }
+        }
     }
 
     /**
