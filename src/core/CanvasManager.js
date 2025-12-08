@@ -403,6 +403,12 @@ export class CanvasManager {
             const rect = this.container.getBoundingClientRect();
             this.lastMouseX = e.clientX - rect.left;
             this.lastMouseY = e.clientY - rect.top;
+            
+            // Performance Panning Setup
+            this.isPerformancePanning = true;
+            this.dragStart = { x: this.lastMouseX, y: this.lastMouseY };
+            this.panStart = { ...state.editor.pan };
+            
             cursorManager.push('grabbing', 'panning');
             this.container.style.cursor = 'grabbing';
             document.body.classList.add('is-panning');
@@ -646,18 +652,61 @@ export class CanvasManager {
 
     _handlePanning(mouseX, mouseY, e) {
         e.preventDefault();
-        const deltaX = mouseX - this.lastMouseX;
-        const deltaY = mouseY - this.lastMouseY;
         
-        const state = store.getState();
-        const { pan } = state.editor;
-
-        store.dispatch('UPDATE_VIEWPORT', {
-            pan: {
-                x: pan.x + deltaX,
-                y: pan.y + deltaY
+        if (this.isPerformancePanning) {
+            const deltaX = mouseX - this.dragStart.x;
+            const deltaY = mouseY - this.dragStart.y;
+            
+            const state = store.getState();
+            const { zoom } = state.editor;
+            const startPan = this.panStart;
+            
+            // Apply direct CSS transform for performance
+            // We move the layers by the delta from the start position
+            const newPanX = startPan.x + deltaX;
+            const newPanY = startPan.y + deltaY;
+            
+            // Transform content and background layers
+            const transform = `translate(${newPanX}px, ${newPanY}px) scale(${zoom})`;
+            if (this.contentLayer) this.contentLayer.style.transform = transform;
+            if (this.backgroundLayer) this.backgroundLayer.style.transform = transform;
+            
+            // Transform canvas element to move the gizmos visually
+            // Gizmos are drawn at startPan, so we translate the canvas by delta
+            if (this.canvas) {
+                this.canvas.style.transform = `translate(${deltaX}px, ${deltaY}px)`;
             }
-        });
+            
+            // Motion Blur (Performance Optimization)
+            // Only apply if velocity is significant
+            const velocityX = mouseX - this.lastMouseX;
+            const velocityY = mouseY - this.lastMouseY;
+            const velocity = Math.sqrt(velocityX * velocityX + velocityY * velocityY);
+            
+            if (this.contentLayer) {
+                if (velocity > 15) {
+                    // Cap blur at 4px to avoid too much performance cost
+                    const blurAmount = Math.min(velocity / 15, 4); 
+                    this.contentLayer.style.filter = `blur(${blurAmount}px)`;
+                } else {
+                    this.contentLayer.style.filter = 'none';
+                }
+            }
+            
+        } else {
+            const deltaX = mouseX - this.lastMouseX;
+            const deltaY = mouseY - this.lastMouseY;
+            
+            const state = store.getState();
+            const { pan } = state.editor;
+
+            store.dispatch('UPDATE_VIEWPORT', {
+                pan: {
+                    x: pan.x + deltaX,
+                    y: pan.y + deltaY
+                }
+            });
+        }
     }
 
     _handleDragging(mouseX, mouseY, e) {
@@ -1189,6 +1238,28 @@ export class CanvasManager {
         const mouseX = e.clientX - rect.left;
         const mouseY = e.clientY - rect.top;
         this._broadcastMouseState(mouseX, mouseY, e, state, false);
+
+        // Commit Performance Panning
+        if (this.isPerformancePanning) {
+            const deltaX = mouseX - this.dragStart.x;
+            const deltaY = mouseY - this.dragStart.y;
+            
+            // Commit final pan to store
+            store.dispatch('UPDATE_VIEWPORT', {
+                pan: {
+                    x: this.panStart.x + deltaX,
+                    y: this.panStart.y + deltaY
+                }
+            });
+            
+            // Reset temporary transforms (Canvas only - content/bg will be updated by store subscription)
+            // We reset canvas transform because GizmoRenderer will redraw at new store coordinates
+            if (this.canvas) this.canvas.style.transform = '';
+            if (this.contentLayer) this.contentLayer.style.filter = 'none';
+            
+            this.isPerformancePanning = false;
+            this.panStart = null;
+        }
 
         if (this.interactionState === 'RESIZING' || this.interactionState === 'DRAGGING') {
             // Check for click (no drag) on local placeholder
