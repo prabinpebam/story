@@ -592,7 +592,7 @@ export class SlideSection {
         // 2. Layout Section (Slide only) - update title based on mode
         if (mode !== 'master') {
             this.layoutSection.element.classList.remove('hidden');
-            this.layoutSection.element.querySelector('.pi-section-title').textContent = 'Layout';
+            this.layoutSection.setTitle('Layout');
             this.layoutRow.classList.remove('hidden');
             
             // Update layout options for hidden dropdown
@@ -612,7 +612,7 @@ export class SlideSection {
         } else {
             // In master mode, show as "Dimensions" section (no layout picker)
             this.layoutSection.element.classList.remove('hidden');
-            this.layoutSection.element.querySelector('.pi-section-title').textContent = 'Dimensions';
+            this.layoutSection.setTitle('Dimensions');
             this.layoutRow.classList.add('hidden');
         }
 

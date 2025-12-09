@@ -7,6 +7,8 @@ import { store } from '../../core/Store.js';
 export class PositionSection {
     constructor() {
         this.section = new Section({ title: 'Position' });
+        this.distributeHBtn = null;
+        this.distributeVBtn = null;
         this.createContent();
     }
 
@@ -35,7 +37,31 @@ export class PositionSection {
 
         this.section.appendChild(alignRow);
 
-        // 2. Coordinates Row (X, Y)
+        // 2. Distribute Row (new)
+        const distributeRow = document.createElement('div');
+        distributeRow.className = 'pi-row pi-distribute-row';
+
+        this.distributeHBtn = new IconButton({
+            icon: Icons.DISTRIBUTE_H,
+            title: 'Distribute Horizontally',
+            onClick: () => this.handleDistribute('horizontal')
+        });
+
+        this.distributeVBtn = new IconButton({
+            icon: Icons.DISTRIBUTE_V,
+            title: 'Distribute Vertically',
+            onClick: () => this.handleDistribute('vertical')
+        });
+
+        // Initially disabled (need 3+ elements)
+        this.distributeHBtn.setDisabled(true);
+        this.distributeVBtn.setDisabled(true);
+
+        distributeRow.appendChild(this.distributeHBtn.element);
+        distributeRow.appendChild(this.distributeVBtn.element);
+        this.section.appendChild(distributeRow);
+
+        // 3. Coordinates Row (X, Y)
         const coordRow = document.createElement('div');
         coordRow.className = 'pi-row';
 
@@ -55,7 +81,7 @@ export class PositionSection {
         coordRow.appendChild(this.yInput.element);
         this.section.appendChild(coordRow);
 
-        // 3. Transform Row (Rotation, Flips)
+        // 4. Transform Row (Rotation, Flips)
         const transformRow = document.createElement('div');
         transformRow.className = 'pi-row';
 
@@ -105,10 +131,14 @@ export class PositionSection {
     update(selection) {
         if (!selection || selection.length === 0) {
             this.section.element.classList.add('hidden');
+            this.updateDistributeButtons(selection);
             return;
         }
         
         this.section.element.classList.remove('hidden');
+        
+        // Update distribute button state based on selection count
+        this.updateDistributeButtons(selection);
         
         // For multi-selection, we might show mixed values or the first one
         // For now, let's grab the first element's properties
@@ -123,6 +153,25 @@ export class PositionSection {
             this.yInput.setValue(element.y, false);
             this.rotationInput.setValue(element.rotation || 0, false);
         }
+    }
+
+    /**
+     * Update distribute button enabled/disabled state.
+     * Distribute requires at least 3 elements to make sense.
+     * @param {Array} selection - Array of selected element IDs
+     */
+    updateDistributeButtons(selection) {
+        const enabled = selection && selection.length >= 3;
+        this.distributeHBtn.setDisabled(!enabled);
+        this.distributeVBtn.setDisabled(!enabled);
+    }
+
+    /**
+     * Handle distribute action - evenly space elements.
+     * @param {string} direction - 'horizontal' or 'vertical'
+     */
+    handleDistribute(direction) {
+        store.dispatch('DISTRIBUTE_ELEMENTS', direction);
     }
 
     getElement(state, id) {

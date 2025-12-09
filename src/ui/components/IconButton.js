@@ -70,4 +70,12 @@ export class IconButton {
         // Also toggle legacy 'active' class for old CSS rules
         this.element.classList.toggle('active', isActive);
     }
+
+    /**
+     * Set disabled state
+     * @param {boolean} disabled
+     */
+    setDisabled(disabled) {
+        this._button.setDisabled(disabled);
+    }
 }

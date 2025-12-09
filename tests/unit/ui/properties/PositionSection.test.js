@@ -58,7 +58,9 @@ vi.mock('../../../../src/ui/Icons.js', () => ({
         ALIGN_BOTTOM: '<svg>bottom</svg>',
         ROTATE_CCW: '<svg>rotate</svg>',
         FLIP_H: '<svg>fliph</svg>',
-        FLIP_V: '<svg>flipv</svg>'
+        FLIP_V: '<svg>flipv</svg>',
+        DISTRIBUTE_H: '<svg>distribute-h</svg>',
+        DISTRIBUTE_V: '<svg>distribute-v</svg>'
     }
 }));
 
@@ -128,7 +130,10 @@ describe('PositionSection', () => {
             el.onclick = onClick;
             return {
                 element: el,
-                title
+                title,
+                setDisabled: vi.fn((disabled) => {
+                    el.disabled = disabled;
+                })
             };
         });
         
@@ -167,8 +172,8 @@ describe('PositionSection', () => {
         });
 
         it('should create 6 alignment buttons', () => {
-            // 6 alignment buttons + 3 transform buttons = 9 IconButton calls
-            expect(MockIconButton).toHaveBeenCalledTimes(9);
+            // 6 alignment buttons + 2 distribute buttons + 3 transform buttons = 11 IconButton calls
+            expect(MockIconButton).toHaveBeenCalledTimes(11);
         });
     });
 
@@ -370,6 +375,179 @@ describe('PositionSection', () => {
 
         it('should handle vertical flip', () => {
             expect(() => positionSection.handleFlip('vertical')).not.toThrow();
+        });
+    });
+
+    describe('distribute controls', () => {
+        describe('UI creation', () => {
+            it('should create distribute horizontal button', () => {
+                // Check that IconButton was called with DISTRIBUTE_H
+                const distributeHCall = MockIconButton.mock.calls.find(
+                    call => call[0].title === 'Distribute Horizontally'
+                );
+                expect(distributeHCall).toBeDefined();
+            });
+
+            it('should create distribute vertical button', () => {
+                const distributeVCall = MockIconButton.mock.calls.find(
+                    call => call[0].title === 'Distribute Vertically'
+                );
+                expect(distributeVCall).toBeDefined();
+            });
+
+            it('should create 11 total IconButtons (6 align + 3 transform + 2 distribute)', () => {
+                expect(MockIconButton).toHaveBeenCalledTimes(11);
+            });
+        });
+
+        describe('handleDistribute()', () => {
+            it('should dispatch DISTRIBUTE_ELEMENTS with horizontal direction', () => {
+                positionSection.handleDistribute('horizontal');
+                
+                expect(mockDispatch).toHaveBeenCalledWith('DISTRIBUTE_ELEMENTS', 'horizontal');
+            });
+
+            it('should dispatch DISTRIBUTE_ELEMENTS with vertical direction', () => {
+                positionSection.handleDistribute('vertical');
+                
+                expect(mockDispatch).toHaveBeenCalledWith('DISTRIBUTE_ELEMENTS', 'vertical');
+            });
+        });
+
+        describe('button state', () => {
+            it('should have distribute buttons defined', () => {
+                expect(positionSection.distributeHBtn).toBeDefined();
+                expect(positionSection.distributeVBtn).toBeDefined();
+            });
+        });
+
+        describe('updateDistributeButtons()', () => {
+            let distributeHElement;
+            let distributeVElement;
+
+            beforeEach(() => {
+                // Create fresh instance with trackable distribute button elements
+                vi.clearAllMocks();
+                
+                distributeHElement = document.createElement('button');
+                distributeVElement = document.createElement('button');
+                
+                let iconButtonCallCount = 0;
+                MockIconButton.mockImplementation(({ icon, title, onClick }) => {
+                    const el = document.createElement('button');
+                    el.onclick = onClick;
+                    
+                    // Track distribute buttons specifically
+                    if (title === 'Distribute Horizontally') {
+                        distributeHElement = el;
+                    } else if (title === 'Distribute Vertically') {
+                        distributeVElement = el;
+                    }
+                    
+                    return {
+                        element: el,
+                        title,
+                        setDisabled: vi.fn((disabled) => {
+                            el.disabled = disabled;
+                        })
+                    };
+                });
+                
+                positionSection = new PositionSection();
+            });
+
+            it('should disable distribute buttons when less than 3 elements selected', () => {
+                positionSection.updateDistributeButtons(['el-1', 'el-2']);
+                
+                expect(positionSection.distributeHBtn.setDisabled).toHaveBeenCalledWith(true);
+                expect(positionSection.distributeVBtn.setDisabled).toHaveBeenCalledWith(true);
+            });
+
+            it('should enable distribute buttons when 3 or more elements selected', () => {
+                positionSection.updateDistributeButtons(['el-1', 'el-2', 'el-3']);
+                
+                expect(positionSection.distributeHBtn.setDisabled).toHaveBeenCalledWith(false);
+                expect(positionSection.distributeVBtn.setDisabled).toHaveBeenCalledWith(false);
+            });
+
+            it('should disable distribute buttons when selection is empty', () => {
+                positionSection.updateDistributeButtons([]);
+                
+                expect(positionSection.distributeHBtn.setDisabled).toHaveBeenCalledWith(true);
+                expect(positionSection.distributeVBtn.setDisabled).toHaveBeenCalledWith(true);
+            });
+
+            it('should disable distribute buttons when selection is null', () => {
+                positionSection.updateDistributeButtons(null);
+                
+                expect(positionSection.distributeHBtn.setDisabled).toHaveBeenCalledWith(true);
+                expect(positionSection.distributeVBtn.setDisabled).toHaveBeenCalledWith(true);
+            });
+
+            it('should enable distribute buttons with exactly 3 elements', () => {
+                positionSection.updateDistributeButtons(['el-1', 'el-2', 'el-3']);
+                
+                expect(positionSection.distributeHBtn.setDisabled).toHaveBeenCalledWith(false);
+            });
+
+            it('should enable distribute buttons with more than 3 elements', () => {
+                positionSection.updateDistributeButtons(['el-1', 'el-2', 'el-3', 'el-4', 'el-5']);
+                
+                expect(positionSection.distributeHBtn.setDisabled).toHaveBeenCalledWith(false);
+                expect(positionSection.distributeVBtn.setDisabled).toHaveBeenCalledWith(false);
+            });
+        });
+
+        describe('update() integration', () => {
+            beforeEach(() => {
+                vi.clearAllMocks();
+                
+                MockIconButton.mockImplementation(({ icon, title, onClick }) => {
+                    const el = document.createElement('button');
+                    el.onclick = onClick;
+                    return {
+                        element: el,
+                        title,
+                        setDisabled: vi.fn((disabled) => {
+                            el.disabled = disabled;
+                        })
+                    };
+                });
+                
+                positionSection = new PositionSection();
+            });
+
+            it('should call updateDistributeButtons when update() is called', () => {
+                const spy = vi.spyOn(positionSection, 'updateDistributeButtons');
+                
+                positionSection.update(['el-1', 'el-2', 'el-3']);
+                
+                expect(spy).toHaveBeenCalledWith(['el-1', 'el-2', 'el-3']);
+            });
+
+            it('should enable distribute buttons during update with 3+ elements', () => {
+                mockGetState.mockReturnValue({
+                    editor: {
+                        mode: 'edit',
+                        activeSlideId: 'slide-1',
+                        selectedElementIds: ['el-1', 'el-2', 'el-3']
+                    },
+                    slides: {
+                        'slide-1': {
+                            elements: {
+                                'el-1': { id: 'el-1', x: 0, y: 0 },
+                                'el-2': { id: 'el-2', x: 100, y: 0 },
+                                'el-3': { id: 'el-3', x: 200, y: 0 }
+                            }
+                        }
+                    }
+                });
+                
+                positionSection.update(['el-1', 'el-2', 'el-3']);
+                
+                expect(positionSection.distributeHBtn.setDisabled).toHaveBeenCalledWith(false);
+                expect(positionSection.distributeVBtn.setDisabled).toHaveBeenCalledWith(false);
+            });
         });
     });
 });

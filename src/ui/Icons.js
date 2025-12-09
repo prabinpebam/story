@@ -39,6 +39,10 @@ export const Icons = {
     ALIGN_BOTTOM: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="3" y="12" width="10" height="2" fill="currentColor"/><rect x="5" y="2" width="2" height="8" fill="currentColor"/><rect x="9" y="4" width="2" height="6" fill="currentColor"/></svg>',
     ALIGN_JUSTIFY: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="2" y="3" width="12" height="2" fill="currentColor"/><rect x="2" y="7" width="12" height="2" fill="currentColor"/><rect x="2" y="11" width="12" height="2" fill="currentColor"/></svg>',
 
+    // Distribution (evenly space elements)
+    DISTRIBUTE_H: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="2" y="3" width="1" height="10" fill="currentColor"/><rect x="13" y="3" width="1" height="10" fill="currentColor"/><rect x="5" y="5" width="2" height="6" fill="currentColor"/><rect x="9" y="5" width="2" height="6" fill="currentColor"/></svg>',
+    DISTRIBUTE_V: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="3" y="2" width="10" height="1" fill="currentColor"/><rect x="3" y="13" width="10" height="1" fill="currentColor"/><rect x="5" y="5" width="6" height="2" fill="currentColor"/><rect x="5" y="9" width="6" height="2" fill="currentColor"/></svg>',
+
     // Transform
     FLIP_H: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 2L2 8L8 14V2Z" fill="currentColor"/><path d="M8 2L14 8L8 14V2Z" stroke="currentColor" stroke-width="1.5"/></svg>',
     FLIP_V: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M2 8L8 2L14 8H2Z" fill="currentColor"/><path d="M2 8L8 14L14 8H2Z" stroke="currentColor" stroke-width="1.5"/></svg>',
