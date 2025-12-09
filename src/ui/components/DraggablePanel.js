@@ -41,6 +41,7 @@ export class DraggablePanel {
         this.headerElement = null;
         this.contentElement = null;
         this.resizeHandles = {};
+        this.closeAnimation = null; // Track close animation to cancel if re-opened
         
         // Bound handlers for event cleanup
         this.boundHandleDragMove = this.handleDragMove.bind(this);
@@ -55,7 +56,7 @@ export class DraggablePanel {
     createElement() {
         // Main panel container
         this.element = document.createElement('div');
-        this.element.className = 'draggable-panel';
+        this.element.className = 'draggable-panel hidden'; // Start hidden
         this.element.id = `panel-${this.options.id}`;
         // Dynamic min/max sizes need inline styles
         this.element.style.minWidth = `${this.options.minWidth}px`;
@@ -343,8 +344,17 @@ export class DraggablePanel {
             return;
         }
         
+        // Cancel any pending close animation that might re-add 'hidden'
+        if (this.closeAnimation) {
+            this.closeAnimation.cancel();
+            this.closeAnimation = null;
+        }
+        
         this.isOpen = true;
         this.element.classList.remove('hidden');
+        
+        // Ensure panel is within viewport bounds before showing
+        this.constrainToViewport();
         this.updatePosition();
         this.updateSize();
         this.bringToFront();
@@ -365,13 +375,17 @@ export class DraggablePanel {
         this.savePosition();
         
         // Animation
-        const animation = this.element.animate([
+        this.closeAnimation = this.element.animate([
             { opacity: 1, transform: 'scale(1)' },
             { opacity: 0, transform: 'scale(0.95)' }
         ], { duration: 100, easing: 'ease-in' });
         
-        animation.onfinish = () => {
-            this.element.classList.add('hidden');
+        this.closeAnimation.onfinish = () => {
+            // Only add hidden if still closed (wasn't re-opened during animation)
+            if (!this.isOpen) {
+                this.element.classList.add('hidden');
+            }
+            this.closeAnimation = null;
         };
         
         this.onClose();

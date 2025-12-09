@@ -28,6 +28,8 @@ export const StyleResolver = {
      * Get the effective color theme for a slide by walking up the hierarchy.
      * Hierarchy: Slide → Layout Master → Theme Master
      * 
+     * Checks both legacy `colorThemeId` and new `styleAssignments.colorTheme`.
+     * 
      * @param {string} slideId - The slide ID to resolve theme for
      * @returns {{themeId: string|null, source: 'slide'|'layout'|'master', sourceId: string, sourceLabel: string}}
      */
@@ -45,32 +47,35 @@ export const StyleResolver = {
             return this._getMasterThemeInfo(state);
         }
         
-        // 1. Check slide's own colorThemeId
-        if (slide.colorThemeId) {
+        // 1. Check slide's own colorTheme (new styleAssignments or legacy colorThemeId)
+        const slideThemeId = slide.styleAssignments?.colorTheme || slide.colorThemeId;
+        if (slideThemeId) {
             return {
-                themeId: slide.colorThemeId,
+                themeId: slideThemeId,
                 source: 'slide',
                 sourceId: slideId,
                 sourceLabel: 'slide-specific'
             };
         }
         
-        // 2. Check layout master
+        // 2. Check layout master (new styleAssignments or legacy colorThemeId)
         const layout = slide.layoutId ? state.slideMasterPresets?.[slide.layoutId] : null;
-        if (layout?.colorThemeId) {
+        const layoutThemeId = layout?.styleAssignments?.colorTheme || layout?.colorThemeId;
+        if (layoutThemeId) {
             return {
-                themeId: layout.colorThemeId,
+                themeId: layoutThemeId,
                 source: 'layout',
                 sourceId: layout.id,
                 sourceLabel: `inherited from ${layout.name || 'Layout'}`
             };
         }
         
-        // 3. Check theme master (parent of layout)
+        // 3. Check theme master (parent of layout) - both styleAssignments and legacy
         const themeMaster = layout?.parentMasterId ? state.slideMasterPresets?.[layout.parentMasterId] : null;
-        if (themeMaster?.colorThemeId) {
+        const masterThemeId = themeMaster?.styleAssignments?.colorTheme || themeMaster?.colorThemeId;
+        if (masterThemeId) {
             return {
-                themeId: themeMaster.colorThemeId,
+                themeId: masterThemeId,
                 source: 'master',
                 sourceId: themeMaster.id,
                 sourceLabel: 'inherited from Master'

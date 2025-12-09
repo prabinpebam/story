@@ -114,3 +114,31 @@ if (global.window) {
         writable: true
     });
 }
+
+// Mock Web Animations API (not supported in jsdom)
+if (typeof Element !== 'undefined' && !Element.prototype.animate) {
+    Element.prototype.animate = function(keyframes, options) {
+        const animation = {
+            onfinish: null,
+            oncancel: null,
+            finished: Promise.resolve(),
+            cancel: function() {
+                if (this.oncancel) this.oncancel();
+            },
+            finish: function() {
+                if (this.onfinish) this.onfinish();
+            },
+            play: function() {},
+            pause: function() {},
+            reverse: function() {},
+            currentTime: 0,
+            playbackRate: 1,
+            playState: 'finished'
+        };
+        // Immediately call onfinish to simulate completed animation
+        setTimeout(() => {
+            if (animation.onfinish) animation.onfinish();
+        }, 0);
+        return animation;
+    };
+}

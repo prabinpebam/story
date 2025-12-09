@@ -1432,6 +1432,16 @@
     overflow: hidden;
 }
 
+/* Panel is visible (display: flex) when NOT hidden */
+.draggable-panel:not(.hidden) {
+    display: flex;
+}
+
+/* Explicit hidden state */
+.draggable-panel.hidden {
+    display: none;
+}
+
 .draggable-panel-header {
     display: flex;
     align-items: center;
