@@ -45,7 +45,7 @@ export class TextSection {
             title: 'Style Options',
             onClick: (e) => this.openStyleMenu(e)
         });
-        this.styleMenuBtn.element.style.visibility = 'hidden'; // Hidden when no style
+        this.styleMenuBtn.element.classList.add('hidden'); // Hidden when no style
         styleRow.appendChild(this.styleMenuBtn.element);
 
         this.section.appendChild(styleRow);
@@ -66,15 +66,12 @@ export class TextSection {
         });
         this.overrideIndicator.appendChild(resetBtn.element);
         
-        this.overrideIndicator.style.display = 'none';
+        // Hidden by default, shown via .visible class
         this.section.appendChild(this.overrideIndicator);
 
         // 1. Font Family & Style & Size
         const fontRow = document.createElement('div');
-        fontRow.className = 'pi-row';
-        fontRow.style.display = 'grid';
-        fontRow.style.gridTemplateColumns = '2fr 1fr 1fr';
-        fontRow.style.gap = '8px';
+        fontRow.className = 'pi-grid-row cols-2-1-1';
 
         this.fontFamilyInput = new Dropdown({
             options: FontManager.getAvailableFonts().map(f => ({ label: f.family, value: f.family })),
@@ -115,21 +112,14 @@ export class TextSection {
 
         // 2. Text Fill
         this.fillRow = document.createElement('div');
-        this.fillRow.className = 'pi-row';
-        this.fillRow.style.marginTop = '8px';
-        this.fillRow.style.display = 'flex';
-        this.fillRow.style.alignItems = 'center';
-        this.fillRow.style.height = '28px';
+        this.fillRow.className = 'pi-fill-row';
         
         this.createFillControl();
         this.section.appendChild(this.fillRow);
 
         // 3. Line Height & Letter Spacing
         const spacingRow = document.createElement('div');
-        spacingRow.className = 'pi-row';
-        spacingRow.style.display = 'grid';
-        spacingRow.style.gridTemplateColumns = '1fr 1fr';
-        spacingRow.style.gap = '8px';
+        spacingRow.className = 'pi-grid-row cols-1-1';
 
         this.lineHeightInput = new NumberInput({
             label: 'LH',
@@ -155,14 +145,10 @@ export class TextSection {
 
         // 4. Alignment
         const alignRow = document.createElement('div');
-        alignRow.className = 'pi-row';
-        alignRow.style.display = 'flex';
-        alignRow.style.justifyContent = 'space-between';
-        alignRow.style.alignItems = 'center';
+        alignRow.className = 'pi-align-row';
 
         const alignGroup = document.createElement('div');
-        alignGroup.style.display = 'flex';
-        alignGroup.style.gap = '2px';
+        alignGroup.className = 'pi-btn-group';
 
         const aligns = [
             { icon: Icons.ALIGN_LEFT, value: 'left', prop: 'textAlign' },
@@ -227,29 +213,14 @@ export class TextSection {
     createFillControl() {
         // Combined Input Group (Swatch + Hex + Opacity)
         const combinedInput = document.createElement('div');
-        combinedInput.style.flex = '1';
-        combinedInput.style.display = 'flex';
-        combinedInput.style.alignItems = 'center';
-        combinedInput.style.border = '1px solid var(--color-border)';
-        combinedInput.style.borderRadius = 'var(--radius-sm)';
-        combinedInput.style.height = '24px';
-        combinedInput.style.overflow = 'hidden';
-        combinedInput.style.backgroundColor = 'var(--color-bg-input)';
+        combinedInput.className = 'fill-input-group';
 
         // Swatch
         this.fillSwatch = document.createElement('div');
-        this.fillSwatch.className = 'color-swatch-trigger';
-        this.fillSwatch.style.width = '22px';
-        this.fillSwatch.style.height = '100%';
-        this.fillSwatch.style.cursor = 'pointer';
-        this.fillSwatch.style.display = 'flex';
-        this.fillSwatch.style.alignItems = 'center';
-        this.fillSwatch.style.justifyContent = 'center';
+        this.fillSwatch.className = 'fill-swatch-trigger';
         
         this.fillPreview = document.createElement('div');
-        this.fillPreview.style.width = 'var(--swatch-size-sm)';
-        this.fillPreview.style.height = 'var(--swatch-size-sm)';
-        this.fillPreview.style.borderRadius = 'var(--radius-xs)';
+        this.fillPreview.className = 'fill-preview';
         this.fillSwatch.appendChild(this.fillPreview);
         
         // Hover handlers for border opacity
@@ -274,14 +245,7 @@ export class TextSection {
         // Hex Input
         this.fillHexInput = document.createElement('input');
         this.fillHexInput.type = 'text';
-        this.fillHexInput.style.flex = '1';
-        this.fillHexInput.style.minWidth = '0';
-        this.fillHexInput.style.border = 'none';
-        this.fillHexInput.style.background = 'transparent';
-        this.fillHexInput.style.color = 'var(--color-text-secondary)';
-        this.fillHexInput.style.fontSize = '11px';
-        this.fillHexInput.style.fontFamily = 'monospace';
-        this.fillHexInput.style.padding = '0 2px';
+        this.fillHexInput.className = 'fill-hex-input';
         this.fillHexInput.spellcheck = false;
         this.fillHexInput.dataset.testid = 'text-color-hex';
         
@@ -299,9 +263,7 @@ export class TextSection {
 
         // Separator
         const separator = document.createElement('div');
-        separator.style.width = '1px';
-        separator.style.height = '12px';
-        separator.style.backgroundColor = 'var(--color-border)';
+        separator.className = 'fill-separator';
         combinedInput.appendChild(separator);
 
         // Opacity
@@ -317,13 +279,8 @@ export class TextSection {
             }
         });
         
-        this.fillOpacityInput.element.style.width = '40px';
+        this.fillOpacityInput.element.className = 'fill-opacity-input';
         this.fillOpacityInput.element.dataset.testid = 'text-color-opacity';
-        this.fillOpacityInput.element.style.flex = '0 0 40px';
-        this.fillOpacityInput.element.style.border = 'none';
-        this.fillOpacityInput.element.style.background = 'transparent';
-        this.fillOpacityInput.element.querySelector('input').style.padding = '0';
-        this.fillOpacityInput.element.querySelector('input').style.textAlign = 'center';
         
         combinedInput.appendChild(this.fillOpacityInput.element);
         
@@ -337,11 +294,11 @@ export class TextSection {
             .filter(el => el && el.type === 'text');
 
         if (textElements.length === 0) {
-            this.section.element.style.display = 'none';
+            this.section.element.classList.add('hidden');
             return;
         }
 
-        this.section.element.style.display = 'block';
+        this.section.element.classList.remove('hidden');
         const el = textElements[0];
         
         // Update style dropdown options (in case theme changed)
@@ -369,13 +326,6 @@ export class TextSection {
         this.fontWeightInput.setValue(props.fontWeight, false);
         this.fontSizeInput.setValue(props.fontSize, false);
         
-        // Resizing
-        // Check root level first, then style level for resizing mode
-        const resizing = el.resizing || el.style?.resizing || 'fixedWidth';
-        this.resizeButtons.forEach(b => {
-            b.btn.setActive(b.value === resizing);
-        });
-        
         // Line Height
         if (props.lineHeight === 'auto') {
             this.lineHeightInput.setValue(1.2, false); 
@@ -392,14 +342,12 @@ export class TextSection {
         }
         this.letterSpacingInput.setValue(ls, false);
         
-        // Alignment
+        // Alignment - toggle active class, CSS handles styling
         this.alignButtons.forEach(({ btn, value, prop }) => {
             if (props[prop] === value) {
                 btn.element.classList.add('active');
-                btn.element.style.backgroundColor = 'var(--color-bg-hover)';
             } else {
                 btn.element.classList.remove('active');
-                btn.element.style.backgroundColor = 'transparent';
             }
         });
         
@@ -816,20 +764,14 @@ export class TextSection {
     }
 
     openStyleMenu(e) {
-        // Simple context menu for style actions
+        // Simple context menu for style actions using design system classes
         const existingMenu = document.querySelector('.style-action-menu');
         if (existingMenu) existingMenu.remove();
         
         const menu = document.createElement('div');
-        menu.className = 'style-action-menu';
-        menu.style.position = 'fixed';
-        menu.style.backgroundColor = 'var(--menu-bg)';
-        menu.style.border = '1px solid var(--color-border)';
-        menu.style.borderRadius = 'var(--radius-sm)';
-        menu.style.padding = '4px 0';
-        menu.style.zIndex = 'var(--z-popover)';
-        menu.style.minWidth = '120px';
+        menu.className = 'style-action-menu context-menu visible';
         
+        // Position relative to trigger (dynamic positioning required)
         const rect = e.target.getBoundingClientRect();
         menu.style.top = (rect.bottom + 4) + 'px';
         menu.style.left = rect.left + 'px';
@@ -842,13 +784,13 @@ export class TextSection {
         
         actions.forEach(({ label, action }) => {
             const item = document.createElement('div');
-            item.textContent = label;
-            item.style.padding = '6px 12px';
-            item.style.fontSize = 'var(--font-size-md)';
-            item.style.cursor = 'pointer';
-            item.style.color = 'var(--color-text-primary)';
-            item.onmouseenter = () => item.style.backgroundColor = 'var(--color-bg-hover)';
-            item.onmouseleave = () => item.style.backgroundColor = 'transparent';
+            item.className = 'context-menu-item';
+            
+            const labelSpan = document.createElement('span');
+            labelSpan.className = 'context-menu-label';
+            labelSpan.textContent = label;
+            item.appendChild(labelSpan);
+            
             item.onclick = () => {
                 menu.remove();
                 action();
@@ -898,11 +840,11 @@ export class TextSection {
         // Update dropdown value
         this.styleDropdown.setValue(this.currentStyleId || '', false);
         
-        // Show/hide style menu button
-        this.styleMenuBtn.element.style.visibility = this.currentStyleId ? 'visible' : 'hidden';
+        // Show/hide style menu button using CSS class
+        this.styleMenuBtn.element.classList.toggle('hidden', !this.currentStyleId);
         
-        // Show/hide override indicator
-        this.overrideIndicator.style.display = (this.currentStyleId && this.hasStyleOverrides) ? 'flex' : 'none';
+        // Show/hide override indicator using CSS class
+        this.overrideIndicator.classList.toggle('hidden', !(this.currentStyleId && this.hasStyleOverrides));
     }
 
     checkForStyleOverrides(element, style) {

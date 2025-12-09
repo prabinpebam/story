@@ -20,8 +20,7 @@ export class EffectsSection {
             ]
         });
         this.container = document.createElement('div');
-        this.container.className = 'pi-section-content';
-        this.container.style.gap = '0';
+        this.container.className = 'pi-section-content pi-gap-0';
         this.section.appendChild(this.container);
         this.activeFlyout = null;
         this.activeEffectType = null;
@@ -29,11 +28,11 @@ export class EffectsSection {
 
     update(selection) {
         if (!selection || selection.length === 0) {
-            this.section.element.style.display = 'none';
+            this.section.element.classList.add('hidden');
             return;
         }
         
-        this.section.element.style.display = 'block';
+        this.section.element.classList.remove('hidden');
         this.selection = selection;
         
         const state = store.getState();
@@ -118,39 +117,22 @@ export class EffectsSection {
     renderEffectRow(type, name, icon, isActive, isVisible, onEdit, onToggleVisibility, onRemove) {
         const row = document.createElement('div');
         row.dataset.effectType = type;
-        row.className = 'pi-row';
-        row.style.justifyContent = 'space-between';
-        row.style.cursor = 'pointer';
-        // row.style.padding = '4px 8px';
-        row.style.borderRadius = '4px';
-        row.style.opacity = isVisible ? '1' : '0.5';
-        
-        if (isActive) {
-            row.style.backgroundColor = 'var(--color-accent-soft)';
-            row.style.border = '1px solid var(--color-accent)';
-        } else {
-            row.style.border = '1px solid transparent';
-        }
+        row.className = 'pi-row pi-effect-row';
+        if (isActive) row.classList.add('active');
+        if (!isVisible) row.classList.add('invisible');
         
         // Left: Icon + Name
         const left = document.createElement('div');
-        left.style.display = 'flex';
-        left.style.alignItems = 'center';
-        left.style.gap = '8px';
-        left.style.flex = '1';
+        left.className = 'pi-effect-row-left';
         
         // Small indicator icon
         const indicator = document.createElement('div');
         indicator.innerHTML = icon;
-        indicator.style.fontSize = '14px';
-        indicator.style.color = isActive ? 'var(--color-accent)' : 'var(--text-secondary)';
-        indicator.style.width = '16px';
-        indicator.style.textAlign = 'center';
+        indicator.className = 'pi-effect-indicator';
         
         const label = document.createElement('div');
         label.textContent = name;
-        label.style.fontSize = '12px';
-        label.style.color = 'var(--color-text-primary)';
+        label.className = 'pi-effect-label';
         
         left.appendChild(indicator);
         left.appendChild(label);
@@ -163,8 +145,7 @@ export class EffectsSection {
         
         // Right: Visibility + Remove
         const right = document.createElement('div');
-        right.style.display = 'flex';
-        right.style.gap = '4px';
+        right.className = 'pi-effect-row-right';
         
         const visibleBtn = new IconButton({
             icon: isVisible ? Icons.VISIBLE : Icons.HIDDEN,
@@ -199,17 +180,11 @@ export class EffectsSection {
         if (this.activeFlyout) this.activeFlyout.close();
 
         const content = document.createElement('div');
-        content.style.display = 'flex';
-        content.style.flexDirection = 'column';
-        content.style.gap = '8px';
-        content.style.width = '240px';
+        content.className = 'pi-flyout-content';
 
         // Header: Type + Blend + Close
         const header = document.createElement('div');
-        header.style.display = 'flex';
-        header.style.alignItems = 'center';
-        header.style.justifyContent = 'space-between';
-        header.style.marginBottom = '4px';
+        header.className = 'pi-flyout-header';
 
         const typeSelect = new Dropdown({
             options: [
@@ -223,8 +198,7 @@ export class EffectsSection {
         });
 
         const headerRight = document.createElement('div');
-        headerRight.style.display = 'flex';
-        headerRight.style.gap = '4px';
+        headerRight.className = 'pi-effect-row-right';
 
         // Blend Mode Dropdown (replacing the icon button)
         const blendModes = [

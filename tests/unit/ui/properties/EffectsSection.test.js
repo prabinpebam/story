@@ -153,7 +153,7 @@ describe('EffectsSection', () => {
 
         it('should create a container element', () => {
             expect(effectsSection.container).toBeDefined();
-            expect(effectsSection.container.className).toBe('pi-section-content');
+            expect(effectsSection.container.className).toBe('pi-section-content pi-gap-0');
         });
 
         it('should initialize activeFlyout as null', () => {
@@ -168,17 +168,17 @@ describe('EffectsSection', () => {
     describe('update()', () => {
         it('should hide section when selection is empty', () => {
             effectsSection.update([]);
-            expect(mockSectionElement.style.display).toBe('none');
+            expect(mockSectionElement.classList.contains('hidden')).toBe(true);
         });
 
         it('should hide section when selection is null', () => {
             effectsSection.update(null);
-            expect(mockSectionElement.style.display).toBe('none');
+            expect(mockSectionElement.classList.contains('hidden')).toBe(true);
         });
 
         it('should show section when selection has elements', () => {
             effectsSection.update(['element-1']);
-            expect(mockSectionElement.style.display).toBe('block');
+            expect(mockSectionElement.classList.contains('hidden')).toBe(false);
         });
 
         it('should store selection for later use', () => {

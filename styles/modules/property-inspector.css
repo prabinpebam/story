@@ -637,6 +637,87 @@ select.pi-input option {
     overflow: hidden;
 }
 
+/* Fixed Width Input - used for opacity, etc. */
+.pi-input-fixed-width {
+    flex: 0 0 100px;
+}
 
+/* Gap Utilities */
+.pi-gap-0 {
+    gap: 0;
+}
 
+/* Layout Mode Row - Text element resizing controls */
+.pi-layout-mode-row {
+    display: none; /* Hidden by default, shown via .visible */
+    gap: var(--spacing-0-5);
+    margin-bottom: var(--spacing-2);
+}
 
+.pi-layout-mode-row.visible {
+    display: flex;
+}
+
+/* Effect Row - Used in EffectsSection for shadow, blur, etc. */
+.pi-effect-row {
+    justify-content: space-between;
+    cursor: pointer;
+    border-radius: var(--radius-sm);
+    border: 1px solid transparent;
+}
+
+.pi-effect-row.active {
+    background-color: var(--color-accent-soft);
+    border-color: var(--color-accent);
+}
+
+.pi-effect-row.invisible {
+    opacity: 0.5;
+}
+
+/* Effect Row Left Section */
+.pi-effect-row-left {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-2);
+    flex: 1;
+}
+
+/* Effect Indicator Icon */
+.pi-effect-indicator {
+    font-size: var(--font-size-sm);
+    color: var(--color-text-secondary);
+    width: 16px;
+    text-align: center;
+}
+
+.pi-effect-row.active .pi-effect-indicator {
+    color: var(--color-accent);
+}
+
+/* Effect Label */
+.pi-effect-label {
+    font-size: var(--font-size-sm);
+    color: var(--color-text-primary);
+}
+
+/* Effect Row Right Section (buttons) */
+.pi-effect-row-right {
+    display: flex;
+    gap: var(--spacing-1);
+}
+
+/* Flyout Content Container */
+.pi-flyout-content {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-2);
+    width: 240px;
+}
+
+/* Flyout Header */
+.pi-flyout-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}

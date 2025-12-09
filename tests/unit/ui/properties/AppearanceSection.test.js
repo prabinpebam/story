@@ -177,17 +177,17 @@ describe('AppearanceSection', () => {
     describe('update()', () => {
         it('should hide section when selection is empty', () => {
             appearanceSection.update([]);
-            expect(mockSectionElement.style.display).toBe('none');
+            expect(mockSectionElement.classList.contains('hidden')).toBe(true);
         });
 
         it('should hide section when selection is null', () => {
             appearanceSection.update(null);
-            expect(mockSectionElement.style.display).toBe('none');
+            expect(mockSectionElement.classList.contains('hidden')).toBe(true);
         });
 
         it('should show section when selection has elements', () => {
             appearanceSection.update(['element-1']);
-            expect(mockSectionElement.style.display).toBe('block');
+            expect(mockSectionElement.classList.contains('hidden')).toBe(false);
         });
 
         it('should update opacity input value from element', () => {
@@ -202,7 +202,7 @@ describe('AppearanceSection', () => {
 
         it('should show radius input for rect elements', () => {
             appearanceSection.update(['element-1']);
-            expect(mockRadiusInput.element.style.display).toBe('flex');
+            expect(mockRadiusInput.element.classList.contains('hidden')).toBe(false);
             expect(mockRadiusInput.setValue).toHaveBeenCalledWith(10, false);
         });
 
@@ -218,7 +218,7 @@ describe('AppearanceSection', () => {
                 }
             });
             appearanceSection.update(['element-1']);
-            expect(mockRadiusInput.element.style.display).toBe('none');
+            expect(mockRadiusInput.element.classList.contains('hidden')).toBe(true);
         });
 
         it('should default opacity to 100% when undefined', () => {

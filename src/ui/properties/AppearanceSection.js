@@ -54,8 +54,8 @@ export class AppearanceSection {
             onChange: (val) => this.updateProperty('blendMode', val)
         });
         
-        // Style adjustments for row
-        this.opacityInput.element.style.flex = '0 0 100px'; // Fixed width for opacity
+        // Fixed width for opacity input
+        this.opacityInput.element.classList.add('pi-input-fixed-width');
 
         opacityRow.appendChild(this.opacityInput.element);
         opacityRow.appendChild(this.blendModeSelect.element);
@@ -78,11 +78,11 @@ export class AppearanceSection {
 
     update(selection) {
         if (!selection || selection.length === 0) {
-            this.section.element.style.display = 'none';
+            this.section.element.classList.add('hidden');
             return;
         }
         
-        this.section.element.style.display = 'block';
+        this.section.element.classList.remove('hidden');
         
         const state = store.getState();
         const elementId = selection[0];
@@ -98,11 +98,11 @@ export class AppearanceSection {
             
             // Only show radius for shapes/images/rects
             if (element.type === 'rect' || element.type === 'image') {
-                this.radiusInput.element.style.display = 'flex';
+                this.radiusInput.element.classList.remove('hidden');
                 const radius = element.borderRadius || 0;
                 this.radiusInput.setValue(radius, false);
             } else {
-                this.radiusInput.element.style.display = 'none';
+                this.radiusInput.element.classList.add('hidden');
             }
         }
     }

@@ -673,17 +673,19 @@ export class TextEditManager {
 
     /**
      * Handle blur event.
+     * Per spec §14.1: Stay in edit mode for PI and toolbar clicks.
      * @param {FocusEvent} event
      * @private
      */
     _handleBlur(event) {
-        // Don't exit if focus moved to Property Inspector
-        // Check if new focus target is within PI
+        // Don't exit if focus moved to Property Inspector or Toolbar
+        // Check if new focus target is within these UI areas
         const relatedTarget = event.relatedTarget;
         if (relatedTarget) {
             const isPI = relatedTarget.closest('.property-inspector');
-            if (isPI) {
-                // Save selection for PI interaction
+            const isToolbar = relatedTarget.closest('.toolbar');
+            if (isPI || isToolbar) {
+                // Save selection for PI/toolbar interaction
                 this.saveSelection();
                 return;
             }
@@ -954,6 +956,29 @@ export class TextEditManager {
     }
 
     /**
+     * Get the nesting level of a list item.
+     * Level 1 = top-level list, Level 5 = maximum allowed nesting.
+     * @param {Element} listItem - The LI element
+     * @returns {number} The nesting level (1-based)
+     * @private
+     */
+    _getListNestingLevel(listItem) {
+        if (!listItem) return 0;
+        
+        let level = 0;
+        let node = listItem;
+        
+        while (node && node !== this.currentElement) {
+            if (node.nodeName === 'UL' || node.nodeName === 'OL') {
+                level++;
+            }
+            node = node.parentNode;
+        }
+        
+        return level;
+    }
+
+    /**
      * Check if caret is at the start of a list item.
      * @returns {boolean}
      * @private
@@ -999,11 +1024,19 @@ export class TextEditManager {
 
     /**
      * Indent the current list item.
+     * Maximum 5 levels of nesting allowed per spec §9.3.
      * @private
      */
     _indentListItem() {
         const listItem = this._getCurrentListItem();
         if (!listItem) return;
+        
+        // Check current nesting level - max 5 levels allowed
+        const currentLevel = this._getListNestingLevel(listItem);
+        if (currentLevel >= 5) {
+            // Already at max level, ignore Tab
+            return;
+        }
         
         const prevSibling = listItem.previousElementSibling;
         if (!prevSibling || prevSibling.nodeName !== 'LI') {

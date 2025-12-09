@@ -253,12 +253,12 @@ describe('TextSection', () => {
             });
 
             textSection.update(['el-1']);
-            expect(mockSectionElement.style.display).toBe('none');
+            expect(mockSectionElement.classList.contains('hidden')).toBe(true);
         });
 
         it('should show section when text element is selected', () => {
             textSection.update(['element-1']);
-            expect(mockSectionElement.style.display).toBe('block');
+            expect(mockSectionElement.classList.contains('hidden')).toBe(false);
         });
 
         it('should call StyleResolver.getEffectiveTextProperties', () => {

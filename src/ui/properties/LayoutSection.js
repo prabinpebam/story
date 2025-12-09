@@ -15,10 +15,7 @@ export class LayoutSection {
     createContent() {
         // Layout Mode Row (Auto Size / Fixed Width / Fixed Size) - Only shown for text elements
         this.layoutModeRow = document.createElement('div');
-        this.layoutModeRow.className = 'pi-row';
-        this.layoutModeRow.style.display = 'none'; // Hidden by default
-        this.layoutModeRow.style.gap = '2px';
-        this.layoutModeRow.style.marginBottom = '8px';
+        this.layoutModeRow.className = 'pi-layout-mode-row';
 
         const layoutModes = [
             { icon: Icons.TEXT_AUTO_SIZE, value: 'autoSize', title: 'Auto Size' },
@@ -108,11 +105,11 @@ export class LayoutSection {
 
     update(selection) {
         if (!selection || selection.length === 0) {
-            this.section.element.style.display = 'none';
+            this.section.element.classList.add('hidden');
             return;
         }
         
-        this.section.element.style.display = 'block';
+        this.section.element.classList.remove('hidden');
         
         const state = store.getState();
         const elementId = selection[0];
@@ -131,7 +128,7 @@ export class LayoutSection {
 
             // Show layout mode buttons only for text elements
             this.isTextElement = element.type === 'text';
-            this.layoutModeRow.style.display = this.isTextElement ? 'flex' : 'none';
+            this.layoutModeRow.classList.toggle('visible', this.isTextElement);
 
             if (this.isTextElement) {
                 // Update layout mode button states
