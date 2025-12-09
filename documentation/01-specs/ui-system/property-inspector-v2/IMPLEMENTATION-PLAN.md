@@ -451,6 +451,142 @@ Complete accessibility implementation and polish interactions.
 
 ---
 
+## Phase 4: Theme-Linked Properties (Week 11-12)
+
+### Goal
+Complete implementation of theme-linked property indicators and slide-level theme override UI.
+
+**Spec Reference:** [16-theme-linked-properties.md](./16-theme-linked-properties.md), [Color Theme Cascade](../../slides/themes/color-theme-cascade-architecture.md)
+
+### 4.1 Theme-Linked Indicator in Fill Section
+
+**Current State:** Theme swatches work, but fill rows don't indicate when a fill is theme-linked.
+**Expected State:** Visual indicator (accent border + link icon) when `fill.themeSlot` is set.
+
+**UI Implementation:**
+```
+┌─────────────────────────────────────────────────────────────────┐
+│  HARDCODED:                                                     │
+│  [≡] [■] #FF5500    100%  [👁] [−]                             │
+│                                                                 │
+│  THEME-LINKED:                                                  │
+│  [≡] ║[■] Slot 5 🔗  100%  [👁] [−]                            │
+│      ↑ Accent border + "Slot N" label + link icon              │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+**Files to Modify:**
+- `src/ui/properties/FillSection.js` - Add `theme-linked` class when `fill.themeSlot` exists
+- `src/ui/components/FillFlyout/SolidTab.js` - Update to pass `themeSlot` in callback
+- `styles/modules/properties.css` - Add `.fill-row.theme-linked` styles
+
+**Tests Required:**
+- [ ] Fill row shows accent border when `themeSlot` is set
+- [ ] Fill row shows "Slot N" label instead of hex when linked
+- [ ] Link icon (🔗) visible for linked fills
+- [ ] Picking custom color removes `themeSlot` (breaks link)
+- [ ] Picking theme swatch sets `themeSlot` (creates link)
+
+### 4.2 Slide Theme Override Dropdown
+
+**Current State:** Only "Edit" button exists - opens ColorThemeManager
+**Expected State:** Dropdown to select/override theme directly in SlideSection
+
+**UI Implementation:**
+```
+┌─────────────────────────────────────────────────────────────────┐
+│  Colors                                                      ▼  │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  Theme: [Default Theme          ▼]     <- Override dropdown    │
+│         ┌────────────────────────────┐                         │
+│         │ ◉ Inherit from Layout      │                         │
+│         │ ──────────────────────────│                          │
+│         │ ○ Default Theme    [■■■]  │                          │
+│         │ ○ Ocean Sunset     [■■■]  │                          │
+│         │ ○ Forest Green     [■■■]  │                          │
+│         │ ──────────────────────────│                          │
+│         │ [+ Create Custom...]      │                          │
+│         └────────────────────────────┘                         │
+│                                                                 │
+│  [■■■■■■][■■■■■■]                    <- 12 swatches           │
+│  Source: Inherited from Master                                  │
+│  [Edit ✏️]  [Reset ↺]                                          │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+**Files to Modify:**
+- `src/ui/properties/SlideSection.js` - Replace simple display with Dropdown
+- `src/core/actions/slideActions.js` - Add `UPDATE_SLIDE_STYLE_ASSIGNMENTS` handler
+- `src/utils/StyleResolver.js` - Verify `getEffectiveColorTheme()` works
+
+**Tests Required:**
+- [ ] Dropdown shows "Inherit from Layout" option
+- [ ] Dropdown lists all available themes with preview swatches
+- [ ] Selecting theme dispatches `UPDATE_SLIDE_STYLE_ASSIGNMENTS`
+- [ ] Selecting "Inherit" clears `styleAssignments.colorTheme`
+- [ ] Swatches update to reflect selected theme
+- [ ] Source label updates ("Inherited" vs "Override")
+- [ ] Reset button clears override
+
+### 4.3 Typography Style Override Dropdown
+
+**Current State:** Basic font display in SlideSection
+**Expected State:** Dropdown to override typography settings at slide level
+
+**Files to Modify:**
+- `src/ui/properties/SlideSection.js` - Add typography override dropdown
+- `src/utils/StyleResolver.js` - Add `getEffectiveTypographyStyle()`
+
+**Tests Required:**
+- [ ] Dropdown shows available typography presets
+- [ ] Selecting preset updates slide's typography override
+- [ ] Reset button clears typography override
+- [ ] Source label shows inheritance state
+
+### 4.4 Theme-Linked Typography Indicator in TextSection
+
+**Current State:** Style dropdown exists but no visual indicator for style linkage
+**Expected State:** Visual indicator when text uses a style, override dots for local changes
+
+**UI Implementation:**
+```
+┌─────────────────────────────────────────────────────────────────┐
+│  Style:  [Title              ▼] 🔗    <- Link icon when styled │
+│                                                                 │
+│  Font:   [Inter          ▼] [Bold    ▼] [48] pt ●             │
+│                                          ↑ Override dot        │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+**Files to Modify:**
+- `src/ui/properties/TextSection.js` - Add link indicator and override dots
+- `styles/modules/properties.css` - Add `.style-linked` and `.has-override` styles
+
+**Tests Required:**
+- [ ] Link icon shows when `styleId` is set
+- [ ] Override dot shows when property differs from style
+- [ ] "Reset Overrides" button clears all local overrides
+- [ ] Changing style updates all non-overridden properties
+
+### 4.5 Copy/Paste Theme Slot Preservation
+
+**Current State:** Unknown if `themeSlot` is preserved on copy/paste
+**Expected State:** Pasting element to different theme context adapts colors
+
+**Files to Modify:**
+- `src/core/clipboard.js` - Ensure `themeSlot` is included in copy
+- `src/core/actions/elementActions.js` - Resolve color on paste
+
+**Tests Required:**
+- [ ] Copy element with `themeSlot: 5` on Ocean theme
+- [ ] Paste to slide with Forest theme
+- [ ] Verify `themeSlot: 5` preserved, color resolved to Forest's slot 5
+- [ ] Verify undo/redo maintains correct colors
+
+---
+
 ## Testing Strategy
 
 ### Unit Tests (Per Feature)
@@ -531,6 +667,7 @@ npm run test:visual
 | 5-6 | Phase 2a | Multiple effects |
 | 7-8 | Phase 2b | Export preview |
 | 9-10 | Phase 3 | ARIA, light mode |
+| 11-12 | Phase 4 | Theme-linked indicators, theme override dropdowns |
 
 ---
 
@@ -559,6 +696,13 @@ npm run test:visual
 - [ ] Light mode: full visual parity
 - [ ] Keyboard navigation: complete flow
 - [ ] All tests pass
+
+### Phase 4 Complete When:
+- [ ] Fill rows show theme-linked indicator (accent border + icon)
+- [ ] Slide theme override dropdown works
+- [ ] Typography style override dropdown works
+- [ ] Copy/paste preserves themeSlot references
+- [ ] All theme cascade tests pass
 
 ---
 
