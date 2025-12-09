@@ -359,14 +359,79 @@ updateProperty(prop, value, isTransient = false) {
 
 ---
 
-## 13. Future Enhancements
+## 13. Test Scenarios & Acceptance Criteria
 
-### 13.1 Planned
+> **Reference:** [TEST-AUTOMATION-PLAN.md](./TEST-AUTOMATION-PLAN.md) §4.1
+
+### 13.1 Display Tests
+
+| ID | Scenario | Expected Behavior | Priority |
+|----|----------|-------------------|----------|
+| POS-01 | X input shows element.x value | When element at x=150 is selected, X input displays "150" | P0 |
+| POS-02 | Y input shows element.y value | When element at y=200 is selected, Y input displays "200" | P0 |
+| POS-03 | Rotation shows element.rotation | When element rotated 45°, rotation input displays "45" | P0 |
+| POS-04 | Multi-select same values shows value | Two elements at x=100, X input shows "100" | P0 |
+| POS-05 | Multi-select mixed values shows "–" | Elements at x=100 and x=200, X input shows "–" | P0 |
+
+### 13.2 Input Tests
+
+| ID | Scenario | Expected Behavior | Priority |
+|----|----------|-------------------|----------|
+| POS-10 | Typing X value updates element | Enter "250" in X input → element moves to x=250 | P0 |
+| POS-11 | Typing Y value updates element | Enter "150" in Y input → element moves to y=150 | P0 |
+| POS-12 | Scrubbing X updates element live | Drag on X label → element moves horizontally in real-time | P0 |
+| POS-13 | Tab moves to next input | Tab from X → focus moves to Y | P1 |
+| POS-14 | Enter commits and blurs | Press Enter in input → value commits, input loses focus | P1 |
+| POS-15 | Escape cancels edit | Press Escape while editing → reverts to original value | P1 |
+| POS-16 | Arrow keys adjust by 1 | Press Up in X input → value increases by 1 | P1 |
+| POS-17 | Shift+Arrow adjusts by 10 | Press Shift+Up in X input → value increases by 10 | P1 |
+
+### 13.3 Alignment Tests
+
+| ID | Scenario | Expected Behavior | Priority |
+|----|----------|-------------------|----------|
+| POS-20 | Align Left (single) | Element's left edge aligns to slide's left edge | P1 |
+| POS-21 | Align Center (single) | Element centered horizontally in slide | P1 |
+| POS-22 | Align Left (multi) | All elements' left edges align to leftmost element | P1 |
+| POS-23 | Align Middle (multi) | All elements centered vertically to selection bounds | P1 |
+
+### 13.4 Transform Tests
+
+| ID | Scenario | Expected Behavior | Priority |
+|----|----------|-------------------|----------|
+| POS-30 | Rotation input accepts 0-360 | Values outside range clamp or wrap | P1 |
+| POS-31 | Flip Horizontal mirrors element | Element flipped around vertical axis | P1 |
+| POS-32 | Flip Vertical mirrors element | Element flipped around horizontal axis | P1 |
+
+### 13.5 Sync Tests (PI ↔ Viewport)
+
+| ID | Scenario | Expected Behavior | Priority |
+|----|----------|-------------------|----------|
+| POS-40 | Canvas drag updates PI | Drag element on canvas → X/Y inputs update immediately | P0 |
+| POS-41 | Canvas resize updates PI | Resize element on canvas → W/H inputs update | P0 |
+| POS-42 | Canvas rotate updates PI | Rotate element on canvas → Rotation input updates | P0 |
+| POS-43 | PI change triggers canvas update | Change X in PI → element moves on canvas | P0 |
+| POS-44 | Undo restores both PI and canvas | Undo after PI change → both PI and canvas revert | P1 |
+
+### 13.6 Edge Cases
+
+| ID | Scenario | Expected Behavior | Priority |
+|----|----------|-------------------|----------|
+| POS-50 | Negative position values | Negative X/Y accepted and applied correctly | P1 |
+| POS-51 | Decimal values | X=100.5 accepted and displayed with precision | P1 |
+| POS-52 | Invalid input (letters) | Non-numeric input rejected, reverts to previous value | P1 |
+| POS-53 | Empty input on blur | Empty field reverts to previous valid value | P1 |
+
+---
+
+## 14. Future Enhancements
+
+### 14.1 Planned
 - [ ] **Distribute controls:** Even horizontal/vertical spacing
 - [ ] **Anchor point selector:** 9-point grid for transform origin
 - [ ] **Constraints system:** Pin edges/center to parent
 
-### 13.2 Considered
+### 14.2 Considered
 - [ ] **Smart alignment guides:** Real-time snapping feedback
 - [ ] **Relative positioning:** % values relative to parent
 - [ ] **Math expressions:** e.g., "100 + 50" in input fields

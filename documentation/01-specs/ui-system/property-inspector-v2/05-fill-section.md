@@ -770,14 +770,90 @@ if (/^#[0-9A-F]{6}$/i.test(val) || /^#[0-9A-F]{3}$/i.test(val)) {
 
 ---
 
-## 16. Future Enhancements
+## 16. Test Scenarios & Acceptance Criteria
 
-### 16.1 Planned
+> **Reference:** [TEST-AUTOMATION-PLAN.md](./TEST-AUTOMATION-PLAN.md) §4.3
+
+### 16.1 Display Tests
+
+| ID | Scenario | Expected Behavior | Priority |
+|----|----------|-------------------|----------|
+| FIL-01 | Color swatch shows current fill | Element with #FF5500 fill shows orange swatch | P0 |
+| FIL-02 | Hex input displays color value | Element with #3B82F6 shows "3B82F6" in input | P0 |
+| FIL-03 | Opacity slider shows percentage | Fill at 80% opacity shows slider at 80 | P0 |
+| FIL-04 | No fill shows empty state | Element without fills shows "No fill" message | P0 |
+| FIL-05 | Multiple fills render in order | 3 fills show as 3 rows in correct z-order | P1 |
+
+### 16.2 Solid Fill Tests
+
+| ID | Scenario | Expected Behavior | Priority |
+|----|----------|-------------------|----------|
+| FIL-10 | Click swatch opens color picker | Clicking swatch displays color picker flyout | P0 |
+| FIL-11 | Hex input accepts valid color | Type "FF0000" → fill changes to red | P0 |
+| FIL-12 | Invalid hex rejected | Type "ZZZZZZ" → input reverts to previous value | P1 |
+| FIL-13 | HSB picker changes color | Drag in saturation field → color updates live | P1 |
+| FIL-14 | Hue slider changes hue | Drag hue slider → color updates live | P1 |
+| FIL-15 | Opacity slider adjusts fill | Drag opacity to 50 → fill becomes 50% transparent | P0 |
+
+### 16.3 Gradient Fill Tests
+
+| ID | Scenario | Expected Behavior | Priority |
+|----|----------|-------------------|----------|
+| FIL-20 | Switch to gradient type | Select "Gradient" from type dropdown → gradient UI appears | P1 |
+| FIL-21 | Gradient bar shows stops | Gradient with 2 stops shows 2 handles on bar | P1 |
+| FIL-22 | Add gradient stop | Click on gradient bar → new stop added at click position | P1 |
+| FIL-23 | Remove gradient stop | Double-click stop when >2 exist → stop removed | P2 |
+| FIL-24 | Drag stop repositions | Drag stop to 75% → stop position updates | P1 |
+| FIL-25 | Click stop opens color picker | Click gradient stop → color picker shows stop color | P1 |
+| FIL-26 | Reverse gradient | Click reverse button → stops mirror positions | P2 |
+
+### 16.4 Multi-Fill Tests
+
+| ID | Scenario | Expected Behavior | Priority |
+|----|----------|-------------------|----------|
+| FIL-30 | Add fill button creates layer | Click "+" → new fill row added on top | P1 |
+| FIL-31 | Delete removes fill | Click "−" on fill row → fill removed from element | P1 |
+| FIL-32 | Drag reorders fills | Drag fill row up → fill moves up in render order | P2 |
+| FIL-33 | Visibility toggle hides fill | Click eye icon → fill hidden but not deleted | P1 |
+
+### 16.5 Image/Video Fill Tests
+
+| ID | Scenario | Expected Behavior | Priority |
+|----|----------|-------------------|----------|
+| FIL-40 | Image fill shows upload prompt | Select Image type → upload button/drop zone appears | P1 |
+| FIL-41 | Scale mode dropdown works | Select "Fit" → image fits inside bounds | P2 |
+| FIL-42 | Video fill plays preview | Video fill shows playable thumbnail | P2 |
+
+### 16.6 Sync Tests (PI ↔ Viewport)
+
+| ID | Scenario | Expected Behavior | Priority |
+|----|----------|-------------------|----------|
+| FIL-50 | Fill change updates canvas | Change fill to red → element on canvas turns red | P0 |
+| FIL-51 | Eyedropper picks canvas color | Use eyedropper on canvas → picked color applies | P2 |
+| FIL-52 | Gradient handles sync | Drag gradient handle on canvas → PI updates | P2 |
+| FIL-53 | Multi-select fill change | 3 elements selected → fill change applies to all | P0 |
+| FIL-54 | Undo restores fill | Undo fill change → both PI and canvas revert | P1 |
+
+### 16.7 Edge Cases
+
+| ID | Scenario | Expected Behavior | Priority |
+|----|----------|-------------------|----------|
+| FIL-60 | 3-character hex expands | Type "F00" → expands to "FF0000" | P2 |
+| FIL-61 | RGB input mode | Switch to RGB → shows R, G, B inputs | P2 |
+| FIL-62 | HSL input mode | Switch to HSL → shows H, S, L inputs | P2 |
+| FIL-63 | Fill on text element | Text elements show fill controls | P1 |
+| FIL-64 | Maximum fills limit | At max fills → "+" button disabled or warns | P2 |
+
+---
+
+## 17. Future Enhancements
+
+### 17.1 Planned
 - [ ] **Pattern fills:** Repeating vector patterns
 - [ ] **Mesh gradients:** Complex multi-point gradients
 - [ ] **Noise/texture fills:** Procedural noise patterns
 
-### 16.2 Considered
+### 17.2 Considered
 - [ ] **Fill presets:** Quick access to common fills
 - [ ] **Color harmonies:** Auto-generate complementary colors
 
@@ -787,8 +863,8 @@ if (/^#[0-9A-F]{6}$/i.test(val) || /^#[0-9A-F]{3}$/i.test(val)) {
 
 - [04-appearance-section.md](./04-appearance-section.md) - Opacity, blend modes
 - [10-slide-section.md](./10-slide-section.md) - Background fills for slides
-- [11-interactions.md](./11-interactions.md) - Color picker interactions
-- [14-glossary.md](./14-glossary.md) - Term definitions
+- [12-interactions.md](./12-interactions.md) - Color picker interactions
+- [15-glossary.md](./15-glossary.md) - Term definitions
 
 ---
 

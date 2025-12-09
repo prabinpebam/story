@@ -610,13 +610,103 @@ textEditManager.applyPendingStyles(this.pendingStyles);
 
 ---
 
-## 15. Future Enhancements
+## 15. Test Scenarios & Acceptance Criteria
 
-### 15.1 Planned
+> **Reference:** [TEST-AUTOMATION-PLAN.md](./TEST-AUTOMATION-PLAN.md) §4.5
+
+### 15.1 Display Tests
+
+| ID | Scenario | Expected Behavior | Priority |
+|----|----------|-------------------|----------|
+| TXT-01 | Font family shows current font | Text with Inter font shows "Inter" in dropdown | P0 |
+| TXT-02 | Font weight shows current weight | Bold text shows "Bold" in weight dropdown | P0 |
+| TXT-03 | Font size shows current size | 16px text shows "16" in size input | P0 |
+| TXT-04 | Line height shows value | Line height 1.5 shows "1.5" in input | P1 |
+| TXT-05 | Letter spacing shows value | Letter spacing 2% shows "2" in input | P1 |
+| TXT-06 | Text color shows in swatch | Red text shows red color swatch | P0 |
+
+### 15.2 Font Selection Tests
+
+| ID | Scenario | Expected Behavior | Priority |
+|----|----------|-------------------|----------|
+| TXT-10 | Open font family dropdown | Click dropdown → font list appears with search | P0 |
+| TXT-11 | Search filters fonts | Type "Inter" → list filters to matching fonts | P1 |
+| TXT-12 | Select font applies change | Click "Roboto" → text changes to Roboto | P0 |
+| TXT-13 | Font weight shows available | Select "Roboto" → weight shows available weights | P1 |
+| TXT-14 | Change weight applies | Select "Bold" → text becomes bold | P0 |
+
+### 15.3 Size & Spacing Tests
+
+| ID | Scenario | Expected Behavior | Priority |
+|----|----------|-------------------|----------|
+| TXT-20 | Type font size | Enter "24" in size → text becomes 24px | P0 |
+| TXT-21 | Scrub font size | Drag on size label → size changes live | P1 |
+| TXT-22 | Set line height | Enter "1.5" → line height applies | P1 |
+| TXT-23 | Set letter spacing | Enter "5" → letters spaced apart | P1 |
+| TXT-24 | Negative letter spacing | Enter "-2" → letters compressed | P2 |
+
+### 15.4 Alignment Tests
+
+| ID | Scenario | Expected Behavior | Priority |
+|----|----------|-------------------|----------|
+| TXT-30 | Click align left | Click left button → text left-aligned | P0 |
+| TXT-31 | Click align center | Click center button → text centered | P0 |
+| TXT-32 | Click align right | Click right button → text right-aligned | P0 |
+| TXT-33 | Click align top | Click top button → text top-aligned | P0 |
+| TXT-34 | Click align middle | Click middle button → text vertically centered | P0 |
+| TXT-35 | Click align bottom | Click bottom button → text bottom-aligned | P0 |
+| TXT-36 | Alignment buttons exclusive | Click center → only center is active | P1 |
+
+### 15.5 Text Style Tests
+
+| ID | Scenario | Expected Behavior | Priority |
+|----|----------|-------------------|----------|
+| TXT-40 | Select text style | Select "Header 1" → applies H1 styling | P1 |
+| TXT-41 | Override shows indicator | Change font after style → "Override" badge appears | P1 |
+| TXT-42 | Reset clears override | Click "Reset" → text reverts to style definition | P1 |
+| TXT-43 | Detach removes style link | Click "Detach" → keeps values, removes link | P2 |
+| TXT-44 | Create style from current | Click "Create Style" → dialog opens | P2 |
+
+### 15.6 Advanced Settings Tests
+
+| ID | Scenario | Expected Behavior | Priority |
+|----|----------|-------------------|----------|
+| TXT-50 | Open settings flyout | Click gear icon → flyout opens | P2 |
+| TXT-51 | Toggle bold | Click B button → text toggles bold | P1 |
+| TXT-52 | Toggle italic | Click I button → text toggles italic | P1 |
+| TXT-53 | Toggle underline | Click U button → text toggles underline | P2 |
+| TXT-54 | Set uppercase | Click case → text transforms to uppercase | P2 |
+| TXT-55 | Enable bullet list | Click bullet → text becomes bulleted list | P2 |
+
+### 15.7 Sync Tests (PI ↔ Viewport)
+
+| ID | Scenario | Expected Behavior | Priority |
+|----|----------|-------------------|----------|
+| TXT-60 | Font change updates canvas | Change font in PI → canvas text updates | P0 |
+| TXT-61 | Canvas edit updates PI | Edit text on canvas → PI reflects changes | P0 |
+| TXT-62 | Multi-select shows mixed | Select texts with different fonts → "–" shown | P1 |
+| TXT-63 | Multi-select apply works | Select 3 texts → change font → all update | P0 |
+| TXT-64 | Undo restores text | Undo font change → PI and canvas revert | P1 |
+
+### 15.8 Edge Cases
+
+| ID | Scenario | Expected Behavior | Priority |
+|----|----------|-------------------|----------|
+| TXT-70 | Empty text element | Empty text shows default/placeholder values | P2 |
+| TXT-71 | Very long font name | Long font name truncates with ellipsis | P2 |
+| TXT-72 | Font not available | Missing font shows warning indicator | P2 |
+| TXT-73 | Character-level selection | Selected text range shows character styles | P2 |
+| TXT-74 | Mixed character styles | Selected range with mixed styles shows "–" | P2 |
+
+---
+
+## 16. Future Enhancements
+
+### 16.1 Planned
 - [ ] **Rich text spans:** Different styles within single text element
 - [ ] **Multiple text fills:** Match Figma's capability
 
-### 15.2 Considered
+### 16.2 Considered
 - [ ] **Character styles:** Save character-level formatting
 - [ ] **Auto-kerning adjustments:** Manual kern pair tuning
 - [ ] **Baseline shift:** Sub/superscript positioning

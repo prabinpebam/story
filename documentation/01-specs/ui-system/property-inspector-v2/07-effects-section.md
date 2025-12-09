@@ -545,13 +545,89 @@ toggleVisibility(effectType) {
 
 ---
 
-## 16. Future Enhancements
+## 16. Test Scenarios & Acceptance Criteria
 
-### 16.1 Planned
+> **Reference:** [TEST-AUTOMATION-PLAN.md](./TEST-AUTOMATION-PLAN.md) §4.6
+
+### 16.1 Display Tests
+
+| ID | Scenario | Expected Behavior | Priority |
+|----|----------|-------------------|----------|
+| EFX-01 | No effects shows empty state | Element without effects shows "No effects" | P1 |
+| EFX-02 | Effects list shows all effects | Element with 2 effects shows 2 rows | P0 |
+| EFX-03 | Effect icon matches type | Drop shadow shows shadow icon | P1 |
+| EFX-04 | Visibility state shown | Hidden effect has crossed-out eye | P1 |
+
+### 16.2 Add Effect Tests
+
+| ID | Scenario | Expected Behavior | Priority |
+|----|----------|-------------------|----------|
+| EFX-10 | Click add button | Click "+" → effect type menu appears | P0 |
+| EFX-11 | Add drop shadow | Select "Drop Shadow" → shadow row appears | P0 |
+| EFX-12 | Add layer blur | Select "Layer Blur" → blur row appears | P1 |
+| EFX-13 | Add background blur | Select "Background Blur" → row appears | P1 |
+| EFX-14 | Default values applied | New drop shadow has X:0, Y:4, Blur:8 defaults | P1 |
+
+### 16.3 Shadow Settings Tests
+
+| ID | Scenario | Expected Behavior | Priority |
+|----|----------|-------------------|----------|
+| EFX-20 | Open shadow flyout | Click shadow row → settings flyout opens | P0 |
+| EFX-21 | Change X offset | Enter "10" in X → shadow moves 10px right | P0 |
+| EFX-22 | Change Y offset | Enter "8" in Y → shadow moves 8px down | P0 |
+| EFX-23 | Change blur radius | Enter "16" in blur → shadow becomes softer | P0 |
+| EFX-24 | Change spread | Enter "4" in spread → shadow expands | P1 |
+| EFX-25 | Change shadow color | Pick red → shadow becomes red | P0 |
+| EFX-26 | Change shadow opacity | Set 50% → shadow becomes semi-transparent | P1 |
+| EFX-27 | Negative offset | Enter "-10" in X → shadow moves left | P1 |
+
+### 16.4 Blur Settings Tests
+
+| ID | Scenario | Expected Behavior | Priority |
+|----|----------|-------------------|----------|
+| EFX-30 | Open blur flyout | Click blur row → settings flyout opens | P1 |
+| EFX-31 | Change blur radius | Enter "20" → element becomes blurry | P1 |
+| EFX-32 | Zero blur | Enter "0" → element is sharp | P1 |
+| EFX-33 | Background blur effect | Background blur blurs content behind | P2 |
+
+### 16.5 Effect Management Tests
+
+| ID | Scenario | Expected Behavior | Priority |
+|----|----------|-------------------|----------|
+| EFX-40 | Delete effect | Click "−" → effect removed from list | P0 |
+| EFX-41 | Toggle visibility | Click eye → effect hidden (still in list) | P0 |
+| EFX-42 | Reorder effects | Drag effect row → order changes | P2 |
+| EFX-43 | Close flyout on outside click | Click outside flyout → flyout closes | P1 |
+| EFX-44 | Close flyout with Escape | Press Escape in flyout → closes | P1 |
+
+### 16.6 Sync Tests (PI ↔ Viewport)
+
+| ID | Scenario | Expected Behavior | Priority |
+|----|----------|-------------------|----------|
+| EFX-50 | Shadow change updates canvas | Change blur in PI → shadow updates on canvas | P0 |
+| EFX-51 | Add effect shows on canvas | Add drop shadow → element shows shadow | P0 |
+| EFX-52 | Delete effect updates canvas | Delete shadow → element has no shadow | P0 |
+| EFX-53 | Multi-select effect edit | 3 elements → add shadow → all get shadow | P1 |
+| EFX-54 | Undo restores effects | Undo shadow add → shadow removed | P1 |
+
+### 16.7 Edge Cases
+
+| ID | Scenario | Expected Behavior | Priority |
+|----|----------|-------------------|----------|
+| EFX-60 | Large blur values | Enter "100" blur → renders without crash | P2 |
+| EFX-61 | Zero opacity shadow | Shadow at 0% → invisible but still in list | P2 |
+| EFX-62 | Duplicate effect type | Add 2 drop shadows → both render (if allowed) | P2 |
+| EFX-63 | Effect on group | Select group → effects apply to group bounds | P1 |
+
+---
+
+## 17. Future Enhancements
+
+### 17.1 Planned
 - [ ] **Multiple shadows:** Stack multiple drop shadows
 - [ ] **Effect styles library:** Save and apply effect presets
 
-### 16.2 Considered
+### 17.2 Considered
 - [ ] **Noise effect:** Grain/texture overlay
 - [ ] **Color overlay:** Solid color tint
 - [ ] **Motion blur:** Directional blur effect

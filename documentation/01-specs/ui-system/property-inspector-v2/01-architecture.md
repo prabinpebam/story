@@ -1052,7 +1052,112 @@ announceChange('Width changed to 300 pixels');
 
 ---
 
-## 11. Component Diagram
+## 11. Test Scenarios - Bidirectional Sync
+
+> **Reference:** [TEST-AUTOMATION-PLAN.md](./TEST-AUTOMATION-PLAN.md) §5
+
+These test scenarios validate the critical PI↔Viewport synchronization described in §2.4.
+
+### 11.1 Core Sync Tests
+
+| ID | Scenario | Expected Behavior | Priority |
+|----|----------|-------------------|----------|
+| **Input → Store → Viewport Flow** |
+| SYNC-01 | PI input changes update viewport | Type value in PI → element moves on canvas | P0 |
+| SYNC-02 | PI slider changes update viewport | Drag slider in PI → element property changes live | P0 |
+| SYNC-03 | PI dropdown changes update viewport | Select option in PI → element updates immediately | P0 |
+| **Viewport → Store → PI Flow** |
+| SYNC-10 | Viewport drag updates PI | Drag element on canvas → X/Y inputs update | P0 |
+| SYNC-11 | Viewport resize updates PI | Resize element → W/H inputs update | P0 |
+| SYNC-12 | Viewport rotate updates PI | Rotate element → rotation input updates | P0 |
+| SYNC-13 | Viewport fill change updates PI | Use eyedropper → fill swatch updates | P1 |
+
+### 11.2 Transient Update Tests
+
+| ID | Scenario | Expected Behavior | Priority |
+|----|----------|-------------------|----------|
+| SYNC-20 | Scrubbing doesn't create history | Scrub value from 100→200 → only one undo entry | P0 |
+| SYNC-21 | PI skips update during scrub | While scrubbing, PI doesn't fight with input | P1 |
+| SYNC-22 | Final value commits correctly | After scrub release, final value is committed | P0 |
+| SYNC-23 | Viewport updates during scrub | While scrubbing, viewport reflects changes live | P0 |
+
+### 11.3 Undo/Redo Sync Tests
+
+| ID | Scenario | Expected Behavior | Priority |
+|----|----------|-------------------|----------|
+| SYNC-30 | Undo reverts both PI and canvas | Ctrl+Z after PI change → both revert | P0 |
+| SYNC-31 | Redo restores both PI and canvas | Ctrl+Y after undo → both restore | P0 |
+| SYNC-32 | Multiple undos maintain sync | Undo 5 times → PI and canvas stay in sync | P1 |
+| SYNC-33 | Undo after viewport change | Change on canvas, Ctrl+Z → PI updates too | P1 |
+
+### 11.4 Multi-Select Sync Tests
+
+| ID | Scenario | Expected Behavior | Priority |
+|----|----------|-------------------|----------|
+| SYNC-40 | Multi-select shows mixed | 2 elements with different X → PI shows "–" | P0 |
+| SYNC-41 | Multi-select shared value | 2 elements with same X → PI shows value | P0 |
+| SYNC-42 | Multi-select change applies to all | Change X when 3 selected → all 3 move | P0 |
+| SYNC-43 | Multi-select relative drag | Drag multi-selection → all move by same delta | P1 |
+
+### 11.5 Edge Case Sync Tests
+
+| ID | Scenario | Expected Behavior | Priority |
+|----|----------|-------------------|----------|
+| SYNC-50 | Rapid changes don't desync | Click fast between elements → PI always shows correct values | P1 |
+| SYNC-51 | External state change syncs | Redux DevTools change → both update | P2 |
+| SYNC-52 | Conflict resolution | Two rapid changes → last-write-wins, both show final | P2 |
+| SYNC-53 | Delete element clears PI | Delete selected element → PI shows empty state | P1 |
+
+### 11.6 Debugging Sync Issues (Test Utilities)
+
+```javascript
+// test-utils/sync-debugger.js
+
+/**
+ * Verify PI and Viewport are synchronized
+ * Add to tests to catch sync bugs early
+ */
+export async function verifySyncState(page, elementId, property) {
+    // Get PI value
+    const piValue = await page.locator(`[data-testid="${property}-input"]`).inputValue();
+    
+    // Get Viewport/Store value
+    const storeValue = await page.evaluate((id, prop) => {
+        const state = window.__STORE__.getState();
+        return state.slides[state.editor.activeSlideId].elements[id][prop];
+    }, elementId, property);
+    
+    // Verify match
+    expect(piValue).toBe(String(storeValue));
+}
+
+/**
+ * Test transient update behavior
+ */
+export async function testTransientUpdates(page, inputLocator, dragDistance) {
+    // Get initial undo stack size
+    const initialUndoSize = await page.evaluate(() => 
+        window.__STORE__.getState().history.past.length
+    );
+    
+    // Perform scrub
+    await inputLocator.hover();
+    await page.mouse.down();
+    await page.mouse.move(dragDistance, 0);
+    await page.mouse.up();
+    
+    // Verify only one undo entry created
+    const finalUndoSize = await page.evaluate(() => 
+        window.__STORE__.getState().history.past.length
+    );
+    
+    expect(finalUndoSize).toBe(initialUndoSize + 1);
+}
+```
+
+---
+
+## 12. Component Diagram
 
 ```
 ┌─────────────────────────────────────────────────────────────────────┐

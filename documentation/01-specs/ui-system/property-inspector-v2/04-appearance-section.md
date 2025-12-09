@@ -552,14 +552,83 @@ When element is resized:
 
 ---
 
-## 12. Future Enhancements
+## 12. Test Scenarios & Acceptance Criteria
 
-### 12.1 Planned
+> **Reference:** [TEST-AUTOMATION-PLAN.md](./TEST-AUTOMATION-PLAN.md) §4.2
+
+### 12.1 Display Tests
+
+| ID | Scenario | Expected Behavior | Priority |
+|----|----------|-------------------|----------|
+| APP-01 | Opacity shows element value | Element at 80% opacity shows "80" in input | P0 |
+| APP-02 | Blend mode shows current mode | Element with "multiply" shows "Multiply" in dropdown | P0 |
+| APP-03 | Visibility icon reflects state | Hidden element shows crossed-out eye icon | P0 |
+| APP-04 | Corner radius shows value | Element with 10px radius shows "10" in input | P1 |
+| APP-05 | Per-corner shows individual values | Unlinked corners show 4 separate inputs | P2 |
+
+### 12.2 Opacity Tests
+
+| ID | Scenario | Expected Behavior | Priority |
+|----|----------|-------------------|----------|
+| APP-10 | Type opacity value | Enter "50" → element becomes 50% transparent | P0 |
+| APP-11 | Scrub opacity | Drag on opacity label → opacity changes live | P0 |
+| APP-12 | Opacity clamps to 0-100 | Enter "150" → clamps to "100" | P1 |
+| APP-13 | Opacity accepts decimals | Enter "55.5" → element becomes 55.5% opaque | P2 |
+
+### 12.3 Blend Mode Tests
+
+| ID | Scenario | Expected Behavior | Priority |
+|----|----------|-------------------|----------|
+| APP-20 | Open blend mode dropdown | Click dropdown → shows all blend modes | P0 |
+| APP-21 | Select multiply | Select "Multiply" → element uses multiply blending | P0 |
+| APP-22 | Preview on hover | Hover blend mode → element shows preview | P2 |
+| APP-23 | All modes available | Dropdown contains: Normal, Multiply, Screen, Overlay, etc. | P1 |
+
+### 12.4 Visibility Tests
+
+| ID | Scenario | Expected Behavior | Priority |
+|----|----------|-------------------|----------|
+| APP-30 | Toggle visibility off | Click eye icon → element hidden on canvas | P0 |
+| APP-31 | Toggle visibility on | Click crossed eye → element visible again | P0 |
+| APP-32 | Hidden state persists | Refresh page → hidden element stays hidden | P1 |
+
+### 12.5 Corner Radius Tests
+
+| ID | Scenario | Expected Behavior | Priority |
+|----|----------|-------------------|----------|
+| APP-40 | Set uniform radius | Enter "10" → all corners become 10px | P1 |
+| APP-41 | Radius clamps to max | Enter "500" on 100x100 element → clamps to 50 | P1 |
+| APP-42 | Toggle per-corner mode | Click unlink → shows 4 individual inputs | P2 |
+| APP-43 | Set individual corners | In per-corner mode, set TL=5, TR=10 → corners differ | P2 |
+| APP-44 | Radius disabled for circles | Select circle → radius controls disabled | P1 |
+
+### 12.6 Sync Tests (PI ↔ Viewport)
+
+| ID | Scenario | Expected Behavior | Priority |
+|----|----------|-------------------|----------|
+| APP-50 | Opacity change updates canvas | Change opacity in PI → canvas reflects change | P0 |
+| APP-51 | Multi-select opacity | 3 elements at 50% → PI shows "50" | P0 |
+| APP-52 | Mixed opacity shows dash | 2 elements at 50% and 80% → PI shows "–" | P0 |
+| APP-53 | Undo restores appearance | Undo opacity change → PI and canvas revert | P1 |
+
+### 12.7 Edge Cases
+
+| ID | Scenario | Expected Behavior | Priority |
+|----|----------|-------------------|----------|
+| APP-60 | Group appearance | Select group → shows group's opacity, not children | P1 |
+| APP-61 | Zero opacity | Set 0% → element invisible but selectable | P2 |
+| APP-62 | Invalid input | Enter "abc" in opacity → reverts to previous value | P1 |
+
+---
+
+## 13. Future Enhancements
+
+### 13.1 Planned
 - [ ] **Per-corner radius:** Individual control for each corner
 - [ ] **Link/unlink toggle:** Switch between uniform and per-corner
 - [ ] **Corner radius presets:** Quick access to common values (0, 4, 8, 16, etc.)
 
-### 12.2 Considered
+### 13.2 Considered
 - [ ] **Opacity slider:** Visual slider in addition to numeric input
 - [ ] **Smoothing control:** iOS-style corner smoothing (squircle)
 - [ ] **Fill opacity vs Layer opacity:** Separate controls
@@ -569,8 +638,8 @@ When element is resized:
 ## See Also
 
 - [03-layout-section.md](./03-layout-section.md) - Dimensions that affect max radius
-- [11-interactions.md](./11-interactions.md) - Input interaction patterns
-- [14-glossary.md](./14-glossary.md) - Term definitions
+- [12-interactions.md](./12-interactions.md) - Input interaction patterns
+- [15-glossary.md](./15-glossary.md) - Term definitions
 
 ---
 
