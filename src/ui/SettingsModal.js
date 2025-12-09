@@ -243,12 +243,6 @@ export class SettingsModal {
         
         const themesGrid = document.createElement('div');
         themesGrid.className = 'theme-cards-grid';
-        themesGrid.style.cssText = `
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
-            gap: var(--spacing-3);
-            margin-top: var(--spacing-2);
-        `;
         
         const currentAccent = this.getCurrentAccentTheme();
         
@@ -272,52 +266,29 @@ export class SettingsModal {
         const card = document.createElement('div');
         card.className = `theme-card ${isSelected ? 'selected' : ''}`;
         card.dataset.themeId = theme.id;
-        card.style.cssText = `
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            padding: var(--spacing-3);
-            border-radius: var(--radius-md);
-            border: 2px solid ${isSelected ? theme.color : 'var(--color-border)'};
-            background: var(--color-bg-input);
-            cursor: pointer;
-            transition: all 0.15s ease;
-        `;
+        // Dynamic border color based on theme
+        if (isSelected) {
+            card.style.borderColor = theme.color;
+        }
         
         // Color swatch
         const swatch = document.createElement('div');
-        swatch.style.cssText = `
-            width: var(--swatch-size-2xl);
-            height: var(--swatch-size-2xl);
-            border-radius: var(--radius-full);
-            background: ${theme.color};
-            margin-bottom: var(--spacing-2);
-            box-shadow: 0 2px 8px ${theme.color}40;
-        `;
+        swatch.className = 'theme-card-swatch';
+        swatch.style.backgroundColor = theme.color;
+        swatch.style.boxShadow = `0 2px 8px ${theme.color}40`;
         card.appendChild(swatch);
         
         // Label
         const label = document.createElement('span');
         label.textContent = theme.label;
-        label.style.cssText = `
-            font-size: var(--font-size-sm);
-            color: var(--color-text-primary);
-            font-weight: ${isSelected ? 'var(--font-weight-medium)' : 'var(--font-weight-normal)'};
-        `;
+        label.className = 'theme-card-label';
         card.appendChild(label);
         
         // Checkmark for selected
         if (isSelected) {
             const check = document.createElement('i');
-            check.className = 'fa-solid fa-check';
-            check.style.cssText = `
-                position: absolute;
-                top: var(--spacing-1);
-                right: var(--spacing-1);
-                color: ${theme.color};
-                font-size: var(--font-size-xs);
-            `;
-            card.style.position = 'relative';
+            check.className = 'fa-solid fa-check theme-card-check';
+            check.style.color = theme.color;
             card.appendChild(check);
         }
         
@@ -341,40 +312,20 @@ export class SettingsModal {
     createThemePreview() {
         const container = document.createElement('div');
         container.className = 'theme-preview';
-        container.style.cssText = `
-            background: var(--color-bg-panel);
-            border: 1px solid var(--color-border);
-            border-radius: var(--radius-md);
-            padding: var(--spacing-3);
-            margin-top: var(--spacing-2);
-        `;
         
         // Preview header
         const header = document.createElement('div');
-        header.style.cssText = `
-            display: flex;
-            align-items: center;
-            gap: var(--spacing-2);
-            margin-bottom: var(--spacing-3);
-        `;
+        header.className = 'theme-preview-header';
         
         const title = document.createElement('span');
         title.textContent = 'Interactive Preview';
-        title.style.cssText = `
-            font-size: var(--font-size-sm);
-            color: var(--color-text-secondary);
-        `;
+        title.className = 'theme-preview-title';
         header.appendChild(title);
         container.appendChild(header);
         
         // Preview elements row
         const elementsRow = document.createElement('div');
-        elementsRow.style.cssText = `
-            display: flex;
-            gap: var(--spacing-2);
-            flex-wrap: wrap;
-            align-items: center;
-        `;
+        elementsRow.className = 'theme-preview-elements';
         
         // Hover preview button - using unified Button component
         const hoverBtn = new Button({
@@ -395,38 +346,13 @@ export class SettingsModal {
         // Selected item preview
         const selectedItem = document.createElement('div');
         selectedItem.textContent = 'Selected Item';
-        selectedItem.style.cssText = `
-            padding: var(--spacing-1-5) var(--spacing-3);
-            background: var(--color-bg-active);
-            border-radius: var(--radius-sm);
-            color: var(--color-text-primary);
-            font-size: var(--font-size-sm);
-            border: 1px solid var(--color-accent);
-        `;
+        selectedItem.className = 'theme-preview-selected-item';
         elementsRow.appendChild(selectedItem);
         
-        // Focus ring preview
+        // Focus ring preview - CSS handles focus state via :focus
         const focusInput = document.createElement('input');
         focusInput.placeholder = 'Focus me';
-        focusInput.style.cssText = `
-            padding: var(--spacing-1-5) var(--spacing-2);
-            background: var(--color-bg-input);
-            border: 1px solid var(--color-border);
-            border-radius: var(--radius-sm);
-            color: var(--color-text-primary);
-            font-size: var(--font-size-sm);
-            width: 100px;
-            outline: none;
-            transition: all 0.15s ease;
-        `;
-        focusInput.onfocus = () => {
-            focusInput.style.borderColor = 'var(--color-accent)';
-            focusInput.style.boxShadow = '0 0 0 2px var(--color-accent-subtle)';
-        };
-        focusInput.onblur = () => {
-            focusInput.style.borderColor = 'var(--color-border)';
-            focusInput.style.boxShadow = 'none';
-        };
+        focusInput.className = 'theme-preview-input';
         elementsRow.appendChild(focusInput);
         
         container.appendChild(elementsRow);
