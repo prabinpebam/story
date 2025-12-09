@@ -279,11 +279,14 @@ describe('PositionSection', () => {
 
     describe('updateProperty()', () => {
         it('should dispatch UPDATE_ELEMENT for each selected element', () => {
+            const selection = ['el-1', 'el-2'];
             mockGetState.mockReturnValue({
                 editor: {
-                    selectedElementIds: ['el-1', 'el-2']
+                    selectedElementIds: selection
                 }
             });
+            // BaseSection relies on internal selection state
+            positionSection.selection = selection;
             
             positionSection.updateProperty('x', 150, false);
             
@@ -293,11 +296,13 @@ describe('PositionSection', () => {
         });
 
         it('should skip history for transient updates', () => {
+            const selection = ['el-1'];
             mockGetState.mockReturnValue({
                 editor: {
-                    selectedElementIds: ['el-1']
+                    selectedElementIds: selection
                 }
             });
+            positionSection.selection = selection;
             
             positionSection.updateProperty('y', 200, true);
             

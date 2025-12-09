@@ -205,6 +205,7 @@ describe('TextSection', () => {
         vi.spyOn(TextSection.prototype, 'isColorDark').mockReturnValue(false);
 
         textSection = new TextSection();
+        textSection.selection = ['element-1'];
     });
 
     afterEach(() => {
@@ -313,10 +314,11 @@ describe('TextSection', () => {
                 slideMasterPresets: {}
             });
 
+            textSection.selection = ['el-1', 'el-2'];
             textSection.updateProperty('fontSize', 24);
 
-            expect(store.dispatch).toHaveBeenCalledWith('UPDATE_ELEMENT', { id: 'el-1', fontSize: 24 });
-            expect(store.dispatch).toHaveBeenCalledWith('UPDATE_ELEMENT', { id: 'el-2', fontSize: 24 });
+            expect(store.dispatch).toHaveBeenCalledWith('UPDATE_ELEMENT', expect.objectContaining({ id: 'el-1', fontSize: 24 }), expect.anything());
+            expect(store.dispatch).toHaveBeenCalledWith('UPDATE_ELEMENT', expect.objectContaining({ id: 'el-2', fontSize: 24 }), expect.anything());
         });
     });
 
@@ -408,9 +410,10 @@ describe('TextSection', () => {
                 slideMasterPresets: {}
             });
 
+            textSection.selection = ['el-1'];
             textSection.applyTextStyle('');
 
-            expect(store.dispatch).toHaveBeenCalledWith('UPDATE_ELEMENT', { id: 'el-1', styleId: null });
+            expect(store.dispatch).toHaveBeenCalledWith('UPDATE_ELEMENT', expect.objectContaining({ id: 'el-1', styleId: null }), expect.anything());
             expect(textSection.currentStyleId).toBeNull();
         });
     });
@@ -427,9 +430,10 @@ describe('TextSection', () => {
                 slideMasterPresets: {}
             });
 
+            textSection.selection = ['el-1'];
             textSection.detachStyle();
 
-            expect(store.dispatch).toHaveBeenCalledWith('UPDATE_ELEMENT', { id: 'el-1', styleId: null });
+            expect(store.dispatch).toHaveBeenCalledWith('UPDATE_ELEMENT', expect.objectContaining({ id: 'el-1', styleId: null }), expect.anything());
         });
 
         it('should reset currentStyleId to null', () => {

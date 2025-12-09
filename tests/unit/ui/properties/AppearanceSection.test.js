@@ -320,6 +320,10 @@ describe('AppearanceSection', () => {
     });
 
     describe('updateProperty()', () => {
+        beforeEach(() => {
+            appearanceSection.selection = ['element-1'];
+        });
+
         it('should dispatch UPDATE_ELEMENT for opacity', () => {
             appearanceSection.updateProperty('opacity', 0.5);
             
@@ -360,6 +364,7 @@ describe('AppearanceSection', () => {
             store.getState.mockReturnValue({
                 editor: { selectedElementIds: ['el-1', 'el-2', 'el-3'] }
             });
+            appearanceSection.selection = ['el-1', 'el-2', 'el-3'];
             
             appearanceSection.updateProperty('opacity', 0.5);
             
@@ -371,6 +376,10 @@ describe('AppearanceSection', () => {
     });
 
     describe('toggleVisibility()', () => {
+        beforeEach(() => {
+            appearanceSection.selection = ['element-1'];
+        });
+
         it('should toggle hidden to true when currently false', () => {
             appearanceSection.toggleVisibility();
             
@@ -418,6 +427,7 @@ describe('AppearanceSection', () => {
                     }
                 }
             });
+            appearanceSection.selection = ['el-1', 'el-2'];
             
             appearanceSection.toggleVisibility();
             
@@ -429,6 +439,10 @@ describe('AppearanceSection', () => {
     });
 
     describe('opacity onChange callback', () => {
+        beforeEach(() => {
+            appearanceSection.selection = ['element-1'];
+        });
+
         it('should convert percentage to decimal', () => {
             // Get the onChange callback from NumberInput
             const opacityConfig = NumberInput.mock.calls[0][0];
@@ -442,6 +456,10 @@ describe('AppearanceSection', () => {
     });
 
     describe('blendMode onChange callback', () => {
+        beforeEach(() => {
+            appearanceSection.selection = ['element-1'];
+        });
+
         it('should pass blend mode value directly', () => {
             const blendModeConfig = Dropdown.mock.calls[0][0];
             blendModeConfig.onChange('overlay');
@@ -522,6 +540,7 @@ describe('AppearanceSection', () => {
                     }
                 }
             });
+            appearanceSection.selection = ['element-1'];
 
             appearanceSection._handleCornerRadiusChange('tl', 20, false);
 
@@ -549,6 +568,7 @@ describe('AppearanceSection', () => {
                     }
                 }
             });
+            appearanceSection.selection = ['element-1'];
 
             appearanceSection._radiusLinked = false;
             appearanceSection._switchToUniformMode();

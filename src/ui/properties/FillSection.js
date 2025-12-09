@@ -1,4 +1,4 @@
-import { Section } from '../components/Section.js';
+import { BaseSection } from './BaseSection.js';
 import { ColorInput } from '../components/ColorInput.js';
 import { NumberInput } from '../components/NumberInput.js';
 import { IconButton } from '../components/IconButton.js';
@@ -21,18 +21,18 @@ const LastUsed = {
     code: null // Will use CodeRunner.DEFAULT_CODE when accessed
 };
 
-export class FillSection {
+export class FillSection extends BaseSection {
     constructor(options = {}) {
-        this.options = options;
-        // Context key for memory - default to object fill, can be overridden (e.g., 'fill.slide')
-        this.contextKey = options.contextKey || 'fill.object';
-        
-        this.section = new Section({ 
+        super({ 
             title: options.title || 'Fill',
             actions: [
                 { icon: Icons.PLUS, title: 'Add Fill', onClick: () => this.addFill() }
             ]
         });
+        this.options = options;
+        // Context key for memory - default to object fill, can be overridden (e.g., 'fill.slide')
+        this.contextKey = options.contextKey || 'fill.object';
+        
         this.container = document.createElement('div');
         this.container.className = 'pi-section-content';
         this.section.appendChild(this.container);
@@ -50,8 +50,7 @@ export class FillSection {
             return;
         }
         
-        this.section.element.classList.remove('hidden');
-        this.selection = selection;
+        super.update(selection);
         
         // If custom getElement is provided
         let element;
@@ -64,17 +63,6 @@ export class FillSection {
         
         if (element) {
             this.render(element);
-        }
-    }
-
-    getElement(state, id) {
-        const mode = state.editor.mode;
-        if (mode === 'master') {
-            const master = state.slideMasterPresets[state.editor.activeMasterId];
-            return master?.elements[id];
-        } else {
-            const slide = state.slides[state.editor.activeSlideId];
-            return slide?.elements[id];
         }
     }
 
@@ -610,13 +598,9 @@ export class FillSection {
         if (this.options.onUpdate) {
             this.options.onUpdate(fills, false);
         } else {
-            store.dispatch('UPDATE_ELEMENT', {
-                id: element.id,
-                style: {
-                    ...style,
-                    fills: fills,
-                    backgroundColor: this.getCompositeColor(fills)
-                }
+            this.updateStyle({
+                fills: fills,
+                backgroundColor: this.getCompositeColor(fills)
             });
         }
     }
@@ -641,13 +625,9 @@ export class FillSection {
         if (this.options.onUpdate) {
             this.options.onUpdate(fills, false);
         } else {
-            store.dispatch('UPDATE_ELEMENT', {
-                id: element.id,
-                style: {
-                    ...style,
-                    fills: fills,
-                    backgroundColor: this.getCompositeColor(fills)
-                }
+            this.updateStyle({
+                fills: fills,
+                backgroundColor: this.getCompositeColor(fills)
             });
         }
     }
@@ -802,15 +782,10 @@ export class FillSection {
         if (this.options.onUpdate) {
             this.options.onUpdate(fills, isTransient);
         } else {
-            const payload = {
-                id: currentElement.id,
-                style: {
-                    ...style,
-                    fills: fills,
-                    backgroundColor: this.getCompositeColor(fills)
-                }
-            };
-            store.dispatch('UPDATE_ELEMENT', payload, { skipHistory: isTransient });
+            this.updateStyle({
+                fills: fills,
+                backgroundColor: this.getCompositeColor(fills)
+            }, isTransient);
         }
     }
 
@@ -831,13 +806,9 @@ export class FillSection {
         if (this.options.onUpdate) {
             this.options.onUpdate(newFills, false);
         } else {
-            store.dispatch('UPDATE_ELEMENT', {
-                id: element.id,
-                style: {
-                    ...style,
-                    fills: newFills,
-                    backgroundColor: this.getCompositeColor(newFills)
-                }
+            this.updateStyle({
+                fills: newFills,
+                backgroundColor: this.getCompositeColor(newFills)
             });
         }
     }

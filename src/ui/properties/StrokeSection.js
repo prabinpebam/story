@@ -1,4 +1,4 @@
-import { Section } from '../components/Section.js';
+import { BaseSection } from './BaseSection.js';
 import { ColorInput } from '../components/ColorInput.js';
 import { NumberInput } from '../components/NumberInput.js';
 import { Dropdown } from '../components/Dropdown.js';
@@ -15,9 +15,9 @@ const LastUsed = {
     gradient: 'linear-gradient(90deg, #000000 0%, #ffffff 100%)'
 };
 
-export class StrokeSection {
+export class StrokeSection extends BaseSection {
     constructor() {
-        this.section = new Section({ 
+        super({ 
             title: 'Stroke',
             actions: [
                 { icon: Icons.PLUS, title: 'Add Stroke', onClick: () => this.addStroke() },
@@ -30,30 +30,15 @@ export class StrokeSection {
     }
 
     update(selection) {
-        if (!selection || selection.length === 0) {
-            this.section.element.classList.add('hidden');
-            return;
-        }
+        super.update(selection);
         
-        this.section.element.classList.remove('hidden');
-        this.selection = selection;
+        if (!this.selection || this.selection.length === 0) return;
         
         const state = store.getState();
-        const element = this.getElement(state, selection[0]);
+        const element = this.getElement(state, this.selection[0]);
         
         if (element) {
             this.render(element);
-        }
-    }
-
-    getElement(state, id) {
-        const mode = state.editor.mode;
-        if (mode === 'master') {
-            const master = state.slideMasterPresets[state.editor.activeMasterId];
-            return master?.elements[id];
-        } else {
-            const slide = state.slides[state.editor.activeSlideId];
-            return slide?.elements[id];
         }
     }
 
@@ -533,12 +518,6 @@ export class StrokeSection {
     }
 
     commitChanges(strokes, isTransient = false) {
-        const state = store.getState();
-        const element = this.getElement(state, this.selection[0]);
-        if (!element) return;
-
-        const currentStyle = element.style || {};
-
         // Sync back to legacy properties for the first visible stroke
         // This ensures the renderer (which likely uses borderWidth/borderColor) still works
         const firstVisible = strokes.find(s => s.visible !== false);
@@ -552,14 +531,10 @@ export class StrokeSection {
             legacyUpdates.borderWidth = 0;
         }
 
-        store.dispatch('UPDATE_ELEMENT', {
-            id: this.selection[0],
-            style: {
-                ...currentStyle,
-                strokes: strokes,
-                ...legacyUpdates
-            }
-        }, { skipHistory: isTransient });
+        this.updateStyle({
+            strokes: strokes,
+            ...legacyUpdates
+        }, isTransient);
     }
 
     /**

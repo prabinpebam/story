@@ -1,4 +1,4 @@
-import { Section } from '../components/Section.js';
+import { BaseSection } from './BaseSection.js';
 import { NumberInput } from '../components/NumberInput.js';
 import { IconButton } from '../components/IconButton.js';
 import { Dropdown } from '../components/Dropdown.js';
@@ -13,9 +13,14 @@ import { ColorUtils } from '../../utils/ColorUtils.js';
 import { textEditManager } from '../../core/text/TextEditManager.js';
 import { propertyMemory } from '../../core/services/PropertyMemoryManager.js';
 
-export class TextSection {
+export class TextSection extends BaseSection {
     constructor() {
-        this.section = new Section({ title: 'Typography' });
+        super({ title: 'Typography' });
+        
+        this.container = document.createElement('div');
+        this.container.className = 'pi-section-content';
+        this.section.appendChild(this.container);
+
         this.createContent();
         this.activeFlyout = null;
         this.pendingStyles = {}; // Styles to apply to next typed character
@@ -48,7 +53,7 @@ export class TextSection {
         this.styleMenuBtn.element.classList.add('hidden'); // Hidden when no style
         styleRow.appendChild(this.styleMenuBtn.element);
 
-        this.section.appendChild(styleRow);
+        this.container.appendChild(styleRow);
 
         // Style Override Indicator
         this.overrideIndicator = document.createElement('div');
@@ -67,7 +72,7 @@ export class TextSection {
         this.overrideIndicator.appendChild(resetBtn.element);
         
         // Hidden by default, shown via .visible class
-        this.section.appendChild(this.overrideIndicator);
+        this.container.appendChild(this.overrideIndicator);
 
         // 1. Font Family & Style & Size
         const fontRow = document.createElement('div');
@@ -108,14 +113,14 @@ export class TextSection {
         fontRow.appendChild(this.fontFamilyInput.element);
         fontRow.appendChild(this.fontWeightInput.element);
         fontRow.appendChild(this.fontSizeInput.element);
-        this.section.appendChild(fontRow);
+        this.container.appendChild(fontRow);
 
         // 2. Text Fill
         this.fillRow = document.createElement('div');
         this.fillRow.className = 'pi-fill-row';
         
         this.createFillControl();
-        this.section.appendChild(this.fillRow);
+        this.container.appendChild(this.fillRow);
 
         // 3. Line Height & Letter Spacing
         const spacingRow = document.createElement('div');
@@ -141,7 +146,7 @@ export class TextSection {
 
         spacingRow.appendChild(this.lineHeightInput.element);
         spacingRow.appendChild(this.letterSpacingInput.element);
-        this.section.appendChild(spacingRow);
+        this.container.appendChild(spacingRow);
 
         // 4. Alignment
         const alignRow = document.createElement('div');
@@ -179,7 +184,7 @@ export class TextSection {
 
         alignRow.appendChild(alignGroup);
         alignRow.appendChild(settingsBtn.element);
-        this.section.appendChild(alignRow);
+        this.container.appendChild(alignRow);
     }
 
     openTypeSettings(target) {
@@ -288,17 +293,17 @@ export class TextSection {
     }
 
     update(selection) {
+        super.update(selection);
         const state = store.getState();
-        const textElements = selection
+        const textElements = this.selection
             .map(id => this.getElement(state, id))
             .filter(el => el && el.type === 'text');
 
         if (textElements.length === 0) {
-            this.section.element.classList.add('hidden');
+            this.element.classList.add('hidden');
             return;
         }
-
-        this.section.element.classList.remove('hidden');
+        this.element.classList.remove('hidden');
         const el = textElements[0];
         
         // Update style dropdown options (in case theme changed)
@@ -437,17 +442,6 @@ export class TextSection {
         return 100;
     }
 
-    getElement(state, id) {
-        const mode = state.editor.mode;
-        if (mode === 'master') {
-            const master = state.slideMasterPresets[state.editor.activeMasterId];
-            return master?.elements[id];
-        } else {
-            const slide = state.slides[state.editor.activeSlideId];
-            return slide?.elements[id];
-        }
-    }
-
     updateProperty(prop, value) {
         const state = store.getState();
         const selection = state.editor.selectedElementIds;
@@ -471,9 +465,7 @@ export class TextSection {
         }
         
         // Apply to whole element
-        selection.forEach(id => {
-            store.dispatch('UPDATE_ELEMENT', { id, [prop]: value });
-        });
+        this.updateProperties({ [prop]: value });
     }
 
     applyInlineStyle(prop, value) {
@@ -689,13 +681,10 @@ export class TextSection {
         }
         
         const state = store.getState();
-        const selection = state.editor.selectedElementIds;
         
         if (styleId === '') {
             // Detach style - just remove styleId, keep current properties
-            selection.forEach(id => {
-                store.dispatch('UPDATE_ELEMENT', { id, styleId: null });
-            });
+            this.updateProperties({ styleId: null });
             this.currentStyleId = null;
             this.updateStyleUI();
             return;
@@ -709,13 +698,10 @@ export class TextSection {
         if (!style) return;
         
         // Apply style properties to selected elements
-        selection.forEach(id => {
-            const styleProps = this.resolveStyleVariables(style, theme);
-            store.dispatch('UPDATE_ELEMENT', { 
-                id, 
-                styleId: styleId,
-                ...styleProps
-            });
+        const styleProps = this.resolveStyleVariables(style, master);
+        this.updateProperties({ 
+            styleId: styleId,
+            ...styleProps
         });
         
         this.currentStyleId = styleId;
@@ -816,13 +802,8 @@ export class TextSection {
     }
 
     detachStyle() {
-        const state = store.getState();
-        const selection = state.editor.selectedElementIds;
-        
         // Remove styleId but keep all current properties
-        selection.forEach(id => {
-            store.dispatch('UPDATE_ELEMENT', { id, styleId: null });
-        });
+        this.updateProperties({ styleId: null });
         
         this.currentStyleId = null;
         this.hasStyleOverrides = false;

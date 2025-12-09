@@ -1,10 +1,9 @@
-import { Section } from '../components/Section.js';
+import { BaseSection } from './BaseSection.js';
 import { NumberInput } from '../components/NumberInput.js';
 import { Dropdown } from '../components/Dropdown.js';
 import { Button } from '../components/Button.js';
 import { Icons } from '../Icons.js';
 import { store } from '../../core/Store.js';
-import { getMixedValue } from '../../utils/SelectionUtils.js';
 
 /**
  * AppearanceSection - Property Inspector section for appearance controls
@@ -17,9 +16,9 @@ import { getMixedValue } from '../../utils/SelectionUtils.js';
  * 
  * @spec documentation/01-specs/ui-system/property-inspector-v2/04-appearance-section.md
  */
-export class AppearanceSection {
+export class AppearanceSection extends BaseSection {
     constructor() {
-        this.section = new Section({ 
+        super({ 
             title: 'Appearance',
             actions: [
                 { icon: Icons.VISIBLE, title: 'Toggle Visibility', onClick: () => this.toggleVisibility() }
@@ -160,12 +159,10 @@ export class AppearanceSection {
      * Handle individual corner radius change
      */
     _handleCornerRadiusChange(corner, val, isTransient) {
+        if (!this.selection || this.selection.length === 0) return;
+        
         const state = store.getState();
-        const selection = state.editor.selectedElementIds;
-        
-        if (!selection || selection.length === 0) return;
-        
-        const element = this.getElement(state, selection[0]);
+        const element = this.getElement(state, this.selection[0]);
         if (!element) return;
 
         // Get current corner radii or initialize from borderRadius
@@ -180,7 +177,7 @@ export class AppearanceSection {
         const newRadii = { ...currentRadii, [corner]: val };
 
         // Update for all selected elements
-        selection.forEach(id => {
+        this.selection.forEach(id => {
             store.dispatch('UPDATE_ELEMENT', { 
                 id, 
                 cornerRadii: newRadii,
@@ -210,12 +207,10 @@ export class AppearanceSection {
      * Switch to uniform radius mode
      */
     _switchToUniformMode() {
+        if (!this.selection || this.selection.length === 0) return;
+        
         const state = store.getState();
-        const selection = state.editor.selectedElementIds;
-        
-        if (!selection || selection.length === 0) return;
-        
-        const element = this.getElement(state, selection[0]);
+        const element = this.getElement(state, this.selection[0]);
         if (!element || !element.cornerRadii) return;
 
         // Calculate average of corners
@@ -223,7 +218,7 @@ export class AppearanceSection {
         const avg = Math.round((radii.tl + radii.tr + radii.bl + radii.br) / 4);
 
         // Apply uniform radius
-        selection.forEach(id => {
+        this.selection.forEach(id => {
             store.dispatch('UPDATE_ELEMENT', { 
                 id, 
                 borderRadius: avg,
@@ -238,12 +233,10 @@ export class AppearanceSection {
      * Switch to per-corner radius mode
      */
     _switchToPerCornerMode() {
+        if (!this.selection || this.selection.length === 0) return;
+        
         const state = store.getState();
-        const selection = state.editor.selectedElementIds;
-        
-        if (!selection || selection.length === 0) return;
-        
-        const element = this.getElement(state, selection[0]);
+        const element = this.getElement(state, this.selection[0]);
         if (!element) return;
 
         const uniformRadius = element.borderRadius || 0;
@@ -256,7 +249,7 @@ export class AppearanceSection {
             br: uniformRadius
         };
 
-        selection.forEach(id => {
+        this.selection.forEach(id => {
             store.dispatch('UPDATE_ELEMENT', { 
                 id, 
                 cornerRadii,
@@ -289,24 +282,13 @@ export class AppearanceSection {
     }
 
     update(selection) {
-        if (!selection || selection.length === 0) {
-            this.section.element.classList.add('hidden');
-            return;
-        }
+        super.update(selection);
         
-        this.section.element.classList.remove('hidden');
-        
-        const state = store.getState();
-        const elements = selection
-            .map(id => this.getElement(state, id))
-            .filter(el => el != null);
-
-        if (elements.length === 0) {
-            return;
-        }
+        const elements = this.getSelectedElements();
+        if (elements.length === 0) return;
 
         // Opacity - check for mixed values
-        const opacityResult = getMixedValue(elements, 'opacity');
+        const opacityResult = this.getMixedValue(elements, 'opacity');
         if (opacityResult.mixed) {
             this.opacityInput.setMixed(true);
         } else {
@@ -316,7 +298,7 @@ export class AppearanceSection {
         }
 
         // Blend Mode - check for mixed values
-        const blendModeResult = getMixedValue(elements, 'blendMode');
+        const blendModeResult = this.getMixedValue(elements, 'blendMode');
         if (blendModeResult.mixed) {
             this.blendModeSelect.setMixed(true);
         } else {
@@ -360,35 +342,17 @@ export class AppearanceSection {
         }
     }
 
-    getElement(state, id) {
-        const mode = state.editor.mode;
-        if (mode === 'master') {
-            const master = state.slideMasterPresets[state.editor.activeMasterId];
-            return master?.elements[id];
-        } else {
-            const slide = state.slides[state.editor.activeSlideId];
-            return slide?.elements[id];
-        }
-    }
 
-    updateProperty(prop, value, isTransient = false) {
-        const state = store.getState();
-        const selection = state.editor.selectedElementIds;
-        
-        selection.forEach(id => {
-            store.dispatch('UPDATE_ELEMENT', { id, [prop]: value }, { skipHistory: isTransient });
-        });
-    }
 
     toggleVisibility() {
-        const state = store.getState();
-        const selection = state.editor.selectedElementIds;
+        if (!this.selection || this.selection.length === 0) return;
         
+        const state = store.getState();
         // Toggle based on first item
-        const firstEl = this.getElement(state, selection[0]);
+        const firstEl = this.getElement(state, this.selection[0]);
         const newHidden = !firstEl.hidden; // Toggle hidden state
         
-        selection.forEach(id => {
+        this.selection.forEach(id => {
             store.dispatch('UPDATE_ELEMENT', { id, hidden: newHidden });
         });
         

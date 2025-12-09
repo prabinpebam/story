@@ -127,6 +127,7 @@ describe('FillSection', () => {
         });
 
         fillSection = new FillSection();
+        fillSection.selection = ['element-1'];
     });
 
     describe('constructor', () => {
@@ -350,7 +351,8 @@ describe('FillSection', () => {
                     style: expect.objectContaining({
                         fills: expect.any(Array)
                     })
-                })
+                }),
+                expect.any(Object)
             );
         });
 
@@ -372,7 +374,8 @@ describe('FillSection', () => {
                             expect.objectContaining({ opacity: 100 })
                         ])
                     })
-                })
+                }),
+                expect.any(Object)
             );
         });
 
@@ -404,7 +407,8 @@ describe('FillSection', () => {
                     style: expect.objectContaining({
                         fills: [{ type: 'solid', color: '#00FF00' }]
                     })
-                })
+                }),
+                expect.any(Object)
             );
         });
 
@@ -605,7 +609,8 @@ describe('FillSection', () => {
             };
             fillSection.reorderFills(element, 0, 2);
             expect(store.dispatch).toHaveBeenCalledWith('UPDATE_ELEMENT',
-                expect.objectContaining({ id: 'element-1' })
+                expect.objectContaining({ id: 'element-1' }),
+                expect.any(Object)
             );
         });
 

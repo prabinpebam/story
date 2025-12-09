@@ -1,13 +1,13 @@
-import { Section } from '../components/Section.js';
+import { BaseSection } from './BaseSection.js';
 import { IconButton } from '../components/IconButton.js';
 import { NumberInput } from '../components/NumberInput.js';
 import { Icons } from '../Icons.js';
 import { store } from '../../core/Store.js';
-import { getMixedValue, getBoundingBox } from '../../utils/SelectionUtils.js';
+import { getBoundingBox } from '../../utils/SelectionUtils.js';
 
-export class PositionSection {
+export class PositionSection extends BaseSection {
     constructor() {
-        this.section = new Section({ title: 'Position' });
+        super({ title: 'Position' });
         this.distributeHBtn = null;
         this.distributeVBtn = null;
         this.createContent();
@@ -130,22 +130,18 @@ export class PositionSection {
     }
 
     update(selection) {
-        if (!selection || selection.length === 0) {
-            this.section.element.classList.add('hidden');
+        super.update(selection);
+        
+        if (!this.selection || this.selection.length === 0) {
             this.updateDistributeButtons(selection);
             return;
         }
-        
-        this.section.element.classList.remove('hidden');
         
         // Update distribute button state based on selection count
         this.updateDistributeButtons(selection);
         
         // Get all selected elements
-        const state = store.getState();
-        const elements = selection
-            .map(id => this.getElement(state, id))
-            .filter(el => el != null);
+        const elements = this.getSelectedElements();
 
         if (elements.length === 0) {
             return;
@@ -158,7 +154,7 @@ export class PositionSection {
             this.yInput.setValue(bounds.y, false);
             
             // Rotation is mixed if elements have different rotations
-            const rotationResult = getMixedValue(elements, 'rotation');
+            const rotationResult = this.getMixedValue(elements, 'rotation');
             if (rotationResult.mixed) {
                 this.rotationInput.setMixed(true);
             } else {
@@ -197,27 +193,7 @@ export class PositionSection {
         store.dispatch('DISTRIBUTE_ELEMENTS', direction);
     }
 
-    getElement(state, id) {
-        // Helper to find element in current context (slide or master)
-        // This logic duplicates PropertyInspector.js a bit, maybe move to Store or Helper
-        const mode = state.editor.mode;
-        if (mode === 'master') {
-            const master = state.slideMasterPresets[state.editor.activeMasterId];
-            return master?.elements[id];
-        } else {
-            const slide = state.slides[state.editor.activeSlideId];
-            return slide?.elements[id];
-        }
-    }
 
-    updateProperty(prop, value, isTransient = false) {
-        const state = store.getState();
-        const selection = state.editor.selectedElementIds;
-        
-        selection.forEach(id => {
-            store.dispatch('UPDATE_ELEMENT', { id, [prop]: value }, { skipHistory: isTransient });
-        });
-    }
 
     handleAlign(action) {
         // Dispatch alignment action to store

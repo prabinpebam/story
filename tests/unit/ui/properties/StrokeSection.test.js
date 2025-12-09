@@ -123,6 +123,7 @@ describe('StrokeSection', () => {
         });
 
         strokeSection = new StrokeSection();
+        strokeSection.selection = ['element-1'];
     });
 
     afterEach(() => {
