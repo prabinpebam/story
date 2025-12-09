@@ -56,10 +56,7 @@ export class LeftPanel {
     init() {
         // Clear and restructure the sidebar content
         this.container.innerHTML = '';
-        this.container.style.display = 'flex';
-        this.container.style.flexDirection = 'column';
-        this.container.style.padding = '0';
-        this.container.style.overflow = 'hidden';
+        // Container styles are defined in CSS class .sidebar-content
         
         // Create Slides/Masters section
         this.slidesSection = this.createSection('slides', 'SLIDES', this.slidesExpanded);
@@ -141,33 +138,33 @@ export class LeftPanel {
         const bothExpanded = this.slidesExpanded && this.layersExpanded;
         const noneExpanded = !this.slidesExpanded && !this.layersExpanded;
         
-        // Show/hide resizer
-        this.resizer.style.display = bothExpanded ? 'block' : 'none';
+        // Show/hide resizer using hidden class
+        this.resizer.classList.toggle('hidden', !bothExpanded);
         
         if (noneExpanded) {
             // Both collapsed - just show headers
             this.slidesSection.wrapper.style.flex = '0 0 auto';
             this.layersSection.wrapper.style.flex = '0 0 auto';
-            this.slidesSection.content.style.display = 'none';
-            this.layersSection.content.style.display = 'none';
+            this.slidesSection.content.classList.add('hidden');
+            this.layersSection.content.classList.add('hidden');
         } else if (bothExpanded) {
             // Both expanded - use split ratio
             this.slidesSection.wrapper.style.flex = `${this.splitRatio} 1 0`;
             this.layersSection.wrapper.style.flex = `${1 - this.splitRatio} 1 0`;
-            this.slidesSection.content.style.display = 'block';
-            this.layersSection.content.style.display = 'block';
+            this.slidesSection.content.classList.remove('hidden');
+            this.layersSection.content.classList.remove('hidden');
         } else if (this.slidesExpanded) {
             // Only slides expanded
             this.slidesSection.wrapper.style.flex = '1 1 0';
             this.layersSection.wrapper.style.flex = '0 0 auto';
-            this.slidesSection.content.style.display = 'block';
-            this.layersSection.content.style.display = 'none';
+            this.slidesSection.content.classList.remove('hidden');
+            this.layersSection.content.classList.add('hidden');
         } else {
             // Only layers expanded
             this.slidesSection.wrapper.style.flex = '0 0 auto';
             this.layersSection.wrapper.style.flex = '1 1 0';
-            this.slidesSection.content.style.display = 'none';
-            this.layersSection.content.style.display = 'block';
+            this.slidesSection.content.classList.add('hidden');
+            this.layersSection.content.classList.remove('hidden');
         }
     }
     

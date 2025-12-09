@@ -206,35 +206,35 @@ describe('LeftPanel', () => {
     });
 
     describe('updateLayout', () => {
-        it('shows resizer when both expanded', () => {
+        it('shows resizer when both expanded (removes hidden class)', () => {
             const panel = new LeftPanel();
             panel.slidesExpanded = true;
             panel.layersExpanded = true;
             
             panel.updateLayout();
             
-            expect(panel.resizer.style.display).toBe('block');
+            expect(panel.resizer.classList.contains('hidden')).toBe(false);
         });
 
-        it('hides resizer when one collapsed', () => {
+        it('hides resizer when one collapsed (adds hidden class)', () => {
             const panel = new LeftPanel();
             panel.slidesExpanded = true;
             panel.layersExpanded = false;
             
             panel.updateLayout();
             
-            expect(panel.resizer.style.display).toBe('none');
+            expect(panel.resizer.classList.contains('hidden')).toBe(true);
         });
 
-        it('hides both contents when both collapsed', () => {
+        it('hides both contents when both collapsed (adds hidden class)', () => {
             const panel = new LeftPanel();
             panel.slidesExpanded = false;
             panel.layersExpanded = false;
             
             panel.updateLayout();
             
-            expect(panel.slidesSection.content.style.display).toBe('none');
-            expect(panel.layersSection.content.style.display).toBe('none');
+            expect(panel.slidesSection.content.classList.contains('hidden')).toBe(true);
+            expect(panel.layersSection.content.classList.contains('hidden')).toBe(true);
         });
 
         it('shows only slides content when only slides expanded', () => {
@@ -244,8 +244,8 @@ describe('LeftPanel', () => {
             
             panel.updateLayout();
             
-            expect(panel.slidesSection.content.style.display).toBe('block');
-            expect(panel.layersSection.content.style.display).toBe('none');
+            expect(panel.slidesSection.content.classList.contains('hidden')).toBe(false);
+            expect(panel.layersSection.content.classList.contains('hidden')).toBe(true);
         });
 
         it('shows only layers content when only layers expanded', () => {
@@ -255,8 +255,8 @@ describe('LeftPanel', () => {
             
             panel.updateLayout();
             
-            expect(panel.slidesSection.content.style.display).toBe('none');
-            expect(panel.layersSection.content.style.display).toBe('block');
+            expect(panel.slidesSection.content.classList.contains('hidden')).toBe(true);
+            expect(panel.layersSection.content.classList.contains('hidden')).toBe(false);
         });
     });
 
