@@ -315,8 +315,8 @@ describe('LayerTree', () => {
 
             const item = mockContainer.querySelector('[data-id="rect-1"]');
             expect(item).toBeTruthy();
-            // Should have active background color (CSS var or specific color)
-            expect(item.style.backgroundColor).toContain('var(--color-bg-active)');
+            // Should have selected class for styling (background-color is now in CSS)
+            expect(item.classList.contains('selected')).toBe(true);
         });
     });
 

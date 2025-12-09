@@ -59,11 +59,7 @@ export class LayerTree {
 
         // Header with toggle for inherited elements
         const header = document.createElement('div');
-        header.className = 'section-header';
-        header.style.display = 'flex';
-        header.style.alignItems = 'center';
-        header.style.justifyContent = 'space-between';
-        header.style.padding = '0 4px';
+        header.className = 'section-header layer-tree-header';
         
         const title = document.createElement('div');
         title.className = 'section-title';
@@ -79,12 +75,8 @@ export class LayerTree {
             
             if (hasInherited) {
                 const toggleBtn = document.createElement('i');
-                toggleBtn.className = this.showInheritedElements ? 'fa-solid fa-layer-group' : 'fa-regular fa-layer-group';
+                toggleBtn.className = (this.showInheritedElements ? 'fa-solid fa-layer-group' : 'fa-regular fa-layer-group') + ' layer-tree-toggle-btn';
                 toggleBtn.title = this.showInheritedElements ? 'Hide inherited layers' : 'Show inherited layers';
-                toggleBtn.style.fontSize = '10px';
-                toggleBtn.style.cursor = 'pointer';
-                toggleBtn.style.color = 'var(--color-text-secondary)';
-                toggleBtn.style.padding = '4px';
                 toggleBtn.onclick = () => {
                     this.showInheritedElements = !this.showInheritedElements;
                     this.render();
@@ -101,19 +93,14 @@ export class LayerTree {
 
         if (!orderToRender.length) {
             const empty = document.createElement('div');
+            empty.className = 'layer-tree-empty';
             empty.innerText = 'No layers';
-            empty.style.color = 'var(--color-text-secondary)';
-            empty.style.fontSize = '11px';
-            empty.style.fontStyle = 'italic';
-            empty.style.padding = '0 8px';
             this.container.appendChild(empty);
             return;
         }
 
         const list = document.createElement('div');
         list.className = 'layer-list';
-        list.style.display = 'flex';
-        list.style.flexDirection = 'column';
         
         // Group elements by source
         const slideElements = [];
@@ -164,22 +151,9 @@ export class LayerTree {
         // Section header
         const header = document.createElement('div');
         header.className = 'layer-inherited-header';
-        header.style.display = 'flex';
-        header.style.alignItems = 'center';
-        header.style.height = '24px';
-        header.style.padding = '0 8px';
-        header.style.marginTop = '4px';
-        header.style.color = 'var(--color-text-secondary)';
-        header.style.fontSize = '10px';
-        header.style.fontWeight = '500';
-        header.style.textTransform = 'uppercase';
-        header.style.letterSpacing = '0.5px';
-        header.style.borderTop = '1px solid var(--color-border-subtle)';
         
         const icon = document.createElement('i');
-        icon.className = 'fa-solid fa-link';
-        icon.style.marginRight = '6px';
-        icon.style.fontSize = '9px';
+        icon.className = 'fa-solid fa-link layer-inherited-header-icon';
         header.appendChild(icon);
         
         const text = document.createElement('span');
@@ -211,39 +185,25 @@ export class LayerTree {
         const source = el.source || 'slide';
         isInherited = isInherited || source === 'layout' || source === 'theme';
         
-        // Styles
-        item.style.display = 'flex';
-        item.style.alignItems = 'center';
-        item.style.height = '28px';
-        item.style.padding = '0 8px';
-        item.style.paddingLeft = `${8 + depth * 16}px`;
-        item.style.backgroundColor = isSelected ? 'var(--color-bg-active)' : 'transparent';
-        item.style.color = isSelected ? 'var(--color-accent)' : (isInherited ? 'var(--color-text-secondary)' : 'var(--color-text-primary)');
-        item.style.cursor = 'pointer';
-        item.style.fontSize = 'var(--font-size-sm)';
-        item.style.userSelect = 'none';
-        item.style.border = '1px solid transparent'; // For drop indication
-        item.style.borderRadius = 'var(--radius-sm)';
-        item.style.margin = '1px 4px'; // Small gap between items
-        item.style.position = 'relative';
+        // Apply CSS classes for state
+        if (isSelected) item.classList.add('selected');
+        if (isInherited) item.classList.add('inherited');
         
-        // Dimmed style for inherited elements
-        if (isInherited) {
-            item.style.opacity = '0.75';
+        // Dynamic padding based on depth (must stay inline)
+        item.style.paddingLeft = `${8 + depth * 16}px`;
+        
+        // Dynamic color based on selection (if not using CSS classes)
+        if (!isSelected && !isInherited) {
+            item.style.color = 'var(--color-text-primary)';
         }
 
         // Icon container
         const iconContainer = document.createElement('div');
-        iconContainer.style.display = 'flex';
-        iconContainer.style.alignItems = 'center';
-        iconContainer.style.width = '20px';
-        iconContainer.style.marginRight = '6px';
-        iconContainer.style.position = 'relative';
+        iconContainer.className = 'layer-item-icon-container';
         
         // Main icon
         const icon = document.createElement('i');
-        icon.style.width = '16px';
-        icon.style.textAlign = 'center';
+        icon.className = 'layer-item-icon';
         
         // Determine icon based on type and placeholder status
         if (el.isPlaceholder) {
@@ -268,14 +228,7 @@ export class LayerTree {
         // Placeholder badge (small indicator)
         if (el.isPlaceholder && !isInherited) {
             const badge = document.createElement('div');
-            badge.style.position = 'absolute';
-            badge.style.right = '-2px';
-            badge.style.bottom = '-2px';
-            badge.style.width = '8px';
-            badge.style.height = '8px';
-            badge.style.borderRadius = '50%';
-            badge.style.backgroundColor = el.hasUserContent ? 'var(--color-success)' : 'var(--color-warning)';
-            badge.style.border = '1px solid var(--color-bg-primary)';
+            badge.className = 'layer-item-badge ' + (el.hasUserContent ? 'has-content' : 'empty');
             badge.title = el.hasUserContent ? 'Has content' : 'Empty placeholder';
             iconContainer.appendChild(badge);
         }
@@ -283,12 +236,7 @@ export class LayerTree {
         // Inherited indicator
         if (isInherited && !el.isPlaceholder) {
             const linkIcon = document.createElement('i');
-            linkIcon.className = 'fa-solid fa-link';
-            linkIcon.style.position = 'absolute';
-            linkIcon.style.right = '-4px';
-            linkIcon.style.bottom = '-2px';
-            linkIcon.style.fontSize = '7px';
-            linkIcon.style.color = 'var(--color-text-tertiary)';
+            linkIcon.className = 'fa-solid fa-link layer-item-link-icon';
             iconContainer.appendChild(linkIcon);
         }
         
@@ -296,10 +244,7 @@ export class LayerTree {
 
         // Name (Editable)
         const nameSpan = document.createElement('span');
-        nameSpan.style.flex = '1';
-        nameSpan.style.whiteSpace = 'nowrap';
-        nameSpan.style.overflow = 'hidden';
-        nameSpan.style.textOverflow = 'ellipsis';
+        nameSpan.className = 'layer-item-name';
         
         let displayName = el.name;
         if (!displayName) {
@@ -331,12 +276,7 @@ export class LayerTree {
                 const input = document.createElement('input');
                 input.type = 'text';
                 input.value = displayName;
-                input.style.width = '100%';
-                input.style.background = 'var(--color-bg-well)';
-            input.style.color = 'var(--color-text-primary)';
-            input.style.border = 'none';
-            input.style.fontSize = '11px';
-            input.style.padding = '0';
+                input.className = 'layer-item-input';
             
             const commit = () => {
                 if (input.value.trim()) {
@@ -363,8 +303,6 @@ export class LayerTree {
         // Controls (Lock/Eye)
         const controls = document.createElement('div');
         controls.className = 'layer-controls';
-        controls.style.display = 'flex';
-        controls.style.gap = '6px';
         controls.style.opacity = (isSelected || el.locked || el.hidden) ? '1' : '0';
         
         item.addEventListener('mouseenter', () => controls.style.opacity = '1');
@@ -373,9 +311,7 @@ export class LayerTree {
         });
 
         const lockBtn = document.createElement('i');
-        lockBtn.className = el.locked ? 'fa-solid fa-lock' : 'fa-solid fa-lock-open';
-        lockBtn.style.fontSize = '10px';
-        lockBtn.style.color = el.locked ? 'var(--color-text-primary)' : 'var(--color-text-secondary)';
+        lockBtn.className = (el.locked ? 'fa-solid fa-lock' : 'fa-solid fa-lock-open') + ' layer-control-btn' + (el.locked ? ' active' : '');
         lockBtn.onclick = (e) => {
             e.stopPropagation();
             store.dispatch('TOGGLE_ELEMENT_LOCK', { id: el.id });
@@ -383,9 +319,7 @@ export class LayerTree {
         controls.appendChild(lockBtn);
 
         const visBtn = document.createElement('i');
-        visBtn.className = el.hidden ? 'fa-solid fa-eye-slash' : 'fa-solid fa-eye';
-        visBtn.style.fontSize = '10px';
-        visBtn.style.color = el.hidden ? 'var(--color-text-secondary)' : 'var(--color-text-secondary)';
+        visBtn.className = (el.hidden ? 'fa-solid fa-eye-slash' : 'fa-solid fa-eye') + ' layer-control-btn';
         visBtn.onclick = (e) => {
             e.stopPropagation();
             store.dispatch('TOGGLE_ELEMENT_VISIBILITY', { id: el.id });

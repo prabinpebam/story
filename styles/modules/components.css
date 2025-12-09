@@ -310,3 +310,142 @@ input[type="text"]:focus, input[type="number"]:focus, select:focus {
     padding: 0;
     overflow: hidden;
 }
+
+/* LayerTree Component */
+.layer-tree-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 4px;
+}
+
+.layer-tree-toggle-btn {
+    font-size: 10px;
+    cursor: pointer;
+    color: var(--color-text-secondary);
+    padding: 4px;
+}
+
+.layer-tree-empty {
+    color: var(--color-text-secondary);
+    font-size: 11px;
+    font-style: italic;
+    padding: 0 8px;
+}
+
+.layer-list {
+    display: flex;
+    flex-direction: column;
+}
+
+.layer-inherited-header {
+    display: flex;
+    align-items: center;
+    height: 24px;
+    padding: 0 8px;
+    margin-top: 4px;
+    color: var(--color-text-secondary);
+    font-size: 10px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border-top: 1px solid var(--color-border-subtle);
+}
+
+.layer-inherited-header-icon {
+    margin-right: 6px;
+    font-size: 9px;
+}
+
+.layer-item {
+    display: flex;
+    align-items: center;
+    height: 28px;
+    padding: 0 8px;
+    cursor: pointer;
+    font-size: var(--font-size-sm);
+    user-select: none;
+    border: 1px solid transparent;
+    border-radius: var(--radius-sm);
+    margin: 1px 4px;
+    position: relative;
+}
+
+.layer-item.selected {
+    background-color: var(--color-bg-active);
+    color: var(--color-accent);
+}
+
+.layer-item.inherited {
+    opacity: 0.75;
+    color: var(--color-text-secondary);
+}
+
+.layer-item-icon-container {
+    display: flex;
+    align-items: center;
+    width: 20px;
+    margin-right: 6px;
+    position: relative;
+}
+
+.layer-item-icon {
+    width: 16px;
+    text-align: center;
+}
+
+.layer-item-name {
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.layer-item-badge {
+    position: absolute;
+    right: -2px;
+    bottom: -2px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    border: 1px solid var(--color-bg-primary);
+}
+
+.layer-item-badge.has-content {
+    background-color: var(--color-success);
+}
+
+.layer-item-badge.empty {
+    background-color: var(--color-warning);
+}
+
+.layer-item-link-icon {
+    position: absolute;
+    right: -4px;
+    bottom: -2px;
+    font-size: 7px;
+    color: var(--color-text-tertiary);
+}
+
+.layer-controls {
+    display: flex;
+    gap: 6px;
+}
+
+.layer-control-btn {
+    font-size: 10px;
+    color: var(--color-text-secondary);
+}
+
+.layer-control-btn.active {
+    color: var(--color-text-primary);
+}
+
+.layer-item-input {
+    width: 100%;
+    background: var(--color-bg-well);
+    color: var(--color-text-primary);
+    border: none;
+    font-size: 11px;
+    padding: 0;
+}
