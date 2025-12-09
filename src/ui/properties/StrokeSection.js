@@ -31,11 +31,11 @@ export class StrokeSection {
 
     update(selection) {
         if (!selection || selection.length === 0) {
-            this.section.element.style.display = 'none';
+            this.section.element.classList.add('hidden');
             return;
         }
         
-        this.section.element.style.display = 'block';
+        this.section.element.classList.remove('hidden');
         this.selection = selection;
         
         const state = store.getState();
@@ -87,9 +87,7 @@ export class StrokeSection {
         }
 
         const list = document.createElement('div');
-        list.style.display = 'flex';
-        list.style.flexDirection = 'column';
-        list.style.gap = '12px'; // Spacing between stroke blocks
+        list.className = 'stroke-list';
 
         strokes.forEach((stroke, index) => {
             const row = this.createStrokeRow(element, stroke, index, strokes);
@@ -101,40 +99,28 @@ export class StrokeSection {
 
     createStrokeRow(element, stroke, index, allStrokes) {
         const row = document.createElement('div');
-        row.className = 'pi-row';
-        row.style.display = 'flex';
-        row.style.alignItems = 'center';
-        row.style.gap = '2px';
-        row.style.height = '28px';
+        row.className = 'stroke-row';
         row.dataset.index = index;
 
         // 1. Drag Handle
         const dragHandle = document.createElement('div');
+        dragHandle.className = 'stroke-drag-handle';
         dragHandle.innerHTML = Icons.DRAG_HANDLE;
-        dragHandle.style.color = 'var(--color-text-tertiary)';
-        dragHandle.style.cursor = 'grab';
-        dragHandle.style.fontSize = '12px';
-        dragHandle.style.display = 'flex';
-        dragHandle.style.alignItems = 'center';
-        dragHandle.style.justifyContent = 'center';
-        dragHandle.style.width = '16px';
-        dragHandle.style.height = '100%';
         dragHandle.draggable = true;
 
         dragHandle.addEventListener('dragstart', (e) => {
             e.dataTransfer.effectAllowed = 'move';
             e.dataTransfer.setData('text/plain', index);
             e.dataTransfer.setDragImage(row, 0, 0);
-            row.style.opacity = '0.5';
+            row.classList.add('dragging');
             this.dragStartIndex = index;
             e.stopPropagation();
         });
 
         dragHandle.addEventListener('dragend', (e) => {
-            row.style.opacity = '1';
-            this.container.querySelectorAll('.pi-row').forEach(r => {
-                r.style.borderTop = 'none';
-                r.style.borderBottom = 'none';
+            row.classList.remove('dragging');
+            this.container.querySelectorAll('.stroke-row').forEach(r => {
+                r.classList.remove('drag-over-top', 'drag-over-bottom');
             });
             this.dragStartIndex = null;
         });
@@ -150,17 +136,16 @@ export class StrokeSection {
             const midY = rect.top + rect.height / 2;
             
             if (e.clientY < midY) {
-                row.style.borderTop = '2px solid var(--color-accent)';
-                row.style.borderBottom = 'none';
+                row.classList.add('drag-over-top');
+                row.classList.remove('drag-over-bottom');
             } else {
-                row.style.borderTop = 'none';
-                row.style.borderBottom = '2px solid var(--color-accent)';
+                row.classList.remove('drag-over-top');
+                row.classList.add('drag-over-bottom');
             }
         });
 
         row.addEventListener('dragleave', () => {
-            row.style.borderTop = 'none';
-            row.style.borderBottom = 'none';
+            row.classList.remove('drag-over-top', 'drag-over-bottom');
         });
 
         row.addEventListener('drop', (e) => {
@@ -180,38 +165,21 @@ export class StrokeSection {
                 this.reorderStrokes(element, fromIndex, toIndex);
             }
             
-            row.style.borderTop = 'none';
-            row.style.borderBottom = 'none';
+            row.classList.remove('drag-over-top', 'drag-over-bottom');
         });
 
         row.appendChild(dragHandle);
 
         // 2. Combined Input Group (Swatch + Hex + Opacity)
         const combinedInput = document.createElement('div');
-        combinedInput.style.flex = '1';
-        combinedInput.style.display = 'flex';
-        combinedInput.style.alignItems = 'center';
-        combinedInput.style.border = '1px solid var(--color-border)';
-        combinedInput.style.borderRadius = 'var(--radius-sm)';
-        combinedInput.style.height = '24px';
-        combinedInput.style.overflow = 'hidden';
-        combinedInput.style.backgroundColor = 'var(--color-bg-input)';
+        combinedInput.className = 'stroke-input-group';
 
         // Swatch (Trigger for Flyout)
         const swatch = document.createElement('div');
-        swatch.className = 'color-swatch-trigger';
-        swatch.style.width = '22px';
-        swatch.style.height = '100%';
-        swatch.style.cursor = 'pointer';
-        swatch.style.display = 'flex';
-        swatch.style.alignItems = 'center';
-        swatch.style.justifyContent = 'center';
-        // swatch.style.borderRight = '1px solid #444'; // Removed separator
+        swatch.className = 'stroke-swatch-trigger';
         
         const preview = document.createElement('div');
-        preview.style.width = 'var(--swatch-size-sm)';
-        preview.style.height = 'var(--swatch-size-sm)';
-        preview.style.borderRadius = 'var(--radius-xs)';
+        preview.className = 'stroke-preview';
         
         // Determine the color for the swatch border
         let swatchColor = stroke.color || '#000000';
@@ -248,21 +216,14 @@ export class StrokeSection {
         };
         
         if (stroke.visible === false) {
-            swatch.style.opacity = '0.5';
+            swatch.classList.add('fill-disabled');
         }
         combinedInput.appendChild(swatch);
 
         // Hex Input
         const hexInput = document.createElement('input');
         hexInput.type = 'text';
-        hexInput.style.flex = '1';
-        hexInput.style.minWidth = '0';
-        hexInput.style.border = 'none';
-        hexInput.style.background = 'transparent';
-        hexInput.style.color = 'var(--color-text-secondary)';
-        hexInput.style.fontSize = '11px';
-        hexInput.style.fontFamily = 'monospace';
-        hexInput.style.padding = '0 2px';
+        hexInput.className = 'stroke-hex-input';
         hexInput.spellcheck = false;
         
         if (stroke.type === 'solid' || !stroke.type) {
@@ -282,15 +243,13 @@ export class StrokeSection {
         }
         
         if (stroke.visible === false) {
-            hexInput.style.opacity = '0.5';
+            hexInput.classList.add('fill-disabled');
         }
         combinedInput.appendChild(hexInput);
 
         // Separator
         const separator = document.createElement('div');
-        separator.style.width = '1px';
-        separator.style.height = '12px'; // Reduced height
-        separator.style.backgroundColor = 'var(--color-border)';
+        separator.className = 'stroke-separator';
         combinedInput.appendChild(separator);
 
         // Opacity Input
@@ -306,16 +265,10 @@ export class StrokeSection {
             scrubbable: true
         });
         
-        opacityInput.element.style.width = '40px';
-        opacityInput.element.style.flex = '0 0 40px';
-        opacityInput.element.style.border = 'none';
-        opacityInput.element.style.background = 'transparent';
-        opacityInput.element.querySelector('input').style.padding = '0'; // Remove padding
-        opacityInput.element.querySelector('input').style.textAlign = 'center';
+        opacityInput.element.classList.add('stroke-opacity-input');
         
         if (stroke.visible === false) {
-            opacityInput.element.style.opacity = '0.5';
-            opacityInput.element.style.pointerEvents = 'none';
+            opacityInput.element.classList.add('fill-disabled-interactive');
         }
         combinedInput.appendChild(opacityInput.element);
         
@@ -323,10 +276,7 @@ export class StrokeSection {
 
         // 3. Button Group (Blend, Vis, Remove)
         const buttonGroup = document.createElement('div');
-        buttonGroup.style.display = 'flex';
-        buttonGroup.style.alignItems = 'center';
-        buttonGroup.style.gap = '0px';
-        buttonGroup.style.marginLeft = '4px';
+        buttonGroup.className = 'stroke-actions';
 
         // Blend Mode
         const isNormalBlend = !stroke.blendMode || stroke.blendMode === 'normal';
@@ -338,12 +288,10 @@ export class StrokeSection {
                 this.openBlendModeMenu(btn, stroke, index, element);
             }
         });
+        blendBtn.element.classList.add('pi-btn-compact');
         if (!isNormalBlend) {
-            blendBtn.element.style.color = 'var(--color-accent)';
+            blendBtn.element.classList.add('pi-btn-active');
         }
-        blendBtn.element.style.width = '24px';
-        blendBtn.element.style.height = '24px';
-        blendBtn.element.style.padding = '0';
 
         // Visibility
         const visIcon = stroke.visible !== false ? Icons.VISIBLE : Icons.HIDDEN;
@@ -352,9 +300,7 @@ export class StrokeSection {
             title: stroke.visible !== false ? 'Hide Stroke' : 'Show Stroke',
             onClick: () => this.updateStroke(index, { visible: stroke.visible === false })
         });
-        visBtn.element.style.width = '24px';
-        visBtn.element.style.height = '24px';
-        visBtn.element.style.padding = '0';
+        visBtn.element.classList.add('pi-btn-compact');
 
         // Remove
         const removeBtn = new IconButton({
@@ -362,9 +308,7 @@ export class StrokeSection {
             title: 'Remove Stroke',
             onClick: () => this.removeStroke(index)
         });
-        removeBtn.element.style.width = '24px';
-        removeBtn.element.style.height = '24px';
-        removeBtn.element.style.padding = '0';
+        removeBtn.element.classList.add('pi-btn-compact');
 
         buttonGroup.appendChild(blendBtn.element);
         buttonGroup.appendChild(visBtn.element);
@@ -396,42 +340,25 @@ export class StrokeSection {
     openBlendModeMenu(target, stroke, index, element) {
         // Create a simple dropdown menu
         const menu = document.createElement('div');
-        menu.style.position = 'fixed';
-        menu.style.zIndex = 'var(--z-popover)';
-        menu.style.backgroundColor = 'var(--menu-bg)';
-        menu.style.border = '1px solid var(--color-border)';
-        menu.style.borderRadius = 'var(--radius-sm)';
-        menu.style.padding = '4px 0';
-        menu.style.boxShadow = 'var(--shadow-floating)';
-        menu.style.width = '140px';
-        menu.style.maxHeight = '300px';
-        menu.style.overflowY = 'auto';
-        menu.style.fontFamily = 'var(--font-ui)';
+        menu.className = 'blend-mode-menu';
         
         // Prevent clicks/scroll inside menu from closing it
         menu.addEventListener('mousedown', (e) => e.stopPropagation());
 
         BlendModes.forEach(({ id: mode, label }) => {
             const item = document.createElement('div');
+            item.className = 'blend-mode-item';
             item.textContent = label;
-            item.style.padding = '6px 12px';
-            item.style.fontSize = 'var(--font-size-md)';
-            item.style.color = 'var(--color-text-primary)';
-            item.style.cursor = 'pointer';
-            item.style.display = 'flex';
-            item.style.alignItems = 'center';
-            item.style.justifyContent = 'space-between';
 
             if ((stroke.blendMode || 'normal') === mode) {
-                item.style.backgroundColor = 'var(--color-accent)';
-                item.style.color = 'var(--color-text-on-accent)';
+                item.classList.add('active');
             }
 
             item.onmouseenter = () => {
-                if ((stroke.blendMode || 'normal') !== mode) item.style.backgroundColor = 'var(--color-bg-hover)';
+                if ((stroke.blendMode || 'normal') !== mode) item.classList.add('hover');
             };
             item.onmouseleave = () => {
-                if ((stroke.blendMode || 'normal') !== mode) item.style.backgroundColor = 'transparent';
+                item.classList.remove('hover');
             };
 
             item.onclick = () => {

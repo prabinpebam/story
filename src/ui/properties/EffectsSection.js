@@ -244,14 +244,13 @@ export class EffectsSection {
 
         // X / Y
         const row1 = document.createElement('div');
-        row1.style.display = 'flex';
-        row1.style.gap = '8px';
+        row1.className = 'pi-flyout-row';
         
         const xInput = new NumberInput({ value: shadow.x, label: 'X', onChange: (v, isTransient) => this.updateDropShadow('x', v, isTransient) });
         const yInput = new NumberInput({ value: shadow.y, label: 'Y', onChange: (v, isTransient) => this.updateDropShadow('y', v, isTransient) });
         
-        xInput.element.style.flex = '1';
-        yInput.element.style.flex = '1';
+        xInput.element.classList.add('pi-flex-1');
+        yInput.element.classList.add('pi-flex-1');
         
         row1.appendChild(xInput.element);
         row1.appendChild(yInput.element);
@@ -259,14 +258,13 @@ export class EffectsSection {
 
         // Blur / Spread
         const row2 = document.createElement('div');
-        row2.style.display = 'flex';
-        row2.style.gap = '8px';
+        row2.className = 'pi-flyout-row';
         
         const bInput = new NumberInput({ value: shadow.blur, label: 'Blur', min: 0, onChange: (v, isTransient) => this.updateDropShadow('blur', v, isTransient) });
         const sInput = new NumberInput({ value: shadow.spread, label: 'Spread', onChange: (v, isTransient) => this.updateDropShadow('spread', v, isTransient) });
         
-        bInput.element.style.flex = '1';
-        sInput.element.style.flex = '1';
+        bInput.element.classList.add('pi-flex-1');
+        sInput.element.classList.add('pi-flex-1');
         
         row2.appendChild(bInput.element);
         row2.appendChild(sInput.element);
@@ -274,15 +272,13 @@ export class EffectsSection {
 
         // Color & Opacity
         const row3 = document.createElement('div');
-        row3.style.display = 'flex';
-        row3.style.gap = '8px';
-        row3.style.alignItems = 'center';
+        row3.className = 'pi-flyout-row-center';
 
         const colorInput = new ColorInput(
             shadow.color,
             (v, isTransient) => this.updateShadowColor(v, isTransient)
         );
-        colorInput.element.style.flex = '1';
+        colorInput.element.classList.add('pi-flex-1');
 
         const opacityInput = new NumberInput({ 
             value: this.getOpacityFromColor(shadow.color),
@@ -290,7 +286,7 @@ export class EffectsSection {
             min: 0, max: 100,
             onChange: (v, isTransient) => this.updateShadowOpacity(v, isTransient)
         });
-        opacityInput.element.style.width = '60px';
+        opacityInput.element.classList.add('pi-width-60');
 
         row3.appendChild(colorInput.element);
         row3.appendChild(opacityInput.element);
@@ -314,16 +310,11 @@ export class EffectsSection {
         if (this.activeFlyout) this.activeFlyout.close();
 
         const content = document.createElement('div');
-        content.style.display = 'flex';
-        content.style.flexDirection = 'column';
-        content.style.gap = '12px';
-        content.style.width = '200px';
+        content.className = 'pi-flyout-content';
 
         // Header
         const header = document.createElement('div');
-        header.style.display = 'flex';
-        header.style.alignItems = 'center';
-        header.style.justifyContent = 'space-between';
+        header.className = 'pi-flyout-header';
 
         const typeSelect = new Dropdown({
             options: [
@@ -380,16 +371,11 @@ export class EffectsSection {
         if (this.activeFlyout) this.activeFlyout.close();
 
         const content = document.createElement('div');
-        content.style.display = 'flex';
-        content.style.flexDirection = 'column';
-        content.style.gap = '12px';
-        content.style.width = '200px';
+        content.className = 'pi-flyout-content';
 
         // Header
         const header = document.createElement('div');
-        header.style.display = 'flex';
-        header.style.alignItems = 'center';
-        header.style.justifyContent = 'space-between';
+        header.className = 'pi-flyout-header';
 
         const typeSelect = new Dropdown({
             options: [

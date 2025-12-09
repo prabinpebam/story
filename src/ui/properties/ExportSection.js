@@ -27,18 +27,18 @@ export class ExportSection {
             fullWidth: true,
             onClick: () => this.handleExport()
         });
-        this.exportBtn.element.style.marginTop = 'var(--spacing-2)';
+        this.exportBtn.element.classList.add('pi-mt-2');
         
         this.section.appendChild(this.exportBtn.element);
     }
 
     update(selection) {
         if (!selection || selection.length === 0) {
-            this.section.element.style.display = 'none';
+            this.section.element.classList.add('hidden');
             return;
         }
         
-        this.section.element.style.display = 'block';
+        this.section.element.classList.remove('hidden');
         this.selection = selection;
         
         const state = store.getState();
@@ -81,8 +81,7 @@ export class ExportSection {
         
         this.presets.forEach((preset, index) => {
             const row = document.createElement('div');
-            row.className = 'pi-row';
-            row.style.marginBottom = 'var(--spacing-1)';
+            row.className = 'pi-row pi-mb-1';
             
             // Scale
             const scaleSelect = new Dropdown({

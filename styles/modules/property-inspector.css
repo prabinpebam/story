@@ -113,6 +113,19 @@
     height: var(--input-height-md);
 }
 
+/* Drag states for fill rows */
+.fill-row.dragging {
+    opacity: 0.5;
+}
+
+.fill-row.drag-over-top {
+    border-top: 2px solid var(--color-accent);
+}
+
+.fill-row.drag-over-bottom {
+    border-bottom: 2px solid var(--color-accent);
+}
+
 .fill-drag-handle {
     color: var(--color-text-tertiary);
     cursor: grab;
@@ -205,6 +218,37 @@
     margin-left: var(--spacing-1);
 }
 
+/* Disabled/hidden fill visual state */
+.fill-disabled {
+    opacity: 0.5;
+}
+
+.fill-disabled-interactive {
+    opacity: 0.5;
+    pointer-events: none;
+}
+
+/* Compact icon button for fill actions */
+.pi-btn-compact {
+    width: 24px;
+    height: 24px;
+    padding: 0;
+}
+
+/* Active state for blend mode button */
+.pi-btn-active {
+    color: var(--color-accent);
+}
+
+/* Margin utilities */
+.pi-mt-2 {
+    margin-top: var(--spacing-2);
+}
+
+.pi-mb-1 {
+    margin-bottom: var(--spacing-1);
+}
+
 .fill-linked-icon {
     font-size: 10px;
     color: var(--color-accent);
@@ -250,6 +294,108 @@
     margin: var(--spacing-1) 0;
 }
 
+/* --- Stroke Row Styles --- */
+.stroke-row {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    height: 28px;
+}
+
+.stroke-row.dragging {
+    opacity: 0.5;
+}
+
+.stroke-row.drag-over-top {
+    border-top: 2px solid var(--color-accent);
+}
+
+.stroke-row.drag-over-bottom {
+    border-bottom: 2px solid var(--color-accent);
+}
+
+.stroke-drag-handle {
+    color: var(--color-text-tertiary);
+    cursor: grab;
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 100%;
+}
+
+.stroke-input-group {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    height: 24px;
+    overflow: hidden;
+    background-color: var(--color-bg-input);
+}
+
+.stroke-swatch-trigger {
+    width: 22px;
+    height: 100%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.stroke-preview {
+    width: var(--swatch-size-sm);
+    height: var(--swatch-size-sm);
+    border-radius: var(--radius-xs);
+}
+
+.stroke-hex-input {
+    flex: 1;
+    min-width: 0;
+    border: none;
+    background: transparent;
+    color: var(--color-text-secondary);
+    font-size: 11px;
+    font-family: monospace;
+    padding: 0 2px;
+    outline: none;
+    text-transform: uppercase;
+}
+
+.stroke-separator {
+    width: 1px;
+    height: 12px;
+    background-color: var(--color-border);
+}
+
+.stroke-opacity-input {
+    width: 40px;
+    flex: 0 0 40px;
+    border: none;
+    background: transparent;
+}
+
+.stroke-opacity-input input {
+    padding: 0;
+    text-align: center;
+}
+
+.stroke-actions {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    margin-left: var(--spacing-1);
+}
+
+/* Stroke list container */
+.stroke-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-3);
+}
+
 /* --- Blend Mode Menu --- */
 .blend-mode-menu {
     position: fixed;
@@ -275,7 +421,8 @@
     justify-content: space-between;
 }
 
-.blend-mode-item:hover {
+.blend-mode-item:hover,
+.blend-mode-item.hover {
     background-color: var(--color-bg-hover);
 }
 
@@ -711,8 +858,8 @@ select.pi-input option {
 .pi-flyout-content {
     display: flex;
     flex-direction: column;
-    gap: var(--spacing-2);
-    width: 240px;
+    gap: var(--spacing-3);
+    width: 200px;
 }
 
 /* Flyout Header */
@@ -720,4 +867,26 @@ select.pi-input option {
     display: flex;
     align-items: center;
     justify-content: space-between;
+}
+
+/* Flyout Row - horizontal layout for form inputs */
+.pi-flyout-row {
+    display: flex;
+    gap: var(--spacing-2);
+}
+
+.pi-flyout-row-center {
+    display: flex;
+    gap: var(--spacing-2);
+    align-items: center;
+}
+
+/* Flexible input that fills available space */
+.pi-flex-1 {
+    flex: 1;
+}
+
+/* Fixed width for small inputs like opacity */
+.pi-width-60 {
+    width: 60px;
 }

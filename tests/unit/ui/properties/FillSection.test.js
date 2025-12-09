@@ -167,17 +167,17 @@ describe('FillSection', () => {
     describe('update()', () => {
         it('should hide section when selection is empty', () => {
             fillSection.update([]);
-            expect(mockSectionElement.style.display).toBe('none');
+            expect(mockSectionElement.classList.contains('hidden')).toBe(true);
         });
 
         it('should hide section when selection is null', () => {
             fillSection.update(null);
-            expect(mockSectionElement.style.display).toBe('none');
+            expect(mockSectionElement.classList.contains('hidden')).toBe(true);
         });
 
         it('should show section when selection has elements', () => {
             fillSection.update(['element-1']);
-            expect(mockSectionElement.style.display).toBe('block');
+            expect(mockSectionElement.classList.contains('hidden')).toBe(false);
         });
 
         it('should store selection for later use', () => {
@@ -264,7 +264,7 @@ describe('FillSection', () => {
             const fill = { type: 'solid', color: '#FF0000', visible: false };
             const row = fillSection.createFillRow({ id: 'el-1', style: { fills: [fill] } }, fill, 0, [fill]);
             const swatch = row.querySelector('.fill-swatch-trigger');
-            expect(swatch.style.opacity).toBe('0.5');
+            expect(swatch.classList.contains('fill-disabled')).toBe(true);
         });
     });
 

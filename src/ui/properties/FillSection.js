@@ -45,12 +45,12 @@ export class FillSection {
             // If this instance is controlled by SlideSection, it might call update([]) or update(null).
             // We should let the parent control visibility if needed.
             if (!this.options.manualVisibility) {
-                this.section.element.style.display = 'none';
+                this.section.element.classList.add('hidden');
             }
             return;
         }
         
-        this.section.element.style.display = 'block';
+        this.section.element.classList.remove('hidden');
         this.selection = selection;
         
         // If custom getElement is provided
@@ -217,16 +217,15 @@ export class FillSection {
             e.dataTransfer.effectAllowed = 'move';
             e.dataTransfer.setData('text/plain', index);
             e.dataTransfer.setDragImage(row, 0, 0);
-            row.style.opacity = '0.5';
+            row.classList.add('dragging');
             this.dragStartIndex = index;
             e.stopPropagation();
         });
 
         dragHandle.addEventListener('dragend', (e) => {
-            row.style.opacity = '1';
+            row.classList.remove('dragging');
             this.container.querySelectorAll('.pi-row').forEach(r => {
-                r.style.borderTop = 'none';
-                r.style.borderBottom = 'none';
+                r.classList.remove('drag-over-top', 'drag-over-bottom');
             });
             this.dragStartIndex = null;
         });
@@ -242,17 +241,16 @@ export class FillSection {
             const midY = rect.top + rect.height / 2;
             
             if (e.clientY < midY) {
-                row.style.borderTop = '2px solid var(--color-accent)';
-                row.style.borderBottom = 'none';
+                row.classList.add('drag-over-top');
+                row.classList.remove('drag-over-bottom');
             } else {
-                row.style.borderTop = 'none';
-                row.style.borderBottom = '2px solid var(--color-accent)';
+                row.classList.remove('drag-over-top');
+                row.classList.add('drag-over-bottom');
             }
         });
 
         row.addEventListener('dragleave', () => {
-            row.style.borderTop = 'none';
-            row.style.borderBottom = 'none';
+            row.classList.remove('drag-over-top', 'drag-over-bottom');
         });
 
         row.addEventListener('drop', (e) => {
@@ -272,8 +270,7 @@ export class FillSection {
                 this.reorderFills(element, fromIndex, toIndex);
             }
             
-            row.style.borderTop = 'none';
-            row.style.borderBottom = 'none';
+            row.classList.remove('drag-over-top', 'drag-over-bottom');
         });
 
         row.appendChild(dragHandle);
@@ -344,7 +341,7 @@ export class FillSection {
         };
         
         if (!fill.visible) {
-            swatch.style.opacity = '0.5';
+            swatch.classList.add('fill-disabled');
         }
 
         combinedInput.appendChild(swatch);
@@ -404,7 +401,7 @@ export class FillSection {
         }
         
         if (!fill.visible) {
-            hexInput.style.opacity = '0.5';
+            hexInput.classList.add('fill-disabled');
         }
 
         combinedInput.appendChild(hexInput);
@@ -447,8 +444,7 @@ export class FillSection {
         opacityInput.element.classList.add('fill-opacity-input');
         
         if (!fill.visible) {
-            opacityInput.element.style.opacity = '0.5';
-            opacityInput.element.style.pointerEvents = 'none';
+            opacityInput.element.classList.add('fill-disabled-interactive');
         }
 
         combinedInput.appendChild(opacityInput.element);
@@ -469,12 +465,10 @@ export class FillSection {
                 this.openBlendModeMenu(btn, fill, index, element);
             }
         });
+        blendBtn.element.classList.add('pi-btn-compact');
         if (!isNormalBlend) {
-            blendBtn.element.style.color = 'var(--color-accent)'; // Blue if active
+            blendBtn.element.classList.add('pi-btn-active');
         }
-        blendBtn.element.style.width = '24px'; // Compact
-        blendBtn.element.style.height = '24px';
-        blendBtn.element.style.padding = '0';
 
         // Visibility Button
         const visIcon = !fill.visible ? Icons.HIDDEN : Icons.VISIBLE;
@@ -485,9 +479,7 @@ export class FillSection {
                 this.updateFill(element, index, { visible: !fill.visible });
             }
         });
-        visBtn.element.style.width = '24px'; // Compact
-        visBtn.element.style.height = '24px';
-        visBtn.element.style.padding = '0';
+        visBtn.element.classList.add('pi-btn-compact');
 
         // Remove Button
         const removeBtn = new IconButton({
@@ -497,9 +489,7 @@ export class FillSection {
                 this.removeFill(element, index);
             }
         });
-        removeBtn.element.style.width = '24px'; // Compact
-        removeBtn.element.style.height = '24px';
-        removeBtn.element.style.padding = '0';
+        removeBtn.element.classList.add('pi-btn-compact');
 
         buttonGroup.appendChild(blendBtn.element);
         buttonGroup.appendChild(visBtn.element);

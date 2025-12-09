@@ -164,17 +164,17 @@ describe('StrokeSection', () => {
     describe('update()', () => {
         it('should hide section when selection is empty', () => {
             strokeSection.update([]);
-            expect(mockSectionElement.style.display).toBe('none');
+            expect(mockSectionElement.classList.contains('hidden')).toBe(true);
         });
 
         it('should hide section when selection is null', () => {
             strokeSection.update(null);
-            expect(mockSectionElement.style.display).toBe('none');
+            expect(mockSectionElement.classList.contains('hidden')).toBe(true);
         });
 
         it('should show section when selection has elements', () => {
             strokeSection.update(['element-1']);
-            expect(mockSectionElement.style.display).toBe('block');
+            expect(mockSectionElement.classList.contains('hidden')).toBe(false);
         });
 
         it('should store selection for later use', () => {
