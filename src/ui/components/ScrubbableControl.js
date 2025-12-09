@@ -22,20 +22,12 @@ export class ScrubbableControl {
 
     create() {
         const container = document.createElement('div');
-        container.style.display = 'flex';
-        container.style.alignItems = 'center';
-        container.style.gap = 'var(--spacing-2)';
-        container.style.flex = '1';
-        container.style.minWidth = '0'; // Allow flex shrink
+        container.className = 'scrubbable-control-container';
 
         // Label (Scrubbable)
         const labelEl = document.createElement('div');
         labelEl.innerText = this.label;
-        labelEl.style.fontSize = 'var(--font-size-xs)';
-        labelEl.style.color = 'var(--color-text-secondary)';
-        labelEl.style.cursor = 'ew-resize';
-        labelEl.style.userSelect = 'none';
-        labelEl.style.minWidth = '16px'; // Ensure hit area
+        labelEl.className = 'scrubbable-control-label';
         
         // Drag Events
         labelEl.addEventListener('mousedown', (e) => this.handleDragStart(e));

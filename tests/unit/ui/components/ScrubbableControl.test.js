@@ -94,8 +94,7 @@ describe('ScrubbableControl', () => {
 
         it('applies flexbox layout', () => {
             const control = new ScrubbableControl('Test', 0, vi.fn());
-            expect(control.element.style.display).toBe('flex');
-            expect(control.element.style.alignItems).toBe('center');
+            expect(control.element.classList.contains('scrubbable-control-container')).toBe(true);
         });
 
         it('initializes dragging state to false', () => {
@@ -105,19 +104,9 @@ describe('ScrubbableControl', () => {
     });
 
     describe('label element', () => {
-        it('sets cursor to ew-resize', () => {
+        it('has scrubbable control label class', () => {
             const control = new ScrubbableControl('Test', 0, vi.fn());
-            expect(control.labelEl.style.cursor).toBe('ew-resize');
-        });
-
-        it('sets user-select to none', () => {
-            const control = new ScrubbableControl('Test', 0, vi.fn());
-            expect(control.labelEl.style.userSelect).toBe('none');
-        });
-
-        it('has minimum width for hit area', () => {
-            const control = new ScrubbableControl('Test', 0, vi.fn());
-            expect(control.labelEl.style.minWidth).toBe('16px');
+            expect(control.labelEl.classList.contains('scrubbable-control-label')).toBe(true);
         });
     });
 

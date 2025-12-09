@@ -11,10 +11,6 @@ export class ColorPickerFlyout {
         
         this.element = document.createElement('div');
         this.element.className = 'color-picker-flyout ui-flyout';
-        this.element.style.position = 'absolute';
-        this.element.style.width = '240px';
-        this.element.style.padding = '12px';
-        this.element.style.zIndex = 'var(--z-popover-nested, 1550)'; // Higher than FillFlyout
 
         // Prevent clicks from closing
         this.element.addEventListener('mousedown', (e) => e.stopPropagation());
@@ -26,17 +22,11 @@ export class ColorPickerFlyout {
         this.element.innerHTML = '';
         
         const header = document.createElement('div');
-        header.style.display = 'flex';
-        header.style.justifyContent = 'space-between';
-        header.style.alignItems = 'center';
-        header.style.marginBottom = '8px';
+        header.className = 'color-picker-flyout-header';
 
         const title = document.createElement('div');
         title.className = 'flyout-title';
         title.textContent = 'Color';
-        title.style.marginBottom = '0';
-        title.style.paddingBottom = '0';
-        title.style.borderBottom = 'none';
         header.appendChild(title);
         
         const closeBtn = new IconButton({ 

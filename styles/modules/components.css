@@ -536,3 +536,41 @@ input[type="text"]:focus, input[type="number"]:focus, select:focus {
     min-width: 0;
     width: auto;
 }
+
+/* ScrubbableControl Component */
+.scrubbable-control-container {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-2);
+    flex: 1;
+    min-width: 0;
+}
+
+.scrubbable-control-label {
+    font-size: var(--font-size-xs);
+    color: var(--color-text-secondary);
+    cursor: ew-resize;
+    user-select: none;
+    min-width: 16px;
+}
+
+/* ColorPickerFlyout Component */
+.color-picker-flyout {
+    position: absolute;
+    width: 240px;
+    padding: 12px;
+    z-index: var(--z-popover-nested, 1550);
+}
+
+.color-picker-flyout-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.color-picker-flyout-header .flyout-title {
+    margin-bottom: 0;
+    padding-bottom: 0;
+    border-bottom: none;
+}
