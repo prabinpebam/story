@@ -8,24 +8,49 @@ import { SegmentedControl } from '../components/SegmentedControl.js';
 import { Icons } from '../Icons.js';
 import { store } from '../../core/Store.js';
 import { EmptyState } from '../components/EmptyState.js';
+import { 
+    EffectTypes, 
+    EffectTypeLabels, 
+    EffectDefaults,
+    getEffectTypeOptions,
+    isShadowEffect,
+    isBlurEffect,
+    createEffect,
+    BlendModeOptions
+} from '../../core/constants/EffectDefaults.js';
 
+/**
+ * EffectsSection - Property Inspector section for visual effects
+ * 
+ * Data Model:
+ * element.style.effects = [
+ *   { id: 'xxx', type: 'dropShadow', x: 0, y: 4, blur: 8, spread: 0, color: '#000000', opacity: 25, blendMode: 'normal', visible: true },
+ *   { id: 'yyy', type: 'innerShadow', ... },
+ *   { id: 'zzz', type: 'layerBlur', radius: 12, mode: 'uniform', visible: true }
+ * ]
+ */
 export class EffectsSection {
     constructor() {
         this.section = new Section({ 
             title: 'Effects',
             collapsed: false,
             actions: [
-                { icon: Icons.STYLES, title: 'Effect Styles', onClick: () => {} },
+                { icon: Icons.STYLES, title: 'Effect Styles', onClick: () => this.openStylesPanel() },
                 { icon: Icons.PLUS, title: 'Add Effect', onClick: () => this.addEffect() }
             ]
         });
         this.container = document.createElement('div');
         this.container.className = 'pi-section-content pi-gap-0';
         this.section.appendChild(this.container);
+        
         this.activeFlyout = null;
-        this.activeEffectType = null;
+        this.activeEffectId = null;
+        this.selection = [];
     }
 
+    /**
+     * Update section with current selection
+     */
     update(selection) {
         if (!selection || selection.length === 0) {
             this.section.element.classList.add('hidden');
@@ -43,6 +68,9 @@ export class EffectsSection {
         }
     }
 
+    /**
+     * Get element from state by ID
+     */
     getElement(state, id) {
         const mode = state.editor.mode;
         if (mode === 'master') {
@@ -54,200 +82,254 @@ export class EffectsSection {
         }
     }
 
+    /**
+     * Get effects array from element
+     */
+    getEffects(element) {
+        return element?.style?.effects || [];
+    }
+
+    /**
+     * Render effects list
+     */
     render(element) {
         this.container.innerHTML = '';
         
-        const style = element.style || {};
-        const dropShadow = style.dropShadow;
-        const blur = style.blur;
-        const backgroundBlur = style.backgroundBlur;
+        const effects = this.getEffects(element);
         
-        const hasEffects = dropShadow || blur || backgroundBlur;
-
-        // Auto-collapse/expand based on content
-        // If effects exist, expand. If not, collapse.
-        // this.section.setCollapsed(!hasEffects); // User wants empty state visible
-
-        if (!hasEffects) {
+        if (effects.length === 0) {
             const empty = new EmptyState('No effects');
             this.container.appendChild(empty.element);
             return;
         }
 
-        if (dropShadow) {
-            this.renderEffectRow(
-                'dropShadow',
-                'Drop Shadow', 
-                Icons.EFFECT_SHADOW, 
-                this.activeEffectType === 'dropShadow',
-                dropShadow.visible !== false,
-                (trigger) => this.openShadowFlyout(dropShadow, trigger), 
-                () => this.toggleVisibility('dropShadow'),
-                () => this.removeEffect('dropShadow')
-            );
-        }
-
-        if (blur) {
-            this.renderEffectRow(
-                'blur',
-                'Layer Blur', 
-                Icons.EFFECT_BLUR, 
-                this.activeEffectType === 'blur',
-                blur.visible !== false,
-                (trigger) => this.openBlurFlyout(blur, trigger), 
-                () => this.toggleVisibility('blur'),
-                () => this.removeEffect('blur')
-            );
-        }
-
-        if (backgroundBlur) {
-            this.renderEffectRow(
-                'backgroundBlur',
-                'Background Blur', 
-                Icons.EFFECT_BG_BLUR, 
-                this.activeEffectType === 'backgroundBlur',
-                backgroundBlur.visible !== false,
-                (trigger) => this.openBackgroundBlurFlyout(backgroundBlur, trigger), 
-                () => this.toggleVisibility('backgroundBlur'),
-                () => this.removeEffect('backgroundBlur')
-            );
-        }
+        effects.forEach((effect, index) => {
+            const row = this.createEffectRow(effect, index, effects.length);
+            this.container.appendChild(row);
+        });
     }
 
-    renderEffectRow(type, name, icon, isActive, isVisible, onEdit, onToggleVisibility, onRemove) {
+    /**
+     * Create a single effect row
+     */
+    createEffectRow(effect, index, total) {
         const row = document.createElement('div');
-        row.dataset.effectType = type;
         row.className = 'pi-row pi-effect-row';
-        if (isActive) row.classList.add('active');
-        if (!isVisible) row.classList.add('invisible');
+        row.dataset.effectId = effect.id;
+        row.dataset.effectIndex = index;
         
-        // Left: Icon + Name
+        if (this.activeEffectId === effect.id) {
+            row.classList.add('active');
+        }
+        if (effect.visible === false) {
+            row.classList.add('invisible');
+        }
+
+        // Left side (clickable to open flyout)
         const left = document.createElement('div');
         left.className = 'pi-effect-row-left';
-        
-        // Small indicator icon
+        left.onclick = () => this.openEffectFlyout(effect);
+
+        // Drag handle (only if multiple effects)
+        if (total > 1) {
+            const dragHandle = document.createElement('div');
+            dragHandle.className = 'pi-effect-drag-handle';
+            dragHandle.innerHTML = Icons.DRAG_HANDLE || '⋮⋮';
+            dragHandle.draggable = true;
+            this.setupDragHandlers(dragHandle, row, effect.id, index);
+            left.appendChild(dragHandle);
+        }
+
+        // Effect indicator icon
         const indicator = document.createElement('div');
-        indicator.innerHTML = icon;
         indicator.className = 'pi-effect-indicator';
-        
-        const label = document.createElement('div');
-        label.textContent = name;
-        label.className = 'pi-effect-label';
-        
+        indicator.innerHTML = this.getEffectIcon(effect.type);
         left.appendChild(indicator);
+
+        // Effect label
+        const label = document.createElement('div');
+        label.className = 'pi-effect-label';
+        label.textContent = EffectTypeLabels[effect.type] || effect.type;
         left.appendChild(label);
-        
-        // Click on row opens flyout
-        left.onclick = (e) => {
-            // Use the row itself as trigger if needed, or just pass the event target
-            onEdit(row);
-        };
-        
-        // Right: Visibility + Remove
+
+        row.appendChild(left);
+
+        // Right side controls
         const right = document.createElement('div');
         right.className = 'pi-effect-row-right';
-        
+
+        // Visibility toggle
         const visibleBtn = new IconButton({
-            icon: isVisible ? Icons.VISIBLE : Icons.HIDDEN,
+            icon: effect.visible !== false ? Icons.VISIBLE : Icons.HIDDEN,
             title: 'Toggle Visibility',
             onClick: (e) => {
                 e.stopPropagation();
-                onToggleVisibility();
+                this.toggleEffectVisibility(effect.id);
             }
         });
+        right.appendChild(visibleBtn.element);
 
+        // Remove button
         const removeBtn = new IconButton({
             icon: Icons.MINUS,
             title: 'Remove Effect',
             onClick: (e) => {
                 e.stopPropagation();
-                onRemove();
+                this.removeEffect(effect.id);
+            }
+        });
+        right.appendChild(removeBtn.element);
+
+        row.appendChild(right);
+        
+        return row;
+    }
+
+    /**
+     * Get icon for effect type
+     */
+    getEffectIcon(type) {
+        switch (type) {
+            case EffectTypes.DROP_SHADOW:
+                return Icons.EFFECT_SHADOW || '◫';
+            case EffectTypes.INNER_SHADOW:
+                return Icons.EFFECT_INNER_SHADOW || Icons.EFFECT_SHADOW || '◩';
+            case EffectTypes.LAYER_BLUR:
+                return Icons.EFFECT_BLUR || '⊞';
+            case EffectTypes.BACKGROUND_BLUR:
+                return Icons.EFFECT_BG_BLUR || '⊟';
+            default:
+                return '●';
+        }
+    }
+
+    /**
+     * Setup drag and drop handlers for reordering
+     */
+    setupDragHandlers(handle, row, effectId, index) {
+        handle.addEventListener('dragstart', (e) => {
+            e.stopPropagation();
+            this.dragState = { effectId, startIndex: index };
+            e.dataTransfer.effectAllowed = 'move';
+            e.dataTransfer.setData('text/plain', effectId);
+            row.classList.add('dragging');
+        });
+
+        handle.addEventListener('dragend', () => {
+            this.dragState = null;
+            const rows = this.container.querySelectorAll('.pi-effect-row');
+            rows.forEach(r => r.classList.remove('dragging', 'drag-over'));
+        });
+
+        row.addEventListener('dragover', (e) => {
+            if (!this.dragState) return;
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+            row.classList.add('drag-over');
+        });
+
+        row.addEventListener('dragleave', () => {
+            row.classList.remove('drag-over');
+        });
+
+        row.addEventListener('drop', (e) => {
+            e.preventDefault();
+            row.classList.remove('drag-over');
+            
+            if (!this.dragState) return;
+            
+            const targetIndex = parseInt(row.dataset.effectIndex);
+            if (targetIndex !== this.dragState.startIndex) {
+                this.reorderEffect(this.dragState.startIndex, targetIndex);
+            }
+        });
+    }
+
+    /**
+     * Open effect settings flyout
+     */
+    openEffectFlyout(effect) {
+        if (this.activeFlyout) {
+            this.activeFlyout.close();
+        }
+
+        this.activeEffectId = effect.id;
+        
+        const trigger = this.container.querySelector(`[data-effect-id="${effect.id}"]`);
+        
+        const content = isShadowEffect(effect.type) 
+            ? this.createShadowFlyoutContent(effect)
+            : this.createBlurFlyoutContent(effect);
+
+        this.activeFlyout = new Flyout({
+            trigger: trigger,
+            content: content,
+            position: 'left',
+            onClose: () => {
+                this.activeFlyout = null;
+                this.activeEffectId = null;
+                this.refreshRender();
             }
         });
         
-        right.appendChild(visibleBtn.element);
-        right.appendChild(removeBtn.element);
-        
-        row.appendChild(left);
-        row.appendChild(right);
-        
-        this.container.appendChild(row);
+        this.activeFlyout.open();
+        this.refreshRender();
     }
 
-    openShadowFlyout(shadow, trigger) {
-        this.setActiveEffect('dropShadow');
-        const newTrigger = this.container.querySelector('[data-effect-type="dropShadow"]');
-        if (this.activeFlyout) this.activeFlyout.close();
-
+    /**
+     * Create flyout content for shadow effects
+     */
+    createShadowFlyoutContent(effect) {
         const content = document.createElement('div');
         content.className = 'pi-flyout-content';
 
-        // Header: Type + Blend + Close
+        // Header
         const header = document.createElement('div');
         header.className = 'pi-flyout-header';
 
         const typeSelect = new Dropdown({
-            options: [
-                { label: 'Drop Shadow', value: 'dropShadow' },
-                { label: 'Layer Blur', value: 'blur' },
-                { label: 'Background Blur', value: 'backgroundBlur' }
-            ],
-            value: 'dropShadow',
+            options: getEffectTypeOptions(),
+            value: effect.type,
             size: 'lg',
-            onChange: (val) => this.changeEffectType('dropShadow', val)
+            onChange: (newType) => this.changeEffectType(effect.id, newType)
         });
 
         const headerRight = document.createElement('div');
         headerRight.className = 'pi-effect-row-right';
 
-        // Blend Mode Dropdown (replacing the icon button)
-        const blendModes = [
-            { label: 'Normal', value: 'normal' },
-            { label: 'Multiply', value: 'multiply' },
-            { label: 'Screen', value: 'screen' },
-            { label: 'Overlay', value: 'overlay' },
-            { label: 'Darken', value: 'darken' },
-            { label: 'Lighten', value: 'lighten' },
-            { label: 'Color Dodge', value: 'color-dodge' },
-            { label: 'Color Burn', value: 'color-burn' },
-            { label: 'Hard Light', value: 'hard-light' },
-            { label: 'Soft Light', value: 'soft-light' },
-            { label: 'Difference', value: 'difference' },
-            { label: 'Exclusion', value: 'exclusion' },
-            { label: 'Hue', value: 'hue' },
-            { label: 'Saturation', value: 'saturation' },
-            { label: 'Color', value: 'color' },
-            { label: 'Luminosity', value: 'luminosity' }
-        ];
-
-        // Note: This sets the blend mode of the SHADOW.
-        // We need to fetch the current blend mode from the shadow style.
-        const state = store.getState();
-        const element = this.getElement(state, this.selection[0]);
-        const currentBlendMode = element.style?.dropShadow?.blendMode || 'normal';
-
         const blendDropdown = new Dropdown({
-            options: blendModes,
-            value: currentBlendMode,
+            options: BlendModeOptions,
+            value: effect.blendMode || 'normal',
             size: 'sm',
-            onChange: (val) => this.updateDropShadow('blendMode', val)
+            onChange: (val) => this.updateEffect(effect.id, { blendMode: val })
         });
 
-        const closeBtn = new IconButton({ icon: Icons.CLOSE, title: 'Close', onClick: () => this.activeFlyout.close() });
+        const closeBtn = new IconButton({ 
+            icon: Icons.CLOSE, 
+            title: 'Close', 
+            onClick: () => this.activeFlyout.close() 
+        });
 
         headerRight.appendChild(blendDropdown.element);
         headerRight.appendChild(closeBtn.element);
-
         header.appendChild(typeSelect.element);
         header.appendChild(headerRight);
         content.appendChild(header);
 
-        // X / Y
+        // X / Y Position
         const row1 = document.createElement('div');
         row1.className = 'pi-flyout-row';
         
-        const xInput = new NumberInput({ value: shadow.x, label: 'X', onChange: (v, isTransient) => this.updateDropShadow('x', v, isTransient) });
-        const yInput = new NumberInput({ value: shadow.y, label: 'Y', onChange: (v, isTransient) => this.updateDropShadow('y', v, isTransient) });
+        const xInput = new NumberInput({ 
+            value: effect.x ?? 0, 
+            label: 'X', 
+            onChange: (v, isTransient) => this.updateEffect(effect.id, { x: v }, isTransient)
+        });
+        const yInput = new NumberInput({ 
+            value: effect.y ?? 4, 
+            label: 'Y', 
+            onChange: (v, isTransient) => this.updateEffect(effect.id, { y: v }, isTransient)
+        });
         
         xInput.element.classList.add('pi-flex-1');
         yInput.element.classList.add('pi-flex-1');
@@ -260,14 +342,23 @@ export class EffectsSection {
         const row2 = document.createElement('div');
         row2.className = 'pi-flyout-row';
         
-        const bInput = new NumberInput({ value: shadow.blur, label: 'Blur', min: 0, onChange: (v, isTransient) => this.updateDropShadow('blur', v, isTransient) });
-        const sInput = new NumberInput({ value: shadow.spread, label: 'Spread', onChange: (v, isTransient) => this.updateDropShadow('spread', v, isTransient) });
+        const blurInput = new NumberInput({ 
+            value: effect.blur ?? 8, 
+            label: 'Blur', 
+            min: 0, 
+            onChange: (v, isTransient) => this.updateEffect(effect.id, { blur: v }, isTransient)
+        });
+        const spreadInput = new NumberInput({ 
+            value: effect.spread ?? 0, 
+            label: 'Spread', 
+            onChange: (v, isTransient) => this.updateEffect(effect.id, { spread: v }, isTransient)
+        });
         
-        bInput.element.classList.add('pi-flex-1');
-        sInput.element.classList.add('pi-flex-1');
+        blurInput.element.classList.add('pi-flex-1');
+        spreadInput.element.classList.add('pi-flex-1');
         
-        row2.appendChild(bInput.element);
-        row2.appendChild(sInput.element);
+        row2.appendChild(blurInput.element);
+        row2.appendChild(spreadInput.element);
         content.appendChild(row2);
 
         // Color & Opacity
@@ -275,16 +366,17 @@ export class EffectsSection {
         row3.className = 'pi-flyout-row-center';
 
         const colorInput = new ColorInput(
-            shadow.color,
-            (v, isTransient) => this.updateShadowColor(v, isTransient)
+            effect.color || '#000000',
+            (v, isTransient) => this.updateEffect(effect.id, { color: v }, isTransient)
         );
         colorInput.element.classList.add('pi-flex-1');
 
         const opacityInput = new NumberInput({ 
-            value: this.getOpacityFromColor(shadow.color),
+            value: effect.opacity ?? 25,
             label: '%', 
-            min: 0, max: 100,
-            onChange: (v, isTransient) => this.updateShadowOpacity(v, isTransient)
+            min: 0, 
+            max: 100,
+            onChange: (v, isTransient) => this.updateEffect(effect.id, { opacity: v }, isTransient)
         });
         opacityInput.element.classList.add('pi-width-60');
 
@@ -292,23 +384,13 @@ export class EffectsSection {
         row3.appendChild(opacityInput.element);
         content.appendChild(row3);
 
-        this.activeFlyout = new Flyout({
-            trigger: newTrigger || trigger,
-            content: content,
-            position: 'left',
-            onClose: () => { 
-                this.activeFlyout = null; 
-                this.setActiveEffect(null);
-            }
-        });
-        this.activeFlyout.open();
+        return content;
     }
 
-    openBlurFlyout(blurData, trigger) {
-        this.setActiveEffect('blur');
-        const newTrigger = this.container.querySelector('[data-effect-type="blur"]');
-        if (this.activeFlyout) this.activeFlyout.close();
-
+    /**
+     * Create flyout content for blur effects
+     */
+    createBlurFlyoutContent(effect) {
         const content = document.createElement('div');
         content.className = 'pi-flyout-content';
 
@@ -317,285 +399,215 @@ export class EffectsSection {
         header.className = 'pi-flyout-header';
 
         const typeSelect = new Dropdown({
-            options: [
-                { label: 'Drop Shadow', value: 'dropShadow' },
-                { label: 'Layer Blur', value: 'blur' },
-                { label: 'Background Blur', value: 'backgroundBlur' }
-            ],
-            value: 'blur',
+            options: getEffectTypeOptions(),
+            value: effect.type,
             size: 'lg',
-            onChange: (val) => this.changeEffectType('blur', val)
+            onChange: (newType) => this.changeEffectType(effect.id, newType)
         });
 
-        const closeBtn = new IconButton({ icon: Icons.CLOSE, title: 'Close', onClick: () => this.activeFlyout.close() });
+        const closeBtn = new IconButton({ 
+            icon: Icons.CLOSE, 
+            title: 'Close', 
+            onClick: () => this.activeFlyout.close() 
+        });
+
         header.appendChild(typeSelect.element);
         header.appendChild(closeBtn.element);
         content.appendChild(header);
 
-        // Blur Mode Toggle (Uniform vs Progressive)
-        const modeControl = new SegmentedControl(
-            [
-                { label: 'Uniform', value: 'uniform' },
-                { label: 'Progressive', value: 'progressive' }
-            ],
-            blurData.type || 'uniform',
-            (val) => this.updateBlur('type', val)
-        );
-        content.appendChild(modeControl.element);
+        // Mode toggle (only for layer blur)
+        if (effect.type === EffectTypes.LAYER_BLUR) {
+            const modeControl = new SegmentedControl(
+                [
+                    { label: 'Uniform', value: 'uniform' },
+                    { label: 'Progressive', value: 'progressive' }
+                ],
+                effect.mode || 'uniform',
+                (val) => this.updateEffect(effect.id, { mode: val })
+            );
+            content.appendChild(modeControl.element);
+        }
 
-        // Blur Intensity
-        const radiusValue = (typeof blurData === 'number') ? blurData : (blurData.radius !== undefined ? blurData.radius : 4);
+        // Blur intensity
         const blurInput = new NumberInput({ 
-            value: radiusValue,
-            label: Icons.GRID_3X3, // Grid icon
+            value: effect.radius ?? 12,
+            label: Icons.GRID_3X3 || 'Blur',
             min: 0, 
-            onChange: (v, isTransient) => this.updateBlur('radius', v, isTransient) 
+            onChange: (v, isTransient) => this.updateEffect(effect.id, { radius: v }, isTransient)
         });
         content.appendChild(blurInput.element);
 
-        this.activeFlyout = new Flyout({
-            trigger: newTrigger || trigger,
-            content: content,
-            position: 'left',
-            onClose: () => { 
-                this.activeFlyout = null; 
-                this.setActiveEffect(null);
-            }
-        });
-        this.activeFlyout.open();
+        return content;
     }
 
-    openBackgroundBlurFlyout(blurData, trigger) {
-        this.setActiveEffect('backgroundBlur');
-        const newTrigger = this.container.querySelector('[data-effect-type="backgroundBlur"]');
-        if (this.activeFlyout) this.activeFlyout.close();
+    // ===== Effect Operations =====
 
-        const content = document.createElement('div');
-        content.className = 'pi-flyout-content';
-
-        // Header
-        const header = document.createElement('div');
-        header.className = 'pi-flyout-header';
-
-        const typeSelect = new Dropdown({
-            options: [
-                { label: 'Drop Shadow', value: 'dropShadow' },
-                { label: 'Layer Blur', value: 'blur' },
-                { label: 'Background Blur', value: 'backgroundBlur' }
-            ],
-            value: 'backgroundBlur',
-            size: 'lg',
-            onChange: (val) => this.changeEffectType('backgroundBlur', val)
-        });
-
-        const closeBtn = new IconButton({ icon: Icons.CLOSE, title: 'Close', onClick: () => this.activeFlyout.close() });
-        header.appendChild(typeSelect.element);
-        header.appendChild(closeBtn.element);
-        content.appendChild(header);
-
-        // Blur Intensity
-        const radiusValue = (typeof blurData === 'number') ? blurData : (blurData.radius !== undefined ? blurData.radius : 4);
-        const blurInput = new NumberInput({ 
-            value: radiusValue,
-            label: Icons.GRID_3X3,
-            min: 0, 
-            onChange: (v, isTransient) => this.updateBackgroundBlur('radius', v, isTransient) 
-        });
-        content.appendChild(blurInput.element);
-
-        this.activeFlyout = new Flyout({
-            trigger: newTrigger || trigger,
-            content: content,
-            position: 'left',
-            onClose: () => { 
-                this.activeFlyout = null; 
-                this.setActiveEffect(null);
-            }
-        });
-        this.activeFlyout.open();
-    }
-
-    addEffect() {
-        // Ensure section is expanded when adding an effect
+    /**
+     * Add a new effect
+     */
+    addEffect(type = EffectTypes.DROP_SHADOW) {
         this.section.setCollapsed(false);
 
         this.selection.forEach(id => {
             const state = store.getState();
-            const el = this.getElement(state, id);
-            const style = el.style || {};
+            const element = this.getElement(state, id);
+            const effects = this.getEffects(element);
             
-            if (!style.dropShadow) {
-                this.updateStyle('dropShadow', { x: 0, y: 4, blur: 4, spread: 0, color: '#00000080' });
-            } else if (!style.blur) {
-                this.updateStyle('blur', { radius: 4, type: 'uniform' });
-            }
-        });
-    }
-
-    removeEffect(type) {
-        this.updateStyle(type, null);
-    }
-
-    updateDropShadow(prop, value, isTransient = false) {
-        this.selection.forEach(id => {
-            const state = store.getState();
-            const el = this.getElement(state, id);
-            const current = el.style?.dropShadow || {};
-            this.updateStyle('dropShadow', { ...current, [prop]: value }, isTransient);
-        });
-    }
-
-    updateBlur(prop, value, isTransient = false) {
-        this.selection.forEach(id => {
-            const state = store.getState();
-            const el = this.getElement(state, id);
-            // Handle legacy number format if necessary, though we should migrate to object
-            let current = el.style?.blur;
-            if (typeof current === 'number') current = { radius: current, type: 'uniform' };
-            else if (!current) current = { radius: 4, type: 'uniform' };
+            const newEffect = createEffect(type);
+            const updatedEffects = [...effects, newEffect];
             
-            this.updateStyle('blur', { ...current, [prop]: value }, isTransient);
+            this.dispatchEffectsUpdate(id, updatedEffects);
         });
     }
 
-    updateBackgroundBlur(prop, value, isTransient = false) {
+    /**
+     * Remove an effect by ID
+     */
+    removeEffect(effectId) {
+        if (this.activeEffectId === effectId && this.activeFlyout) {
+            this.activeFlyout.close();
+        }
+
         this.selection.forEach(id => {
             const state = store.getState();
-            const el = this.getElement(state, id);
-            const current = el.style?.backgroundBlur || {};
-            this.updateStyle('backgroundBlur', { ...current, [prop]: value }, isTransient);
+            const element = this.getElement(state, id);
+            const effects = this.getEffects(element);
+            
+            const updatedEffects = effects.filter(e => e.id !== effectId);
+            this.dispatchEffectsUpdate(id, updatedEffects);
         });
     }
 
-    updateStyle(prop, value, isTransient = false) {
+    /**
+     * Update a specific effect's properties
+     */
+    updateEffect(effectId, updates, isTransient = false) {
         this.selection.forEach(id => {
             const state = store.getState();
-            const el = this.getElement(state, id);
-            const newStyle = { ...(el.style || {}), [prop]: value };
-            store.dispatch('UPDATE_ELEMENT', { id, style: newStyle }, { skipHistory: isTransient });
+            const element = this.getElement(state, id);
+            const effects = this.getEffects(element);
+            
+            const updatedEffects = effects.map(e => 
+                e.id === effectId ? { ...e, ...updates } : e
+            );
+            
+            this.dispatchEffectsUpdate(id, updatedEffects, isTransient);
         });
-        // Force re-render if needed, though store subscription should handle it
+    }
+
+    /**
+     * Change effect type
+     */
+    changeEffectType(effectId, newType) {
+        this.selection.forEach(id => {
+            const state = store.getState();
+            const element = this.getElement(state, id);
+            const effects = this.getEffects(element);
+            
+            const updatedEffects = effects.map(e => {
+                if (e.id !== effectId) return e;
+                
+                const defaults = EffectDefaults[newType];
+                
+                // Preserve common properties where applicable
+                if (isShadowEffect(e.type) && isShadowEffect(newType)) {
+                    return { ...defaults, ...e, type: newType, id: e.id };
+                } else if (isBlurEffect(e.type) && isBlurEffect(newType)) {
+                    return { ...defaults, ...e, type: newType, id: e.id };
+                } else {
+                    return { ...defaults, type: newType, id: e.id };
+                }
+            });
+            
+            this.dispatchEffectsUpdate(id, updatedEffects);
+        });
+
+        // Reopen flyout with new type
+        if (this.activeFlyout) {
+            this.activeFlyout.close();
+            setTimeout(() => {
+                const state = store.getState();
+                const element = this.getElement(state, this.selection[0]);
+                const effects = this.getEffects(element);
+                const effect = effects.find(e => e.id === effectId);
+                if (effect) {
+                    this.openEffectFlyout(effect);
+                }
+            }, 50);
+        }
+    }
+
+    /**
+     * Toggle effect visibility
+     */
+    toggleEffectVisibility(effectId) {
+        this.selection.forEach(id => {
+            const state = store.getState();
+            const element = this.getElement(state, id);
+            const effects = this.getEffects(element);
+            
+            const updatedEffects = effects.map(e => 
+                e.id === effectId ? { ...e, visible: e.visible === false ? true : false } : e
+            );
+            
+            this.dispatchEffectsUpdate(id, updatedEffects);
+        });
+    }
+
+    /**
+     * Reorder effect from one index to another
+     */
+    reorderEffect(fromIndex, toIndex) {
+        this.selection.forEach(id => {
+            const state = store.getState();
+            const element = this.getElement(state, id);
+            const effects = [...this.getEffects(element)];
+            
+            const [moved] = effects.splice(fromIndex, 1);
+            effects.splice(toIndex, 0, moved);
+            
+            this.dispatchEffectsUpdate(id, effects);
+        });
+    }
+
+    /**
+     * Dispatch effects update to store
+     */
+    dispatchEffectsUpdate(elementId, effects, isTransient = false) {
         const state = store.getState();
-        const element = this.getElement(state, this.selection[0]);
-        this.render(element);
+        const element = this.getElement(state, elementId);
+        
+        const newStyle = { 
+            ...(element?.style || {}),
+            effects
+        };
+        
+        store.dispatch('UPDATE_ELEMENT', { 
+            id: elementId, 
+            style: newStyle 
+        }, { skipHistory: isTransient });
+        
+        this.refreshRender();
     }
 
-    setActiveEffect(type) {
-        this.activeEffectType = type;
-        // Re-render to update highlights
+    /**
+     * Refresh the section render
+     */
+    refreshRender() {
         if (this.selection && this.selection.length > 0) {
             const state = store.getState();
             const element = this.getElement(state, this.selection[0]);
-            if (element) this.render(element);
-        }
-    }
-
-    changeEffectType(oldType, newType) {
-        if (oldType === newType) return;
-
-        // 1. Remove old effect
-        this.removeEffect(oldType);
-
-        // 2. Add new effect with defaults
-        let defaultData;
-        if (newType === 'dropShadow') {
-            defaultData = { x: 0, y: 4, blur: 4, spread: 0, color: '#00000080' };
-        } else if (newType === 'blur') {
-            defaultData = { radius: 4, type: 'uniform' };
-        } else if (newType === 'backgroundBlur') {
-            defaultData = { radius: 4 };
-        }
-
-        this.updateStyle(newType, defaultData);
-
-        // 3. Re-open flyout for new type
-        this.activeEffectType = newType;
-        if (this.activeFlyout) this.activeFlyout.close();
-    }
-
-    toggleVisibility(type) {
-        this.selection.forEach(id => {
-            const state = store.getState();
-            const el = this.getElement(state, id);
-            const current = el.style?.[type] || {};
-            // If visible is undefined, it's true. So toggle means false.
-            const newVisible = current.visible === false ? true : false;
-            this.updateStyle(type, { ...current, visible: newVisible });
-        });
-    }
-
-    getOpacityFromColor(color) {
-        if (!color) return 100;
-        if (color.startsWith('#')) {
-            if (color.length === 9) {
-                const alpha = parseInt(color.slice(7, 9), 16);
-                return Math.round((alpha / 255) * 100);
-            }
-            return 100;
-        }
-        if (color.startsWith('rgba')) {
-            const match = color.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?\)/);
-            if (match && match[4] !== undefined) {
-                return Math.round(parseFloat(match[4]) * 100);
-            }
-            return 100;
-        }
-        return 100;
-    }
-
-    applyOpacityToColor(color, opacity) {
-        // Ensure opacity is 0-100
-        opacity = Math.max(0, Math.min(100, opacity));
-        const alpha = Math.round((opacity / 100) * 255);
-        const alphaHex = alpha.toString(16).padStart(2, '0');
-
-        if (!color) return '#000000' + alphaHex;
-
-        if (color.startsWith('#')) {
-            // Strip existing alpha if present (length 9)
-            const base = color.length === 9 ? color.slice(0, 7) : color;
-            return base + alphaHex;
-        }
-        
-        if (color.startsWith('rgb')) {
-            // Parse rgb/rgba and reconstruct
-            const match = color.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
-            if (match) {
-                return `rgba(${match[1]}, ${match[2]}, ${match[3]}, ${opacity / 100})`;
+            if (element) {
+                this.render(element);
             }
         }
-        
-        return color; // Fallback
     }
 
-    updateShadowOpacity(opacity, isTransient = false) {
-        this.selection.forEach(id => {
-            const state = store.getState();
-            const el = this.getElement(state, id);
-            const current = el.style?.dropShadow || {};
-            const newColor = this.applyOpacityToColor(current.color || '#000000', opacity);
-            this.updateStyle('dropShadow', { ...current, color: newColor }, isTransient);
-        });
-    }
-
-    updateShadowColor(newBaseColor, isTransient = false) {
-        this.selection.forEach(id => {
-            const state = store.getState();
-            const el = this.getElement(state, id);
-            const current = el.style?.dropShadow || {};
-            const currentOpacity = this.getOpacityFromColor(current.color);
-            
-            // newBaseColor is likely #RRGGBB from the picker
-            // We want to preserve the current opacity
-            const finalColor = this.applyOpacityToColor(newBaseColor, currentOpacity);
-            
-            this.updateStyle('dropShadow', { ...current, color: finalColor }, isTransient);
-        });
-    }
-
-    updateBlendMode(mode) {
-        this.selection.forEach(id => {
-            store.dispatch('UPDATE_ELEMENT', { id, blendMode: mode });
-        });
+    /**
+     * Open effect styles panel
+     */
+    openStylesPanel() {
+        // TODO: Implement effect styles panel
+        console.log('Effect styles panel - coming soon');
     }
 }
