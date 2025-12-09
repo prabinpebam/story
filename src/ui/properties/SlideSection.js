@@ -11,7 +11,7 @@ import { panelManager } from '../PanelManager.js';
 import { Icons } from '../Icons.js';
 import { ThemeSwatches } from '../components/ThemeSwatches.js';
 import { SLIDE_MASTER_PRESETS, getPresetById, getPresetList, getFullPresetById } from '../../core/store/SlideMasterPresets.js';
-import { THEME_PRESETS } from '../panels/color-theme/ThemePresets.js';
+import { THEME_PRESETS, getPresetById as getThemePresetById } from '../panels/color-theme/ThemePresets.js';
 import { applyThemeToCSSVariables, COLOR_MODES } from '../panels/color-theme/ColorThemeUtils.js';
 import { StyleResolver } from '../../utils/StyleResolver.js';
 import { ThemeDiag } from '../../utils/ThemeDiagnostics.js';
@@ -149,7 +149,35 @@ export class SlideSection {
         const container = document.createElement('div');
         container.className = 'theme-colors-content';
 
-        // Current theme name/preset row
+        // Theme Override Dropdown Row (Phase 4.2)
+        const themePickerRow = document.createElement('div');
+        themePickerRow.className = 'pi-row theme-picker-row';
+        
+        const themeLabel = document.createElement('span');
+        themeLabel.className = 'pi-label';
+        themeLabel.textContent = 'Theme';
+        themePickerRow.appendChild(themeLabel);
+        
+        // Build dropdown options: "Inherit" + all presets
+        const themeOptions = [
+            { value: '__inherit__', label: 'Inherit from Layout' },
+            { value: '__divider__', label: '─────────────', disabled: true },
+            ...THEME_PRESETS.map(preset => ({
+                value: preset.id,
+                label: preset.name
+            }))
+        ];
+        
+        this.themeDropdown = new Dropdown({
+            options: themeOptions,
+            onChange: (val) => this.onThemeDropdownChange(val)
+        });
+        this.themeDropdown.element.classList.add('theme-override-dropdown');
+        themePickerRow.appendChild(this.themeDropdown.element);
+        
+        container.appendChild(themePickerRow);
+
+        // Current theme name/preset row (for display info)
         const headerRow = document.createElement('div');
         headerRow.className = 'theme-detail-header';
         
@@ -401,6 +429,17 @@ export class SlideSection {
         const themeName = lumaTheme?.name || 'Default';
         this.colorThemeName.textContent = themeName;
         
+        // Update dropdown selection to reflect current state (Phase 4.2)
+        if (this.themeDropdown) {
+            if (isOverride && lumaTheme?.id) {
+                // Slide has a direct override - select the preset
+                this.themeDropdown.setValue(lumaTheme.id);
+            } else {
+                // Inherited - select "Inherit from Layout"
+                this.themeDropdown.setValue('__inherit__');
+            }
+        }
+        
         // Diagnostic logging for Property Inspector display
         const state = store.getState();
         const slideId = state.editor.mode === 'master' ? null : state.editor.activeSlideId;
@@ -536,6 +575,47 @@ export class SlideSection {
                 slideId,
                 styleAssignments: {
                     colorTheme: null // null = inherit from cascade
+                }
+            });
+        }
+        
+        this.updateThemeDisplay();
+    }
+
+    /**
+     * Handle theme dropdown selection change (Phase 4.2)
+     * @param {string} value - Selected preset id or '__inherit__'
+     */
+    onThemeDropdownChange(value) {
+        const state = store.getState();
+        const mode = state.editor.mode;
+        
+        if (mode === 'master') {
+            // For masters, use colorOverride (legacy approach)
+            const id = state.editor.activeMasterId;
+            if (value === '__inherit__') {
+                store.dispatch('UPDATE_MASTER', { id, colorOverride: undefined });
+            } else {
+                // Get preset and apply as override
+                const preset = getThemePresetById(value);
+                if (preset) {
+                    store.dispatch('UPDATE_MASTER', { 
+                        id, 
+                        colorOverride: {
+                            presetId: preset.id,
+                            presetName: preset.name,
+                            slots: preset.slots
+                        }
+                    });
+                }
+            }
+        } else {
+            // For slides, use the cascade-aware style assignment system
+            const slideId = state.editor.activeSlideId;
+            store.dispatch('UPDATE_SLIDE_STYLE_ASSIGNMENTS', {
+                slideId,
+                styleAssignments: {
+                    colorTheme: value === '__inherit__' ? null : value
                 }
             });
         }
