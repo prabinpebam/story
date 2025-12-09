@@ -385,4 +385,105 @@ describe('NumberInput', () => {
             expect(numberInput.value).toBe(999999);
         });
     });
+
+    describe('mixed state (multi-selection)', () => {
+        it('should accept mixed option in constructor', () => {
+            numberInput = new NumberInput({ mixed: true });
+            expect(numberInput.mixed).toBe(true);
+        });
+
+        it('should display placeholder when mixed is true', () => {
+            numberInput = new NumberInput({ mixed: true });
+            expect(numberInput.input.value).toBe('');
+            expect(numberInput.input.placeholder).toBe('—');
+        });
+
+        it('should accept custom mixedPlaceholder', () => {
+            numberInput = new NumberInput({ mixed: true, mixedPlaceholder: 'Mixed' });
+            expect(numberInput.input.placeholder).toBe('Mixed');
+        });
+
+        it('should add mixed class when in mixed state', () => {
+            numberInput = new NumberInput({ mixed: true });
+            expect(numberInput.input.classList.contains('mixed')).toBe(true);
+        });
+
+        it('should not show mixed state by default', () => {
+            numberInput = new NumberInput({ value: 50 });
+            expect(numberInput.mixed).toBe(false);
+            expect(numberInput.input.value).toBe('50');
+            expect(numberInput.input.classList.contains('mixed')).toBe(false);
+        });
+
+        it('should clear mixed state when setValue is called', () => {
+            numberInput = new NumberInput({ mixed: true });
+            expect(numberInput.mixed).toBe(true);
+            
+            numberInput.setValue(100);
+            
+            expect(numberInput.mixed).toBe(false);
+            expect(numberInput.value).toBe(100);
+            expect(numberInput.input.value).toBe('100');
+            expect(numberInput.input.classList.contains('mixed')).toBe(false);
+        });
+
+        it('should set mixed state via setMixed()', () => {
+            numberInput = new NumberInput({ value: 50 });
+            expect(numberInput.mixed).toBe(false);
+            
+            numberInput.setMixed(true);
+            
+            expect(numberInput.mixed).toBe(true);
+            expect(numberInput.input.value).toBe('');
+            expect(numberInput.input.placeholder).toBe('—');
+            expect(numberInput.input.classList.contains('mixed')).toBe(true);
+        });
+
+        it('should clear mixed state via setMixed(false)', () => {
+            numberInput = new NumberInput({ value: 75, mixed: true });
+            
+            numberInput.setMixed(false);
+            
+            expect(numberInput.mixed).toBe(false);
+            expect(numberInput.input.value).toBe('75');
+            expect(numberInput.input.classList.contains('mixed')).toBe(false);
+        });
+
+        it('should return mixed state via isMixed()', () => {
+            numberInput = new NumberInput({ mixed: true });
+            expect(numberInput.isMixed()).toBe(true);
+            
+            numberInput.setMixed(false);
+            expect(numberInput.isMixed()).toBe(false);
+        });
+
+        it('should preserve value when toggling mixed state', () => {
+            numberInput = new NumberInput({ value: 42 });
+            
+            numberInput.setMixed(true);
+            expect(numberInput.value).toBe(42); // Value preserved
+            
+            numberInput.setMixed(false);
+            expect(numberInput.input.value).toBe('42'); // Shows preserved value
+        });
+
+        it('should apply value to all selected elements when editing mixed state', () => {
+            const onChange = vi.fn();
+            numberInput = new NumberInput({ mixed: true, onChange });
+            
+            // Simulate user typing a new value
+            numberInput.input.value = '50';
+            numberInput.handleInputChange({ target: numberInput.input });
+            
+            // Should call onChange with the new value
+            expect(onChange).toHaveBeenCalledWith(50, false);
+            expect(numberInput.mixed).toBe(false);
+        });
+
+        it('should show mixed state with units placeholder', () => {
+            numberInput = new NumberInput({ mixed: true, units: 'px' });
+            expect(numberInput.input.placeholder).toBe('—');
+            expect(numberInput.input.value).toBe('');
+        });
+    });
 });

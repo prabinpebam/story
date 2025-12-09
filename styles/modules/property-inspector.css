@@ -217,6 +217,18 @@
     background-color: transparent;
 }
 
+/* Mixed state for multi-selection with different values */
+.pi-input.mixed,
+.dropdown-trigger.mixed {
+    font-style: italic;
+    color: var(--color-text-tertiary);
+}
+
+.pi-input.mixed::placeholder {
+    font-style: italic;
+    color: var(--color-text-tertiary);
+}
+
 /* --- Fill Section Specifics --- */
 .fill-list {
     display: flex;

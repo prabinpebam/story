@@ -6,11 +6,14 @@ export class Dropdown {
             placeholder: '', // Placeholder text when no value
             size: null, // Width variant: 'xs', 'sm', 'md', 'lg', 'xl', 'fill', 'auto', or null for default
             height: null, // Height variant: 'sm', 'lg', or null for default (md)
+            mixed: false, // Multi-selection mixed value state
+            mixedLabel: 'Mixed', // Label text for mixed state
             onChange: () => {},
             ...options
         };
 
         this.value = this.options.value;
+        this.mixed = this.options.mixed;
         this.isOpen = false;
         this.element = this.create();
     }
@@ -52,15 +55,24 @@ export class Dropdown {
     }
 
     updateTriggerText() {
+        // Handle mixed state first
+        if (this.mixed) {
+            this.trigger.textContent = this.options.mixedLabel;
+            this.trigger.classList.add('placeholder', 'mixed');
+            return;
+        }
+        
         const selectedOption = this.options.options.find(o => o.value === this.value);
         if (selectedOption) {
             this.trigger.textContent = selectedOption.label;
-            this.trigger.classList.remove('placeholder');
+            this.trigger.classList.remove('placeholder', 'mixed');
         } else if (this.options.placeholder) {
             this.trigger.textContent = this.options.placeholder;
             this.trigger.classList.add('placeholder');
+            this.trigger.classList.remove('mixed');
         } else {
             this.trigger.textContent = '';
+            this.trigger.classList.remove('placeholder', 'mixed');
         }
     }
 
@@ -158,11 +170,32 @@ export class Dropdown {
 
     setValue(newValue, triggerCallback = true) {
         this.value = newValue;
+        // Clear mixed state when a concrete value is set
+        if (this.mixed) {
+            this.mixed = false;
+        }
         this.updateTriggerText();
     }
     
     setOptions(newOptions) {
         this.options.options = newOptions;
         this.updateTriggerText();
+    }
+
+    /**
+     * Set mixed state for multi-selection with different values
+     * @param {boolean} mixed - Whether to show mixed state
+     */
+    setMixed(mixed) {
+        this.mixed = mixed;
+        this.updateTriggerText();
+    }
+
+    /**
+     * Check if dropdown is in mixed state
+     * @returns {boolean}
+     */
+    isMixed() {
+        return this.mixed;
     }
 }

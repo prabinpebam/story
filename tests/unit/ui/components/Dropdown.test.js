@@ -354,4 +354,106 @@ describe('Dropdown', () => {
             expect(dropdown.element.className).toContain('dropdown-height-sm');
         });
     });
+
+    describe('mixed state (multi-selection)', () => {
+        it('should accept mixed option in constructor', () => {
+            dropdown = new Dropdown({ options: testOptions, mixed: true });
+            expect(dropdown.mixed).toBe(true);
+        });
+
+        it('should display "Mixed" when mixed is true', () => {
+            dropdown = new Dropdown({ options: testOptions, mixed: true });
+            expect(dropdown.trigger.textContent).toBe('Mixed');
+        });
+
+        it('should accept custom mixedLabel', () => {
+            dropdown = new Dropdown({ options: testOptions, mixed: true, mixedLabel: 'Multiple' });
+            expect(dropdown.trigger.textContent).toBe('Multiple');
+        });
+
+        it('should add mixed and placeholder classes when in mixed state', () => {
+            dropdown = new Dropdown({ options: testOptions, mixed: true });
+            expect(dropdown.trigger.classList.contains('mixed')).toBe(true);
+            expect(dropdown.trigger.classList.contains('placeholder')).toBe(true);
+        });
+
+        it('should not show mixed state by default', () => {
+            dropdown = new Dropdown({ options: testOptions, value: 'opt1' });
+            expect(dropdown.mixed).toBe(false);
+            expect(dropdown.trigger.textContent).toBe('Option 1');
+            expect(dropdown.trigger.classList.contains('mixed')).toBe(false);
+        });
+
+        it('should clear mixed state when setValue is called', () => {
+            dropdown = new Dropdown({ options: testOptions, mixed: true });
+            expect(dropdown.mixed).toBe(true);
+            
+            dropdown.setValue('opt2');
+            
+            expect(dropdown.mixed).toBe(false);
+            expect(dropdown.value).toBe('opt2');
+            expect(dropdown.trigger.textContent).toBe('Option 2');
+            expect(dropdown.trigger.classList.contains('mixed')).toBe(false);
+        });
+
+        it('should set mixed state via setMixed()', () => {
+            dropdown = new Dropdown({ options: testOptions, value: 'opt1' });
+            expect(dropdown.mixed).toBe(false);
+            
+            dropdown.setMixed(true);
+            
+            expect(dropdown.mixed).toBe(true);
+            expect(dropdown.trigger.textContent).toBe('Mixed');
+            expect(dropdown.trigger.classList.contains('mixed')).toBe(true);
+        });
+
+        it('should clear mixed state via setMixed(false)', () => {
+            dropdown = new Dropdown({ options: testOptions, value: 'opt3', mixed: true });
+            
+            dropdown.setMixed(false);
+            
+            expect(dropdown.mixed).toBe(false);
+            expect(dropdown.trigger.textContent).toBe('Option 3');
+            expect(dropdown.trigger.classList.contains('mixed')).toBe(false);
+        });
+
+        it('should return mixed state via isMixed()', () => {
+            dropdown = new Dropdown({ options: testOptions, mixed: true });
+            expect(dropdown.isMixed()).toBe(true);
+            
+            dropdown.setMixed(false);
+            expect(dropdown.isMixed()).toBe(false);
+        });
+
+        it('should preserve value when toggling mixed state', () => {
+            dropdown = new Dropdown({ options: testOptions, value: 'opt2' });
+            
+            dropdown.setMixed(true);
+            expect(dropdown.value).toBe('opt2'); // Value preserved
+            
+            dropdown.setMixed(false);
+            expect(dropdown.trigger.textContent).toBe('Option 2'); // Shows preserved value
+        });
+
+        it('should clear mixed state when user selects an option', () => {
+            dropdown = new Dropdown({ options: testOptions, mixed: true, onChange });
+            dropdown.open();
+            
+            // Click on an option
+            const items = dropdown.menu.querySelectorAll('.dropdown-item');
+            items[1].click(); // Select Option 2
+            
+            expect(dropdown.mixed).toBe(false);
+            expect(dropdown.value).toBe('opt2');
+            expect(onChange).toHaveBeenCalledWith('opt2');
+        });
+
+        it('should show mixed state even with existing value', () => {
+            dropdown = new Dropdown({ options: testOptions, value: 'opt1', mixed: true });
+            
+            // Mixed state takes precedence in display
+            expect(dropdown.trigger.textContent).toBe('Mixed');
+            expect(dropdown.value).toBe('opt1'); // But value is preserved
+        });
+    });
 });

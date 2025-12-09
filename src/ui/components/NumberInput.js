@@ -11,11 +11,14 @@ export class NumberInput {
             precision: 2,
             units: '',
             scrubbable: false,
+            mixed: false,           // Multi-selection mixed value state
+            mixedPlaceholder: '—',  // Placeholder text for mixed state
             onChange: () => {},
             ...options
         };
 
         this.value = this.options.value;
+        this.mixed = this.options.mixed;
         this.element = this.create();
     }
 
@@ -33,7 +36,7 @@ export class NumberInput {
         this.input = document.createElement('input');
         this.input.className = 'pi-input';
         this.input.type = 'text';
-        this.input.value = this.formatValue(this.value);
+        this.updateDisplay();
         
         if (this.options.scrubbable) {
             this.input.style.cursor = 'ew-resize';
@@ -121,7 +124,12 @@ export class NumberInput {
         val = Math.round(val * multiplier) / multiplier;
 
         this.value = val;
-        this.input.value = this.formatValue(val);
+        
+        // Clear mixed state when a concrete value is set
+        if (this.mixed) {
+            this.mixed = false;
+        }
+        this.updateDisplay();
 
         if (notify && this.options.onChange) {
             this.options.onChange(this.value, isTransient);
@@ -184,5 +192,37 @@ export class NumberInput {
         this.input.disabled = disabled;
         this.element.style.opacity = disabled ? '0.5' : '1';
         this.element.style.pointerEvents = disabled ? 'none' : 'auto';
+    }
+
+    /**
+     * Update display based on mixed state
+     */
+    updateDisplay() {
+        if (this.mixed) {
+            this.input.value = '';
+            this.input.placeholder = this.options.mixedPlaceholder;
+            this.input.classList.add('mixed');
+        } else {
+            this.input.value = this.formatValue(this.value);
+            this.input.placeholder = '';
+            this.input.classList.remove('mixed');
+        }
+    }
+
+    /**
+     * Set mixed state for multi-selection with different values
+     * @param {boolean} mixed - Whether to show mixed state
+     */
+    setMixed(mixed) {
+        this.mixed = mixed;
+        this.updateDisplay();
+    }
+
+    /**
+     * Check if input is in mixed state
+     * @returns {boolean}
+     */
+    isMixed() {
+        return this.mixed;
     }
 }
