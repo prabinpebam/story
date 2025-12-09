@@ -53,6 +53,12 @@ describe('Section', () => {
             expect(section.options.id).toBe('my-section');
         });
 
+        it('should generate unique id if not provided', () => {
+            section = new Section();
+            expect(section.sectionId).toBeDefined();
+            expect(section.sectionId).toMatch(/^section-[a-z0-9]+$/);
+        });
+
         it('should accept collapsed option', () => {
             section = new Section({ collapsed: true });
             expect(section.collapsed).toBe(true);
@@ -76,50 +82,41 @@ describe('Section', () => {
     });
 
     describe('create()', () => {
-        it('should create a container element', () => {
+        it('should create a container element with BEM class', () => {
             section = new Section();
             expect(section.element).toBeDefined();
-            expect(section.element.className).toBe('pi-section');
+            expect(section.element.className).toContain('pi-section');
         });
 
-        it('should create header with title', () => {
+        it('should create header with BEM class and title', () => {
             section = new Section({ title: 'Fill' });
-            const header = section.element.querySelector('.pi-section-header');
+            const header = section.element.querySelector('.pi-section__header');
             expect(header).toBeDefined();
-            const title = section.element.querySelector('.pi-section-title');
+            const title = section.element.querySelector('.pi-section__title');
             expect(title.textContent).toBe('Fill');
         });
 
-        it('should create chevron element', () => {
+        it('should create chevron element with BEM class', () => {
             section = new Section();
             expect(section.chevron).toBeDefined();
+            expect(section.chevron.className).toContain('pi-section__chevron');
             expect(section.chevron.innerHTML).toContain('chevron');
         });
 
-        it('should create content container', () => {
+        it('should create content container with BEM class', () => {
             section = new Section();
             expect(section.content).toBeDefined();
-            expect(section.content.className).toBe('pi-section-content');
+            expect(section.content.className).toContain('pi-section__content');
         });
 
-        it('should hide content when collapsed', () => {
+        it('should add collapsed modifier class when collapsed', () => {
             section = new Section({ collapsed: true });
-            expect(section.content.classList.contains('hidden')).toBe(true);
+            expect(section.element.classList.contains('pi-section--collapsed')).toBe(true);
         });
 
-        it('should show content when not collapsed', () => {
+        it('should not add collapsed modifier when not collapsed', () => {
             section = new Section({ collapsed: false });
-            expect(section.content.classList.contains('hidden')).toBe(false);
-        });
-
-        it('should rotate chevron when collapsed', () => {
-            section = new Section({ collapsed: true });
-            expect(section.chevron.classList.contains('collapsed')).toBe(true);
-        });
-
-        it('should not rotate chevron when expanded', () => {
-            section = new Section({ collapsed: false });
-            expect(section.chevron.classList.contains('collapsed')).toBe(false);
+            expect(section.element.classList.contains('pi-section--collapsed')).toBe(false);
         });
 
         it('should create IconButtons for actions', () => {
@@ -144,6 +141,92 @@ describe('Section', () => {
         });
     });
 
+    describe('accessibility (ARIA)', () => {
+        it('should have role="button" on header', () => {
+            section = new Section();
+            const header = section.element.querySelector('.pi-section__header');
+            expect(header.getAttribute('role')).toBe('button');
+        });
+
+        it('should have tabindex="0" on header', () => {
+            section = new Section();
+            const header = section.element.querySelector('.pi-section__header');
+            expect(header.getAttribute('tabindex')).toBe('0');
+        });
+
+        it('should have aria-expanded="true" when not collapsed', () => {
+            section = new Section({ collapsed: false });
+            const header = section.element.querySelector('.pi-section__header');
+            expect(header.getAttribute('aria-expanded')).toBe('true');
+        });
+
+        it('should have aria-expanded="false" when collapsed', () => {
+            section = new Section({ collapsed: true });
+            const header = section.element.querySelector('.pi-section__header');
+            expect(header.getAttribute('aria-expanded')).toBe('false');
+        });
+
+        it('should have aria-controls pointing to content id', () => {
+            section = new Section({ id: 'test-section' });
+            const header = section.element.querySelector('.pi-section__header');
+            expect(header.getAttribute('aria-controls')).toBe('test-section-content');
+        });
+
+        it('should set content id for aria-controls reference', () => {
+            section = new Section({ id: 'test-section' });
+            expect(section.content.id).toBe('test-section-content');
+        });
+
+        it('should have role="region" on content', () => {
+            section = new Section();
+            expect(section.content.getAttribute('role')).toBe('region');
+        });
+
+        it('should have aria-labelledby on content pointing to title', () => {
+            section = new Section({ id: 'test-section' });
+            const title = section.element.querySelector('.pi-section__title');
+            expect(title.id).toBe('test-section-title');
+            expect(section.content.getAttribute('aria-labelledby')).toBe('test-section-title');
+        });
+
+        it('should have aria-hidden="true" on chevron', () => {
+            section = new Section();
+            expect(section.chevron.getAttribute('aria-hidden')).toBe('true');
+        });
+    });
+
+    describe('keyboard interaction', () => {
+        it('should toggle on Enter key', () => {
+            section = new Section({ collapsed: false });
+            const header = section.element.querySelector('.pi-section__header');
+            
+            const event = new KeyboardEvent('keydown', { key: 'Enter' });
+            header.dispatchEvent(event);
+            
+            expect(section.collapsed).toBe(true);
+        });
+
+        it('should toggle on Space key', () => {
+            section = new Section({ collapsed: false });
+            const header = section.element.querySelector('.pi-section__header');
+            
+            const event = new KeyboardEvent('keydown', { key: ' ' });
+            header.dispatchEvent(event);
+            
+            expect(section.collapsed).toBe(true);
+        });
+
+        it('should not toggle on other keys', () => {
+            section = new Section({ collapsed: false });
+            const header = section.element.querySelector('.pi-section__header');
+            
+            const event = new KeyboardEvent('keydown', { key: 'Tab' });
+            header.dispatchEvent(event);
+            
+            expect(section.collapsed).toBe(false);
+        });
+    });
+
     describe('toggle()', () => {
         it('should toggle collapsed state', () => {
             section = new Section({ collapsed: false });
@@ -161,36 +244,36 @@ describe('Section', () => {
             expect(section.collapsed).toBe(false);
         });
 
-        it('should hide content when toggling to collapsed', () => {
+        it('should add collapsed modifier class when toggling to collapsed', () => {
             section = new Section({ collapsed: false });
             
             section.toggle();
             
-            expect(section.content.classList.contains('hidden')).toBe(true);
+            expect(section.element.classList.contains('pi-section--collapsed')).toBe(true);
         });
 
-        it('should show content when toggling to expanded', () => {
+        it('should remove collapsed modifier class when toggling to expanded', () => {
             section = new Section({ collapsed: true });
             
             section.toggle();
             
-            expect(section.content.classList.contains('hidden')).toBe(false);
+            expect(section.element.classList.contains('pi-section--collapsed')).toBe(false);
         });
 
-        it('should rotate chevron when toggling to collapsed', () => {
+        it('should update aria-expanded when toggling to collapsed', () => {
             section = new Section({ collapsed: false });
             
             section.toggle();
             
-            expect(section.chevron.classList.contains('collapsed')).toBe(true);
+            expect(section.header.getAttribute('aria-expanded')).toBe('false');
         });
 
-        it('should un-rotate chevron when toggling to expanded', () => {
+        it('should update aria-expanded when toggling to expanded', () => {
             section = new Section({ collapsed: true });
             
             section.toggle();
             
-            expect(section.chevron.classList.contains('collapsed')).toBe(false);
+            expect(section.header.getAttribute('aria-expanded')).toBe('true');
         });
 
         it('should call onToggle callback', () => {
@@ -235,20 +318,20 @@ describe('Section', () => {
             expect(onToggle).not.toHaveBeenCalled();
         });
 
-        it('should update content visibility', () => {
+        it('should update collapsed modifier class', () => {
             section = new Section({ collapsed: false });
             
             section.setCollapsed(true);
             
-            expect(section.content.classList.contains('hidden')).toBe(true);
+            expect(section.element.classList.contains('pi-section--collapsed')).toBe(true);
         });
 
-        it('should update chevron rotation', () => {
+        it('should update aria-expanded attribute', () => {
             section = new Section({ collapsed: false });
             
             section.setCollapsed(true);
             
-            expect(section.chevron.classList.contains('collapsed')).toBe(true);
+            expect(section.header.getAttribute('aria-expanded')).toBe('false');
         });
 
         it('should call onToggle when state changes', () => {
@@ -257,6 +340,18 @@ describe('Section', () => {
             section.setCollapsed(true);
             
             expect(onToggle).toHaveBeenCalledWith(true);
+        });
+    });
+
+    describe('isCollapsed()', () => {
+        it('should return true when collapsed', () => {
+            section = new Section({ collapsed: true });
+            expect(section.isCollapsed()).toBe(true);
+        });
+
+        it('should return false when expanded', () => {
+            section = new Section({ collapsed: false });
+            expect(section.isCollapsed()).toBe(false);
         });
     });
 
@@ -304,10 +399,49 @@ describe('Section', () => {
         });
     });
 
+    describe('setTitle()', () => {
+        it('should update the section title', () => {
+            section = new Section({ title: 'Original' });
+            
+            section.setTitle('Updated');
+            
+            const title = section.element.querySelector('.pi-section__title');
+            expect(title.textContent).toBe('Updated');
+        });
+    });
+
+    describe('addAction()', () => {
+        it('should add an action button', () => {
+            section = new Section();
+            const initialCallCount = IconButton.mock.calls.length;
+            
+            section.addAction({ icon: 'plus', title: 'Add', onClick: vi.fn() });
+            
+            expect(IconButton).toHaveBeenCalledTimes(initialCallCount + 1);
+        });
+
+        it('should return the button element', () => {
+            section = new Section();
+            
+            const btn = section.addAction({ icon: 'plus', title: 'Add', onClick: vi.fn() });
+            
+            expect(btn).toBeDefined();
+            expect(btn.tagName).toBe('BUTTON');
+        });
+    });
+
+    describe('getContentElement()', () => {
+        it('should return the content container', () => {
+            section = new Section();
+            
+            expect(section.getContentElement()).toBe(section.content);
+        });
+    });
+
     describe('header click', () => {
         it('should toggle section when header is clicked', () => {
             section = new Section({ collapsed: false });
-            const header = section.element.querySelector('.pi-section-header');
+            const header = section.element.querySelector('.pi-section__header');
             
             header.click();
             
@@ -320,7 +454,6 @@ describe('Section', () => {
             section = new Section({ collapsed: false, actions });
             
             // Actions group should stop propagation
-            // This is verified by the implementation preventing header toggle
             expect(section.collapsed).toBe(false);
         });
     });

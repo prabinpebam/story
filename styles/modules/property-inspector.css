@@ -19,13 +19,123 @@
 }
 
 /* Scoped Component Styles */
+
+/* ==========================================================================
+   SECTION COMPONENT (.pi-section)
+   Uses BEM naming convention with smooth collapse animation
+   ========================================================================== */
+
 .pi-section {
     border-bottom: 1px solid var(--color-border);
     padding-bottom: var(--spacing-2);
     margin-bottom: var(--spacing-2);
 }
 
-.pi-section-header {
+.pi-section__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: var(--row-height);
+    cursor: pointer;
+    border-radius: var(--radius-sm);
+    padding: 0 var(--spacing-1);
+    margin: 0 calc(-1 * var(--spacing-1));
+    transition: background-color 150ms ease-out;
+}
+
+.pi-section__header:hover {
+    background-color: var(--color-interactive-hover, rgba(255, 255, 255, 0.05));
+}
+
+.pi-section__header:focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: -2px;
+}
+
+.pi-section__title-group {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-1);
+}
+
+.pi-section__chevron {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 16px;
+    color: var(--color-text-secondary);
+    transition: transform 200ms ease-out;
+}
+
+.pi-section__chevron svg {
+    width: 12px;
+    height: 12px;
+}
+
+.pi-section--collapsed .pi-section__chevron {
+    transform: rotate(-90deg);
+}
+
+.pi-section__title {
+    font-size: var(--font-size-lg);
+    font-weight: var(--font-weight-semibold);
+    color: var(--color-text-primary);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    user-select: none;
+}
+
+.pi-section__actions {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-1);
+}
+
+.pi-section__content {
+    display: grid;
+    grid-template-rows: 1fr;
+    overflow: hidden;
+    transition: grid-template-rows 200ms ease-out, opacity 200ms ease-out;
+    opacity: 1;
+}
+
+.pi-section__content > * {
+    overflow: hidden;
+}
+
+.pi-section--collapsed .pi-section__content {
+    grid-template-rows: 0fr;
+    opacity: 0;
+}
+
+/* Inner wrapper for content (needed for grid animation) */
+.pi-section__content-inner {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-row);
+    min-height: 0;
+}
+
+/* Direct children layout (when no inner wrapper) */
+.pi-section__content {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-row);
+}
+
+/* Override for animation - use grid when animating */
+.pi-section:not(.pi-section--no-animation) .pi-section__content {
+    display: grid;
+    grid-template-rows: 1fr;
+}
+
+.pi-section:not(.pi-section--no-animation).pi-section--collapsed .pi-section__content {
+    grid-template-rows: 0fr;
+}
+
+/* Legacy class support (for backwards compatibility) */
+.pi-section-header { /* Alias for __header */
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -33,16 +143,24 @@
     cursor: pointer;
 }
 
-.pi-section-title {
+.pi-section-title { /* Alias for __title */
     font-size: var(--font-size-lg);
     font-weight: var(--font-weight-semibold);
     color: var(--color-text-primary);
 }
 
-.pi-section-content {    
+.pi-section-content { /* Alias for __content */
     display: flex;
     flex-direction: column;
     gap: var(--spacing-row);
+}
+
+.pi-section-content.hidden {
+    display: none;
+}
+
+.pi-section-chevron.collapsed {
+    transform: rotate(-90deg);
 }
 
 .pi-row {
