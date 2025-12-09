@@ -266,6 +266,72 @@ describe('FillSection', () => {
             const swatch = row.querySelector('.fill-swatch-trigger');
             expect(swatch.classList.contains('fill-disabled')).toBe(true);
         });
+
+        // Phase 4.1: Theme-linked fill indicators
+        describe('theme-linked fills', () => {
+            it('should add fill-linked class when themeSlot is set', () => {
+                const fill = { type: 'solid', color: '#FF0000', visible: true, themeSlot: 0 };
+                const row = fillSection.createFillRow({ id: 'el-1', style: { fills: [fill] } }, fill, 0, [fill]);
+                expect(row.classList.contains('fill-linked')).toBe(true);
+            });
+
+            it('should not add fill-linked class when themeSlot is undefined', () => {
+                const fill = { type: 'solid', color: '#FF0000', visible: true };
+                const row = fillSection.createFillRow({ id: 'el-1', style: { fills: [fill] } }, fill, 0, [fill]);
+                expect(row.classList.contains('fill-linked')).toBe(false);
+            });
+
+            it('should not add fill-linked class when themeSlot is null', () => {
+                const fill = { type: 'solid', color: '#FF0000', visible: true, themeSlot: null };
+                const row = fillSection.createFillRow({ id: 'el-1', style: { fills: [fill] } }, fill, 0, [fill]);
+                expect(row.classList.contains('fill-linked')).toBe(false);
+            });
+
+            it('should show link icon for theme-linked fills', () => {
+                const fill = { type: 'solid', color: '#FF0000', visible: true, themeSlot: 5 };
+                const row = fillSection.createFillRow({ id: 'el-1', style: { fills: [fill] } }, fill, 0, [fill]);
+                const linkIcon = row.querySelector('.fill-linked-icon');
+                expect(linkIcon).toBeTruthy();
+            });
+
+            it('should not show link icon for non-linked fills', () => {
+                const fill = { type: 'solid', color: '#FF0000', visible: true };
+                const row = fillSection.createFillRow({ id: 'el-1', style: { fills: [fill] } }, fill, 0, [fill]);
+                const linkIcon = row.querySelector('.fill-linked-icon');
+                expect(linkIcon).toBeFalsy();
+            });
+
+            it('should display slot label in hex input for linked fills', () => {
+                const fill = { type: 'solid', color: '#FF0000', visible: true, themeSlot: 3 };
+                const row = fillSection.createFillRow({ id: 'el-1', style: { fills: [fill] } }, fill, 0, [fill]);
+                const hexInput = row.querySelector('.fill-hex-input');
+                // Should show slot name/number instead of hex
+                expect(hexInput.value).not.toBe('#FF0000');
+                expect(hexInput.classList.contains('fill-hex-input--linked')).toBe(true);
+            });
+
+            it('should display hex value in hex input for non-linked fills', () => {
+                const fill = { type: 'solid', color: '#FF0000', visible: true };
+                const row = fillSection.createFillRow({ id: 'el-1', style: { fills: [fill] } }, fill, 0, [fill]);
+                const hexInput = row.querySelector('.fill-hex-input');
+                expect(hexInput.value).toBe('#FF0000');
+                expect(hexInput.classList.contains('fill-hex-input--linked')).toBe(false);
+            });
+
+            it('should add title attribute with theme link info', () => {
+                const fill = { type: 'solid', color: '#FF0000', visible: true, themeSlot: 7 };
+                const row = fillSection.createFillRow({ id: 'el-1', style: { fills: [fill] } }, fill, 0, [fill]);
+                const linkIcon = row.querySelector('.fill-linked-icon');
+                expect(linkIcon.title).toContain('theme');
+            });
+
+            it('should handle numeric slot index 0 as linked', () => {
+                // Edge case: slot 0 is falsy but valid
+                const fill = { type: 'solid', color: '#FF0000', visible: true, themeSlot: 0 };
+                const row = fillSection.createFillRow({ id: 'el-1', style: { fills: [fill] } }, fill, 0, [fill]);
+                expect(row.classList.contains('fill-linked')).toBe(true);
+            });
+        });
     });
 
     describe('addFill()', () => {
@@ -401,6 +467,127 @@ describe('FillSection', () => {
                 expect.any(Object),
                 { skipHistory: true }
             );
+        });
+
+        // Phase 4.1: Theme slot linking/unlinking in updateFill
+        describe('theme slot handling', () => {
+            it('should unlink from theme when color is manually changed', () => {
+                const element = {
+                    id: 'element-1',
+                    style: { fills: [{ type: 'solid', color: '#FF0000', themeSlot: 5 }] }
+                };
+                fillSection.updateFill(element, 0, { color: '#00FF00' });
+                expect(store.dispatch).toHaveBeenCalledWith('UPDATE_ELEMENT',
+                    expect.objectContaining({
+                        style: expect.objectContaining({
+                            fills: expect.arrayContaining([
+                                expect.not.objectContaining({ themeSlot: 5 })
+                            ])
+                        })
+                    }),
+                    expect.any(Object)
+                );
+            });
+
+            it('should link to theme when themeSlot is set', () => {
+                const element = {
+                    id: 'element-1',
+                    style: { fills: [{ type: 'solid', color: '#FF0000' }] }
+                };
+                fillSection.updateFill(element, 0, { themeSlot: 3 });
+                expect(store.dispatch).toHaveBeenCalledWith('UPDATE_ELEMENT',
+                    expect.objectContaining({
+                        style: expect.objectContaining({
+                            fills: expect.arrayContaining([
+                                expect.objectContaining({ themeSlot: 3 })
+                            ])
+                        })
+                    }),
+                    expect.any(Object)
+                );
+            });
+
+            it('should unlink from theme when themeSlot is set to null', () => {
+                const element = {
+                    id: 'element-1',
+                    style: { fills: [{ type: 'solid', color: '#FF0000', themeSlot: 7 }] }
+                };
+                fillSection.updateFill(element, 0, { themeSlot: null });
+                expect(store.dispatch).toHaveBeenCalledWith('UPDATE_ELEMENT',
+                    expect.objectContaining({
+                        style: expect.objectContaining({
+                            fills: expect.arrayContaining([
+                                expect.not.objectContaining({ themeSlot: expect.anything() })
+                            ])
+                        })
+                    }),
+                    expect.any(Object)
+                );
+            });
+
+            it('should preserve themeSlot when updating opacity', () => {
+                // Update store mock to include themeSlot in the element
+                store.getState.mockReturnValue({
+                    editor: { mode: 'edit', activeSlideId: 'slide-1' },
+                    slides: {
+                        'slide-1': {
+                            elements: {
+                                'element-1': {
+                                    id: 'element-1',
+                                    style: { fills: [{ type: 'solid', color: '#FF0000', themeSlot: 2, opacity: 100 }] }
+                                }
+                            }
+                        }
+                    }
+                });
+                const element = {
+                    id: 'element-1',
+                    style: { fills: [{ type: 'solid', color: '#FF0000', themeSlot: 2, opacity: 100 }] }
+                };
+                fillSection.updateFill(element, 0, { opacity: 50 });
+                expect(store.dispatch).toHaveBeenCalledWith('UPDATE_ELEMENT',
+                    expect.objectContaining({
+                        style: expect.objectContaining({
+                            fills: expect.arrayContaining([
+                                expect.objectContaining({ themeSlot: 2, opacity: 50 })
+                            ])
+                        })
+                    }),
+                    expect.any(Object)
+                );
+            });
+
+            it('should preserve themeSlot when toggling visibility', () => {
+                // Update store mock to include themeSlot in the element
+                store.getState.mockReturnValue({
+                    editor: { mode: 'edit', activeSlideId: 'slide-1' },
+                    slides: {
+                        'slide-1': {
+                            elements: {
+                                'element-1': {
+                                    id: 'element-1',
+                                    style: { fills: [{ type: 'solid', color: '#FF0000', themeSlot: 4, visible: true }] }
+                                }
+                            }
+                        }
+                    }
+                });
+                const element = {
+                    id: 'element-1',
+                    style: { fills: [{ type: 'solid', color: '#FF0000', themeSlot: 4, visible: true }] }
+                };
+                fillSection.updateFill(element, 0, { visible: false });
+                expect(store.dispatch).toHaveBeenCalledWith('UPDATE_ELEMENT',
+                    expect.objectContaining({
+                        style: expect.objectContaining({
+                            fills: expect.arrayContaining([
+                                expect.objectContaining({ themeSlot: 4, visible: false })
+                            ])
+                        })
+                    }),
+                    expect.any(Object)
+                );
+            });
         });
     });
 

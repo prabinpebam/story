@@ -443,5 +443,121 @@ describe('SolidTab', () => {
             expect(() => tab.updateUI()).not.toThrow();
         });
     });
+
+    // Phase 4.1: Theme linking/unlinking behavior tests
+    describe('theme slot linking', () => {
+        it('should initialize as linked when fill has themeSlot', () => {
+            const tab = new SolidTab({
+                fill: { color: '#ff0000', themeSlot: 5 },
+                onChange: vi.fn()
+            });
+            
+            expect(tab.isLinkedToTheme).toBe(true);
+            expect(tab.linkedSlot).toBe(5);
+        });
+
+        it('should initialize as not linked when fill has no themeSlot', () => {
+            const tab = new SolidTab({
+                fill: { color: '#ff0000' },
+                onChange: vi.fn()
+            });
+            
+            expect(tab.isLinkedToTheme).toBe(false);
+            expect(tab.linkedSlot).toBeNull();
+        });
+
+        it('should initialize as not linked when themeSlot is null', () => {
+            const tab = new SolidTab({
+                fill: { color: '#ff0000', themeSlot: null },
+                onChange: vi.fn()
+            });
+            
+            expect(tab.isLinkedToTheme).toBe(false);
+            expect(tab.linkedSlot).toBeNull();
+        });
+
+        it('should handle themeSlot 0 as valid linked state', () => {
+            // Edge case: slot 0 is falsy but valid
+            const tab = new SolidTab({
+                fill: { color: '#ff0000', themeSlot: 0 },
+                onChange: vi.fn()
+            });
+            
+            expect(tab.isLinkedToTheme).toBe(true);
+            expect(tab.linkedSlot).toBe(0);
+        });
+
+        it('should emit themeSlot when selecting theme swatch', () => {
+            const onChange = vi.fn();
+            const tab = new SolidTab({
+                fill: { color: '#ff0000' },
+                onChange
+            });
+            
+            container.appendChild(tab.element);
+            
+            // Click on a theme swatch
+            const swatch = tab.element.querySelector('.swatch-grid .swatch[data-slot-index="3"]');
+            swatch.click();
+            
+            // Should emit with themeSlot
+            expect(onChange).toHaveBeenCalled();
+            const call = onChange.mock.calls[0][0];
+            expect(call.themeSlot).toBe(3);
+        });
+
+        it('should update isLinkedToTheme state after selecting theme swatch', () => {
+            const onChange = vi.fn();
+            const tab = new SolidTab({
+                fill: { color: '#ff0000' },
+                onChange
+            });
+            
+            container.appendChild(tab.element);
+            
+            // Click on a theme swatch
+            const swatch = tab.element.querySelector('.swatch-grid .swatch[data-slot-index="7"]');
+            swatch.click();
+            
+            expect(tab.isLinkedToTheme).toBe(true);
+            expect(tab.linkedSlot).toBe(7);
+        });
+
+        it('should clear themeSlot when hex input is manually changed', () => {
+            const onChange = vi.fn();
+            const tab = new SolidTab({
+                fill: { color: '#ff0000', themeSlot: 5 },
+                onChange
+            });
+            
+            container.appendChild(tab.element);
+            
+            // Manually change hex input
+            tab.hexInput.value = '#00ff00';
+            tab.hexInput.dispatchEvent(new Event('change'));
+            
+            // Should emit themeSlot: null to unlink
+            expect(onChange).toHaveBeenCalled();
+            const call = onChange.mock.calls[0][0];
+            expect(call.themeSlot).toBeNull();
+        });
+
+        it('should set isLinkedToTheme to false when manually editing color', () => {
+            const onChange = vi.fn();
+            const tab = new SolidTab({
+                fill: { color: '#ff0000', themeSlot: 5 },
+                onChange
+            });
+            
+            container.appendChild(tab.element);
+            
+            // Manually change hex input
+            tab.hexInput.value = '#00ff00';
+            tab.hexInput.dispatchEvent(new Event('change'));
+            
+            expect(tab.isLinkedToTheme).toBe(false);
+            expect(tab.linkedSlot).toBeNull();
+        });
+    });
 });
 
