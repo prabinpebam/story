@@ -198,6 +198,45 @@ export class SelectionManager {
     }
 
     /**
+     * Place caret at a specific screen position (e.g. from click).
+     * @param {Element} element - The contentEditable element
+     * @param {Object} position - { clientX, clientY }
+     */
+    setCaretAtPosition(element, position) {
+        if (!element || !position) return;
+
+        const { clientX, clientY } = position;
+        let range;
+
+        if (document.caretRangeFromPoint) {
+            // Standard (Chrome, Safari, Edge)
+            range = document.caretRangeFromPoint(clientX, clientY);
+        } else if (document.caretPositionFromPoint) {
+            // Firefox
+            const pos = document.caretPositionFromPoint(clientX, clientY);
+            if (pos) {
+                range = document.createRange();
+                range.setStart(pos.offsetNode, pos.offset);
+                range.collapse(true);
+            }
+        }
+
+        if (range) {
+            // Ensure range is within our element
+            if (element.contains(range.startContainer)) {
+                const selection = window.getSelection();
+                selection.removeAllRanges();
+                selection.addRange(range);
+            } else {
+                // Fallback to end if click was outside valid text nodes (e.g. padding)
+                this.placeCaretAtEnd(element);
+            }
+        } else {
+            this.placeCaretAtEnd(element);
+        }
+    }
+
+    /**
      * Get a path from root element to a node.
      * @param {Element} root - Root element
      * @param {Node} node - Target node

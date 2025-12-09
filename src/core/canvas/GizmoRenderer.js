@@ -233,6 +233,9 @@ export class GizmoRenderer {
             
             // Skip if this element is being edited
             if (editingElementId === el.id) return;
+
+            // Skip if selected or hovered (to avoid visual clutter with selection box or hover outline)
+            if (selectedElementIds.includes(el.id) || this.cm.hoveredElementId === el.id) return;
             
             // Get current dimensions (use live resize data if being dragged)
             let absEl = GeometryUtils.getAbsoluteElement(el, slide);

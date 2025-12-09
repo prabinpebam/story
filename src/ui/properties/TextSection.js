@@ -36,6 +36,7 @@ export class TextSection {
             size: 'fill',
             onChange: (val) => this.applyTextStyle(val)
         });
+        this.styleDropdown.element.dataset.testid = 'text-style-dropdown';
         styleRow.appendChild(this.styleDropdown.element);
 
         // Style Action Menu Button (Edit/Detach)
@@ -103,6 +104,10 @@ export class TextSection {
             onChange: (val) => this.updateProperty('fontSize', val)
         });
 
+        this.fontFamilyInput.element.dataset.testid = 'font-family-select';
+        this.fontWeightInput.element.dataset.testid = 'font-weight-select';
+        this.fontSizeInput.element.dataset.testid = 'font-size-input';
+
         fontRow.appendChild(this.fontFamilyInput.element);
         fontRow.appendChild(this.fontWeightInput.element);
         fontRow.appendChild(this.fontSizeInput.element);
@@ -141,6 +146,9 @@ export class TextSection {
             onChange: (val) => this.updateProperty('letterSpacing', val + '%')
         });
 
+        this.lineHeightInput.element.dataset.testid = 'line-height-input';
+        this.letterSpacingInput.element.dataset.testid = 'letter-spacing-input';
+
         spacingRow.appendChild(this.lineHeightInput.element);
         spacingRow.appendChild(this.letterSpacingInput.element);
         this.section.appendChild(spacingRow);
@@ -170,6 +178,7 @@ export class TextSection {
                 icon: a.icon,
                 onClick: () => this.updateProperty(a.prop, a.value)
             });
+            btn.element.dataset.testid = 'align-' + a.value;
             alignGroup.appendChild(btn.element);
             return { btn, value: a.value, prop: a.prop };
         });
@@ -274,6 +283,7 @@ export class TextSection {
         this.fillHexInput.style.fontFamily = 'monospace';
         this.fillHexInput.style.padding = '0 2px';
         this.fillHexInput.spellcheck = false;
+        this.fillHexInput.dataset.testid = 'text-color-hex';
         
         this.fillHexInput.onchange = (e) => {
             let val = e.target.value.trim();
@@ -308,6 +318,7 @@ export class TextSection {
         });
         
         this.fillOpacityInput.element.style.width = '40px';
+        this.fillOpacityInput.element.dataset.testid = 'text-color-opacity';
         this.fillOpacityInput.element.style.flex = '0 0 40px';
         this.fillOpacityInput.element.style.border = 'none';
         this.fillOpacityInput.element.style.background = 'transparent';

@@ -31,6 +31,21 @@ export class EditorPage {
     
     // Slide list
     readonly addSlideBtn: Locator;
+
+    // Text Properties
+    readonly fontFamilySelect: Locator;
+    readonly fontWeightSelect: Locator;
+    readonly fontSizeInput: Locator;
+    readonly lineHeightInput: Locator;
+    readonly letterSpacingInput: Locator;
+    readonly textColorHex: Locator;
+    readonly textColorOpacity: Locator;
+    readonly alignLeftBtn: Locator;
+    readonly alignCenterBtn: Locator;
+    readonly alignRightBtn: Locator;
+    readonly alignTopBtn: Locator;
+    readonly alignMiddleBtn: Locator;
+    readonly alignBottomBtn: Locator;
     
     constructor(page: Page) {
         this.page = page;
@@ -57,6 +72,21 @@ export class EditorPage {
         
         // Slide list
         this.addSlideBtn = page.locator('[data-testid="add-slide-btn"]');
+
+        // Text Properties
+        this.fontFamilySelect = this.propertyInspector.locator('[data-testid="font-family-select"]');
+        this.fontWeightSelect = this.propertyInspector.locator('[data-testid="font-weight-select"]');
+        this.fontSizeInput = this.propertyInspector.locator('[data-testid="font-size-input"] input');
+        this.lineHeightInput = this.propertyInspector.locator('[data-testid="line-height-input"] input');
+        this.letterSpacingInput = this.propertyInspector.locator('[data-testid="letter-spacing-input"] input');
+        this.textColorHex = this.propertyInspector.locator('[data-testid="text-color-hex"]');
+        this.textColorOpacity = this.propertyInspector.locator('[data-testid="text-color-opacity"] input');
+        this.alignLeftBtn = this.propertyInspector.locator('[data-testid="align-left"]');
+        this.alignCenterBtn = this.propertyInspector.locator('[data-testid="align-center"]');
+        this.alignRightBtn = this.propertyInspector.locator('[data-testid="align-right"]');
+        this.alignTopBtn = this.propertyInspector.locator('[data-testid="align-top"]');
+        this.alignMiddleBtn = this.propertyInspector.locator('[data-testid="align-middle"]');
+        this.alignBottomBtn = this.propertyInspector.locator('[data-testid="align-bottom"]');
     }
     
     /**
@@ -74,6 +104,15 @@ export class EditorPage {
         await this.toolbar.waitFor({ state: 'visible' });
         await this.canvas.waitFor({ state: 'visible' });
         await this.sidebar.waitFor({ state: 'visible' });
+    }
+
+    /**
+     * Wait for all fonts to be loaded
+     */
+    async waitForFonts() {
+        await this.page.evaluate(async () => {
+            await document.fonts.ready;
+        });
     }
     
     /**

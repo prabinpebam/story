@@ -211,7 +211,11 @@ export class TextElement extends VisualElement {
         // Placeholder visual styling
         if (isPlaceholder) {
             div.classList.add('story-placeholder');
-            if (isEmptyPlaceholder) {
+            
+            // Check if selected to hide the dashed border (visual exclusivity)
+            const isSelected = store.getState().editor.selectedElementIds.includes(el.id);
+            
+            if (isEmptyPlaceholder && !isSelected) {
                 div.classList.add('story-placeholder-empty');
                 if (!isEditing) {
                     div.style.opacity = '0.5';

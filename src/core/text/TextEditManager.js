@@ -421,8 +421,12 @@ export class TextEditManager {
                 break;
             
             case 'doubleClick':
-                // Place caret at click position (simplified - place at end)
-                selectionManager.placeCaretAtEnd(element);
+                // Place caret at click position
+                if (clickPosition) {
+                    selectionManager.setCaretAtPosition(element, clickPosition);
+                } else {
+                    selectionManager.placeCaretAtEnd(element);
+                }
                 break;
             
             case 'click':

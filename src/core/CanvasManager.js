@@ -506,13 +506,9 @@ export class CanvasManager {
                     element: hit.element
                 });
                 
-                // Enter edit mode immediately for text placeholders
-                if (hit.element.type === 'text') {
-                    store.dispatch('SET_EDITING_ELEMENT', { 
-                        id: hit.id, 
-                        selectionType: 'all'
-                    });
-                }
+                // Just select the element, do NOT enter edit mode automatically
+                // The user must double-click to edit (handled by handleDoubleClick)
+                store.dispatch('UPDATE_SELECTION', [hit.id]);
                 return;
             } else {
                 return;
@@ -1266,17 +1262,8 @@ export class CanvasManager {
             if (this.interactionState === 'DRAGGING') {
                 const dist = Math.hypot(mouseX - this.dragStart.x, mouseY - this.dragStart.y);
                 if (dist < 3) {
-                    const hit = this.hitTest(mouseX, mouseY);
-                    if (hit && hit.type === 'element' && !hit.isInherited) {
-                        const container = this.getActiveContainer(state);
-                        const el = container?.elements?.[hit.id];
-                        if (el && el.isPlaceholder && el.type === 'text') {
-                            store.dispatch('SET_EDITING_ELEMENT', { 
-                                id: hit.id, 
-                                selectionType: 'all'
-                            });
-                        }
-                    }
+                    // Logic removed: Single click on placeholder should NOT enter edit mode.
+                    // It should only select. Double click handles editing.
                 }
             }
 

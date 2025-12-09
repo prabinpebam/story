@@ -11,6 +11,7 @@ export class VisualElement {
         this.container = container;
         this.domElement = document.createElement('div');
         this.domElement.id = this.data.id;
+        this.domElement.setAttribute('data-element-id', this.data.id);
         this.domElement.classList.add('slide-element');
         this.domElement.style.position = 'absolute';
         

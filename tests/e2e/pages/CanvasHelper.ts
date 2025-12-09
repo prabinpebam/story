@@ -49,6 +49,15 @@ export class CanvasHelper {
         await this.page.mouse.click(coords.x, coords.y);
         await this.page.waitForTimeout(100);
     }
+
+    /**
+     * Triple click at normalized canvas coordinates
+     */
+    async tripleClickAt(x: number, y: number) {
+        const coords = await this.normalizedToAbsolute(x, y);
+        await this.page.mouse.click(coords.x, coords.y, { clickCount: 3 });
+        await this.page.waitForTimeout(100);
+    }
     
     /**
      * Drag from one normalized position to another

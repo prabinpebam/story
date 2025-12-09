@@ -170,6 +170,11 @@ body.cursor-hidden * {
     /* Ensure text is centered vertically if needed, or handled by flex in TextElement */
 }
 
+/* Hide dashed border on hover to avoid clutter with the blue hover outline */
+.story-placeholder-empty:hover {
+    border-color: transparent;
+}
+
 /* Placeholder Icon Container */
 .placeholder-icon-container {
     pointer-events: none;
