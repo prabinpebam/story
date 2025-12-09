@@ -3,6 +3,7 @@ import { IconButton } from '../components/IconButton.js';
 import { NumberInput } from '../components/NumberInput.js';
 import { Icons } from '../Icons.js';
 import { store } from '../../core/Store.js';
+import { getMixedValue, getBoundingBox } from '../../utils/SelectionUtils.js';
 
 export class PositionSection {
     constructor() {
@@ -140,16 +141,38 @@ export class PositionSection {
         // Update distribute button state based on selection count
         this.updateDistributeButtons(selection);
         
-        // For multi-selection, we might show mixed values or the first one
-        // For now, let's grab the first element's properties
-        // In a real app, we'd calculate bounding box for X/Y
-        
+        // Get all selected elements
         const state = store.getState();
-        const elementId = selection[0];
-        const element = this.getElement(state, elementId);
+        const elements = selection
+            .map(id => this.getElement(state, id))
+            .filter(el => el != null);
 
-        if (element) {
-            this.xInput.setValue(element.x, false); // false = don't trigger onChange
+        if (elements.length === 0) {
+            return;
+        }
+
+        // For multi-selection, use bounding box for position display
+        if (elements.length > 1) {
+            const bounds = getBoundingBox(elements);
+            this.xInput.setValue(bounds.x, false);
+            this.yInput.setValue(bounds.y, false);
+            
+            // Rotation is mixed if elements have different rotations
+            const rotationResult = getMixedValue(elements, 'rotation');
+            if (rotationResult.mixed) {
+                this.rotationInput.setMixed(true);
+            } else {
+                this.rotationInput.setMixed(false);
+                this.rotationInput.setValue(rotationResult.value || 0, false);
+            }
+        } else {
+            // Single element - show its actual values
+            const element = elements[0];
+            this.xInput.setMixed(false);
+            this.yInput.setMixed(false);
+            this.rotationInput.setMixed(false);
+            
+            this.xInput.setValue(element.x, false);
             this.yInput.setValue(element.y, false);
             this.rotationInput.setValue(element.rotation || 0, false);
         }

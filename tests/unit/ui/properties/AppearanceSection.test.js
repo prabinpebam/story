@@ -63,20 +63,24 @@ describe('AppearanceSection', () => {
         mockOpacityInput = {
             element: document.createElement('div'),
             setValue: vi.fn(),
+            setMixed: vi.fn(),
+            isMixed: vi.fn().mockReturnValue(false),
             getValue: vi.fn().mockReturnValue(100)
         };
         
         mockRadiusInput = {
             element: document.createElement('div'),
             setValue: vi.fn(),
+            setMixed: vi.fn(),
+            isMixed: vi.fn().mockReturnValue(false),
             getValue: vi.fn().mockReturnValue(0)
         };
 
         // Mock corner inputs
-        mockTlInput = { element: document.createElement('div'), setValue: vi.fn(), getValue: vi.fn().mockReturnValue(0) };
-        mockTrInput = { element: document.createElement('div'), setValue: vi.fn(), getValue: vi.fn().mockReturnValue(0) };
-        mockBlInput = { element: document.createElement('div'), setValue: vi.fn(), getValue: vi.fn().mockReturnValue(0) };
-        mockBrInput = { element: document.createElement('div'), setValue: vi.fn(), getValue: vi.fn().mockReturnValue(0) };
+        mockTlInput = { element: document.createElement('div'), setValue: vi.fn(), setMixed: vi.fn(), isMixed: vi.fn().mockReturnValue(false), getValue: vi.fn().mockReturnValue(0) };
+        mockTrInput = { element: document.createElement('div'), setValue: vi.fn(), setMixed: vi.fn(), isMixed: vi.fn().mockReturnValue(false), getValue: vi.fn().mockReturnValue(0) };
+        mockBlInput = { element: document.createElement('div'), setValue: vi.fn(), setMixed: vi.fn(), isMixed: vi.fn().mockReturnValue(false), getValue: vi.fn().mockReturnValue(0) };
+        mockBrInput = { element: document.createElement('div'), setValue: vi.fn(), setMixed: vi.fn(), isMixed: vi.fn().mockReturnValue(false), getValue: vi.fn().mockReturnValue(0) };
 
         let numberInputCallCount = 0;
         NumberInput.mockImplementation(() => {
@@ -95,7 +99,9 @@ describe('AppearanceSection', () => {
 
         mockBlendModeSelect = {
             element: document.createElement('div'),
-            setValue: vi.fn()
+            setValue: vi.fn(),
+            setMixed: vi.fn(),
+            isMixed: vi.fn().mockReturnValue(false)
         };
         Dropdown.mockImplementation(() => mockBlendModeSelect);
 
@@ -553,6 +559,100 @@ describe('AppearanceSection', () => {
                     cornerRadii: null
                 })
             );
+        });
+    });
+
+    describe('mixed value support', () => {
+        it('should show mixed opacity when elements have different opacity values', () => {
+            store.getState.mockReturnValue({
+                editor: { mode: 'edit', activeSlideId: 'slide-1', selectedElementIds: ['el-1', 'el-2'] },
+                slides: {
+                    'slide-1': {
+                        elements: {
+                            'el-1': { id: 'el-1', type: 'rect', opacity: 0.5 },
+                            'el-2': { id: 'el-2', type: 'rect', opacity: 1.0 }
+                        }
+                    }
+                }
+            });
+
+            appearanceSection.update(['el-1', 'el-2']);
+
+            expect(mockOpacityInput.setMixed).toHaveBeenCalledWith(true);
+        });
+
+        it('should show same opacity when elements have same opacity values', () => {
+            store.getState.mockReturnValue({
+                editor: { mode: 'edit', activeSlideId: 'slide-1', selectedElementIds: ['el-1', 'el-2'] },
+                slides: {
+                    'slide-1': {
+                        elements: {
+                            'el-1': { id: 'el-1', type: 'rect', opacity: 0.75 },
+                            'el-2': { id: 'el-2', type: 'rect', opacity: 0.75 }
+                        }
+                    }
+                }
+            });
+
+            appearanceSection.update(['el-1', 'el-2']);
+
+            expect(mockOpacityInput.setMixed).toHaveBeenCalledWith(false);
+            expect(mockOpacityInput.setValue).toHaveBeenCalledWith(75, false);
+        });
+
+        it('should show mixed blend mode when elements have different blend modes', () => {
+            store.getState.mockReturnValue({
+                editor: { mode: 'edit', activeSlideId: 'slide-1', selectedElementIds: ['el-1', 'el-2'] },
+                slides: {
+                    'slide-1': {
+                        elements: {
+                            'el-1': { id: 'el-1', type: 'rect', blendMode: 'normal' },
+                            'el-2': { id: 'el-2', type: 'rect', blendMode: 'multiply' }
+                        }
+                    }
+                }
+            });
+
+            appearanceSection.update(['el-1', 'el-2']);
+
+            expect(mockBlendModeSelect.setMixed).toHaveBeenCalledWith(true);
+        });
+
+        it('should show same blend mode when elements have same blend mode', () => {
+            store.getState.mockReturnValue({
+                editor: { mode: 'edit', activeSlideId: 'slide-1', selectedElementIds: ['el-1', 'el-2'] },
+                slides: {
+                    'slide-1': {
+                        elements: {
+                            'el-1': { id: 'el-1', type: 'rect', blendMode: 'screen' },
+                            'el-2': { id: 'el-2', type: 'rect', blendMode: 'screen' }
+                        }
+                    }
+                }
+            });
+
+            appearanceSection.update(['el-1', 'el-2']);
+
+            expect(mockBlendModeSelect.setMixed).toHaveBeenCalledWith(false);
+            expect(mockBlendModeSelect.setValue).toHaveBeenCalledWith('screen');
+        });
+
+        it('should clear mixed state for single element selection', () => {
+            store.getState.mockReturnValue({
+                editor: { mode: 'edit', activeSlideId: 'slide-1', selectedElementIds: ['el-1'] },
+                slides: {
+                    'slide-1': {
+                        elements: {
+                            'el-1': { id: 'el-1', type: 'rect', opacity: 0.8, blendMode: 'overlay' }
+                        }
+                    }
+                }
+            });
+
+            appearanceSection.update(['el-1']);
+
+            expect(mockOpacityInput.setMixed).toHaveBeenCalledWith(false);
+            expect(mockBlendModeSelect.setMixed).toHaveBeenCalledWith(false);
         });
     });
 });

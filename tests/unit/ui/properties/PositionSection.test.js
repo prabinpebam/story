@@ -118,6 +118,8 @@ describe('PositionSection', () => {
             return {
                 element: el,
                 setValue: vi.fn(),
+                setMixed: vi.fn(),
+                isMixed: vi.fn(() => false),
                 value,
                 onChange,
                 label
@@ -548,6 +550,139 @@ describe('PositionSection', () => {
                 expect(positionSection.distributeHBtn.setDisabled).toHaveBeenCalledWith(false);
                 expect(positionSection.distributeVBtn.setDisabled).toHaveBeenCalledWith(false);
             });
+        });
+    });
+
+    describe('mixed value support', () => {
+        beforeEach(() => {
+            vi.clearAllMocks();
+            
+            MockIconButton.mockImplementation(({ icon, title, onClick }) => {
+                const el = document.createElement('button');
+                el.onclick = onClick;
+                return {
+                    element: el,
+                    title,
+                    setDisabled: vi.fn()
+                };
+            });
+            
+            positionSection = new PositionSection();
+        });
+
+        it('should show bounding box position for multi-selection', () => {
+            mockGetState.mockReturnValue({
+                editor: {
+                    mode: 'edit',
+                    activeSlideId: 'slide-1',
+                    selectedElementIds: ['el-1', 'el-2']
+                },
+                slides: {
+                    'slide-1': {
+                        elements: {
+                            'el-1': { id: 'el-1', x: 100, y: 100, width: 50, height: 50 },
+                            'el-2': { id: 'el-2', x: 200, y: 150, width: 100, height: 100 }
+                        }
+                    }
+                }
+            });
+            
+            positionSection.update(['el-1', 'el-2']);
+            
+            // Bounding box: x=100 (min), y=100 (min)
+            expect(positionSection.xInput.setValue).toHaveBeenCalledWith(100, false);
+            expect(positionSection.yInput.setValue).toHaveBeenCalledWith(100, false);
+        });
+
+        it('should show mixed rotation when elements have different rotations', () => {
+            mockGetState.mockReturnValue({
+                editor: {
+                    mode: 'edit',
+                    activeSlideId: 'slide-1',
+                    selectedElementIds: ['el-1', 'el-2']
+                },
+                slides: {
+                    'slide-1': {
+                        elements: {
+                            'el-1': { id: 'el-1', x: 100, y: 100, rotation: 45 },
+                            'el-2': { id: 'el-2', x: 200, y: 150, rotation: 90 }
+                        }
+                    }
+                }
+            });
+            
+            positionSection.update(['el-1', 'el-2']);
+            
+            expect(positionSection.rotationInput.setMixed).toHaveBeenCalledWith(true);
+        });
+
+        it('should show same rotation when elements have same rotation', () => {
+            mockGetState.mockReturnValue({
+                editor: {
+                    mode: 'edit',
+                    activeSlideId: 'slide-1',
+                    selectedElementIds: ['el-1', 'el-2']
+                },
+                slides: {
+                    'slide-1': {
+                        elements: {
+                            'el-1': { id: 'el-1', x: 100, y: 100, rotation: 45 },
+                            'el-2': { id: 'el-2', x: 200, y: 150, rotation: 45 }
+                        }
+                    }
+                }
+            });
+            
+            positionSection.update(['el-1', 'el-2']);
+            
+            expect(positionSection.rotationInput.setMixed).toHaveBeenCalledWith(false);
+            expect(positionSection.rotationInput.setValue).toHaveBeenCalledWith(45, false);
+        });
+
+        it('should clear mixed state for single element selection', () => {
+            mockGetState.mockReturnValue({
+                editor: {
+                    mode: 'edit',
+                    activeSlideId: 'slide-1',
+                    selectedElementIds: ['el-1']
+                },
+                slides: {
+                    'slide-1': {
+                        elements: {
+                            'el-1': { id: 'el-1', x: 100, y: 200, rotation: 45 }
+                        }
+                    }
+                }
+            });
+            
+            positionSection.update(['el-1']);
+            
+            expect(positionSection.xInput.setMixed).toHaveBeenCalledWith(false);
+            expect(positionSection.yInput.setMixed).toHaveBeenCalledWith(false);
+            expect(positionSection.rotationInput.setMixed).toHaveBeenCalledWith(false);
+        });
+
+        it('should handle elements with undefined rotation as 0', () => {
+            mockGetState.mockReturnValue({
+                editor: {
+                    mode: 'edit',
+                    activeSlideId: 'slide-1',
+                    selectedElementIds: ['el-1', 'el-2']
+                },
+                slides: {
+                    'slide-1': {
+                        elements: {
+                            'el-1': { id: 'el-1', x: 100, y: 100 },  // No rotation
+                            'el-2': { id: 'el-2', x: 200, y: 150 }   // No rotation
+                        }
+                    }
+                }
+            });
+            
+            positionSection.update(['el-1', 'el-2']);
+            
+            // Both undefined = same (not mixed)
+            expect(positionSection.rotationInput.setMixed).toHaveBeenCalledWith(false);
         });
     });
 });

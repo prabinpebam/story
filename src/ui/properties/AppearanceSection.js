@@ -4,6 +4,7 @@ import { Dropdown } from '../components/Dropdown.js';
 import { Button } from '../components/Button.js';
 import { Icons } from '../Icons.js';
 import { store } from '../../core/Store.js';
+import { getMixedValue } from '../../utils/SelectionUtils.js';
 
 /**
  * AppearanceSection - Property Inspector section for appearance controls
@@ -296,47 +297,66 @@ export class AppearanceSection {
         this.section.element.classList.remove('hidden');
         
         const state = store.getState();
-        const elementId = selection[0];
-        const element = this.getElement(state, elementId);
+        const elements = selection
+            .map(id => this.getElement(state, id))
+            .filter(el => el != null);
 
-        if (element) {
-            // Opacity is 0-1 in store, 0-100 in UI
-            const opacity = element.opacity !== undefined ? element.opacity : 1;
+        if (elements.length === 0) {
+            return;
+        }
+
+        // Opacity - check for mixed values
+        const opacityResult = getMixedValue(elements, 'opacity');
+        if (opacityResult.mixed) {
+            this.opacityInput.setMixed(true);
+        } else {
+            this.opacityInput.setMixed(false);
+            const opacity = opacityResult.value !== undefined ? opacityResult.value : 1;
             this.opacityInput.setValue(Math.round(opacity * 100), false);
-            
-            const blendMode = element.blendMode || 'normal';
-            this.blendModeSelect.setValue(blendMode);
-            
-            // Only show radius for shapes/images/rects
-            if (element.type === 'rect' || element.type === 'image') {
-                this.radiusInput.element.classList.remove('hidden');
-                
-                // Check if element has per-corner radii
-                const hasPerCorner = element.cornerRadii && (
-                    element.cornerRadii.tl !== undefined ||
-                    element.cornerRadii.tr !== undefined ||
-                    element.cornerRadii.bl !== undefined ||
-                    element.cornerRadii.br !== undefined
-                );
+        }
 
-                if (hasPerCorner) {
-                    this._radiusLinked = false;
-                    const radii = element.cornerRadii;
-                    this.tlRadiusInput.setValue(radii.tl || 0, false);
-                    this.trRadiusInput.setValue(radii.tr || 0, false);
-                    this.blRadiusInput.setValue(radii.bl || 0, false);
-                    this.brRadiusInput.setValue(radii.br || 0, false);
-                } else {
-                    this._radiusLinked = true;
-                    const radius = element.borderRadius || 0;
-                    this.radiusInput.setValue(radius, false);
-                }
-                
-                this._updateRadiusUI();
+        // Blend Mode - check for mixed values
+        const blendModeResult = getMixedValue(elements, 'blendMode');
+        if (blendModeResult.mixed) {
+            this.blendModeSelect.setMixed(true);
+        } else {
+            this.blendModeSelect.setMixed(false);
+            const blendMode = blendModeResult.value || 'normal';
+            this.blendModeSelect.setValue(blendMode);
+        }
+        
+        // For radius, use first element for now (complex multi-select case)
+        const element = elements[0];
+        
+        // Only show radius for shapes/images/rects
+        if (element.type === 'rect' || element.type === 'image') {
+            this.radiusInput.element.classList.remove('hidden');
+            
+            // Check if element has per-corner radii
+            const hasPerCorner = element.cornerRadii && (
+                element.cornerRadii.tl !== undefined ||
+                element.cornerRadii.tr !== undefined ||
+                element.cornerRadii.bl !== undefined ||
+                element.cornerRadii.br !== undefined
+            );
+
+            if (hasPerCorner) {
+                this._radiusLinked = false;
+                const radii = element.cornerRadii;
+                this.tlRadiusInput.setValue(radii.tl || 0, false);
+                this.trRadiusInput.setValue(radii.tr || 0, false);
+                this.blRadiusInput.setValue(radii.bl || 0, false);
+                this.brRadiusInput.setValue(radii.br || 0, false);
             } else {
-                this.radiusInput.element.classList.add('hidden');
-                this.perCornerRow.classList.add('hidden');
+                this._radiusLinked = true;
+                const radius = element.borderRadius || 0;
+                this.radiusInput.setValue(radius, false);
             }
+            
+            this._updateRadiusUI();
+        } else {
+            this.radiusInput.element.classList.add('hidden');
+            this.perCornerRow.classList.add('hidden');
         }
     }
 
