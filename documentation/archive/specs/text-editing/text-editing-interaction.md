@@ -106,7 +106,7 @@ The Property Inspector (PI) is the primary way to style text.
 
 ## 7. Auto-Sizing & Layout
 
-- **Auto Width**: Box grows horizontally as you type. (No wrapping).
+- **Auto Size**: Box grows horizontally and vertically as you type. (No wrapping, unless manual line breaks).
 - **Fixed Width**: Box has fixed width. Text wraps. Height grows automatically.
 - **Fixed Size**: Box has fixed width and height. Text may overflow.
 

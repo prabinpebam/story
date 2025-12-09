@@ -369,6 +369,13 @@ export class TextSection {
         this.fontWeightInput.setValue(props.fontWeight, false);
         this.fontSizeInput.setValue(props.fontSize, false);
         
+        // Resizing
+        // Check root level first, then style level for resizing mode
+        const resizing = el.resizing || el.style?.resizing || 'fixedWidth';
+        this.resizeButtons.forEach(b => {
+            b.btn.setActive(b.value === resizing);
+        });
+        
         // Line Height
         if (props.lineHeight === 'auto') {
             this.lineHeightInput.setValue(1.2, false); 
