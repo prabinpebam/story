@@ -449,3 +449,90 @@ input[type="text"]:focus, input[type="number"]:focus, select:focus {
     font-size: 11px;
     padding: 0;
 }
+
+/* SlideList Component */
+.slide-list-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.slide-list-header .section-title {
+    margin-bottom: 0;
+}
+
+.slide-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.slide-layouts-container {
+    padding-left: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: -8px;
+    margin-bottom: 8px;
+}
+
+.slide-thumbnail-info {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 6px;
+}
+
+.slide-thumbnail-info.slide-info {
+    margin-bottom: 8px;
+}
+
+.slide-thumbnail-icon {
+    font-size: 10px;
+    color: var(--color-text-secondary);
+}
+
+.slide-thumbnail-title {
+    font-size: var(--font-size-sm);
+    color: var(--color-text-primary);
+}
+
+.slide-thumbnail-title.master-root {
+    font-weight: 600;
+}
+
+.slide-number {
+    font-family: var(--font-mono);
+    font-size: var(--font-size-xs);
+    color: var(--color-text-secondary);
+}
+
+.slide-title-text {
+    font-size: var(--font-size-md);
+    font-weight: var(--font-weight-medium);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    color: var(--color-text-primary);
+}
+
+.slide-rename-input {
+    font-size: var(--font-size-sm);
+    font-weight: inherit;
+    color: var(--color-text-primary);
+    background: var(--color-bg-secondary);
+    border: 1px solid var(--color-accent);
+    border-radius: var(--radius-sm);
+    padding: 2px 4px;
+    width: 100%;
+    outline: none;
+}
+
+.slide-rename-input.slide-title-input {
+    font-size: var(--font-size-md);
+    font-weight: var(--font-weight-medium);
+    flex: 1;
+    min-width: 0;
+    width: auto;
+}

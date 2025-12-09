@@ -40,15 +40,11 @@ export class SlideList {
     renderMasterList(state) {
         // Header
         const header = document.createElement('div');
-        header.style.display = 'flex';
-        header.style.justifyContent = 'space-between';
-        header.style.alignItems = 'center';
-        header.style.marginBottom = '12px';
+        header.className = 'slide-list-header';
 
         const title = document.createElement('div');
-        title.className = 'section-title';
+        title.className = 'section-title slide-list-title';
         title.innerText = 'MASTERS';
-        title.style.marginBottom = '0';
         
         const addBtn = new Button({
             icon: Icons.PLUS,
@@ -83,9 +79,7 @@ export class SlideList {
 
         // List Container
         const list = document.createElement('div');
-        list.style.display = 'flex';
-        list.style.flexDirection = 'column';
-        list.style.gap = '12px';
+        list.className = 'slide-list';
 
         // Iterate Masters
         const allMasters = state.slideMasterPresets;
@@ -101,12 +95,7 @@ export class SlideList {
             
             if (layouts.length > 0) {
                 const layoutsContainer = document.createElement('div');
-                layoutsContainer.style.paddingLeft = '20px'; // Indent layouts
-                layoutsContainer.style.display = 'flex';
-                layoutsContainer.style.flexDirection = 'column';
-                layoutsContainer.style.gap = '8px';
-                layoutsContainer.style.marginTop = '-8px'; // Pull closer to master
-                layoutsContainer.style.marginBottom = '8px';
+                layoutsContainer.className = 'slide-layouts-container';
                 
                 layouts.forEach(layout => {
                     const layoutItem = this.createThumbnailItem(layout, state, false);
@@ -127,31 +116,21 @@ export class SlideList {
         const item = document.createElement('div');
         item.className = `slide-thumbnail ${isActive ? 'active' : ''}`;
         item.setAttribute('data-testid', 'slide-list-item');
-        item.style.padding = '8px'; // Slightly smaller for masters
-        item.style.backgroundColor = isActive ? 'var(--color-bg-active)' : 'transparent';
-        item.style.border = isActive ? '1px solid var(--color-accent)' : '1px solid var(--color-border)';
-        item.style.borderRadius = 'var(--radius-md)';
-        item.style.cursor = 'pointer';
-        item.style.position = 'relative';
-        item.style.transition = 'all 0.2s ease';
+        if (isActive) {
+            item.style.backgroundColor = 'var(--color-bg-active)';
+            item.style.border = '1px solid var(--color-accent)';
+        }
 
         // Title
         const info = document.createElement('div');
-        info.style.display = 'flex';
-        info.style.alignItems = 'center';
-        info.style.gap = '8px';
-        info.style.marginBottom = '6px';
+        info.className = 'slide-thumbnail-info';
         
         const icon = document.createElement('i');
-        icon.className = isMasterRoot ? 'fa-solid fa-layer-group' : 'fa-regular fa-file';
-        icon.style.fontSize = '10px';
-        icon.style.color = 'var(--color-text-secondary)';
+        icon.className = isMasterRoot ? 'fa-solid fa-layer-group slide-thumbnail-icon' : 'fa-regular fa-file slide-thumbnail-icon';
         
         const titleText = document.createElement('span');
         titleText.innerText = slideOrMaster.name || (isMasterRoot ? 'Master' : 'Layout');
-        titleText.style.fontSize = 'var(--font-size-sm)';
-        titleText.style.fontWeight = isMasterRoot ? '600' : '400';
-        titleText.style.color = 'var(--color-text-primary)';
+        titleText.className = isMasterRoot ? 'slide-thumbnail-title master-root' : 'slide-thumbnail-title';
 
         info.appendChild(icon);
         info.appendChild(titleText);
@@ -221,19 +200,8 @@ export class SlideList {
         input.type = 'text';
         input.value = currentName;
         input.className = 'slide-rename-input';
-        input.style.cssText = `
-            font-size: var(--font-size-sm);
-            font-weight: inherit;
-            color: var(--color-text-primary);
-            background: var(--color-bg-secondary);
-            border: 1px solid var(--color-accent);
-            border-radius: var(--radius-sm);
-            padding: 2px 4px;
-            width: 100%;
-            outline: none;
-        `;
         
-        titleElement.style.display = 'none';
+        titleElement.classList.add('hidden');
         titleElement.parentNode.appendChild(input);
         input.focus();
         input.select();
@@ -244,7 +212,7 @@ export class SlideList {
                 store.dispatch('RENAME_MASTER', { id: masterId, name: newName });
             }
             input.remove();
-            titleElement.style.display = '';
+            titleElement.classList.remove('hidden');
             this.isRenaming = false;
         };
         
@@ -263,15 +231,11 @@ export class SlideList {
     renderSlideList(state) {
         // Header / Title
         const header = document.createElement('div');
-        header.style.display = 'flex';
-        header.style.justifyContent = 'space-between';
-        header.style.alignItems = 'center';
-        header.style.marginBottom = '12px';
+        header.className = 'slide-list-header';
 
         const title = document.createElement('div');
-        title.className = 'section-title';
+        title.className = 'section-title slide-list-title';
         title.innerText = 'SLIDES';
-        title.style.marginBottom = '0';
         
         const addBtn = new Button({
             icon: Icons.PLUS,
@@ -288,9 +252,7 @@ export class SlideList {
 
         // List
         const list = document.createElement('div');
-        list.style.display = 'flex';
-        list.style.flexDirection = 'column';
-        list.style.gap = '12px';
+        list.className = 'slide-list';
 
         // Use slideOrder array to iterate
         if (state.slideOrder && state.slides) {
@@ -309,43 +271,28 @@ export class SlideList {
                 const item = document.createElement('div');
                 item.className = `slide-thumbnail ${isActive ? 'active' : ''} ${isSelected ? 'selected' : ''}`;
                 item.setAttribute('data-testid', `slide-thumbnail-${index}`);
-                item.style.padding = '12px';
-                item.style.backgroundColor = (isActive || isSelected) ? 'var(--color-bg-active)' : 'transparent';
                 
+                // Dynamic styles for active/selected states
+                if (isActive || isSelected) {
+                    item.style.backgroundColor = 'var(--color-bg-active)';
+                }
                 if (isSelected) {
                     item.style.border = '2px solid var(--color-accent)';
                 } else if (isActive) {
                     item.style.border = '1px solid var(--color-accent)';
-                } else {
-                    item.style.border = '1px solid var(--color-border)';
                 }
-
-                item.style.borderRadius = 'var(--radius-md)';
-                item.style.cursor = 'pointer';
-                item.style.position = 'relative';
-                item.style.transition = 'all 0.2s ease';
 
                 // Slide Number & Title
                 const info = document.createElement('div');
-                info.style.display = 'flex';
-                info.style.alignItems = 'center';
-                info.style.gap = '8px';
-                info.style.marginBottom = '8px';
+                info.className = 'slide-thumbnail-info slide-info';
                 
                 const number = document.createElement('span');
                 number.innerText = index + 1;
-                number.style.fontFamily = 'var(--font-mono)';
-                number.style.fontSize = 'var(--font-size-xs)';
-                number.style.color = 'var(--color-text-secondary)';
+                number.className = 'slide-number';
                 
                 const slideTitle = document.createElement('span');
                 slideTitle.innerText = slide.title || `Slide ${index + 1}`;
-                slideTitle.style.fontSize = 'var(--font-size-md)';
-                slideTitle.style.fontWeight = 'var(--font-weight-medium)';
-                slideTitle.style.whiteSpace = 'nowrap';
-                slideTitle.style.overflow = 'hidden';
-                slideTitle.style.textOverflow = 'ellipsis';
-                slideTitle.style.color = 'var(--color-text-primary)';
+                slideTitle.className = 'slide-title-text';
 
                 info.appendChild(number);
                 info.appendChild(slideTitle);
@@ -582,21 +529,9 @@ export class SlideList {
         const input = document.createElement('input');
         input.type = 'text';
         input.value = currentName;
-        input.className = 'slide-rename-input';
-        input.style.cssText = `
-            font-size: var(--font-size-md);
-            font-weight: var(--font-weight-medium);
-            color: var(--color-text-primary);
-            background: var(--color-bg-secondary);
-            border: 1px solid var(--color-accent);
-            border-radius: var(--radius-sm);
-            padding: 2px 4px;
-            flex: 1;
-            min-width: 0;
-            outline: none;
-        `;
+        input.className = 'slide-rename-input slide-title-input';
         
-        titleElement.style.display = 'none';
+        titleElement.classList.add('hidden');
         titleElement.parentNode.appendChild(input);
         input.focus();
         input.select();
@@ -607,7 +542,7 @@ export class SlideList {
                 store.dispatch('RENAME_SLIDE', { id: slideId, title: newName });
             }
             input.remove();
-            titleElement.style.display = '';
+            titleElement.classList.remove('hidden');
         };
         
         input.addEventListener('blur', finishRename);
