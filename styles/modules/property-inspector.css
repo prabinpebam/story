@@ -985,3 +985,139 @@ select.pi-input option {
 .pi-width-60 {
     width: 60px;
 }
+
+/* ==========================================================================
+   PROPERTY ROW COMPONENT
+   A unified reusable row component for Fill, Stroke, and Effects sections.
+   Provides: drag handle, content slot, visibility toggle, delete button.
+   ========================================================================== */
+
+/* Base property row container */
+.pi-property-row {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-1);
+    height: var(--input-height-md);
+    padding: var(--spacing-1) 0;
+    border-radius: var(--radius-sm);
+    border: 1px solid transparent;
+    transition: background-color var(--transition-fast), 
+                border-color var(--transition-fast),
+                opacity var(--transition-fast);
+}
+
+/* Active/selected state */
+.pi-property-row.active {
+    background-color: var(--color-accent-soft);
+    border-color: var(--color-accent);
+}
+
+/* Invisible/hidden state */
+.pi-property-row.invisible {
+    opacity: 0.5;
+}
+
+/* Drag states */
+.pi-property-row.dragging {
+    opacity: 0.5;
+}
+
+.pi-property-row.drag-over-top {
+    border-top: 2px solid var(--color-drag-indicator);
+}
+
+.pi-property-row.drag-over-bottom {
+    border-bottom: 2px solid var(--color-drag-indicator);
+}
+
+/* Drag handle */
+.pi-property-row__handle {
+    color: var(--color-text-tertiary);
+    cursor: grab;
+    font-size: var(--font-size-sm);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 100%;
+    flex-shrink: 0;
+    opacity: 0;
+    transition: opacity var(--transition-fast);
+}
+
+.pi-property-row:hover .pi-property-row__handle {
+    opacity: 1;
+}
+
+.pi-property-row__handle:active {
+    cursor: grabbing;
+}
+
+/* Content slot - grows to fill available space */
+.pi-property-row__content {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    min-width: 0; /* Allow content to shrink below intrinsic width */
+}
+
+/* Action buttons container */
+.pi-property-row__actions {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-0-5);
+    flex-shrink: 0;
+    opacity: 0;
+    transition: opacity var(--transition-fast);
+}
+
+.pi-property-row:hover .pi-property-row__actions,
+.pi-property-row.active .pi-property-row__actions {
+    opacity: 1;
+}
+
+/* Visibility toggle button */
+.pi-property-row__visibility {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: var(--control-size-xs);
+    height: var(--control-size-xs);
+    border: none;
+    background: none;
+    color: var(--color-text-secondary);
+    cursor: pointer;
+    border-radius: var(--radius-xs);
+    padding: 0;
+    transition: color var(--transition-fast), background-color var(--transition-fast);
+}
+
+.pi-property-row__visibility:hover {
+    color: var(--color-text-primary);
+    background-color: var(--color-bg-hover);
+}
+
+.pi-property-row.invisible .pi-property-row__visibility {
+    color: var(--color-text-tertiary);
+}
+
+/* Delete button */
+.pi-property-row__delete {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: var(--control-size-xs);
+    height: var(--control-size-xs);
+    border: none;
+    background: none;
+    color: var(--color-text-secondary);
+    cursor: pointer;
+    border-radius: var(--radius-xs);
+    padding: 0;
+    transition: color var(--transition-fast), background-color var(--transition-fast);
+}
+
+.pi-property-row__delete:hover {
+    color: var(--color-error);
+    background-color: var(--color-error-soft);
+}
