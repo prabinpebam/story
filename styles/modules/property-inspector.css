@@ -1036,6 +1036,11 @@ select.pi-input option {
     cursor: pointer;
     border-radius: var(--radius-sm);
     border: 1px solid transparent;
+    transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.pi-effect-row:hover {
+    background-color: var(--color-bg-hover);
 }
 
 .pi-effect-row.active {
@@ -1045,6 +1050,35 @@ select.pi-input option {
 
 .pi-effect-row.invisible {
     opacity: 0.5;
+}
+
+/* Drag and Drop States */
+.pi-effect-row.dragging {
+    opacity: 0.5;
+    background-color: var(--color-bg-hover);
+}
+
+.pi-effect-row.drag-over {
+    border-color: var(--color-accent);
+    background-color: var(--color-accent-soft);
+}
+
+/* Drag Handle */
+.pi-effect-drag-handle {
+    cursor: grab;
+    color: var(--color-text-tertiary);
+    padding: 2px;
+    margin-right: 2px;
+    opacity: 0;
+    transition: opacity 0.15s ease;
+}
+
+.pi-effect-row:hover .pi-effect-drag-handle {
+    opacity: 1;
+}
+
+.pi-effect-drag-handle:active {
+    cursor: grabbing;
 }
 
 /* Effect Row Left Section */

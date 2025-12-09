@@ -57,9 +57,10 @@ export const Icons = {
 
     // Effects
     STYLES: '<i class="fa-solid fa-border-all"></i>', // Grid/Four dots
-    EFFECT_SHADOW: '<i class="fa-regular fa-square"></i>', // Placeholder for shadow icon
-    EFFECT_BLUR: '<i class="fa-solid fa-bullseye"></i>', // Placeholder for blur icon
-    EFFECT_BG_BLUR: '<i class="fa-solid fa-chess-board"></i>',
+    EFFECT_SHADOW: '<i class="fa-regular fa-square"></i>', // Drop shadow icon
+    EFFECT_INNER_SHADOW: '<i class="fa-solid fa-square"></i>', // Inner shadow icon (filled)
+    EFFECT_BLUR: '<i class="fa-solid fa-bullseye"></i>', // Layer blur icon
+    EFFECT_BG_BLUR: '<i class="fa-solid fa-chess-board"></i>', // Background blur icon
     GRID_3X3: '<i class="fa-solid fa-table-cells"></i>',
     CLOSE: '<i class="fa-solid fa-xmark"></i>',
 
