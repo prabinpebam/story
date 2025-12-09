@@ -161,7 +161,7 @@
     width: var(--swatch-size-sm);
     height: var(--swatch-size-sm);
     border-radius: var(--radius-xs);
-    box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.1); /* Subtle border */
+    box-shadow: inset 0 0 0 1px var(--color-border-subtle);
     background-size: cover;
     background-position: center;
     background-repeat: no-repeat;
@@ -363,7 +363,7 @@
     width: 16px;
     height: 16px;
     border-radius: var(--radius-xs);
-    box-shadow: inset 0 0 0 1px rgba(0,0,0,0.1);
+    box-shadow: inset 0 0 0 1px var(--color-border-subtle);
 }
 
 .inherited-fill-label {
@@ -628,7 +628,7 @@ select.pi-input option {
     position: absolute;
     border: 1px dashed var(--color-text-tertiary);
     border-radius: 1px;
-    background-color: rgba(255, 255, 255, 0.05);
+    background-color: var(--color-interactive-hover);
 }
 
 .layout-label {
@@ -657,12 +657,8 @@ select.pi-input option {
     transition: var(--transition-normal);
 }
 
-.layout-trigger-btn.light-theme {
-    transition: none !important;
-    background-color: #FFFFFF !important;
-    color: #333333 !important;
-    border-color: #E0E0E0 !important;
-}
+/* Light theme handled by global tokens via [data-theme="light"] - no override needed */
+/* .layout-trigger-btn styling comes from design system */
 
 .layout-trigger-btn:hover {
     background: var(--color-bg-hover);
@@ -773,7 +769,7 @@ select.pi-input option {
     width: 12px;
     height: 12px;
     border-radius: var(--radius-xs);
-    border: 1px solid rgba(0, 0, 0, 0.1);
+    border: 1px solid var(--color-border-subtle);
 }
 
 .preset-label {
