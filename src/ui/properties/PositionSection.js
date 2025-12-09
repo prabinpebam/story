@@ -13,12 +13,7 @@ export class PositionSection {
     createContent() {
         // 1. Alignment Row
         const alignRow = document.createElement('div');
-        alignRow.className = 'pi-row';
-        // Use Grid for equal distribution and better sizing
-        alignRow.style.display = 'grid';
-        alignRow.style.gridTemplateColumns = 'repeat(6, 1fr)';
-        alignRow.style.gap = '2px';
-        alignRow.style.marginBottom = 'var(--spacing-2)';
+        alignRow.className = 'pi-row pi-align-row';
 
         const alignments = [
             { icon: Icons.ALIGN_LEFT, action: 'left', title: 'Align Left' },
@@ -35,8 +30,6 @@ export class PositionSection {
                 title: item.title,
                 onClick: () => this.handleAlign(item.action)
             });
-            // Make button fill the grid cell
-            btn.element.style.width = '100%';
             alignRow.appendChild(btn.element);
         });
 
@@ -77,9 +70,7 @@ export class PositionSection {
         // For now, let's give it flex 1 like others
         
         const flipGroup = document.createElement('div');
-        flipGroup.style.display = 'flex';
-        flipGroup.style.gap = '4px';
-        flipGroup.style.flexShrink = '0';
+        flipGroup.className = 'pi-flip-group';
 
         // Rotate -90
         const rot90Btn = new IconButton({
@@ -113,11 +104,11 @@ export class PositionSection {
 
     update(selection) {
         if (!selection || selection.length === 0) {
-            this.section.element.style.display = 'none';
+            this.section.element.classList.add('hidden');
             return;
         }
         
-        this.section.element.style.display = 'block';
+        this.section.element.classList.remove('hidden');
         
         // For multi-selection, we might show mixed values or the first one
         // For now, let's grab the first element's properties

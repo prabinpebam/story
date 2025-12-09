@@ -40,8 +40,7 @@ export class SlideSection {
     createContent() {
         // 1. Name Row (Master Mode only) - standalone, no section
         this.nameRow = document.createElement('div');
-        this.nameRow.className = 'pi-row';
-        this.nameRow.style.padding = '0 var(--spacing-2)';
+        this.nameRow.className = 'pi-row pi-px-2';
         this.nameInput = new TextInput({
             placeholder: 'Name',
             onChange: (val) => this.updateName(val)
@@ -74,7 +73,7 @@ export class SlideSection {
         this.layoutSelect = new Dropdown({
             onChange: (val) => this.updateLayout(val)
         });
-        this.layoutSelect.element.style.display = 'none';
+        this.layoutSelect.element.classList.add('hidden');
         this.layoutRow.appendChild(this.layoutSelect.element);
         
         this.layoutSection.appendChild(this.layoutRow);
@@ -126,8 +125,7 @@ export class SlideSection {
         
         // Description text
         this.presetDescription = document.createElement('div');
-        this.presetDescription.className = 'preset-description';
-        this.presetDescription.style.cssText = 'font-size: var(--font-size-xs); color: var(--color-text-secondary); padding: 0 var(--spacing-1); margin-top: var(--spacing-1);';
+        this.presetDescription.className = 'preset-description slide-preset-description';
         this.presetSection.appendChild(this.presetDescription);
         
         this.element.appendChild(this.presetSection.element);
@@ -191,34 +189,25 @@ export class SlideSection {
 
         // Theme source indicator row (shows where the theme comes from in cascade)
         const sourceRow = document.createElement('div');
-        sourceRow.className = 'theme-source-row';
-        sourceRow.style.cssText = `
-            font-size: var(--font-size-xs);
-            color: var(--color-text-tertiary);
-            display: flex;
-            align-items: center;
-            gap: var(--spacing-1);
-            margin-bottom: var(--spacing-2);
-        `;
+        sourceRow.className = 'theme-source-row slide-theme-source-row';
         
         this.themeSourceIcon = document.createElement('span');
-        this.themeSourceIcon.style.fontSize = '10px';
+        this.themeSourceIcon.className = 'slide-theme-source-icon';
         sourceRow.appendChild(this.themeSourceIcon);
         
         this.themeSourceLabel = document.createElement('span');
+        this.themeSourceLabel.className = 'slide-theme-source-label';
         sourceRow.appendChild(this.themeSourceLabel);
         
         container.appendChild(sourceRow);
 
         // Mode toggle row (Light ☀️ / Dark 🌙)
         const modeRow = document.createElement('div');
-        modeRow.className = 'pi-row theme-mode-row';
-        modeRow.style.marginBottom = 'var(--spacing-2)';
+        modeRow.className = 'pi-row theme-mode-row pi-mb-2';
         
         const modeLabel = document.createElement('span');
-        modeLabel.className = 'pi-label';
+        modeLabel.className = 'pi-label pi-mr-2';
         modeLabel.textContent = 'Mode';
-        modeLabel.style.marginRight = 'var(--spacing-2)';
         modeRow.appendChild(modeLabel);
         
         // Get current color mode from store
@@ -431,29 +420,28 @@ export class SlideSection {
         if (isOverride) {
             this.colorBadge.textContent = 'Override';
             this.colorBadge.className = 'theme-detail-badge override';
-            this.colorResetBtn.element.style.display = 'flex';
+            this.colorResetBtn.element.classList.remove('hidden');
         } else if (themeInfo?.isInherited) {
             this.colorBadge.textContent = 'Inherited';
             this.colorBadge.className = 'theme-detail-badge inherited';
-            this.colorResetBtn.element.style.display = 'none';
+            this.colorResetBtn.element.classList.add('hidden');
         } else {
             this.colorBadge.textContent = '';
             this.colorBadge.className = 'theme-detail-badge';
-            this.colorResetBtn.element.style.display = 'none';
+            this.colorResetBtn.element.classList.add('hidden');
         }
 
         // Update source indicator (cascade info)
         if (this.themeSourceIcon && this.themeSourceLabel) {
+            const sourceRow = this.themeSourceIcon.parentElement;
             if (themeInfo?.isInherited) {
                 this.themeSourceIcon.textContent = '↑';
-                this.themeSourceIcon.style.color = 'var(--color-text-tertiary)';
+                sourceRow.classList.remove('active');
                 this.themeSourceLabel.textContent = themeInfo.sourceLabel || 'from Master';
-                this.themeSourceLabel.style.color = 'var(--color-text-tertiary)';
             } else if (isOverride) {
                 this.themeSourceIcon.textContent = '◆';
-                this.themeSourceIcon.style.color = 'var(--color-accent)';
+                sourceRow.classList.add('active');
                 this.themeSourceLabel.textContent = 'slide-specific';
-                this.themeSourceLabel.style.color = 'var(--color-accent)';
             } else {
                 this.themeSourceIcon.textContent = '';
                 this.themeSourceLabel.textContent = '';
@@ -472,11 +460,11 @@ export class SlideSection {
             Array.from(this.modeToggle.element.children).forEach((child, i) => {
                 const option = this.modeToggle.options[i];
                 if (colorMode === option.value) {
-                    child.style.backgroundColor = 'var(--color-accent)';
-                    child.style.color = 'var(--color-text-on-accent)';
+                    child.classList.add('active');
+                    child.classList.add('slide-mode-segment');
                 } else {
-                    child.style.backgroundColor = 'transparent';
-                    child.style.color = 'var(--color-text-primary)';
+                    child.classList.remove('active');
+                    child.classList.add('slide-mode-segment');
                 }
             });
         }
@@ -506,11 +494,11 @@ export class SlideSection {
         if (isOverride) {
             this.typoBadge.textContent = 'Override';
             this.typoBadge.className = 'theme-detail-badge override';
-            this.typoResetBtn.element.style.display = 'flex';
+            this.typoResetBtn.element.classList.remove('hidden');
         } else {
             this.typoBadge.textContent = 'Inherited';
             this.typoBadge.className = 'theme-detail-badge inherited';
-            this.typoResetBtn.element.style.display = 'none';
+            this.typoResetBtn.element.classList.add('hidden');
         }
     }
 
@@ -520,16 +508,16 @@ export class SlideSection {
         
         if (isOverride) {
             badge.textContent = 'Override';
-            badge.style.display = 'inline-block';
+            badge.classList.remove('hidden');
             badge.classList.add('override');
             badge.classList.remove('inherited');
-            resetBtn.style.display = 'flex';
+            resetBtn.classList.remove('hidden');
         } else {
             badge.textContent = 'Inherited';
-            badge.style.display = 'inline-block';
+            badge.classList.remove('hidden');
             badge.classList.add('inherited');
             badge.classList.remove('override');
-            resetBtn.style.display = 'none';
+            resetBtn.classList.add('hidden');
         }
     }
 
@@ -568,11 +556,11 @@ export class SlideSection {
     update(selection) {
         // This is shown when NO selection exists (or explicit slide selection)
         if (selection && selection.length > 0) {
-            this.element.style.display = 'none';
+            this.element.classList.add('hidden');
             return;
         }
         
-        this.element.style.display = 'block';
+        this.element.classList.remove('hidden');
         
         const state = store.getState();
         const mode = state.editor.mode;
@@ -583,29 +571,29 @@ export class SlideSection {
         // 0. Template Preset (Theme Master only)
         const isThemeMaster = mode === 'master' && currentObject.type === 'theme';
         if (isThemeMaster) {
-            this.presetSection.element.style.display = 'block';
+            this.presetSection.element.classList.remove('hidden');
             // Update preset button label with current preset name
             const currentPresetId = currentObject.presetId || 'preset_minimal';
             const currentPreset = getPresetById(currentPresetId);
             this.presetTriggerBtn.setLabel(currentPreset ? currentPreset.name : 'Select Template');
             this.presetDescription.textContent = currentPreset?.description || '';
         } else {
-            this.presetSection.element.style.display = 'none';
+            this.presetSection.element.classList.add('hidden');
         }
 
         // 1. Name (Master only) - show standalone row
         if (mode === 'master') {
-            this.nameRow.style.display = 'flex';
+            this.nameRow.classList.remove('hidden');
             this.nameInput.setValue(currentObject.name || '');
         } else {
-            this.nameRow.style.display = 'none';
+            this.nameRow.classList.add('hidden');
         }
 
         // 2. Layout Section (Slide only) - update title based on mode
         if (mode !== 'master') {
-            this.layoutSection.element.style.display = 'block';
+            this.layoutSection.element.classList.remove('hidden');
             this.layoutSection.element.querySelector('.pi-section-title').textContent = 'Layout';
-            this.layoutRow.style.display = 'flex';
+            this.layoutRow.classList.remove('hidden');
             
             // Update layout options for hidden dropdown
             const layouts = Object.values(state.slideMasterPresets || {}).filter(m => m.type === 'layoutMaster');
@@ -623,9 +611,9 @@ export class SlideSection {
             this.currentState = state;
         } else {
             // In master mode, show as "Dimensions" section (no layout picker)
-            this.layoutSection.element.style.display = 'block';
+            this.layoutSection.element.classList.remove('hidden');
             this.layoutSection.element.querySelector('.pi-section-title').textContent = 'Dimensions';
-            this.layoutRow.style.display = 'none';
+            this.layoutRow.classList.add('hidden');
         }
 
         // 3. Dimensions
@@ -1013,15 +1001,9 @@ export class SlideSection {
             // Target the layout trigger button element
             if (this.layoutTriggerBtn && this.layoutTriggerBtn.element) {
                 if (isLight) {
-                    this.layoutTriggerBtn.element.style.setProperty('transition', 'none', 'important');
-                    this.layoutTriggerBtn.element.style.setProperty('background-color', '#FFFFFF', 'important');
-                    this.layoutTriggerBtn.element.style.setProperty('color', '#333333', 'important');
-                    this.layoutTriggerBtn.element.style.setProperty('border-color', '#E0E0E0', 'important');
+                    this.layoutTriggerBtn.element.classList.add('light-theme');
                 } else {
-                    this.layoutTriggerBtn.element.style.removeProperty('background-color');
-                    this.layoutTriggerBtn.element.style.removeProperty('color');
-                    this.layoutTriggerBtn.element.style.removeProperty('border-color');
-                    this.layoutTriggerBtn.element.style.removeProperty('transition');
+                    this.layoutTriggerBtn.element.classList.remove('light-theme');
                 }
             }
         };

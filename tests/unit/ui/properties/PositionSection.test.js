@@ -176,19 +176,19 @@ describe('PositionSection', () => {
         it('should hide section when selection is empty', () => {
             positionSection.update([]);
             
-            expect(mockSectionElement.style.display).toBe('none');
+            expect(mockSectionElement.classList.contains('hidden')).toBe(true);
         });
 
         it('should hide section when selection is null', () => {
             positionSection.update(null);
             
-            expect(mockSectionElement.style.display).toBe('none');
+            expect(mockSectionElement.classList.contains('hidden')).toBe(true);
         });
 
         it('should show section when selection has elements', () => {
             positionSection.update(['element-1']);
             
-            expect(mockSectionElement.style.display).toBe('block');
+            expect(mockSectionElement.classList.contains('hidden')).toBe(false);
         });
 
         it('should update X input with element x value', () => {

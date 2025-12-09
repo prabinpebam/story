@@ -249,6 +249,98 @@
     margin-bottom: var(--spacing-1);
 }
 
+.pi-mb-2 {
+    margin-bottom: var(--spacing-2);
+}
+
+.pi-mr-2 {
+    margin-right: var(--spacing-2);
+}
+
+.pi-px-2 {
+    padding-left: var(--spacing-2);
+    padding-right: var(--spacing-2);
+}
+
+/* --- Position Section --- */
+.pi-align-row {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 2px;
+    margin-bottom: var(--spacing-2);
+}
+
+.pi-align-row .icon-button {
+    width: 100%;
+}
+
+.pi-flip-group {
+    display: flex;
+    gap: 4px;
+    flex-shrink: 0;
+}
+
+/* --- Placeholder Section --- */
+.placeholder-item.hover {
+    background: var(--color-bg-hover);
+    border-color: var(--color-accent);
+}
+
+.placeholder-item:not(.hover):not(.disabled) {
+    background: var(--color-bg-well);
+    border-color: var(--color-border);
+}
+
+.placeholder-item.disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.placeholder-item.dragging {
+    opacity: 0.5;
+}
+
+/* --- SlideSection --- */
+.slide-preset-description {
+    font-size: var(--font-size-xs);
+    color: var(--color-text-secondary);
+    padding: 0 var(--spacing-1);
+    margin-top: var(--spacing-1);
+}
+
+.slide-theme-source-row {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-2);
+    padding: var(--spacing-1) 0;
+    font-size: var(--font-size-sm);
+    color: var(--color-text-tertiary);
+}
+
+.slide-theme-source-icon {
+    font-size: 10px;
+}
+
+.slide-theme-source.active .slide-theme-source-icon,
+.slide-theme-source.active .slide-theme-source-label {
+    color: var(--color-accent);
+}
+
+.slide-theme-source:not(.active) .slide-theme-source-icon,
+.slide-theme-source:not(.active) .slide-theme-source-label {
+    color: var(--color-text-tertiary);
+}
+
+.slide-mode-segment.active {
+    background-color: var(--color-accent);
+    color: var(--color-text-on-accent);
+}
+
+.slide-mode-segment:not(.active) {
+    background-color: transparent;
+    color: var(--color-text-primary);
+}
+
 .fill-linked-icon {
     font-size: 10px;
     color: var(--color-accent);
@@ -563,6 +655,13 @@ select.pi-input option {
     font-size: var(--font-size-sm);
     cursor: pointer;
     transition: var(--transition-normal);
+}
+
+.layout-trigger-btn.light-theme {
+    transition: none !important;
+    background-color: #FFFFFF !important;
+    color: #333333 !important;
+    border-color: #E0E0E0 !important;
 }
 
 .layout-trigger-btn:hover {

@@ -76,14 +76,12 @@ export class PlaceholderSection {
 
         // Count badge (for types that allow multiple)
         const badge = document.createElement('div');
-        badge.className = 'placeholder-badge placeholder-count-badge';
-        badge.style.display = 'none'; // Dynamic visibility
+        badge.className = 'placeholder-badge placeholder-count-badge hidden';
 
         // Checkmark overlay for placed items (limited types)
         const checkmark = document.createElement('div');
-        checkmark.className = 'placeholder-checkmark';
+        checkmark.className = 'placeholder-checkmark hidden';
         checkmark.innerHTML = '✓';
-        checkmark.style.display = 'none'; // Dynamic visibility
 
         element.appendChild(icon);
         element.appendChild(label);
@@ -93,16 +91,12 @@ export class PlaceholderSection {
         // Event handlers
         element.addEventListener('mouseenter', () => {
             if (!element.classList.contains('disabled')) {
-                element.style.background = 'var(--color-bg-hover)';
-                element.style.borderColor = 'var(--color-accent)';
+                element.classList.add('hover');
             }
         });
 
         element.addEventListener('mouseleave', () => {
-            if (!element.classList.contains('disabled')) {
-                element.style.background = 'var(--color-bg-well)';
-                element.style.borderColor = 'var(--color-border)';
-            }
+            element.classList.remove('hover');
         });
 
         // Click to add placeholder at default location
@@ -120,14 +114,14 @@ export class PlaceholderSection {
             }
             e.dataTransfer.setData('application/x-placeholder-type', type.id);
             e.dataTransfer.effectAllowed = 'copy';
-            element.style.opacity = '0.5';
+            element.classList.add('dragging');
             
             // Notify the canvas that we're dragging a placeholder
             store.dispatch('SET_DRAG_PLACEHOLDER', { type: type.id });
         });
 
         element.addEventListener('dragend', () => {
-            element.style.opacity = '1';
+            element.classList.remove('dragging');
             store.dispatch('SET_DRAG_PLACEHOLDER', { type: null });
         });
 
@@ -142,25 +136,25 @@ export class PlaceholderSection {
                 if (disabled) {
                     element.classList.add('disabled');
                     element.draggable = false;
-                    element.style.opacity = '0.5';
-                    element.style.cursor = 'not-allowed';
                 } else {
                     element.classList.remove('disabled');
                     element.draggable = true;
-                    element.style.opacity = '1';
-                    element.style.cursor = 'pointer';
                 }
             },
             updateBadge: (count) => {
                 if (count > 0 && type.maxCount === Infinity) {
-                    badge.style.display = 'block';
+                    badge.classList.remove('hidden');
                     badge.textContent = count;
                 } else {
-                    badge.style.display = 'none';
+                    badge.classList.add('hidden');
                 }
             },
             showCheckmark: (show) => {
-                checkmark.style.display = show ? 'block' : 'none';
+                if (show) {
+                    checkmark.classList.remove('hidden');
+                } else {
+                    checkmark.classList.add('hidden');
+                }
             }
         };
     }
@@ -326,11 +320,11 @@ export class PlaceholderSection {
 
         // Only show for layout masters in master mode
         if (mode !== 'master' || !activeMaster || activeMaster.type !== 'layout') {
-            this.section.element.style.display = 'none';
+            this.section.element.classList.add('hidden');
             return;
         }
 
-        this.section.element.style.display = 'block';
+        this.section.element.classList.remove('hidden');
         
         // Count placed placeholders
         this.updatePlacedCounts(activeMaster);
