@@ -104,22 +104,22 @@ describe('Section', () => {
 
         it('should hide content when collapsed', () => {
             section = new Section({ collapsed: true });
-            expect(section.content.style.display).toBe('none');
+            expect(section.content.classList.contains('hidden')).toBe(true);
         });
 
         it('should show content when not collapsed', () => {
             section = new Section({ collapsed: false });
-            expect(section.content.style.display).not.toBe('none');
+            expect(section.content.classList.contains('hidden')).toBe(false);
         });
 
         it('should rotate chevron when collapsed', () => {
             section = new Section({ collapsed: true });
-            expect(section.chevron.style.transform).toBe('rotate(-90deg)');
+            expect(section.chevron.classList.contains('collapsed')).toBe(true);
         });
 
         it('should not rotate chevron when expanded', () => {
             section = new Section({ collapsed: false });
-            expect(section.chevron.style.transform).not.toBe('rotate(-90deg)');
+            expect(section.chevron.classList.contains('collapsed')).toBe(false);
         });
 
         it('should create IconButtons for actions', () => {
@@ -166,7 +166,7 @@ describe('Section', () => {
             
             section.toggle();
             
-            expect(section.content.style.display).toBe('none');
+            expect(section.content.classList.contains('hidden')).toBe(true);
         });
 
         it('should show content when toggling to expanded', () => {
@@ -174,7 +174,7 @@ describe('Section', () => {
             
             section.toggle();
             
-            expect(section.content.style.display).toBe('flex');
+            expect(section.content.classList.contains('hidden')).toBe(false);
         });
 
         it('should rotate chevron when toggling to collapsed', () => {
@@ -182,7 +182,7 @@ describe('Section', () => {
             
             section.toggle();
             
-            expect(section.chevron.style.transform).toBe('rotate(-90deg)');
+            expect(section.chevron.classList.contains('collapsed')).toBe(true);
         });
 
         it('should un-rotate chevron when toggling to expanded', () => {
@@ -190,7 +190,7 @@ describe('Section', () => {
             
             section.toggle();
             
-            expect(section.chevron.style.transform).toBe('rotate(0deg)');
+            expect(section.chevron.classList.contains('collapsed')).toBe(false);
         });
 
         it('should call onToggle callback', () => {
@@ -240,7 +240,7 @@ describe('Section', () => {
             
             section.setCollapsed(true);
             
-            expect(section.content.style.display).toBe('none');
+            expect(section.content.classList.contains('hidden')).toBe(true);
         });
 
         it('should update chevron rotation', () => {
@@ -248,7 +248,7 @@ describe('Section', () => {
             
             section.setCollapsed(true);
             
-            expect(section.chevron.style.transform).toBe('rotate(-90deg)');
+            expect(section.chevron.classList.contains('collapsed')).toBe(true);
         });
 
         it('should call onToggle when state changes', () => {

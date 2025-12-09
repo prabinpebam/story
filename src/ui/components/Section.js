@@ -26,20 +26,13 @@ export class Section {
         header.addEventListener('click', () => this.toggle());
 
         const titleGroup = document.createElement('div');
-        titleGroup.style.display = 'flex';
-        titleGroup.style.alignItems = 'center';
-        titleGroup.style.gap = '8px';
+        titleGroup.className = 'pi-section-title-group';
 
         // Chevron
         this.chevron = document.createElement('div');
         this.chevron.innerHTML = Icons.CHEVRON_DOWN || 'v'; // Fallback
-        this.chevron.style.width = '12px';
-        this.chevron.style.height = '12px';
-        this.chevron.style.display = 'flex';
-        this.chevron.style.alignItems = 'center';
-        this.chevron.style.justifyContent = 'center';
-        this.chevron.style.transition = 'transform 0.2s';
-        if (this.collapsed) this.chevron.style.transform = 'rotate(-90deg)';
+        this.chevron.className = 'pi-section-chevron';
+        if (this.collapsed) this.chevron.classList.add('collapsed');
 
         const title = document.createElement('div');
         title.className = 'pi-section-title';
@@ -50,8 +43,7 @@ export class Section {
 
         // Actions (Right aligned)
         const actionsGroup = document.createElement('div');
-        actionsGroup.style.display = 'flex';
-        actionsGroup.style.gap = '4px';
+        actionsGroup.className = 'pi-section-actions';
         actionsGroup.addEventListener('click', (e) => e.stopPropagation()); // Prevent toggle
 
         this.options.actions.forEach(action => {
@@ -69,7 +61,7 @@ export class Section {
         // Content
         this.content = document.createElement('div');
         this.content.className = 'pi-section-content';
-        if (this.collapsed) this.content.style.display = 'none';
+        if (this.collapsed) this.content.classList.add('hidden');
 
         container.appendChild(header);
         container.appendChild(this.content);
@@ -79,8 +71,8 @@ export class Section {
 
     toggle() {
         this.collapsed = !this.collapsed;
-        this.content.style.display = this.collapsed ? 'none' : 'flex';
-        this.chevron.style.transform = this.collapsed ? 'rotate(-90deg)' : 'rotate(0deg)';
+        this.content.classList.toggle('hidden', this.collapsed);
+        this.chevron.classList.toggle('collapsed', this.collapsed);
         
         if (this.options.onToggle) {
             this.options.onToggle(this.collapsed);
@@ -90,8 +82,8 @@ export class Section {
     setCollapsed(collapsed) {
         if (this.collapsed === collapsed) return;
         this.collapsed = collapsed;
-        this.content.style.display = this.collapsed ? 'none' : 'flex';
-        this.chevron.style.transform = this.collapsed ? 'rotate(-90deg)' : 'rotate(0deg)';
+        this.content.classList.toggle('hidden', this.collapsed);
+        this.chevron.classList.toggle('collapsed', this.collapsed);
         
         if (this.options.onToggle) {
             this.options.onToggle(this.collapsed);

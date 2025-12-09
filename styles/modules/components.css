@@ -105,3 +105,98 @@ input[type="text"]:focus, input[type="number"]:focus, select:focus {
 ::-webkit-scrollbar-thumb:hover {
     background: var(--color-text-secondary);
 }
+
+/* ColorInput Component */
+.color-input-container {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.color-input-container:not(.compact) {
+    background: var(--color-bg-input);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    padding: 4px;
+    height: 28px;
+    width: 100%;
+}
+
+.color-input-container.compact {
+    width: auto;
+    gap: 0;
+}
+
+.color-input-native {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+    width: 0;
+    height: 0;
+}
+
+.color-input-swatch {
+    width: var(--swatch-size-md);
+    height: var(--swatch-size-md);
+    border-radius: var(--radius-xs);
+    border: none;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: box-shadow var(--transition-fast);
+}
+
+.color-input-swatch.swatch-lg {
+    width: var(--swatch-size-lg);
+    height: var(--swatch-size-lg);
+}
+
+.color-input-swatch.dark-color {
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.3);
+}
+
+.color-input-swatch.light-color {
+    box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.3);
+}
+
+.color-input-swatch.dark-color:hover {
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 1);
+}
+
+.color-input-swatch.light-color:hover {
+    box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 1);
+}
+
+.color-input-hex {
+    border: none;
+    background: transparent;
+    color: var(--color-text-primary);
+    font-size: 11px;
+    font-family: var(--font-mono);
+    width: 100%;
+    outline: none;
+}
+
+/* Section Component */
+.pi-section-title-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.pi-section-chevron {
+    width: 12px;
+    height: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.2s;
+}
+
+.pi-section-chevron.collapsed {
+    transform: rotate(-90deg);
+}
+
+.pi-section-actions {
+    display: flex;
+    gap: 4px;
+}

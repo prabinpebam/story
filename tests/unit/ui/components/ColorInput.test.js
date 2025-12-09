@@ -89,22 +89,23 @@ describe('ColorInput', () => {
 
         it('should apply standard styling in non-compact mode', () => {
             colorInput = new ColorInput('#000000', onChange, { compact: false });
-            expect(colorInput.element.style.background).toBe('var(--color-bg-input)');
-            expect(colorInput.element.style.height).toBe('28px');
+            expect(colorInput.element.classList.contains('color-input-container')).toBe(true);
+            expect(colorInput.element.classList.contains('compact')).toBe(false);
         });
 
         it('should apply compact styling in compact mode', () => {
             colorInput = new ColorInput('#000000', onChange, { compact: true });
-            expect(colorInput.element.style.width).toBe('auto');
-            expect(colorInput.element.style.gap).toBe('0');
+            expect(colorInput.element.classList.contains('color-input-container')).toBe(true);
+            expect(colorInput.element.classList.contains('compact')).toBe(true);
         });
 
         it('should set swatch size based on compact mode', () => {
             colorInput = new ColorInput('#000000', onChange, { compact: false });
-            expect(colorInput._swatch.style.width).toBe('var(--swatch-size-md)');
+            expect(colorInput._swatch.classList.contains('color-input-swatch')).toBe(true);
+            expect(colorInput._swatch.classList.contains('swatch-lg')).toBe(false);
             
             const compactInput = new ColorInput('#000000', onChange, { compact: true });
-            expect(compactInput._swatch.style.width).toBe('var(--swatch-size-lg)');
+            expect(compactInput._swatch.classList.contains('swatch-lg')).toBe(true);
         });
     });
 
