@@ -20,10 +20,15 @@ vi.mock('../../../../src/ui/components/Dropdown.js', () => ({
     Dropdown: vi.fn()
 }));
 
+vi.mock('../../../../src/ui/components/Button.js', () => ({
+    Button: vi.fn()
+}));
+
 vi.mock('../../../../src/ui/Icons.js', () => ({
     Icons: {
         VISIBLE: '<svg>visible</svg>',
-        HIDDEN: '<svg>hidden</svg>'
+        HIDDEN: '<svg>hidden</svg>',
+        LINK: '<svg>link</svg>'
     }
 }));
 
@@ -33,6 +38,7 @@ import { store } from '../../../../src/core/Store.js';
 import { Section } from '../../../../src/ui/components/Section.js';
 import { NumberInput } from '../../../../src/ui/components/NumberInput.js';
 import { Dropdown } from '../../../../src/ui/components/Dropdown.js';
+import { Button } from '../../../../src/ui/components/Button.js';
 
 describe('AppearanceSection', () => {
     let appearanceSection;
@@ -40,6 +46,8 @@ describe('AppearanceSection', () => {
     let mockOpacityInput;
     let mockBlendModeSelect;
     let mockRadiusInput;
+    let mockLinkBtn;
+    let mockTlInput, mockTrInput, mockBlInput, mockBrInput;
 
     beforeEach(() => {
         vi.clearAllMocks();
@@ -54,21 +62,35 @@ describe('AppearanceSection', () => {
 
         mockOpacityInput = {
             element: document.createElement('div'),
-            setValue: vi.fn()
+            setValue: vi.fn(),
+            getValue: vi.fn().mockReturnValue(100)
         };
         
         mockRadiusInput = {
             element: document.createElement('div'),
-            setValue: vi.fn()
+            setValue: vi.fn(),
+            getValue: vi.fn().mockReturnValue(0)
         };
+
+        // Mock corner inputs
+        mockTlInput = { element: document.createElement('div'), setValue: vi.fn(), getValue: vi.fn().mockReturnValue(0) };
+        mockTrInput = { element: document.createElement('div'), setValue: vi.fn(), getValue: vi.fn().mockReturnValue(0) };
+        mockBlInput = { element: document.createElement('div'), setValue: vi.fn(), getValue: vi.fn().mockReturnValue(0) };
+        mockBrInput = { element: document.createElement('div'), setValue: vi.fn(), getValue: vi.fn().mockReturnValue(0) };
 
         let numberInputCallCount = 0;
         NumberInput.mockImplementation(() => {
             numberInputCallCount++;
-            if (numberInputCallCount === 1) {
-                return mockOpacityInput;
+            // 1: Opacity, 2: Radius, 3: TL, 4: TR, 5: BL, 6: BR
+            switch(numberInputCallCount) {
+                case 1: return mockOpacityInput;
+                case 2: return mockRadiusInput;
+                case 3: return mockTlInput;
+                case 4: return mockTrInput;
+                case 5: return mockBlInput;
+                case 6: return mockBrInput;
+                default: return mockRadiusInput;
             }
-            return mockRadiusInput;
         });
 
         mockBlendModeSelect = {
@@ -76,6 +98,12 @@ describe('AppearanceSection', () => {
             setValue: vi.fn()
         };
         Dropdown.mockImplementation(() => mockBlendModeSelect);
+
+        // Mock Button for link toggle
+        mockLinkBtn = {
+            element: document.createElement('button')
+        };
+        Button.mockImplementation(() => mockLinkBtn);
 
         store.getState.mockReturnValue({
             editor: {
@@ -415,6 +443,115 @@ describe('AppearanceSection', () => {
             expect(store.dispatch).toHaveBeenCalledWith('UPDATE_ELEMENT',
                 { id: 'element-1', blendMode: 'overlay' },
                 { skipHistory: false }
+            );
+        });
+    });
+
+    describe('per-corner radius', () => {
+        it('should start in linked mode by default', () => {
+            expect(appearanceSection.isRadiusLinked()).toBe(true);
+        });
+
+        it('should create link button for radius', () => {
+            // Button is created for linking corners (5th NumberInput call creates corner inputs)
+            // The link button should be created in createContent
+            expect(appearanceSection.radiusLinkBtn).toBeDefined();
+        });
+
+        it('should detect per-corner radii in element data', () => {
+            store.getState.mockReturnValue({
+                editor: { mode: 'edit', activeSlideId: 'slide-1', selectedElementIds: ['element-1'] },
+                slides: {
+                    'slide-1': {
+                        elements: {
+                            'element-1': { 
+                                id: 'element-1', 
+                                type: 'rect',
+                                cornerRadii: { tl: 10, tr: 8, bl: 6, br: 4 }
+                            }
+                        }
+                    }
+                }
+            });
+            
+            appearanceSection.update(['element-1']);
+            
+            // Should switch to unlinked mode when cornerRadii exists
+            expect(appearanceSection.isRadiusLinked()).toBe(false);
+        });
+
+        it('should use uniform radius when cornerRadii is not set', () => {
+            store.getState.mockReturnValue({
+                editor: { mode: 'edit', activeSlideId: 'slide-1', selectedElementIds: ['element-1'] },
+                slides: {
+                    'slide-1': {
+                        elements: {
+                            'element-1': { 
+                                id: 'element-1', 
+                                type: 'rect',
+                                borderRadius: 12
+                            }
+                        }
+                    }
+                }
+            });
+            
+            appearanceSection.update(['element-1']);
+            
+            expect(appearanceSection.isRadiusLinked()).toBe(true);
+        });
+
+        it('should dispatch cornerRadii when changing individual corners', () => {
+            store.getState.mockReturnValue({
+                editor: { mode: 'edit', activeSlideId: 'slide-1', selectedElementIds: ['element-1'] },
+                slides: {
+                    'slide-1': {
+                        elements: {
+                            'element-1': { 
+                                id: 'element-1', 
+                                type: 'rect',
+                                cornerRadii: { tl: 10, tr: 10, bl: 10, br: 10 }
+                            }
+                        }
+                    }
+                }
+            });
+
+            appearanceSection._handleCornerRadiusChange('tl', 20, false);
+
+            expect(store.dispatch).toHaveBeenCalledWith('UPDATE_ELEMENT', 
+                expect.objectContaining({
+                    id: 'element-1',
+                    cornerRadii: { tl: 20, tr: 10, bl: 10, br: 10 }
+                }),
+                expect.anything()
+            );
+        });
+
+        it('should clear cornerRadii when switching to uniform mode', () => {
+            store.getState.mockReturnValue({
+                editor: { mode: 'edit', activeSlideId: 'slide-1', selectedElementIds: ['element-1'] },
+                slides: {
+                    'slide-1': {
+                        elements: {
+                            'element-1': { 
+                                id: 'element-1', 
+                                type: 'rect',
+                                cornerRadii: { tl: 10, tr: 8, bl: 6, br: 4 }
+                            }
+                        }
+                    }
+                }
+            });
+
+            appearanceSection._radiusLinked = false;
+            appearanceSection._switchToUniformMode();
+
+            expect(store.dispatch).toHaveBeenCalledWith('UPDATE_ELEMENT', 
+                expect.objectContaining({
+                    id: 'element-1',
+                    cornerRadii: null
+                })
             );
         });
     });

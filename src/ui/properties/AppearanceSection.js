@@ -1,9 +1,21 @@
 import { Section } from '../components/Section.js';
 import { NumberInput } from '../components/NumberInput.js';
 import { Dropdown } from '../components/Dropdown.js';
+import { Button } from '../components/Button.js';
 import { Icons } from '../Icons.js';
 import { store } from '../../core/Store.js';
 
+/**
+ * AppearanceSection - Property Inspector section for appearance controls
+ * 
+ * Controls:
+ * - Opacity (0-100%)
+ * - Blend Mode (normal, multiply, screen, etc.)
+ * - Corner Radius (uniform or per-corner)
+ * - Visibility toggle
+ * 
+ * @spec documentation/01-specs/ui-system/property-inspector-v2/04-appearance-section.md
+ */
 export class AppearanceSection {
     constructor() {
         this.section = new Section({ 
@@ -12,6 +24,10 @@ export class AppearanceSection {
                 { icon: Icons.VISIBLE, title: 'Toggle Visibility', onClick: () => this.toggleVisibility() }
             ]
         });
+        
+        // Track radius link state
+        this._radiusLinked = true;
+        
         this.createContent();
     }
 
@@ -61,19 +77,214 @@ export class AppearanceSection {
         opacityRow.appendChild(this.blendModeSelect.element);
         this.section.appendChild(opacityRow);
 
-        // Corner Radius Row
-        const radiusRow = document.createElement('div');
-        radiusRow.className = 'pi-row';
+        // Corner Radius Row (Uniform Mode)
+        this.radiusRow = document.createElement('div');
+        this.radiusRow.className = 'pi-row pi-radius-row';
 
         this.radiusInput = new NumberInput({
-            label: 'Radius', // Or icon
+            label: 'Radius',
             value: 0,
             min: 0,
-            onChange: (val, isTransient) => this.updateProperty('borderRadius', val, isTransient)
+            onChange: (val, isTransient) => this._handleUniformRadiusChange(val, isTransient)
         });
 
-        radiusRow.appendChild(this.radiusInput.element);
-        this.section.appendChild(radiusRow);
+        // Link/Unlink button for radius
+        this.radiusLinkBtn = new Button({
+            icon: Icons.LINK || '🔗',
+            size: 'xs',
+            variant: 'text',
+            ariaLabel: 'Toggle per-corner radius',
+            onClick: () => this._toggleRadiusLink()
+        });
+        this.radiusLinkBtn.element.classList.add('pi-radius-link-btn');
+
+        this.radiusRow.appendChild(this.radiusInput.element);
+        this.radiusRow.appendChild(this.radiusLinkBtn.element);
+        this.section.appendChild(this.radiusRow);
+
+        // Per-Corner Radius Row (hidden by default)
+        this.perCornerRow = document.createElement('div');
+        this.perCornerRow.className = 'pi-row pi-radius-per-corner hidden';
+        
+        // Create 4 corner inputs in a 2x2 grid
+        const cornerGrid = document.createElement('div');
+        cornerGrid.className = 'pi-corner-grid';
+
+        this.tlRadiusInput = new NumberInput({
+            label: 'TL',
+            value: 0,
+            min: 0,
+            onChange: (val, isTransient) => this._handleCornerRadiusChange('tl', val, isTransient)
+        });
+
+        this.trRadiusInput = new NumberInput({
+            label: 'TR',
+            value: 0,
+            min: 0,
+            onChange: (val, isTransient) => this._handleCornerRadiusChange('tr', val, isTransient)
+        });
+
+        this.blRadiusInput = new NumberInput({
+            label: 'BL',
+            value: 0,
+            min: 0,
+            onChange: (val, isTransient) => this._handleCornerRadiusChange('bl', val, isTransient)
+        });
+
+        this.brRadiusInput = new NumberInput({
+            label: 'BR',
+            value: 0,
+            min: 0,
+            onChange: (val, isTransient) => this._handleCornerRadiusChange('br', val, isTransient)
+        });
+
+        cornerGrid.appendChild(this.tlRadiusInput.element);
+        cornerGrid.appendChild(this.trRadiusInput.element);
+        cornerGrid.appendChild(this.blRadiusInput.element);
+        cornerGrid.appendChild(this.brRadiusInput.element);
+        this.perCornerRow.appendChild(cornerGrid);
+        this.section.appendChild(this.perCornerRow);
+    }
+
+    /**
+     * Handle uniform radius change (all corners same)
+     */
+    _handleUniformRadiusChange(val, isTransient) {
+        this.updateProperty('borderRadius', val, isTransient);
+        // Clear per-corner values when using uniform
+        this.updateProperty('cornerRadii', null, isTransient);
+    }
+
+    /**
+     * Handle individual corner radius change
+     */
+    _handleCornerRadiusChange(corner, val, isTransient) {
+        const state = store.getState();
+        const selection = state.editor.selectedElementIds;
+        
+        if (!selection || selection.length === 0) return;
+        
+        const element = this.getElement(state, selection[0]);
+        if (!element) return;
+
+        // Get current corner radii or initialize from borderRadius
+        const currentRadii = element.cornerRadii || {
+            tl: element.borderRadius || 0,
+            tr: element.borderRadius || 0,
+            bl: element.borderRadius || 0,
+            br: element.borderRadius || 0
+        };
+
+        // Update the specific corner
+        const newRadii = { ...currentRadii, [corner]: val };
+
+        // Update for all selected elements
+        selection.forEach(id => {
+            store.dispatch('UPDATE_ELEMENT', { 
+                id, 
+                cornerRadii: newRadii,
+                borderRadius: null  // Clear uniform radius when using per-corner
+            }, { skipHistory: isTransient });
+        });
+    }
+
+    /**
+     * Toggle between uniform and per-corner radius modes
+     */
+    _toggleRadiusLink() {
+        this._radiusLinked = !this._radiusLinked;
+        
+        if (this._radiusLinked) {
+            // Switching to linked: average existing corners
+            this._switchToUniformMode();
+        } else {
+            // Switching to per-corner: copy uniform value to all corners
+            this._switchToPerCornerMode();
+        }
+        
+        this._updateRadiusUI();
+    }
+
+    /**
+     * Switch to uniform radius mode
+     */
+    _switchToUniformMode() {
+        const state = store.getState();
+        const selection = state.editor.selectedElementIds;
+        
+        if (!selection || selection.length === 0) return;
+        
+        const element = this.getElement(state, selection[0]);
+        if (!element || !element.cornerRadii) return;
+
+        // Calculate average of corners
+        const radii = element.cornerRadii;
+        const avg = Math.round((radii.tl + radii.tr + radii.bl + radii.br) / 4);
+
+        // Apply uniform radius
+        selection.forEach(id => {
+            store.dispatch('UPDATE_ELEMENT', { 
+                id, 
+                borderRadius: avg,
+                cornerRadii: null  // Clear per-corner values
+            });
+        });
+
+        this.radiusInput.setValue(avg, false);
+    }
+
+    /**
+     * Switch to per-corner radius mode
+     */
+    _switchToPerCornerMode() {
+        const state = store.getState();
+        const selection = state.editor.selectedElementIds;
+        
+        if (!selection || selection.length === 0) return;
+        
+        const element = this.getElement(state, selection[0]);
+        if (!element) return;
+
+        const uniformRadius = element.borderRadius || 0;
+
+        // Copy uniform value to all corners
+        const cornerRadii = {
+            tl: uniformRadius,
+            tr: uniformRadius,
+            bl: uniformRadius,
+            br: uniformRadius
+        };
+
+        selection.forEach(id => {
+            store.dispatch('UPDATE_ELEMENT', { 
+                id, 
+                cornerRadii,
+                borderRadius: null
+            });
+        });
+
+        // Update per-corner inputs
+        this.tlRadiusInput.setValue(uniformRadius, false);
+        this.trRadiusInput.setValue(uniformRadius, false);
+        this.blRadiusInput.setValue(uniformRadius, false);
+        this.brRadiusInput.setValue(uniformRadius, false);
+    }
+
+    /**
+     * Update radius UI based on linked state
+     */
+    _updateRadiusUI() {
+        if (this._radiusLinked) {
+            this.radiusRow.classList.remove('hidden');
+            this.perCornerRow.classList.add('hidden');
+            this.radiusLinkBtn.element.classList.remove('unlinked');
+            this.radiusLinkBtn.element.setAttribute('aria-pressed', 'true');
+        } else {
+            this.radiusRow.classList.add('hidden');
+            this.perCornerRow.classList.remove('hidden');
+            this.radiusLinkBtn.element.classList.add('unlinked');
+            this.radiusLinkBtn.element.setAttribute('aria-pressed', 'false');
+        }
     }
 
     update(selection) {
@@ -99,10 +310,32 @@ export class AppearanceSection {
             // Only show radius for shapes/images/rects
             if (element.type === 'rect' || element.type === 'image') {
                 this.radiusInput.element.classList.remove('hidden');
-                const radius = element.borderRadius || 0;
-                this.radiusInput.setValue(radius, false);
+                
+                // Check if element has per-corner radii
+                const hasPerCorner = element.cornerRadii && (
+                    element.cornerRadii.tl !== undefined ||
+                    element.cornerRadii.tr !== undefined ||
+                    element.cornerRadii.bl !== undefined ||
+                    element.cornerRadii.br !== undefined
+                );
+
+                if (hasPerCorner) {
+                    this._radiusLinked = false;
+                    const radii = element.cornerRadii;
+                    this.tlRadiusInput.setValue(radii.tl || 0, false);
+                    this.trRadiusInput.setValue(radii.tr || 0, false);
+                    this.blRadiusInput.setValue(radii.bl || 0, false);
+                    this.brRadiusInput.setValue(radii.br || 0, false);
+                } else {
+                    this._radiusLinked = true;
+                    const radius = element.borderRadius || 0;
+                    this.radiusInput.setValue(radius, false);
+                }
+                
+                this._updateRadiusUI();
             } else {
                 this.radiusInput.element.classList.add('hidden');
+                this.perCornerRow.classList.add('hidden');
             }
         }
     }
@@ -140,5 +373,28 @@ export class AppearanceSection {
         });
         
         // Update icon state (optional, or wait for re-render)
+    }
+
+    /**
+     * Check if radius is in per-corner mode
+     * @returns {boolean}
+     */
+    isRadiusLinked() {
+        return this._radiusLinked;
+    }
+
+    /**
+     * Get the current corner radii values
+     * @returns {{ tl: number, tr: number, bl: number, br: number } | null}
+     */
+    getCornerRadii() {
+        if (this._radiusLinked) return null;
+        
+        return {
+            tl: this.tlRadiusInput?.getValue?.() || 0,
+            tr: this.trRadiusInput?.getValue?.() || 0,
+            bl: this.blRadiusInput?.getValue?.() || 0,
+            br: this.brRadiusInput?.getValue?.() || 0
+        };
     }
 }

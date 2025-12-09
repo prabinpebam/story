@@ -1121,3 +1121,57 @@ select.pi-input option {
     color: var(--color-error);
     background-color: var(--color-error-soft);
 }
+
+/* ==========================================================================
+   CORNER RADIUS CONTROLS
+   Supports both uniform (single input) and per-corner (4 inputs) modes.
+   ========================================================================== */
+
+/* Radius row with link button */
+.pi-radius-row {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-1);
+}
+
+.pi-radius-row .number-input {
+    flex: 1;
+}
+
+/* Link/Unlink toggle button */
+.pi-radius-link-btn {
+    flex-shrink: 0;
+}
+
+.pi-radius-link-btn.unlinked {
+    opacity: 0.5;
+}
+
+/* Per-corner radius container */
+.pi-radius-per-corner {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-2);
+}
+
+.pi-radius-per-corner.hidden {
+    display: none;
+}
+
+/* 2x2 grid for corner inputs */
+.pi-corner-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--spacing-2);
+}
+
+.pi-corner-grid .number-input {
+    min-width: 0; /* Allow inputs to shrink */
+}
+
+/* Corner input labels */
+.pi-corner-grid .number-input label {
+    font-size: var(--font-size-xs);
+    color: var(--color-text-tertiary);
+    text-transform: uppercase;
+}
