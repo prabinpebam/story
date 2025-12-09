@@ -79,40 +79,16 @@ describe('Flyout', () => {
     });
 
     describe('element styling', () => {
-        it('should have fixed position', () => {
+        it('should have ui-flyout class', () => {
             flyout = new Flyout();
-            expect(flyout.element.style.position).toBe('fixed');
+            expect(flyout.element.classList.contains('ui-flyout')).toBe(true);
         });
 
-        it('should have high z-index', () => {
+        it('should use CSS class for styling (moved from inline)', () => {
             flyout = new Flyout();
-            // Uses CSS variable with fallback for design token compliance
-            expect(flyout.element.style.zIndex).toBe('var(--z-dropdown, 1000)');
-        });
-
-        it('should use design system variables for background', () => {
-            flyout = new Flyout();
-            expect(flyout.element.style.background).toBe('var(--color-bg-panel)');
-        });
-
-        it('should use design system variables for border', () => {
-            flyout = new Flyout();
-            expect(flyout.element.style.border).toBe('1px solid var(--color-border)');
-        });
-
-        it('should use design system variables for border-radius', () => {
-            flyout = new Flyout();
-            expect(flyout.element.style.borderRadius).toBe('var(--radius-md)');
-        });
-
-        it('should have box shadow', () => {
-            flyout = new Flyout();
-            expect(flyout.element.style.boxShadow).toContain('rgba(0,0,0');
-        });
-
-        it('should have min-width', () => {
-            flyout = new Flyout();
-            expect(flyout.element.style.minWidth).toBe('200px');
+            // Styles are now in CSS class .ui-flyout
+            // The CSS provides: position: fixed, z-index, background, border, border-radius, box-shadow, padding, min-width
+            expect(flyout.element.className).toContain('ui-flyout');
         });
     });
 
