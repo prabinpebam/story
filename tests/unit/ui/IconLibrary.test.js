@@ -96,12 +96,9 @@ describe('IconLibrary', () => {
             expect(iconLibrary.grid).toBeDefined();
         });
 
-        it('should set grid display style', () => {
-            expect(iconLibrary.grid.style.display).toBe('grid');
-        });
-
-        it('should set grid template columns', () => {
-            expect(iconLibrary.grid.style.gridTemplateColumns).toBe('repeat(4, 1fr)');
+        it('should have grid CSS class for styling', () => {
+            // Grid styles (display: grid, grid-template-columns, etc.) are now in CSS class
+            expect(iconLibrary.grid.classList.contains('icon-library-grid')).toBe(true);
         });
 
         it('should render all icons', () => {
@@ -136,11 +133,12 @@ describe('IconLibrary', () => {
             expect(item.draggable).toBe(true);
         });
 
-        it('should set cursor to grab', () => {
+        it('should have icon-item CSS class for styling (cursor, etc.)', () => {
             iconLibrary.renderIcons(['fa-solid fa-star']);
             
             const item = iconLibrary.grid.querySelector('.icon-item');
-            expect(item.style.cursor).toBe('grab');
+            // Cursor and other styles are now in CSS class
+            expect(item.classList.contains('icon-item')).toBe(true);
         });
 
         it('should include icon element', () => {
@@ -276,20 +274,10 @@ describe('IconLibrary', () => {
             iconLibrary = new IconLibrary('icon-library-container');
         });
 
-        it('should change background on mouse leave', () => {
+        it('should have CSS class for hover styling', () => {
             const item = iconLibrary.grid.querySelector('.icon-item');
-            
-            item.dispatchEvent(new MouseEvent('mouseleave'));
-            
-            expect(item.style.background).toBe('var(--color-bg-well)');
-        });
-
-        it('should reset color on mouse leave', () => {
-            const item = iconLibrary.grid.querySelector('.icon-item');
-            
-            item.dispatchEvent(new MouseEvent('mouseleave'));
-            
-            expect(item.style.color).toBe('var(--color-text-primary)');
+            // Hover effects are now handled by CSS :hover pseudo-class
+            expect(item.classList.contains('icon-item')).toBe(true);
         });
     });
 

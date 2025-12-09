@@ -34,19 +34,12 @@ export class IconLibrary {
         
         // Search Input
         const searchContainer = document.createElement('div');
-        searchContainer.style.padding = '8px';
-        searchContainer.style.borderBottom = '1px solid var(--border-color)';
+        searchContainer.className = 'icon-library-search-container';
         
         const searchInput = document.createElement('input');
         searchInput.type = 'text';
         searchInput.placeholder = 'Search icons...';
-        searchInput.style.width = '100%';
-        searchInput.style.padding = '6px';
-        searchInput.style.background = 'var(--color-bg-input)';
-        searchInput.style.border = '1px solid var(--color-border)';
-        searchInput.style.color = 'var(--color-text-primary)';
-        searchInput.style.fontSize = '12px';
-        searchInput.style.borderRadius = '4px';
+        searchInput.className = 'icon-library-search-input';
         
         searchInput.addEventListener('input', (e) => this.filterIcons(e.target.value));
         
@@ -55,12 +48,7 @@ export class IconLibrary {
 
         // Grid
         this.grid = document.createElement('div');
-        this.grid.style.display = 'grid';
-        this.grid.style.gridTemplateColumns = 'repeat(4, 1fr)';
-        this.grid.style.gap = '8px';
-        this.grid.style.padding = '8px';
-        this.grid.style.overflowY = 'auto';
-        this.grid.style.maxHeight = '300px'; // Limit height or let it grow
+        this.grid.className = 'icon-library-grid';
         
         this.renderIcons(this.icons);
         this.container.appendChild(this.grid);
@@ -71,15 +59,6 @@ export class IconLibrary {
         iconList.forEach(iconClass => {
             const item = document.createElement('div');
             item.className = 'icon-item';
-            item.style.display = 'flex';
-            item.style.alignItems = 'center';
-            item.style.justifyContent = 'center';
-            item.style.aspectRatio = '1';
-            item.style.background = 'var(--color-bg-well)';
-            item.style.borderRadius = '4px';
-            item.style.cursor = 'grab';
-            item.style.fontSize = '16px';
-            item.style.color = 'var(--color-text-primary)';
             
             item.innerHTML = `<i class="${iconClass}"></i>`;
             item.draggable = true;
@@ -99,14 +78,6 @@ export class IconLibrary {
                     iconElement: item
                 });
             });
-            
-            // Hover effect - uses accent-subtle via --color-bg-hover token
-            item.onmouseenter = () => {
-                item.style.background = 'var(--color-bg-hover)';
-            };
-            item.onmouseleave = () => {
-                item.style.background = 'var(--color-bg-well)';
-            };
 
             this.grid.appendChild(item);
         });
