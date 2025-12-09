@@ -176,9 +176,10 @@ describe('DraggablePanel', () => {
             expect(panel.isOpen).toBe(true);
         });
 
-        it('should set display to flex', () => {
+        it('should remove hidden class when opened', () => {
+            panel.element.classList.add('hidden');
             panel.open();
-            expect(panel.element.style.display).toBe('flex');
+            expect(panel.element.classList.contains('hidden')).toBe(false);
         });
 
         it('should call animate for open animation', () => {
@@ -269,22 +270,22 @@ describe('DraggablePanel', () => {
             expect(panel.isMinimized).toBe(false);
         });
 
-        it('should hide content when minimized', () => {
+        it('should hide content when minimized using hidden class', () => {
             panel.toggleMinimize();
-            expect(panel.contentElement.style.display).toBe('none');
+            expect(panel.contentElement.classList.contains('hidden')).toBe(true);
         });
 
-        it('should show content when restored', () => {
+        it('should show content when restored by removing hidden class', () => {
             panel.toggleMinimize(); // minimize
             panel.toggleMinimize(); // restore
-            expect(panel.contentElement.style.display).toBe('block');
+            expect(panel.contentElement.classList.contains('hidden')).toBe(false);
         });
 
-        it('should hide resize handles when minimized', () => {
+        it('should hide resize handles when minimized using hidden class', () => {
             panel.toggleMinimize();
             
             Object.values(panel.resizeHandles).forEach(handle => {
-                expect(handle.style.display).toBe('none');
+                expect(handle.classList.contains('hidden')).toBe(true);
             });
         });
 

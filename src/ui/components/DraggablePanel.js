@@ -153,7 +153,7 @@ export class DraggablePanel {
         this.dragStartX = e.clientX - this.position.x;
         this.dragStartY = e.clientY - this.position.y;
         
-        this.headerElement.style.cursor = 'grabbing';
+        this.headerElement.classList.add('grabbing');
         document.addEventListener('mousemove', this.boundHandleDragMove);
         document.addEventListener('mouseup', this.boundHandleDragEnd);
         
@@ -181,7 +181,7 @@ export class DraggablePanel {
 
     handleDragEnd() {
         this.isDragging = false;
-        this.headerElement.style.cursor = 'grab';
+        this.headerElement.classList.remove('grabbing');
         document.removeEventListener('mousemove', this.boundHandleDragMove);
         document.removeEventListener('mouseup', this.boundHandleDragEnd);
         this.savePosition();
@@ -344,7 +344,7 @@ export class DraggablePanel {
         }
         
         this.isOpen = true;
-        this.element.style.display = 'flex';
+        this.element.classList.remove('hidden');
         this.updatePosition();
         this.updateSize();
         this.bringToFront();
@@ -371,7 +371,7 @@ export class DraggablePanel {
         ], { duration: 100, easing: 'ease-in' });
         
         animation.onfinish = () => {
-            this.element.style.display = 'none';
+            this.element.classList.add('hidden');
         };
         
         this.onClose();
@@ -387,12 +387,12 @@ export class DraggablePanel {
 
     toggleMinimize() {
         this.isMinimized = !this.isMinimized;
-        this.contentElement.style.display = this.isMinimized ? 'none' : 'block';
+        this.contentElement.classList.toggle('hidden', this.isMinimized);
         this.updateSize();
         
         // Hide/show resize handles when minimized
         Object.values(this.resizeHandles).forEach(handle => {
-            handle.style.display = this.isMinimized ? 'none' : 'block';
+            handle.classList.toggle('hidden', this.isMinimized);
         });
         
         this.savePosition();

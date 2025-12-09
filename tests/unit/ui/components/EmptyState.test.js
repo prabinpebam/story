@@ -27,14 +27,11 @@ describe('EmptyState', () => {
             expect(emptyState.element.className).toBe('empty-state-row');
         });
 
-        it('should have flex display', () => {
+        it('should have CSS class for styling (moved from inline)', () => {
             emptyState = new EmptyState('Test');
-            expect(emptyState.element.style.display).toBe('flex');
-        });
-
-        it('should center items', () => {
-            emptyState = new EmptyState('Test');
-            expect(emptyState.element.style.alignItems).toBe('center');
+            // Styles are now in CSS class .empty-state-row
+            // The CSS provides: display: flex, align-items: center, padding, gap, color, font-size, user-select
+            expect(emptyState.element.classList.contains('empty-state-row')).toBe(true);
         });
 
         it('should have two children - slot and text', () => {
@@ -48,44 +45,26 @@ describe('EmptyState', () => {
             expect(textSpan.textContent).toBe('No effects');
         });
 
-        it('should create placeholder slot', () => {
+        it('should create placeholder slot with CSS class', () => {
             emptyState = new EmptyState('Test');
             const slot = emptyState.element.children[0];
-            expect(slot.style.width).toBe('16px');
-            expect(slot.style.height).toBe('16px');
-        });
-
-        it('should have dashed border on slot', () => {
-            emptyState = new EmptyState('Test');
-            const slot = emptyState.element.children[0];
-            expect(slot.style.border).toContain('dashed');
+            // Slot styles are now in CSS class .empty-state-slot
+            expect(slot.classList.contains('empty-state-slot')).toBe(true);
         });
     });
 
     describe('styling', () => {
-        it('should use design system color variable', () => {
+        it('should use CSS class for container styling', () => {
             emptyState = new EmptyState('Test');
-            expect(emptyState.element.style.color).toBe('var(--text-tertiary)');
+            // All container styles (color, font-size, user-select, gap, padding) are in CSS class
+            expect(emptyState.element.classList.contains('empty-state-row')).toBe(true);
         });
 
-        it('should have font size of 11px', () => {
+        it('should use CSS class for slot styling', () => {
             emptyState = new EmptyState('Test');
-            expect(emptyState.element.style.fontSize).toBe('11px');
-        });
-
-        it('should disable user selection', () => {
-            emptyState = new EmptyState('Test');
-            expect(emptyState.element.style.userSelect).toBe('none');
-        });
-
-        it('should have gap between elements', () => {
-            emptyState = new EmptyState('Test');
-            expect(emptyState.element.style.gap).toBe('8px');
-        });
-
-        it('should have padding', () => {
-            emptyState = new EmptyState('Test');
-            expect(emptyState.element.style.padding).toBe('8px 4px');
+            const slot = emptyState.element.children[0];
+            // All slot styles (width, height, border, etc.) are in CSS class
+            expect(slot.classList.contains('empty-state-slot')).toBe(true);
         });
     });
 

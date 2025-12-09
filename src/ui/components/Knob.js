@@ -16,20 +16,16 @@ export class Knob {
 
     create() {
         const container = document.createElement('div');
-        container.style.display = 'flex';
-        container.style.flexDirection = 'column';
-        container.style.alignItems = 'center';
-        container.style.width = '48px';
-        container.style.marginRight = '8px';
+        container.className = 'knob-container';
 
         // Knob Circle
         const size = 32;
         const canvas = document.createElement('canvas');
         canvas.width = size * 2; // Retina
         canvas.height = size * 2;
+        canvas.className = 'knob-canvas';
         canvas.style.width = `${size}px`;
         canvas.style.height = `${size}px`;
-        canvas.style.cursor = 'ns-resize';
         
         this.ctx = canvas.getContext('2d');
         this.canvas = canvas;
@@ -37,10 +33,7 @@ export class Knob {
         // Label
         const labelEl = document.createElement('div');
         labelEl.innerText = this.label;
-        labelEl.style.fontSize = '10px';
-        labelEl.style.color = 'var(--color-text-secondary)';
-        labelEl.style.marginTop = '4px';
-        labelEl.style.textAlign = 'center';
+        labelEl.className = 'knob-label';
 
         // Value Display (Optional, maybe tooltip?)
         // For now, just the knob

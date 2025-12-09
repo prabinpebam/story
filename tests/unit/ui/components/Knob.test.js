@@ -90,16 +90,16 @@ describe('Knob', () => {
             expect(labelDiv.innerText).toBe('Rotation');
         });
 
-        it('sets canvas cursor to ns-resize', () => {
+        it('sets canvas cursor via CSS class', () => {
             const knob = new Knob('Test', 50, 0, 100, vi.fn());
-            expect(knob.canvas.style.cursor).toBe('ns-resize');
+            // Cursor style is now in CSS class .knob-canvas
+            expect(knob.canvas.classList.contains('knob-canvas')).toBe(true);
         });
 
-        it('applies flexbox column layout', () => {
+        it('applies CSS class for container layout', () => {
             const knob = new Knob('Test', 50, 0, 100, vi.fn());
-            expect(knob.element.style.display).toBe('flex');
-            expect(knob.element.style.flexDirection).toBe('column');
-            expect(knob.element.style.alignItems).toBe('center');
+            // Layout styles (flex, flexDirection, alignItems) are now in CSS class
+            expect(knob.element.classList.contains('knob-container')).toBe(true);
         });
 
         it('initializes dragging state to false', () => {
