@@ -416,23 +416,29 @@ export class SlideSection {
             }
         });
 
-        // Update display: show theme name and badge
-        this.colorThemeName.textContent = themeName;
+        // Update display based on cascade state
+        if (!this.colorThemeName || !this.colorBadge) {
+            console.warn('SlideSection: Color theme elements not initialized');
+            return;
+        }
         
         if (isOverride) {
-            // Override: show user-chosen theme name, hide badge, show reset button
+            // Override: show user-chosen theme name, hide Inherited badge, show reset button
+            this.colorThemeName.textContent = themeName;
             this.colorBadge.textContent = '';
             this.colorBadge.className = 'theme-detail-badge';
             this.colorBadge.style.display = 'none';
             this.colorResetBtn.element.classList.remove('hidden');
         } else if (themeInfo?.isInherited) {
-            // Inherited: show theme name, show Inherited badge, hide reset button
+            // Inherited: hide theme name, show Inherited badge left-aligned, hide reset button
+            this.colorThemeName.textContent = '';
             this.colorBadge.textContent = 'Inherited';
             this.colorBadge.className = 'inherited-fill-badge';
             this.colorBadge.style.display = '';
             this.colorResetBtn.element.classList.add('hidden');
         } else {
-            // Master or no cascade: show theme name, no badge, hide reset button
+            // Master or no cascade: show theme name, hide badge, hide reset button
+            this.colorThemeName.textContent = themeName;
             this.colorBadge.textContent = '';
             this.colorBadge.className = 'theme-detail-badge';
             this.colorBadge.style.display = 'none';
@@ -498,15 +504,20 @@ export class SlideSection {
         this.bodyFontName.textContent = bodyFont;
         this.bodyFontPreview.style.fontFamily = bodyFont;
 
-        // Update badge: show only when inherited
+        // Update badge based on cascade state
+        if (!this.typoBadge) {
+            console.warn('SlideSection: Typography badge not initialized');
+            return;
+        }
+        
         if (isOverride) {
-            // Override: fonts show user-chosen values, hide badge, show reset button
+            // Override: hide badge, show reset button
             this.typoBadge.textContent = '';
             this.typoBadge.className = 'theme-detail-badge';
             this.typoBadge.style.display = 'none';
             this.typoResetBtn.element.classList.remove('hidden');
         } else {
-            // Inherited: show Inherited badge, hide reset button
+            // Inherited: show Inherited badge left-aligned, hide reset button
             this.typoBadge.textContent = 'Inherited';
             this.typoBadge.className = 'inherited-fill-badge';
             this.typoBadge.style.display = '';
