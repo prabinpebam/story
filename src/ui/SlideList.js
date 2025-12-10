@@ -244,28 +244,7 @@ export class SlideList {
     }
 
     renderSlideList(state) {
-        // Header / Title
-        const header = document.createElement('div');
-        header.className = 'slide-list-header';
-
-        const title = document.createElement('div');
-        title.className = 'section-title slide-list-title';
-        title.innerText = 'SLIDES';
-        
-        const addBtn = new Button({
-            icon: Icons.PLUS,
-            variant: 'text',
-            size: 'xs',
-            title: 'Add Slide',
-            onClick: () => store.dispatch('ADD_SLIDE')
-        });
-        addBtn.element.setAttribute('data-testid', 'add-slide-btn');
-
-        header.appendChild(title);
-        header.appendChild(addBtn.element);
-        this.container.appendChild(header);
-
-        // List
+        // List (no header - now handled by LeftPanel accordion)
         const list = document.createElement('div');
         list.className = 'slide-list';
 

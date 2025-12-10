@@ -160,7 +160,15 @@ export function handleAddSlide(draft, payload) {
         transition: "magic"
     };
     draft.slides[newSlideId] = newSlide;
-    draft.slideOrder.push(newSlideId);
+    
+    // Smart insertion: insert at specified index or append at end
+    const insertIndex = payload?.insertIndex;
+    if (insertIndex !== undefined && insertIndex !== -1 && insertIndex <= draft.slideOrder.length) {
+        draft.slideOrder.splice(insertIndex, 0, newSlideId);
+    } else {
+        draft.slideOrder.push(newSlideId);
+    }
+    
     draft.editor.activeSlideId = newSlideId;
 }
 

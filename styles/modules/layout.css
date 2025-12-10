@@ -120,6 +120,12 @@
     color: var(--color-text-secondary);
     letter-spacing: 0.5px;
     text-transform: uppercase;
+    flex: 1;
+}
+
+/* Button in accordion header */
+.accordion-header .btn {
+    flex-shrink: 0;
 }
 
 .accordion-content {

@@ -1,4 +1,6 @@
 import { store } from '../core/Store.js';
+import { Button } from './components/Button.js';
+import { Icons } from './Icons.js';
 
 /**
  * LeftPanel.js
@@ -104,6 +106,23 @@ export class LeftPanel {
         header.appendChild(chevron);
         header.appendChild(titleEl);
         
+        // Add button for slides section
+        let addButton = null;
+        if (id === 'slides') {
+            addButton = new Button({
+                icon: Icons.PLUS,
+                variant: 'text',
+                size: 'xs',
+                title: 'Add Slide',
+                onClick: (e) => {
+                    e.stopPropagation(); // Prevent header click (collapse)
+                    this.handleAddSlide();
+                }
+            });
+            addButton.element.setAttribute('data-testid', 'add-slide-btn');
+            header.appendChild(addButton.element);
+        }
+        
         // Content
         const content = document.createElement('div');
         content.className = 'accordion-content';
@@ -111,10 +130,15 @@ export class LeftPanel {
         wrapper.appendChild(header);
         wrapper.appendChild(content);
         
-        // Click handler
-        header.addEventListener('click', () => this.toggleSection(id));
+        // Click handler for header (not button)
+        header.addEventListener('click', (e) => {
+            // Only toggle if not clicking the button
+            if (!e.target.closest('.btn')) {
+                this.toggleSection(id);
+            }
+        });
         
-        return { wrapper, header, content, chevron, titleEl };
+        return { wrapper, header, content, chevron, titleEl, addButton };
     }
     
     toggleSection(sectionId) {
@@ -211,5 +235,47 @@ export class LeftPanel {
         const state = store.getState();
         const title = state.editor.mode === 'master' ? 'MASTERS' : 'SLIDES';
         this.slidesSection.titleEl.textContent = title;
+    }
+    
+    /**
+     * Handle add slide button click
+     * Smart insertion: adds after current/selected slide, or at end if none selected
+     * If section is collapsed, expands it first
+     */
+    handleAddSlide() {
+        const state = store.getState();
+        
+        // If slides section is collapsed, expand it first
+        if (!this.slidesExpanded) {
+            this.slidesExpanded = true;
+            this.slidesSection.wrapper.classList.add('expanded');
+            this.slidesSection.wrapper.classList.remove('collapsed');
+            this.slidesSection.chevron.className = 'fa-solid fa-chevron-down accordion-chevron';
+            this.updateLayout();
+            this.saveState();
+        }
+        
+        // Determine insertion index
+        let insertIndex = -1; // -1 means append at end
+        
+        if (state.editor.activeSlideId) {
+            // Insert after active slide
+            const activeIndex = state.slideOrder.indexOf(state.editor.activeSlideId);
+            if (activeIndex !== -1) {
+                insertIndex = activeIndex + 1;
+            }
+        } else if (state.editor.selectedSlideIds && state.editor.selectedSlideIds.length > 0) {
+            // Insert after last selected slide
+            const lastSelectedId = state.editor.selectedSlideIds[state.editor.selectedSlideIds.length - 1];
+            const selectedIndex = state.slideOrder.indexOf(lastSelectedId);
+            if (selectedIndex !== -1) {
+                insertIndex = selectedIndex + 1;
+            }
+        }
+        
+        // Dispatch ADD_SLIDE with insertion index
+        store.dispatch('ADD_SLIDE', { insertIndex });
+        
+        // The scroll will happen automatically via SlideList.scrollToActiveSlide()
     }
 }
