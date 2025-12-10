@@ -358,7 +358,6 @@ export class SlideSection {
     }
 
     updateThemeDisplay() {
-        console.log('SlideSection: updateThemeDisplay called');
         const state = store.getState();
         const currentObject = this.getActiveContainer(state);
         if (!currentObject) {
@@ -368,7 +367,19 @@ export class SlideSection {
 
         // Get theme master for inherited values
         const themeMaster = Object.values(state.slideMasterPresets || {}).find(m => m.type === 'slideMasterPreset');
-        if (!themeMaster || !themeMaster.themeSettings) return;
+        if (!themeMaster) {
+            return;
+        }
+
+        // Support both old (embedded themeSettings) and new (reference) architecture
+        // New architecture: master has colorThemeId/typographyStyleId references
+        // Old architecture: master has themeSettings.lumaTheme/fonts embedded
+        const hasNewArchitecture = themeMaster.colorThemeId || themeMaster.typographyStyleId;
+        const hasOldArchitecture = themeMaster.themeSettings;
+        
+        if (!hasNewArchitecture && !hasOldArchitecture) {
+            return;
+        }
 
         // Use cascade-aware StyleResolver to get theme info
         const mode = state.editor.mode;
@@ -376,7 +387,8 @@ export class SlideSection {
         
         if (mode === 'master') {
             // For masters, we show the master's own theme (no cascade)
-            const lumaTheme = themeMaster.themeSettings.lumaTheme || null;
+            // Support both old (embedded) and new (reference) architecture
+            const lumaTheme = themeMaster.themeSettings?.lumaTheme || null;
             themeInfo = {
                 lumaTheme,
                 source: 'master',
@@ -393,7 +405,18 @@ export class SlideSection {
         const slideId = mode === 'master' ? null : state.editor.activeSlideId;
         ThemeDiag.logPropertyInspectorDisplay(slideId, themeInfo, mode);
 
-        const themeFonts = themeMaster.themeSettings.fonts || {};
+        // Get fonts from themeSettings (old arch) or typographyStyleId (new arch)
+        let themeFonts = {};
+        if (themeMaster.themeSettings?.fonts) {
+            // Old architecture: embedded fonts
+            themeFonts = themeMaster.themeSettings.fonts;
+        } else if (themeMaster.typographyStyleId) {
+            // New architecture: reference to typography preset
+            const typoPreset = state.typographyStylePresets?.[themeMaster.typographyStyleId];
+            if (typoPreset?.fonts) {
+                themeFonts = typoPreset.fonts;
+            }
+        }
 
         // Check if slide has style assignment override (cascade-aware)
         const hasColorOverride = mode !== 'master' && 
@@ -431,28 +454,22 @@ export class SlideSection {
 
         // Update display based on cascade state
         if (!this.colorThemeName || !this.colorBadge) {
-            console.warn('SlideSection: Color theme elements not initialized');
             return;
         }
         
-        console.log('SlideSection: Updating colors display', { themeName, isOverride, isInherited: themeInfo?.isInherited });
-        
         if (isOverride) {
             // Override: show user-chosen theme name, hide badge, show reset button
-            console.log('SlideSection: Showing override theme name:', themeName);
             this.colorThemeName.textContent = themeName;
             this.colorThemeName.classList.remove('hidden');
             this.colorBadge.classList.add('hidden');
             this.colorResetBtn.element.classList.remove('hidden');
         } else if (themeInfo?.isInherited) {
             // Inherited: show badge, hide theme name, hide reset button
-            console.log('SlideSection: Showing inherited badge');
             this.colorThemeName.classList.add('hidden');
             this.colorBadge.classList.remove('hidden');
             this.colorResetBtn.element.classList.add('hidden');
         } else {
             // Master or no cascade: show theme name, hide badge, hide reset button
-            console.log('SlideSection: Showing master theme name:', themeName);
             this.colorThemeName.textContent = themeName;
             this.colorThemeName.classList.remove('hidden');
             this.colorBadge.classList.add('hidden');
@@ -587,15 +604,12 @@ export class SlideSection {
     }
 
     update(selection) {
-        console.log('SlideSection: update() called', { selection, timestamp: Date.now() });
         // This is shown when NO selection exists (or explicit slide selection)
         if (selection && selection.length > 0) {
-            console.log('SlideSection: Hiding section (selection exists)');
             this.element.classList.add('hidden');
             return;
         }
         
-        console.log('SlideSection: Showing section (no selection)');
         this.element.classList.remove('hidden');
         
         const state = store.getState();
