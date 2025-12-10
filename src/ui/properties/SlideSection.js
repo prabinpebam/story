@@ -132,9 +132,12 @@ export class SlideSection {
     }
 
     createThemeSection() {
+        console.log('SlideSection: Creating theme section');
+        
         // Colors Section
         this.colorsSection = new Section({ title: 'Colors' });
         this.colorsContent = this.createColorsSectionContent();
+        console.log('SlideSection: Colors content created:', this.colorsContent);
         this.colorsSection.appendChild(this.colorsContent);
         this.element.appendChild(this.colorsSection.element);
 
@@ -148,6 +151,8 @@ export class SlideSection {
     createColorsSectionContent() {
         const container = document.createElement('div');
         container.className = 'theme-colors-content';
+        
+        console.log('SlideSection: Creating colors section content');
 
         // Current theme name/preset row (for display info)
         const headerRow = document.createElement('div');
