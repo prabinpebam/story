@@ -79,18 +79,37 @@ class ThumbnailRendererClass {
         `;
         
         // Create scale wrapper (transforms full-size slide to thumbnail)
+        // Scale is calculated to fill container width: containerWidth / FULL_WIDTH
         const scaleWrapper = document.createElement('div');
         scaleWrapper.className = 'thumbnail-scale-wrapper';
         scaleWrapper.style.cssText = `
             width: ${FULL_WIDTH}px;
             height: ${FULL_HEIGHT}px;
-            transform: scale(${SCALE_FACTOR});
             transform-origin: top left;
             position: absolute;
             top: 0;
             left: 0;
             pointer-events: none;
         `;
+        
+        // Set up ResizeObserver to scale based on container width
+        const updateScale = () => {
+            const containerWidth = container.offsetWidth;
+            if (containerWidth > 0) {
+                const scale = containerWidth / FULL_WIDTH;
+                scaleWrapper.style.transform = `scale(${scale})`;
+            }
+        };
+        
+        // Initial scale
+        requestAnimationFrame(updateScale);
+        
+        // Update scale on resize
+        const resizeObserver = new ResizeObserver(updateScale);
+        resizeObserver.observe(container);
+        
+        // Store observer for cleanup
+        container._resizeObserver = resizeObserver;
         
         // Check if we already have a SlideView for this slide
         let instance = this.instances.get(slideId);
@@ -160,6 +179,13 @@ class ThumbnailRendererClass {
         const instance = this.instances.get(slideId);
         if (instance) {
             instance.view.unmount();
+            
+            // Clean up ResizeObserver if exists
+            if (instance.container._resizeObserver) {
+                instance.container._resizeObserver.disconnect();
+                delete instance.container._resizeObserver;
+            }
+            
             this.instances.delete(slideId);
         }
         
