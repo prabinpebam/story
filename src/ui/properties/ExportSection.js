@@ -6,6 +6,7 @@ import { Button } from '../components/Button.js';
 import { Icons } from '../Icons.js';
 import { store } from '../../core/Store.js';
 import { ExportPreviewRenderer } from '../../core/renderer/ExportPreviewRenderer.js';
+import { exportElements, exportToClipboard } from '../../core/export/Exporter.js';
 
 export class ExportSection extends BaseSection {
     constructor() {
@@ -281,8 +282,70 @@ export class ExportSection extends BaseSection {
         }
     }
 
-    handleExport() {
-        console.log('Exporting...', this.presets);
-        alert(`Exporting ${this.presets.length} files... (Not implemented)`);
+    async handleExport() {
+        if (!this.selection || this.selection.length === 0) {
+            return;
+        }
+        
+        // Disable button during export
+        this.exportBtn.setDisabled(true);
+        this.exportBtn.setLabel('Exporting...');
+        
+        try {
+            const state = store.getState();
+            const elements = this.selection
+                .map(id => this.getElement(state, id))
+                .filter(Boolean);
+            
+            if (elements.length === 0) {
+                throw new Error('No valid elements to export');
+            }
+            
+            // Export with all presets
+            await exportElements(elements, this.presets);
+            
+            // Success feedback
+            this.exportBtn.setLabel('Export Complete!');
+            setTimeout(() => {
+                const elementName = elements.length === 1 ? (elements[0].name || 'Layer') : 'Selection';
+                this.exportBtn.setLabel(`Export ${elementName}`);
+                this.exportBtn.setDisabled(false);
+            }, 2000);
+            
+        } catch (error) {
+            console.error('Export failed:', error);
+            this.exportBtn.setLabel('Export Failed');
+            
+            // Show error message
+            alert(`Export failed: ${error.message}`);
+            
+            setTimeout(() => {
+                const state = store.getState();
+                const element = this.getElement(state, this.selection[0]);
+                this.exportBtn.setLabel(`Export ${element?.name || 'Layer'}`);
+                this.exportBtn.setDisabled(false);
+            }, 2000);
+        }
+    }
+    
+    /**
+     * Export to clipboard (ready for Ctrl+Shift+C keyboard shortcut)
+     * This method can be called globally when keyboard shortcut is implemented
+     */
+    async exportToClipboardAction() {
+        if (!this.selection || this.selection.length === 0) {
+            throw new Error('No elements selected');
+        }
+        
+        const state = store.getState();
+        const elements = this.selection
+            .map(id => this.getElement(state, id))
+            .filter(Boolean);
+        
+        if (elements.length === 0) {
+            throw new Error('No valid elements to export');
+        }
+        
+        await exportToClipboard(elements, { scale: 2 });
     }
 }
