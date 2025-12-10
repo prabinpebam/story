@@ -53,14 +53,21 @@ This plan tracks the implementation of Property Inspector v2.0 features based on
   - Accent border + link icon for theme-linked colors
   - CSS: `styles/modules/theme-linked.css`
 
+### ✅ Recently Completed (December 10, 2025)
+
+#### Phase 0: PropertyRow Integration
+- ✅ **PropertyRow Integration** - COMPLETED
+  - FillSection now uses PropertyRow wrapper
+  - StrokeSection now uses PropertyRow wrapper
+  - EffectsSection now uses PropertyRow wrapper
+  - All drag/visibility/delete controls unified
+  - Code reduction: -385 lines of duplicate code
+  - Tests: 288 tests passing (35 PropertyRow + 63 Fill + 21 Stroke + 40 Effects + others)
+  - Commit: `feat: integrate PropertyRow into Fill, Stroke, and Effects sections`
+
 ### 🚧 Partially Complete
 
 #### Phase 0: Foundation Gaps
-- ⚠️ **PropertyRow Integration** - Component exists but not yet used
-  - FillSection still uses custom `createFillRow()`
-  - StrokeSection still uses custom row creation
-  - EffectsSection still uses custom row creation
-  - **Action needed**: Refactor sections to use PropertyRow component
 
 - ⚠️ **Design System Audit** - Needs verification
   - Some sections may still have hardcoded colors
@@ -129,6 +136,34 @@ Establish solid foundation before adding new features. Fix technical debt that w
 
 **Risk:** Medium - Touches multiple files with complex drag-and-drop logic
 **Mitigation:** One section at a time, full test suite after each
+
+### 0.2 PropertyRow Component ✅ COMPLETE (Dec 10, 2025)
+
+**Status:** Fully implemented and integrated across Fill, Stroke, and Effects sections.
+
+**Completed:**
+- ✅ Created `src/ui/components/PropertyRow.js`
+- ✅ Tests: `tests/unit/ui/components/PropertyRow.test.js` (35 tests passing)
+- ✅ Features:
+  - Drag-and-drop reordering with visual feedback
+  - Visibility toggle button
+  - Delete button
+  - Content slot for section-specific UI
+  - Active/inactive states
+- ✅ Integrated into:
+  - FillSection ✅ (63 tests passing)
+  - StrokeSection ✅ (21 tests passing)
+  - EffectsSection ✅ (40 tests passing)
+- ✅ Code reduction: -385 lines of duplicate code
+- ✅ CSS updated for `.fill-content`, `.stroke-content`, `.pi-effect-content` wrappers
+
+**Files Modified:**
+- `src/ui/components/PropertyRow.js` - Component implementation
+- `src/ui/properties/FillSection.js` - Integrated PropertyRow
+- `src/ui/properties/StrokeSection.js` - Integrated PropertyRow
+- `src/ui/properties/EffectsSection.js` - Integrated PropertyRow
+- `styles/modules/property-inspector.css` - Updated styles
+- `tests/unit/ui/properties/FillSection.test.js` - Updated tests
 
 ### 0.3 Section Base Class ✅ COMPLETE
 
