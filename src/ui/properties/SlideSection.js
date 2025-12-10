@@ -153,16 +153,18 @@ export class SlideSection {
         const headerRow = document.createElement('div');
         headerRow.className = 'theme-detail-header';
         
-        this.colorThemeName = document.createElement('span');
-        this.colorThemeName.className = 'theme-detail-name';
-        this.colorThemeName.textContent = ''; // Will be set by updateColorsSectionDisplay
-        headerRow.appendChild(this.colorThemeName);
-
-        // Inheritance badge (cascade-aware)
+        // Inheritance badge (cascade-aware) - FIRST for left alignment
         this.colorBadge = document.createElement('span');
         this.colorBadge.className = 'inherited-fill-badge';
         this.colorBadge.textContent = 'Inherited';
         headerRow.appendChild(this.colorBadge);
+        
+        // Theme name (shown when override)
+        this.colorThemeName = document.createElement('span');
+        this.colorThemeName.className = 'theme-detail-name';
+        this.colorThemeName.textContent = '';
+        this.colorThemeName.style.display = 'none'; // Hidden initially
+        headerRow.appendChild(this.colorThemeName);
 
         // Edit button
         const colorEditBtn = new Button({
@@ -425,23 +427,21 @@ export class SlideSection {
         if (isOverride) {
             // Override: show user-chosen theme name, hide Inherited badge, show reset button
             this.colorThemeName.textContent = themeName;
-            this.colorBadge.textContent = '';
-            this.colorBadge.className = 'theme-detail-badge';
-            this.colorBadge.style.display = 'none';
+            this.colorThemeName.style.display = ''; // Show theme name
+            this.colorBadge.style.display = 'none'; // Hide badge
             this.colorResetBtn.element.classList.remove('hidden');
         } else if (themeInfo?.isInherited) {
-            // Inherited: hide theme name, show Inherited badge left-aligned, hide reset button
-            this.colorThemeName.textContent = '';
+            // Inherited: show Inherited badge left-aligned, hide theme name, hide reset button
+            this.colorThemeName.style.display = 'none'; // Hide theme name
             this.colorBadge.textContent = 'Inherited';
             this.colorBadge.className = 'inherited-fill-badge';
-            this.colorBadge.style.display = '';
+            this.colorBadge.style.display = ''; // Show badge
             this.colorResetBtn.element.classList.add('hidden');
         } else {
             // Master or no cascade: show theme name, hide badge, hide reset button
             this.colorThemeName.textContent = themeName;
-            this.colorBadge.textContent = '';
-            this.colorBadge.className = 'theme-detail-badge';
-            this.colorBadge.style.display = 'none';
+            this.colorThemeName.style.display = ''; // Show theme name
+            this.colorBadge.style.display = 'none'; // Hide badge
             this.colorResetBtn.element.classList.add('hidden');
         }
 
