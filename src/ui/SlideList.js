@@ -342,7 +342,13 @@ export class SlideList {
 
                 item.addEventListener('dragover', (e) => {
                     e.preventDefault(); // Necessary to allow dropping
+                    e.stopPropagation(); // Prevent event bubbling
                     e.dataTransfer.dropEffect = 'move';
+                    
+                    // Don't show indicator on the dragged item itself
+                    if (item.style.opacity === '0.5') {
+                        return;
+                    }
                     
                     // Clear all indicators first
                     this.clearDropIndicators();
@@ -358,8 +364,15 @@ export class SlideList {
                 });
 
                 item.addEventListener('dragleave', (e) => {
-                    // Only clear if actually leaving (not entering child)
-                    if (!item.contains(e.relatedTarget)) {
+                    e.stopPropagation();
+                    // Only clear if we're actually leaving this element
+                    // Check if the related target (where we're entering) is outside this item
+                    const rect = item.getBoundingClientRect();
+                    const x = e.clientX;
+                    const y = e.clientY;
+                    
+                    // If mouse is outside the bounding box, clear the indicator
+                    if (x < rect.left || x > rect.right || y < rect.top || y > rect.bottom) {
                         item.classList.remove('drop-before', 'drop-after');
                     }
                 });
@@ -370,135 +383,32 @@ export class SlideList {
                     const toIndex = index;
                     
                     if (fromIndex !== toIndex) {
-                        // Determine if we dropped above or below to adjust index
-                        // However, simple swap or move logic:
-                        // If we drop on an item, we probably want to insert before or after it.
-                        // For simplicity, let's use the visual indicator logic:
+                        // Determine target position based on drop location
                         const rect = item.getBoundingClientRect();
                         const midpoint = rect.top + rect.height / 2;
-                        let finalIndex = toIndex;
+                        let targetIndex;
                         
-                        // If dropped below the midpoint, insert after (index + 1)
-                        // But we need to be careful about the array mutation logic in Store
-                        // Let's just pass the target index and let Store handle it?
-                        // Actually, Store's REORDER_SLIDES expects { fromIndex, toIndex }
-                        // where it removes from fromIndex and inserts at toIndex.
-                        
-                        // If dragging down: 0 -> 2. Remove 0. Array shifts. Insert at 2.
-                        // If dragging up: 2 -> 0. Remove 2. Insert at 0.
-                        
-                        // Refined logic based on visual indicator:
-                        if (e.clientY > midpoint) {
-                            // Insert after this element
-                            // If moving down, the target index might need adjustment because the element is removed first?
-                            // Let's keep it simple: The store splice logic is:
-                            // const [moved] = list.splice(from, 1);
-                            // list.splice(to, 0, moved);
-                            
-                            // If I drop *after* index 2. I want it to be at index 3 (conceptually).
-                            // But if I remove index 0, index 2 becomes index 1.
-                            // It's safer to calculate the desired *final* index.
-                            
-                            // Let's just use the index of the element we dropped ON.
-                            // If dropped below, we target index + 1.
-                            // If dropped above, we target index.
-                            
-                            // However, if fromIndex < toIndex (moving down), and we drop above toIndex,
-                            // the removal of fromIndex shifts toIndex down by 1.
-                            
-                            // Let's stick to:
-                            // Store logic: remove at from, insert at to.
-                            
-                            if (fromIndex < toIndex) {
-                                // Moving down
-                                // If dropped below (insert after), we want it at toIndex.
-                                // If dropped above (insert before), we want it at toIndex - 1? No.
-                                
-                                // Let's simplify.
-                                // If dropped on top half -> insert at `index`
-                                // If dropped on bottom half -> insert at `index + 1`
-                                
-                                // Adjust for removal shift if necessary?
-                                // If I move 0 to 2 (drop on 2's bottom).
-                                // Remove 0. [1, 2]. Insert at 2+1? No, 2 is now at index 1.
-                                // This is getting complicated.
-                                
-                                // Let's just use the Store's logic which is:
-                                // splice(from, 1); splice(to, 0, item);
-                                // If I want to move item 0 to position 2.
-                                // splice(0, 1) -> list is [1, 2, 3]
-                                // splice(2, 0, 0) -> list is [1, 2, 0, 3]
-                                
-                                // So if I drop on item 2 (index 2) at the bottom:
-                                // I want it to be *after* item 2.
-                                // In the original array, that position is index 3.
-                                // But since 0 is removed, item 2 shifts to 1.
-                                // So I want to insert at index 2.
-                                
-                                // Let's just pass the raw target index based on "insert before" logic.
-                                // If bottom half, target = index + 1.
-                                // If top half, target = index.
-                                
-                                // Store handles the splice.
-                                // If from < to: we need to decrement to because removal shifted indices?
-                                // Store:
-                                // const [movedId] = this.state.slideOrder.splice(fromIndex, 1);
-                                // this.state.slideOrder.splice(toIndex, 0, movedId);
-                                
-                                // If I have [A, B, C, D]
-                                // Move A (0) to C (2).
-                                // Drop on C bottom. Target should be after C.
-                                // Visual: [B, C, A, D]
-                                // Store op:
-                                // splice(0, 1) -> [B, C, D]
-                                // splice(?, 0, A) -> need index 2 to get [B, C, A, D]
-                                
-                                // So if target is "after C" (index 2 + 1 = 3 in original).
-                                // We pass 3?
-                                // splice(0, 1) -> [B, C, D]
-                                // splice(3, 0, A) -> [B, C, D, A] -> Wrong.
-                                // We need to pass 2.
-                                // So if from < to, we decrement target?
-                                
-                                // Let's try to just implement "Insert Before" logic always.
-                                // If dropped on bottom half of item i, it's equivalent to dropping on top half of item i+1.
-                                
-                                if (e.clientY > midpoint) {
-                                    finalIndex = index + 1;
-                                } else {
-                                    finalIndex = index;
-                                }
-                                
-                                // Correction for moving down
-                                if (fromIndex < finalIndex) {
-                                    finalIndex--;
-                                }
-                            } else {
-                                // Moving up (from > to)
-                                // [A, B, C, D]
-                                // Move C (2) to A (0).
-                                // Drop on A top. Target = 0.
-                                // Store: splice(2, 1) -> [A, B, D]
-                                // splice(0, 0, C) -> [C, A, B, D]. Correct.
-                                
-                                // Drop on A bottom. Target = 1.
-                                // Store: splice(2, 1) -> [A, B, D]
-                                // splice(1, 0, C) -> [A, C, B, D]. Correct.
-                                
-                                if (e.clientY > midpoint) {
-                                    finalIndex = index + 1;
-                                } else {
-                                    finalIndex = index;
-                                }
-                            }
+                        // Calculate insert position
+                        // - Top half: insert before this item
+                        // - Bottom half: insert after this item
+                        if (e.clientY < midpoint) {
+                            targetIndex = toIndex;
+                        } else {
+                            targetIndex = toIndex + 1;
                         }
                         
-                        store.dispatch('REORDER_SLIDES', { fromIndex, toIndex: finalIndex });
+                        // Adjust for splice behavior when moving down
+                        // Store does: splice(from, 1) then splice(to, 0, item)
+                        // When moving down, removal shifts indices, so decrement target
+                        if (fromIndex < targetIndex) {
+                            targetIndex--;
+                        }
+                        
+                        store.dispatch('REORDER_SLIDES', { fromIndex, toIndex: targetIndex });
                     }
                     
-                    // Cleanup
-                    item.style.borderTop = '';
-                    item.style.borderBottom = '';
+                    // Clear drop indicators
+                    this.clearDropIndicators();
                 });
 
                 list.appendChild(item);

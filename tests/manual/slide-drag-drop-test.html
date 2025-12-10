@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Slide Drag & Drop Indicator Test</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #1a1a1a;
+            color: #fff;
+            padding: 40px;
+        }
+        
+        h1 {
+            margin-bottom: 20px;
+            font-size: 24px;
+        }
+        
+        .instructions {
+            background: #2a2a2a;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 30px;
+        }
+        
+        .instructions h2 {
+            font-size: 16px;
+            margin-bottom: 10px;
+            color: #18A0FB;
+        }
+        
+        .instructions ul {
+            list-style: none;
+            padding-left: 0;
+        }
+        
+        .instructions li {
+            margin-bottom: 8px;
+            padding-left: 20px;
+            position: relative;
+        }
+        
+        .instructions li::before {
+            content: '→';
+            position: absolute;
+            left: 0;
+            color: #18A0FB;
+        }
+        
+        .slide-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            max-width: 300px;
+        }
+        
+        .slide-thumbnail {
+            position: relative;
+            cursor: pointer;
+            border-radius: 8px;
+            background: #2a2a2a;
+            border: 1px solid #404040;
+            transition: box-shadow 0.15s ease, border-color 0.15s ease, background-color 0.15s ease;
+            overflow: hidden;
+            padding: 8px;
+        }
+        
+        .slide-thumbnail:hover {
+            border-color: #595959;
+            background: #333;
+        }
+        
+        .slide-thumbnail.active {
+            background: rgba(24, 160, 251, 0.1);
+            box-shadow: 0 0 0 1px #18A0FB;
+        }
+        
+        .slide-thumbnail.selected {
+            background: rgba(24, 160, 251, 0.1);
+            box-shadow: 0 0 0 2px #18A0FB;
+        }
+        
+        .slide-thumbnail.dragging {
+            opacity: 0.5;
+        }
+        
+        /* Container for thumbnail content */
+        .slide-thumbnail > * {
+            position: relative;
+            z-index: 1;
+        }
+        
+        /* Drop indicator for drag and drop - blue line between slides */
+        .slide-thumbnail.drop-before::before,
+        .slide-thumbnail.drop-after::after {
+            content: '';
+            position: absolute;
+            left: -4px;
+            right: -4px;
+            height: 3px;
+            background: #18A0FB;
+            border-radius: 2px;
+            box-shadow: 0 0 6px rgba(24, 160, 251, 0.6);
+            z-index: 1000;
+            pointer-events: none;
+        }
+        
+        .slide-thumbnail.drop-before::before {
+            top: -5px;
+        }
+        
+        .slide-thumbnail.drop-after::after {
+            bottom: -5px;
+        }
+        
+        .slide-content {
+            width: 100%;
+            aspect-ratio: 16/9;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 32px;
+            font-weight: bold;
+        }
+        
+        .slide-number {
+            position: absolute;
+            top: 12px;
+            left: 12px;
+            font-family: 'Courier New', monospace;
+            font-size: 18px;
+            font-weight: 500;
+            color: rgba(255, 255, 255, 0.8);
+            background: rgba(0, 0, 0, 0.3);
+            padding: 2px 6px;
+            border-radius: 4px;
+            line-height: 1;
+            z-index: 2;
+        }
+        
+        .status {
+            margin-top: 30px;
+            background: #2a2a2a;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+        }
+        
+        .status-item {
+            margin-bottom: 5px;
+        }
+        
+        .status-label {
+            color: #18A0FB;
+            display: inline-block;
+            width: 150px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🎯 Slide Drag & Drop Indicator Test</h1>
+    
+    <div class="instructions">
+        <h2>Test Instructions:</h2>
+        <ul>
+            <li>Drag any slide thumbnail</li>
+            <li>Hover over other slides while dragging</li>
+            <li>A blue line should appear indicating drop position</li>
+            <li>Above midpoint = line on top (drop before)</li>
+            <li>Below midpoint = line on bottom (drop after)</li>
+            <li>Drop to reorder slides</li>
+        </ul>
+    </div>
+    
+    <div class="slide-list" id="slide-list">
+        <!-- Slides will be generated by JavaScript -->
+    </div>
+    
+    <div class="status" id="status">
+        <div class="status-item"><span class="status-label">Drag State:</span><span id="drag-state">Not dragging</span></div>
+        <div class="status-item"><span class="status-label">Drop Indicator:</span><span id="drop-indicator">None</span></div>
+        <div class="status-item"><span class="status-label">Hover Position:</span><span id="hover-position">-</span></div>
+    </div>
+    
+    <script>
+        const slideList = document.getElementById('slide-list');
+        const dragStateEl = document.getElementById('drag-state');
+        const dropIndicatorEl = document.getElementById('drop-indicator');
+        const hoverPositionEl = document.getElementById('hover-position');
+        
+        // Generate 5 test slides
+        for (let i = 0; i < 5; i++) {
+            const slide = document.createElement('div');
+            slide.className = 'slide-thumbnail';
+            if (i === 1) slide.classList.add('active'); // Second slide is active
+            slide.setAttribute('data-index', i);
+            slide.setAttribute('draggable', 'true');
+            
+            slide.innerHTML = `
+                <span class="slide-number">${i + 1}</span>
+                <div class="slide-content">${i + 1}</div>
+            `;
+            
+            slideList.appendChild(slide);
+        }
+        
+        let draggedIndex = null;
+        
+        // Drag event handlers
+        slideList.addEventListener('dragstart', (e) => {
+            const item = e.target.closest('.slide-thumbnail');
+            if (!item) return;
+            
+            draggedIndex = parseInt(item.dataset.index);
+            item.classList.add('dragging');
+            e.dataTransfer.effectAllowed = 'move';
+            e.dataTransfer.setData('text/plain', draggedIndex);
+            
+            dragStateEl.textContent = `Dragging slide ${draggedIndex + 1}`;
+            dragStateEl.style.color = '#18A0FB';
+        });
+        
+        slideList.addEventListener('dragend', (e) => {
+            const item = e.target.closest('.slide-thumbnail');
+            if (!item) return;
+            
+            item.classList.remove('dragging');
+            clearAllDropIndicators();
+            
+            dragStateEl.textContent = 'Not dragging';
+            dragStateEl.style.color = '';
+            dropIndicatorEl.textContent = 'None';
+            hoverPositionEl.textContent = '-';
+        });
+        
+        slideList.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            const item = e.target.closest('.slide-thumbnail');
+            if (!item || item.classList.contains('dragging')) return;
+            
+            e.dataTransfer.dropEffect = 'move';
+            
+            // Clear all indicators first
+            clearAllDropIndicators();
+            
+            // Calculate position
+            const rect = item.getBoundingClientRect();
+            const midpoint = rect.top + rect.height / 2;
+            const mouseY = e.clientY;
+            const isAbove = mouseY < midpoint;
+            
+            // Add appropriate class
+            if (isAbove) {
+                item.classList.add('drop-before');
+                dropIndicatorEl.textContent = `Before slide ${parseInt(item.dataset.index) + 1}`;
+                hoverPositionEl.textContent = 'Above midpoint';
+            } else {
+                item.classList.add('drop-after');
+                dropIndicatorEl.textContent = `After slide ${parseInt(item.dataset.index) + 1}`;
+                hoverPositionEl.textContent = 'Below midpoint';
+            }
+            
+            dropIndicatorEl.style.color = '#18A0FB';
+            hoverPositionEl.style.color = '#18A0FB';
+        });
+        
+        slideList.addEventListener('dragleave', (e) => {
+            const item = e.target.closest('.slide-thumbnail');
+            if (!item) return;
+            
+            // Only clear if actually leaving (not entering child)
+            if (!item.contains(e.relatedTarget)) {
+                item.classList.remove('drop-before', 'drop-after');
+            }
+        });
+        
+        slideList.addEventListener('drop', (e) => {
+            e.preventDefault();
+            const item = e.target.closest('.slide-thumbnail');
+            if (!item) return;
+            
+            const toIndex = parseInt(item.dataset.index);
+            const fromIndex = draggedIndex;
+            
+            if (fromIndex !== toIndex) {
+                // Determine drop position
+                const rect = item.getBoundingClientRect();
+                const midpoint = rect.top + rect.height / 2;
+                const isAbove = e.clientY < midpoint;
+                
+                // Reorder slides
+                const slides = Array.from(slideList.children);
+                const draggedSlide = slides[fromIndex];
+                
+                slides.splice(fromIndex, 1);
+                let insertIndex = toIndex;
+                if (!isAbove) insertIndex++;
+                if (fromIndex < toIndex && isAbove) insertIndex--;
+                
+                slides.splice(insertIndex, 0, draggedSlide);
+                
+                // Re-render
+                slideList.innerHTML = '';
+                slides.forEach((slide, idx) => {
+                    slide.dataset.index = idx;
+                    slide.querySelector('.slide-number').textContent = idx + 1;
+                    slide.querySelector('.slide-content').textContent = idx + 1;
+                    slideList.appendChild(slide);
+                });
+            }
+            
+            clearAllDropIndicators();
+        });
+        
+        function clearAllDropIndicators() {
+            document.querySelectorAll('.slide-thumbnail').forEach(item => {
+                item.classList.remove('drop-before', 'drop-after');
+            });
+        }
+    </script>
+</body>
+</html>
