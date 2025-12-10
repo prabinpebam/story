@@ -13,6 +13,45 @@ A fast, responsive, multi-column keyboard shortcuts panel optimized for quick ac
 
 ---
 
+## Design System Compliance
+
+**✅ Strict adherence to Story design principles:**
+
+### Global Design System Usage
+- **All CSS variables**: No hardcoded colors, spacing, or typography
+- **Light & Dark mode**: Uses semantic color tokens that adapt to theme
+- **Interaction color philosophy**: All interactions use accent color
+  - Hover: `--color-accent-subtle` (15% opacity)
+  - Active: `--color-accent-muted` (25% opacity)
+  - Selected: `--color-accent` (100%)
+- **Consistent spacing**: 4px base grid via `--spacing-*` tokens
+- **Typography scale**: Uses `--font-size-*` and `--font-weight-*` tokens
+
+### Theme Support
+This component is **theme-ready**. When accent color changes from blue → purple:
+- All hover states → purple
+- All active states → purple
+- Tab selection → purple
+- Close button → purple
+- Search clear button → purple
+- No hardcoded colors remain
+
+### Missing Design Tokens
+The following tokens should be added to `variables.css` for complete support:
+```css
+--spacing-3-5: 14px;  /* For tab padding (6px-14px) */
+--spacing-7: 28px;    /* For column gap */
+```
+
+### Reusable Components
+This overlay uses the **modal pattern** that should be consistent with:
+- Alert modals (backdrop, close button, header)
+- Context menus (hover states, interaction colors)
+- Dropdowns (search input, list items)
+- Panels (surface hierarchy, borders)
+
+---
+
 ## 1. Design Principles
 
 1. **Fast Access** - Opens instantly (<100ms), autofocus search
@@ -98,10 +137,10 @@ A fast, responsive, multi-column keyboard shortcuts panel optimized for quick ac
 - Width: 1200px (desktop), scales down responsively
 - Max height: 85vh
 - Columns: 3 (desktop), 2 (tablet), 1 (mobile)
-- Column gap: 24px
-- Padding: 24px
-- Border radius: 16px
-- Backdrop: rgba(0, 0, 0, 0.6) with 8px blur
+- Column gap: `var(--spacing-6)` (24px)
+- Padding: `var(--spacing-6)` (24px)
+- Border radius: `var(--radius-2xl)` (16px)
+- Backdrop: `var(--color-backdrop)` with 8px blur
 
 ### 2.2 Tablet Layout (2 Columns)
 
@@ -129,8 +168,8 @@ A fast, responsive, multi-column keyboard shortcuts panel optimized for quick ac
 **Dimensions:**
 - Width: 95vw (max 900px)
 - Columns: 2
-- Column gap: 20px
-- Padding: 20px
+- Column gap: `var(--spacing-5)` (20px)
+- Padding: `var(--spacing-5)` (20px)
 
 ### 2.3 Mobile Layout (1 Column)
 
@@ -166,7 +205,7 @@ A fast, responsive, multi-column keyboard shortcuts panel optimized for quick ac
 - Width: 100vw
 - Height: 100vh (full screen)
 - Columns: 1
-- Padding: 16px
+- Padding: `var(--spacing-4)` (16px)
 - Border radius: 0
 - Swipe down to close
 
@@ -199,9 +238,9 @@ A fast, responsive, multi-column keyboard shortcuts panel optimized for quick ac
 .shortcut-overlay__backdrop {
   position: absolute;
   inset: 0;
-  background: rgba(0, 0, 0, 0.6);
+  background: var(--color-backdrop);
   backdrop-filter: blur(8px);
-  cursor: pointer;
+  cursor: var(--cursor-pointer);
 }
 
 .shortcut-overlay__panel {
@@ -209,9 +248,10 @@ A fast, responsive, multi-column keyboard shortcuts panel optimized for quick ac
   width: 1200px;
   max-width: 95vw;
   max-height: 85vh;
-  background: var(--color-surface);
-  border-radius: 16px;
-  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.4);
+  background: var(--color-bg-elevated);
+  border: var(--border-width-1) solid var(--color-border);
+  border-radius: var(--radius-2xl);
+  box-shadow: var(--shadow-2xl);
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -266,58 +306,65 @@ A fast, responsive, multi-column keyboard shortcuts panel optimized for quick ac
   display: flex;
   align-items: center;
   justify-content: space-between;
-  min-height: 56px;
-  padding: 16px 24px;
-  border-bottom: 1px solid var(--color-border);
-  background: var(--color-surface);
+  min-height: var(--control-size-2xl);
+  padding: var(--spacing-4) var(--spacing-6);
+  border-bottom: var(--border-width-1) solid var(--color-border);
+  background: var(--color-bg-elevated);
 }
 
 .shortcut-overlay__title-group {
   display: flex;
   align-items: baseline;
-  gap: 16px;
+  gap: var(--spacing-4);
 }
 
 .shortcut-overlay__title-group h2 {
-  font-size: 20px;
-  font-weight: 600;
+  font-size: var(--font-size-3xl);
+  font-weight: var(--font-weight-semibold);
   margin: 0;
   color: var(--color-text-primary);
+  font-family: var(--font-ui);
 }
 
 .shortcut-overlay__hint {
-  font-size: 13px;
+  font-size: var(--font-size-lg);
   color: var(--color-text-secondary);
+  font-family: var(--font-ui);
 }
 
 .shortcut-overlay__hint kbd {
-  font-family: var(--font-mono, monospace);
-  font-size: 11px;
-  padding: 2px 6px;
-  background: var(--color-surface-raised);
-  border: 1px solid var(--color-border);
-  border-radius: 4px;
-  margin: 0 2px;
+  font-family: var(--font-mono);
+  font-size: var(--font-size-sm);
+  padding: var(--spacing-0-5) var(--spacing-1-5);
+  background: var(--color-bg-input);
+  border: var(--border-width-1) solid var(--color-border);
+  border-radius: var(--radius-sm);
+  margin: 0 var(--spacing-0-5);
+  color: var(--color-text-primary);
 }
 
 .shortcut-overlay__close {
-  width: 36px;
-  height: 36px;
-  border-radius: 8px;
+  width: var(--control-size-lg);
+  height: var(--control-size-lg);
+  border-radius: var(--radius-lg);
   background: transparent;
   border: none;
-  cursor: pointer;
+  cursor: var(--cursor-pointer);
   display: flex;
   align-items: center;
   justify-content: center;
   color: var(--color-text-secondary);
-  transition: all 0.15s ease;
+  transition: var(--transition-normal);
   flex-shrink: 0;
 }
 
 .shortcut-overlay__close:hover {
-  background: var(--color-hover);
-  color: var(--color-text-primary);
+  background: var(--color-accent-subtle);
+  color: var(--color-accent);
+}
+
+.shortcut-overlay__close:active {
+  background: var(--color-accent-muted);
 }
 
 /* Mobile: Hide hint */
@@ -360,15 +407,17 @@ A fast, responsive, multi-column keyboard shortcuts panel optimized for quick ac
   position: relative;
   display: flex;
   align-items: center;
-  height: 48px;
-  padding: 0 20px;
-  border-bottom: 1px solid var(--color-border);
-  background: var(--color-surface);
+  height: var(--control-size-2xl);
+  padding: 0 var(--spacing-5);
+  border-bottom: var(--border-width-1) solid var(--color-border);
+  background: var(--color-bg-elevated);
 }
 
 .shortcut-overlay__search-icon {
   position: absolute;
-  left: 24px;
+  left: var(--spacing-6);
+  width: var(--icon-size-md);
+  height: var(--icon-size-md);
   color: var(--color-text-secondary);
   pointer-events: none;
 }
@@ -376,8 +425,9 @@ A fast, responsive, multi-column keyboard shortcuts panel optimized for quick ac
 .shortcut-overlay__search-input {
   flex: 1;
   height: 100%;
-  padding: 0 40px 0 40px;
-  font-size: 14px;
+  padding: 0 var(--spacing-10) 0 var(--spacing-10);
+  font-size: var(--font-size-xl);
+  font-family: var(--font-ui);
   border: none;
   background: transparent;
   outline: none;
@@ -390,15 +440,16 @@ A fast, responsive, multi-column keyboard shortcuts panel optimized for quick ac
 
 .shortcut-overlay__search-clear {
   position: absolute;
-  right: 20px;
-  width: 24px;
-  height: 24px;
+  right: var(--spacing-5);
+  width: var(--control-size-sm);
+  height: var(--control-size-sm);
   border: none;
   background: transparent;
-  border-radius: 4px;
-  cursor: pointer;
+  border-radius: var(--radius-sm);
+  cursor: var(--cursor-pointer);
   color: var(--color-text-secondary);
   display: none;
+  transition: var(--transition-fast);
 }
 
 .shortcut-overlay__search-input:not(:placeholder-shown) + .shortcut-overlay__search-clear {
@@ -406,8 +457,12 @@ A fast, responsive, multi-column keyboard shortcuts panel optimized for quick ac
 }
 
 .shortcut-overlay__search-clear:hover {
-  background: var(--color-hover);
-  color: var(--color-text-primary);
+  background: var(--color-accent-subtle);
+  color: var(--color-accent);
+}
+
+.shortcut-overlay__search-clear:active {
+  background: var(--color-accent-muted);
 }
 ```
 
@@ -483,10 +538,10 @@ class ShortcutSearch {
 ```css
 .shortcut-overlay__tabs {
   display: flex;
-  gap: 8px;
-  padding: 12px 20px;
-  border-bottom: 1px solid var(--color-border);
-  background: var(--color-surface);
+  gap: var(--spacing-2);
+  padding: var(--spacing-3) var(--spacing-5);
+  border-bottom: var(--border-width-1) solid var(--color-border);
+  background: var(--color-bg-elevated);
   overflow-x: auto;
   scrollbar-width: none;
 }
@@ -496,30 +551,36 @@ class ShortcutSearch {
 }
 
 .shortcut-tab {
-  padding: 6px 14px;
-  font-size: 13px;
-  font-weight: 500;
+  padding: var(--spacing-1-5) var(--spacing-3-5);
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-medium);
+  font-family: var(--font-ui);
   color: var(--color-text-secondary);
   background: transparent;
-  border: 1px solid var(--color-border);
-  border-radius: 20px;
-  cursor: pointer;
+  border: var(--border-width-1) solid var(--color-border);
+  border-radius: var(--radius-full);
+  cursor: var(--cursor-pointer);
   white-space: nowrap;
-  transition: all 0.15s ease;
+  transition: var(--transition-normal);
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--spacing-1-5);
 }
 
 .shortcut-tab:hover {
-  background: var(--color-hover);
-  color: var(--color-text-primary);
+  background: var(--color-accent-subtle);
+  color: var(--color-accent);
+  border-color: var(--color-accent);
+}
+
+.shortcut-tab:active {
+  background: var(--color-accent-muted);
 }
 
 .shortcut-tab.is-active {
-  background: var(--color-primary);
-  border-color: var(--color-primary);
-  color: white;
+  background: var(--color-accent);
+  border-color: var(--color-accent);
+  color: var(--color-text-on-accent);
 }
 
 .shortcut-tab__icon {
@@ -575,21 +636,21 @@ class ShortcutSearch {
   flex: 1;
   overflow-y: auto;
   overflow-x: hidden;
-  padding: 24px;
+  padding: var(--spacing-6);
 }
 
 /* Multi-column grid layout */
 .shortcut-columns {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 28px;
+  gap: var(--spacing-7);
   align-items: start;
 }
 
 .shortcut-column {
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: var(--spacing-6);
   min-width: 0;
 }
 
@@ -597,19 +658,19 @@ class ShortcutSearch {
 @media (max-width: 960px) {
   .shortcut-columns {
     grid-template-columns: repeat(2, 1fr);
-    gap: 24px;
+    gap: var(--spacing-6);
   }
 }
 
 /* Mobile: 1 column */
 @media (max-width: 640px) {
   .shortcut-overlay__content {
-    padding: 16px;
+    padding: var(--spacing-4);
   }
   
   .shortcut-columns {
     grid-template-columns: 1fr;
-    gap: 20px;
+    gap: var(--spacing-5);
   }
 }
 
@@ -627,20 +688,21 @@ class ShortcutSearch {
 }
 
 .shortcut-group__title {
-  font-size: 11px;
-  font-weight: 700;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-bold);
+  font-family: var(--font-ui);
   text-transform: uppercase;
-  letter-spacing: 0.8px;
+  letter-spacing: var(--letter-spacing-wider);
   color: var(--color-text-secondary);
-  margin: 0 0 10px 0;
-  padding-bottom: 6px;
-  border-bottom: 1px solid var(--color-border-subtle);
+  margin: 0 0 var(--spacing-2-5) 0;
+  padding-bottom: var(--spacing-1-5);
+  border-bottom: var(--border-width-1) solid var(--color-border-subtle);
 }
 
 .shortcut-group__items {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--spacing-1);
 }
 ```
 
@@ -651,67 +713,73 @@ class ShortcutSearch {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  min-height: 32px;
-  padding: 6px 10px;
-  border-radius: 6px;
-  transition: background 0.12s ease;
-  gap: 12px;
+  min-height: var(--control-size-lg);
+  padding: var(--spacing-1-5) var(--spacing-2-5);
+  border-radius: var(--radius-md);
+  transition: var(--transition-fast);
+  gap: var(--spacing-3);
+  cursor: var(--cursor-pointer);
 }
 
 .shortcut-item:hover {
-  background: var(--color-hover);
+  background: var(--color-accent-subtle);
+}
+
+.shortcut-item:active {
+  background: var(--color-accent-muted);
 }
 
 .shortcut-item__name {
-  font-size: 13px;
+  font-size: var(--font-size-lg);
+  font-family: var(--font-ui);
   color: var(--color-text-primary);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  line-height: 1.4;
+  line-height: var(--line-height-normal);
   flex: 1;
 }
 
 /* Star indicator for used shortcuts */
 .shortcut-item[data-used="true"] .shortcut-item__name::before {
   content: '⭐';
-  font-size: 12px;
-  margin-right: 6px;
-  opacity: 0.8;
+  font-size: var(--icon-size-xs);
+  margin-right: var(--spacing-1-5);
+  opacity: var(--opacity-80);
 }
 
 .shortcut-item__key {
-  font-family: var(--font-mono, 'SF Mono', monospace);
-  font-size: 11px;
-  padding: 4px 8px;
-  background: var(--color-surface-raised);
-  border: 1px solid var(--color-border);
-  border-radius: 4px;
+  font-family: var(--font-mono);
+  font-size: var(--font-size-sm);
+  padding: var(--spacing-1) var(--spacing-2);
+  background: var(--color-bg-input);
+  border: var(--border-width-1) solid var(--color-border);
+  border-radius: var(--radius-sm);
   white-space: nowrap;
   flex-shrink: 0;
-  font-weight: 500;
-  color: var(--color-text-secondary);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-primary);
 }
 
 /* Multiple key combinations */
 .shortcut-item__key + .shortcut-item__key {
-  margin-left: 4px;
+  margin-left: var(--spacing-1);
 }
 
-/* Mobile: Larger touch targets */
+/* Mobile: Larger touch targets (44px minimum per WCAG) */
 @media (max-width: 640px) {
   .shortcut-item {
     min-height: 44px;
-    padding: 10px 14px;
+    padding: var(--spacing-2-5) var(--spacing-3-5);
   }
   
   .shortcut-item__name {
-    font-size: 14px;
+    font-size: var(--font-size-xl);
   }
   
   .shortcut-item__key {
-    font-size: 12px;
-    padding: 5px 10px;
+    font-size: var(--font-size-md);
+    padding: var(--spacing-1-5) var(--spacing-2-5);
   }
 }
 ```
@@ -824,26 +892,26 @@ class ShortcutOverlay {
 ```css
 @keyframes overlay-enter {
   from {
-    opacity: 0;
+    opacity: var(--opacity-0);
     transform: scale(0.95);
   }
   to {
-    opacity: 1;
+    opacity: var(--opacity-100);
     transform: scale(1);
   }
 }
 
 .shortcut-overlay.is-open .shortcut-overlay__panel {
-  animation: overlay-enter 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  animation: overlay-enter var(--duration-moderate) cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .shortcut-overlay.is-open .shortcut-overlay__backdrop {
-  animation: fade-in 0.2s ease-out;
+  animation: fade-in var(--duration-moderate) var(--ease-out);
 }
 
 @keyframes fade-in {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from { opacity: var(--opacity-0); }
+  to { opacity: var(--opacity-100); }
 }
 ```
 
@@ -852,18 +920,45 @@ class ShortcutOverlay {
 ```css
 @keyframes overlay-exit {
   from {
-    opacity: 1;
+    opacity: var(--opacity-100);
     transform: scale(1);
   }
   to {
-    opacity: 0;
+    opacity: var(--opacity-0);
     transform: scale(0.95);
   }
 }
 
 .shortcut-overlay:not(.is-open) .shortcut-overlay__panel {
-  animation: overlay-exit 0.15s cubic-bezier(0.4, 0, 1, 1);
+  animation: overlay-exit var(--duration-normal) cubic-bezier(0.4, 0, 1, 1);
 }
+```
+
+### 5.3 Reduced Motion Support
+
+**Critical for accessibility:**
+
+```css
+@media (prefers-reduced-motion: reduce) {
+  .shortcut-overlay.is-open .shortcut-overlay__panel,
+  .shortcut-overlay:not(.is-open) .shortcut-overlay__panel {
+    animation: none;
+  }
+  
+  .shortcut-overlay__panel {
+    transition: none;
+  }
+  
+  .shortcut-item,
+  .shortcut-tab,
+  .shortcut-overlay__close,
+  .shortcut-overlay__search-clear {
+    transition: none;
+  }
+}
+```
+
+### 5.4 Mobile Swipe (Optional)
 ```
 
 ### 5.3 Mobile Swipe (Optional)
@@ -1199,30 +1294,50 @@ class MemoryOptimizedOverlay {
 
 ## 8. Implementation Priorities
 
-### P0: Fast Access MVP (Week 1)
+### P0: Fast Access MVP + Design System Compliance (Week 1)
 
-**Goal: Users can bring up overlay and find shortcuts quickly**
+**Goal: Users can bring up overlay quickly + theme switching works perfectly**
 
-- [x] Multi-column layout (3 → 2 → 1 responsive)
-- [x] Instant open (<100ms): `?` and `Ctrl+Shift+/`
-- [x] Autofocus search on open
-- [x] Live search with 150ms debounce
-- [x] ESC / backdrop / same-key to dismiss
-- [x] All 150+ shortcuts rendered and grouped
-- [x] Basic styling (readable, clean)
-- [x] Mobile responsive (full screen)
+**Core Functionality:**
+- [ ] Multi-column layout (3 → 2 → 1 responsive)
+- [ ] Instant open (<100ms): `?` and `Ctrl+Shift+/`
+- [ ] Autofocus search on open
+- [ ] Live search with 150ms debounce
+- [ ] ESC / backdrop / same-key to dismiss
+- [ ] All 150+ shortcuts rendered and grouped
+- [ ] Mobile responsive (full screen)
+
+**Design System Compliance (CRITICAL):**
+- [ ] **Zero hardcoded values**: All colors, spacing, typography use CSS variables
+- [ ] **Theme test passing**: Accent color switch blue→purple works everywhere
+- [ ] **Light mode support**: Component works in both light and dark themes
+- [ ] **Interaction colors**: All hover/active states use accent color tokens
+- [ ] **Typography consistency**: Uses `--font-ui` and `--font-mono` families
+- [ ] **Spacing on grid**: All spacing values use 4px base grid tokens
+- [ ] **Border radius consistency**: Uses radius tokens from design system
+- [ ] **Animation tokens**: Duration and easing use design system tokens
+- [ ] **Reduced motion**: Respects `prefers-reduced-motion` preference
 
 **Success Criteria:**
 - Opens in <100ms from keypress ✅
 - Search responds in <200ms ✅
 - Works on mobile ✅
 - Shows 50+ shortcuts at once (desktop) ✅
+- **Theme switch test passes** 🎨
+- **Light mode works** ☀️
+- **No hardcoded colors found** 🔍
 
 **Deliverables:**
 ```
-src/ui/ShortcutOverlay.js         # Main component
-styles/components/shortcut-overlay.css  # All styles
+src/ui/ShortcutOverlay.js                    # Main component
+styles/components/shortcut-overlay.css       # All styles with design tokens
+tests/unit/ShortcutOverlay.test.js          # Including theme tests
 ```
+
+**Risk Mitigation:**
+- Add missing tokens to `variables.css` (`--spacing-3-5`, `--spacing-7`)
+- Test with light mode from day 1
+- Validate against other modal components for consistency
 
 ### P1: Discoverability (Week 2)
 
@@ -1403,6 +1518,107 @@ describe('Accessibility', () => {
     
     const announcement = document.querySelector('[role="status"]');
     expect(announcement.textContent).toContain('shortcuts found');
+  });
+  
+  it('respects prefers-reduced-motion', () => {
+    setMediaQuery('(prefers-reduced-motion: reduce)');
+    overlay.open();
+    
+    const panel = overlay.panel;
+    const computedStyle = window.getComputedStyle(panel);
+    expect(computedStyle.animation).toBe('none');
+  });
+});
+```
+
+### 9.5 Theme Compatibility Tests (Critical)
+
+**These tests ensure design system compliance:**
+
+```javascript
+describe('Theme Switching', () => {
+  it('uses no hardcoded colors', () => {
+    const overlay = document.querySelector('.shortcut-overlay');
+    const allElements = overlay.querySelectorAll('*');
+    
+    allElements.forEach(el => {
+      const styles = window.getComputedStyle(el);
+      
+      // Check background colors use CSS variables
+      if (styles.backgroundColor && styles.backgroundColor !== 'rgba(0, 0, 0, 0)') {
+        const elem = el.style.backgroundColor || 
+                     getComputedCSSVar(el, 'background-color');
+        expect(elem).toMatch(/var\(--color-/);
+      }
+      
+      // Check text colors use CSS variables
+      if (styles.color) {
+        const elem = el.style.color || getComputedCSSVar(el, 'color');
+        expect(elem).toMatch(/var\(--color-/);
+      }
+    });
+  });
+  
+  it('switches accent color correctly', () => {
+    // Change accent from blue to purple
+    document.documentElement.style.setProperty('--color-accent', '#9333EA');
+    document.documentElement.style.setProperty('--color-accent-subtle', 'rgba(147, 51, 234, 0.20)');
+    document.documentElement.style.setProperty('--color-accent-muted', 'rgba(147, 51, 234, 0.35)');
+    
+    overlay.open();
+    
+    // Test tab active state
+    const activeTab = document.querySelector('.shortcut-tab.is-active');
+    const tabBg = window.getComputedStyle(activeTab).backgroundColor;
+    expect(tabBg).toBe('rgb(147, 51, 234)'); // Purple
+    
+    // Test hover states
+    const closeButton = document.querySelector('.shortcut-overlay__close');
+    closeButton.dispatchEvent(new MouseEvent('mouseenter'));
+    const closeBg = window.getComputedStyle(closeButton).backgroundColor;
+    expect(closeBg).toContain('147, 51, 234'); // Purple subtle
+    
+    // Test shortcut item hover
+    const item = document.querySelector('.shortcut-item');
+    item.dispatchEvent(new MouseEvent('mouseenter'));
+    const itemBg = window.getComputedStyle(item).backgroundColor;
+    expect(itemBg).toContain('147, 51, 234'); // Purple subtle
+  });
+  
+  it('works in light mode', () => {
+    document.body.classList.add('theme-light');
+    overlay.open();
+    
+    // Verify surface colors inverted
+    const panel = document.querySelector('.shortcut-overlay__panel');
+    const bg = window.getComputedStyle(panel).backgroundColor;
+    expect(bg).not.toBe('rgb(51, 51, 51)'); // Not dark mode color
+    
+    // Verify text readable on light background
+    const text = document.querySelector('.shortcut-item__name');
+    const color = window.getComputedStyle(text).color;
+    const contrast = getContrastRatio(color, bg);
+    expect(contrast).toBeGreaterThan(4.5); // WCAG AA
+    
+    document.body.classList.remove('theme-light');
+  });
+  
+  it('all interactive elements use accent color', () => {
+    const interactiveElements = [
+      '.shortcut-overlay__close:hover',
+      '.shortcut-tab:hover',
+      '.shortcut-item:hover',
+      '.shortcut-overlay__search-clear:hover'
+    ];
+    
+    interactiveElements.forEach(selector => {
+      const el = document.querySelector(selector.split(':')[0]);
+      el.dispatchEvent(new MouseEvent('mouseenter'));
+      
+      const bg = window.getComputedStyle(el).backgroundColor;
+      // Should contain accent color values (24, 160, 251) for default blue
+      expect(bg).toMatch(/24.*160.*251|rgba\(var\(--color-accent/);
+    });
   });
 });
 ```
