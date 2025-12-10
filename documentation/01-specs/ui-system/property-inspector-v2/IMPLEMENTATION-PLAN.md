@@ -1,6 +1,6 @@
 # Property Inspector v2.0 - Implementation Plan
 
-> **Status:** In Progress (Phase 0 & 1 mostly complete)  
+> **Status:** Phase 0, 1, 2 Complete (~90% Done) - Phase 3 & 4 Remaining  
 > **Updated:** December 10, 2025  
 > **Principles Reference:** [principles.md](../../../00-product/principles.md)
 
@@ -64,15 +64,6 @@ This plan tracks the implementation of Property Inspector v2.0 features based on
   - Code reduction: -385 lines of duplicate code
   - Tests: 288 tests passing (35 PropertyRow + 63 Fill + 21 Stroke + 40 Effects + others)
   - Commit: `feat: integrate PropertyRow into Fill, Stroke, and Effects sections`
-
-### 🚧 Partially Complete
-
-#### Phase 0: Foundation Gaps
-
-- ⚠️ **Design System Audit** - Needs verification
-  - Some sections may still have hardcoded colors
-  - Need to run theme litmus test (switch accent color, verify no hardcoded blues)
-  - **Action needed**: Audit all PI CSS files for hardcoded values
 
 ### ❌ Not Started
 

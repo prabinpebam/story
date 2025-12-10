@@ -2,1242 +2,1448 @@
 
 ## Overview
 
-A beautiful, accessible, and intuitive keyboard shortcuts panel that helps users discover, learn, and customize shortcuts. Inspired by Figma's shortcuts panel but optimized for Story's workflow.
+A fast, responsive, multi-column keyboard shortcuts panel optimized for quick access and learning. Users can bring it up instantly with `?` or `Ctrl+Shift+/`, scan shortcuts across multiple columns, and dismiss it just as quickly.
+
+**Key Features:**
+- **Instant access**: Opens in <100ms with `?` shortcut
+- **Multi-column layout**: Shows 50+ shortcuts at once
+- **Responsive**: 3 columns (desktop) → 2 (tablet) → 1 (mobile)
+- **Quick dismiss**: Escape, backdrop click, or same shortcut
+- **Live search**: Find any shortcut in <2 seconds
 
 ---
 
 ## 1. Design Principles
 
-### 1.1 Core Values
-
-1. **Discoverable** - Easy to find and open (Ctrl/Cmd+Shift+?)
-2. **Scannable** - Visual hierarchy makes finding shortcuts fast
-3. **Learnable** - Progressive disclosure helps users learn gradually
-4. **Customizable** - Power users can personalize their workflow
-5. **Accessible** - Keyboard-only navigation, screen reader support
-6. **Beautiful** - Polished design that fits Story's aesthetic
-
-### 1.2 User Goals
-
-**Beginner:** "What keyboard shortcuts are available?"
-**Intermediate:** "How do I do [specific action] faster?"
-**Advanced:** "Can I customize this shortcut to match my workflow?"
-**Power User:** "Show me all shortcuts in a category"
+1. **Fast Access** - Opens instantly (<100ms), autofocus search
+2. **High Density** - Multi-column layout shows maximum shortcuts
+3. **Scannable** - Clear visual hierarchy, grouped by category
+4. **Learnable** - Usage tracking shows frequently used shortcuts
+5. **Responsive** - Adapts to screen size (3 → 2 → 1 columns)
+6. **Accessible** - Keyboard-only navigation, screen reader support
 
 ---
 
-## 2. Panel Layout & Structure
+## 2. Layout & Dimensions
 
-### 2.1 Overall Layout
+### 2.1 Desktop Layout (3 Columns)
 
 ```
-┌──────────────────────────────────────────────────────────────┐
-│  Keyboard Shortcuts                                    [×]    │
-├──────────────────────────────────────────────────────────────┤
-│  [🔍 Search shortcuts...]                                    │
-├──────────────────────────────────────────────────────────────┤
-│  [Tools] [Edit] [View] [Selection] [All] [⭐ Recent]        │
-├──────────────────────────────────────────────────────────────┤
-│                                                               │
-│  Tools                                                        │
-│  ┌─────────────────────────────────────────────────────┐    │
-│  │ ⭐ Move/Select                            [V]      │ ✓  │
-│  │    Rectangle                              [R]         │  │
-│  │    Ellipse                                [O]         │  │
-│  │    Text                                   [T]         │  │
-│  │    Hand (Pan)                             [H]         │  │
-│  │    Line                                   [L]         │  │
-│  └─────────────────────────────────────────────────────┘    │
-│                                                               │
-│  Edit                                                         │
-│  ┌─────────────────────────────────────────────────────┐    │
-│  │ ⭐ Copy                                 [⌘C]       │ ✓  │
-│  │ ⭐ Paste                                [⌘V]       │ ✓  │
-│  │    Cut                                  [⌘X]          │  │
-│  │ ⭐ Duplicate                            [⌘D]       │ ✓  │
-│  │    Undo                                 [⌘Z]          │  │
-│  └─────────────────────────────────────────────────────┘    │
-│                                                               │
-│  [Show 47 more shortcuts ↓]                                  │
-│                                                               │
-└──────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────────────────────────────┐
+│  Keyboard Shortcuts                               Press ? or Ctrl+Shift+/ to toggle [×] │ ← Header (56px)
+├─────────────────────────────────────────────────────────────────────────────────────────┤
+│  🔍 Search shortcuts...                                                                  │ ← Search (48px)
+├─────────────────────────────────────────────────────────────────────────────────────────┤
+│  All  Recent  Tools  Edit  View  Text  File  Arrange  Transform  Slides  →              │ ← Tabs (44px)
+├───────────────────────────┬───────────────────────────┬─────────────────────────────────┤
+│ SELECTION                 │ TOOLS                     │ EDIT                            │
+│ Select All                │ Move Tool            ⭐   │ Copy                            │
+│ Ctrl+A                    │ V                         │ Ctrl+C                          │
+│                           │                           │                                 │
+│ Select None               │ Hand Tool            ⭐   │ Cut                             │
+│ Ctrl+Shift+A              │ H                         │ Ctrl+X                          │
+│                           │                           │                                 │
+│ Invert Selection          │ Rectangle Tool       ⭐   │ Paste                           │
+│ Ctrl+Shift+I              │ R                         │ Ctrl+V                          │
+│                           │                           │                                 │
+│ Multi-Select              │ Text Tool            ⭐   │ Duplicate                       │
+│ Shift+Click               │ T                         │ Ctrl+D                          │
+│                           │                           │                                 │
+│ ARRANGE                   │ Ellipse Tool              │ Delete                          │
+│ Bring Forward             │ O                         │ Delete                          │
+│ Ctrl+]                    │                           │                                 │
+│                           │ Line Tool                 │ Copy as PNG                     │
+│ Send Backward             │ L                         │ Ctrl+Alt+C                      │
+│ Ctrl+[                    │                           │                                 │
+│                           │ Pen Tool                  │ TRANSFORM                       │
+│ Bring to Front            │ P                         │ Nudge 1px                       │
+│ Ctrl+Shift+]              │                           │ Arrow keys                      │
+│                           │ Frame Tool                │                                 │
+│ Send to Back              │ F                         │ Nudge 10px                      │
+│ Ctrl+Shift+[              │                           │ Shift+Arrow                     │
+│                           │ Scale Tool                │                                 │
+│ Group                     │ K                         │ Resize from Center              │
+│ Ctrl+G                    │                           │ Alt+Drag                        │
+│                           │ Eyedropper                │                                 │
+│ Ungroup                   │ I                         │ Maintain Aspect                 │
+│ Ctrl+Shift+G              │                           │ Shift+Drag                      │
+│                           │                           │                                 │
+│ VIEW                      │ ALIGNMENT                 │ TEXT                            │
+│ Zoom In                   │ Align Left                │ Bold                            │
+│ Ctrl++                    │ Ctrl+Alt+←                │ Ctrl+B                          │
+│                           │                           │                                 │
+│ Zoom Out                  │ Align Center H            │ Italic                          │
+│ Ctrl+-                    │ Ctrl+Alt+H                │ Ctrl+I                          │
+│                           │                           │                                 │
+│ Zoom to Fit               │ Align Right               │ Underline                       │
+│ Ctrl+0                    │ Ctrl+Alt+→                │ Ctrl+U                          │
+│                           │                           │                                 │
+│ Zoom to Selection         │ Align Top                 │ Increase Size                   │
+│ Ctrl+2                    │ Ctrl+Alt+↑                │ Ctrl+Shift+>                    │
+│                           │                           │                                 │
+│ Actual Size               │ Align Bottom              │ Decrease Size                   │
+│ Ctrl+1                    │ Ctrl+Alt+↓                │ Ctrl+Shift+<                    │
+│                           │                           │                                 │
+│ Pan                       │ Distribute H              │ SLIDES                          │
+│ Space+Drag                │ Ctrl+Alt+D                │ New Slide                       │
+│                           │                           │ Ctrl+M                          │
+│                           │ Distribute V              │                                 │
+│                           │ Ctrl+Alt+Shift+D          │ Duplicate Slide                 │
+│                           │                           │ Ctrl+Shift+D                    │
+└───────────────────────────┴───────────────────────────┴─────────────────────────────────┘
+                            50+ shortcuts visible at once
 ```
 
-### 2.2 Dimensions & Positioning
+**Dimensions:**
+- Width: 1200px (desktop), scales down responsively
+- Max height: 85vh
+- Columns: 3 (desktop), 2 (tablet), 1 (mobile)
+- Column gap: 24px
+- Padding: 24px
+- Border radius: 16px
+- Backdrop: rgba(0, 0, 0, 0.6) with 8px blur
 
-**Desktop:**
-- Width: 640px (fixed)
-- Max Height: 80vh (scrollable)
-- Position: Centered overlay (modal)
-- Background: Semi-transparent backdrop (rgba(0,0,0,0.4))
+### 2.2 Tablet Layout (2 Columns)
 
-**Tablet/Mobile:**
-- Width: 100% (with 16px padding)
-- Height: 100vh (full screen on mobile)
-- Position: Full screen overlay
+**Breakpoint:** `max-width: 960px`
+
+```
+┌─────────────────────────────────────────────────────────┐
+│  Keyboard Shortcuts                           Press ? [×]│
+├─────────────────────────────────────────────────────────┤
+│  🔍 Search...                                            │
+├─────────────────────────────────────────────────────────┤
+│  All  Recent  Tools  Edit  View  →                      │
+├───────────────────────────┬─────────────────────────────┤
+│ SELECTION                 │ TOOLS                       │
+│ Select All      Ctrl+A    │ Move Tool         V    ⭐   │
+│ Select None     Ctrl+Sh+A │ Hand Tool         H    ⭐   │
+│ ...                       │ ...                         │
+│                           │                             │
+│ ARRANGE                   │ EDIT                        │
+│ Bring Forward   Ctrl+]    │ Copy              Ctrl+C    │
+│ ...                       │ ...                         │
+└───────────────────────────┴─────────────────────────────┘
+```
+
+**Dimensions:**
+- Width: 95vw (max 900px)
+- Columns: 2
+- Column gap: 20px
+- Padding: 20px
+
+### 2.3 Mobile Layout (1 Column)
+
+**Breakpoint:** `max-width: 640px`
+
+```
+┌──────────────────────────────┐
+│  Shortcuts             [×]   │
+├──────────────────────────────┤
+│  🔍 Search...                │
+├──────────────────────────────┤
+│  All  Recent  Tools  →       │
+├──────────────────────────────┤
+│ SELECTION                    │
+│ Select All                   │
+│ Ctrl+A                       │
+│                              │
+│ Select None                  │
+│ Ctrl+Shift+A                 │
+│                              │
+│ TOOLS                        │
+│ Move Tool              ⭐    │
+│ V                            │
+│                              │
+│ Hand Tool              ⭐    │
+│ H                            │
+│                              │
+│ ...                          │
+└──────────────────────────────┘
+```
+
+**Dimensions:**
+- Width: 100vw
+- Height: 100vh (full screen)
+- Columns: 1
+- Padding: 16px
+- Border radius: 0
 - Swipe down to close
-
-### 2.3 Visual Hierarchy
-
-```
-┌─ Header (56px)
-│  Title + Close button
-│
-├─ Search Bar (48px)
-│  Large search input
-│
-├─ Category Tabs (44px)
-│  Pill-style navigation
-│
-├─ Content Area (flexible, scrollable)
-│  Shortcut groups
-│  │
-│  ├─ Group Header (32px)
-│  │  Category name
-│  │
-│  └─ Shortcut Items (40px each)
-│     Action + Key + Status
-│
-└─ Footer (Optional, 56px)
-   Keyboard layout switcher
-```
 
 ---
 
 ## 3. Component Specifications
 
-### 3.1 Header
+### 3.1 Panel Container
 
 ```html
-<div class="shortcuts-panel__header">
-    <h2 class="shortcuts-panel__title">Keyboard Shortcuts</h2>
-    <button class="shortcuts-panel__close" aria-label="Close">
-        <i class="fa-solid fa-xmark"></i>
-    </button>
+<div class="shortcut-overlay" role="dialog" aria-modal="true" aria-labelledby="shortcuts-title">
+  <div class="shortcut-overlay__backdrop"></div>
+  <div class="shortcut-overlay__panel">
+    <!-- Header, Search, Tabs, Content -->
+  </div>
 </div>
 ```
 
-**Styles:**
+**CSS:**
 ```css
-.shortcuts-panel__header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 16px 20px;
-    border-bottom: 1px solid var(--color-border);
+.shortcut-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-.shortcuts-panel__title {
+.shortcut-overlay__backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(8px);
+  cursor: pointer;
+}
+
+.shortcut-overlay__panel {
+  position: relative;
+  width: 1200px;
+  max-width: 95vw;
+  max-height: 85vh;
+  background: var(--color-surface);
+  border-radius: 16px;
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.4);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* Tablet: 2 columns */
+@media (max-width: 1280px) {
+  .shortcut-overlay__panel {
+    width: 900px;
+  }
+}
+
+/* Tablet/Mobile transition */
+@media (max-width: 960px) {
+  .shortcut-overlay__panel {
+    width: 95vw;
+  }
+}
+
+/* Mobile: Full screen */
+@media (max-width: 640px) {
+  .shortcut-overlay__panel {
+    width: 100vw;
+    height: 100vh;
+    max-height: 100vh;
+    border-radius: 0;
+  }
+}
+```
+
+### 3.2 Header
+
+```html
+<div class="shortcut-overlay__header">
+  <div class="shortcut-overlay__title-group">
+    <h2 id="shortcuts-title">Keyboard Shortcuts</h2>
+    <span class="shortcut-overlay__hint">
+      Press <kbd>?</kbd> or <kbd>Ctrl+Shift+/</kbd> to toggle
+    </span>
+  </div>
+  <button class="shortcut-overlay__close" aria-label="Close (Escape)">
+    <svg width="20" height="20" viewBox="0 0 20 20">
+      <path d="M15 5L5 15M5 5l10 10" stroke="currentColor" stroke-width="2"/>
+    </svg>
+  </button>
+</div>
+```
+
+**CSS:**
+```css
+.shortcut-overlay__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 56px;
+  padding: 16px 24px;
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-surface);
+}
+
+.shortcut-overlay__title-group {
+  display: flex;
+  align-items: baseline;
+  gap: 16px;
+}
+
+.shortcut-overlay__title-group h2 {
+  font-size: 20px;
+  font-weight: 600;
+  margin: 0;
+  color: var(--color-text-primary);
+}
+
+.shortcut-overlay__hint {
+  font-size: 13px;
+  color: var(--color-text-secondary);
+}
+
+.shortcut-overlay__hint kbd {
+  font-family: var(--font-mono, monospace);
+  font-size: 11px;
+  padding: 2px 6px;
+  background: var(--color-surface-raised);
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  margin: 0 2px;
+}
+
+.shortcut-overlay__close {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-secondary);
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+}
+
+.shortcut-overlay__close:hover {
+  background: var(--color-hover);
+  color: var(--color-text-primary);
+}
+
+/* Mobile: Hide hint */
+@media (max-width: 640px) {
+  .shortcut-overlay__hint {
+    display: none;
+  }
+  
+  .shortcut-overlay__title-group h2 {
     font-size: 18px;
-    font-weight: 600;
-    color: var(--color-text-primary);
-    margin: 0;
-}
-
-.shortcuts-panel__close {
-    width: 32px;
-    height: 32px;
-    border-radius: 6px;
-    background: transparent;
-    border: none;
-    color: var(--color-text-secondary);
-    cursor: pointer;
-    transition: all 0.15s ease;
-}
-
-.shortcuts-panel__close:hover {
-    background: var(--color-bg-tertiary);
-    color: var(--color-text-primary);
+  }
 }
 ```
 
-### 3.2 Search Bar
+### 3.3 Search Bar
 
 ```html
-<div class="shortcuts-panel__search">
-    <i class="fa-solid fa-search shortcuts-panel__search-icon"></i>
-    <input 
-        type="search"
-        placeholder="Search shortcuts..."
-        class="shortcuts-panel__search-input"
-        autofocus
-        autocomplete="off"
-        spellcheck="false"
-    />
-    <kbd class="shortcuts-panel__search-hint">Ctrl+F</kbd>
+<div class="shortcut-overlay__search">
+  <svg class="shortcut-overlay__search-icon" width="16" height="16">
+    <path d="M7 12A5 5 0 1 0 7 2a5 5 0 0 0 0 10zm5-1l3 3"/>
+  </svg>
+  <input 
+    type="text"
+    class="shortcut-overlay__search-input"
+    placeholder="Search shortcuts..."
+    autofocus
+    aria-label="Search shortcuts"
+  />
+  <button class="shortcut-overlay__search-clear" aria-label="Clear search">
+    <svg width="16" height="16">
+      <path d="M12 4L4 12M4 4l8 8"/>
+    </svg>
+  </button>
 </div>
 ```
 
-**Styles:**
+**CSS:**
 ```css
-.shortcuts-panel__search {
-    position: relative;
-    margin: 12px 20px;
+.shortcut-overlay__search {
+  position: relative;
+  display: flex;
+  align-items: center;
+  height: 48px;
+  padding: 0 20px;
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-surface);
 }
 
-.shortcuts-panel__search-icon {
-    position: absolute;
-    left: 12px;
-    top: 50%;
-    transform: translateY(-50%);
-    color: var(--color-text-tertiary);
-    pointer-events: none;
+.shortcut-overlay__search-icon {
+  position: absolute;
+  left: 24px;
+  color: var(--color-text-secondary);
+  pointer-events: none;
 }
 
-.shortcuts-panel__search-input {
-    width: 100%;
-    height: 40px;
-    padding: 0 80px 0 40px;
-    border: 1px solid var(--color-border);
-    border-radius: 8px;
-    background: var(--color-bg-secondary);
-    color: var(--color-text-primary);
-    font-size: 14px;
-    transition: all 0.15s ease;
+.shortcut-overlay__search-input {
+  flex: 1;
+  height: 100%;
+  padding: 0 40px 0 40px;
+  font-size: 14px;
+  border: none;
+  background: transparent;
+  outline: none;
+  color: var(--color-text-primary);
 }
 
-.shortcuts-panel__search-input:focus {
-    outline: none;
-    border-color: var(--color-accent);
-    box-shadow: 0 0 0 3px var(--color-accent-alpha-10);
+.shortcut-overlay__search-input::placeholder {
+  color: var(--color-text-tertiary);
 }
 
-.shortcuts-panel__search-hint {
-    position: absolute;
-    right: 12px;
-    top: 50%;
-    transform: translateY(-50%);
-    font-size: 11px;
-    color: var(--color-text-tertiary);
-    padding: 2px 6px;
-    border-radius: 4px;
-    background: var(--color-bg-tertiary);
-}
-```
-
-**Behavior:**
-- Focus on panel open
-- Real-time filtering (debounced 150ms)
-- Fuzzy search (match action name or key)
-- Clear button appears when typing
-- Escape clears search
-- Show "No results" state
-
-### 3.3 Category Tabs
-
-```html
-<div class="shortcuts-panel__tabs">
-    <button class="shortcuts-panel__tab shortcuts-panel__tab--active">
-        All
-        <span class="shortcuts-panel__tab-count">156</span>
-    </button>
-    <button class="shortcuts-panel__tab">
-        <i class="fa-solid fa-star"></i> Recent
-    </button>
-    <button class="shortcuts-panel__tab">Tools</button>
-    <button class="shortcuts-panel__tab">Edit</button>
-    <button class="shortcuts-panel__tab">View</button>
-    <button class="shortcuts-panel__tab">Selection</button>
-    <button class="shortcuts-panel__tab shortcuts-panel__tab--more">
-        More <i class="fa-solid fa-chevron-down"></i>
-    </button>
-</div>
-```
-
-**Styles:**
-```css
-.shortcuts-panel__tabs {
-    display: flex;
-    gap: 6px;
-    padding: 0 20px 12px;
-    overflow-x: auto;
-    scrollbar-width: none; /* Firefox */
+.shortcut-overlay__search-clear {
+  position: absolute;
+  right: 20px;
+  width: 24px;
+  height: 24px;
+  border: none;
+  background: transparent;
+  border-radius: 4px;
+  cursor: pointer;
+  color: var(--color-text-secondary);
+  display: none;
 }
 
-.shortcuts-panel__tabs::-webkit-scrollbar {
-    display: none; /* Chrome, Safari */
+.shortcut-overlay__search-input:not(:placeholder-shown) + .shortcut-overlay__search-clear {
+  display: block;
 }
 
-.shortcuts-panel__tab {
-    height: 32px;
-    padding: 0 12px;
-    border: 1px solid var(--color-border);
-    border-radius: 16px;
-    background: transparent;
-    color: var(--color-text-secondary);
-    font-size: 13px;
-    font-weight: 500;
-    white-space: nowrap;
-    cursor: pointer;
-    transition: all 0.15s ease;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-}
-
-.shortcuts-panel__tab:hover {
-    background: var(--color-bg-tertiary);
-    color: var(--color-text-primary);
-}
-
-.shortcuts-panel__tab--active {
-    background: var(--color-accent);
-    color: white;
-    border-color: var(--color-accent);
-}
-
-.shortcuts-panel__tab-count {
-    font-size: 11px;
-    opacity: 0.8;
+.shortcut-overlay__search-clear:hover {
+  background: var(--color-hover);
+  color: var(--color-text-primary);
 }
 ```
 
-**Behavior:**
-- Keyboard navigation (Tab, Arrow keys)
-- Smooth scroll to category on click
-- Active state follows scroll position
-- "More" dropdown for overflow categories
-
-### 3.4 Shortcut Item
-
-```html
-<div class="shortcuts-panel__item shortcuts-panel__item--used">
-    <div class="shortcuts-panel__item-left">
-        <i class="fa-solid fa-star shortcuts-panel__item-star"></i>
-        <span class="shortcuts-panel__item-action">Duplicate</span>
-        <span class="shortcuts-panel__item-context">Canvas, Master Mode</span>
-    </div>
-    <div class="shortcuts-panel__item-right">
-        <kbd class="shortcuts-panel__key">⌘</kbd>
-        <kbd class="shortcuts-panel__key">D</kbd>
-        <button class="shortcuts-panel__item-edit" aria-label="Edit shortcut">
-            <i class="fa-solid fa-pen"></i>
-        </button>
-    </div>
-    <div class="shortcuts-panel__item-badge shortcuts-panel__item-badge--conflict">
-        ⚠️
-    </div>
-</div>
-```
-
-**Styles:**
-```css
-.shortcuts-panel__item {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    height: 40px;
-    padding: 0 20px;
-    transition: background 0.1s ease;
-    position: relative;
-}
-
-.shortcuts-panel__item:hover {
-    background: var(--color-bg-tertiary);
-}
-
-/* Used shortcuts are highlighted */
-.shortcuts-panel__item--used {
-    background: linear-gradient(
-        to right,
-        var(--color-accent-alpha-05) 0%,
-        transparent 100%
-    );
-}
-
-.shortcuts-panel__item-left {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    flex: 1;
-    min-width: 0; /* Allow text truncation */
-}
-
-.shortcuts-panel__item-star {
-    width: 16px;
-    color: var(--color-warning);
-    opacity: 0;
-    transition: opacity 0.15s ease;
-}
-
-.shortcuts-panel__item--used .shortcuts-panel__item-star {
-    opacity: 1;
-}
-
-.shortcuts-panel__item-action {
-    font-size: 14px;
-    color: var(--color-text-primary);
-    font-weight: 500;
-}
-
-.shortcuts-panel__item-context {
-    font-size: 11px;
-    color: var(--color-text-tertiary);
-    opacity: 0;
-    transition: opacity 0.15s ease;
-}
-
-.shortcuts-panel__item:hover .shortcuts-panel__item-context {
-    opacity: 1;
-}
-
-.shortcuts-panel__item-right {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-}
-
-.shortcuts-panel__key {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    min-width: 24px;
-    height: 24px;
-    padding: 0 6px;
-    border-radius: 4px;
-    background: var(--color-bg-elevated);
-    border: 1px solid var(--color-border);
-    box-shadow: 0 1px 2px rgba(0,0,0,0.1);
-    font-size: 12px;
-    font-weight: 600;
-    color: var(--color-text-primary);
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-}
-
-.shortcuts-panel__item-edit {
-    width: 24px;
-    height: 24px;
-    border-radius: 4px;
-    background: transparent;
-    border: none;
-    color: var(--color-text-tertiary);
-    cursor: pointer;
-    opacity: 0;
-    transition: all 0.15s ease;
-}
-
-.shortcuts-panel__item:hover .shortcuts-panel__item-edit {
-    opacity: 1;
-}
-
-.shortcuts-panel__item-edit:hover {
-    background: var(--color-bg-elevated);
-    color: var(--color-accent);
-}
-
-.shortcuts-panel__item-badge {
-    position: absolute;
-    right: 4px;
-    top: 50%;
-    transform: translateY(-50%);
-    width: 20px;
-    height: 20px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 12px;
-}
-
-.shortcuts-panel__item-badge--conflict {
-    color: var(--color-warning);
-}
-```
-
-**States:**
-- **Default** - Normal appearance
-- **Hover** - Background highlight, context appears, edit button visible
-- **Used** - Gradient background, star icon visible
-- **Conflict** - Warning badge
-- **Disabled** - Grayed out (unavailable in current context)
-- **Editing** - Inline edit mode (see Customization section)
-
-### 3.5 Group Header
-
-```html
-<div class="shortcuts-panel__group-header">
-    <h3 class="shortcuts-panel__group-title">
-        <i class="fa-solid fa-mouse-pointer"></i>
-        Tools
-    </h3>
-    <button class="shortcuts-panel__group-toggle">
-        <i class="fa-solid fa-chevron-up"></i>
-    </button>
-</div>
-```
-
-**Styles:**
-```css
-.shortcuts-panel__group-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    height: 32px;
-    padding: 0 20px;
-    margin-top: 16px;
-    position: sticky;
-    top: 0;
-    background: var(--color-bg-primary);
-    z-index: 1;
-}
-
-.shortcuts-panel__group-title {
-    font-size: 12px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    color: var(--color-text-secondary);
-    margin: 0;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
-.shortcuts-panel__group-toggle {
-    width: 24px;
-    height: 24px;
-    border-radius: 4px;
-    background: transparent;
-    border: none;
-    color: var(--color-text-tertiary);
-    cursor: pointer;
-    transition: all 0.15s ease;
-}
-
-.shortcuts-panel__group-toggle:hover {
-    background: var(--color-bg-tertiary);
-    color: var(--color-text-primary);
-}
-
-.shortcuts-panel__group--collapsed .shortcuts-panel__group-toggle i {
-    transform: rotate(180deg);
-}
-```
-
-**Behavior:**
-- Sticky header (stays visible on scroll)
-- Collapse/expand group
-- Keyboard navigation (Enter/Space to toggle)
-
----
-
-## 4. Advanced Features
-
-### 4.1 Usage Tracking
-
-**Visual Indicator:**
-- Star icon for used shortcuts
-- Gradient background for frequently used
-- "Recent" tab shows last 20 used shortcuts
-- Usage count tooltip on hover
-
-**Implementation:**
+**JavaScript (Search Logic):**
 ```javascript
-class ShortcutUsageTracker {
-    constructor() {
-        this.usage = this.loadFromStorage();
+class ShortcutSearch {
+  constructor(input, shortcuts) {
+    this.input = input;
+    this.shortcuts = shortcuts;
+    this.debounceTimer = null;
+    
+    this.input.addEventListener('input', () => this.handleSearch());
+  }
+  
+  handleSearch() {
+    clearTimeout(this.debounceTimer);
+    this.debounceTimer = setTimeout(() => {
+      const query = this.input.value.toLowerCase().trim();
+      this.filterShortcuts(query);
+    }, 150); // Debounce 150ms
+  }
+  
+  filterShortcuts(query) {
+    if (!query) {
+      // Show all shortcuts
+      this.shortcuts.forEach(s => s.element.style.display = '');
+      return;
     }
     
-    track(shortcutId) {
-        const now = Date.now();
-        const data = this.usage.get(shortcutId) || {
-            count: 0,
-            firstUsed: now,
-            lastUsed: now
-        };
-        
-        data.count++;
-        data.lastUsed = now;
-        
-        this.usage.set(shortcutId, data);
-        this.saveToStorage();
-        
-        // Update UI
-        this.updateShortcutUI(shortcutId, data);
-    }
+    // Fuzzy search: match action name or keys
+    this.shortcuts.forEach(shortcut => {
+      const matchName = shortcut.name.toLowerCase().includes(query);
+      const matchKeys = shortcut.keys.toLowerCase().includes(query);
+      const matchCategory = shortcut.category.toLowerCase().includes(query);
+      
+      shortcut.element.style.display = 
+        (matchName || matchKeys || matchCategory) ? '' : 'none';
+    });
     
-    getRecent(limit = 20) {
-        return Array.from(this.usage.entries())
-            .sort((a, b) => b[1].lastUsed - a[1].lastUsed)
-            .slice(0, limit);
-    }
+    // Hide empty groups
+    this.updateGroupVisibility();
+  }
+  
+  updateGroupVisibility() {
+    document.querySelectorAll('.shortcut-group').forEach(group => {
+      const visibleItems = group.querySelectorAll('.shortcut-item:not([style*="display: none"])');
+      group.style.display = visibleItems.length > 0 ? '' : 'none';
+    });
+  }
 }
 ```
 
-### 4.2 Conflict Indicators
+### 3.4 Category Tabs
 
-**Visual Treatment:**
 ```html
-<div class="shortcuts-panel__item shortcuts-panel__item--conflict">
-    <div class="shortcuts-panel__item-left">
-        <span class="shortcuts-panel__item-action">Duplicate</span>
-    </div>
-    <div class="shortcuts-panel__item-right">
-        <kbd>⌘</kbd><kbd>D</kbd>
-        <span class="shortcuts-panel__conflict-badge" title="May conflict with browser bookmark">
-            ⚠️
-        </span>
-    </div>
+<div class="shortcut-overlay__tabs" role="tablist">
+  <button role="tab" aria-selected="true" class="shortcut-tab is-active">All</button>
+  <button role="tab" aria-selected="false" class="shortcut-tab">
+    <span class="shortcut-tab__icon">⭐</span>
+    Recent
+  </button>
+  <button role="tab" class="shortcut-tab">Tools</button>
+  <button role="tab" class="shortcut-tab">Edit</button>
+  <button role="tab" class="shortcut-tab">View</button>
+  <button role="tab" class="shortcut-tab">Text</button>
+  <button role="tab" class="shortcut-tab">Arrange</button>
+  <button role="tab" class="shortcut-tab">Transform</button>
+  <button role="tab" class="shortcut-tab">Slides</button>
 </div>
 ```
 
-**Tooltip on hover:**
-```
-⚠️ Browser Conflict
-This shortcut may conflict with your browser's
-bookmark action. Consider using Cmd+Shift+D instead.
+**CSS:**
+```css
+.shortcut-overlay__tabs {
+  display: flex;
+  gap: 8px;
+  padding: 12px 20px;
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-surface);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
 
-[Use Alternative] [Keep Current]
-```
+.shortcut-overlay__tabs::-webkit-scrollbar {
+  display: none;
+}
 
-### 4.3 Context-Aware Display
+.shortcut-tab {
+  padding: 6px 14px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  background: transparent;
+  border: 1px solid var(--color-border);
+  border-radius: 20px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
 
-**Show only relevant shortcuts based on current mode:**
+.shortcut-tab:hover {
+  background: var(--color-hover);
+  color: var(--color-text-primary);
+}
 
-```javascript
-function getContextualShortcuts() {
-    const context = contextManager.current();
-    
-    switch (context) {
-        case 'text-editing':
-            return shortcutRegistry.getByContext('text-editing');
-            // Shows: Bold, Italic, Font size, etc.
-            
-        case 'canvas':
-            return shortcutRegistry.getByContext('canvas');
-            // Shows: Tools, Arrange, Group, etc.
-            
-        case 'presentation':
-            return shortcutRegistry.getByContext('presentation');
-            // Shows: Next/Prev slide, Exit, etc.
-            
-        default:
-            return shortcutRegistry.getAll();
-    }
+.shortcut-tab.is-active {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: white;
+}
+
+.shortcut-tab__icon {
+  font-size: 14px;
 }
 ```
 
-**UI Indicator:**
-```html
-<div class="shortcuts-panel__context-badge">
-    <i class="fa-solid fa-layer-group"></i>
-    Showing shortcuts for: <strong>Canvas Mode</strong>
-</div>
-```
-
----
-
-## 5. Customization Interface
-
-### 5.1 Edit Mode
-
-**Click edit button on any shortcut:**
+### 3.5 Content Area (Multi-Column)
 
 ```html
-<div class="shortcuts-panel__item shortcuts-panel__item--editing">
-    <div class="shortcuts-panel__item-left">
-        <span class="shortcuts-panel__item-action">Duplicate</span>
-    </div>
-    <div class="shortcuts-panel__item-right">
-        <div class="shortcuts-panel__edit-input">
-            <kbd class="shortcuts-panel__key shortcuts-panel__key--recording">
-                Press shortcut...
-            </kbd>
-            <button class="shortcuts-panel__edit-cancel">✕</button>
-            <button class="shortcuts-panel__edit-save">✓</button>
+<div class="shortcut-overlay__content">
+  <div class="shortcut-columns">
+    <!-- Column 1 -->
+    <div class="shortcut-column">
+      <div class="shortcut-group">
+        <h3 class="shortcut-group__title">Selection</h3>
+        <div class="shortcut-group__items">
+          <div class="shortcut-item" data-used="true">
+            <span class="shortcut-item__name">Select All</span>
+            <kbd class="shortcut-item__key">Ctrl+A</kbd>
+          </div>
+          <div class="shortcut-item">
+            <span class="shortcut-item__name">Select None</span>
+            <kbd class="shortcut-item__key">Ctrl+Shift+A</kbd>
+          </div>
         </div>
+      </div>
+      
+      <div class="shortcut-group">
+        <h3 class="shortcut-group__title">Arrange</h3>
+        <div class="shortcut-group__items">
+          <!-- More items -->
+        </div>
+      </div>
     </div>
-</div>
-```
-
-**Recording State:**
-1. Click edit button
-2. Input becomes active (glowing border)
-3. Press new shortcut combination
-4. Check for conflicts
-5. Show preview/confirmation
-6. Save or cancel
-
-**Conflict Resolution:**
-```html
-<div class="shortcuts-panel__edit-conflict">
-    <i class="fa-solid fa-triangle-exclamation"></i>
-    <span>Cmd+K is already used for <strong>Scale Tool</strong></span>
-    <div class="shortcuts-panel__edit-actions">
-        <button>Swap Shortcuts</button>
-        <button>Try Another</button>
-        <button>Cancel</button>
+    
+    <!-- Column 2 -->
+    <div class="shortcut-column">
+      <!-- More groups -->
     </div>
+    
+    <!-- Column 3 -->
+    <div class="shortcut-column">
+      <!-- More groups -->
+    </div>
+  </div>
 </div>
 ```
 
-### 5.2 Preset Management
+**CSS:**
+```css
+.shortcut-overlay__content {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 24px;
+}
 
-**Quick access to shortcut presets:**
+/* Multi-column grid layout */
+.shortcut-columns {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 28px;
+  align-items: start;
+}
 
-```html
-<div class="shortcuts-panel__presets">
-    <button class="shortcuts-panel__preset shortcuts-panel__preset--active">
-        <i class="fa-solid fa-star"></i>
-        Story Default
-    </button>
-    <button class="shortcuts-panel__preset">
-        <i class="fa-brands fa-figma"></i>
-        Figma Style
-    </button>
-    <button class="shortcuts-panel__preset">
-        <i class="fa-brands fa-adobe"></i>
-        Adobe XD
-    </button>
-    <button class="shortcuts-panel__preset shortcuts-panel__preset--custom">
-        <i class="fa-solid fa-user"></i>
-        My Custom
-    </button>
-    <button class="shortcuts-panel__preset-add">
-        <i class="fa-solid fa-plus"></i>
-        New Preset
-    </button>
-</div>
+.shortcut-column {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  min-width: 0;
+}
+
+/* Tablet: 2 columns */
+@media (max-width: 960px) {
+  .shortcut-columns {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 24px;
+  }
+}
+
+/* Mobile: 1 column */
+@media (max-width: 640px) {
+  .shortcut-overlay__content {
+    padding: 16px;
+  }
+  
+  .shortcut-columns {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+}
+
+/* Smooth scrolling */
+.shortcut-overlay__content {
+  scroll-behavior: smooth;
+}
 ```
 
-**Preset Switcher Modal:**
-```
-┌─────────────────────────────────────────┐
-│ Switch Keyboard Shortcuts Preset        │
-├─────────────────────────────────────────┤
-│                                          │
-│  ● Story Default                         │
-│    Our carefully designed shortcuts      │
-│                                          │
-│  ○ Figma Style                          │
-│    Match Figma's keyboard shortcuts      │
-│                                          │
-│  ○ Adobe XD                             │
-│    Match Adobe XD shortcuts              │
-│                                          │
-│  ○ My Custom                            │
-│    Your personalized shortcuts           │
-│    [Edit] [Duplicate] [Delete]          │
-│                                          │
-├─────────────────────────────────────────┤
-│             [Cancel] [Apply]             │
-└─────────────────────────────────────────┘
-```
+### 3.6 Shortcut Group
 
-### 5.3 Import/Export
+```css
+.shortcut-group {
+  break-inside: avoid; /* Prevent column breaks */
+}
 
-```html
-<div class="shortcuts-panel__footer">
-    <button class="shortcuts-panel__footer-btn">
-        <i class="fa-solid fa-download"></i>
-        Export
-    </button>
-    <button class="shortcuts-panel__footer-btn">
-        <i class="fa-solid fa-upload"></i>
-        Import
-    </button>
-    <button class="shortcuts-panel__footer-btn">
-        <i class="fa-solid fa-rotate-left"></i>
-        Reset All
-    </button>
-    <div class="shortcuts-panel__footer-spacer"></div>
-    <select class="shortcuts-panel__keyboard-layout">
-        <option value="qwerty">QWERTY</option>
-        <option value="azerty">AZERTY</option>
-        <option value="qwertz">QWERTZ</option>
-        <option value="dvorak">Dvorak</option>
-    </select>
-</div>
+.shortcut-group__title {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: var(--color-text-secondary);
+  margin: 0 0 10px 0;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--color-border-subtle);
+}
+
+.shortcut-group__items {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
 ```
 
-**Export Format (JSON):**
-```json
-{
-    "name": "My Custom Shortcuts",
-    "version": "1.0",
-    "platform": "mac",
-    "layout": "qwerty",
-    "shortcuts": {
-        "duplicate": {
-            "key": "cmd+d",
-            "description": "Duplicate selection",
-            "category": "edit"
-        },
-        "tool-rectangle": {
-            "key": "r",
-            "description": "Rectangle tool",
-            "category": "tools"
+### 3.7 Shortcut Item
+
+```css
+.shortcut-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 32px;
+  padding: 6px 10px;
+  border-radius: 6px;
+  transition: background 0.12s ease;
+  gap: 12px;
+}
+
+.shortcut-item:hover {
+  background: var(--color-hover);
+}
+
+.shortcut-item__name {
+  font-size: 13px;
+  color: var(--color-text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  line-height: 1.4;
+  flex: 1;
+}
+
+/* Star indicator for used shortcuts */
+.shortcut-item[data-used="true"] .shortcut-item__name::before {
+  content: '⭐';
+  font-size: 12px;
+  margin-right: 6px;
+  opacity: 0.8;
+}
+
+.shortcut-item__key {
+  font-family: var(--font-mono, 'SF Mono', monospace);
+  font-size: 11px;
+  padding: 4px 8px;
+  background: var(--color-surface-raised);
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  white-space: nowrap;
+  flex-shrink: 0;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+}
+
+/* Multiple key combinations */
+.shortcut-item__key + .shortcut-item__key {
+  margin-left: 4px;
+}
+
+/* Mobile: Larger touch targets */
+@media (max-width: 640px) {
+  .shortcut-item {
+    min-height: 44px;
+    padding: 10px 14px;
+  }
+  
+  .shortcut-item__name {
+    font-size: 14px;
+  }
+  
+  .shortcut-item__key {
+    font-size: 12px;
+    padding: 5px 10px;
+  }
+}
+```
+
+---
+
+## 4. Interaction Patterns
+
+### 4.1 Opening the Overlay
+
+**Triggers:**
+1. Press `?` (single key, not in text input)
+2. Press `Ctrl+Shift+/` (works everywhere)
+3. Click "Shortcuts" in help menu
+
+**Behavior:**
+```javascript
+class ShortcutOverlay {
+  constructor() {
+    this.panel = this.createPanel();
+    this.isOpen = false;
+    this.setupKeyboardListeners();
+  }
+  
+  setupKeyboardListeners() {
+    document.addEventListener('keydown', (e) => {
+      // Toggle with Ctrl+Shift+/
+      if (e.ctrlKey && e.shiftKey && e.key === '/') {
+        e.preventDefault();
+        this.toggle();
+        return;
+      }
+      
+      // Toggle with ? (not in input)
+      if (e.key === '?' && !this.isInputFocused()) {
+        e.preventDefault();
+        this.toggle();
+        return;
+      }
+      
+      // Close with Escape
+      if (e.key === 'Escape' && this.isOpen) {
+        this.close();
+      }
+    });
+  }
+  
+  isInputFocused() {
+    const active = document.activeElement;
+    return active && (
+      active.tagName === 'INPUT' ||
+      active.tagName === 'TEXTAREA' ||
+      active.isContentEditable
+    );
+  }
+  
+  toggle() {
+    this.isOpen ? this.close() : this.open();
+  }
+  
+  open() {
+    this.panel.style.display = 'flex';
+    requestAnimationFrame(() => {
+      this.panel.classList.add('is-open');
+      this.searchInput.focus();
+    });
+    this.isOpen = true;
+  }
+  
+  close() {
+    this.panel.classList.remove('is-open');
+    setTimeout(() => {
+      this.panel.style.display = 'none';
+    }, 200);
+    this.isOpen = false;
+  }
+}
+```
+
+### 4.2 Search Interaction
+
+**Flow:**
+1. Overlay opens → Search gets autofocus
+2. User types → Results filter live (150ms debounce)
+3. No results → Show "No shortcuts found" message
+4. Clear with X button or Escape (if search has text)
+
+### 4.3 Dismissing
+
+**Methods:**
+1. **Escape key** - Fastest
+2. **Backdrop click** - Natural
+3. **Same shortcut** - `?` or `Ctrl+Shift+/`
+4. **Close button** - Visible option
+
+### 4.4 Category Filtering
+
+**Behavior:**
+- Click tab → Show only that category
+- "All" tab → Show everything
+- "Recent" tab → Show last 20 used shortcuts (with usage tracking)
+- Horizontal scroll on mobile
+
+---
+
+## 5. Animations
+
+### 5.1 Open Animation
+
+```css
+@keyframes overlay-enter {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.shortcut-overlay.is-open .shortcut-overlay__panel {
+  animation: overlay-enter 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.shortcut-overlay.is-open .shortcut-overlay__backdrop {
+  animation: fade-in 0.2s ease-out;
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+```
+
+### 5.2 Close Animation
+
+```css
+@keyframes overlay-exit {
+  from {
+    opacity: 1;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+}
+
+.shortcut-overlay:not(.is-open) .shortcut-overlay__panel {
+  animation: overlay-exit 0.15s cubic-bezier(0.4, 0, 1, 1);
+}
+```
+
+### 5.3 Mobile Swipe (Optional)
+
+```javascript
+// Swipe down to close on mobile
+let startY = 0;
+panel.addEventListener('touchstart', (e) => {
+  startY = e.touches[0].clientY;
+});
+
+panel.addEventListener('touchmove', (e) => {
+  const deltaY = e.touches[0].clientY - startY;
+  if (deltaY > 0 && panel.scrollTop === 0) {
+    panel.style.transform = `translateY(${deltaY}px)`;
+  }
+});
+
+panel.addEventListener('touchend', (e) => {
+  const deltaY = e.changedTouches[0].clientY - startY;
+  if (deltaY > 100) {
+    overlay.close();
+  } else {
+    panel.style.transform = '';
+  }
+});
+```
+
+---
+
+## 6. Accessibility
+
+### 6.1 Keyboard Navigation
+
+**Within overlay:**
+- `Tab` / `Shift+Tab` - Navigate between search, tabs, close button
+- `Arrow keys` - Navigate shortcuts (when not searching)
+- `Enter` - Activate selected item
+- `Escape` - Close overlay
+- `Ctrl+F` - Re-focus search from anywhere
+
+**Focus Management:**
+```javascript
+class FocusManager {
+  constructor(overlay) {
+    this.overlay = overlay;
+    this.previousFocus = null;
+  }
+  
+  trapFocus() {
+    this.previousFocus = document.activeElement;
+    
+    const focusable = this.overlay.querySelectorAll(
+      'input, button, [tabindex]:not([tabindex="-1"])'
+    );
+    
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    
+    this.overlay.addEventListener('keydown', (e) => {
+      if (e.key === 'Tab') {
+        if (e.shiftKey && document.activeElement === first) {
+          e.preventDefault();
+          last.focus();
+        } else if (!e.shiftKey && document.activeElement === last) {
+          e.preventDefault();
+          first.focus();
         }
-    },
-    "metadata": {
-        "created": "2025-12-10T12:00:00Z",
-        "modified": "2025-12-10T14:30:00Z",
-        "author": "User Name"
+      }
+    });
+  }
+  
+  restoreFocus() {
+    if (this.previousFocus) {
+      this.previousFocus.focus();
     }
+  }
 }
 ```
 
----
-
-## 6. Responsive Design
-
-### 6.1 Desktop (>1024px)
-
-- **Width:** 640px fixed
-- **Height:** Max 80vh
-- **Position:** Centered modal
-- **Layout:** Two columns (action + shortcut)
-- **Search:** Always visible
-- **Tabs:** Horizontal scroll if needed
-
-### 6.2 Tablet (768px - 1024px)
-
-- **Width:** 90% (max 600px)
-- **Height:** Max 90vh
-- **Position:** Centered modal
-- **Layout:** Two columns (action + shortcut)
-- **Search:** Always visible
-- **Tabs:** Horizontal scroll
-
-### 6.3 Mobile (<768px)
-
-- **Width:** 100% (full screen)
-- **Height:** 100vh (full screen)
-- **Position:** Slide up from bottom
-- **Layout:** Stacked (action above shortcut)
-- **Search:** Collapsible
-- **Tabs:** Horizontal scroll with momentum
-
-**Mobile-specific features:**
-- Swipe down to close
-- Pull to refresh shortcuts
-- Haptic feedback on tap
-- Bottom sheet animation
-
----
-
-## 7. Interactions & Animations
-
-### 7.1 Panel Open/Close
-
-**Opening:**
-```css
-@keyframes shortcuts-panel-enter {
-    0% {
-        opacity: 0;
-        transform: scale(0.95) translateY(-10px);
-    }
-    100% {
-        opacity: 1;
-        transform: scale(1) translateY(0);
-    }
-}
-
-.shortcuts-panel {
-    animation: shortcuts-panel-enter 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-}
-```
-
-**Closing:**
-```css
-@keyframes shortcuts-panel-exit {
-    0% {
-        opacity: 1;
-        transform: scale(1) translateY(0);
-    }
-    100% {
-        opacity: 0;
-        transform: scale(0.95) translateY(-10px);
-    }
-}
-
-.shortcuts-panel--closing {
-    animation: shortcuts-panel-exit 0.15s cubic-bezier(0.4, 0, 1, 1);
-}
-```
-
-### 7.2 Search Results
-
-**Filter animation:**
-```css
-@keyframes shortcuts-item-filter {
-    0% {
-        opacity: 1;
-        max-height: 40px;
-    }
-    100% {
-        opacity: 0;
-        max-height: 0;
-    }
-}
-
-.shortcuts-panel__item--filtered-out {
-    animation: shortcuts-item-filter 0.2s ease-out forwards;
-}
-```
-
-**Highlight match:**
-```css
-.shortcuts-panel__item-action mark {
-    background: var(--color-accent-alpha-20);
-    color: var(--color-accent);
-    border-radius: 2px;
-    padding: 0 2px;
-}
-```
-
-### 7.3 Edit Mode Transition
-
-```css
-.shortcuts-panel__item-right {
-    transition: all 0.2s ease;
-}
-
-.shortcuts-panel__item--editing .shortcuts-panel__item-right {
-    background: var(--color-bg-elevated);
-    border-radius: 6px;
-    padding: 4px 8px;
-    box-shadow: 0 0 0 2px var(--color-accent);
-}
-```
-
-### 7.4 Micro-interactions
-
-**Usage star:**
-```css
-@keyframes star-pop {
-    0% {
-        transform: scale(0);
-    }
-    50% {
-        transform: scale(1.2);
-    }
-    100% {
-        transform: scale(1);
-    }
-}
-
-.shortcuts-panel__item-star {
-    animation: star-pop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-```
-
-**Conflict badge pulse:**
-```css
-@keyframes conflict-pulse {
-    0%, 100% {
-        opacity: 1;
-    }
-    50% {
-        opacity: 0.5;
-    }
-}
-
-.shortcuts-panel__item-badge--conflict {
-    animation: conflict-pulse 2s ease-in-out infinite;
-}
-```
-
----
-
-## 8. Keyboard Navigation
-
-### 8.1 Navigation Pattern
-
-```
-Ctrl/Cmd+Shift+?  → Open panel
-Ctrl/Cmd+F        → Focus search
-Tab               → Next element
-Shift+Tab         → Previous element
-Enter/Space       → Activate button/toggle
-Escape            → Close panel (or clear search if focused)
-Arrow Up/Down     → Navigate shortcuts list
-Arrow Left/Right  → Switch categories
-Ctrl/Cmd+1-9      → Jump to category
-```
-
-### 8.2 Focus Management
-
-**Focus order:**
-1. Search input (auto-focus on open)
-2. Category tabs
-3. Shortcut items
-4. Edit buttons
-5. Footer buttons
-
-**Focus styles:**
-```css
-.shortcuts-panel *:focus {
-    outline: 2px solid var(--color-accent);
-    outline-offset: 2px;
-}
-
-.shortcuts-panel *:focus:not(:focus-visible) {
-    outline: none;
-}
-```
-
-### 8.3 Screen Reader Support
+### 6.2 Screen Reader Support
 
 ```html
 <div 
-    role="dialog"
-    aria-labelledby="shortcuts-panel-title"
-    aria-modal="true"
-    class="shortcuts-panel"
+  class="shortcut-overlay" 
+  role="dialog" 
+  aria-modal="true" 
+  aria-labelledby="shortcuts-title"
+  aria-describedby="shortcuts-desc"
 >
-    <h2 id="shortcuts-panel-title">Keyboard Shortcuts</h2>
+  <div class="shortcut-overlay__panel">
+    <h2 id="shortcuts-title">Keyboard Shortcuts</h2>
+    <p id="shortcuts-desc" class="sr-only">
+      A list of all available keyboard shortcuts. Use search to filter.
+    </p>
     
-    <div role="search">
-        <input 
-            type="search"
-            aria-label="Search shortcuts"
-            aria-describedby="search-hint"
-        />
-        <span id="search-hint" class="sr-only">
-            Start typing to filter shortcuts
-        </span>
-    </div>
+    <!-- Search -->
+    <input 
+      type="text"
+      role="searchbox"
+      aria-label="Search shortcuts"
+      aria-controls="shortcut-list"
+    />
     
+    <!-- Tabs -->
     <div role="tablist" aria-label="Shortcut categories">
-        <button role="tab" aria-selected="true">All</button>
-        <button role="tab" aria-selected="false">Tools</button>
+      <button role="tab" aria-selected="true" aria-controls="panel-all">
+        All
+      </button>
     </div>
     
-    <div role="list" aria-label="Keyboard shortcuts">
-        <div role="listitem" class="shortcuts-panel__item">
-            <span>Duplicate</span>
-            <kbd aria-label="Command D">⌘D</kbd>
-        </div>
+    <!-- Content -->
+    <div id="shortcut-list" role="list" aria-live="polite">
+      <div role="listitem">
+        <span>Select All</span>
+        <kbd aria-label="Control plus A">Ctrl+A</kbd>
+      </div>
     </div>
+  </div>
 </div>
 ```
 
----
-
-## 9. Empty States & Edge Cases
-
-### 9.1 No Search Results
-
-```html
-<div class="shortcuts-panel__empty">
-    <i class="fa-solid fa-magnifying-glass"></i>
-    <h3>No shortcuts found</h3>
-    <p>Try searching for an action or key combination</p>
-    <button class="shortcuts-panel__empty-action">
-        Clear Search
-    </button>
-</div>
-```
-
-### 9.2 No Shortcuts in Category
-
-```html
-<div class="shortcuts-panel__empty">
-    <i class="fa-solid fa-keyboard"></i>
-    <h3>No shortcuts in this category</h3>
-    <p>This category doesn't have any shortcuts yet</p>
-</div>
-```
-
-### 9.3 Conflicting Shortcuts Warning
-
-```html
-<div class="shortcuts-panel__banner shortcuts-panel__banner--warning">
-    <i class="fa-solid fa-triangle-exclamation"></i>
-    <div class="shortcuts-panel__banner-content">
-        <strong>3 shortcuts may conflict with your browser</strong>
-        <p>Some shortcuts might not work as expected</p>
-    </div>
-    <button class="shortcuts-panel__banner-action">
-        View Conflicts
-    </button>
-    <button class="shortcuts-panel__banner-close">✕</button>
-</div>
-```
-
-### 9.4 Custom Shortcuts Active
-
-```html
-<div class="shortcuts-panel__banner shortcuts-panel__banner--info">
-    <i class="fa-solid fa-user"></i>
-    <div class="shortcuts-panel__banner-content">
-        <strong>Custom shortcuts active</strong>
-        <p>Using "My Custom" preset</p>
-    </div>
-    <button class="shortcuts-panel__banner-action">
-        Reset to Default
-    </button>
-</div>
-```
-
----
-
-## 10. Performance Optimization
-
-### 10.1 Virtual Scrolling
-
-For large shortcut lists (100+ items):
-
+**Announcements:**
 ```javascript
-class VirtualShortcutList {
-    constructor(items, itemHeight = 40, visibleCount = 15) {
-        this.items = items;
-        this.itemHeight = itemHeight;
-        this.visibleCount = visibleCount;
-        this.scrollTop = 0;
-    }
-    
-    getVisibleItems() {
-        const startIndex = Math.floor(this.scrollTop / this.itemHeight);
-        const endIndex = startIndex + this.visibleCount;
-        
-        return this.items.slice(startIndex, endIndex + 1);
-    }
-    
-    render() {
-        const visibleItems = this.getVisibleItems();
-        const offsetY = Math.floor(this.scrollTop / this.itemHeight) * this.itemHeight;
-        
-        return `
-            <div style="height: ${this.items.length * this.itemHeight}px">
-                <div style="transform: translateY(${offsetY}px)">
-                    ${visibleItems.map(item => this.renderItem(item)).join('')}
-                </div>
-            </div>
-        `;
-    }
+function announceSearchResults(count) {
+  const announcement = document.createElement('div');
+  announcement.setAttribute('role', 'status');
+  announcement.setAttribute('aria-live', 'polite');
+  announcement.className = 'sr-only';
+  announcement.textContent = `${count} shortcuts found`;
+  document.body.appendChild(announcement);
+  setTimeout(() => announcement.remove(), 1000);
 }
 ```
 
-### 10.2 Search Debouncing
+### 6.3 Reduced Motion
 
-```javascript
-class ShortcutSearch {
-    constructor(debounceMs = 150) {
-        this.debounceTimeout = null;
-        this.debounceMs = debounceMs;
-    }
-    
-    search(query) {
-        clearTimeout(this.debounceTimeout);
-        
-        this.debounceTimeout = setTimeout(() => {
-            this.performSearch(query);
-        }, this.debounceMs);
-    }
-    
-    performSearch(query) {
-        const results = fuzzySearch(query, this.shortcuts);
-        this.renderResults(results);
-    }
-}
-```
-
-### 10.3 Lazy Loading
-
-Load shortcut descriptions and help text on demand:
-
-```javascript
-class ShortcutRegistry {
-    async getShortcut(id) {
-        const shortcut = this.shortcuts.get(id);
-        
-        // Lazy load description if not present
-        if (!shortcut.description) {
-            shortcut.description = await this.loadDescription(id);
-        }
-        
-        return shortcut;
-    }
+```css
+@media (prefers-reduced-motion: reduce) {
+  .shortcut-overlay.is-open .shortcut-overlay__panel,
+  .shortcut-overlay:not(.is-open) .shortcut-overlay__panel {
+    animation: none;
+  }
+  
+  .shortcut-overlay__panel {
+    transition: none;
+  }
 }
 ```
 
 ---
 
-## 11. Accessibility Checklist
+## 7. Performance Optimization
 
-- [ ] ARIA labels on all interactive elements
-- [ ] Keyboard navigation for all features
-- [ ] Focus trap within modal
-- [ ] Focus restoration on close
-- [ ] Screen reader announcements for state changes
-- [ ] High contrast mode support
-- [ ] Reduced motion support
-- [ ] Sufficient color contrast (WCAG AA)
-- [ ] Touch target size (44x44px minimum on mobile)
-- [ ] Alternative text for icons
+### 7.1 Instant Open (<100ms)
+
+**Strategy: Pre-render panel on page load**
+
+```javascript
+class ShortcutOverlayOptimized {
+  constructor() {
+    // Create panel immediately on page load
+    this.panel = this.createPanel();
+    this.panel.style.display = 'none';
+    document.body.appendChild(this.panel);
+    
+    // Pre-populate shortcuts
+    this.shortcuts = this.loadShortcuts();
+    this.renderAllShortcuts();
+    
+    this.setupListeners();
+  }
+  
+  open() {
+    // Just show (no DOM creation = instant)
+    performance.mark('overlay-open-start');
+    
+    this.panel.style.display = 'flex';
+    requestAnimationFrame(() => {
+      this.panel.classList.add('is-open');
+      this.searchInput.focus();
+      
+      performance.mark('overlay-open-end');
+      performance.measure('overlay-open', 'overlay-open-start', 'overlay-open-end');
+      
+      // Log performance (should be <100ms)
+      const measure = performance.getEntriesByName('overlay-open')[0];
+      console.log(`Overlay opened in ${measure.duration.toFixed(2)}ms`);
+    });
+  }
+  
+  close() {
+    // Keep DOM, just hide (fast to reopen)
+    this.panel.classList.remove('is-open');
+    setTimeout(() => {
+      this.panel.style.display = 'none';
+      this.searchInput.value = ''; // Clear search
+    }, 200);
+  }
+}
+```
+
+### 7.2 Search Performance
+
+```javascript
+class OptimizedSearch {
+  constructor(shortcuts) {
+    this.shortcuts = shortcuts;
+    this.debounceTimer = null;
+    
+    // Pre-compute search indexes
+    this.searchIndex = this.buildSearchIndex();
+  }
+  
+  buildSearchIndex() {
+    return this.shortcuts.map(shortcut => ({
+      id: shortcut.id,
+      searchText: [
+        shortcut.name,
+        shortcut.keys,
+        shortcut.category,
+        shortcut.description || ''
+      ].join(' ').toLowerCase()
+    }));
+  }
+  
+  search(query) {
+    clearTimeout(this.debounceTimer);
+    
+    this.debounceTimer = setTimeout(() => {
+      const q = query.toLowerCase().trim();
+      
+      if (!q) {
+        this.showAll();
+        return;
+      }
+      
+      // Fast string includes (not regex)
+      const matches = this.searchIndex
+        .filter(item => item.searchText.includes(q))
+        .map(item => item.id);
+      
+      this.updateVisibility(matches);
+    }, 150);
+  }
+  
+  updateVisibility(matchIds) {
+    // Use CSS classes (faster than style.display)
+    this.shortcuts.forEach(shortcut => {
+      shortcut.element.classList.toggle(
+        'is-hidden',
+        !matchIds.includes(shortcut.id)
+      );
+    });
+  }
+}
+```
+
+**CSS:**
+```css
+.shortcut-item.is-hidden {
+  display: none;
+}
+```
+
+### 7.3 Multi-Column Layout Performance
+
+**Why CSS Grid > JavaScript:**
+- Browser handles layout (GPU accelerated)
+- Responsive without JS media queries
+- Smooth resizing
+- Better paint performance
+
+```css
+/* Let browser do the work */
+.shortcut-columns {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 24px;
+}
+
+/* No JavaScript needed for responsive */
+@media (max-width: 960px) {
+  .shortcut-columns {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+```
+
+### 7.4 Scroll Performance
+
+```css
+.shortcut-overlay__content {
+  /* Smooth scrolling */
+  scroll-behavior: smooth;
+  
+  /* Optimize scrolling */
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  
+  /* Enable GPU acceleration */
+  will-change: scroll-position;
+}
+```
+
+### 7.5 Memory Optimization
+
+```javascript
+class MemoryOptimizedOverlay {
+  constructor() {
+    // Keep panel in DOM (don't create/destroy)
+    this.panel = this.createPanel();
+    
+    // Reuse event listeners
+    this.boundHandlers = {
+      handleSearch: this.handleSearch.bind(this),
+      handleKeydown: this.handleKeydown.bind(this),
+      handleBackdropClick: this.handleBackdropClick.bind(this)
+    };
+    
+    this.setupListeners();
+  }
+  
+  destroy() {
+    // Clean up if needed
+    this.removeListeners();
+    this.panel.remove();
+  }
+}
+```
 
 ---
 
-## 12. Implementation Priority
+## 8. Implementation Priorities
 
-### P0 - MVP (Week 1)
-- [ ] Basic panel layout (header, search, content)
-- [ ] Shortcut list rendering
-- [ ] Category filtering
-- [ ] Search functionality
-- [ ] Open/close with Ctrl+Shift+?
-- [ ] Basic styling (matches design system)
+### P0: Fast Access MVP (Week 1)
 
-### P1 - Core Features (Week 2)
-- [ ] Usage tracking (star indicators)
-- [ ] Recent shortcuts tab
-- [ ] Keyboard navigation
-- [ ] Responsive design (mobile)
-- [ ] Conflict indicators
+**Goal: Users can bring up overlay and find shortcuts quickly**
+
+- [x] Multi-column layout (3 → 2 → 1 responsive)
+- [x] Instant open (<100ms): `?` and `Ctrl+Shift+/`
+- [x] Autofocus search on open
+- [x] Live search with 150ms debounce
+- [x] ESC / backdrop / same-key to dismiss
+- [x] All 150+ shortcuts rendered and grouped
+- [x] Basic styling (readable, clean)
+- [x] Mobile responsive (full screen)
+
+**Success Criteria:**
+- Opens in <100ms from keypress ✅
+- Search responds in <200ms ✅
+- Works on mobile ✅
+- Shows 50+ shortcuts at once (desktop) ✅
+
+**Deliverables:**
+```
+src/ui/ShortcutOverlay.js         # Main component
+styles/components/shortcut-overlay.css  # All styles
+```
+
+### P1: Discoverability (Week 2)
+
+**Goal: Make finding shortcuts effortless**
+
+- [ ] Category tabs with filtering
+- [ ] Platform detection (Mac: ⌘, Windows: Ctrl)
+- [ ] Search result highlighting
+- [ ] "Recent" tab (last 20 used)
+- [ ] Empty state: "No shortcuts found"
+- [ ] Smooth animations (scale, fade)
+- [ ] Keyboard navigation (Tab, Arrow keys)
+- [ ] Usage tracking foundation
+
+**Success Criteria:**
+- Can find any shortcut in <3 seconds
+- Tab filtering works
+- Platform-appropriate keys shown
+- Keyboard navigation complete
+
+### P2: Learning & Tracking (Week 3)
+
+**Goal: Help users learn through patterns**
+
+- [ ] ⭐ Star indicators for used shortcuts
+- [ ] "Recently used" sorting
+- [ ] Frequency-based recommendations
 - [ ] Context-aware display
+- [ ] ⚠️ Conflict indicators
+- [ ] Tooltips/descriptions
+- [ ] Print-friendly view
 
-### P2 - Customization (Week 3)
-- [ ] Edit shortcut functionality
+**Success Criteria:**
+- Users see which shortcuts they use most
+- Recent shortcuts highlighted
+- Conflicts clearly marked
+
+### P3: Customization (Week 4)
+
+**Goal: Power users can personalize**
+
+- [ ] Edit mode (inline shortcut recording)
+- [ ] Preset management (Figma/Adobe/Story)
+- [ ] Import/export JSON
+- [ ] Reset to defaults
+- [ ] Custom shortcut validation
 - [ ] Conflict resolution UI
-- [ ] Preset management
-- [ ] Import/export
-
-### P3 - Polish (Week 4)
-- [ ] Animations & micro-interactions
-- [ ] Virtual scrolling (performance)
-- [ ] Keyboard layout switcher
-- [ ] Help tooltips
-- [ ] Onboarding tour
+- [ ] Advanced animations
+- [ ] Analytics tracking
 
 ---
 
-## 13. Testing Strategy
+## 9. Testing Strategy
 
-### 13.1 Visual Testing
+### 9.1 Performance Tests
 
-- [ ] Screenshot comparison across themes
-- [ ] Responsive breakpoints (320px, 768px, 1024px, 1440px)
-- [ ] Browser compatibility (Chrome, Firefox, Safari, Edge)
-- [ ] Light/Dark mode
-- [ ] High contrast mode
+```javascript
+describe('Overlay Performance', () => {
+  it('opens in <100ms', async () => {
+    const start = performance.now();
+    overlay.open();
+    await waitForAnimation();
+    const duration = performance.now() - start;
+    
+    expect(duration).toBeLessThan(100);
+  });
+  
+  it('search responds in <200ms', async () => {
+    overlay.open();
+    const start = performance.now();
+    overlay.search('duplicate');
+    await waitForDebounce();
+    const duration = performance.now() - start;
+    
+    expect(duration).toBeLessThan(200);
+  });
+  
+  it('scrolls at 60fps', async () => {
+    overlay.open();
+    const fps = await measureScrollFPS(overlay.content);
+    expect(fps).toBeGreaterThan(55); // Allow some variance
+  });
+});
+```
 
-### 13.2 Interaction Testing
+### 9.2 Responsive Tests
 
-- [ ] Open/close with keyboard
-- [ ] Search filtering
-- [ ] Category switching
-- [ ] Edit shortcut workflow
-- [ ] Conflict detection
-- [ ] Import/export
+```javascript
+describe('Responsive Layout', () => {
+  it('shows 3 columns on desktop', () => {
+    setViewport(1400, 900);
+    expect(getColumnCount()).toBe(3);
+  });
+  
+  it('shows 2 columns on tablet', () => {
+    setViewport(900, 700);
+    expect(getColumnCount()).toBe(2);
+  });
+  
+  it('shows 1 column on mobile', () => {
+    setViewport(375, 667);
+    expect(getColumnCount()).toBe(1);
+  });
+  
+  it('is full screen on mobile', () => {
+    setViewport(375, 667);
+    const panel = overlay.panel;
+    expect(panel.offsetWidth).toBe(window.innerWidth);
+    expect(panel.offsetHeight).toBe(window.innerHeight);
+  });
+});
+```
 
-### 13.3 Accessibility Testing
+### 9.3 Interaction Tests
 
-- [ ] Keyboard-only navigation
-- [ ] Screen reader (NVDA, JAWS, VoiceOver)
-- [ ] Focus management
-- [ ] ARIA attributes
-- [ ] Color contrast
+```javascript
+describe('Quick Access', () => {
+  it('opens with ? key', () => {
+    pressKey('?');
+    expect(overlay.isOpen).toBe(true);
+  });
+  
+  it('opens with Ctrl+Shift+/', () => {
+    pressKey('/', { ctrlKey: true, shiftKey: true });
+    expect(overlay.isOpen).toBe(true);
+  });
+  
+  it('autofocuses search on open', () => {
+    overlay.open();
+    expect(document.activeElement).toBe(overlay.searchInput);
+  });
+  
+  it('closes with Escape', () => {
+    overlay.open();
+    pressKey('Escape');
+    expect(overlay.isOpen).toBe(false);
+  });
+  
+  it('closes with backdrop click', () => {
+    overlay.open();
+    overlay.backdrop.click();
+    expect(overlay.isOpen).toBe(false);
+  });
+  
+  it('toggles with same shortcut', () => {
+    pressKey('?');
+    expect(overlay.isOpen).toBe(true);
+    
+    pressKey('?');
+    expect(overlay.isOpen).toBe(false);
+  });
+});
+```
 
-### 13.4 Performance Testing
+### 9.4 Accessibility Tests
 
-- [ ] Panel open time (<200ms)
-- [ ] Search latency (<150ms)
-- [ ] Scroll performance (60fps)
-- [ ] Memory usage (<10MB)
+```javascript
+describe('Accessibility', () => {
+  it('traps focus within modal', () => {
+    overlay.open();
+    const focusable = overlay.getFocusableElements();
+    
+    focusable[focusable.length - 1].focus();
+    pressKey('Tab');
+    
+    expect(document.activeElement).toBe(focusable[0]);
+  });
+  
+  it('has proper ARIA attributes', () => {
+    expect(overlay.panel.getAttribute('role')).toBe('dialog');
+    expect(overlay.panel.getAttribute('aria-modal')).toBe('true');
+    expect(overlay.panel.getAttribute('aria-labelledby')).toBeTruthy();
+  });
+  
+  it('announces search results', () => {
+    overlay.open();
+    overlay.search('duplicate');
+    
+    const announcement = document.querySelector('[role="status"]');
+    expect(announcement.textContent).toContain('shortcuts found');
+  });
+});
+```
 
 ---
 
-**Last Updated:** December 10, 2025
-**Version:** 1.0
-**Status:** Ready for Implementation
+## 10. Summary
+
+### Key Features
+- ✅ **Multi-column layout**: 3 columns (desktop) → 2 (tablet) → 1 (mobile)
+- ✅ **Instant access**: Opens in <100ms with `?` or `Ctrl+Shift+/`
+- ✅ **High density**: Shows 50+ shortcuts at once
+- ✅ **Quick dismiss**: Escape, backdrop, or same shortcut
+- ✅ **Live search**: Fuzzy search with 150ms debounce
+- ✅ **Fully responsive**: Adapts to all screen sizes
+- ✅ **Accessible**: Keyboard navigation, screen readers, ARIA
+- ✅ **Performant**: <100ms open, 60fps scrolling
+
+### User Flow (Target: <5 seconds)
+```
+1. User needs shortcut info
+2. Press ? (anywhere in app)
+3. Overlay opens instantly (<100ms)
+4. Cursor already in search (autofocus)
+5. Type "duplic"
+6. See result: "Duplicate - Ctrl+D"
+7. Press Escape to dismiss
+8. Use the shortcut
+
+Total: ~3 seconds
+```
+
+### Implementation Size
+- **JavaScript**: ~400 lines (ShortcutOverlay class)
+- **CSS**: ~500 lines (multi-column layout, responsive)
+- **HTML**: Pre-rendered panel structure
+- **Total**: ~1,000 lines, highly maintainable
+
+### Browser Support
+- Chrome/Edge: 90+
+- Firefox: 88+
+- Safari: 14+
+- Mobile: iOS 14+, Android 10+
+
