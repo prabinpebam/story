@@ -318,37 +318,50 @@ export class SlideList {
                 item.addEventListener('dragstart', (e) => {
                     e.dataTransfer.setData('text/plain', index);
                     e.dataTransfer.effectAllowed = 'move';
+                    
+                    // Create custom drag image (80px max width, 16:9 aspect ratio)
+                    const dragPreview = this.createDragPreview(preview);
+                    document.body.appendChild(dragPreview);
+                    e.dataTransfer.setDragImage(dragPreview, 40, 22); // Center of 80x45
+                    
+                    // Clean up drag preview after drag starts
+                    setTimeout(() => {
+                        if (dragPreview.parentNode) {
+                            dragPreview.remove();
+                        }
+                    }, 0);
+                    
                     item.style.opacity = '0.5';
                 });
 
                 item.addEventListener('dragend', () => {
                     item.style.opacity = '1';
                     // Remove any drop indicators
-                    Array.from(this.container.querySelectorAll('.slide-thumbnail')).forEach(el => {
-                        el.style.borderTop = '';
-                        el.style.borderBottom = '';
-                    });
+                    this.clearDropIndicators();
                 });
 
                 item.addEventListener('dragover', (e) => {
                     e.preventDefault(); // Necessary to allow dropping
                     e.dataTransfer.dropEffect = 'move';
                     
-                    // Visual feedback
+                    // Clear all indicators first
+                    this.clearDropIndicators();
+                    
+                    // Visual feedback - add class for drop indicator
                     const rect = item.getBoundingClientRect();
                     const midpoint = rect.top + rect.height / 2;
                     if (e.clientY < midpoint) {
-                        item.style.borderTop = '2px solid var(--color-accent)';
-                        item.style.borderBottom = '';
+                        item.classList.add('drop-before');
                     } else {
-                        item.style.borderTop = '';
-                        item.style.borderBottom = '2px solid var(--color-accent)';
+                        item.classList.add('drop-after');
                     }
                 });
 
-                item.addEventListener('dragleave', () => {
-                    item.style.borderTop = '';
-                    item.style.borderBottom = '';
+                item.addEventListener('dragleave', (e) => {
+                    // Only clear if actually leaving (not entering child)
+                    if (!item.contains(e.relatedTarget)) {
+                        item.classList.remove('drop-before', 'drop-after');
+                    }
                 });
 
                 item.addEventListener('drop', (e) => {
@@ -548,6 +561,46 @@ export class SlideList {
                 input.value = currentName;
                 finishRename();
             }
+        });
+    }
+    
+    /**
+     * Create a drag preview image for slide thumbnails
+     * Fixed size: 80px max width with 16:9 aspect ratio (80x45)
+     * @param {HTMLElement} preview - The original slide preview element
+     * @returns {HTMLElement} - Drag preview element
+     */
+    createDragPreview(preview) {
+        const dragPreview = document.createElement('div');
+        dragPreview.style.cssText = `
+            position: fixed;
+            top: -1000px;
+            left: -1000px;
+            width: 80px;
+            height: 45px;
+            border-radius: var(--radius-md);
+            overflow: hidden;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            pointer-events: none;
+            z-index: 10000;
+        `;
+        
+        // Clone the preview content
+        const previewClone = preview.cloneNode(true);
+        previewClone.style.width = '100%';
+        previewClone.style.height = '100%';
+        dragPreview.appendChild(previewClone);
+        
+        return dragPreview;
+    }
+    
+    /**
+     * Clear all drop indicator classes from thumbnails
+     */
+    clearDropIndicators() {
+        const items = this.container.querySelectorAll('.slide-thumbnail');
+        items.forEach(item => {
+            item.classList.remove('drop-before', 'drop-after');
         });
     }
 }
