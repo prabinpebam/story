@@ -310,16 +310,20 @@ export class LayerTree {
             if (!isSelected && !el.locked && !el.hidden) controls.style.opacity = '0';
         });
 
-        const lockBtn = document.createElement('i');
-        lockBtn.className = (el.locked ? 'fa-solid fa-lock' : 'fa-solid fa-lock-open') + ' layer-control-btn' + (el.locked ? ' active' : '');
+        const lockBtn = document.createElement('button');
+        lockBtn.type = 'button';
+        lockBtn.className = 'layer-control-btn' + (el.locked ? ' active' : '');
+        lockBtn.innerHTML = '<i class="' + (el.locked ? 'fa-solid fa-lock' : 'fa-solid fa-lock-open') + '"></i>';
         lockBtn.onclick = (e) => {
             e.stopPropagation();
             store.dispatch('TOGGLE_ELEMENT_LOCK', { id: el.id });
         };
         controls.appendChild(lockBtn);
 
-        const visBtn = document.createElement('i');
-        visBtn.className = (el.hidden ? 'fa-solid fa-eye-slash' : 'fa-solid fa-eye') + ' layer-control-btn';
+        const visBtn = document.createElement('button');
+        visBtn.type = 'button';
+        visBtn.className = 'layer-control-btn';
+        visBtn.innerHTML = '<i class="' + (el.hidden ? 'fa-solid fa-eye-slash' : 'fa-solid fa-eye') + '"></i>';
         visBtn.onclick = (e) => {
             e.stopPropagation();
             store.dispatch('TOGGLE_ELEMENT_VISIBILITY', { id: el.id });
