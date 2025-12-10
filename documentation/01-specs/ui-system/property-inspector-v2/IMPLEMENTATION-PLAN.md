@@ -78,6 +78,7 @@ This plan tracks the implementation of Property Inspector v2.0 features based on
 
 #### Phase 2: Feature Parity
 - ✅ **Export preview** - Live preview of export output in ExportSection (Dec 10, 2025)
+- ❌ **Clipboard export (Ctrl+Shift+C)** - Copy selection as PNG to clipboard
 - ❌ **Light mode support** - Full light/dark mode theming for PI
 
 #### Phase 3: Polish
@@ -326,6 +327,56 @@ Achieve feature parity with Figma for core inspector features.
 **Undo/Redo Compatibility:** ✅ No state changes
 **Storage Compatibility:** ✅ No state changes
 **Collaboration Compatibility:** ✅ Local UI only
+
+### 2.3 Clipboard Export (Ctrl+Shift+C) ❌ NOT STARTED
+
+**Status:** Not yet implemented.
+
+**Spec Reference:** [09-export-section.md](./09-export-section.md) (Section 15: Clipboard Export)
+
+**Goal:** Allow users to quickly copy selected elements as PNG to clipboard for pasting into other applications.
+
+**Implementation:**
+- Register global keyboard shortcut: `Ctrl+Shift+C` / `Cmd+Shift+C`
+- Use `ExportPreviewRenderer` to render selection at 2x scale
+- Convert canvas to PNG blob using `canvas.toBlob()`
+- Copy to clipboard using Clipboard API (`navigator.clipboard.write()`)
+- Show toast notifications for success/failure states
+- Handle browser compatibility (HTTPS requirement, Safari gesture requirement)
+
+**User Flow:**
+```
+1. User selects element(s)
+2. Presses Ctrl+Shift+C
+3. Selection rendered at 2x quality
+4. PNG copied to clipboard
+5. Toast: "Copied to clipboard as PNG"
+6. User can paste into Photoshop, Slack, etc.
+```
+
+**Files to Create:**
+- `src/core/clipboard/ClipboardExporter.js` - Clipboard export utility
+
+**Files to Modify:**
+- `src/core/KeyboardManager.js` - Register Ctrl+Shift+C shortcut
+- `src/ui/properties/ExportSection.js` - Add copyAsPNG method (or create global handler)
+
+**Tests Required:**
+- [ ] Ctrl+Shift+C copies single element
+- [ ] Ctrl+Shift+C copies multiple elements
+- [ ] No selection shows appropriate message
+- [ ] Clipboard API unavailable shows fallback
+- [ ] Toast notifications display correctly
+
+**Browser Compatibility:**
+- Chrome/Edge: Full support (HTTPS only)
+- Firefox: Full support (HTTPS only)
+- Safari: Requires user gesture (may need click-to-copy fallback)
+- Fallback: Show "Copy failed" message with export dialog option
+
+**Undo/Redo Compatibility:** ✅ No state changes (clipboard only)
+**Storage Compatibility:** ✅ No state changes
+**Collaboration Compatibility:** ✅ Local clipboard only
 
 ---
 

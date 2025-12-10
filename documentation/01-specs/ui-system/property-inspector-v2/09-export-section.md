@@ -485,6 +485,7 @@ update(selection) {
 | Escape | Close dropdown |
 | Arrow Up/Down | Navigate dropdown options |
 | Delete | Remove focused preset (with confirmation) |
+| Ctrl/Cmd+Shift+C | Copy selection as PNG to clipboard |
 
 ### 14.5 Screen Reader Announcements
 
@@ -513,13 +514,77 @@ When multiple elements are selected:
 
 ---
 
-## 15. Future Enhancements
+## 15. Clipboard Export
 
-### 15.1 Planned
+### 15.1 Copy as PNG (Ctrl+Shift+C)
+
+Quick clipboard export for pasting into other applications:
+
+```javascript
+async copySelectionAsPNG() {
+    const selection = store.getState().editor.selection;
+    if (!selection || selection.length === 0) return;
+    
+    try {
+        // Render at 2x for high quality
+        const canvas = await ExportPreviewRenderer.renderExportPreview(
+            selection.map(id => this.getElement(state, id)),
+            { scale: 2, maxWidth: 4096, maxHeight: 4096 }
+        );
+        
+        // Convert to blob
+        const blob = await new Promise(resolve => 
+            canvas.toBlob(resolve, 'image/png')
+        );
+        
+        // Copy to clipboard using Clipboard API
+        await navigator.clipboard.write([
+            new ClipboardItem({ 'image/png': blob })
+        ]);
+        
+        console.log('Copied to clipboard as PNG');
+    } catch (error) {
+        console.error('Failed to copy as PNG:', error);
+    }
+}
+```
+
+### 15.2 Keyboard Shortcut Registration
+
+```javascript
+// Register in global keyboard handler
+keyboardManager.register({
+    key: 'c',
+    modifiers: ['ctrl', 'shift'],
+    action: () => this.copySelectionAsPNG(),
+    description: 'Copy selection as PNG'
+});
+```
+
+### 15.3 User Feedback
+
+| State | Notification |
+|-------|-------------|
+| Success | Toast: "Copied to clipboard as PNG" (2s) |
+| No selection | Toast: "No elements selected" (2s) |
+| Clipboard denied | Toast: "Clipboard access denied" (3s) |
+| Render failed | Toast: "Failed to copy - try exporting instead" (3s) |
+
+### 15.4 Browser Support
+
+- **Clipboard API:** Requires HTTPS or localhost
+- **Fallback:** Show export dialog if clipboard unavailable
+- **Safari:** May require user gesture (click, not just keyboard)
+
+---
+
+## 16. Future Enhancements
+
+### 16.1 Planned
 - [ ] **Export preview panel:** Live preview with size estimation
 - [ ] **Batch export:** Export multiple selected elements at once
 
-### 15.2 Considered
+### 16.2 Considered
 - [ ] **Export slices:** Define export regions independent of elements
 - [ ] **Asset management:** Track exported versions
 - [ ] **Cloud export:** Direct upload to CDN/storage
