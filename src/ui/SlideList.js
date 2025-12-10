@@ -22,8 +22,23 @@ export class SlideList {
         store.on('state-changed', () => {
             if (!this.isRenaming) {
                 this.render();
+                // Auto-scroll to active slide after render
+                this.scrollToActiveSlide();
             }
         });
+    }
+    
+    /**
+     * Scroll the active slide into view
+     */
+    scrollToActiveSlide() {
+        // Small delay to ensure DOM is updated
+        setTimeout(() => {
+            const activeItem = this.container.querySelector('.slide-thumbnail.active');
+            if (activeItem) {
+                activeItem.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }
+        }, 50);
     }
 
     render() {
@@ -293,6 +308,9 @@ export class SlideList {
                 item.addEventListener('click', (e) => {
                     store.dispatch('SET_ACTIVE_SLIDE', slideId);
                     store.dispatch('SELECT_SLIDE', { id: slideId, multi: e.ctrlKey || e.metaKey });
+                    
+                    // Auto-scroll to ensure slide is visible
+                    item.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
                 });
                 
                 // Context Menu Handler (right-click)

@@ -12,6 +12,30 @@
     border-right: 1px solid var(--color-border);
     display: flex;
     flex-direction: column;
+    position: relative;
+}
+
+/* Resize handle for left sidebar */
+#sidebar-left::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: 4px;
+    cursor: col-resize;
+    background: transparent;
+    transition: background-color var(--transition-fast);
+    z-index: 10;
+}
+
+#sidebar-left:hover::after,
+#sidebar-left.resizing::after {
+    background: var(--color-accent-subtle);
+}
+
+#sidebar-left.resizing::after {
+    background: var(--color-accent);
 }
 
 #sidebar-right {

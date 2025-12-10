@@ -10,6 +10,7 @@ import { LayerTree } from './ui/LayerTree.js';
 import { LeftPanel } from './ui/LeftPanel.js';
 import { IconLibrary } from './ui/IconLibrary.js';
 import { PropertyInspector } from './ui/PropertyInspector.js';
+import { SidebarResizer } from './ui/SidebarResizer.js';
 import { Toolbar } from './ui/Toolbar.js';
 import { aiService } from './core/ai/AIService.js';
 import { PresentationManager } from './core/PresentationManager.js';
@@ -90,6 +91,7 @@ class App {
         this.slideList = new SlideList('slide-list');
         this.layerTree = new LayerTree('layer-tree');
         this.leftPanel = new LeftPanel(); // Initialize accordion panels
+        this.sidebarResizer = new SidebarResizer(); // Enable sidebar resize
         this.iconLibrary = new IconLibrary('icon-library-content');
         this.propertyInspector = new PropertyInspector('properties-panel');
         this.toolbar = new Toolbar();
