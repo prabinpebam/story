@@ -1,3 +1,5 @@
+import { store } from '../../core/Store.js';
+
 export class SegmentedControl {
     constructor(optionsOrConfig, selectedValue, onChange) {
         if (Array.isArray(optionsOrConfig)) {
@@ -67,6 +69,7 @@ export class SegmentedControl {
             updateState();
 
             btn.addEventListener('click', () => {
+                store.dispatch('UI_INTERACTION_START');
                 this.selectedValue = opt.value;
                 // Update all buttons
                 Array.from(container.children).forEach((child, i) => {
@@ -81,6 +84,7 @@ export class SegmentedControl {
                 });
                 
                 if (this.onChange) this.onChange(this.selectedValue);
+                store.dispatch('UI_INTERACTION_END');
             });
 
             container.appendChild(btn);

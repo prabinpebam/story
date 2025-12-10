@@ -1,3 +1,5 @@
+import { store } from '../../core/Store.js';
+
 export class Switch {
     constructor(label, initialValue, onChange) {
         this.label = label;
@@ -53,6 +55,7 @@ export class Switch {
         // Interaction
         track.addEventListener('click', (e) => {
             e.stopPropagation();
+            store.dispatch('UI_INTERACTION_START');
             this.value = !this.value;
             
             // Update Visuals
@@ -60,6 +63,7 @@ export class Switch {
             thumb.style.left = this.value ? '18px' : '2px';
 
             if (this.onChange) this.onChange(this.value);
+            store.dispatch('UI_INTERACTION_END');
         });
 
         return container;

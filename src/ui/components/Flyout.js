@@ -1,3 +1,5 @@
+import { store } from '../../core/Store.js';
+
 export class Flyout {
     constructor(options = {}) {
         this.options = {
@@ -5,6 +7,7 @@ export class Flyout {
             content: null,
             position: 'left', // 'left', 'right', 'bottom'
             onClose: () => {},
+            trackInteraction: true, // Whether to dispatch UI_INTERACTION events
             ...options
         };
         
@@ -22,6 +25,11 @@ export class Flyout {
         document.body.appendChild(this.element);
         this.updatePosition();
         
+        // Dispatch UI interaction start for property-editing flyouts
+        if (this.options.trackInteraction) {
+            store.dispatch('UI_INTERACTION_START');
+        }
+        
         // Small delay to prevent immediate closing if triggered by click
         setTimeout(() => {
             document.addEventListener('mousedown', this.handleOutsideClick);
@@ -33,6 +41,12 @@ export class Flyout {
             this.element.parentNode.removeChild(this.element);
         }
         document.removeEventListener('mousedown', this.handleOutsideClick);
+        
+        // Dispatch UI interaction end for property-editing flyouts
+        if (this.options.trackInteraction) {
+            store.dispatch('UI_INTERACTION_END');
+        }
+        
         if (this.options.onClose) this.options.onClose();
     }
 

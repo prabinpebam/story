@@ -1,3 +1,5 @@
+import { store } from '../../core/Store.js';
+
 export class Dropdown {
     constructor(options = {}) {
         this.options = {
@@ -118,10 +120,12 @@ export class Dropdown {
 
             item.addEventListener('click', (e) => {
                 e.stopPropagation();
+                store.dispatch('UI_INTERACTION_START');
                 if (!opt.action) {
                     this.setValue(opt.value);
                 }
                 this.options.onChange(opt.value);
+                store.dispatch('UI_INTERACTION_END');
                 this.close();
             });
 

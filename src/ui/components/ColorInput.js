@@ -1,3 +1,5 @@
+import { store } from '../../core/Store.js';
+
 export class ColorInput {
     constructor(value, onChange, options = {}) {
         this.value = value || '#000000';
@@ -135,7 +137,24 @@ export class ColorInput {
         nativeInput.onchange = (e) => {
             const val = e.target.value;
             this.onChange(val, false);
+            store.dispatch('UI_INTERACTION_END');
         };
+        
+        // Track when native color picker opens
+        nativeInput.addEventListener('click', () => {
+            store.dispatch('UI_INTERACTION_START');
+        });
+        
+        // Also track if user cancels the color picker
+        nativeInput.addEventListener('blur', () => {
+            // Small delay to ensure onchange fires first if user selected a color
+            setTimeout(() => {
+                const state = store.getState();
+                if (state.ui?.isInteracting) {
+                    store.dispatch('UI_INTERACTION_END');
+                }
+            }, 100);
+        });
 
         container.appendChild(swatch);
         if (hexInput) container.appendChild(hexInput);

@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Selection Hiding Manual Test</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #1e1e1e;
+            color: #ffffff;
+        }
+        .test-container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        h1 {
+            font-size: 24px;
+            margin-bottom: 20px;
+        }
+        .test-section {
+            background: #2d2d2d;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        .test-section h2 {
+            font-size: 18px;
+            margin-top: 0;
+            color: #4da6ff;
+        }
+        .test-instructions {
+            background: #3a3a3a;
+            padding: 15px;
+            border-radius: 4px;
+            margin-bottom: 15px;
+            border-left: 3px solid #4da6ff;
+        }
+        .test-instructions ol {
+            margin: 10px 0 0 0;
+            padding-left: 20px;
+        }
+        .test-instructions li {
+            margin: 5px 0;
+        }
+        .test-status {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 4px;
+            font-size: 14px;
+            font-weight: 500;
+            margin-left: 10px;
+        }
+        .status-pass {
+            background: #2ea043;
+            color: white;
+        }
+        .status-fail {
+            background: #d73a49;
+            color: white;
+        }
+        .status-pending {
+            background: #ffcc00;
+            color: #000;
+        }
+        .console-output {
+            background: #1a1a1a;
+            border: 1px solid #444;
+            border-radius: 4px;
+            padding: 10px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            max-height: 200px;
+            overflow-y: auto;
+            margin-top: 15px;
+        }
+        .console-line {
+            margin: 2px 0;
+            padding: 2px 0;
+        }
+        .console-info {
+            color: #4da6ff;
+        }
+        .console-success {
+            color: #2ea043;
+        }
+        .console-error {
+            color: #d73a49;
+        }
+        .console-warning {
+            color: #ffcc00;
+        }
+        button {
+            background: #4da6ff;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-right: 10px;
+        }
+        button:hover {
+            background: #3d8fe8;
+        }
+        button:disabled {
+            background: #555;
+            cursor: not-allowed;
+        }
+        .controls {
+            margin-top: 15px;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>Selection Hiding Behavior - Manual Test</h1>
+        
+        <div class="test-section">
+            <h2>Test 1: Rectangle Selection Hiding<span class="test-status status-pending" id="test1-status">PENDING</span></h2>
+            <div class="test-instructions">
+                <strong>Expected Behavior:</strong>
+                <ol>
+                    <li>Select a rectangle element in the main app</li>
+                    <li>Open Property Inspector and adjust X/Y position using scrubbing</li>
+                    <li>While scrubbing, the selection box should <strong>disappear</strong></li>
+                    <li>When you release the mouse, selection should <strong>reappear</strong></li>
+                </ol>
+            </div>
+            <div class="controls">
+                <button onclick="test1Pass()">✓ PASS</button>
+                <button onclick="test1Fail()">✗ FAIL</button>
+            </div>
+            <div class="console-output" id="test1-console"></div>
+        </div>
+
+        <div class="test-section">
+            <h2>Test 2: Text Selection Exception<span class="test-status status-pending" id="test2-status">PENDING</span></h2>
+            <div class="test-instructions">
+                <strong>Expected Behavior:</strong>
+                <ol>
+                    <li>Select a text element in the main app</li>
+                    <li>Open Property Inspector and adjust X/Y position using scrubbing</li>
+                    <li>While scrubbing, the selection box should <strong>remain visible</strong></li>
+                    <li>This is different from rectangles - text always shows selection</li>
+                </ol>
+            </div>
+            <div class="controls">
+                <button onclick="test2Pass()">✓ PASS</button>
+                <button onclick="test2Fail()">✗ FAIL</button>
+            </div>
+            <div class="console-output" id="test2-console"></div>
+        </div>
+
+        <div class="test-section">
+            <h2>Test 3: Multi-Selection (No Text)<span class="test-status status-pending" id="test3-status">PENDING</span></h2>
+            <div class="test-instructions">
+                <strong>Expected Behavior:</strong>
+                <ol>
+                    <li>Select multiple rectangles/circles (NO text elements)</li>
+                    <li>Adjust properties using scrubbing</li>
+                    <li>While scrubbing, selection overlays should <strong>disappear</strong></li>
+                    <li>After releasing, selection should <strong>reappear</strong></li>
+                </ol>
+            </div>
+            <div class="controls">
+                <button onclick="test3Pass()">✓ PASS</button>
+                <button onclick="test3Fail()">✗ FAIL</button>
+            </div>
+            <div class="console-output" id="test3-console"></div>
+        </div>
+
+        <div class="test-section">
+            <h2>Test 4: Multi-Selection (With Text)<span class="test-status status-pending" id="test4-status">PENDING</span></h2>
+            <div class="test-instructions">
+                <strong>Expected Behavior:</strong>
+                <ol>
+                    <li>Select multiple elements including at least one text element</li>
+                    <li>Adjust properties using scrubbing</li>
+                    <li>While scrubbing, selection overlays should <strong>remain visible</strong></li>
+                    <li>Text presence overrides hiding behavior</li>
+                </ol>
+            </div>
+            <div class="controls">
+                <button onclick="test4Pass()">✓ PASS</button>
+                <button onclick="test4Fail()">✗ FAIL</button>
+            </div>
+            <div class="console-output" id="test4-console"></div>
+        </div>
+
+        <div class="test-section">
+            <h2>Test 5: Performance (No Jitter)<span class="test-status status-pending" id="test5-status">PENDING</span></h2>
+            <div class="test-instructions">
+                <strong>Expected Behavior:</strong>
+                <ol>
+                    <li>Select any element</li>
+                    <li>Rapidly scrub position/size properties back and forth</li>
+                    <li>Movement should be <strong>smooth</strong> with no stuttering</li>
+                    <li>No visible lag or "sticking" behavior</li>
+                    <li>Selection hide/show should be instant (no flicker)</li>
+                </ol>
+            </div>
+            <div class="controls">
+                <button onclick="test5Pass()">✓ PASS</button>
+                <button onclick="test5Fail()">✗ FAIL</button>
+            </div>
+            <div class="console-output" id="test5-console"></div>
+        </div>
+
+        <div class="test-section">
+            <h2>Test 6: State Inspection<span class="test-status status-pending" id="test6-status">PENDING</span></h2>
+            <div class="test-instructions">
+                <strong>Debugging:</strong>
+                <ol>
+                    <li>Open browser DevTools console</li>
+                    <li>Click button below to log current store state</li>
+                    <li>While scrubbing a property, run the check again</li>
+                    <li>Verify that <code>state.ui.isInteracting</code> changes from false to true</li>
+                </ol>
+            </div>
+            <div class="controls">
+                <button onclick="checkStoreState()">Check Store State</button>
+                <button onclick="monitorInteractionState()">Monitor isInteracting (5s)</button>
+            </div>
+            <div class="console-output" id="test6-console"></div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { store } from '/src/core/Store.js';
+        
+        window.store = store; // Make available to onclick handlers
+        
+        function log(testId, message, type = 'info') {
+            const console = document.getElementById(`${testId}-console`);
+            const line = document.createElement('div');
+            line.className = `console-line console-${type}`;
+            line.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            console.appendChild(line);
+            console.scrollTop = console.scrollHeight;
+        }
+
+        window.test1Pass = () => {
+            document.getElementById('test1-status').className = 'test-status status-pass';
+            document.getElementById('test1-status').textContent = 'PASS';
+            log('test1', 'Test marked as PASS', 'success');
+        };
+        
+        window.test1Fail = () => {
+            document.getElementById('test1-status').className = 'test-status status-fail';
+            document.getElementById('test1-status').textContent = 'FAIL';
+            log('test1', 'Test marked as FAIL - Selection should hide for rectangles', 'error');
+        };
+
+        window.test2Pass = () => {
+            document.getElementById('test2-status').className = 'test-status status-pass';
+            document.getElementById('test2-status').textContent = 'PASS';
+            log('test2', 'Test marked as PASS', 'success');
+        };
+        
+        window.test2Fail = () => {
+            document.getElementById('test2-status').className = 'test-status status-fail';
+            document.getElementById('test2-status').textContent = 'FAIL';
+            log('test2', 'Test marked as FAIL - Selection should remain for text elements', 'error');
+        };
+
+        window.test3Pass = () => {
+            document.getElementById('test3-status').className = 'test-status status-pass';
+            document.getElementById('test3-status').textContent = 'PASS';
+            log('test3', 'Test marked as PASS', 'success');
+        };
+        
+        window.test3Fail = () => {
+            document.getElementById('test3-status').className = 'test-status status-fail';
+            document.getElementById('test3-status').textContent = 'FAIL';
+            log('test3', 'Test marked as FAIL - Multi-selection should hide without text', 'error');
+        };
+
+        window.test4Pass = () => {
+            document.getElementById('test4-status').className = 'test-status status-pass';
+            document.getElementById('test4-status').textContent = 'PASS';
+            log('test4', 'Test marked as PASS', 'success');
+        };
+        
+        window.test4Fail = () => {
+            document.getElementById('test4-status').className = 'test-status status-fail';
+            document.getElementById('test4-status').textContent = 'FAIL';
+            log('test4', 'Test marked as FAIL - Multi-selection with text should remain visible', 'error');
+        };
+
+        window.test5Pass = () => {
+            document.getElementById('test5-status').className = 'test-status status-pass';
+            document.getElementById('test5-status').textContent = 'PASS';
+            log('test5', 'Test marked as PASS', 'success');
+        };
+        
+        window.test5Fail = () => {
+            document.getElementById('test5-status').className = 'test-status status-fail';
+            document.getElementById('test5-status').textContent = 'FAIL';
+            log('test5', 'Test marked as FAIL - Performance issues detected', 'error');
+        };
+
+        window.checkStoreState = () => {
+            const state = store.getState();
+            log('test6', '--- Current Store State ---', 'info');
+            log('test6', `state.ui.isInteracting: ${state.ui?.isInteracting}`, state.ui?.isInteracting ? 'warning' : 'info');
+            log('test6', `Selected Elements: ${state.editor.selectedElementIds.length}`, 'info');
+            log('test6', `Mode: ${state.editor.mode}`, 'info');
+            
+            console.log('Full State:', state);
+            log('test6', 'Full state logged to browser console', 'success');
+        };
+
+        window.monitorInteractionState = () => {
+            log('test6', 'Monitoring isInteracting for 5 seconds...', 'info');
+            let lastValue = null;
+            const interval = setInterval(() => {
+                const state = store.getState();
+                const currentValue = state.ui?.isInteracting;
+                
+                if (currentValue !== lastValue) {
+                    log('test6', `isInteracting changed: ${lastValue} → ${currentValue}`, currentValue ? 'warning' : 'success');
+                    lastValue = currentValue;
+                }
+            }, 100);
+            
+            setTimeout(() => {
+                clearInterval(interval);
+                log('test6', 'Monitoring stopped', 'info');
+            }, 5000);
+        };
+    </script>
+</body>
+</html>

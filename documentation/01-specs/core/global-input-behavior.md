@@ -78,11 +78,40 @@ To distinguish between selecting the text and scrubbing the value:
 To ensure the user can clearly see the effect of their changes:
 
 ### 3.1. Hiding Selection Overlay
-- **Rule:** When the user is actively changing a property (Scrubbing a number, Dragging a color picker, Moving a slider), the **Selection Overlay** (Blue bounding box, handles, hover outlines) must be **Hidden**.
+- **Rule:** When the user is actively changing **any** property, the **Selection Overlay** (Blue bounding box, handles, hover outlines) must be **Hidden**.
 - **Trigger:**
     - Start Interaction (MouseDown/DragStart on control): Hide Overlay.
     - End Interaction (MouseUp/DragEnd): Show Overlay.
-- **Scope:** Applies to all property changes in the Property Inspector and Toolbar.
+- **Scope:** Applies to **ALL** property changes exhaustively:
+    - **Position & Size:** Number scrubbing (X, Y, W, H, rotation, corner radius)
+    - **Canvas Interactions:** Dragging, resizing, rotating elements
+    - **Appearance:** Opacity, blend mode changes
+    - **Fill:** Color picking, gradient editing, image/video selection, code fills
+    - **Stroke:** Color, width, style, dash patterns
+    - **Effects:** Shadows, blur, etc.
+    - **Text Properties:** Font, size, weight, color (see exception)
+    - **Layout:** Padding, alignment, distribution
+    - **Any other property** modified through UI controls
+- **Exception:** 
+    - **Text Objects Only:** Selection overlay remains **visible** for text elements during property changes.
+    - **Reason:** Text elements require visible boundaries for accurate typography adjustments and layout feedback.
+- **Implementation:**
+    - Uses `state.ui.isInteracting` flag to track active property interactions.
+    - Components dispatch `UI_INTERACTION_START` on property change begin
+    - Components dispatch `UI_INTERACTION_END` on property change complete
+    - **Covered Components:**
+      - `ScrubbableControl`: Number inputs with drag-to-edit
+      - `SliderControl`: Slider dragging
+      - `Knob`: Rotary control dragging
+      - `ColorInput`: Color picker interactions
+      - `Dropdown`: Value selection
+      - `Switch`: Toggle changes
+      - `SegmentedControl`: Segment selection
+      - `Flyout` base class: All flyouts (Fill, Stroke, etc.)
+    - **Rendering:**
+      - `GizmoRenderer` checks `isInteracting || isDragging || isResizing`
+      - Single selection: Hides overlay when property changing AND element type is NOT 'text'
+      - Multi-selection: Hides overlay when property changing AND NO text elements in selection
 
 ### 3.2. Real-time Updates
 - Changes must be reflected on the Canvas immediately (60fps) during the interaction.

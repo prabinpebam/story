@@ -162,32 +162,83 @@ export class GizmoRenderer {
                 
                 const isText = el.type === 'text';
                 const isResizing = this.cm.interactionState === 'RESIZING';
-                const isUIInteracting = state.ui && state.ui.isInteracting;
+                const isDragging = this.cm.interactionState === 'DRAGGING';
+                const isUIInteracting = state.ui?.isInteracting === true;
+                
+                // DEBUG: Log state when scrubbing
+                if (isUIInteracting && !this._debugLogged) {
+                    console.log('[GizmoRenderer DEBUG]', {
+                        isUIInteracting,
+                        isText,
+                        elementType: el.type,
+                        interactionState: this.cm.interactionState,
+                        'state.ui': state.ui
+                    });
+                    this._debugLogged = true;
+                } else if (!isUIInteracting) {
+                    this._debugLogged = false;
+                }
+                
+                // Hide selection overlay during ANY PROPERTY CHANGES to non-text elements
+                // This includes: Property Inspector interactions, canvas dragging, canvas resizing
+                // Exception: Text elements always keep their selection visible for layout feedback
+                const isPropertyChanging = isUIInteracting || isDragging || isResizing;
+                const hideSelection = isPropertyChanging && !isText;
+                
+                // DEBUG: Log when hiding
+                if (hideSelection && !this._hideLogged) {
+                    console.log('[GizmoRenderer] HIDING SELECTION');
+                    this._hideLogged = true;
+                } else if (!hideSelection && this._hideLogged) {
+                    console.log('[GizmoRenderer] SHOWING SELECTION');
+                    this._hideLogged = false;
+                }
                 
                 // Hide handles if editing text, or if resizing text (via drag or UI scrub)
-                const hideHandles = isEditing || (isText && (isResizing || isUIInteracting));
+                const hideHandles = isEditing || (isText && isPropertyChanging);
 
-                this.drawSelectionBox(absEl, zoom, !hideHandles);
+                if (!hideSelection) {
+                    this.drawSelectionBox(absEl, zoom, !hideHandles);
+                }
             }
         } else {
             // Multi-selection
-            // Draw individual outlines first
-            selectedElementIds.forEach(id => {
-                const el = slide.elements[id];
-                if (el) {
-                    const absEl = GeometryUtils.getAbsoluteElement(el, slide);
-                    this.drawHoverOutline(absEl, zoom);
-                }
-            });
+            const isUIInteracting = state.ui?.isInteracting === true;
+            const isDragging = this.cm.interactionState === 'DRAGGING';
+            const isResizing = this.cm.interactionState === 'RESIZING';
+            
+            // Hide selection during any property change (UI interaction, dragging, or resizing)
+            // Exception: Keep visible if ANY text element is in the selection
+            const isPropertyChanging = isUIInteracting || isDragging || isResizing;
+            let hideSelection = false;
+            if (isPropertyChanging) {
+                // Check if any selected element is text
+                const hasTextElement = selectedElementIds.some(id => {
+                    const el = slide.elements[id];
+                    return el && el.type === 'text';
+                });
+                hideSelection = !hasTextElement;
+            }
+            
+            if (!hideSelection) {
+                // Draw individual outlines first
+                selectedElementIds.forEach(id => {
+                    const el = slide.elements[id];
+                    if (el) {
+                        const absEl = GeometryUtils.getAbsoluteElement(el, slide);
+                        this.drawHoverOutline(absEl, zoom);
+                    }
+                });
 
-            // Draw big bounding box
-            const bounds = GeometryUtils.getSelectionBounds(
-                slide, 
-                selectedElementIds,
-                GeometryUtils.getAbsoluteElement
-            );
-            if (bounds) {
-                this.drawSelectionBox(bounds, zoom);
+                // Draw big bounding box
+                const bounds = GeometryUtils.getSelectionBounds(
+                    slide, 
+                    selectedElementIds,
+                    GeometryUtils.getAbsoluteElement
+                );
+                if (bounds) {
+                    this.drawSelectionBox(bounds, zoom);
+                }
             }
         }
 
