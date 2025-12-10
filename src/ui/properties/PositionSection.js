@@ -67,13 +67,13 @@ export class PositionSection extends BaseSection {
         coordRow.className = 'pi-row';
 
         this.xInput = new NumberInput({
-            label: 'X',
+            icon: Icons.AXIS_X || 'X',
             value: 0,
             onChange: (val, isTransient) => this.updateProperty('x', val, isTransient)
         });
 
         this.yInput = new NumberInput({
-            label: 'Y',
+            icon: Icons.AXIS_Y || 'Y',
             value: 0,
             onChange: (val, isTransient) => this.updateProperty('y', val, isTransient)
         });

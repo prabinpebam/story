@@ -37,7 +37,7 @@ export class AppearanceSection extends BaseSection {
         opacityRow.className = 'pi-row';
 
         this.opacityInput = new NumberInput({
-            label: 'Opacity', // Or icon
+            icon: Icons.OPACITY || 'Opacity',
             value: 100,
             units: '%',
             min: 0,
@@ -82,7 +82,7 @@ export class AppearanceSection extends BaseSection {
         this.radiusRow.className = 'pi-row pi-radius-row';
 
         this.radiusInput = new NumberInput({
-            label: 'Radius',
+            icon: Icons.BORDER_RADIUS || 'Radius',
             value: 0,
             min: 0,
             onChange: (val, isTransient) => this._handleUniformRadiusChange(val, isTransient)
@@ -111,28 +111,28 @@ export class AppearanceSection extends BaseSection {
         cornerGrid.className = 'pi-corner-grid';
 
         this.tlRadiusInput = new NumberInput({
-            label: 'TL',
+            icon: Icons.CORNER_TL || 'TL',
             value: 0,
             min: 0,
             onChange: (val, isTransient) => this._handleCornerRadiusChange('tl', val, isTransient)
         });
 
         this.trRadiusInput = new NumberInput({
-            label: 'TR',
+            icon: Icons.CORNER_TR || 'TR',
             value: 0,
             min: 0,
             onChange: (val, isTransient) => this._handleCornerRadiusChange('tr', val, isTransient)
         });
 
         this.blRadiusInput = new NumberInput({
-            label: 'BL',
+            icon: Icons.CORNER_BL || 'BL',
             value: 0,
             min: 0,
             onChange: (val, isTransient) => this._handleCornerRadiusChange('bl', val, isTransient)
         });
 
         this.brRadiusInput = new NumberInput({
-            label: 'BR',
+            icon: Icons.CORNER_BR || 'BR',
             value: 0,
             min: 0,
             onChange: (val, isTransient) => this._handleCornerRadiusChange('br', val, isTransient)

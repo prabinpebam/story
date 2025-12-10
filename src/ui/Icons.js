@@ -111,4 +111,17 @@ export const Icons = {
     IMPORT: '<i class="fa-solid fa-file-import"></i>',
     DOWNLOAD: '<i class="fa-solid fa-download"></i>',
     UPLOAD: '<i class="fa-solid fa-upload"></i>',
+    
+    // Position & Layout Icons
+    AXIS_X: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><text x="4" y="12" font-family="system-ui, -apple-system, sans-serif" font-size="10" font-weight="600" fill="currentColor">X</text><path d="M2 8 L14 8 M13 7 L14 8 L13 9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>',
+    AXIS_Y: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><text x="4" y="12" font-family="system-ui, -apple-system, sans-serif" font-size="10" font-weight="600" fill="currentColor">Y</text><path d="M8 2 L8 14 M7 3 L8 2 L9 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>',
+    WIDTH: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><text x="4" y="12" font-family="system-ui, -apple-system, sans-serif" font-size="10" font-weight="600" fill="currentColor">W</text><path d="M2 8 L14 8 M3 7 L2 8 L3 9 M13 7 L14 8 L13 9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>',
+    HEIGHT: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><text x="4" y="12" font-family="system-ui, -apple-system, sans-serif" font-size="10" font-weight="600" fill="currentColor">H</text><path d="M8 2 L8 14 M7 3 L8 2 L9 3 M7 13 L8 14 L9 13" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>',
+    BORDER_RADIUS: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 3H8C10.7614 3 13 5.23858 13 8V13" stroke="currentColor" stroke-width="1.5"/></svg>',
+    
+    // Corner Icons for radius controls
+    CORNER_TL: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 8C3 5.23858 5.23858 3 8 3H13" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M3 3V8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>',
+    CORNER_TR: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M13 8C13 5.23858 10.7614 3 8 3H3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M13 3V8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>',
+    CORNER_BL: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 8C3 10.7614 5.23858 13 8 13H13" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M3 13V8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>',
+    CORNER_BR: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M13 8C13 10.7614 10.7614 13 8 13H3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M13 13V8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>',
 };

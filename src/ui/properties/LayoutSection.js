@@ -40,13 +40,13 @@ export class LayoutSection extends BaseSection {
         dimRow.className = 'pi-row';
 
         this.wInput = new NumberInput({
-            label: 'W',
+            icon: Icons.WIDTH || 'W',
             value: 0,
             onChange: (val, isTransient) => this.updateDimension('width', val, isTransient)
         });
 
         this.hInput = new NumberInput({
-            label: 'H',
+            icon: Icons.HEIGHT || 'H',
             value: 0,
             onChange: (val, isTransient) => this.updateDimension('height', val, isTransient)
         });
