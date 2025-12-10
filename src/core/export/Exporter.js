@@ -60,11 +60,14 @@ export async function exportElements(elements, presets, options = {}) {
 async function exportPreset(elements, preset, baseName) {
     const { scale: scaleStr, format, suffix = '' } = preset;
     
+    console.log('[Exporter] Export preset:', preset, 'for elements:', elements);
+    
     // Parse scale
     const scaleInfo = parseScale(scaleStr);
     
     // Calculate dimensions
     const bounds = calculateBounds(elements);
+    console.log('[Exporter] Calculated bounds:', bounds);
     let width = bounds.width;
     let height = bounds.height;
     
@@ -100,9 +103,16 @@ async function exportPreset(elements, preset, baseName) {
  * Draw rectangle to canvas
  */
 function drawRectangle(ctx, element, x, y, w, h) {
-    const fill = element.style?.fills?.[0]?.value || element.fill || '#cccccc';
-    const borderRadius = element.borderRadius || 0;
+    // Get fill from multiple possible sources
+    const fill = element.style?.fills?.[0]?.value 
+        || element.style?.fills?.[0]?.color 
+        || element.style?.backgroundColor 
+        || element.fill 
+        || '#D9D9D9'; // Default gray
     
+    const borderRadius = element.borderRadius || element.style?.radius || 0;
+    
+    console.log('[drawRectangle]', { fill, borderRadius, element });
     ctx.fillStyle = fill;
     
     if (borderRadius > 0) {
@@ -135,8 +145,14 @@ function drawRectangle(ctx, element, x, y, w, h) {
  * Draw ellipse to canvas
  */
 function drawEllipse(ctx, element, x, y, w, h) {
-    const fill = element.style?.fills?.[0]?.value || element.fill || '#cccccc';
+    // Get fill from multiple possible sources
+    const fill = element.style?.fills?.[0]?.value 
+        || element.style?.fills?.[0]?.color 
+        || element.style?.backgroundColor 
+        || element.fill 
+        || '#D9D9D9';
     
+    console.log('[drawEllipse]', { fill, element });
     ctx.fillStyle = fill;
     ctx.beginPath();
     ctx.ellipse(x + w / 2, y + h / 2, w / 2, h / 2, 0, 0, 2 * Math.PI);
@@ -154,11 +170,14 @@ function drawEllipse(ctx, element, x, y, w, h) {
  * Draw text to canvas
  */
 async function drawText(ctx, element, x, y, w, h) {
-    const fontSize = element.fontSize || element.style?.typography?.fontSize || 16;
-    const fontFamily = element.fontFamily || element.style?.typography?.fontFamily || 'sans-serif';
-    const color = element.color || element.style?.typography?.color || '#000000';
-    const textAlign = element.textAlign || element.style?.typography?.textAlign || 'left';
-    const verticalAlign = element.verticalAlign || element.style?.typography?.verticalAlign || 'top';
+    const fontSize = element.fontSize || element.style?.fontSize || 16;
+    const fontFamily = element.fontFamily || element.style?.fontFamily || 'Inter';
+    const color = element.color || element.style?.color || '#000000';
+    const textAlign = element.textAlign || element.style?.textAlign || 'left';
+    const verticalAlign = element.verticalAlign || element.style?.verticalAlign || 'top';
+    const content = element.content || element.text || '';
+    
+    console.log('[drawText]', { fontSize, fontFamily, color, content, element });
     
     ctx.fillStyle = color;
     ctx.font = `${fontSize}px ${fontFamily}`;
@@ -168,7 +187,7 @@ async function drawText(ctx, element, x, y, w, h) {
     const textX = textAlign === 'center' ? x + w / 2 : textAlign === 'right' ? x + w : x;
     const textY = verticalAlign === 'middle' ? y + h / 2 : y;
     
-    ctx.fillText(element.text || '', textX, textY);
+    ctx.fillText(content, textX, textY);
 }
 
 /**
@@ -237,7 +256,10 @@ async function exportRaster(elements, filename, format, { width, height, bounds 
     const scaleX = width / bounds.width;
     const scaleY = height / bounds.height;
     
+    console.log('[Exporter] Drawing to canvas:', { width, height, bounds, scaleX, scaleY });
+    
     for (const element of elements) {
+        console.log('[Exporter] Drawing element:', element.type, element);
         const x = (element.x - bounds.x) * scaleX;
         const y = (element.y - bounds.y) * scaleY;
         const w = element.width * scaleX;
@@ -255,14 +277,21 @@ async function exportRaster(elements, filename, format, { width, height, bounds 
         }
         
         // Draw based on element type
-        if (element.type === 'rectangle') {
+        if (element.type === 'rect' || element.type === 'rectangle') {
             drawRectangle(ctx, element, x, y, w, h);
-        } else if (element.type === 'ellipse') {
+        } else if (element.type === 'circle' || element.type === 'ellipse') {
             drawEllipse(ctx, element, x, y, w, h);
         } else if (element.type === 'text') {
             await drawText(ctx, element, x, y, w, h);
         } else if (element.type === 'image') {
             await drawImage(ctx, element, x, y, w, h);
+        } else {
+            // Unknown type - draw a placeholder rectangle
+            console.warn('[Exporter] Unknown element type:', element.type);
+            ctx.fillStyle = '#e0e0e0';
+            ctx.fillRect(x, y, w, h);
+            ctx.strokeStyle = '#999';
+            ctx.strokeRect(x, y, w, h);
         }
         
         ctx.restore();

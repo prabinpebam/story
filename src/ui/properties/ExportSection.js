@@ -301,6 +301,9 @@ export class ExportSection extends BaseSection {
                 throw new Error('No valid elements to export');
             }
             
+            console.log('[ExportSection] Exporting elements:', elements);
+            console.log('[ExportSection] Presets:', this.presets);
+            
             // Export with all presets
             await exportElements(elements, this.presets);
             
