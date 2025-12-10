@@ -2,7 +2,15 @@
 
 ## Overview
 
-This document provides technical guidance for implementing the keyboard shortcut system defined in `keyboard-shortcuts.md`. It covers architecture, priority handling, context awareness, and testing strategies.
+This document provides technical guidance for implementing the keyboard shortcut system defined in `keyboard-shortcuts.md`. It covers architecture, priority handling, context awareness, design system compliance, and testing strategies.
+
+**Key Requirements:**
+- **Design System Compliance**: Zero hardcoded values, all CSS variables
+- **Theme Compatibility**: Works in light/dark mode, accent color switchable
+- **Multi-Column Overlay**: 3-column responsive layout (3 → 2 → 1)
+- **Instant Access**: <100ms open time for overlay
+- **Browser Conflict Resolution**: Smart preventDefault() handling
+- **Accessibility**: Keyboard-only navigation, screen reader support
 
 ---
 
@@ -19,21 +27,25 @@ This document provides technical guidance for implementing the keyboard shortcut
 ┌─────────────────────────────────────────────────────────┐
 │              KeyboardManager (Central Hub)               │
 │  • Event normalization (Mac/Windows)                     │
-│  • Context detection                                     │
+│  • Context detection (7-level priority)                  │
+│  • Browser conflict prevention                           │
 │  • Priority routing                                      │
 └──────────────────────┬──────────────────────────────────┘
                        │
-        ┌──────────────┼──────────────┐
-        ▼              ▼              ▼
-   ┌─────────┐   ┌─────────┐   ┌─────────┐
-   │  Input  │   │ Context │   │ Global  │
-   │ Handler │   │ Handler │   │ Handler │
-   └─────────┘   └─────────┘   └─────────┘
-        │              │              │
-        ▼              ▼              ▼
-   Block if      Route to       Execute
-   text input    specific       default
-                 context        action
+        ┌──────────────┼──────────────┬──────────────┐
+        ▼              ▼              ▼              ▼
+   ┌─────────┐   ┌─────────┐   ┌─────────┐   ┌──────────┐
+   │  Input  │   │ Context │   │ Global  │   │ Overlay  │
+   │ Handler │   │ Handler │   │ Handler │   │  (? or   │
+   └─────────┘   └─────────┘   └─────────┘   │ Ctrl+/)  │
+        │              │              │       └──────────┘
+        ▼              ▼              ▼              │
+   Block if      Route to       Execute          ▼
+   text input    specific       default     ┌──────────────┐
+                 context        action      │  Shortcut    │
+                                            │  Overlay UI  │
+                                            │ (3 columns)  │
+                                            └──────────────┘
 ```
 
 ### 1.2 Core Classes
@@ -43,9 +55,12 @@ This document provides technical guidance for implementing the keyboard shortcut
 
 **Responsibilities:**
 - Register and manage all keyboard shortcuts
-- Normalize events across platforms
+- Normalize events across platforms (Mac ↔ Windows)
 - Route to appropriate handlers
-- Handle conflicts and priorities
+- Handle conflicts and priorities (7-level system)
+- Browser conflict prevention (preventDefault strategy)
+- Track usage for overlay UI
+- Integrate with ShortcutOverlay component
 
 ```javascript
 class KeyboardManager {
@@ -53,19 +68,41 @@ class KeyboardManager {
         this.shortcuts = new Map(); // shortcut -> handler map
         this.contexts = new Map();  // context -> shortcuts map
         this.activeContext = null;
+        this.usageTracking = new Map(); // shortcut -> usage count
+        this.overlay = null; // ShortcutOverlay instance
+        this.conflictDetector = new ConflictDetector();
     }
 
     register(shortcut, handler, options = {}) {
-        // options: { context, priority, description, category }
+        // options: { 
+        //   context, priority, description, category,
+        //   preventDefault, browserConflict, fallback
+        // }
     }
 
     handleKeyEvent(event) {
-        // 1. Normalize event
-        // 2. Check input context
-        // 3. Check active context
-        // 4. Execute handler
+        // 1. Check if overlay toggle (? or Ctrl+Shift+/)
+        // 2. Normalize event
+        // 3. Check browser conflicts
+        // 4. Check input context
+        // 5. Check active context
+        // 6. Execute handler with preventDefault if needed
+        // 7. Track usage for overlay
+    }
+    
+    trackUsage(shortcutId) {
+        const count = this.usageTracking.get(shortcutId) || 0;
+        this.usageTracking.set(shortcutId, count + 1);
+    }
+    
+    getRecentShortcuts(limit = 20) {
+        return Array.from(this.usageTracking.entries())
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, limit)
+            .map(([id]) => this.shortcuts.get(id));
     }
 }
+```
 ```
 
 #### ShortcutRegistry
@@ -97,6 +134,143 @@ class ShortcutRegistry {
 }
 ```
 
+#### ShortcutOverlay
+**Location:** `src/ui/ShortcutOverlay.js`  
+**Styles:** `styles/components/shortcut-overlay.css`
+
+**Responsibilities:**
+- Display all shortcuts in multi-column layout (3 → 2 → 1)
+- Real-time fuzzy search (debounced 150ms)
+- Category filtering with tabs
+- Usage tracking indicators (⭐ stars)
+- Platform-aware display (Mac: ⌘, Windows: Ctrl)
+- Instant open/close (<100ms target)
+- Full design system compliance (zero hardcoded values)
+
+```javascript
+class ShortcutOverlay {
+    constructor(keyboardManager) {
+        this.manager = keyboardManager;
+        this.isOpen = false;
+        this.searchQuery = '';
+        this.activeCategory = 'all';
+        
+        // Pre-render for instant access
+        this.panel = this.createPanel();
+        this.panel.style.display = 'none';
+        document.body.appendChild(this.panel);
+        
+        this.setupEventListeners();
+        this.renderShortcuts();
+    }
+    
+    open() {
+        performance.mark('overlay-open-start');
+        
+        this.panel.style.display = 'flex';
+        requestAnimationFrame(() => {
+            this.panel.classList.add('is-open');
+            this.searchInput.focus();
+            
+            performance.mark('overlay-open-end');
+            const duration = performance.measure(
+                'overlay-open', 
+                'overlay-open-start', 
+                'overlay-open-end'
+            ).duration;
+            
+            console.log(`Overlay opened in ${duration.toFixed(2)}ms`);
+        });
+        
+        this.isOpen = true;
+    }
+    
+    close() {
+        this.panel.classList.remove('is-open');
+        setTimeout(() => {
+            this.panel.style.display = 'none';
+            this.searchInput.value = '';
+            this.filterShortcuts('');
+        }, 200); // Animation duration
+        
+        this.isOpen = false;
+    }
+    
+    toggle() {
+        this.isOpen ? this.close() : this.open();
+    }
+    
+    createPanel() {
+        // Return DOM structure with all CSS variables
+        // Structure: backdrop, panel, header, search, tabs, content
+        // See keyboard-shortcuts-overlay-ux.md for complete HTML/CSS
+    }
+    
+    renderShortcuts() {
+        const shortcuts = this.manager.getAll();
+        const byCategory = this.groupByCategory(shortcuts);
+        
+        // Distribute across 3 columns
+        const columns = this.distributeToColumns(byCategory, 3);
+        
+        // Render each column with groups
+        columns.forEach((groups, index) => {
+            const column = this.panel.querySelector(
+                `.shortcut-column:nth-child(${index + 1})`
+            );
+            column.innerHTML = this.renderGroups(groups);
+        });
+    }
+    
+    filterShortcuts(query) {
+        // Debounced fuzzy search (150ms)
+        clearTimeout(this.searchTimer);
+        this.searchTimer = setTimeout(() => {
+            const items = this.panel.querySelectorAll('.shortcut-item');
+            
+            items.forEach(item => {
+                const name = item.dataset.name.toLowerCase();
+                const keys = item.dataset.keys.toLowerCase();
+                const category = item.dataset.category.toLowerCase();
+                
+                const matches = !query || 
+                    name.includes(query) || 
+                    keys.includes(query) || 
+                    category.includes(query);
+                
+                item.classList.toggle('is-hidden', !matches);
+            });
+            
+            this.updateGroupVisibility();
+        }, 150);
+    }
+    
+    // Design system compliance check
+    validateDesignSystem() {
+        const hasHardcodedColors = this.panel.innerHTML.match(
+            /#[0-9a-f]{3,6}|rgb\(|rgba\(/gi
+        );
+        
+        if (hasHardcodedColors) {
+            console.error('⚠️ Hardcoded colors found in overlay!');
+            return false;
+        }
+        
+        return true;
+    }
+}
+```
+
+**Design System Requirements:**
+- **All colors**: Use `var(--color-*)` tokens only
+- **All spacing**: Use `var(--spacing-*)` tokens (4px grid)
+- **All typography**: Use `var(--font-*)` tokens
+- **All interactions**: Use accent color (hover: `--color-accent-subtle`, active: `--color-accent-muted`)
+- **Surface hierarchy**: Use `--color-bg-elevated` for modal
+- **Responsive**: CSS Grid with media queries (no JS)
+- **Animations**: Use `--duration-*` and `--ease-*` tokens
+- **Reduced motion**: Support `prefers-reduced-motion`
+
 #### ContextManager
 **Location:** `src/core/keyboard/ContextManager.js`
 
@@ -120,7 +294,151 @@ class ContextManager {
 
 ---
 
-## 2. Priority & Routing
+## 2. Design System Compliance Requirements
+
+### 2.1 Zero Hardcoded Values
+
+**CRITICAL: All visual properties MUST use CSS variables from the design system.**
+
+#### Colors
+❌ **NEVER:**
+```css
+background: #2D2D2D;
+color: rgba(255, 255, 255, 0.8);
+border: 1px solid #404040;
+```
+
+✅ **ALWAYS:**
+```css
+background: var(--color-bg-elevated);
+color: var(--color-text-primary);
+border: var(--border-width-1) solid var(--color-border);
+```
+
+#### Spacing
+❌ **NEVER:**
+```css
+padding: 16px 24px;
+gap: 12px;
+margin-bottom: 8px;
+```
+
+✅ **ALWAYS:**
+```css
+padding: var(--spacing-4) var(--spacing-6);
+gap: var(--spacing-3);
+margin-bottom: var(--spacing-2);
+```
+
+#### Typography
+❌ **NEVER:**
+```css
+font-size: 13px;
+font-weight: 500;
+font-family: 'Inter', sans-serif;
+```
+
+✅ **ALWAYS:**
+```css
+font-size: var(--font-size-lg);
+font-weight: var(--font-weight-medium);
+font-family: var(--font-ui);
+```
+
+### 2.2 Interaction Color Philosophy
+
+**All interactive elements MUST use accent color (not gray):**
+
+```css
+/* Hover state - 15% opacity accent */
+.interactive-element:hover {
+    background: var(--color-accent-subtle);
+    color: var(--color-accent);
+}
+
+/* Active/pressed state - 25% opacity accent */
+.interactive-element:active {
+    background: var(--color-accent-muted);
+}
+
+/* Selected state - 100% accent */
+.interactive-element.is-active {
+    background: var(--color-accent);
+    color: var(--color-text-on-accent);
+}
+```
+
+**Applies to:**
+- Close button
+- Search clear button
+- Category tabs
+- Shortcut items
+- All clickable elements
+
+### 2.3 Theme Compatibility Test
+
+**The Litmus Test: Accent color switching**
+
+```javascript
+// Change accent from blue to purple
+document.documentElement.style.setProperty('--color-accent', '#9333EA');
+document.documentElement.style.setProperty(
+    '--color-accent-subtle', 
+    'rgba(147, 51, 234, 0.20)'
+);
+
+// Result: ALL interactions should now be purple
+// If ANY blue remains → hardcoded value found ❌
+```
+
+### 2.4 Light Mode Support
+
+Component MUST work in both themes:
+
+```css
+/* Uses semantic tokens that adapt automatically */
+.shortcut-overlay__panel {
+    background: var(--color-bg-elevated);  /* Dark: #333, Light: #FFF */
+    color: var(--color-text-primary);      /* Dark: #E8E8E8, Light: #1E1E1E */
+    border: var(--border-width-1) solid var(--color-border);
+}
+```
+
+Test with:
+```javascript
+document.body.classList.toggle('theme-light');
+```
+
+### 2.5 Missing Tokens to Add
+
+Add to `styles/modules/variables.css`:
+
+```css
+:root {
+    /* For keyboard shortcuts overlay */
+    --spacing-3-5: 14px;  /* Tab padding (between spacing-3 and spacing-4) */
+    --spacing-7: 28px;    /* Column gap (7 × 4px base grid) */
+}
+```
+
+### 2.6 Validation Checklist
+
+Before committing any CSS:
+
+- [ ] Run regex: No `#[0-9a-f]{3,6}` in CSS
+- [ ] Run regex: No `rgb\(` or `rgba\(` in CSS
+- [ ] Run regex: No hardcoded `px` values (except 0, 1px borders)
+- [ ] Test theme switching (blue → purple)
+- [ ] Test light mode (`body.theme-light`)
+- [ ] Test with reduced motion
+- [ ] All hover states use `--color-accent-subtle`
+- [ ] All active states use `--color-accent-muted`
+- [ ] All typography uses `--font-ui` or `--font-mono`
+- [ ] All spacing uses `--spacing-*` tokens
+
+---
+
+## 3. Priority & Routing
 
 ### 2.1 Priority Levels
 
@@ -1062,52 +1380,269 @@ class CustomShortcutManager {
 
 ## 15. Implementation Checklist
 
-### Phase 1: Foundation
+### Phase 1: Foundation + Design System Compliance (Week 1)
+**Priority: P0 - CRITICAL**
+
+#### Core Architecture
 - [ ] Create `KeyboardManager` class with event handling
 - [ ] Create `ShortcutRegistry` for shortcut storage
-- [ ] Create `ContextManager` for context tracking
+- [ ] Create `ContextManager` for context tracking (7-level priority)
+- [ ] Create `ConflictDetector` for browser conflict handling
 - [ ] Create `eventToShortcut()` utility function
 - [ ] Create `normalizeShortcut()` utility function
-- [ ] Add platform detection
+- [ ] Add platform detection (Mac vs Windows)
 
-### Phase 2: Core Shortcuts
-- [ ] Migrate file operations (Cmd+S, Cmd+N, Cmd+O)
-- [ ] Migrate edit operations (Cmd+C/X/V, Cmd+Z/Shift+Z)
-- [ ] Migrate tool shortcuts (V, H, R, T, O, L)
-- [ ] Add selection shortcuts (Cmd+A, Shift+click)
-- [ ] Add transform shortcuts (arrows, Cmd+D)
+#### ShortcutOverlay Component
+- [ ] Create `ShortcutOverlay.js` component
+- [ ] Create `shortcut-overlay.css` with **ZERO hardcoded values**
+- [ ] Implement multi-column layout (3 → 2 → 1 responsive)
+- [ ] Add instant open (<100ms target)
+- [ ] Add `?` and `Ctrl+Shift+/` shortcuts
+- [ ] Add autofocus search
+- [ ] Add live search with 150ms debounce
+- [ ] Add ESC/backdrop/same-key dismiss
 
-### Phase 3: Advanced Shortcuts
-- [ ] Add arrange shortcuts (Cmd+]/[)
-- [ ] Add group shortcuts (Cmd+G)
-- [ ] Add alignment shortcuts (Alt+A/W/H/T/S/V)
-- [ ] Add zoom shortcuts (Cmd+0/1/2/3, Cmd+±)
-- [ ] Add presentation shortcuts
+#### Design System Compliance (CRITICAL)
+- [ ] **Validate zero hardcoded colors** (use only `var(--color-*)`)
+- [ ] **Validate all spacing uses tokens** (`var(--spacing-*)`)
+- [ ] **Validate typography tokens** (`var(--font-*)`, `--font-ui`, `--font-mono`)
+- [ ] **Implement interaction color philosophy** (accent-subtle hover, accent-muted active)
+- [ ] **Add light mode support** (test with `body.theme-light`)
+- [ ] **Add reduced motion support** (`prefers-reduced-motion`)
+- [ ] **Test theme switching** (blue → purple accent color)
+- [ ] Add missing tokens to `variables.css`:
+  - `--spacing-3-5: 14px`
+  - `--spacing-7: 28px`
 
-### Phase 4: UI
-- [ ] Create shortcut panel component
-- [ ] Add search functionality
-- [ ] Add category filtering
-- [ ] Highlight used shortcuts
-- [ ] Add tooltips with shortcuts
-- [ ] Show shortcuts in menus
+#### Testing
+- [ ] Unit tests: KeyboardManager
+- [ ] Unit tests: ShortcutOverlay
+- [ ] **Theme switching tests** (accent color change)
+- [ ] **Light/dark mode tests**
+- [ ] **No hardcoded values test**
+- [ ] Performance test: Open time <100ms
+- [ ] Performance test: Search response <200ms
 
-### Phase 5: Testing
-- [ ] Write unit tests for KeyboardManager
-- [ ] Write unit tests for ContextManager
-- [ ] Write E2E tests for critical shortcuts
-- [ ] Test on Mac and Windows
-- [ ] Test with different keyboard layouts
-- [ ] Test accessibility (screen readers, keyboard-only)
-
-### Phase 6: Documentation
-- [ ] Update user documentation
-- [ ] Create video tutorials
-- [ ] Add help tooltips
-- [ ] Create quick reference card
+**Success Criteria:**
+- ✅ Overlay opens in <100ms
+- ✅ Theme switch test passes (blue → purple)
+- ✅ Light mode works
+- ✅ Zero hardcoded values found
+- ✅ All interactions use accent color
+- ✅ Works on mobile (responsive)
 
 ---
 
-**Last Updated:** December 10, 2025
-**Version:** 1.0
-**Status:** Ready for Implementation
+### Phase 2: Core Shortcuts (Week 2)
+**Priority: P0 - Required for MVP**
+
+#### Migrate Existing Shortcuts
+- [ ] Migrate file operations (Cmd+S, Cmd+N, Cmd+O) from `main.js`
+- [ ] Migrate edit operations (Cmd+C/X/V, Cmd+Z/Shift+Z)
+- [ ] Migrate tool shortcuts (V, H, R, T) from `Toolbar.js`
+- [ ] Add missing tools (O, L, P, F, K, I)
+- [ ] Migrate canvas shortcuts from `CanvasManager.js`
+- [ ] Fix `Toolbar.js` to use `InputManager.shouldBlockShortcut()`
+
+#### Selection & Transform
+- [ ] Add selection shortcuts (Cmd+A, Ctrl+Shift+A, Ctrl+Shift+I)
+- [ ] Add multi-select (Shift+click)
+- [ ] Add transform shortcuts (arrows, Shift+arrows)
+- [ ] Add duplicate (Cmd+D)
+- [ ] Add delete (Delete/Backspace)
+
+#### Browser Conflict Handling
+- [ ] Implement preventDefault whitelist
+- [ ] Add context-aware preventDefault
+- [ ] Handle critical shortcuts (never prevent: Cmd+Q/W/T, F5, F12)
+- [ ] Handle conditional shortcuts (Cmd+D, Cmd+H, Backspace, Space)
+- [ ] Add fallback shortcuts for conflicts
+
+**Success Criteria:**
+- ✅ All existing shortcuts migrated
+- ✅ No regressions in functionality
+- ✅ Browser shortcuts don't interfere
+- ✅ Input fields block shortcuts correctly
+
+---
+
+### Phase 3: Advanced Shortcuts (Week 3)
+**Priority: P1 - High Value**
+
+#### Arrange & Group
+- [ ] Add arrange shortcuts (Cmd+]/[, Cmd+Shift+]/[)
+- [ ] Add group shortcuts (Cmd+G, Cmd+Shift+G)
+- [ ] Add lock/unlock
+- [ ] Add hide/show
+
+#### Alignment
+- [ ] Add alignment shortcuts (Ctrl+Alt+←/→/↑/↓)
+- [ ] Add center horizontal (Ctrl+Alt+H)
+- [ ] Add center vertical (Ctrl+Alt+V)
+- [ ] Add distribute shortcuts
+
+#### Zoom & View
+- [ ] Add zoom shortcuts (Cmd+±, Cmd+0/1/2)
+- [ ] Add pan (Space+drag)
+- [ ] Add grid toggle
+- [ ] Add rulers toggle
+
+#### Text Formatting
+- [ ] Add text shortcuts (Cmd+B/I/U)
+- [ ] Add font size (Cmd+Shift+>/<)
+- [ ] Add alignment (Cmd+L/E/R/J)
+
+**Success Criteria:**
+- ✅ All P1 shortcuts implemented
+- ✅ No conflicts detected
+- ✅ Shortcuts visible in overlay
+
+---
+
+### Phase 4: Overlay Enhancements (Week 4)
+**Priority: P2 - Nice to Have**
+
+#### Discoverability
+- [ ] Add category tabs with filtering
+- [ ] Add platform detection display (⌘ vs Ctrl)
+- [ ] Add search result highlighting
+- [ ] Add "Recent" tab (last 20 used)
+- [ ] Add empty state: "No shortcuts found"
+- [ ] Add smooth animations (scale, fade)
+- [ ] Add keyboard navigation (Tab, Arrow keys)
+
+#### Usage Tracking
+- [ ] Add ⭐ star indicators for used shortcuts
+- [ ] Add recently used shortcuts sorting
+- [ ] Add frequency-based recommendations
+- [ ] Add context-aware display
+- [ ] Add ⚠️ conflict indicators
+
+#### Tooltips & Menus
+- [ ] Add tooltips with shortcuts
+- [ ] Show shortcuts in context menus
+- [ ] Show shortcuts in toolbar buttons
+- [ ] Add keyboard shortcut hints in panels
+
+**Success Criteria:**
+- ✅ Users can find any shortcut in <3 seconds
+- ✅ Recently used shortcuts highlighted
+- ✅ Conflicts clearly marked
+
+---
+
+### Phase 5: Customization (Future - Week 5+)
+**Priority: P3 - Power Users**
+
+#### Custom Shortcuts
+- [ ] Add edit mode (inline recording)
+- [ ] Add preset management (Figma/Adobe/Story)
+- [ ] Add import/export JSON
+- [ ] Add reset to defaults
+- [ ] Add custom shortcut validation
+- [ ] Add conflict resolution UI
+
+#### Advanced Features
+- [ ] Add chord shortcuts (e.g., Cmd+K Cmd+S)
+- [ ] Add sequence shortcuts
+- [ ] Add macro recording
+- [ ] Add shortcut profiles per project
+
+---
+
+### Phase 6: Cross-Platform Testing (Ongoing)
+**Priority: P0 - Required**
+
+#### Browser Testing
+- [ ] Test on Chrome/Edge (Cmd+D conflict)
+- [ ] Test on Firefox (Cmd+K conflict)
+- [ ] Test on Safari (Cmd+L conflict)
+- [ ] Test preventDefault strategy
+- [ ] Test fallback shortcuts
+
+#### Platform Testing
+- [ ] Test on macOS (Cmd key)
+- [ ] Test on Windows (Ctrl key)
+- [ ] Test on Linux
+- [ ] Test keyboard layouts (QWERTY, AZERTY, QWERTZ)
+
+#### Accessibility Testing
+- [ ] Test with screen readers (NVDA, JAWS, VoiceOver)
+- [ ] Test keyboard-only navigation
+- [ ] Test with reduced motion
+- [ ] Test high contrast mode
+- [ ] Verify WCAG AA compliance
+
+#### Theme Testing (CRITICAL)
+- [ ] Test dark mode (default)
+- [ ] Test light mode (`body.theme-light`)
+- [ ] Test accent color switch (blue → purple)
+- [ ] Test accent color switch (blue → green)
+- [ ] Test accent color switch (blue → red)
+- [ ] Verify no hardcoded values remain
+- [ ] Test all hover states use accent color
+- [ ] Test all active states use accent color
+
+**Success Criteria:**
+- ✅ Works on all major browsers
+- ✅ Works on Mac, Windows, Linux
+- ✅ Screen reader compatible
+- ✅ Theme switching perfect (no blue remains)
+- ✅ Light mode fully functional
+
+---
+
+### Phase 7: Documentation & Polish (Week 6)
+**Priority: P2 - User Experience**
+
+#### User Documentation
+- [ ] Update help documentation
+- [ ] Create keyboard shortcuts reference page
+- [ ] Create video tutorial
+- [ ] Add onboarding hints
+- [ ] Create printable quick reference (PDF)
+
+#### Developer Documentation
+- [ ] Document KeyboardManager API
+- [ ] Document ShortcutRegistry API
+- [ ] Document how to add new shortcuts
+- [ ] Document design system compliance requirements
+- [ ] Add code examples for common patterns
+
+#### Analytics
+- [ ] Track shortcut usage
+- [ ] Track overlay open rate
+- [ ] Track search queries
+- [ ] Identify unused shortcuts
+
+---
+
+## 16. Risk Mitigation
+
+### High Risk
+1. **Browser conflicts breaking core functionality**
+   - Mitigation: Comprehensive preventDefault strategy, fallback shortcuts
+   
+2. **Theme switching revealing hardcoded values**
+   - Mitigation: Automated tests for hardcoded colors, strict code review
+   
+3. **Performance degradation (<100ms open time)**
+   - Mitigation: Pre-render overlay, virtual scrolling, performance budgets
+
+### Medium Risk
+1. **Keyboard layout incompatibility**
+   - Mitigation: Test on AZERTY, QWERTZ, test on Mac/Windows
+   
+2. **Screen reader compatibility**
+   - Mitigation: ARIA attributes, semantic HTML, manual testing
+
+### Low Risk
+1. **User confusion with too many shortcuts**
+   - Mitigation: Progressive disclosure, category filtering, search
+
+---
+
+**Last Updated:** December 10, 2025  
+**Version:** 2.0  
+**Status:** Updated with Design System Compliance  
+**Breaking Changes:** None (additive changes only)
