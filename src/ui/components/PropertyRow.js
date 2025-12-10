@@ -26,6 +26,8 @@
  *   container.appendChild(row.element);
  */
 
+import { Icons } from '../Icons.js';
+
 export class PropertyRow {
     /**
      * @param {Object} options
@@ -113,7 +115,7 @@ export class PropertyRow {
                 this._visibilityBtn.className = 'pi-property-row__visibility';
                 this._visibilityBtn.setAttribute('type', 'button');
                 this._visibilityBtn.setAttribute('aria-label', 'Toggle visibility');
-                this._visibilityBtn.textContent = 'visibility';
+                this._visibilityBtn.innerHTML = Icons.VISIBLE;
                 this._actionsContainer.appendChild(this._visibilityBtn);
             }
 
@@ -123,7 +125,7 @@ export class PropertyRow {
                 this._deleteBtn.className = 'pi-property-row__delete';
                 this._deleteBtn.setAttribute('type', 'button');
                 this._deleteBtn.setAttribute('aria-label', 'Delete');
-                this._deleteBtn.textContent = '−';
+                this._deleteBtn.innerHTML = Icons.MINUS;
                 this._actionsContainer.appendChild(this._deleteBtn);
             }
         }
@@ -232,7 +234,7 @@ export class PropertyRow {
         this.element.classList.toggle('invisible', !isVisible);
         
         if (this._visibilityBtn) {
-            this._visibilityBtn.textContent = isVisible ? 'visibility' : 'visibility_off';
+            this._visibilityBtn.innerHTML = isVisible ? Icons.VISIBLE : Icons.HIDDEN;
             this._visibilityBtn.setAttribute('aria-label', isVisible ? 'Hide' : 'Show');
         }
     }
