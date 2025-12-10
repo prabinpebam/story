@@ -533,7 +533,8 @@ input[type="text"]:focus, input[type="number"]:focus, select:focus {
     font-weight: 600;
 }
 
-.slide-number {
+/* Slide thumbnail number overlay (sidebar) */
+.slide-thumbnail .slide-number {
     position: absolute;
     top: var(--spacing-1);
     left: var(--spacing-1);
