@@ -399,30 +399,34 @@ export class FillSection extends BaseSection {
 
         combinedInput.appendChild(opacityInput.element);
 
-        // Blend Mode Button (only additional control beyond PropertyRow)
-        const isNormalBlend = !fill.blendMode || fill.blendMode === 'normal';
-        const blendBtn = new IconButton({
-            icon: Icons.BLEND_MODE,
-            title: `Blend Mode: ${fill.blendMode || 'Normal'}`,
-            onClick: (e) => {
-                // Find the button element (could be the icon or the button wrapper)
-                const btn = e.target.closest('button') || e.target;
-                this.openBlendModeMenu(btn, fill, index, element);
-            }
-        });
-        blendBtn.element.classList.add('pi-btn-compact');
-        if (!isNormalBlend) {
-            blendBtn.element.classList.add('pi-btn-active');
-        }
-        
-        // Wrap combined input and blend button in a content container
+        // Wrap combined input in a content container
         const fillContent = document.createElement('div');
         fillContent.className = 'fill-content';
         fillContent.appendChild(combinedInput);
-        fillContent.appendChild(blendBtn.element);
         
         // Add content to PropertyRow
         propertyRow.appendChild(fillContent);
+
+        // Blend Mode Button - add to actions container
+        const isNormalBlend = !fill.blendMode || fill.blendMode === 'normal';
+        const blendBtn = document.createElement('button');
+        blendBtn.type = 'button';
+        blendBtn.className = 'btn btn--text btn--xs btn--icon-only pi-icon-btn';
+        blendBtn.setAttribute('title', `Blend Mode: ${fill.blendMode || 'Normal'}`);
+        blendBtn.setAttribute('aria-label', `Blend Mode: ${fill.blendMode || 'Normal'}`);
+        blendBtn.innerHTML = `<span class="btn__icon" aria-hidden="true">${Icons.BLEND_MODE}</span>`;
+        blendBtn.onclick = (e) => {
+            e.stopPropagation();
+            this.openBlendModeMenu(blendBtn, fill, index, element);
+        };
+        if (!isNormalBlend) {
+            blendBtn.classList.add('pi-btn-active');
+        }
+        
+        // Insert blend mode button before visibility button in actions
+        const actionsContainer = row.querySelector('.pi-property-row__actions');
+        const visibilityBtn = actionsContainer.querySelector('.pi-property-row__visibility');
+        actionsContainer.insertBefore(blendBtn, visibilityBtn);
 
         return row;
     }
