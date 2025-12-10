@@ -112,20 +112,20 @@ export class PropertyRow {
             // 4. Visibility toggle (optional)
             if (this.options.showVisibility) {
                 this._visibilityBtn = document.createElement('button');
-                this._visibilityBtn.className = 'pi-property-row__visibility';
+                this._visibilityBtn.className = 'btn btn--text btn--xs btn--icon-only pi-icon-btn pi-property-row__visibility';
                 this._visibilityBtn.setAttribute('type', 'button');
                 this._visibilityBtn.setAttribute('aria-label', 'Toggle visibility');
-                this._visibilityBtn.innerHTML = Icons.VISIBLE;
+                this._visibilityBtn.innerHTML = `<span class="btn__icon" aria-hidden="true">${Icons.VISIBLE}</span>`;
                 this._actionsContainer.appendChild(this._visibilityBtn);
             }
 
             // 5. Delete button (optional)
             if (this.options.showDelete) {
                 this._deleteBtn = document.createElement('button');
-                this._deleteBtn.className = 'pi-property-row__delete';
+                this._deleteBtn.className = 'btn btn--text btn--xs btn--icon-only pi-icon-btn pi-property-row__delete';
                 this._deleteBtn.setAttribute('type', 'button');
                 this._deleteBtn.setAttribute('aria-label', 'Delete');
-                this._deleteBtn.innerHTML = Icons.MINUS;
+                this._deleteBtn.innerHTML = `<span class="btn__icon" aria-hidden="true">${Icons.MINUS}</span>`;
                 this._actionsContainer.appendChild(this._deleteBtn);
             }
         }
@@ -234,7 +234,8 @@ export class PropertyRow {
         this.element.classList.toggle('invisible', !isVisible);
         
         if (this._visibilityBtn) {
-            this._visibilityBtn.innerHTML = isVisible ? Icons.VISIBLE : Icons.HIDDEN;
+            const icon = isVisible ? Icons.VISIBLE : Icons.HIDDEN;
+            this._visibilityBtn.innerHTML = `<span class="btn__icon" aria-hidden="true">${icon}</span>`;
             this._visibilityBtn.setAttribute('aria-label', isVisible ? 'Hide' : 'Show');
         }
     }
