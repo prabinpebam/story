@@ -96,9 +96,19 @@ export class SlideList {
         const list = document.createElement('div');
         list.className = 'slide-list';
 
-        // Iterate Masters
+        // Get masters in display order
         const allMasters = state.slideMasterPresets;
-        const themes = Object.values(allMasters).filter(m => m.type === 'theme' || m.type === 'slideMasterPreset');
+        let themes;
+        
+        if (state.masterDisplayOrder && state.masterDisplayOrder.length > 0) {
+            // Use display order if available
+            themes = state.masterDisplayOrder
+                .map(id => allMasters[id])
+                .filter(m => m && (m.type === 'theme' || m.type === 'slideMasterPreset'));
+        } else {
+            // Fallback to object values
+            themes = Object.values(allMasters).filter(m => m.type === 'theme' || m.type === 'slideMasterPreset');
+        }
 
         themes.forEach(theme => {
             // 1. Render the Master Slide itself
@@ -199,6 +209,96 @@ export class SlideList {
                 isActive,
                 startRename: () => this.startMasterRename(item, titleText, id)
             });
+        });
+
+        // Add drag and drop for master reordering (similar to slide mode)
+        item.draggable = true;
+        item.setAttribute('data-master-id', id);
+        item.setAttribute('data-is-theme', isMasterRoot);
+        
+        item.addEventListener('dragstart', (e) => {
+            e.dataTransfer.setData('text/plain', id);
+            e.dataTransfer.setData('master-id', id);
+            e.dataTransfer.setData('is-theme', isMasterRoot);
+            e.dataTransfer.effectAllowed = 'move';
+            
+            // Create custom drag preview (80px max width, 16:9 aspect ratio)
+            const dragPreview = this.createDragPreview(preview);
+            document.body.appendChild(dragPreview);
+            e.dataTransfer.setDragImage(dragPreview, 40, 22); // Center of 80x45
+            
+            // Clean up drag preview after drag starts
+            setTimeout(() => {
+                if (dragPreview.parentNode) {
+                    dragPreview.remove();
+                }
+            }, 0);
+            
+            item.style.opacity = '0.5';
+        });
+
+        item.addEventListener('dragend', () => {
+            item.style.opacity = '1';
+            this.clearDropIndicators();
+        });
+
+        item.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            e.dataTransfer.dropEffect = 'move';
+            
+            // Don't show indicator on the dragged item itself
+            if (item.style.opacity === '0.5') {
+                return;
+            }
+            
+            // Clear all indicators first
+            this.clearDropIndicators();
+            
+            // Visual feedback - add class for drop indicator
+            const rect = item.getBoundingClientRect();
+            const midpoint = rect.top + rect.height / 2;
+            if (e.clientY < midpoint) {
+                item.classList.add('drop-before');
+            } else {
+                item.classList.add('drop-after');
+            }
+        });
+
+        item.addEventListener('dragleave', (e) => {
+            e.stopPropagation();
+            // Only clear if we're actually leaving this element
+            const rect = item.getBoundingClientRect();
+            const x = e.clientX;
+            const y = e.clientY;
+            
+            // If mouse is outside the bounding box, clear the indicator
+            if (x < rect.left || x > rect.right || y < rect.top || y > rect.bottom) {
+                item.classList.remove('drop-before', 'drop-after');
+            }
+        });
+
+        item.addEventListener('drop', (e) => {
+            e.preventDefault();
+            const draggedId = e.dataTransfer.getData('master-id');
+            const targetId = id;
+            
+            if (draggedId && draggedId !== targetId) {
+                // Determine target position based on drop location
+                const rect = item.getBoundingClientRect();
+                const midpoint = rect.top + rect.height / 2;
+                const insertBefore = e.clientY < midpoint;
+                
+                // Dispatch reorder action
+                store.dispatch('REORDER_MASTERS', {
+                    draggedId,
+                    targetId,
+                    insertBefore
+                });
+            }
+            
+            // Clear drop indicators
+            this.clearDropIndicators();
         });
 
         return item;

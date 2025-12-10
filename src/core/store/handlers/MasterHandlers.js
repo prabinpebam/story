@@ -702,4 +702,45 @@ export function handleRenameMaster(draft, payload) {
     }
 }
 
+/**
+ * Reorder masters in the list by adjusting display order.
+ * Since masters are stored as an object, we maintain a separate displayOrder array.
+ * @param {Object} draft - Immer draft state
+ * @param {Object} payload - { draggedId: string, targetId: string, insertBefore: boolean }
+ */
+export function handleReorderMasters(draft, payload) {
+    const { draggedId, targetId, insertBefore } = payload;
+    
+    // Initialize masterDisplayOrder if it doesn't exist
+    if (!draft.masterDisplayOrder) {
+        // Create initial order from existing masters
+        const themes = Object.values(draft.slideMasterPresets)
+            .filter(m => m.type === 'theme' || m.type === 'slideMasterPreset')
+            .map(m => m.id);
+        draft.masterDisplayOrder = themes;
+    }
+    
+    const currentOrder = draft.masterDisplayOrder;
+    const draggedIndex = currentOrder.indexOf(draggedId);
+    const targetIndex = currentOrder.indexOf(targetId);
+    
+    if (draggedIndex === -1 || targetIndex === -1) {
+        console.warn('Invalid master IDs for reordering');
+        return;
+    }
+    
+    // Remove dragged item
+    currentOrder.splice(draggedIndex, 1);
+    
+    // Calculate new target index (after removal)
+    let newTargetIndex = currentOrder.indexOf(targetId);
+    
+    // Insert based on position
+    if (insertBefore) {
+        currentOrder.splice(newTargetIndex, 0, draggedId);
+    } else {
+        currentOrder.splice(newTargetIndex + 1, 0, draggedId);
+    }
+}
+
 

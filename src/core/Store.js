@@ -275,6 +275,7 @@ export class Store extends EventEmitter {
             case 'DUPLICATE_MASTER':
             case 'DELETE_MASTER':
             case 'RENAME_MASTER':
+            case 'REORDER_MASTERS':
                 this.snapshot(type);
                 this.state = produce(this.state, draft => {
                     switch(type) {
@@ -299,6 +300,7 @@ export class Store extends EventEmitter {
                         case 'DUPLICATE_MASTER': MasterHandlers.handleDuplicateMaster(draft, payload); break;
                         case 'DELETE_MASTER': MasterHandlers.handleDeleteMaster(draft, payload); break;
                         case 'RENAME_MASTER': MasterHandlers.handleRenameMaster(draft, payload); break;
+                        case 'REORDER_MASTERS': MasterHandlers.handleReorderMasters(draft, payload); break;
                     }
                 });
                 this.emit('state-changed', this.state);
