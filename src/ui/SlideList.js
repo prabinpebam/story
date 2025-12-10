@@ -271,32 +271,12 @@ export class SlideList {
                 const item = document.createElement('div');
                 item.className = `slide-thumbnail ${isActive ? 'active' : ''} ${isSelected ? 'selected' : ''}`;
                 item.setAttribute('data-testid', `slide-thumbnail-${index}`);
-                
-                // Dynamic styles for active/selected states
-                if (isActive || isSelected) {
-                    item.style.backgroundColor = 'var(--color-bg-active)';
-                }
-                if (isSelected) {
-                    item.style.border = '2px solid var(--color-accent)';
-                } else if (isActive) {
-                    item.style.border = '1px solid var(--color-accent)';
-                }
 
-                // Slide Number & Title
-                const info = document.createElement('div');
-                info.className = 'slide-thumbnail-info slide-info';
-                
+                // Slide Number (overlay on thumbnail)
                 const number = document.createElement('span');
                 number.innerText = index + 1;
                 number.className = 'slide-number';
-                
-                const slideTitle = document.createElement('span');
-                slideTitle.innerText = slide.title || `Slide ${index + 1}`;
-                slideTitle.className = 'slide-title-text';
-
-                info.appendChild(number);
-                info.appendChild(slideTitle);
-                item.appendChild(info);
+                item.appendChild(number);
 
                 // Preview Box - Use ThumbnailRenderer for accurate representation
                 const effectiveSlide = store.getEffectiveSlide(slide.id);
@@ -332,7 +312,7 @@ export class SlideList {
                         slideIndex: index,
                         isActive,
                         selectedSlideIds: state.editor.selectedSlideIds || [slideId],
-                        startRename: () => this.startSlideRename(item, slideTitle, slideId)
+                        startRename: () => this.startSlideRename(slideId)
                     });
                 });
 
@@ -520,19 +500,35 @@ export class SlideList {
     
     /**
      * Start inline rename for a slide
+     * Creates a temporary input overlay on the thumbnail
      */
-    startSlideRename(item, titleElement, slideId) {
+    startSlideRename(slideId) {
+        this.isRenaming = true;
         const state = store.getState();
         const slide = state.slides[slideId];
-        const currentName = slide?.title || titleElement.innerText;
+        const currentName = slide?.title || 'Untitled Slide';
         
+        // Find the slide thumbnail element
+        const slideIndex = state.slideOrder.indexOf(slideId);
+        const item = this.container.querySelector(`[data-testid="slide-thumbnail-${slideIndex}"]`);
+        if (!item) return;
+        
+        // Create input overlay
         const input = document.createElement('input');
         input.type = 'text';
         input.value = currentName;
         input.className = 'slide-rename-input slide-title-input';
+        input.style.cssText = `
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 10;
+            width: 80%;
+        `;
         
-        titleElement.classList.add('hidden');
-        titleElement.parentNode.appendChild(input);
+        item.style.position = 'relative';
+        item.appendChild(input);
         input.focus();
         input.select();
         
@@ -542,7 +538,8 @@ export class SlideList {
                 store.dispatch('RENAME_SLIDE', { id: slideId, title: newName });
             }
             input.remove();
-            titleElement.classList.remove('hidden');
+            item.style.position = '';
+            this.isRenaming = false;
         };
         
         input.addEventListener('blur', finishRename);
