@@ -587,12 +587,15 @@ export class SlideSection {
     }
 
     update(selection) {
+        console.log('SlideSection: update() called', { selection, timestamp: Date.now() });
         // This is shown when NO selection exists (or explicit slide selection)
         if (selection && selection.length > 0) {
+            console.log('SlideSection: Hiding section (selection exists)');
             this.element.classList.add('hidden');
             return;
         }
         
+        console.log('SlideSection: Showing section (no selection)');
         this.element.classList.remove('hidden');
         
         const state = store.getState();
