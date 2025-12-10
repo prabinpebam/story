@@ -155,12 +155,13 @@ export class SlideSection {
         
         this.colorThemeName = document.createElement('span');
         this.colorThemeName.className = 'theme-detail-name';
-        this.colorThemeName.textContent = 'Default';
+        this.colorThemeName.textContent = ''; // Will be set by updateColorsSectionDisplay
         headerRow.appendChild(this.colorThemeName);
 
         // Inheritance badge (cascade-aware)
         this.colorBadge = document.createElement('span');
-        this.colorBadge.className = 'theme-detail-badge';
+        this.colorBadge.className = 'inherited-fill-badge';
+        this.colorBadge.textContent = 'Inherited';
         headerRow.appendChild(this.colorBadge);
 
         // Edit button
@@ -269,6 +270,39 @@ export class SlideSection {
         const container = document.createElement('div');
         container.className = 'theme-typography-content';
 
+        // Actions row (at top - before font rows)
+        const actionsRow = document.createElement('div');
+        actionsRow.className = 'theme-detail-header theme-detail-actions';
+
+        // Inheritance badge
+        this.typoBadge = document.createElement('span');
+        this.typoBadge.className = 'theme-detail-badge';
+        actionsRow.appendChild(this.typoBadge);
+
+        // Edit button
+        const typoEditBtn = new Button({
+            icon: '<i class="fa-solid fa-pen"></i>',
+            variant: 'text',
+            size: 'xs',
+            title: 'Edit typography',
+            className: 'theme-detail-edit',
+            onClick: () => panelManager.toggle('typography-style-manager')
+        });
+        actionsRow.appendChild(typoEditBtn.element);
+
+        // Reset button
+        this.typoResetBtn = new Button({
+            icon: '<i class="fa-solid fa-arrow-rotate-left"></i>',
+            variant: 'text',
+            size: 'xs',
+            title: 'Reset to inherited',
+            className: 'theme-detail-reset',
+            onClick: () => this.resetTypography()
+        });
+        actionsRow.appendChild(this.typoResetBtn.element);
+
+        container.appendChild(actionsRow);
+
         // Heading font row
         const headingRow = document.createElement('div');
         headingRow.className = 'theme-font-row';
@@ -310,39 +344,6 @@ export class SlideSection {
         bodyRow.appendChild(this.bodyFontPreview);
 
         container.appendChild(bodyRow);
-
-        // Actions row
-        const actionsRow = document.createElement('div');
-        actionsRow.className = 'theme-detail-header theme-detail-actions';
-
-        // Inheritance badge
-        this.typoBadge = document.createElement('span');
-        this.typoBadge.className = 'theme-detail-badge';
-        actionsRow.appendChild(this.typoBadge);
-
-        // Edit button
-        const typoEditBtn = new Button({
-            icon: '<i class="fa-solid fa-pen"></i>',
-            variant: 'text',
-            size: 'xs',
-            title: 'Edit typography',
-            className: 'theme-detail-edit',
-            onClick: () => panelManager.toggle('typography-style-manager')
-        });
-        actionsRow.appendChild(typoEditBtn.element);
-
-        // Reset button
-        this.typoResetBtn = new Button({
-            icon: '<i class="fa-solid fa-arrow-rotate-left"></i>',
-            variant: 'text',
-            size: 'xs',
-            title: 'Reset to inherited',
-            className: 'theme-detail-reset',
-            onClick: () => this.resetTypography()
-        });
-        actionsRow.appendChild(this.typoResetBtn.element);
-
-        container.appendChild(actionsRow);
 
         return container;
     }
@@ -399,7 +400,6 @@ export class SlideSection {
         
         // Update theme name from luma theme
         const themeName = lumaTheme?.name || 'Default';
-        this.colorThemeName.textContent = themeName;
         
         // Diagnostic logging for Property Inspector display
         const state = store.getState();
@@ -416,18 +416,26 @@ export class SlideSection {
             }
         });
 
-        // Update badge based on cascade source
+        // Update display: show theme name and badge
+        this.colorThemeName.textContent = themeName;
+        
         if (isOverride) {
-            this.colorBadge.textContent = 'Override';
-            this.colorBadge.className = 'theme-detail-badge override';
-            this.colorResetBtn.element.classList.remove('hidden');
-        } else if (themeInfo?.isInherited) {
-            this.colorBadge.textContent = 'Inherited';
-            this.colorBadge.className = 'theme-detail-badge inherited';
-            this.colorResetBtn.element.classList.add('hidden');
-        } else {
+            // Override: show user-chosen theme name, hide badge, show reset button
             this.colorBadge.textContent = '';
             this.colorBadge.className = 'theme-detail-badge';
+            this.colorBadge.style.display = 'none';
+            this.colorResetBtn.element.classList.remove('hidden');
+        } else if (themeInfo?.isInherited) {
+            // Inherited: show theme name, show Inherited badge, hide reset button
+            this.colorBadge.textContent = 'Inherited';
+            this.colorBadge.className = 'inherited-fill-badge';
+            this.colorBadge.style.display = '';
+            this.colorResetBtn.element.classList.add('hidden');
+        } else {
+            // Master or no cascade: show theme name, no badge, hide reset button
+            this.colorBadge.textContent = '';
+            this.colorBadge.className = 'theme-detail-badge';
+            this.colorBadge.style.display = 'none';
             this.colorResetBtn.element.classList.add('hidden');
         }
 
@@ -490,14 +498,18 @@ export class SlideSection {
         this.bodyFontName.textContent = bodyFont;
         this.bodyFontPreview.style.fontFamily = bodyFont;
 
-        // Update badge
+        // Update badge: show only when inherited
         if (isOverride) {
-            this.typoBadge.textContent = 'Override';
-            this.typoBadge.className = 'theme-detail-badge override';
+            // Override: fonts show user-chosen values, hide badge, show reset button
+            this.typoBadge.textContent = '';
+            this.typoBadge.className = 'theme-detail-badge';
+            this.typoBadge.style.display = 'none';
             this.typoResetBtn.element.classList.remove('hidden');
         } else {
+            // Inherited: show Inherited badge, hide reset button
             this.typoBadge.textContent = 'Inherited';
-            this.typoBadge.className = 'theme-detail-badge inherited';
+            this.typoBadge.className = 'inherited-fill-badge';
+            this.typoBadge.style.display = '';
             this.typoResetBtn.element.classList.add('hidden');
         }
     }
