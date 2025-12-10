@@ -1129,52 +1129,6 @@ select.pi-input option {
     flex-shrink: 0;
 }
 
-/* Visibility toggle button */
-.pi-property-row__visibility {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: var(--control-size-xs);
-    height: var(--control-size-xs);
-    border: none;
-    background: none;
-    color: var(--color-text-secondary);
-    cursor: pointer;
-    border-radius: var(--radius-xs);
-    padding: 0;
-    transition: color var(--transition-fast), background-color var(--transition-fast);
-}
-
-.pi-property-row__visibility:hover {
-    color: var(--color-text-primary);
-    background-color: var(--color-bg-hover);
-}
-
-.pi-property-row.invisible .pi-property-row__visibility {
-    color: var(--color-text-tertiary);
-}
-
-/* Delete button */
-.pi-property-row__delete {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: var(--control-size-xs);
-    height: var(--control-size-xs);
-    border: none;
-    background: none;
-    color: var(--color-text-secondary);
-    cursor: pointer;
-    border-radius: var(--radius-xs);
-    padding: 0;
-    transition: color var(--transition-fast), background-color var(--transition-fast);
-}
-
-.pi-property-row__delete:hover {
-    color: var(--color-error);
-    background-color: var(--color-error-soft);
-}
-
 /* ==========================================================================
    CORNER RADIUS CONTROLS
    Supports both uniform (single input) and per-corner (4 inputs) modes.
