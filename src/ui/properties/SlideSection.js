@@ -149,28 +149,6 @@ export class SlideSection {
         const container = document.createElement('div');
         container.className = 'theme-colors-content';
 
-        // Color Theme dropdown (for override selection)
-        const state = store.getState();
-        const colorThemePresets = state.colorThemePresets || {};
-        const themeOptions = Object.values(colorThemePresets).map(preset => ({
-            value: preset.id,
-            label: preset.name
-        }));
-        
-        // Add "Inherit" option at the beginning
-        themeOptions.unshift({
-            value: null,
-            label: 'Inherit from Layout'
-        });
-
-        this.colorThemeDropdown = new Dropdown({
-            label: 'Color Theme',
-            options: themeOptions,
-            value: null, // Will be set in updateThemeDisplay
-            onChange: (themeId) => this.changeColorTheme(themeId)
-        });
-        container.appendChild(this.colorThemeDropdown.element);
-
         // Current theme name/preset row (for display info)
         const headerRow = document.createElement('div');
         headerRow.className = 'theme-detail-header';
@@ -233,6 +211,7 @@ export class SlideSection {
         modeRow.appendChild(modeLabel);
         
         // Get current color mode from store
+        const state = store.getState();
         const themeMaster = state.slideMasterPresets?.['master-default'];
         const currentMode = themeMaster?.colorModeId || COLOR_MODES.LIGHT;
         
@@ -289,28 +268,6 @@ export class SlideSection {
     createTypographySectionContent() {
         const container = document.createElement('div');
         container.className = 'theme-typography-content';
-
-        // Typography Style dropdown (for override selection)
-        const state = store.getState();
-        const typographyStylePresets = state.typographyStylePresets || {};
-        const styleOptions = Object.values(typographyStylePresets).map(preset => ({
-            value: preset.id,
-            label: preset.name
-        }));
-        
-        // Add "Inherit" option at the beginning
-        styleOptions.unshift({
-            value: null,
-            label: 'Inherit from Layout'
-        });
-
-        this.typographyStyleDropdown = new Dropdown({
-            label: 'Typography Style',
-            options: styleOptions,
-            value: null, // Will be set in updateTypographySectionDisplay
-            onChange: (styleId) => this.changeTypographyStyle(styleId)
-        });
-        container.appendChild(this.typographyStyleDropdown.element);
 
         // Heading font row
         const headingRow = document.createElement('div');
@@ -438,21 +395,14 @@ export class SlideSection {
     }
 
     updateColorsSectionDisplay(themeInfo, isOverride) {
-        const state = store.getState();
-        const currentObject = this.getActiveContainer(state);
         const lumaTheme = themeInfo?.lumaTheme;
-        
-        // Update dropdown value based on slide's styleAssignments
-        if (this.colorThemeDropdown) {
-            const colorThemeId = currentObject?.styleAssignments?.colorTheme;
-            this.colorThemeDropdown.setValue(colorThemeId || null);
-        }
         
         // Update theme name from luma theme
         const themeName = lumaTheme?.name || 'Default';
         this.colorThemeName.textContent = themeName;
         
         // Diagnostic logging for Property Inspector display
+        const state = store.getState();
         const slideId = state.editor.mode === 'master' ? null : state.editor.activeSlideId;
         ThemeDiag.logUIDisplay('PropertyInspector', {
             slideId,
@@ -529,15 +479,6 @@ export class SlideSection {
     }
 
     updateTypographySectionDisplay(fonts, isOverride) {
-        const state = store.getState();
-        const currentObject = this.getActiveContainer(state);
-        
-        // Update dropdown value based on slide's styleAssignments
-        if (this.typographyStyleDropdown) {
-            const typographyStyleId = currentObject?.styleAssignments?.typographyStyle;
-            this.typographyStyleDropdown.setValue(typographyStyleId || null);
-        }
-        
         const headingFont = fonts.heading || 'Inter';
         const bodyFont = fonts.body || 'Inter';
 
@@ -580,37 +521,6 @@ export class SlideSection {
         }
     }
 
-    /**
-     * Change the Color Theme for the current slide
-     * @param {string|null} themeId - Color Theme preset ID, or null to inherit
-     */
-    changeColorTheme(themeId) {
-        const state = store.getState();
-        const mode = state.editor.mode;
-        
-        if (mode === 'master') {
-            // For masters, update the master's colorThemeId
-            const id = state.editor.activeMasterId;
-            store.dispatch('UPDATE_MASTER_STYLE_ASSIGNMENTS', {
-                masterId: id,
-                styleAssignments: {
-                    colorTheme: themeId
-                }
-            });
-        } else {
-            // For slides, use the cascade-aware style assignment system
-            const slideId = state.editor.activeSlideId;
-            store.dispatch('UPDATE_SLIDE_STYLE_ASSIGNMENTS', {
-                slideId,
-                styleAssignments: {
-                    colorTheme: themeId // null = inherit from cascade
-                }
-            });
-        }
-        
-        this.updateThemeDisplay();
-    }
-
     resetColors() {
         const state = store.getState();
         const mode = state.editor.mode;
@@ -626,37 +536,6 @@ export class SlideSection {
                 slideId,
                 styleAssignments: {
                     colorTheme: null // null = inherit from cascade
-                }
-            });
-        }
-        
-        this.updateThemeDisplay();
-    }
-
-    /**
-     * Change the Typography Style for the current slide
-     * @param {string|null} styleId - Typography Style preset ID, or null to inherit
-     */
-    changeTypographyStyle(styleId) {
-        const state = store.getState();
-        const mode = state.editor.mode;
-        
-        if (mode === 'master') {
-            // For masters, update the master's typographyStyleId
-            const id = state.editor.activeMasterId;
-            store.dispatch('UPDATE_MASTER_STYLE_ASSIGNMENTS', {
-                masterId: id,
-                styleAssignments: {
-                    typographyStyle: styleId
-                }
-            });
-        } else {
-            // For slides, use the cascade-aware style assignment system
-            const slideId = state.editor.activeSlideId;
-            store.dispatch('UPDATE_SLIDE_STYLE_ASSIGNMENTS', {
-                slideId,
-                styleAssignments: {
-                    typographyStyle: styleId // null = inherit from cascade
                 }
             });
         }

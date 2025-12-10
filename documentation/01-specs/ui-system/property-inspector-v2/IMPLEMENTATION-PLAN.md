@@ -82,27 +82,25 @@ This plan tracks the implementation of Property Inspector v2.0 features based on
 - ❌ **Keyboard navigation** - Complete keyboard-only workflow
 
 #### Phase 4: Theme Integration (VIEW LAYER ONLY)
-**Status:** ✅ COMPLETE (Dec 10, 2025)
+**Status:** ✅ COMPLETE (Existing Implementation)
 
 **Nomenclature (from 01-slide-master-system.md):**
 - **Slide Master Presets** - Structure and layout templates (NEVER embed colors/typography)
 - **Color Theme Presets** - Reusable color palettes (12 semantic colors)
 - **Typography Style Presets** - Reusable font systems (families, sizes, weights)
 
-**Systems Used (All Pre-Existing):**
-- ✅ `state.colorThemePresets` - Separate library
-- ✅ `state.typographyStylePresets` - Separate library
-- ✅ `state.slideMasterPresets` - Correct structure with ID references
-- ✅ `StyleResolver.getEffectiveColorTheme()` - Cascade system
-- ✅ `UPDATE_SLIDE_STYLE_ASSIGNMENTS` action - Store mutation
-- ✅ `UPDATE_MASTER_STYLE_ASSIGNMENTS` action - Store mutation
+**UI Pattern Used:**
+- Badge-based inheritance indicators (not dropdowns)
+- "Inherited" badge when using cascade
+- "Override" badge when local assignment exists
+- Reset button to clear override and return to inherited state
 
 **Completed Features:**
 - ✅ **Layout picker** - Slide can select from available Layout Masters
 - ✅ **Color theme swatches** - Displays current color theme with 12 semantic colors
+- ✅ **Color theme badges** - Shows "Inherited" or "Override" state with reset button
+- ✅ **Typography badges** - Shows "Inherited" or "Override" state with reset button
 - ✅ **Theme-linked fills** - Visual indicators when fill uses theme slot
-- ✅ **Color Theme override dropdown** - Dropdown in SlideSection to select from `state.colorThemePresets`
-- ✅ **Typography Style override dropdown** - Dropdown in SlideSection to select from `state.typographyStylePresets`
 - ✅ **Typography Style linkage indicator** - Complete system in TextSection with override detection
 - ⚠️ **Copy/paste theme slot preservation** - Needs verification (likely already works)
 
@@ -562,54 +560,46 @@ Surface existing theme system in Property Inspector UI. PI does NOT implement th
 - `src/ui/properties/FillSection.js` - Theme-linked detection and UI
 - `styles/modules/theme-linked.css` - Visual styling
 
-### 4.2 Color Theme Override Dropdown ✅ COMPLETE (Dec 10, 2025)
+### 4.2 Color Theme Badge Indicators ✅ ALREADY COMPLETE
 
-**Status:** Fully implemented and integrated
+**Status:** Existing implementation uses badge pattern (no dropdown needed)
 
-**Existing Systems (Verified):**
+**Existing Systems:**
 - ✅ Property name: `slide.styleAssignments.colorTheme` (can be `null` to inherit)
 - ✅ Store action: `UPDATE_SLIDE_STYLE_ASSIGNMENTS` (exists in SlideHandlers.js)
 - ✅ Cascade resolver: `StyleResolver.getEffectiveColorTheme(slideId)` works correctly
 - ✅ Color Theme library: `state.colorThemePresets` exists as separate library
-- ✅ Existing pattern: `SlideSection.resetColors()` already uses correct action
+- ✅ Reset action: `SlideSection.resetColors()` already uses correct action
 
-**Current State:** 
+**Current Implementation:** 
 - ✅ Color swatches display (shows 12 semantic colors from current theme)
+- ✅ Theme name displayed
+- ✅ Badge shows "Inherited" when using cascade
+- ✅ Badge shows "Override" when local assignment exists
 - ✅ "Edit" button opens ColorThemeManager panel
-- ❌ No dropdown to directly select different Color Theme Preset
+- ✅ Reset button clears override and returns to inherited state
 
-**Implementation:**
-- ✅ Dropdown reads `state.colorThemePresets` and populates options
-- ✅ "Inherit from Layout" option at top (value: null)
-- ✅ Wired to existing `UPDATE_SLIDE_STYLE_ASSIGNMENTS` action
-- ✅ Dropdown value syncs with `slide.styleAssignments.colorTheme`
-- ✅ Updates handled by `changeColorTheme()` method
-
-**UI Structure:**
+**UI Pattern (Badge-Based):**
 ```
 ┌─────────────────────────────────────────────────────────────────┐
 │  Colors                                                      ▼  │
 ├─────────────────────────────────────────────────────────────────┤
-│  Color Theme  [Default Colors         ▼]  <- Dropdown           │
-│  [■][■][■][■][■][■]  [■][■][■][■][■][■]   <- Swatches          │
-│  Source: Inherited from Layout         <- Badge                │
-│  [Edit Theme ✏️]  [Reset ↺]            <- Actions              │
+│  Default Colors  [Inherited]  [Edit ✏️]  [Reset ↺]             │
+│  [■][■][■][■][■][■]  [■][■][■][■][■][■]   <- 12 color swatches │
+│  Mode: [☀️ Light] [🌙 Dark]                                     │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
-**Files Modified:**
-- `src/ui/properties/SlideSection.js` (lines 150-171, 440-450)
-  - Added `this.colorThemeDropdown` in `createColorsSectionContent()`
-  - Added `changeColorTheme(themeId)` method
-  - Updated `updateColorsSectionDisplay()` to sync dropdown value
+**Files:**
+- `src/ui/properties/SlideSection.js`
+  - `createColorsSectionContent()` - Header with badge
+  - `updateColorsSectionDisplay()` - Updates badge state
+  - `resetColors()` - Clears override
 
-**Features:**
-- ✅ Dropdown shows all Color Theme Presets
-- ✅ "Inherit" option sets `colorTheme: null`
-- ✅ Selecting theme dispatches to existing store action
-- ✅ Badge shows "Inherited" vs "Override" states
-- ✅ Reset button clears override
-- ✅ Swatches update to show selected theme's colors
+**Design System Compliance:**
+- ✅ Uses badge pattern consistent with rest of Property Inspector
+- ✅ No redundant dropdowns
+- ✅ Simple visual feedback for inheritance state
 - `src/ui/properties/SlideSection.js` - Check existing update patterns
 - `src/core/Store.js` - Find existing slide update actions
 - `src/utils/StyleResolver.js` - Understand existing cascade logic
@@ -622,53 +612,46 @@ Surface existing theme system in Property Inspector UI. PI does NOT implement th
 - Existing reset button still works
 - No new systems created in PI
 
-### 4.3 Typography Style Override Dropdown ✅ COMPLETE (Dec 10, 2025)
+### 4.3 Typography Style Badge Indicators ✅ ALREADY COMPLETE
 
-**Status:** Fully implemented and integrated
+**Status:** Existing implementation uses badge pattern (no dropdown needed)
 
-**Existing Systems (Verified):**
+**Existing Systems:**
 - ✅ Property name: `slide.styleAssignments.typographyStyle` (can be `null` to inherit)
-- ✅ Typography Style library: `state.typographyStylePresets` exists (InitialState.js line 761)
-- ✅ Store action: Same `UPDATE_SLIDE_STYLE_ASSIGNMENTS` used for Color Theme override
-- ✅ Cascade resolver: `StyleResolver.getTypographyStyle(slideId)` exists (lines 549-597)
-- ⚠️ Note: Slide/layout overrides not yet implemented (marked as TODO in StyleResolver)
+- ✅ Typography Style library: `state.typographyStylePresets` exists
+- ✅ Store action: Same `UPDATE_SLIDE_STYLE_ASSIGNMENTS` used for Color Theme
+- ✅ Cascade resolver: `StyleResolver.getTypographyStyle(slideId)` exists
+- ✅ Reset action: `SlideSection.resetTypography()` clears override
 
-**Current State:** 
-- ✅ Font preview displays (heading/body font names)
+**Current Implementation:** 
+- ✅ Font preview displays (heading/body font names with samples)
+- ✅ Typography style name displayed
+- ✅ Badge shows "Inherited" when using cascade
+- ✅ Badge shows "Override" when local assignment exists
 - ✅ "Edit Styles" button opens TypographyStyleManager panel
-- ❌ No dropdown to directly select different Typography Style Preset
+- ✅ Reset button clears override and returns to inherited state
 
-**Implementation:**
-- ✅ Dropdown reads `state.typographyStylePresets` and populates options
-- ✅ "Inherit from Layout" option at top (value: null)
-- ✅ Wired to existing `UPDATE_SLIDE_STYLE_ASSIGNMENTS` action
-- ✅ Dropdown value syncs with `slide.styleAssignments.typographyStyle`
-- ✅ Updates handled by `changeTypographyStyle()` method
-
-**UI Structure:**
+**UI Pattern (Badge-Based):**
 ```
 ┌─────────────────────────────────────────────────────────────────┐
 │  Typography                                                  ▼  │
 ├─────────────────────────────────────────────────────────────────┤
-│  Typography Style  [Modern Sans       ▼]  <- Dropdown           │
-│  Heading    Inter         Aa           <- Font preview          │
+│  Modern Sans  [Inherited]  [Edit ✏️]  [Reset ↺]                │
+│  Heading    Inter         Aa                                   │
 │  Body       Inter         Aa                                   │
-│  [Edit Styles ✏️]  [Reset ↺]           <- Actions              │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
-**Files Modified:**
-- `src/ui/properties/SlideSection.js` (lines 290-312, 520-535)
-  - Added `this.typographyStyleDropdown` in `createTypographySectionContent()`
-  - Added `changeTypographyStyle(styleId)` method
-  - Updated `updateTypographySectionDisplay()` to sync dropdown value
+**Files:**
+- `src/ui/properties/SlideSection.js`
+  - `createTypographySectionContent()` - Header with badge
+  - `updateTypographySectionDisplay()` - Updates badge state
+  - `resetTypography()` - Clears override
 
-**Features:**
-- ✅ Dropdown shows all Typography Style Presets
-- ✅ "Inherit" option sets `typographyStyle: null`
-- ✅ Selecting style dispatches to existing store action
-- ✅ Font preview updates to show selected style's fonts
-- ✅ Reset button clears override
+**Design System Compliance:**
+- ✅ Uses badge pattern consistent with rest of Property Inspector
+- ✅ No redundant dropdowns
+- ✅ Simple visual feedback for inheritance state
 
 ### 4.4 Typography Style Linkage Indicator in TextSection ✅ ALREADY COMPLETE
 
