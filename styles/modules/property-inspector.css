@@ -648,46 +648,6 @@ select.pi-input option {
     padding: var(--spacing-2);
 }
 
-.pi-icon-btn {
-    width: var(--control-size-sm);
-    height: var(--control-size-sm);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: var(--radius-sm);
-    border: none;
-    background: transparent;
-    color: var(--color-text-secondary);
-    cursor: pointer;
-    flex-shrink: 0;
-}
-
-/* Ensure icons inside buttons are 16x16 */
-.pi-icon-btn svg {
-    width: var(--icon-size-md);
-    height: var(--icon-size-md);
-    flex-shrink: 0;
-}
-
-.pi-icon-btn i {
-    font-size: var(--icon-size-md);
-    width: var(--icon-size-md);
-    height: var(--icon-size-md);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.pi-icon-btn:hover {
-    background-color: var(--color-accent-subtle);
-    color: var(--color-text-primary);
-}
-
-.pi-icon-btn.active {
-    background-color: var(--color-accent-muted);
-    color: var(--color-accent);
-}
-
 /* Layout Thumbnail Grid */
 .layout-grid {
     display: grid;
