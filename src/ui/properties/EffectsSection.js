@@ -1,7 +1,8 @@
-import { Section } from '../components/Section.js';
+import { BaseSection } from './BaseSection.js';
 import { ColorInput } from '../components/ColorInput.js';
 import { NumberInput } from '../components/NumberInput.js';
 import { IconButton } from '../components/IconButton.js';
+import { PropertyRow } from '../components/PropertyRow.js';
 import { Dropdown } from '../components/Dropdown.js';
 import { Flyout } from '../components/Flyout.js';
 import { SegmentedControl } from '../components/SegmentedControl.js';
@@ -29,9 +30,9 @@ import {
  *   { id: 'zzz', type: 'layerBlur', radius: 12, mode: 'uniform', visible: true }
  * ]
  */
-export class EffectsSection {
+export class EffectsSection extends BaseSection {
     constructor() {
-        this.section = new Section({ 
+        super({ 
             title: 'Effects',
             collapsed: false,
             actions: [
@@ -39,46 +40,30 @@ export class EffectsSection {
                 { icon: Icons.PLUS, title: 'Add Effect', onClick: () => this.addEffect() }
             ]
         });
+        
         this.container = document.createElement('div');
         this.container.className = 'pi-section-content pi-gap-0';
         this.section.appendChild(this.container);
         
         this.activeFlyout = null;
         this.activeEffectId = null;
-        this.selection = [];
     }
 
     /**
      * Update section with current selection
      */
     update(selection) {
-        if (!selection || selection.length === 0) {
-            this.section.element.classList.add('hidden');
+        super.update(selection);
+        
+        if (!this.selection || this.selection.length === 0) {
             return;
         }
         
-        this.section.element.classList.remove('hidden');
-        this.selection = selection;
-        
         const state = store.getState();
-        const element = this.getElement(state, selection[0]);
+        const element = this.getElement(state, this.selection[0]);
         
         if (element) {
             this.render(element);
-        }
-    }
-
-    /**
-     * Get element from state by ID
-     */
-    getElement(state, id) {
-        const mode = state.editor.mode;
-        if (mode === 'master') {
-            const master = state.slideMasterPresets[state.editor.activeMasterId];
-            return master?.elements[id];
-        } else {
-            const slide = state.slides[state.editor.activeSlideId];
-            return slide?.elements[id];
         }
     }
 
@@ -113,74 +98,64 @@ export class EffectsSection {
      * Create a single effect row
      */
     createEffectRow(effect, index, total) {
-        const row = document.createElement('div');
-        row.className = 'pi-row pi-effect-row';
+        // Create PropertyRow wrapper with drag/visibility/delete controls
+        const propertyRow = new PropertyRow({
+            index,
+            draggable: total > 1, // Only draggable if multiple effects
+            showVisibility: true,
+            showDelete: true,
+            onVisibilityToggle: () => {
+                this.toggleEffectVisibility(effect.id);
+            },
+            onDelete: () => {
+                this.removeEffect(effect.id);
+            },
+            onDrop: ({ position, event }) => {
+                const fromIndex = parseInt(event.dataTransfer.getData('text/plain'));
+                let toIndex = index;
+                
+                // Calculate drop position
+                if (position === 'after') {
+                    toIndex = index + 1;
+                }
+                
+                if (fromIndex !== toIndex) {
+                    this.reorderEffect(fromIndex, toIndex);
+                }
+            },
+            onClick: () => {
+                this.openEffectFlyout(effect);
+            }
+        });
+        
+        // Set visibility and active state
+        propertyRow.setVisible(effect.visible !== false);
+        propertyRow.setActive(this.activeEffectId === effect.id);
+        
+        // Add effect-specific classes and data
+        const row = propertyRow.element;
+        row.classList.add('pi-effect-row');
         row.dataset.effectId = effect.id;
         row.dataset.effectIndex = index;
-        
-        if (this.activeEffectId === effect.id) {
-            row.classList.add('active');
-        }
-        if (effect.visible === false) {
-            row.classList.add('invisible');
-        }
 
-        // Left side (clickable to open flyout)
-        const left = document.createElement('div');
-        left.className = 'pi-effect-row-left';
-        left.onclick = () => this.openEffectFlyout(effect);
-
-        // Drag handle (only if multiple effects)
-        if (total > 1) {
-            const dragHandle = document.createElement('div');
-            dragHandle.className = 'pi-effect-drag-handle';
-            dragHandle.innerHTML = Icons.DRAG_HANDLE || '⋮⋮';
-            dragHandle.draggable = true;
-            this.setupDragHandlers(dragHandle, row, effect.id, index);
-            left.appendChild(dragHandle);
-        }
+        // Effect content (icon + label)
+        const effectContent = document.createElement('div');
+        effectContent.className = 'pi-effect-content';
 
         // Effect indicator icon
         const indicator = document.createElement('div');
         indicator.className = 'pi-effect-indicator';
         indicator.innerHTML = this.getEffectIcon(effect.type);
-        left.appendChild(indicator);
+        effectContent.appendChild(indicator);
 
         // Effect label
         const label = document.createElement('div');
         label.className = 'pi-effect-label';
         label.textContent = EffectTypeLabels[effect.type] || effect.type;
-        left.appendChild(label);
-
-        row.appendChild(left);
-
-        // Right side controls
-        const right = document.createElement('div');
-        right.className = 'pi-effect-row-right';
-
-        // Visibility toggle
-        const visibleBtn = new IconButton({
-            icon: effect.visible !== false ? Icons.VISIBLE : Icons.HIDDEN,
-            title: 'Toggle Visibility',
-            onClick: (e) => {
-                e.stopPropagation();
-                this.toggleEffectVisibility(effect.id);
-            }
-        });
-        right.appendChild(visibleBtn.element);
-
-        // Remove button
-        const removeBtn = new IconButton({
-            icon: Icons.MINUS,
-            title: 'Remove Effect',
-            onClick: (e) => {
-                e.stopPropagation();
-                this.removeEffect(effect.id);
-            }
-        });
-        right.appendChild(removeBtn.element);
-
-        row.appendChild(right);
+        effectContent.appendChild(label);
+        
+        // Add content to PropertyRow
+        propertyRow.appendChild(effectContent);
         
         return row;
     }

@@ -1,12 +1,12 @@
-import { Section } from '../components/Section.js';
+import { BaseSection } from './BaseSection.js';
 import { NumberInput } from '../components/NumberInput.js';
 import { IconButton } from '../components/IconButton.js';
 import { Icons } from '../Icons.js';
 import { store } from '../../core/Store.js';
 
-export class LayoutSection {
+export class LayoutSection extends BaseSection {
     constructor() {
-        this.section = new Section({ title: 'Layout' });
+        super({ title: 'Layout' });
         this.layoutButtons = [];
         this.isTextElement = false;
         this.createContent();
@@ -104,15 +104,14 @@ export class LayoutSection {
     }
 
     update(selection) {
-        if (!selection || selection.length === 0) {
-            this.section.element.classList.add('hidden');
+        super.update(selection);
+        
+        if (!this.selection || this.selection.length === 0) {
             return;
         }
         
-        this.section.element.classList.remove('hidden');
-        
         const state = store.getState();
-        const elementId = selection[0];
+        const elementId = this.selection[0];
         const element = this.getElement(state, elementId);
 
         // Update Constrain Button State

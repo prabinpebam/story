@@ -1,4 +1,4 @@
-import { Section } from '../components/Section.js';
+import { BaseSection } from './BaseSection.js';
 import { Dropdown } from '../components/Dropdown.js';
 import { IconButton } from '../components/IconButton.js';
 import { TextInput } from '../components/TextInput.js';
@@ -6,9 +6,9 @@ import { Button } from '../components/Button.js';
 import { Icons } from '../Icons.js';
 import { store } from '../../core/Store.js';
 
-export class ExportSection {
+export class ExportSection extends BaseSection {
     constructor() {
-        this.section = new Section({ 
+        super({ 
             title: 'Export',
             collapsed: true,
             actions: [

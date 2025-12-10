@@ -236,35 +236,17 @@
     gap: var(--spacing-2);
 }
 
+/* Fill row now uses PropertyRow component */
 .fill-row {
-    display: flex;
-    align-items: center;
-    gap: var(--spacing-1);
     height: var(--input-height-md);
 }
 
-/* Drag states for fill rows */
-.fill-row.dragging {
-    opacity: 0.5;
-}
-
-.fill-row.drag-over-top {
-    border-top: 2px solid var(--color-accent);
-}
-
-.fill-row.drag-over-bottom {
-    border-bottom: 2px solid var(--color-accent);
-}
-
-.fill-drag-handle {
-    color: var(--color-text-tertiary);
-    cursor: grab;
-    font-size: 12px;
+/* Fill content wrapper inside PropertyRow */
+.fill-content {
     display: flex;
     align-items: center;
-    justify-content: center;
-    width: 16px;
-    height: 100%;
+    gap: var(--spacing-1);
+    flex: 1;
 }
 
 .fill-input-group {
@@ -517,34 +499,17 @@
 }
 
 /* --- Stroke Row Styles --- */
+/* Stroke row now uses PropertyRow component */
 .stroke-row {
-    display: flex;
-    align-items: center;
-    gap: 2px;
     height: 28px;
 }
 
-.stroke-row.dragging {
-    opacity: 0.5;
-}
-
-.stroke-row.drag-over-top {
-    border-top: 2px solid var(--color-accent);
-}
-
-.stroke-row.drag-over-bottom {
-    border-bottom: 2px solid var(--color-accent);
-}
-
-.stroke-drag-handle {
-    color: var(--color-text-tertiary);
-    cursor: grab;
-    font-size: 12px;
+/* Stroke content wrapper inside PropertyRow */
+.stroke-content {
     display: flex;
     align-items: center;
-    justify-content: center;
-    width: 16px;
-    height: 100%;
+    gap: 2px;
+    flex: 1;
 }
 
 .stroke-input-group {
@@ -1031,8 +996,8 @@ select.pi-input option {
 }
 
 /* Effect Row - Used in EffectsSection for shadow, blur, etc. */
+/* Effect row now uses PropertyRow component */
 .pi-effect-row {
-    justify-content: space-between;
     cursor: pointer;
     border-radius: var(--radius-sm);
     border: 1px solid transparent;
@@ -1048,41 +1013,8 @@ select.pi-input option {
     border-color: var(--color-accent);
 }
 
-.pi-effect-row.invisible {
-    opacity: 0.5;
-}
-
-/* Drag and Drop States */
-.pi-effect-row.dragging {
-    opacity: 0.5;
-    background-color: var(--color-bg-hover);
-}
-
-.pi-effect-row.drag-over {
-    border-color: var(--color-accent);
-    background-color: var(--color-accent-soft);
-}
-
-/* Drag Handle */
-.pi-effect-drag-handle {
-    cursor: grab;
-    color: var(--color-text-tertiary);
-    padding: 2px;
-    margin-right: 2px;
-    opacity: 0;
-    transition: opacity 0.15s ease;
-}
-
-.pi-effect-row:hover .pi-effect-drag-handle {
-    opacity: 1;
-}
-
-.pi-effect-drag-handle:active {
-    cursor: grabbing;
-}
-
-/* Effect Row Left Section */
-.pi-effect-row-left {
+/* Effect content wrapper inside PropertyRow */
+.pi-effect-content {
     display: flex;
     align-items: center;
     gap: var(--spacing-2);
@@ -1105,12 +1037,6 @@ select.pi-input option {
 .pi-effect-label {
     font-size: var(--font-size-sm);
     color: var(--color-text-primary);
-}
-
-/* Effect Row Right Section (buttons) */
-.pi-effect-row-right {
-    display: flex;
-    gap: var(--spacing-1);
 }
 
 /* Flyout Content Container */

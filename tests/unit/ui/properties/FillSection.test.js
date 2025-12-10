@@ -242,7 +242,7 @@ describe('FillSection', () => {
                     ]
                 }
             });
-            const rows = fillSection.container.querySelectorAll('.pi-row');
+            const rows = fillSection.container.querySelectorAll('.pi-property-row');
             expect(rows.length).toBe(2);
         });
     });
@@ -257,7 +257,7 @@ describe('FillSection', () => {
         it('should create draggable handle', () => {
             const fill = { type: 'solid', color: '#FF0000', visible: true };
             const row = fillSection.createFillRow({ id: 'el-1', style: { fills: [fill] } }, fill, 0, [fill]);
-            const dragHandle = row.querySelector('[draggable="true"]');
+            const dragHandle = row.querySelector('.pi-property-row__handle');
             expect(dragHandle).toBeTruthy();
         });
 

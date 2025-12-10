@@ -2,6 +2,7 @@ import { BaseSection } from './BaseSection.js';
 import { ColorInput } from '../components/ColorInput.js';
 import { NumberInput } from '../components/NumberInput.js';
 import { IconButton } from '../components/IconButton.js';
+import { PropertyRow } from '../components/PropertyRow.js';
 import { Icons } from '../Icons.js';
 import { store } from '../../core/Store.js';
 import { FillFlyout } from '../components/FillFlyout/FillFlyout.js';
@@ -184,84 +185,45 @@ export class FillSection extends BaseSection {
     }
 
     createFillRow(element, fill, index, allFills) {
-        const row = document.createElement('div');
-        row.className = 'pi-row fill-row';
-        
         // Check if fill is linked to a theme slot
         const isLinked = fill.themeSlot !== undefined && fill.themeSlot !== null;
+        
+        // Create PropertyRow wrapper with drag/visibility/delete controls
+        const propertyRow = new PropertyRow({
+            index,
+            draggable: true,
+            showVisibility: true,
+            showDelete: true,
+            onVisibilityToggle: () => {
+                this.updateFill(element, index, { visible: !fill.visible });
+            },
+            onDelete: () => {
+                this.removeFill(element, index);
+            },
+            onDrop: ({ position, event }) => {
+                const fromIndex = parseInt(event.dataTransfer.getData('text/plain'));
+                let toIndex = index;
+                
+                // Calculate drop position
+                if (position === 'after') {
+                    toIndex = index + 1;
+                }
+                
+                if (fromIndex !== toIndex) {
+                    this.reorderFills(element, fromIndex, toIndex);
+                }
+            }
+        });
+        
+        // Set visibility state
+        propertyRow.setVisible(fill.visible !== false);
+        
+        // Add fill-specific classes
+        const row = propertyRow.element;
+        row.classList.add('fill-row');
         if (isLinked) {
             row.classList.add('fill-linked');
         }
-        
-        row.dataset.index = index;
-
-        // Drag Handle
-        const dragHandle = document.createElement('div');
-        dragHandle.className = 'fill-drag-handle';
-        dragHandle.innerHTML = Icons.DRAG_HANDLE;
-        dragHandle.draggable = true;
-        
-        dragHandle.addEventListener('dragstart', (e) => {
-            e.dataTransfer.effectAllowed = 'move';
-            e.dataTransfer.setData('text/plain', index);
-            e.dataTransfer.setDragImage(row, 0, 0);
-            row.classList.add('dragging');
-            this.dragStartIndex = index;
-            e.stopPropagation();
-        });
-
-        dragHandle.addEventListener('dragend', (e) => {
-            row.classList.remove('dragging');
-            this.container.querySelectorAll('.pi-row').forEach(r => {
-                r.classList.remove('drag-over-top', 'drag-over-bottom');
-            });
-            this.dragStartIndex = null;
-        });
-
-        row.addEventListener('dragover', (e) => {
-            e.preventDefault(); // Necessary to allow dropping
-            e.dataTransfer.dropEffect = 'move';
-            
-            if (this.dragStartIndex === null || this.dragStartIndex === index) return;
-
-            // Visual feedback
-            const rect = row.getBoundingClientRect();
-            const midY = rect.top + rect.height / 2;
-            
-            if (e.clientY < midY) {
-                row.classList.add('drag-over-top');
-                row.classList.remove('drag-over-bottom');
-            } else {
-                row.classList.remove('drag-over-top');
-                row.classList.add('drag-over-bottom');
-            }
-        });
-
-        row.addEventListener('dragleave', () => {
-            row.classList.remove('drag-over-top', 'drag-over-bottom');
-        });
-
-        row.addEventListener('drop', (e) => {
-            e.preventDefault();
-            const fromIndex = parseInt(e.dataTransfer.getData('text/plain'));
-            let toIndex = index;
-            
-            // Calculate if dropping above or below
-            const rect = row.getBoundingClientRect();
-            const midY = rect.top + rect.height / 2;
-            
-            if (e.clientY > midY) {
-                toIndex = index + 1;
-            }
-            
-            if (fromIndex !== toIndex) {
-                this.reorderFills(element, fromIndex, toIndex);
-            }
-            
-            row.classList.remove('drag-over-top', 'drag-over-bottom');
-        });
-
-        row.appendChild(dragHandle);
 
         // Combined Input Group (Swatch + Opacity)
         const combinedInput = document.createElement('div');
@@ -436,13 +398,8 @@ export class FillSection extends BaseSection {
         }
 
         combinedInput.appendChild(opacityInput.element);
-        row.appendChild(combinedInput);
 
-        // Button Group
-        const buttonGroup = document.createElement('div');
-        buttonGroup.className = 'fill-actions';
-
-        // Blend Mode Button
+        // Blend Mode Button (only additional control beyond PropertyRow)
         const isNormalBlend = !fill.blendMode || fill.blendMode === 'normal';
         const blendBtn = new IconButton({
             icon: Icons.BLEND_MODE,
@@ -457,33 +414,15 @@ export class FillSection extends BaseSection {
         if (!isNormalBlend) {
             blendBtn.element.classList.add('pi-btn-active');
         }
-
-        // Visibility Button
-        const visIcon = !fill.visible ? Icons.HIDDEN : Icons.VISIBLE;
-        const visBtn = new IconButton({
-            icon: visIcon,
-            title: !fill.visible ? 'Show Fill' : 'Hide Fill',
-            onClick: () => {
-                this.updateFill(element, index, { visible: !fill.visible });
-            }
-        });
-        visBtn.element.classList.add('pi-btn-compact');
-
-        // Remove Button
-        const removeBtn = new IconButton({
-            icon: Icons.MINUS,
-            title: 'Remove Fill',
-            onClick: () => {
-                this.removeFill(element, index);
-            }
-        });
-        removeBtn.element.classList.add('pi-btn-compact');
-
-        buttonGroup.appendChild(blendBtn.element);
-        buttonGroup.appendChild(visBtn.element);
-        buttonGroup.appendChild(removeBtn.element);
-
-        row.appendChild(buttonGroup);
+        
+        // Wrap combined input and blend button in a content container
+        const fillContent = document.createElement('div');
+        fillContent.className = 'fill-content';
+        fillContent.appendChild(combinedInput);
+        fillContent.appendChild(blendBtn.element);
+        
+        // Add content to PropertyRow
+        propertyRow.appendChild(fillContent);
 
         return row;
     }

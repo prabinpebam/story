@@ -3,6 +3,7 @@ import { ColorInput } from '../components/ColorInput.js';
 import { NumberInput } from '../components/NumberInput.js';
 import { Dropdown } from '../components/Dropdown.js';
 import { IconButton } from '../components/IconButton.js';
+import { PropertyRow } from '../components/PropertyRow.js';
 import { Icons } from '../Icons.js';
 import { store } from '../../core/Store.js';
 import { StrokeSettingsFlyout } from '../components/StrokeFlyout/StrokeSettingsFlyout.js';
@@ -83,79 +84,41 @@ export class StrokeSection extends BaseSection {
     }
 
     createStrokeRow(element, stroke, index, allStrokes) {
-        const row = document.createElement('div');
-        row.className = 'stroke-row';
-        row.dataset.index = index;
-
-        // 1. Drag Handle
-        const dragHandle = document.createElement('div');
-        dragHandle.className = 'stroke-drag-handle';
-        dragHandle.innerHTML = Icons.DRAG_HANDLE;
-        dragHandle.draggable = true;
-
-        dragHandle.addEventListener('dragstart', (e) => {
-            e.dataTransfer.effectAllowed = 'move';
-            e.dataTransfer.setData('text/plain', index);
-            e.dataTransfer.setDragImage(row, 0, 0);
-            row.classList.add('dragging');
-            this.dragStartIndex = index;
-            e.stopPropagation();
-        });
-
-        dragHandle.addEventListener('dragend', (e) => {
-            row.classList.remove('dragging');
-            this.container.querySelectorAll('.stroke-row').forEach(r => {
-                r.classList.remove('drag-over-top', 'drag-over-bottom');
-            });
-            this.dragStartIndex = null;
-        });
-
-        row.addEventListener('dragover', (e) => {
-            e.preventDefault(); // Necessary to allow dropping
-            e.dataTransfer.dropEffect = 'move';
-            
-            if (this.dragStartIndex === null || this.dragStartIndex === index) return;
-
-            // Visual feedback
-            const rect = row.getBoundingClientRect();
-            const midY = rect.top + rect.height / 2;
-            
-            if (e.clientY < midY) {
-                row.classList.add('drag-over-top');
-                row.classList.remove('drag-over-bottom');
-            } else {
-                row.classList.remove('drag-over-top');
-                row.classList.add('drag-over-bottom');
+        // Create PropertyRow wrapper with drag/visibility/delete controls
+        const propertyRow = new PropertyRow({
+            index,
+            draggable: true,
+            showVisibility: true,
+            showDelete: true,
+            onVisibilityToggle: () => {
+                this.updateStroke(index, { visible: stroke.visible === false });
+            },
+            onDelete: () => {
+                this.removeStroke(index);
+            },
+            onDrop: ({ position, event }) => {
+                const fromIndex = parseInt(event.dataTransfer.getData('text/plain'));
+                let toIndex = index;
+                
+                // Calculate drop position
+                if (position === 'after') {
+                    toIndex = index + 1;
+                }
+                
+                if (fromIndex !== toIndex) {
+                    this.reorderStrokes(element, fromIndex, toIndex);
+                }
             }
         });
+        
+        // Set visibility state
+        propertyRow.setVisible(stroke.visible !== false);
+        
+        // Add stroke-specific class
+        const row = propertyRow.element;
+        row.classList.add('stroke-row');
 
-        row.addEventListener('dragleave', () => {
-            row.classList.remove('drag-over-top', 'drag-over-bottom');
-        });
-
-        row.addEventListener('drop', (e) => {
-            e.preventDefault();
-            const fromIndex = parseInt(e.dataTransfer.getData('text/plain'));
-            let toIndex = index;
-            
-            // Calculate if dropping above or below
-            const rect = row.getBoundingClientRect();
-            const midY = rect.top + rect.height / 2;
-            
-            if (e.clientY > midY) {
-                toIndex = index + 1;
-            }
-            
-            if (fromIndex !== toIndex) {
-                this.reorderStrokes(element, fromIndex, toIndex);
-            }
-            
-            row.classList.remove('drag-over-top', 'drag-over-bottom');
-        });
-
-        row.appendChild(dragHandle);
-
-        // 2. Combined Input Group (Swatch + Hex + Opacity)
+        // Combined Input Group (Swatch + Hex + Opacity)
         const combinedInput = document.createElement('div');
         combinedInput.className = 'stroke-input-group';
 
@@ -256,14 +219,8 @@ export class StrokeSection extends BaseSection {
             opacityInput.element.classList.add('fill-disabled-interactive');
         }
         combinedInput.appendChild(opacityInput.element);
-        
-        row.appendChild(combinedInput);
 
-        // 3. Button Group (Blend, Vis, Remove)
-        const buttonGroup = document.createElement('div');
-        buttonGroup.className = 'stroke-actions';
-
-        // Blend Mode
+        // Blend Mode Button (only additional control beyond PropertyRow)
         const isNormalBlend = !stroke.blendMode || stroke.blendMode === 'normal';
         const blendBtn = new IconButton({
             icon: Icons.BLEND_MODE,
@@ -277,29 +234,15 @@ export class StrokeSection extends BaseSection {
         if (!isNormalBlend) {
             blendBtn.element.classList.add('pi-btn-active');
         }
-
-        // Visibility
-        const visIcon = stroke.visible !== false ? Icons.VISIBLE : Icons.HIDDEN;
-        const visBtn = new IconButton({
-            icon: visIcon,
-            title: stroke.visible !== false ? 'Hide Stroke' : 'Show Stroke',
-            onClick: () => this.updateStroke(index, { visible: stroke.visible === false })
-        });
-        visBtn.element.classList.add('pi-btn-compact');
-
-        // Remove
-        const removeBtn = new IconButton({
-            icon: Icons.MINUS,
-            title: 'Remove Stroke',
-            onClick: () => this.removeStroke(index)
-        });
-        removeBtn.element.classList.add('pi-btn-compact');
-
-        buttonGroup.appendChild(blendBtn.element);
-        buttonGroup.appendChild(visBtn.element);
-        buttonGroup.appendChild(removeBtn.element);
-
-        row.appendChild(buttonGroup);
+        
+        // Wrap combined input and blend button in a content container
+        const strokeContent = document.createElement('div');
+        strokeContent.className = 'stroke-content';
+        strokeContent.appendChild(combinedInput);
+        strokeContent.appendChild(blendBtn.element);
+        
+        // Add content to PropertyRow
+        propertyRow.appendChild(strokeContent);
 
         return row;
     }
