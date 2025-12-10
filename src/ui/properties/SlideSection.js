@@ -233,7 +233,6 @@ export class SlideSection {
         modeRow.appendChild(modeLabel);
         
         // Get current color mode from store
-        const state = store.getState();
         const themeMaster = state.slideMasterPresets?.['master-default'];
         const currentMode = themeMaster?.colorModeId || COLOR_MODES.LIGHT;
         
@@ -454,7 +453,6 @@ export class SlideSection {
         this.colorThemeName.textContent = themeName;
         
         // Diagnostic logging for Property Inspector display
-        const state = store.getState();
         const slideId = state.editor.mode === 'master' ? null : state.editor.activeSlideId;
         ThemeDiag.logUIDisplay('PropertyInspector', {
             slideId,
