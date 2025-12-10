@@ -5,6 +5,7 @@ import { TextInput } from '../components/TextInput.js';
 import { Button } from '../components/Button.js';
 import { Icons } from '../Icons.js';
 import { store } from '../../core/Store.js';
+import { ExportPreviewRenderer } from '../../core/renderer/ExportPreviewRenderer.js';
 
 export class ExportSection extends BaseSection {
     constructor() {
@@ -15,6 +16,13 @@ export class ExportSection extends BaseSection {
                 { icon: Icons.PLUS, title: 'Add Export Preset', onClick: () => this.addPreset() }
             ]
         });
+        
+        // Preview Container
+        this.previewContainer = document.createElement('div');
+        this.previewContainer.className = 'pi-export-preview';
+        this.section.appendChild(this.previewContainer);
+        
+        // Presets Container
         this.container = document.createElement('div');
         this.container.className = 'pi-section-content';
         this.section.appendChild(this.container);
@@ -30,6 +38,9 @@ export class ExportSection extends BaseSection {
         this.exportBtn.element.classList.add('pi-mt-2');
         
         this.section.appendChild(this.exportBtn.element);
+        
+        // Debounce timer for preview updates
+        this.previewDebounceTimer = null;
     }
 
     update(selection) {
@@ -62,6 +73,7 @@ export class ExportSection extends BaseSection {
             this.presets = element.exportPresets || [{ scale: '1x', format: 'png', suffix: '' }];
             this.renderPresets();
             this.exportBtn.setLabel(`Export ${element.name || 'Layer'}`);
+            this.updatePreview();
         }
     }
 
@@ -173,6 +185,100 @@ export class ExportSection extends BaseSection {
         this.selection.forEach(id => {
             store.dispatch('UPDATE_ELEMENT', { id, exportPresets: newPresets });
         });
+        
+        // Update preview with debouncing
+        this.updatePreviewDebounced();
+    }
+
+    updatePreviewDebounced() {
+        // Debounce preview updates to avoid excessive re-renders
+        clearTimeout(this.previewDebounceTimer);
+        this.previewDebounceTimer = setTimeout(() => {
+            this.updatePreview();
+        }, 300);
+    }
+
+    async updatePreview() {
+        // Guard: Check if preview container still exists
+        if (!this.previewContainer) {
+            return;
+        }
+        
+        if (!this.selection || this.selection.length === 0) {
+            this.previewContainer.innerHTML = '';
+            return;
+        }
+        
+        // Show loading state
+        this.previewContainer.innerHTML = '<div class="pi-export-preview-loading">Generating preview...</div>';
+        
+        try {
+            // Validate ExportPreviewRenderer is available
+            if (typeof ExportPreviewRenderer === 'undefined' || !ExportPreviewRenderer.renderExportPreview) {
+                throw new Error('ExportPreviewRenderer not available');
+            }
+            
+            const state = store.getState();
+            if (!state) {
+                throw new Error('Store state unavailable');
+            }
+            
+            const elements = this.selection.map(id => this.getElement(state, id)).filter(Boolean);
+            
+            if (elements.length === 0) {
+                throw new Error('No valid elements to preview');
+            }
+            
+            // Validate elements have required properties
+            const validElements = elements.filter(el => 
+                el && typeof el.x === 'number' && typeof el.y === 'number' &&
+                typeof el.width === 'number' && typeof el.height === 'number'
+            );
+            
+            if (validElements.length === 0) {
+                throw new Error('Elements missing required dimensions');
+            }
+            
+            // Get first preset for preview (or use default)
+            const preset = (this.presets && this.presets[0]) || { scale: '1x', format: 'png', suffix: '' };
+            const scaleStr = String(preset.scale || '1x');
+            const scale = parseFloat(scaleStr.replace('x', '')) || 1;
+            
+            // Render preview with timeout protection
+            const timeoutPromise = new Promise((_, reject) => 
+                setTimeout(() => reject(new Error('Preview render timeout')), 5000)
+            );
+            
+            const renderPromise = ExportPreviewRenderer.renderExportPreview(validElements, {
+                scale,
+                maxWidth: 200,
+                maxHeight: 200
+            });
+            
+            const canvas = await Promise.race([renderPromise, timeoutPromise]);
+            
+            if (!canvas || !canvas.toDataURL) {
+                throw new Error('Invalid canvas returned');
+            }
+            
+            // Convert canvas to image
+            const img = document.createElement('img');
+            img.src = canvas.toDataURL('image/png');
+            img.alt = 'Export Preview';
+            img.className = 'pi-export-preview-image';
+            
+            // Verify container still exists before updating
+            if (this.previewContainer && this.previewContainer.parentNode) {
+                this.previewContainer.innerHTML = '';
+                this.previewContainer.appendChild(img);
+            }
+            
+        } catch (error) {
+            console.error('Failed to generate export preview:', error);
+            if (this.previewContainer && this.previewContainer.parentNode) {
+                this.previewContainer.innerHTML = '<div class="pi-export-preview-error">Preview unavailable</div>';
+            }
+        }
     }
 
     handleExport() {
