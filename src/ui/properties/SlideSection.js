@@ -358,9 +358,13 @@ export class SlideSection {
     }
 
     updateThemeDisplay() {
+        console.log('SlideSection: updateThemeDisplay called');
         const state = store.getState();
         const currentObject = this.getActiveContainer(state);
-        if (!currentObject) return;
+        if (!currentObject) {
+            console.warn('SlideSection: No current object found');
+            return;
+        }
 
         // Get theme master for inherited values
         const themeMaster = Object.values(state.slideMasterPresets || {}).find(m => m.type === 'slideMasterPreset');
@@ -431,19 +435,24 @@ export class SlideSection {
             return;
         }
         
+        console.log('SlideSection: Updating colors display', { themeName, isOverride, isInherited: themeInfo?.isInherited });
+        
         if (isOverride) {
             // Override: show user-chosen theme name, hide badge, show reset button
+            console.log('SlideSection: Showing override theme name:', themeName);
             this.colorThemeName.textContent = themeName;
             this.colorThemeName.classList.remove('hidden');
             this.colorBadge.classList.add('hidden');
             this.colorResetBtn.element.classList.remove('hidden');
         } else if (themeInfo?.isInherited) {
             // Inherited: show badge, hide theme name, hide reset button
+            console.log('SlideSection: Showing inherited badge');
             this.colorThemeName.classList.add('hidden');
             this.colorBadge.classList.remove('hidden');
             this.colorResetBtn.element.classList.add('hidden');
         } else {
             // Master or no cascade: show theme name, hide badge, hide reset button
+            console.log('SlideSection: Showing master theme name:', themeName);
             this.colorThemeName.textContent = themeName;
             this.colorThemeName.classList.remove('hidden');
             this.colorBadge.classList.add('hidden');
