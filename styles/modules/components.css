@@ -496,6 +496,12 @@ input[type="text"]:focus, input[type="number"]:focus, select:focus {
     overflow: hidden;
 }
 
+/* Container for thumbnail content */
+.slide-thumbnail > * {
+    position: relative;
+    z-index: 1;
+}
+
 .slide-thumbnail:hover {
     border-color: var(--color-border-hover);
     background: var(--color-bg-hover);
@@ -518,21 +524,22 @@ input[type="text"]:focus, input[type="number"]:focus, select:focus {
 .slide-thumbnail.drop-after::after {
     content: '';
     position: absolute;
-    left: 0;
-    right: 0;
+    left: -4px;
+    right: -4px;
     height: 3px;
     background: var(--color-accent);
-    border-radius: var(--radius-xs);
-    box-shadow: 0 0 4px var(--color-accent);
-    z-index: 100;
+    border-radius: 2px;
+    box-shadow: 0 0 6px rgba(24, 160, 251, 0.6);
+    z-index: 1000;
+    pointer-events: none;
 }
 
 .slide-thumbnail.drop-before::before {
-    top: calc(var(--spacing-1) * -1);
+    top: -5px;
 }
 
 .slide-thumbnail.drop-after::after {
-    bottom: calc(var(--spacing-1) * -1);
+    bottom: -5px;
 }
 
 .slide-thumbnail-info {
