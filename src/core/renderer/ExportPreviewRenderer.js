@@ -3,12 +3,10 @@
  * 
  * Generates preview images for element export.
  * Renders selected elements to a canvas for preview in the Export section.
- * Uses DOM-to-canvas conversion for accurate visual representation.
+ * Uses direct canvas drawing for accurate visual representation.
  * 
  * Performance target: < 300ms render time
  */
-
-import { ElementFactory } from './ElementFactory.js';
 
 /**
  * Render elements to a canvas for export preview
@@ -58,39 +56,9 @@ async function renderExportPreview(elements, options = {}) {
             previewWidth = maxHeight * aspectRatio;
         }
         
-        // Create temporary container for rendering
-        const container = document.createElement('div');
-        container.style.position = 'absolute';
-        container.style.left = '-9999px';
-        container.style.top = '-9999px';
-        container.style.width = `${bounds.width}px`;
-        container.style.height = `${bounds.height}px`;
-        container.style.overflow = 'hidden';
-        document.body.appendChild(container);
-        
-        // Render elements to DOM
-        const visualElements = [];
-        try {
-            for (const element of elements) {
-                const visualEl = ElementFactory.create(element);
-                visualEl.mount(container);
-                
-                // Adjust position relative to bounds
-                const adjustedData = {
-                    ...element,
-                    x: element.x - bounds.x,
-                    y: element.y - bounds.y
-                };
-                
-                visualEl.update(adjustedData, { width: bounds.width, height: bounds.height });
-                visualElements.push(visualEl);
-            }
-            
-            // Wait for images to load and styles to apply
-            await new Promise(resolve => setTimeout(resolve, 100));
-            
-            // Create canvas
-            const canvas = document.createElement('canvas');
+        // Create canvas and draw elements directly (no DOM rendering)
+        // Create canvas
+        const canvas = document.createElement('canvas');
             canvas.width = Math.round(previewWidth);
             canvas.height = Math.round(previewHeight);
             
@@ -98,24 +66,40 @@ async function renderExportPreview(elements, options = {}) {
             ctx.fillStyle = '#ffffff';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
             
-            // For now, create a simple fallback visualization
-            // TODO: Implement proper DOM-to-canvas conversion using html2canvas or similar
-            ctx.fillStyle = '#e0e0e0';
-            ctx.fillRect(10, 10, canvas.width - 20, canvas.height - 20);
+            // Draw elements directly to canvas (same as export)
+            const scaleX = previewWidth / actualWidth;
+            const scaleY = previewHeight / actualHeight;
+            const finalScale = Math.min(scaleX, scaleY);
             
-            ctx.fillStyle = '#666';
-            ctx.font = '12px sans-serif';
-            ctx.textAlign = 'center';
-            ctx.fillText('Preview', canvas.width / 2, canvas.height / 2);
+            // Center the content if it doesn't fill the canvas
+            const offsetX = (previewWidth - (actualWidth * finalScale)) / 2;
+            const offsetY = (previewHeight - (actualHeight * finalScale)) / 2;
+            
+            for (const element of elements) {
+                const x = ((element.x - bounds.x) * scale * finalScale) + offsetX;
+                const y = ((element.y - bounds.y) * scale * finalScale) + offsetY;
+                const w = element.width * scale * finalScale;
+                const h = element.height * scale * finalScale;
+                
+                ctx.save();
+                
+                // Apply rotation if present
+                if (element.rotation) {
+                    const centerX = x + w / 2;
+                    const centerY = y + h / 2;
+                    ctx.translate(centerX, centerY);
+                    ctx.rotate((element.rotation * Math.PI) / 180);
+                    ctx.translate(-centerX, -centerY);
+                }
+                
+                // Draw based on element type
+                await drawElementToCanvas(ctx, element, x, y, w, h);
+                
+                ctx.restore();
+            }
             
             return canvas;
             
-        } finally {
-            // Cleanup
-            visualElements.forEach(el => el.unmount());
-            document.body.removeChild(container);
-        }
-        
     } catch (error) {
         console.error('ExportPreviewRenderer error:', error);
         
@@ -167,6 +151,137 @@ function calculateBounds(elements) {
         width: maxX - minX,
         height: maxY - minY
     };
+}
+
+/**
+ * Draw element to canvas (shared logic for preview rendering)
+ * @param {CanvasRenderingContext2D} ctx
+ * @param {Object} element
+ * @param {number} x
+ * @param {number} y
+ * @param {number} w
+ * @param {number} h
+ */
+async function drawElementToCanvas(ctx, element, x, y, w, h) {
+    if (element.type === 'rect' || element.type === 'rectangle') {
+        drawRectangle(ctx, element, x, y, w, h);
+    } else if (element.type === 'circle' || element.type === 'ellipse') {
+        drawEllipse(ctx, element, x, y, w, h);
+    } else if (element.type === 'text') {
+        await drawText(ctx, element, x, y, w, h);
+    } else if (element.type === 'image') {
+        await drawImage(ctx, element, x, y, w, h);
+    } else {
+        // Unknown type - draw placeholder
+        ctx.fillStyle = '#f0f0f0';
+        ctx.fillRect(x, y, w, h);
+        ctx.strokeStyle = '#ccc';
+        ctx.strokeRect(x, y, w, h);
+    }
+}
+
+/**
+ * Draw rectangle to canvas
+ */
+function drawRectangle(ctx, element, x, y, w, h) {
+    const fill = element.style?.fills?.[0]?.value 
+        || element.style?.fills?.[0]?.color 
+        || element.style?.backgroundColor 
+        || element.fill 
+        || '#D9D9D9';
+    
+    const borderRadius = element.borderRadius || element.style?.radius || 0;
+    
+    ctx.fillStyle = fill;
+    
+    if (borderRadius > 0) {
+        const radius = Math.min(borderRadius, w / 2, h / 2);
+        ctx.beginPath();
+        ctx.moveTo(x + radius, y);
+        ctx.lineTo(x + w - radius, y);
+        ctx.quadraticCurveTo(x + w, y, x + w, y + radius);
+        ctx.lineTo(x + w, y + h - radius);
+        ctx.quadraticCurveTo(x + w, y + h, x + w - radius, y + h);
+        ctx.lineTo(x + radius, y + h);
+        ctx.quadraticCurveTo(x, y + h, x, y + h - radius);
+        ctx.lineTo(x, y + radius);
+        ctx.quadraticCurveTo(x, y, x + radius, y);
+        ctx.closePath();
+        ctx.fill();
+    } else {
+        ctx.fillRect(x, y, w, h);
+    }
+}
+
+/**
+ * Draw ellipse to canvas
+ */
+function drawEllipse(ctx, element, x, y, w, h) {
+    const fill = element.style?.fills?.[0]?.value 
+        || element.style?.fills?.[0]?.color 
+        || element.style?.backgroundColor 
+        || element.fill 
+        || '#D9D9D9';
+    
+    ctx.fillStyle = fill;
+    ctx.beginPath();
+    ctx.ellipse(x + w / 2, y + h / 2, w / 2, h / 2, 0, 0, 2 * Math.PI);
+    ctx.fill();
+}
+
+/**
+ * Draw text to canvas
+ */
+async function drawText(ctx, element, x, y, w, h) {
+    const fontSize = element.fontSize || element.style?.fontSize || 16;
+    const fontFamily = element.fontFamily || element.style?.fontFamily || 'Inter';
+    const color = element.color || element.style?.color || '#000000';
+    const textAlign = element.textAlign || element.style?.textAlign || 'left';
+    const verticalAlign = element.verticalAlign || element.style?.verticalAlign || 'top';
+    const content = element.content || element.text || '';
+    
+    ctx.fillStyle = color;
+    ctx.font = `${fontSize}px ${fontFamily}`;
+    ctx.textAlign = textAlign;
+    ctx.textBaseline = verticalAlign === 'middle' ? 'middle' : 'top';
+    
+    const textX = textAlign === 'center' ? x + w / 2 : textAlign === 'right' ? x + w : x;
+    const textY = verticalAlign === 'middle' ? y + h / 2 : y;
+    
+    ctx.fillText(content, textX, textY);
+}
+
+/**
+ * Draw image to canvas
+ */
+async function drawImage(ctx, element, x, y, w, h) {
+    if (!element.src) return;
+    
+    try {
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        
+        await new Promise((resolve) => {
+            img.onload = resolve;
+            img.onerror = () => resolve(); // Continue even if image fails
+            img.src = element.src;
+            setTimeout(() => resolve(), 2000); // Timeout for preview
+        });
+        
+        if (img.complete && img.naturalWidth > 0) {
+            ctx.drawImage(img, x, y, w, h);
+        } else {
+            // Draw placeholder
+            ctx.fillStyle = '#f0f0f0';
+            ctx.fillRect(x, y, w, h);
+            ctx.strokeStyle = '#ccc';
+            ctx.strokeRect(x, y, w, h);
+        }
+    } catch (error) {
+        // Draw placeholder on error
+        ctx.fillStyle = '#f0f0f0';
+        ctx.fillRect(x, y, w, h);
+    }
 }
 
 /**
