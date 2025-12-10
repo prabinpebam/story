@@ -1167,13 +1167,6 @@ select.pi-input option {
     align-items: center;
     gap: var(--spacing-0-5);
     flex-shrink: 0;
-    opacity: 0;
-    transition: opacity var(--transition-fast);
-}
-
-.pi-property-row:hover .pi-property-row__actions,
-.pi-property-row.active .pi-property-row__actions {
-    opacity: 1;
 }
 
 /* Visibility toggle button */
