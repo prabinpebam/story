@@ -169,6 +169,16 @@
     gap: var(--spacing-2);
 }
 
+.pi-row--space-between {
+    justify-content: space-between;
+}
+
+.pi-button-group {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-1);
+}
+
 .pi-input-group {
     display: flex;
     align-items: center;

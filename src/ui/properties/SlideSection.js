@@ -151,42 +151,42 @@ export class SlideSection {
 
         // Current theme name/preset row (for display info)
         const headerRow = document.createElement('div');
-        headerRow.className = 'theme-detail-header';
+        headerRow.className = 'pi-row pi-row--space-between';
         
-        // Inheritance badge (cascade-aware) - FIRST for left alignment
+        // Left side: Inheritance badge OR theme name
         this.colorBadge = document.createElement('span');
         this.colorBadge.className = 'inherited-fill-badge';
         this.colorBadge.textContent = 'Inherited';
         headerRow.appendChild(this.colorBadge);
         
-        // Theme name (shown when override)
         this.colorThemeName = document.createElement('span');
-        this.colorThemeName.className = 'theme-detail-name';
+        this.colorThemeName.className = 'theme-detail-name hidden';
         this.colorThemeName.textContent = '';
-        this.colorThemeName.style.display = 'none'; // Hidden initially
         headerRow.appendChild(this.colorThemeName);
+        
+        // Right side: Button group
+        const buttonGroup = document.createElement('div');
+        buttonGroup.className = 'pi-button-group';
 
-        // Edit button
         const colorEditBtn = new Button({
             icon: '<i class="fa-solid fa-pen"></i>',
             variant: 'text',
             size: 'xs',
             title: 'Edit colors',
-            className: 'theme-detail-edit',
             onClick: () => panelManager.toggle('color-theme-manager')
         });
-        headerRow.appendChild(colorEditBtn.element);
+        buttonGroup.appendChild(colorEditBtn.element);
 
-        // Reset button (clears styleAssignments.colorTheme)
         this.colorResetBtn = new Button({
             icon: '<i class="fa-solid fa-arrow-rotate-left"></i>',
             variant: 'text',
             size: 'xs',
             title: 'Reset to inherited',
-            className: 'theme-detail-reset',
             onClick: () => this.resetColors()
         });
-        headerRow.appendChild(this.colorResetBtn.element);
+        buttonGroup.appendChild(this.colorResetBtn.element);
+        
+        headerRow.appendChild(buttonGroup);
 
         container.appendChild(headerRow);
 
@@ -274,35 +274,37 @@ export class SlideSection {
 
         // Actions row (at top - before font rows)
         const actionsRow = document.createElement('div');
-        actionsRow.className = 'theme-detail-header theme-detail-actions';
+        actionsRow.className = 'pi-row pi-row--space-between';
 
-        // Inheritance badge
+        // Left side: Inheritance badge
         this.typoBadge = document.createElement('span');
-        this.typoBadge.className = 'theme-detail-badge';
+        this.typoBadge.className = 'inherited-fill-badge';
+        this.typoBadge.textContent = 'Inherited';
         actionsRow.appendChild(this.typoBadge);
+        
+        // Right side: Button group
+        const buttonGroup = document.createElement('div');
+        buttonGroup.className = 'pi-button-group';
 
-        // Edit button
         const typoEditBtn = new Button({
             icon: '<i class="fa-solid fa-pen"></i>',
             variant: 'text',
             size: 'xs',
             title: 'Edit typography',
-            className: 'theme-detail-edit',
             onClick: () => panelManager.toggle('typography-style-manager')
         });
-        actionsRow.appendChild(typoEditBtn.element);
+        buttonGroup.appendChild(typoEditBtn.element);
 
-        // Reset button
         this.typoResetBtn = new Button({
             icon: '<i class="fa-solid fa-arrow-rotate-left"></i>',
             variant: 'text',
             size: 'xs',
             title: 'Reset to inherited',
-            className: 'theme-detail-reset',
             onClick: () => this.resetTypography()
         });
-        actionsRow.appendChild(this.typoResetBtn.element);
-
+        buttonGroup.appendChild(this.typoResetBtn.element);
+        
+        actionsRow.appendChild(buttonGroup);
         container.appendChild(actionsRow);
 
         // Heading font row
@@ -425,23 +427,21 @@ export class SlideSection {
         }
         
         if (isOverride) {
-            // Override: show user-chosen theme name, hide Inherited badge, show reset button
+            // Override: show user-chosen theme name, hide badge, show reset button
             this.colorThemeName.textContent = themeName;
-            this.colorThemeName.style.display = ''; // Show theme name
-            this.colorBadge.style.display = 'none'; // Hide badge
+            this.colorThemeName.classList.remove('hidden');
+            this.colorBadge.classList.add('hidden');
             this.colorResetBtn.element.classList.remove('hidden');
         } else if (themeInfo?.isInherited) {
-            // Inherited: show Inherited badge left-aligned, hide theme name, hide reset button
-            this.colorThemeName.style.display = 'none'; // Hide theme name
-            this.colorBadge.textContent = 'Inherited';
-            this.colorBadge.className = 'inherited-fill-badge';
-            this.colorBadge.style.display = ''; // Show badge
+            // Inherited: show badge, hide theme name, hide reset button
+            this.colorThemeName.classList.add('hidden');
+            this.colorBadge.classList.remove('hidden');
             this.colorResetBtn.element.classList.add('hidden');
         } else {
             // Master or no cascade: show theme name, hide badge, hide reset button
             this.colorThemeName.textContent = themeName;
-            this.colorThemeName.style.display = ''; // Show theme name
-            this.colorBadge.style.display = 'none'; // Hide badge
+            this.colorThemeName.classList.remove('hidden');
+            this.colorBadge.classList.add('hidden');
             this.colorResetBtn.element.classList.add('hidden');
         }
 
@@ -512,15 +512,11 @@ export class SlideSection {
         
         if (isOverride) {
             // Override: hide badge, show reset button
-            this.typoBadge.textContent = '';
-            this.typoBadge.className = 'theme-detail-badge';
-            this.typoBadge.style.display = 'none';
+            this.typoBadge.classList.add('hidden');
             this.typoResetBtn.element.classList.remove('hidden');
         } else {
-            // Inherited: show Inherited badge left-aligned, hide reset button
-            this.typoBadge.textContent = 'Inherited';
-            this.typoBadge.className = 'inherited-fill-badge';
-            this.typoBadge.style.display = '';
+            // Inherited: show badge, hide reset button
+            this.typoBadge.classList.remove('hidden');
             this.typoResetBtn.element.classList.add('hidden');
         }
     }
