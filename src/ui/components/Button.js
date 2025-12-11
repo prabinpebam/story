@@ -51,6 +51,7 @@ export class Button {
      * @param {boolean} [options.active=false] - Toggle/selected state
      * @param {string} [options.title=''] - Tooltip text
      * @param {string} [options.ariaLabel=''] - Screen reader label
+     * @param {string} [options.dataTestId=''] - Test ID for E2E testing
      * @param {string} [options.type='button'] - 'button' | 'submit' | 'reset'
      * @param {string} [options.className=''] - Additional CSS classes
      * @param {Function} [options.onClick=null] - Click handler
@@ -75,6 +76,7 @@ export class Button {
             // Accessibility
             title: '',
             ariaLabel: '',
+            dataTestId: '',
             
             // Behavior
             type: 'button',
@@ -106,6 +108,9 @@ export class Button {
         } else if (this.options.title && !this.options.label) {
             // Icon-only buttons should have aria-label from title
             btn.setAttribute('aria-label', this.options.title);
+        }
+        if (this.options.dataTestId) {
+            btn.setAttribute('data-testid', this.options.dataTestId);
         }
         if (this.options.disabled) btn.disabled = true;
         if (this.options.loading) btn.setAttribute('aria-busy', 'true');

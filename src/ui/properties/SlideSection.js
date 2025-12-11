@@ -301,7 +301,8 @@ export class SlideSection {
             variant: 'text',
             size: 'xs',
             title: 'Edit typography',
-            onClick: () => panelManager.toggle('typography-style-manager')
+            onClick: () => panelManager.toggle('typography-style-manager'),
+            dataTestId: 'typography-manager-btn'
         });
         buttonGroup.appendChild(typoEditBtn.element);
 
