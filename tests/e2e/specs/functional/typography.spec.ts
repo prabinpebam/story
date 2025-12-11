@@ -30,6 +30,18 @@ test.describe('Typography System', () => {
     await page.waitForTimeout(300);
   }
 
+  async function selectTextStyle(page: any, styleName: string) {
+    // Click the text style dropdown to open menu
+    const dropdown = page.locator('[data-testid="text-style-dropdown"]');
+    await dropdown.click();
+    await page.waitForTimeout(100);
+    
+    // Click the menu item
+    const menuItem = page.locator('.dropdown-item').filter({ hasText: styleName }).first();
+    await menuItem.click();
+    await page.waitForTimeout(200);
+  }
+
   test.describe('Text Style Application', () => {
     test('should create text element and apply Title style', async ({ page }) => {
       // Ensure we have a slide to work with
@@ -46,7 +58,7 @@ test.describe('Typography System', () => {
       await createAndSelectText(page, 0.3, 0.3, 'Test Title');
       
       // Find Text section in property inspector
-      const textSection = page.locator('.pi-section').filter({ hasText: 'Text' }).first();
+      const textSection = page.locator('.pi-section').filter({ hasText: 'Typography' }).first();
       await expect(textSection).toBeVisible({ timeout: 5000 });
       
       // Find Text Style dropdown
@@ -74,7 +86,7 @@ test.describe('Typography System', () => {
       // Create and select text object
       await createAndSelectText(page, 0.4, 0.4, 'Body text content');
       
-      const textSection = page.locator('.pi-section').filter({ hasText: 'Text' }).first();
+      const textSection = page.locator('.pi-section').filter({ hasText: 'Typography' }).first();
       const styleDropdown = textSection.locator('.dropdown').filter({ has: page.locator('option:has-text("Body")') }).first();
       
       // Apply Body style
@@ -110,7 +122,7 @@ test.describe('Typography System', () => {
       await canvas.clickAt(0.3, 0.3);
       await page.waitForTimeout(200);
       
-      const textSection = page.locator('.pi-section').filter({ hasText: 'Text' }).first();
+      const textSection = page.locator('.pi-section').filter({ hasText: 'Typography' }).first();
       const styleDropdown = textSection.locator('.dropdown').filter({ has: page.locator('option:has-text("Title")') }).first();
       await styleDropdown.selectOption({ label: 'Title' });
       await page.waitForTimeout(300);
@@ -182,7 +194,7 @@ test.describe('Typography System', () => {
       await page.waitForTimeout(200);
       
       // Apply Heading 1 style
-      const textSection = page.locator('.pi-section').filter({ hasText: 'Text' }).first();
+      const textSection = page.locator('.pi-section').filter({ hasText: 'Typography' }).first();
       const styleDropdown = textSection.locator('.dropdown').filter({ has: page.locator('option:has-text("Heading")') }).first();
       
       // Check if Heading 1 option exists
@@ -222,7 +234,7 @@ test.describe('Typography System', () => {
       await canvas.clickAt(0.3, 0.3);
       await page.waitForTimeout(200);
       
-      const textSection = page.locator('.pi-section').filter({ hasText: 'Text' }).first();
+      const textSection = page.locator('.pi-section').filter({ hasText: 'Typography' }).first();
       const styleDropdown = textSection.locator('.dropdown').filter({ has: page.locator('option:has-text("Body")') }).first();
       await styleDropdown.selectOption({ label: 'Body' });
       await page.waitForTimeout(300);
@@ -260,7 +272,7 @@ test.describe('Typography System', () => {
       await canvas.clickAt(0.4, 0.4);
       await page.waitForTimeout(200);
       
-      const textSection = page.locator('.pi-section').filter({ hasText: 'Text' }).first();
+      const textSection = page.locator('.pi-section').filter({ hasText: 'Typography' }).first();
       const styleDropdown = textSection.locator('.dropdown').filter({ has: page.locator('option:has-text("Title")') }).first();
       await styleDropdown.selectOption({ label: 'Title' });
       await page.waitForTimeout(300);
@@ -308,7 +320,7 @@ test.describe('Typography System', () => {
       await canvas.clickAt(0.5, 0.5);
       await page.waitForTimeout(200);
       
-      const textSection = page.locator('.pi-section').filter({ hasText: 'Text' }).first();
+      const textSection = page.locator('.pi-section').filter({ hasText: 'Typography' }).first();
       const styleDropdown = textSection.locator('.dropdown').filter({ has: page.locator('option:has-text("Body")') }).first();
       await styleDropdown.selectOption({ label: 'Body' });
       await page.waitForTimeout(300);
@@ -366,7 +378,7 @@ test.describe('Typography System', () => {
       await page.waitForTimeout(200);
       
       // Apply Title style to both
-      const textSection = page.locator('.pi-section').filter({ hasText: 'Text' }).first();
+      const textSection = page.locator('.pi-section').filter({ hasText: 'Typography' }).first();
       const styleDropdown = textSection.locator('.dropdown').filter({ has: page.locator('option:has-text("Title")') }).first();
       
       const hasMultiSelect = await textSection.isVisible();
@@ -423,7 +435,7 @@ test.describe('Typography System', () => {
       await page.waitForTimeout(200);
       
       // Verify property inspector shows the style
-      const textSection = page.locator('.pi-section').filter({ hasText: 'Text' }).first();
+      const textSection = page.locator('.pi-section').filter({ hasText: 'Typography' }).first();
       const styleDropdown = textSection.locator('.dropdown').filter({ has: page.locator('option') }).first();
       
       const selectedOption = await styleDropdown.locator('option:checked').textContent();
@@ -440,7 +452,7 @@ test.describe('Typography System', () => {
       await createAndSelectText(page, 0.5, 0.3, 'Heading Text');
       
       // Apply Title style (which uses heading font)
-      const textSection = page.locator('.pi-section').filter({ hasText: 'Text' }).first();
+      const textSection = page.locator('.pi-section').filter({ hasText: 'Typography' }).first();
       const styleDropdown = textSection.locator('.dropdown').filter({ has: page.locator('option:has-text("Title")') }).first();
       await styleDropdown.selectOption({ label: 'Title' });
       await page.waitForTimeout(300);
@@ -466,7 +478,7 @@ test.describe('Typography System', () => {
       await createAndSelectText(page, 0.5, 0.5, 'Body content here');
       
       // Apply Body style (which uses body font)
-      const textSection = page.locator('.pi-section').filter({ hasText: 'Text' }).first();
+      const textSection = page.locator('.pi-section').filter({ hasText: 'Typography' }).first();
       const styleDropdown = textSection.locator('.dropdown').filter({ has: page.locator('option:has-text("Body")') }).first();
       await styleDropdown.selectOption({ label: 'Body' });
       await page.waitForTimeout(300);
@@ -490,7 +502,7 @@ test.describe('Typography System', () => {
     test('should update both PI and text element when typography preset changes', async ({ page }) => {
       // Create text with Title style
       await createAndSelectText(page, 0.5, 0.3, 'Dynamic Title');
-      const textSection = page.locator('.pi-section').filter({ hasText: 'Text' }).first();
+      const textSection = page.locator('.pi-section').filter({ hasText: 'Typography' }).first();
       const styleDropdown = textSection.locator('.dropdown').filter({ has: page.locator('option:has-text("Title")') }).first();
       await styleDropdown.selectOption({ label: 'Title' });
       await page.waitForTimeout(300);
@@ -541,19 +553,19 @@ test.describe('Typography System', () => {
     test('should maintain heading/body font consistency across multiple text elements', async ({ page }) => {
       // Create multiple text elements with different styles
       await createAndSelectText(page, 0.3, 0.2, 'Title Element');
-      const textSection1 = page.locator('.pi-section').filter({ hasText: 'Text' }).first();
+      const textSection1 = page.locator('.pi-section').filter({ hasText: 'Typography' }).first();
       const styleDropdown1 = textSection1.locator('.dropdown').filter({ has: page.locator('option:has-text("Title")') }).first();
       await styleDropdown1.selectOption({ label: 'Title' });
       await page.waitForTimeout(200);
       
       await createAndSelectText(page, 0.3, 0.4, 'Heading 1 Element');
-      const textSection2 = page.locator('.pi-section').filter({ hasText: 'Text' }).first();
+      const textSection2 = page.locator('.pi-section').filter({ hasText: 'Typography' }).first();
       const styleDropdown2 = textSection2.locator('.dropdown').filter({ has: page.locator('option:has-text("Heading 1")') }).first();
       await styleDropdown2.selectOption({ label: 'Heading 1' });
       await page.waitForTimeout(200);
       
       await createAndSelectText(page, 0.3, 0.6, 'Body Element');
-      const textSection3 = page.locator('.pi-section').filter({ hasText: 'Text' }).first();
+      const textSection3 = page.locator('.pi-section').filter({ hasText: 'Typography' }).first();
       const styleDropdown3 = textSection3.locator('.dropdown').filter({ has: page.locator('option:has-text("Body")') }).first();
       await styleDropdown3.selectOption({ label: 'Body' });
       await page.waitForTimeout(200);
@@ -592,7 +604,7 @@ test.describe('Typography System', () => {
       await createAndSelectText(page, 0.5, 0.3, 'Styled Text');
       
       // Apply Title style
-      const textSection = page.locator('.pi-section').filter({ hasText: 'Text' }).first();
+      const textSection = page.locator('.pi-section').filter({ hasText: 'Typography' }).first();
       const styleDropdown = textSection.locator('.dropdown').filter({ has: page.locator('option:has-text("Title")') }).first();
       await styleDropdown.selectOption({ label: 'Title' });
       await page.waitForTimeout(300);
@@ -635,7 +647,7 @@ test.describe('Typography System', () => {
     test('should update disabled input values when typography preset changes', async ({ page }) => {
       // Create text with Title style
       await createAndSelectText(page, 0.5, 0.3, 'Dynamic Styled Text');
-      const textSection = page.locator('.pi-section').filter({ hasText: 'Text' }).first();
+      const textSection = page.locator('.pi-section').filter({ hasText: 'Typography' }).first();
       const styleDropdown = textSection.locator('.dropdown').filter({ has: page.locator('option:has-text("Title")') }).first();
       await styleDropdown.selectOption({ label: 'Title' });
       await page.waitForTimeout(300);
@@ -694,7 +706,7 @@ test.describe('Typography System', () => {
     test('should update disabled font family input when typography changes', async ({ page }) => {
       // Create text with Heading 1 style
       await createAndSelectText(page, 0.5, 0.4, 'Heading Text');
-      const textSection = page.locator('.pi-section').filter({ hasText: 'Text' }).first();
+      const textSection = page.locator('.pi-section').filter({ hasText: 'Typography' }).first();
       const styleDropdown = textSection.locator('.dropdown').filter({ has: page.locator('option:has-text("Heading 1")') }).first();
       await styleDropdown.selectOption({ label: 'Heading 1' });
       await page.waitForTimeout(300);
@@ -741,7 +753,7 @@ test.describe('Typography System', () => {
     test('should update multiple disabled inputs simultaneously when typography changes', async ({ page }) => {
       // Create text with Body style
       await createAndSelectText(page, 0.5, 0.5, 'Body content with multiple properties');
-      const textSection = page.locator('.pi-section').filter({ hasText: 'Text' }).first();
+      const textSection = page.locator('.pi-section').filter({ hasText: 'Typography' }).first();
       const styleDropdown = textSection.locator('.dropdown').filter({ has: page.locator('option:has-text("Body")') }).first();
       await styleDropdown.selectOption({ label: 'Body' });
       await page.waitForTimeout(300);
