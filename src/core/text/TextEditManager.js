@@ -130,7 +130,7 @@ export class TextEditManager {
             this.hasReceivedInput = true;
             
             // Move caret to end
-            selectionManager.setCaretToEnd(domElement);
+            selectionManager.placeCaretAtEnd(domElement);
             
             // Trigger input event to ensure state is updated
             this._handleInput({ target: domElement });
