@@ -44,14 +44,14 @@ export class TextSection extends BaseSection {
         this.styleDropdown.element.dataset.testid = 'text-style-dropdown';
         styleRow.appendChild(this.styleDropdown.element);
 
-        // Style Action Menu Button (Edit/Detach)
-        this.styleMenuBtn = new IconButton({
-            icon: Icons.MORE,
-            title: 'Style Options',
-            onClick: (e) => this.openStyleMenu(e)
+        // Linked/Unlinked Icon Button
+        this.linkBtn = new IconButton({
+            icon: Icons.LINK,
+            title: 'Unlink from style',
+            onClick: () => this.unlinkFromStyle()
         });
-        this.styleMenuBtn.element.classList.add('hidden'); // Hidden when no style
-        styleRow.appendChild(this.styleMenuBtn.element);
+        this.linkBtn.element.classList.add('text-style-link-btn', 'hidden'); // Hidden when no style
+        styleRow.appendChild(this.linkBtn.element);
 
         this.container.appendChild(styleRow);
 
@@ -86,6 +86,10 @@ export class TextSection extends BaseSection {
                 this.updateProperty('fontFamily', val);
             }
         });
+        
+        // Store reference to input element for disabling
+        this.fontFamilyInput.element.dataset.testid = 'font-family-select';
+        this.styleableInputs = [this.fontFamilyInput.element]; // Start tracking styleable inputs
 
         this.fontWeightInput = new Dropdown({
             options: [
@@ -98,6 +102,8 @@ export class TextSection extends BaseSection {
             value: '400',
             onChange: (val) => this.updateProperty('fontWeight', val)
         });
+        this.fontWeightInput.element.dataset.testid = 'font-weight-select';
+        this.styleableInputs.push(this.fontWeightInput.element);
         
         this.fontSizeInput = new NumberInput({
             value: 16,
@@ -105,10 +111,8 @@ export class TextSection extends BaseSection {
             scrubbable: true,
             onChange: (val) => this.updateProperty('fontSize', val)
         });
-
-        this.fontFamilyInput.element.dataset.testid = 'font-family-select';
-        this.fontWeightInput.element.dataset.testid = 'font-weight-select';
         this.fontSizeInput.element.dataset.testid = 'font-size-input';
+        this.styleableInputs.push(this.fontSizeInput.element);
 
         fontRow.appendChild(this.fontFamilyInput.element);
         fontRow.appendChild(this.fontWeightInput.element);
@@ -132,6 +136,8 @@ export class TextSection extends BaseSection {
             step: 0.1,
             onChange: (val) => this.updateProperty('lineHeight', val)
         });
+        this.lineHeightInput.element.dataset.testid = 'line-height-input';
+        this.styleableInputs.push(this.lineHeightInput.element);
 
         this.letterSpacingInput = new NumberInput({
             label: 'LS',
@@ -140,9 +146,8 @@ export class TextSection extends BaseSection {
             units: '%',
             onChange: (val) => this.updateProperty('letterSpacing', val + '%')
         });
-
-        this.lineHeightInput.element.dataset.testid = 'line-height-input';
         this.letterSpacingInput.element.dataset.testid = 'letter-spacing-input';
+        this.styleableInputs.push(this.letterSpacingInput.element);
 
         spacingRow.appendChild(this.lineHeightInput.element);
         spacingRow.appendChild(this.letterSpacingInput.element);
@@ -772,6 +777,43 @@ export class TextSection extends BaseSection {
         this.updateStyleUI();
     }
 
+    unlinkFromStyle() {
+        if (!this.currentStyleId) return;
+        
+        // Get current element to preserve its rendered properties
+        const state = store.getState();
+        const textElements = this.selection
+            .map(id => this.getElement(state, id))
+            .filter(el => el && el.type === 'text');
+        
+        if (textElements.length === 0) return;
+        
+        const el = textElements[0];
+        const slideId = state.editor?.activeSlideId;
+        
+        // Get the effective properties from StyleResolver (what's currently rendered)
+        const props = StyleResolver.getEffectiveTextProperties(el, {}, slideId);
+        
+        // Remove textStyleId but set all properties explicitly to maintain appearance
+        const updates = {
+            textStyleId: null,
+            fontFamily: props.fontFamily,
+            fontSize: props.fontSize,
+            fontWeight: props.fontWeight,
+            fontStyle: props.fontStyle,
+            lineHeight: props.lineHeight,
+            letterSpacing: props.letterSpacing,
+            textAlign: props.textAlign,
+            textFill: props.textFill
+        };
+        
+        this.updateProperties(updates);
+        
+        this.currentStyleId = null;
+        this.hasStyleOverrides = false;
+        this.updateStyleUI();
+    }
+
     resetToStyle() {
         if (!this.currentStyleId) return;
         
@@ -783,8 +825,27 @@ export class TextSection extends BaseSection {
         // Update dropdown value
         this.styleDropdown.setValue(this.currentStyleId || '', false);
         
-        // Show/hide style menu button using CSS class
-        this.styleMenuBtn.element.classList.toggle('hidden', !this.currentStyleId);
+        // Show/hide link button - visible when style is linked
+        const isLinked = !!this.currentStyleId;
+        this.linkBtn.element.classList.toggle('hidden', !isLinked);
+        
+        // Update link button icon - linked shows chain, unlinked would show broken chain
+        // Since we hide it when unlinked, we always show the chain icon
+        this.linkBtn.setIcon(Icons.LINK);
+        this.linkBtn.element.title = isLinked ? 'Unlink from style (keeps current values)' : '';
+        
+        // Disable/enable property inputs based on style link
+        this.styleableInputs.forEach(input => {
+            if (isLinked) {
+                input.classList.add('disabled');
+                input.style.pointerEvents = 'none';
+                input.style.opacity = '0.5';
+            } else {
+                input.classList.remove('disabled');
+                input.style.pointerEvents = 'auto';
+                input.style.opacity = '1';
+            }
+        });
         
         // Show/hide override indicator using CSS class
         this.overrideIndicator.classList.toggle('hidden', !(this.currentStyleId && this.hasStyleOverrides));
