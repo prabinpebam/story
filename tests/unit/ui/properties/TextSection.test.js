@@ -81,6 +81,29 @@ vi.mock('../../../../src/utils/StyleResolver.js', () => ({
             textAlign: 'left',
             verticalAlign: 'top',
             textFill: { type: 'solid', value: '#000000' }
+        })),
+        getTypographyStyle: vi.fn(() => ({
+            id: 'preset-modern',
+            fonts: {
+                heading: 'Inter',
+                body: 'Inter'
+            },
+            textStyles: {
+                'title': {
+                    id: 'title',
+                    name: 'Title',
+                    fontFamily: 'Inter',
+                    fontSize: 48,
+                    fontWeight: '700'
+                },
+                'body': {
+                    id: 'body',
+                    name: 'Body',
+                    fontFamily: 'Inter',
+                    fontSize: 16,
+                    fontWeight: '400'
+                }
+            }
         }))
     }
 }));
@@ -322,25 +345,6 @@ describe('TextSection', () => {
         });
     });
 
-    describe('getActiveThemeId()', () => {
-        it('should return theme master id', () => {
-            const state = store.getState();
-            const themeId = textSection.getActiveThemeId(state);
-            expect(themeId).toBe('master-default');
-        });
-
-        it('should return default if no theme master found', () => {
-            store.getState.mockReturnValue({
-                editor: {},
-                slides: {},
-                slideMasterPresets: {}
-            });
-            const state = store.getState();
-            const themeId = textSection.getActiveThemeId(state);
-            expect(themeId).toBe('master-default');
-        });
-    });
-
     describe('getTextStyleOptions()', () => {
         it('should return array with No Style option', () => {
             const options = textSection.getTextStyleOptions();
@@ -353,41 +357,13 @@ describe('TextSection', () => {
             expect(createOption).toBeDefined();
             expect(createOption.action).toBe(true);
         });
-    });
 
-    describe('resolveStyleVariables()', () => {
-        it('should resolve font variables', () => {
-            const style = {
-                id: 'h1',
-                name: 'Heading 1',
-                fontFamily: 'var(--theme-font-heading)'
-            };
-            const theme = {
-                themeSettings: {
-                    fonts: { heading: 'Roboto', body: 'Inter' },
-                    colors: {}
-                }
-            };
-
-            const resolved = textSection.resolveStyleVariables(style, theme);
-            expect(resolved.fontFamily).toBe('Roboto');
-        });
-
-        it('should resolve color variables in textFill', () => {
-            const style = {
-                id: 'body',
-                name: 'Body',
-                textFill: { type: 'solid', value: 'var(--theme-text-primary)' }
-            };
-            const theme = {
-                themeSettings: {
-                    fonts: {},
-                    colors: { textPrimary: '#FF0000' }
-                }
-            };
-
-            const resolved = textSection.resolveStyleVariables(style, theme);
-            expect(resolved.textFill.value).toBe('#FF0000');
+        it('should include Title and Body text styles', () => {
+            const options = textSection.getTextStyleOptions();
+            const titleOption = options.find(o => o.value === 'title');
+            const bodyOption = options.find(o => o.value === 'body');
+            expect(titleOption).toBeDefined();
+            expect(bodyOption).toBeDefined();
         });
     });
 
@@ -413,13 +389,13 @@ describe('TextSection', () => {
             textSection.selection = ['el-1'];
             textSection.applyTextStyle('');
 
-            expect(store.dispatch).toHaveBeenCalledWith('UPDATE_ELEMENT', expect.objectContaining({ id: 'el-1', styleId: null }), expect.anything());
+            expect(store.dispatch).toHaveBeenCalledWith('UPDATE_ELEMENT', expect.objectContaining({ id: 'el-1', textStyleId: null }), expect.anything());
             expect(textSection.currentStyleId).toBeNull();
         });
     });
 
     describe('detachStyle()', () => {
-        it('should dispatch UPDATE_ELEMENT with null styleId', () => {
+        it('should dispatch UPDATE_ELEMENT with null textStyleId', () => {
             store.getState.mockReturnValue({
                 editor: {
                     mode: 'edit',
@@ -433,7 +409,7 @@ describe('TextSection', () => {
             textSection.selection = ['el-1'];
             textSection.detachStyle();
 
-            expect(store.dispatch).toHaveBeenCalledWith('UPDATE_ELEMENT', expect.objectContaining({ id: 'el-1', styleId: null }), expect.anything());
+            expect(store.dispatch).toHaveBeenCalledWith('UPDATE_ELEMENT', expect.objectContaining({ id: 'el-1', textStyleId: null }), expect.anything());
         });
 
         it('should reset currentStyleId to null', () => {
@@ -456,16 +432,16 @@ describe('TextSection', () => {
             expect(result).toBe(false);
         });
 
-        it('should return false if element matches style', () => {
-            const element = { fontSize: 16 };
+        it('should return false if element has no manual overrides', () => {
+            const element = { id: 'text-1', type: 'text', content: 'Hello', textStyleId: 'body' };
             const style = { id: 'body', name: 'Body', fontSize: 16 };
 
             const result = textSection.checkForStyleOverrides(element, style);
             expect(result).toBe(false);
         });
 
-        it('should return true if element differs from style', () => {
-            const element = { fontSize: 24 };
+        it('should return true if element has manual property overrides', () => {
+            const element = { id: 'text-1', type: 'text', textStyleId: 'body', fontSize: 24 };
             const style = { id: 'body', name: 'Body', fontSize: 16 };
 
             const result = textSection.checkForStyleOverrides(element, style);

@@ -309,14 +309,14 @@ export class TextSection extends BaseSection {
         // Update style dropdown options (in case theme changed)
         this.styleDropdown.setOptions(this.getTextStyleOptions());
         
-        // Handle Text Style
-        this.currentStyleId = el.styleId || null;
+        // Handle Text Style - use textStyleId (new) or styleId (legacy)
+        this.currentStyleId = el.textStyleId || el.styleId || null;
         
         // Check for style overrides
         if (this.currentStyleId) {
-            const themeId = this.getActiveThemeId(state);
-            const master = state.slideMasterPresets?.[themeId];
-            const style = master?.themeSettings?.textStyles?.[this.currentStyleId];
+            const slideId = state.editor?.activeSlideId;
+            const typography = StyleResolver.getTypographyStyle(slideId);
+            const style = typography?.textStyles?.[this.currentStyleId];
             this.hasStyleOverrides = this.checkForStyleOverrides(el, style);
         } else {
             this.hasStyleOverrides = false;
@@ -324,8 +324,9 @@ export class TextSection extends BaseSection {
         
         this.updateStyleUI();
         
-        // Use StyleResolver to get effective properties
-        const props = StyleResolver.getEffectiveTextProperties(el);
+        // Use StyleResolver to get effective properties with slide context
+        const slideId = state.editor?.activeSlideId;
+        const props = StyleResolver.getEffectiveTextProperties(el, {}, slideId);
         
         this.fontFamilyInput.setValue(props.fontFamily, false);
         this.fontWeightInput.setValue(props.fontWeight, false);
@@ -641,10 +642,11 @@ export class TextSection extends BaseSection {
     // Text Style Methods
     getTextStyleOptions() {
         const state = store.getState();
-        const themeId = this.getActiveThemeId(state);
-        const master = state.slideMasterPresets?.[themeId];
-        // TODO Phase 3: Use typographyStylePresets instead of embedded textStyles
-        const textStyles = master?.themeSettings?.textStyles || {};
+        const slideId = state.editor?.activeSlideId;
+        
+        // Use StyleResolver to get typography from cascade
+        const typography = StyleResolver.getTypographyStyle(slideId);
+        const textStyles = typography?.textStyles || {};
         
         const options = [{ label: 'No Style', value: '' }];
         
@@ -662,17 +664,6 @@ export class TextSection extends BaseSection {
         return options;
     }
 
-    getActiveThemeId(state) {
-        // Find the slide master preset (type === 'slideMasterPreset')
-        const masters = state.slideMasterPresets;
-        for (const id in masters) {
-            if (masters[id].type === 'slideMasterPreset') {
-                return id;
-            }
-        }
-        return 'master-default';
-    }
-
     applyTextStyle(styleId) {
         if (styleId === '__create__') {
             // Future: Open create style dialog
@@ -681,72 +672,43 @@ export class TextSection extends BaseSection {
         }
         
         const state = store.getState();
+        const slideId = state.editor?.activeSlideId;
         
         if (styleId === '') {
-            // Detach style - just remove styleId, keep current properties
-            this.updateProperties({ styleId: null });
+            // Detach style - remove textStyleId, keep current rendered properties as manual overrides
+            this.updateProperties({ textStyleId: null });
             this.currentStyleId = null;
             this.updateStyleUI();
             return;
         }
         
-        // Get the style definition
-        const themeId = this.getActiveThemeId(state);
-        const master = state.slideMasterPresets?.[themeId];
-        const style = master?.themeSettings?.textStyles?.[styleId];
+        // Get the typography style from cascade
+        const typography = StyleResolver.getTypographyStyle(slideId);
+        const style = typography?.textStyles?.[styleId];
         
         if (!style) return;
         
-        // Apply style properties to selected elements
-        const styleProps = this.resolveStyleVariables(style, master);
-        this.updateProperties({ 
-            styleId: styleId,
-            ...styleProps
-        });
+        // Clear all manual overrides and just set textStyleId
+        // The StyleResolver will handle the cascade
+        const updates = { 
+            textStyleId: styleId,
+            // Clear manual overrides to let theme take over
+            fontFamily: undefined,
+            fontSize: undefined,
+            fontWeight: undefined,
+            fontStyle: undefined,
+            lineHeight: undefined,
+            letterSpacing: undefined,
+            textAlign: undefined,
+            // Keep textFill if custom, or clear to use theme
+            // textFill: undefined
+        };
+        
+        this.updateProperties(updates);
         
         this.currentStyleId = styleId;
         this.hasStyleOverrides = false;
         this.updateStyleUI();
-    }
-
-    resolveStyleVariables(style, theme) {
-        // Resolve CSS variable references to actual values
-        const resolved = {};
-        const fonts = theme?.themeSettings?.fonts || { heading: 'Inter', body: 'Inter' };
-        const colors = theme?.themeSettings?.colors || { 
-            text1: '#333333', 
-            text2: '#666666',
-            textPrimary: '#333333', 
-            textSecondary: '#666666',
-            accent1: '#18A0FB',
-            accent: '#18A0FB'
-        };
-        
-        for (const [key, value] of Object.entries(style)) {
-            if (key === 'id' || key === 'name') continue;
-            
-            if (typeof value === 'string') {
-                // Resolve font variables
-                let resolved_value = value
-                    .replace('var(--theme-font-heading)', fonts.heading)
-                    .replace('var(--theme-font-body)', fonts.body);
-                resolved[key] = resolved_value;
-            } else if (typeof value === 'object' && value?.type === 'solid') {
-                // Resolve color variables in textFill (support both old and new schema)
-                let colorValue = value.value
-                    .replace('var(--theme-text1)', colors.text1 || colors.textPrimary)
-                    .replace('var(--theme-text2)', colors.text2 || colors.textSecondary)
-                    .replace('var(--theme-text-primary)', colors.textPrimary || colors.text1)
-                    .replace('var(--theme-text-secondary)', colors.textSecondary || colors.text2)
-                    .replace('var(--theme-accent1)', colors.accent1 || colors.accent)
-                    .replace('var(--theme-accent)', colors.accent || colors.accent1);
-                resolved[key] = { ...value, value: colorValue };
-            } else {
-                resolved[key] = value;
-            }
-        }
-        
-        return resolved;
     }
 
     openStyleMenu(e) {
@@ -802,8 +764,8 @@ export class TextSection extends BaseSection {
     }
 
     detachStyle() {
-        // Remove styleId but keep all current properties
-        this.updateProperties({ styleId: null });
+        // Remove textStyleId but keep all current properties as manual overrides
+        this.updateProperties({ textStyleId: null });
         
         this.currentStyleId = null;
         this.hasStyleOverrides = false;
@@ -831,20 +793,17 @@ export class TextSection extends BaseSection {
     checkForStyleOverrides(element, style) {
         if (!style) return false;
         
-        const state = store.getState();
-        const themeId = this.getActiveThemeId(state);
-        const master = state.slideMasterPresets?.[themeId];
-        const resolvedStyle = this.resolveStyleVariables(style, master);
+        // Check if any typography property has been manually overridden
+        const overridableProps = [
+            'fontFamily', 'fontSize', 'fontWeight', 'fontStyle',
+            'lineHeight', 'letterSpacing', 'textAlign', 'textDecoration',
+            'textTransform', 'textFill'
+        ];
         
-        // Check if any style property differs from element
-        for (const key of Object.keys(resolvedStyle)) {
-            if (key === 'id' || key === 'name') continue;
-            
-            const styleVal = resolvedStyle[key];
-            const elemVal = element[key];
-            
-            // Simple comparison (could be more sophisticated for objects)
-            if (JSON.stringify(styleVal) !== JSON.stringify(elemVal)) {
+        // If element has any of these properties set directly, it's an override
+        for (const prop of overridableProps) {
+            if (element[prop] !== undefined && element[prop] !== null) {
+                // Property exists on element = override
                 return true;
             }
         }
