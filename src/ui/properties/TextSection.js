@@ -86,6 +86,7 @@ export class TextSection extends BaseSection {
                 this.updateProperty('fontFamily', val);
             }
         });
+        console.log('[TextSection] Font family dropdown created with options:', this.fontFamilyInput.options.options.slice(0, 5).map(o => o.value));
         
         // Store reference to input element for disabling
         this.fontFamilyInput.element.dataset.testid = 'font-family-select';
