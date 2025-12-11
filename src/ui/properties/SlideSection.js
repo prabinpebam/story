@@ -411,24 +411,30 @@ export class SlideSection {
         const slideId = mode === 'master' ? null : state.editor.activeSlideId;
         ThemeDiag.logPropertyInspectorDisplay(slideId, themeInfo, mode);
 
-        // Get fonts from themeSettings (old arch) or typographyStyleId (new arch)
-        let themeFonts = {};
-        if (themeMaster.themeSettings?.fonts) {
-            // Old architecture: embedded fonts
-            themeFonts = themeMaster.themeSettings.fonts;
-        } else if (themeMaster.typographyStyleId) {
-            // New architecture: reference to typography preset
-            const typoPreset = state.typographyStylePresets?.[themeMaster.typographyStyleId];
-            if (typoPreset?.fonts) {
-                themeFonts = typoPreset.fonts;
-            }
+        // Get typography using cascade-aware resolution (like color theme)
+        let typographyStyle;
+        if (mode === 'master') {
+            // Master mode: show master's own typography
+            const typographyStyleId = themeMaster.typographyStyleId || 
+                                     themeMaster.styleAssignments?.typographyStyle || 
+                                     'typo-style-default';
+            typographyStyle = state.typographyStylePresets?.[typographyStyleId];
+        } else {
+            // Slide mode: use cascade resolution (slide → layout → master)
+            const typoInfo = StyleResolver.getEffectiveTypographyStyle(slideId);
+            typographyStyle = state.typographyStylePresets?.[typoInfo.typographyStyleId];
         }
+
+        // Extract fonts from resolved typography style
+        const themeFonts = typographyStyle?.fonts || { heading: 'Inter', body: 'Inter' };
 
         // Check if slide has style assignment override (cascade-aware)
         const hasColorOverride = mode !== 'master' && 
             currentObject.styleAssignments?.colorTheme !== undefined && 
             currentObject.styleAssignments?.colorTheme !== null;
-        const hasTypoOverride = currentObject.typographyOverride !== undefined;
+        const hasTypoOverride = mode !== 'master' && 
+            currentObject.styleAssignments?.typographyStyle !== undefined && 
+            currentObject.styleAssignments?.typographyStyle !== null;
 
         // Update Colors Section with cascade-aware theme info
         this.updateColorsSectionDisplay(themeInfo, hasColorOverride);
