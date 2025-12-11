@@ -263,8 +263,10 @@ export class LayerTree {
                 const temp = document.createElement('div');
                 temp.innerHTML = el.content;
                 displayName = temp.textContent || 'Text';
-            } else {
+            } else if (el.type) {
                 displayName = el.type.charAt(0).toUpperCase() + el.type.slice(1);
+            } else {
+                displayName = 'Element';
             }
         }
         nameSpan.innerText = displayName;
