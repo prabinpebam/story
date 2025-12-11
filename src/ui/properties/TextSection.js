@@ -457,6 +457,16 @@ export class TextSection extends BaseSection {
         const selection = state.editor.selectedElementIds;
         const editingElementId = state.editor.editingElementId;
         
+        // Check if any selected element has a typography style linked
+        // If so, block changes to styleable properties (user must unlink first)
+        const styleableProps = ['fontFamily', 'fontWeight', 'fontSize', 'fontStyle', 
+                                 'lineHeight', 'letterSpacing', 'textAlign', 'textDecoration'];
+        
+        if (styleableProps.includes(prop) && this.currentStyleId) {
+            console.warn(`Cannot change ${prop} while linked to typography style. Unlink first.`);
+            return;
+        }
+        
         // If we're editing a text element, check for text selection
         if (editingElementId && selection.includes(editingElementId)) {
             // Save selection before any PI interaction
