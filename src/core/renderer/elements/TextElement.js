@@ -253,7 +253,6 @@ export class TextElement extends VisualElement {
         Array.from(div.children).forEach(resetChild);
         
         // Resolve Properties with slide context for typography cascade
-        const state = store.getState();
         const slideId = state.editor?.activeSlideId || null;
         const props = StyleResolver.getEffectiveTextProperties(el, {}, slideId);
 
