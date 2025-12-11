@@ -828,10 +828,6 @@ export class TextSection extends BaseSection {
         // Show/hide link button - visible when style is linked
         const isLinked = !!this.currentStyleId;
         this.linkBtn.element.classList.toggle('hidden', !isLinked);
-        
-        // Update link button icon - linked shows chain, unlinked would show broken chain
-        // Since we hide it when unlinked, we always show the chain icon
-        this.linkBtn.setIcon(Icons.LINK);
         this.linkBtn.element.title = isLinked ? 'Unlink from style (keeps current values)' : '';
         
         // Disable/enable property inputs based on style link
