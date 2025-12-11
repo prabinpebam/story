@@ -503,21 +503,51 @@ export class Store extends EventEmitter {
 
         // If no layout, return slide as is (legacy support)
         if (!slide.layoutId || !this.state.slideMasterPresets || !this.state.slideMasterPresets[slide.layoutId]) {
+            // Get typography fonts through cascade even without layout
+            let themeSettings = {};
+            if (StyleResolver) {
+                const typoInfo = StyleResolver.getEffectiveTypographyStyle(slideId);
+                const typographyPreset = this.state.typographyStylePresets?.[typoInfo.typographyStyleId];
+                if (typographyPreset?.fonts) {
+                    themeSettings = {
+                        fonts: typographyPreset.fonts
+                    };
+                }
+            }
+            
             return {
                 ...slide,
                 effectiveBackground: slide.background || { type: 'solid', value: '#FFFFFF' },
                 effectiveElements: slide.elements,
                 effectiveOrder: slide.elementOrder,
                 resolvedLumaTheme,
-                themeSource
+                themeSource,
+                themeSettings
             };
         }
 
         const layout = this.state.slideMasterPresets[slide.layoutId];
         const theme = this.state.slideMasterPresets[layout.parentMasterId];
 
-        // Resolve Theme Settings (legacy support - will be replaced by preset resolution)
-        const themeSettings = theme ? theme.themeSettings : (this.state.slideMasterPresets['master-default']?.themeSettings || {});
+        // Resolve Theme Settings using cascade-aware StyleResolver
+        // Get typography style through cascade (slide → layout → master)
+        let themeSettings = {};
+        if (theme) {
+            themeSettings = theme.themeSettings || {};
+        }
+        
+        // Use StyleResolver to get cascade-aware typography fonts
+        if (StyleResolver) {
+            const typoInfo = StyleResolver.getEffectiveTypographyStyle(slideId);
+            const typographyPreset = this.state.typographyStylePresets?.[typoInfo.typographyStyleId];
+            if (typographyPreset?.fonts) {
+                // Override themeSettings.fonts with cascade-resolved fonts
+                themeSettings = {
+                    ...themeSettings,
+                    fonts: typographyPreset.fonts
+                };
+            }
+        }
 
         // 1. Resolve Background
         let background = slide.background;

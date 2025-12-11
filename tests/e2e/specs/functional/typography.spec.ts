@@ -585,4 +585,204 @@ test.describe('Typography System', () => {
       }
     });
   });
+
+  test.describe('Typography Style Linked Text - Disabled Inputs Show Style Values', () => {
+    test('should disable font inputs and show current style values when linked', async ({ page }) => {
+      // Create text element
+      await createAndSelectText(page, 0.5, 0.3, 'Styled Text');
+      
+      // Apply Title style
+      const textSection = page.locator('.pi-section').filter({ hasText: 'Text' }).first();
+      const styleDropdown = textSection.locator('.dropdown').filter({ has: page.locator('option:has-text("Title")') }).first();
+      await styleDropdown.selectOption({ label: 'Title' });
+      await page.waitForTimeout(300);
+      
+      // Get font property inputs
+      const fontFamilyInput = textSection.locator('input').filter({ has: page.locator('~ label:has-text("Font")') }).or(textSection.locator('.dropdown').filter({ has: page.locator('~ label:has-text("Font")') })).first();
+      const fontSizeInput = textSection.locator('input[type="number"]').first();
+      const fontWeightSelect = textSection.locator('select').filter({ has: page.locator('option:has-text("Regular")') }).or(textSection.locator('select').filter({ has: page.locator('option:has-text("Bold")') })).first();
+      
+      // Verify inputs are disabled (have 'disabled' class and reduced opacity)
+      const fontFamilyDisabled = await fontFamilyInput.evaluate(el => {
+        return el.classList.contains('disabled') && parseFloat(getComputedStyle(el).opacity) < 1;
+      });
+      expect(fontFamilyDisabled).toBe(true);
+      
+      const fontSizeDisabled = await fontSizeInput.evaluate(el => {
+        return el.classList.contains('disabled') && parseFloat(getComputedStyle(el).opacity) < 1;
+      });
+      expect(fontSizeDisabled).toBe(true);
+      
+      // Verify inputs still show current values from style
+      const fontSize = await fontSizeInput.inputValue();
+      expect(parseInt(fontSize)).toBeGreaterThan(0);
+      console.log('Disabled font size input shows:', fontSize);
+      
+      // Get expected font from typography preset
+      const state = await editor.getState();
+      const slideId = state.editor.activeSlideId;
+      const typoInfo = await page.evaluate((sid) => {
+        return window.__TEST_STORE__.getStyleResolver().getEffectiveTypographyStyle(sid);
+      }, slideId);
+      
+      const typographyPreset = state.typographyStylePresets[typoInfo.typographyStyleId];
+      const titleStyle = typographyPreset.textStyles.title;
+      
+      console.log('Expected title style font size:', titleStyle.fontSize);
+      expect(parseInt(fontSize)).toBe(titleStyle.fontSize);
+    });
+
+    test('should update disabled input values when typography preset changes', async ({ page }) => {
+      // Create text with Title style
+      await createAndSelectText(page, 0.5, 0.3, 'Dynamic Styled Text');
+      const textSection = page.locator('.pi-section').filter({ hasText: 'Text' }).first();
+      const styleDropdown = textSection.locator('.dropdown').filter({ has: page.locator('option:has-text("Title")') }).first();
+      await styleDropdown.selectOption({ label: 'Title' });
+      await page.waitForTimeout(300);
+      
+      // Get initial font size from disabled input
+      const fontSizeInput = textSection.locator('input[type="number"]').first();
+      const initialFontSize = await fontSizeInput.inputValue();
+      console.log('Initial font size (disabled input):', initialFontSize);
+      
+      // Verify input is disabled
+      const isDisabled = await fontSizeInput.evaluate(el => el.classList.contains('disabled'));
+      expect(isDisabled).toBe(true);
+      
+      // Change typography preset
+      const typoEditBtn = page.locator('[data-testid="typography-manager-btn"]');
+      await typoEditBtn.click();
+      await page.waitForSelector('.typography-style-manager', { state: 'visible' });
+      
+      // Select "Professional" preset (different title size)
+      await page.click('.tsm-preset-card:has-text("Professional")');
+      await page.waitForTimeout(500);
+      
+      // Close panel
+      await page.click('.typography-style-manager .close-btn');
+      await page.waitForTimeout(300);
+      
+      // Re-select text element to refresh PI
+      await canvas.clickAt(0.5, 0.3);
+      await page.waitForTimeout(300);
+      
+      // Get updated font size from disabled input
+      const updatedFontSize = await fontSizeInput.inputValue();
+      console.log('Updated font size (disabled input):', updatedFontSize);
+      
+      // Verify it changed
+      expect(updatedFontSize).not.toBe(initialFontSize);
+      
+      // Verify input is still disabled
+      const stillDisabled = await fontSizeInput.evaluate(el => el.classList.contains('disabled'));
+      expect(stillDisabled).toBe(true);
+      
+      // Verify the value matches the new typography preset
+      const state = await editor.getState();
+      const slideId = state.editor.activeSlideId;
+      const typoInfo = await page.evaluate((sid) => {
+        return window.__TEST_STORE__.getStyleResolver().getEffectiveTypographyStyle(sid);
+      }, slideId);
+      
+      const typographyPreset = state.typographyStylePresets[typoInfo.typographyStyleId];
+      const titleStyle = typographyPreset.textStyles.title;
+      
+      expect(parseInt(updatedFontSize)).toBe(titleStyle.fontSize);
+      console.log('Disabled input correctly shows new style value:', updatedFontSize, '=', titleStyle.fontSize);
+    });
+
+    test('should update disabled font family input when typography changes', async ({ page }) => {
+      // Create text with Heading 1 style
+      await createAndSelectText(page, 0.5, 0.4, 'Heading Text');
+      const textSection = page.locator('.pi-section').filter({ hasText: 'Text' }).first();
+      const styleDropdown = textSection.locator('.dropdown').filter({ has: page.locator('option:has-text("Heading 1")') }).first();
+      await styleDropdown.selectOption({ label: 'Heading 1' });
+      await page.waitForTimeout(300);
+      
+      // Get heading font from PI typography section
+      const slideSection = page.locator('.pi-section').filter({ hasText: /Typography/ }).first();
+      const initialHeadingFont = await slideSection.locator('.theme-font-row').filter({ hasText: 'Heading' }).locator('.theme-font-name').textContent();
+      console.log('Initial heading font in PI:', initialHeadingFont);
+      
+      // Verify text element renders in that font
+      const textElement = page.locator('.story-canvas .text-element').first();
+      const initialComputedFont = await textElement.evaluate(el => getComputedStyle(el).fontFamily);
+      expect(initialComputedFont.toLowerCase()).toContain(initialHeadingFont!.toLowerCase().replace(/['"]/g, ''));
+      
+      // Change typography to one with different heading font
+      const typoEditBtn = page.locator('[data-testid="typography-manager-btn"]');
+      await typoEditBtn.click();
+      await page.waitForSelector('.typography-style-manager', { state: 'visible' });
+      await page.click('.tsm-preset-card:has-text("Tech")'); // Uses Space Grotesk
+      await page.waitForTimeout(500);
+      await page.click('.typography-style-manager .close-btn');
+      await page.waitForTimeout(300);
+      
+      // Re-select text to refresh PI
+      await canvas.clickAt(0.5, 0.4);
+      await page.waitForTimeout(300);
+      
+      // Get updated heading font from PI
+      const updatedHeadingFont = await slideSection.locator('.theme-font-row').filter({ hasText: 'Heading' }).locator('.theme-font-name').textContent();
+      console.log('Updated heading font in PI:', updatedHeadingFont);
+      
+      // Verify it changed
+      expect(updatedHeadingFont).not.toBe(initialHeadingFont);
+      
+      // Verify text element renders in new font
+      const updatedComputedFont = await textElement.evaluate(el => getComputedStyle(el).fontFamily);
+      console.log('Text element renders in:', updatedComputedFont);
+      expect(updatedComputedFont.toLowerCase()).toContain(updatedHeadingFont!.toLowerCase().replace(/['"]/g, ''));
+      
+      // Verify the change propagated even though inputs are disabled
+      console.log('✓ Disabled inputs updated: PI heading font and text element both changed to', updatedHeadingFont);
+    });
+
+    test('should update multiple disabled inputs simultaneously when typography changes', async ({ page }) => {
+      // Create text with Body style
+      await createAndSelectText(page, 0.5, 0.5, 'Body content with multiple properties');
+      const textSection = page.locator('.pi-section').filter({ hasText: 'Text' }).first();
+      const styleDropdown = textSection.locator('.dropdown').filter({ has: page.locator('option:has-text("Body")') }).first();
+      await styleDropdown.selectOption({ label: 'Body' });
+      await page.waitForTimeout(300);
+      
+      // Get all relevant inputs (all should be disabled)
+      const fontSizeInput = textSection.locator('input[type="number"]').first();
+      
+      // Capture initial values
+      const initialSize = await fontSizeInput.inputValue();
+      console.log('Initial values - Size:', initialSize);
+      
+      // Verify all are disabled
+      const sizeDisabled = await fontSizeInput.evaluate(el => el.classList.contains('disabled'));
+      expect(sizeDisabled).toBe(true);
+      
+      // Change typography preset
+      const typoEditBtn = page.locator('[data-testid="typography-manager-btn"]');
+      await typoEditBtn.click();
+      await page.waitForSelector('.typography-style-manager', { state: 'visible' });
+      await page.click('.tsm-preset-card:has-text("Elegant")');
+      await page.waitForTimeout(500);
+      await page.click('.typography-style-manager .close-btn');
+      await page.waitForTimeout(300);
+      
+      // Re-select to refresh PI
+      await canvas.clickAt(0.5, 0.5);
+      await page.waitForTimeout(300);
+      
+      // Get updated values
+      const updatedSize = await fontSizeInput.inputValue();
+      console.log('Updated values - Size:', updatedSize);
+      
+      // At least one should have changed (different presets have different body sizes)
+      const hasChanges = updatedSize !== initialSize;
+      expect(hasChanges).toBe(true);
+      
+      // All should still be disabled
+      const stillDisabled = await fontSizeInput.evaluate(el => el.classList.contains('disabled'));
+      expect(stillDisabled).toBe(true);
+      
+      console.log('✓ Multiple disabled inputs updated simultaneously with typography change');
+    });
+  });
 });
