@@ -165,8 +165,8 @@ export class TextElement extends VisualElement {
         }
     }
 
-    update(newData) {
-        super.update(newData);
+    update(newData, slideData) {
+        super.update(newData, slideData);
         const el = this.data;
         const div = this.domElement;
 
@@ -253,7 +253,8 @@ export class TextElement extends VisualElement {
         Array.from(div.children).forEach(resetChild);
         
         // Resolve Properties with slide context for typography cascade
-        const slideId = state.editor?.activeSlideId || null;
+        // Use slideData.id if available, otherwise fall back to active slide
+        const slideId = this.slideData?.id || state.editor?.activeSlideId || null;
         const props = StyleResolver.getEffectiveTextProperties(el, {}, slideId);
 
         // Typography
