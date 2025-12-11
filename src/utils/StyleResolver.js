@@ -523,7 +523,90 @@ export const StyleResolver = {
     },
 
     /**
-     * Get the effective typography style for a given slide.
+     * Get the effective typography style for a slide by walking up the hierarchy.
+     * Hierarchy: Slide → Layout Master → Theme Master
+     * 
+     * This is the typography equivalent of getEffectiveColorTheme().
+     * 
+     * @param {string} slideId - The slide ID to resolve typography for
+     * @returns {{typographyStyleId: string|null, source: 'slide'|'layout'|'master', sourceId: string, sourceLabel: string, isInherited: boolean}}
+     */
+    getEffectiveTypographyStyle(slideId) {
+        const store = getStore();
+        if (!store) {
+            return { typographyStyleId: null, source: 'master', sourceId: null, sourceLabel: 'master-default', isInherited: true };
+        }
+        const state = store.getState();
+        const slide = state.slides?.[slideId];
+        
+        if (!slide) {
+            // No slide found - return master default
+            return this._getMasterTypographyInfo(state);
+        }
+        
+        // 1. Check slide's own typographyStyleId (new styleAssignments or legacy)
+        const slideTypographyId = slide.styleAssignments?.typographyStyle || slide.typographyStyleId;
+        if (slideTypographyId) {
+            return {
+                typographyStyleId: slideTypographyId,
+                source: 'slide',
+                sourceId: slideId,
+                sourceLabel: 'slide-specific',
+                isInherited: false
+            };
+        }
+        
+        // 2. Check layout master (new styleAssignments or legacy)
+        const layout = slide.layoutId ? state.slideMasterPresets?.[slide.layoutId] : null;
+        const layoutTypographyId = layout?.styleAssignments?.typographyStyle || layout?.typographyStyleId;
+        if (layoutTypographyId) {
+            return {
+                typographyStyleId: layoutTypographyId,
+                source: 'layout',
+                sourceId: layout.id,
+                sourceLabel: `inherited from ${layout.name || 'Layout'}`,
+                isInherited: true
+            };
+        }
+        
+        // 3. Check theme master (parent of layout)
+        const themeMaster = layout?.parentMasterId ? state.slideMasterPresets?.[layout.parentMasterId] : null;
+        const masterTypographyId = themeMaster?.styleAssignments?.typographyStyle || themeMaster?.typographyStyleId;
+        if (masterTypographyId) {
+            return {
+                typographyStyleId: masterTypographyId,
+                source: 'master',
+                sourceId: themeMaster.id,
+                sourceLabel: 'inherited from Master',
+                isInherited: true
+            };
+        }
+        
+        // 4. Fallback: Find theme master with typography
+        return this._getMasterTypographyInfo(state);
+    },
+    
+    /**
+     * Get typography info from master level (fallback)
+     * @private
+     */
+    _getMasterTypographyInfo(state) {
+        const themeMaster = Object.values(state.slideMasterPresets || {}).find(m => m.type === 'slideMasterPreset');
+        const typographyStyleId = themeMaster?.typographyStyleId || 
+                                 themeMaster?.styleAssignments?.typographyStyle ||
+                                 'typo-style-default';
+        
+        return {
+            typographyStyleId,
+            source: 'master',
+            sourceId: themeMaster?.id || 'master-default',
+            sourceLabel: 'inherited from Master',
+            isInherited: true
+        };
+    },
+
+    /**
+     * Get the typography style object for a given slide.
      * Resolves through the cascade hierarchy:
      * 1. If slide has typographyStyleId, look up that style
      * 2. If layout has typographyStyleId, look up that style

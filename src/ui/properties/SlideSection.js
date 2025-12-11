@@ -277,15 +277,20 @@ export class SlideSection {
         const container = document.createElement('div');
         container.className = 'theme-typography-content';
 
-        // Actions row (at top - before font rows)
-        const actionsRow = document.createElement('div');
-        actionsRow.className = 'pi-row pi-row--space-between';
+        // Header row with name/badge and buttons (like color theme)
+        const headerRow = document.createElement('div');
+        headerRow.className = 'pi-row pi-row--space-between';
 
-        // Left side: Inheritance badge
+        // Left side: Inheritance badge OR typography name
         this.typoBadge = document.createElement('span');
         this.typoBadge.className = 'inherited-fill-badge';
         this.typoBadge.textContent = 'Inherited';
-        actionsRow.appendChild(this.typoBadge);
+        headerRow.appendChild(this.typoBadge);
+        
+        this.typographyStyleName = document.createElement('span');
+        this.typographyStyleName.className = 'theme-detail-name hidden';
+        this.typographyStyleName.textContent = '';
+        headerRow.appendChild(this.typographyStyleName);
         
         // Right side: Button group
         const buttonGroup = document.createElement('div');
@@ -309,8 +314,8 @@ export class SlideSection {
         });
         buttonGroup.appendChild(this.typoResetBtn.element);
         
-        actionsRow.appendChild(buttonGroup);
-        container.appendChild(actionsRow);
+        headerRow.appendChild(buttonGroup);
+        container.appendChild(headerRow);
 
         // Heading font row
         const headingRow = document.createElement('div');
@@ -535,20 +540,40 @@ export class SlideSection {
         this.bodyFontName.textContent = bodyFont;
         this.bodyFontPreview.style.fontFamily = bodyFont;
 
-        // Update badge based on cascade state
-        if (!this.typoBadge) {
-            console.warn('SlideSection: Typography badge not initialized');
-            return;
-        }
+        // Get typography style info using StyleResolver (like Color Theme)
+        const state = store.getState();
+        const mode = state.editor.mode;
         
-        if (isOverride) {
-            // Override: hide badge, show reset button
+        if (mode === 'master') {
+            // Master mode: show typography name, hide badge, hide reset
+            const themeMaster = Object.values(state.slideMasterPresets || {}).find(m => m.type === 'slideMasterPreset');
+            const typographyStyleId = themeMaster?.typographyStyleId || themeMaster?.styleAssignments?.typographyStyle || 'typo-style-default';
+            const preset = state.typographyStylePresets?.[typographyStyleId];
+            const typographyName = preset?.name || 'Default';
+            
+            this.typographyStyleName.textContent = typographyName;
+            this.typographyStyleName.classList.remove('hidden');
             this.typoBadge.classList.add('hidden');
-            this.typoResetBtn.element.classList.remove('hidden');
-        } else {
-            // Inherited: show badge, hide reset button
-            this.typoBadge.classList.remove('hidden');
             this.typoResetBtn.element.classList.add('hidden');
+        } else {
+            // Slide mode: use cascade-aware resolution
+            const slideId = state.editor.activeSlideId;
+            const typoInfo = StyleResolver.getEffectiveTypographyStyle(slideId);
+            const preset = state.typographyStylePresets?.[typoInfo.typographyStyleId];
+            const typographyName = preset?.name || 'Default';
+            
+            if (typoInfo.isInherited) {
+                // Inherited: show badge, hide name, hide reset button
+                this.typographyStyleName.classList.add('hidden');
+                this.typoBadge.classList.remove('hidden');
+                this.typoResetBtn.element.classList.add('hidden');
+            } else {
+                // Override: show name, hide badge, show reset button
+                this.typographyStyleName.textContent = typographyName;
+                this.typographyStyleName.classList.remove('hidden');
+                this.typoBadge.classList.add('hidden');
+                this.typoResetBtn.element.classList.remove('hidden');
+            }
         }
     }
 
@@ -596,10 +621,23 @@ export class SlideSection {
     resetTypography() {
         const state = store.getState();
         const mode = state.editor.mode;
-        const action = mode === 'master' ? 'UPDATE_MASTER' : 'UPDATE_SLIDE';
-        const id = mode === 'master' ? state.editor.activeMasterId : state.editor.activeSlideId;
         
-        store.dispatch(action, { id, typographyOverride: undefined });
+        if (mode === 'master') {
+            // For masters, reset to default preset
+            const masterId = state.editor.activeMasterId;
+            store.dispatch('UPDATE_MASTER_STYLE_ASSIGNMENTS', {
+                masterId,
+                styleAssignments: { typographyStyle: 'typo-style-default' }
+            });
+        } else {
+            // For slides, reset to null (inherit from cascade)
+            const slideId = state.editor.activeSlideId;
+            store.dispatch('UPDATE_SLIDE_STYLE_ASSIGNMENTS', {
+                slideId,
+                styleAssignments: { typographyStyle: null }
+            });
+        }
+        
         this.updateThemeDisplay();
     }
 

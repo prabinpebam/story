@@ -224,31 +224,15 @@ export class TypographyStyleManager extends DraggablePanel {
         preview.appendChild(fontNames);
         card.appendChild(preview);
         
-        // Click handler
+        // Click handler - apply immediately (like Color Theme)
         card.addEventListener('click', () => {
             this.selectPreset(preset, card);
-        });
-        
-        // Hover effects (preview managed separately, hover styles in CSS)
-        card.addEventListener('mouseenter', () => {
-            this.previewPreset(preset);
-        });
-        
-        card.addEventListener('mouseleave', () => {
-            if (!this.selectedPreset) {
-                this.cancelPreview();
-            }
         });
         
         return card;
     }
 
     selectPreset(preset, card) {
-        // Save original fonts for cancel
-        if (!this.originalFonts) {
-            this.saveOriginalFonts();
-        }
-        
         this.selectedPreset = preset;
         
         // Update card borders via class
@@ -257,47 +241,35 @@ export class TypographyStyleManager extends DraggablePanel {
             c.classList.remove('selected');
         });
         card.classList.add('selected');
+        
+        // Apply immediately (like Color Theme click-to-apply)
+        this.applyPreset(preset);
     }
 
-    previewPreset(preset) {
-        if (!this.originalFonts && !this.originalTypographyStyleId) {
-            this.saveOriginalFonts();
-        }
+    applyPreset(preset) {
+        const state = store.getState();
+        const mode = state.editor.mode;
         
-        // Load fonts for preview
+        // Load fonts first
         this.loadPresetFonts(preset);
         
-        // Apply preview using typography style reference
-        const state = store.getState();
-        const masterId = state.editor.activeMasterId || 'theme-default';
-        
-        store.dispatch('UPDATE_MASTER_STYLE_ASSIGNMENTS', { 
-            masterId, 
-            styleAssignments: { typographyStyle: preset.id }
-        }, { skipHistory: true });
-    }
-
-    cancelPreview() {
-        if (this.originalTypographyStyleId !== undefined) {
-            const state = store.getState();
+        if (mode === 'master') {
+            // Master mode: apply to master
             const masterId = state.editor.activeMasterId || 'theme-default';
-            
-            // Restore original typography style reference
             store.dispatch('UPDATE_MASTER_STYLE_ASSIGNMENTS', {
                 masterId,
-                styleAssignments: { typographyStyle: this.originalTypographyStyleId }
-            }, { skipHistory: true });
+                styleAssignments: { typographyStyle: preset.id }
+            });
+        } else {
+            // Slide mode: apply to slide (per-slide override)
+            const slideId = state.editor.activeSlideId;
+            store.dispatch('UPDATE_SLIDE_STYLE_ASSIGNMENTS', {
+                slideId,
+                styleAssignments: { typographyStyle: preset.id }
+            });
         }
-    }
-
-    saveOriginalFonts() {
-        const state = store.getState();
-        const masterId = state.editor.activeMasterId || 'theme-default';
-        const master = state.slideMasterPresets?.[masterId];
         
-        if (master) {
-            this.originalTypographyStyleId = master.typographyStyleId;
-        }
+        this.showToast(`Applied "${preset.name}" typography`);
     }
 
     async loadPresetFonts(preset) {
@@ -633,24 +605,15 @@ export class TypographyStyleManager extends DraggablePanel {
         const footer = document.createElement('div');
         footer.className = 'tsm-footer';
         
-        // Reset button
+        // Reset button (like Color Theme - resets to inherited)
         this.resetBtn = new Button({
-            label: 'Reset',
+            label: 'Reset to Inherited',
             variant: 'secondary',
             size: 'md',
             onClick: () => this.resetFonts()
         });
         
-        // Apply button
-        this.applyBtn = new Button({
-            label: 'Apply',
-            variant: 'primary',
-            size: 'md',
-            onClick: () => this.applySelection()
-        });
-        
         footer.appendChild(this.resetBtn.element);
-        footer.appendChild(this.applyBtn.element);
         
         return footer;
     }
@@ -658,44 +621,31 @@ export class TypographyStyleManager extends DraggablePanel {
     // ========================================
     // ACTIONS
     // ========================================
-    applySelection() {
-        if (this.selectedPreset) {
-            const state = store.getState();
-            const masterId = state.editor.activeMasterId || 'theme-default';
-            
-            // Load fonts first
-            this.loadPresetFonts(this.selectedPreset).then(() => {
-                // Apply typography style reference (not embedded fonts)
-                store.dispatch('UPDATE_MASTER_STYLE_ASSIGNMENTS', {
-                    masterId,
-                    styleAssignments: { typographyStyle: this.selectedPreset.id }
-                });
-                
-                // Clear original state reference
-                this.originalTypographyStyleId = null;
-                
-                // Show feedback
-                this.showToast(`Applied "${this.selectedPreset.name}" typography`);
-            });
-        }
-    }
-
     resetFonts() {
         const state = store.getState();
-        const masterId = state.editor.activeMasterId || 'theme-default';
+        const mode = state.editor.mode;
         
-        // Reset to default typography preset
-        store.dispatch('UPDATE_MASTER_STYLE_ASSIGNMENTS', {
-            masterId,
-            styleAssignments: { typographyStyle: 'typo-style-default' }
-        });
+        if (mode === 'master') {
+            // For masters, reset to default preset
+            const masterId = state.editor.activeMasterId || 'theme-default';
+            store.dispatch('UPDATE_MASTER_STYLE_ASSIGNMENTS', {
+                masterId,
+                styleAssignments: { typographyStyle: 'typo-style-default' }
+            });
+        } else {
+            // For slides, reset to null (inherit from cascade)
+            const slideId = state.editor.activeSlideId;
+            store.dispatch('UPDATE_SLIDE_STYLE_ASSIGNMENTS', {
+                slideId,
+                styleAssignments: { typographyStyle: null }
+            });
+        }
         
         this.selectedPreset = null;
-        this.originalTypographyStyleId = null;
         
         // Update UI
         this.renderPresetGrid();
-        this.showToast('Typography reset to default');
+        this.showToast('Typography reset to inherited');
     }
 
     showToast(message) {
