@@ -519,6 +519,15 @@ export const StyleResolver = {
             };
         }
         
+        // Resolve CSS variables in the value (e.g., "var(--theme-text-primary)")
+        if (fill.type === 'solid' && fill.value && typeof fill.value === 'string' && fill.value.includes('var(--')) {
+            const resolvedValue = this.resolveVariables(fill.value, slideId);
+            return {
+                ...fill,
+                value: resolvedValue
+            };
+        }
+        
         return fill;
     },
 
@@ -803,7 +812,12 @@ export const StyleResolver = {
 
         // Resolve theme slot references in textFill to actual hex colors
         if (finalProps.textFill) {
-            finalProps.textFill = this.resolveTextFill(finalProps.textFill);
+            finalProps.textFill = this.resolveTextFill(finalProps.textFill, slideId);
+        }
+
+        // Resolve CSS variable references in fontFamily
+        if (finalProps.fontFamily && typeof finalProps.fontFamily === 'string') {
+            finalProps.fontFamily = this.resolveVariables(finalProps.fontFamily, slideId);
         }
 
         // Compute Derived Values
@@ -840,6 +854,13 @@ export const StyleResolver = {
         
         const colors = lumaTheme?.resolvedColors || lumaTheme?.slots?.map(s => s.hex) || {};
         const fonts = typography?.fonts || { heading: 'Inter', body: 'Inter' };
+        const colorMode = lumaTheme?.colorMode || 'light';
+        
+        // Determine text color slots based on theme color mode
+        // For dark themes: text is light (slot 11=97%, slot 9=80%)
+        // For light themes: text is dark (slot 0=3%, slot 2=18%)
+        const TEXT_PRIMARY_SLOT = colorMode === 'dark' ? 11 : 0;
+        const TEXT_SECONDARY_SLOT = colorMode === 'dark' ? 9 : 2;
         
         // Legacy fallback for colors object
         const legacyColors = {
@@ -865,6 +886,9 @@ export const StyleResolver = {
             // Font variables
             .replace('var(--theme-font-heading)', fonts.heading)
             .replace('var(--theme-font-body)', fonts.body)
+            // Text color variables (dynamic based on color mode)
+            .replace('var(--theme-text-primary)', colors[TEXT_PRIMARY_SLOT] || legacyColors.textPrimary)
+            .replace('var(--theme-text-secondary)', colors[TEXT_SECONDARY_SLOT] || legacyColors.textSecondary)
             // 12-color schema variables (new format)
             .replace('var(--theme-slot1)', colors[0] || '#000000')
             .replace('var(--theme-slot2)', colors[1] || '#000000')
@@ -891,8 +915,6 @@ export const StyleResolver = {
             .replace('var(--theme-accent6)', legacyColors.accent6)
             .replace('var(--theme-hyperlink)', legacyColors.hyperlink)
             .replace('var(--theme-followed-hyperlink)', legacyColors.followedHyperlink)
-            .replace('var(--theme-text-primary)', legacyColors.textPrimary)
-            .replace('var(--theme-text-secondary)', legacyColors.textSecondary)
             .replace('var(--theme-accent)', legacyColors.accent);
     }
 };
