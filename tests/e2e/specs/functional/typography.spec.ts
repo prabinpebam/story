@@ -433,4 +433,156 @@ test.describe('Typography System', () => {
       console.log('Legacy styleId handled, displayed as:', selectedOption);
     });
   });
+
+  test.describe('Typography PI Display to Text Element Consistency', () => {
+    test('should match text element font to PI heading font when linked to heading style', async ({ page }) => {
+      // Create text element
+      await createAndSelectText(page, 0.5, 0.3, 'Heading Text');
+      
+      // Apply Title style (which uses heading font)
+      const textSection = page.locator('.pi-section').filter({ hasText: 'Text' }).first();
+      const styleDropdown = textSection.locator('.dropdown').filter({ has: page.locator('option:has-text("Title")') }).first();
+      await styleDropdown.selectOption({ label: 'Title' });
+      await page.waitForTimeout(300);
+      
+      // Get heading font from Typography section in PI
+      const slideSection = page.locator('.pi-section').filter({ hasText: /Typography|Heading/ }).first();
+      const headingFontName = await slideSection.locator('.theme-font-row').filter({ hasText: 'Heading' }).locator('.theme-font-name').textContent();
+      
+      console.log('PI shows heading font as:', headingFontName);
+      
+      // Get actual rendered font from text element
+      const textElement = page.locator('.story-canvas .text-element').first();
+      const computedFont = await textElement.evaluate(el => getComputedStyle(el).fontFamily);
+      
+      console.log('Text element renders with font:', computedFont);
+      
+      // Verify they match
+      expect(computedFont.toLowerCase()).toContain(headingFontName!.toLowerCase().replace(/['"]/g, ''));
+    });
+
+    test('should match text element font to PI body font when linked to body style', async ({ page }) => {
+      // Create text element
+      await createAndSelectText(page, 0.5, 0.5, 'Body content here');
+      
+      // Apply Body style (which uses body font)
+      const textSection = page.locator('.pi-section').filter({ hasText: 'Text' }).first();
+      const styleDropdown = textSection.locator('.dropdown').filter({ has: page.locator('option:has-text("Body")') }).first();
+      await styleDropdown.selectOption({ label: 'Body' });
+      await page.waitForTimeout(300);
+      
+      // Get body font from Typography section in PI
+      const slideSection = page.locator('.pi-section').filter({ hasText: /Typography|Body/ }).first();
+      const bodyFontName = await slideSection.locator('.theme-font-row').filter({ hasText: 'Body' }).locator('.theme-font-name').textContent();
+      
+      console.log('PI shows body font as:', bodyFontName);
+      
+      // Get actual rendered font from text element
+      const textElement = page.locator('.story-canvas .text-element').first();
+      const computedFont = await textElement.evaluate(el => getComputedStyle(el).fontFamily);
+      
+      console.log('Text element renders with font:', computedFont);
+      
+      // Verify they match
+      expect(computedFont.toLowerCase()).toContain(bodyFontName!.toLowerCase().replace(/['"]/g, ''));
+    });
+
+    test('should update both PI and text element when typography preset changes', async ({ page }) => {
+      // Create text with Title style
+      await createAndSelectText(page, 0.5, 0.3, 'Dynamic Title');
+      const textSection = page.locator('.pi-section').filter({ hasText: 'Text' }).first();
+      const styleDropdown = textSection.locator('.dropdown').filter({ has: page.locator('option:has-text("Title")') }).first();
+      await styleDropdown.selectOption({ label: 'Title' });
+      await page.waitForTimeout(300);
+      
+      // Get initial heading font from PI
+      const slideSection = page.locator('.pi-section').filter({ hasText: /Typography/ }).first();
+      const initialHeadingFont = await slideSection.locator('.theme-font-row').filter({ hasText: 'Heading' }).locator('.theme-font-name').textContent();
+      
+      // Get initial rendered font
+      const textElement = page.locator('.story-canvas .text-element').first();
+      const initialComputedFont = await textElement.evaluate(el => getComputedStyle(el).fontFamily);
+      
+      console.log('Before: PI heading =', initialHeadingFont, '| Text element =', initialComputedFont);
+      
+      // Change typography preset (e.g., to Professional which uses Playfair Display)
+      const typoEditBtn = page.locator('[data-testid="typography-manager-btn"]');
+      await typoEditBtn.click();
+      await page.waitForSelector('.typography-style-manager', { state: 'visible' });
+      
+      // Select "Professional" preset (Playfair Display + Source Sans Pro)
+      await page.click('.tsm-preset-card:has-text("Professional")');
+      await page.waitForTimeout(500);
+      
+      // Close panel
+      await page.click('.typography-style-manager .close-btn');
+      await page.waitForTimeout(300);
+      
+      // Click text element to see updated PI
+      await canvas.clickAt(0.5, 0.3);
+      await page.waitForTimeout(300);
+      
+      // Get updated heading font from PI
+      const updatedHeadingFont = await slideSection.locator('.theme-font-row').filter({ hasText: 'Heading' }).locator('.theme-font-name').textContent();
+      
+      // Get updated rendered font
+      const updatedComputedFont = await textElement.evaluate(el => getComputedStyle(el).fontFamily);
+      
+      console.log('After: PI heading =', updatedHeadingFont, '| Text element =', updatedComputedFont);
+      
+      // Verify both changed
+      expect(updatedHeadingFont).not.toBe(initialHeadingFont);
+      expect(updatedComputedFont).not.toBe(initialComputedFont);
+      
+      // Verify they still match each other
+      expect(updatedComputedFont.toLowerCase()).toContain(updatedHeadingFont!.toLowerCase().replace(/['"]/g, ''));
+    });
+
+    test('should maintain heading/body font consistency across multiple text elements', async ({ page }) => {
+      // Create multiple text elements with different styles
+      await createAndSelectText(page, 0.3, 0.2, 'Title Element');
+      const textSection1 = page.locator('.pi-section').filter({ hasText: 'Text' }).first();
+      const styleDropdown1 = textSection1.locator('.dropdown').filter({ has: page.locator('option:has-text("Title")') }).first();
+      await styleDropdown1.selectOption({ label: 'Title' });
+      await page.waitForTimeout(200);
+      
+      await createAndSelectText(page, 0.3, 0.4, 'Heading 1 Element');
+      const textSection2 = page.locator('.pi-section').filter({ hasText: 'Text' }).first();
+      const styleDropdown2 = textSection2.locator('.dropdown').filter({ has: page.locator('option:has-text("Heading 1")') }).first();
+      await styleDropdown2.selectOption({ label: 'Heading 1' });
+      await page.waitForTimeout(200);
+      
+      await createAndSelectText(page, 0.3, 0.6, 'Body Element');
+      const textSection3 = page.locator('.pi-section').filter({ hasText: 'Text' }).first();
+      const styleDropdown3 = textSection3.locator('.dropdown').filter({ has: page.locator('option:has-text("Body")') }).first();
+      await styleDropdown3.selectOption({ label: 'Body' });
+      await page.waitForTimeout(200);
+      
+      // Get expected fonts from PI
+      const slideSection = page.locator('.pi-section').filter({ hasText: /Typography/ }).first();
+      const headingFont = await slideSection.locator('.theme-font-row').filter({ hasText: 'Heading' }).locator('.theme-font-name').textContent();
+      const bodyFont = await slideSection.locator('.theme-font-row').filter({ hasText: 'Body' }).locator('.theme-font-name').textContent();
+      
+      // Get all text elements
+      const allTextElements = page.locator('.story-canvas .text-element');
+      const count = await allTextElements.count();
+      
+      // Verify fonts match expectations
+      for (let i = 0; i < count; i++) {
+        const computedFont = await allTextElements.nth(i).evaluate(el => getComputedStyle(el).fontFamily);
+        const text = await allTextElements.nth(i).textContent();
+        
+        console.log(`Element "${text}" uses font:`, computedFont);
+        
+        // Title and Heading 1 should use heading font
+        if (text?.includes('Title') || text?.includes('Heading')) {
+          expect(computedFont.toLowerCase()).toContain(headingFont!.toLowerCase().replace(/['"]/g, ''));
+        }
+        // Body should use body font
+        else if (text?.includes('Body')) {
+          expect(computedFont.toLowerCase()).toContain(bodyFont!.toLowerCase().replace(/['"]/g, ''));
+        }
+      }
+    });
+  });
 });
