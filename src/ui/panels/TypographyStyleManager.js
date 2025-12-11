@@ -8,6 +8,7 @@ import { SegmentedControl } from '../components/SegmentedControl.js';
 import { Dropdown } from '../components/Dropdown.js';
 import { Button } from '../components/Button.js';
 import { store } from '../../core/Store.js';
+import { AVAILABLE_FONTS } from '../../core/constants/FontPresets.js';
 import fontManager from '../../core/FontManager.js';
 
 /**
