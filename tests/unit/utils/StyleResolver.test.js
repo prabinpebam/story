@@ -408,7 +408,207 @@ describe('StyleResolver', () => {
             expect(result.value).toBe('#000000');
         });
     });
+
+    describe('getTypographyStyle() - Typography Cascade', () => {
+        it('should resolve typography from slide -> layout -> master cascade', () => {
+            const mockState = createMockState();
+            
+            // Add typography preset to state
+            mockState.typographyStylePresets = {
+                'preset-modern': {
+                    id: 'preset-modern',
+                    name: 'Modern',
+                    fonts: {
+                        heading: 'Montserrat',
+                        body: 'Inter'
+                    },
+                    textStyles: {
+                        title: {
+                            id: 'title',
+                            name: 'Title',
+                            fontFamily: 'var(--theme-font-heading)',
+                            fontSize: 48,
+                            fontWeight: '700',
+                            lineHeight: 1.2
+                        },
+                        body: {
+                            id: 'body',
+                            name: 'Body',
+                            fontFamily: 'var(--theme-font-body)',
+                            fontSize: 16,
+                            fontWeight: '400',
+                            lineHeight: 1.5
+                        }
+                    }
+                }
+            };
+
+            // Link master to typography preset
+            mockState.slideMasterPresets['master-default'].typographyStyleId = 'preset-modern';
+            // Link slide to master (via layout)
+            mockState.slides['slide-1'].masterSlideId = 'master-default';
+            
+            store.getState = vi.fn(() => mockState);
+
+            const typography = StyleResolver.getTypographyStyle('slide-1');
+
+            expect(typography).toBeDefined();
+            expect(typography.id).toBe('preset-modern');
+            expect(typography.fonts.heading).toBe('Montserrat');
+            expect(typography.textStyles.title.fontSize).toBe(48);
+        });
+
+        it('should return null when no typography preset is found', () => {
+            const mockState = createMockState();
+            // Ensure master has no typographyStyleId and no embedded themeSettings
+            delete mockState.slideMasterPresets['master-default'].typographyStyleId;
+            delete mockState.slideMasterPresets['master-default'].themeSettings.fonts;
+            delete mockState.slideMasterPresets['master-default'].themeSettings.textStyles;
+            mockState.slides['slide-1'].masterSlideId = 'master-default';
+            
+            store.getState = vi.fn(() => mockState);
+
+            const typography = StyleResolver.getTypographyStyle('slide-1');
+
+            // Method returns fallback fonts/textStyles, not null
+            expect(typography).toBeDefined();
+            expect(typography.fonts).toEqual({ heading: 'Inter', body: 'Inter' });
+            expect(typography.textStyles).toEqual({});
+        });
+    });
+
+    describe('getEffectiveTextProperties() - Typography Cascade', () => {
+        it('should resolve text properties using textStyleId from theme', () => {
+            const mockState = createMockState();
+            
+            // Add typography preset
+            mockState.typographyStylePresets = {
+                'preset-modern': {
+                    id: 'preset-modern',
+                    name: 'Modern',
+                    fonts: {
+                        heading: 'Montserrat',
+                        body: 'Inter'
+                    },
+                    textStyles: {
+                        title: {
+                            id: 'title',
+                            name: 'Title',
+                            fontFamily: 'Montserrat',
+                            fontSize: 48,
+                            fontWeight: '700',
+                            lineHeight: 1.2,
+                            letterSpacing: '-2%'
+                        }
+                    }
+                }
+            };
+
+            mockState.slideMasterPresets['master-default'].typographyStyleId = 'preset-modern';
+            mockState.slides['slide-1'].masterSlideId = 'master-default';
+            
+            store.getState = vi.fn(() => mockState);
+
+            const element = {
+                id: 'text-1',
+                type: 'text',
+                textStyleId: 'title',
+                content: 'Hello World'
+            };
+
+            const props = StyleResolver.getEffectiveTextProperties(element, {}, 'slide-1');
+
+            expect(props.fontFamily).toBe('Montserrat');
+            expect(props.fontSize).toBe(48);
+            expect(props.fontWeight).toBe('700');
+            expect(props.lineHeight).toBe(1.2);
+            expect(props.letterSpacing).toBe('-2%');
+        });
+
+        it('should apply element overrides on top of theme styles', () => {
+            const mockState = createMockState();
+            
+            mockState.typographyStylePresets = {
+                'preset-modern': {
+                    id: 'preset-modern',
+                    textStyles: {
+                        body: {
+                            id: 'body',
+                            fontFamily: 'Inter',
+                            fontSize: 16,
+                            fontWeight: '400'
+                        }
+                    }
+                }
+            };
+
+            mockState.slideMasterPresets['master-default'].typographyStyleId = 'preset-modern';
+            mockState.slides['slide-1'].masterSlideId = 'master-default';
+            
+            store.getState = vi.fn(() => mockState);
+
+            const element = {
+                id: 'text-1',
+                type: 'text',
+                textStyleId: 'body',
+                fontSize: 20,  // Manual override
+                fontWeight: '600'  // Manual override
+            };
+
+            const props = StyleResolver.getEffectiveTextProperties(element, {}, 'slide-1');
+
+            expect(props.fontFamily).toBe('Inter');  // From theme
+            expect(props.fontSize).toBe(20);  // Overridden
+            expect(props.fontWeight).toBe('600');  // Overridden
+        });
+
+        it('should fallback to defaults when no textStyleId is provided', () => {
+            const mockState = createMockState();
+            store.getState = vi.fn(() => mockState);
+
+            const element = {
+                id: 'text-1',
+                type: 'text',
+                content: 'Hello World'
+            };
+
+            const props = StyleResolver.getEffectiveTextProperties(element, {}, 'slide-1');
+
+            expect(props.fontFamily).toBe('Inter');  // Default
+            expect(props.fontSize).toBe(16);  // Default
+            expect(props.fontWeight).toBe('400');  // Default
+        });
+
+        it('should maintain backward compatibility with legacy styleId', () => {
+            const mockState = createMockState();
+            store.getState = vi.fn(() => mockState);
+
+            const globalStyles = {
+                'legacy-title': {
+                    id: 'legacy-title',
+                    fontFamily: 'Roboto',
+                    fontSize: 36,
+                    fontWeight: '700'
+                }
+            };
+
+            const element = {
+                id: 'text-1',
+                type: 'text',
+                styleId: 'legacy-title'  // Old property
+            };
+
+            const props = StyleResolver.getEffectiveTextProperties(element, globalStyles, 'slide-1');
+
+            expect(props.fontFamily).toBe('Roboto');
+            expect(props.fontSize).toBe(36);
+            expect(props.fontWeight).toBe('700');
+        });
+    });
 });
+
+
+
 
 
 

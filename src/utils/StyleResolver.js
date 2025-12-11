@@ -530,11 +530,11 @@ export const StyleResolver = {
      * 3. Fall back to master's typographyStyleId
      * 
      * @param {string} slideId - The slide ID (optional, uses active slide if not provided)
-     * @returns {Object} The resolved typography style object { fonts, textStyles }
+     * @returns {Object|null} The resolved typography style object { id, fonts, textStyles } or null
      */
     getTypographyStyle(slideId = null) {
         const store = getStore();
-        if (!store) return { fonts: { heading: 'Inter', body: 'Inter' }, textStyles: {} };
+        if (!store) return null;
         const state = store.getState();
         
         // If no slideId, try to get active slide
@@ -542,45 +542,81 @@ export const StyleResolver = {
             slideId = state.editor?.activeSlideId;
         }
         
-        // Get the theme master
-        const themeMaster = Object.values(state.slideMasterPresets || {}).find(m => m.type === 'slideMasterPreset');
+        const slide = state.slides?.[slideId];
+        if (!slide) {
+            // No slide found - try to get master default
+            const themeMaster = Object.values(state.slideMasterPresets || {}).find(m => m.type === 'slideMasterPreset');
+            return this._resolveTypographyFromMaster(state, themeMaster);
+        }
         
-        // Resolve Master Typography
-        let masterTypography = null;
-        
-        // 1. Try Reference (New Architecture)
-        if (themeMaster?.typographyStyleId) {
-            const preset = state.typographyStylePresets?.[themeMaster.typographyStyleId];
+        // 1. Check slide's own typographyStyleId
+        if (slide.typographyStyleId) {
+            const preset = state.typographyStylePresets?.[slide.typographyStyleId];
             if (preset) {
-                masterTypography = {
+                return {
+                    id: preset.id,
                     fonts: preset.fonts,
                     textStyles: preset.textStyles
                 };
             }
         }
         
-        // 2. Fallback to Embedded (Legacy)
-        if (!masterTypography) {
-            masterTypography = {
-                fonts: themeMaster?.themeSettings?.fonts || { heading: 'Inter', body: 'Inter' },
-                textStyles: themeMaster?.themeSettings?.textStyles || {}
-            };
+        // 2. Check layout master
+        const layout = slide.layoutId ? state.slideMasterPresets?.[slide.layoutId] : null;
+        if (layout?.typographyStyleId) {
+            const preset = state.typographyStylePresets?.[layout.typographyStyleId];
+            if (preset) {
+                return {
+                    id: preset.id,
+                    fonts: preset.fonts,
+                    textStyles: preset.textStyles
+                };
+            }
         }
         
-        // If we have a slideId, check for slide-level override
-        // TODO: Implement slide/layout level overrides if needed
-        // For now, we just return the master typography
+        // 3. Check theme master (parent of layout)
+        const themeMaster = layout?.parentMasterId ? state.slideMasterPresets?.[layout.parentMasterId] : null;
+        return this._resolveTypographyFromMaster(state, themeMaster);
+    },
+    
+    /**
+     * Resolve typography from a master, with fallback to embedded legacy settings
+     * @private
+     */
+    _resolveTypographyFromMaster(state, themeMaster) {
+        if (!themeMaster) {
+            return { fonts: { heading: 'Inter', body: 'Inter' }, textStyles: {} };
+        }
         
-        return masterTypography;
+        // Try reference architecture first
+        if (themeMaster.typographyStyleId) {
+            const preset = state.typographyStylePresets?.[themeMaster.typographyStyleId];
+            if (preset) {
+                return {
+                    id: preset.id,
+                    fonts: preset.fonts,
+                    textStyles: preset.textStyles
+                };
+            }
+        }
+        
+        // Fallback to embedded legacy
+        return {
+            fonts: themeMaster.themeSettings?.fonts || { heading: 'Inter', body: 'Inter' },
+            textStyles: themeMaster.themeSettings?.textStyles || {}
+        };
     },
 
     /**
      * Resolves the final text properties for an element.
+     * Implements the full cascade: Theme -> Master -> Layout -> Slide -> Element.
+     * 
      * @param {Object} element - The text element.
-     * @param {Object} globalStyles - Map of styleId -> styleObject (from theme.themeSettings.textStyles).
+     * @param {Object} globalStyles - DEPRECATED: Use textStyleId instead.
+     * @param {string} slideId - Optional slide ID for context (uses active slide if not provided).
      * @returns {Object} The resolved properties ready for rendering.
      */
-    getEffectiveTextProperties(element, globalStyles = {}) {
+    getEffectiveTextProperties(element, globalStyles = {}, slideId = null) {
         // Default properties for text elements
         const defaults = {
             fontFamily: 'Inter',
@@ -620,7 +656,27 @@ export const StyleResolver = {
         // Start with defaults
         let finalProps = { ...defaults };
 
-        // Apply Global Style if present (from theme.themeSettings.textStyles)
+        // ============================================
+        // LAYER 1: Theme Text Style (New Architecture)
+        // ============================================
+        if (element.textStyleId) {
+            const typography = this.getTypographyStyle(slideId);
+            const themeStyle = typography?.textStyles?.[element.textStyleId];
+            
+            if (themeStyle) {
+                // Apply theme style properties, skipping id and name
+                Object.keys(themeStyle).forEach(key => {
+                    if (key !== 'id' && key !== 'name' && themeStyle[key] !== undefined) {
+                        finalProps[key] = themeStyle[key];
+                    }
+                });
+            }
+        }
+
+        // ============================================
+        // LAYER 2: Legacy Global Style (Backward Compatibility)
+        // ============================================
+        // This maintains compatibility with older code that passes globalStyles
         if (element.styleId && globalStyles[element.styleId]) {
             const styleProps = globalStyles[element.styleId];
             // Apply style properties, skipping id and name
@@ -631,7 +687,9 @@ export const StyleResolver = {
             });
         }
 
-        // Apply Legacy/Nested Style Overrides (for backward compatibility)
+        // ============================================
+        // LAYER 3: Legacy Nested Style (Backward Compatibility)
+        // ============================================
         if (element.style) {
              Object.keys(element.style).forEach(key => {
                 if (element.style[key] !== undefined && element.style[key] !== null) {
@@ -640,12 +698,14 @@ export const StyleResolver = {
             });
         }
 
-        // Apply Element Overrides
+        // ============================================
+        // LAYER 4: Element Manual Overrides
+        // ============================================
         // We iterate over keys in element to see what's explicitly set.
         // Skip metadata properties
         const skipKeys = ['id', 'type', 'x', 'y', 'width', 'height', 'rotation', 
-                          'opacity', 'content', 'style', 'styleId', 'isPlaceholder', 
-                          'placeholderType', 'locked', 'visible'];
+                          'opacity', 'content', 'style', 'styleId', 'textStyleId', 
+                          'isPlaceholder', 'placeholderType', 'locked', 'visible'];
         
         Object.keys(element).forEach(key => {
             if (!skipKeys.includes(key) && element[key] !== undefined && element[key] !== null) {
