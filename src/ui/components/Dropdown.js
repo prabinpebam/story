@@ -173,12 +173,6 @@ export class Dropdown {
     }
 
     setValue(newValue, triggerCallback = true) {
-        console.log('[Dropdown] setValue called:', {
-            newValue,
-            type: typeof newValue,
-            options: this.options.options.map(o => o.value),
-            willMatch: this.options.options.some(o => o.value === newValue)
-        });
         this.value = newValue;
         // Clear mixed state when a concrete value is set
         if (this.mixed) {

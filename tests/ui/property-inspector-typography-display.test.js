@@ -59,22 +59,22 @@ let mockState = {
                 title: {
                     id: 'title',
                     name: 'Title',
-                    fontFamily: 'var(--theme-font-heading)',
+                    fontFamily: 'var(--theme-font-heading, Inter)',
                     fontSize: 56,
                     fontWeight: '700',
                     lineHeight: 1.1,
                     letterSpacing: '-1%',
-                    textFill: { type: 'solid', value: 'var(--theme-text-primary)' }
+                    textFill: { type: 'solid', value: 'var(--theme-text-primary, #000)' }
                 },
                 body: {
                     id: 'body',
                     name: 'Body',
-                    fontFamily: 'var(--theme-font-body)',
+                    fontFamily: 'var(--theme-font-body, Inter)',
                     fontSize: 16,
                     fontWeight: '400',
                     lineHeight: 1.5,
                     letterSpacing: '0%',
-                    textFill: { type: 'solid', value: 'var(--theme-text-primary)' }
+                    textFill: { type: 'solid', value: 'var(--theme-text-primary, #000)' }
                 }
             }
         }
@@ -286,10 +286,10 @@ describe('Property Inspector Typography Display', () => {
                     title: {
                         id: 'title',
                         name: 'Title',
-                        fontFamily: 'var(--theme-font-heading)',
+                        fontFamily: 'var(--theme-font-heading, Playfair Display)',
                         fontSize: 60,
                         fontWeight: '700',
-                        textFill: { type: 'solid', value: 'var(--theme-text-primary)' }
+                        textFill: { type: 'solid', value: 'var(--theme-text-primary, #000)' }
                     }
                 }
             };
