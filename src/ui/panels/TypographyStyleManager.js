@@ -8,7 +8,6 @@ import { SegmentedControl } from '../components/SegmentedControl.js';
 import { Dropdown } from '../components/Dropdown.js';
 import { Button } from '../components/Button.js';
 import { store } from '../../core/Store.js';
-import { FONT_PRESETS, FONT_CATEGORIES, AVAILABLE_FONTS, getPresetsByCategory, searchPresets, getFontsByCategory } from '../../core/constants/FontPresets.js';
 import fontManager from '../../core/FontManager.js';
 
 /**
@@ -113,7 +112,13 @@ export class TypographyStyleManager extends DraggablePanel {
         filterContainer.className = 'tsm-filter';
         
         this.categoryDropdown = new Dropdown({
-            options: FONT_CATEGORIES.map(c => ({ value: c.id, label: c.name })),
+            options: [
+                { label: 'All', value: 'all' },
+                { label: 'Sans Serif', value: 'Sans Serif' },
+                { label: 'Serif', value: 'Serif' },
+                { label: 'Monospace', value: 'Monospace' },
+                { label: 'Display', value: 'Display' }
+            ],
             value: 'all',
             onChange: (category) => {
                 this.currentCategory = category;
@@ -137,12 +142,24 @@ export class TypographyStyleManager extends DraggablePanel {
     renderPresetGrid() {
         this.presetGrid.innerHTML = '';
         
-        let presets = this.currentCategory === 'all' 
-            ? FONT_PRESETS 
-            : getPresetsByCategory(this.currentCategory);
+        // Get typography presets from state
+        const state = store.getState();
+        const typographyPresets = Object.values(state.typographyStylePresets || {});
         
+        // Filter by category
+        let presets = this.currentCategory === 'all' 
+            ? typographyPresets
+            : typographyPresets.filter(p => p.category === this.currentCategory);
+        
+        // Filter by search query
         if (this.searchQuery) {
-            presets = searchPresets(this.searchQuery);
+            const query = this.searchQuery.toLowerCase();
+            presets = presets.filter(p => 
+                p.name.toLowerCase().includes(query) ||
+                p.description?.toLowerCase().includes(query) ||
+                p.fonts?.heading?.toLowerCase().includes(query) ||
+                p.fonts?.body?.toLowerCase().includes(query)
+            );
         }
         
         presets.forEach(preset => {
@@ -152,7 +169,7 @@ export class TypographyStyleManager extends DraggablePanel {
         
         if (presets.length === 0) {
             const emptyMessage = document.createElement('div');
-            emptyMessage.textContent = 'No font presets found';
+            emptyMessage.textContent = 'No typography presets found';
             emptyMessage.className = 'tsm-empty-message';
             this.presetGrid.appendChild(emptyMessage);
         }
@@ -186,19 +203,19 @@ export class TypographyStyleManager extends DraggablePanel {
         const headingPreview = document.createElement('div');
         headingPreview.textContent = 'Heading Text';
         headingPreview.className = 'tsm-heading-preview';
-        headingPreview.style.fontFamily = `"${preset.fonts.heading.family}", ${preset.fonts.heading.fallback || 'sans-serif'}`;
-        headingPreview.style.fontWeight = preset.fonts.heading.weight || '700';
+        headingPreview.style.fontFamily = `"${preset.fonts.heading}", sans-serif`;
+        headingPreview.style.fontWeight = '700';
         
         // Body preview
         const bodyPreview = document.createElement('div');
         bodyPreview.textContent = 'Body text sample';
         bodyPreview.className = 'tsm-body-preview';
-        bodyPreview.style.fontFamily = `"${preset.fonts.body.family}", ${preset.fonts.body.fallback || 'sans-serif'}`;
-        bodyPreview.style.fontWeight = preset.fonts.body.weight || '400';
+        bodyPreview.style.fontFamily = `"${preset.fonts.body}", sans-serif`;
+        bodyPreview.style.fontWeight = '400';
         
         // Font names
         const fontNames = document.createElement('div');
-        fontNames.textContent = `${preset.fonts.heading.family} / ${preset.fonts.body.family}`;
+        fontNames.textContent = `${preset.fonts.heading} / ${preset.fonts.body}`;
         fontNames.className = 'tsm-font-names';
         
         preview.appendChild(headingPreview);
@@ -242,61 +259,51 @@ export class TypographyStyleManager extends DraggablePanel {
     }
 
     previewPreset(preset) {
-        if (!this.originalFonts) {
+        if (!this.originalFonts && !this.originalTypographyStyleId) {
             this.saveOriginalFonts();
         }
         
         // Load fonts for preview
         this.loadPresetFonts(preset);
         
-        // Apply preview (don't snapshot history)
-        const masterId = store.getState().editor.activeMasterId;
-        store.dispatch('APPLY_FONT_PRESET', { 
+        // Apply preview using typography style reference
+        const state = store.getState();
+        const masterId = state.editor.activeMasterId || 'theme-default';
+        
+        store.dispatch('UPDATE_MASTER_STYLE_ASSIGNMENTS', { 
             masterId, 
-            preset 
+            styleAssignments: { typographyStyle: preset.id }
         }, { skipHistory: true });
     }
 
     cancelPreview() {
-        if (this.originalFonts || this.originalTypographyStyleId) {
-            const masterId = store.getState().editor.activeMasterId;
+        if (this.originalTypographyStyleId !== undefined) {
+            const state = store.getState();
+            const masterId = state.editor.activeMasterId || 'theme-default';
             
-            // Restore original typography style reference if available
-            if (this.originalTypographyStyleId) {
-                 store.dispatch('UPDATE_MASTER_STYLE_ASSIGNMENTS', {
-                    masterId,
-                    styleAssignments: { typographyStyle: this.originalTypographyStyleId }
-                }, { skipHistory: true });
-            } 
-            // Fallback to restoring embedded fonts (legacy)
-            else if (this.originalFonts) {
-                store.dispatch('UPDATE_THEME_SETTINGS', {
-                    id: masterId,
-                    settings: { fonts: this.originalFonts }
-                }, { skipHistory: true });
-            }
+            // Restore original typography style reference
+            store.dispatch('UPDATE_MASTER_STYLE_ASSIGNMENTS', {
+                masterId,
+                styleAssignments: { typographyStyle: this.originalTypographyStyleId }
+            }, { skipHistory: true });
         }
     }
 
     saveOriginalFonts() {
         const state = store.getState();
-        const masterId = state.editor.activeMasterId;
-        const master = state.slideMasterPresets[masterId];
+        const masterId = state.editor.activeMasterId || 'theme-default';
+        const master = state.slideMasterPresets?.[masterId];
         
         if (master) {
             this.originalTypographyStyleId = master.typographyStyleId;
-            // Also store fonts just in case (legacy support)
-            if (master.themeSettings?.fonts) {
-                this.originalFonts = { ...master.themeSettings.fonts };
-            }
         }
     }
 
     async loadPresetFonts(preset) {
         const fontsToLoad = [
-            preset.fonts.heading.family,
-            preset.fonts.body.family
-        ];
+            preset.fonts?.heading,
+            preset.fonts?.body
+        ].filter(Boolean);
         
         for (const fontFamily of fontsToLoad) {
             try {
@@ -652,17 +659,18 @@ export class TypographyStyleManager extends DraggablePanel {
     // ========================================
     applySelection() {
         if (this.selectedPreset) {
-            const masterId = store.getState().editor.activeMasterId;
+            const state = store.getState();
+            const masterId = state.editor.activeMasterId || 'theme-default';
             
             // Load fonts first
             this.loadPresetFonts(this.selectedPreset).then(() => {
-                store.dispatch('APPLY_FONT_PRESET', {
+                // Apply typography style reference (not embedded fonts)
+                store.dispatch('UPDATE_MASTER_STYLE_ASSIGNMENTS', {
                     masterId,
-                    preset: this.selectedPreset
+                    styleAssignments: { typographyStyle: this.selectedPreset.id }
                 });
                 
-                // Clear original fonts reference
-                this.originalFonts = null;
+                // Clear original state reference
                 this.originalTypographyStyleId = null;
                 
                 // Show feedback
@@ -672,11 +680,16 @@ export class TypographyStyleManager extends DraggablePanel {
     }
 
     resetFonts() {
-        const masterId = store.getState().editor.activeMasterId;
-        store.dispatch('RESET_THEME_FONTS', { masterId });
+        const state = store.getState();
+        const masterId = state.editor.activeMasterId || 'theme-default';
+        
+        // Reset to default typography preset
+        store.dispatch('UPDATE_MASTER_STYLE_ASSIGNMENTS', {
+            masterId,
+            styleAssignments: { typographyStyle: 'typo-style-default' }
+        });
         
         this.selectedPreset = null;
-        this.originalFonts = null;
         this.originalTypographyStyleId = null;
         
         // Update UI

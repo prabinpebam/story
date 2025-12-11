@@ -169,7 +169,259 @@ export const DEFAULT_TYPOGRAPHY_STYLE_PRESETS = {
                     textFill: { type: "solid", value: "var(--theme-text-secondary)" }
                 }
             }
+        },
+    
+    "typo-style-professional": {
+        id: "typo-style-professional",
+        type: "typographyStylePreset",
+        name: "Professional",
+        description: "Traditional serif for formal business presentations",
+        category: "Serif",
+        fonts: {
+            heading: "Playfair Display",
+            body: "Source Sans Pro",
+            monospace: "Fira Code"
+        },
+        textStyles: {
+            "display": {
+                id: "display",
+                name: "Display",
+                fontFamily: "var(--theme-font-heading)",
+                fontSize: 88,
+                fontWeight: "900",
+                lineHeight: 1.0,
+                letterSpacing: "-2%",
+                textFill: { type: "solid", value: "var(--theme-text-primary)" }
+            },
+            "title": {
+                id: "title",
+                name: "Title",
+                fontFamily: "var(--theme-font-heading)",
+                fontSize: 64,
+                fontWeight: "700",
+                lineHeight: 1.1,
+                letterSpacing: "-1%",
+                textFill: { type: "solid", value: "var(--theme-text-primary)" }
+            },
+            "subtitle": {
+                id: "subtitle",
+                name: "Subtitle",
+                fontFamily: "var(--theme-font-body)",
+                fontSize: 32,
+                fontWeight: "400",
+                lineHeight: 1.4,
+                letterSpacing: "0%",
+                textFill: { type: "solid", value: "var(--theme-text-secondary)" }
+            },
+            "heading1": {
+                id: "heading1",
+                name: "Heading 1",
+                fontFamily: "var(--theme-font-heading)",
+                fontSize: 48,
+                fontWeight: "700",
+                lineHeight: 1.2,
+                letterSpacing: "-0.5%",
+                textFill: { type: "solid", value: "var(--theme-text-primary)" }
+            },
+            "heading2": {
+                id: "heading2",
+                name: "Heading 2",
+                fontFamily: "var(--theme-font-heading)",
+                fontSize: 36,
+                fontWeight: "600",
+                lineHeight: 1.25,
+                letterSpacing: "0%",
+                textFill: { type: "solid", value: "var(--theme-text-primary)" }
+            },
+            "heading3": {
+                id: "heading3",
+                name: "Heading 3",
+                fontFamily: "var(--theme-font-heading)",
+                fontSize: 28,
+                fontWeight: "600",
+                lineHeight: 1.3,
+                letterSpacing: "0%",
+                textFill: { type: "solid", value: "var(--theme-text-primary)" }
+            },
+            "body": {
+                id: "body",
+                name: "Body",
+                fontFamily: "var(--theme-font-body)",
+                fontSize: 20,
+                fontWeight: "400",
+                lineHeight: 1.7,
+                letterSpacing: "0%",
+                textFill: { type: "solid", value: "var(--theme-text-primary)" }
+            },
+            "bodyLarge": {
+                id: "bodyLarge",
+                name: "Body Large",
+                fontFamily: "var(--theme-font-body)",
+                fontSize: 24,
+                fontWeight: "400",
+                lineHeight: 1.6,
+                letterSpacing: "0%",
+                textFill: { type: "solid", value: "var(--theme-text-primary)" }
+            },
+            "bodySmall": {
+                id: "bodySmall",
+                name: "Body Small",
+                fontFamily: "var(--theme-font-body)",
+                fontSize: 16,
+                fontWeight: "400",
+                lineHeight: 1.6,
+                letterSpacing: "0%",
+                textFill: { type: "solid", value: "var(--theme-text-secondary)" }
+            },
+            "caption": {
+                id: "caption",
+                name: "Caption",
+                fontFamily: "var(--theme-font-body)",
+                fontSize: 14,
+                fontWeight: "500",
+                lineHeight: 1.5,
+                letterSpacing: "0.5%",
+                textFill: { type: "solid", value: "var(--theme-text-secondary)" }
+            },
+            "label": {
+                id: "label",
+                name: "Label",
+                fontFamily: "var(--theme-font-body)",
+                fontSize: 12,
+                fontWeight: "600",
+                lineHeight: 1.3,
+                letterSpacing: "3%",
+                textTransform: "uppercase",
+                textFill: { type: "solid", value: "var(--theme-text-secondary)" }
+            }
         }
+    },
+    
+    "typo-style-editorial": {
+        id: "typo-style-editorial",
+        type: "typographyStylePreset",
+        name: "Editorial",
+        description: "Magazine-style typography for content-heavy presentations",
+        category: "Serif",
+        fonts: {
+            heading: "Merriweather",
+            body: "Open Sans",
+            monospace: "Fira Code"
+        },
+        textStyles: {
+            "display": {
+                id: "display",
+                name: "Display",
+                fontFamily: "var(--theme-font-heading)",
+                fontSize: 72,
+                fontWeight: "900",
+                lineHeight: 1.0,
+                letterSpacing: "-1.5%",
+                textFill: { type: "solid", value: "var(--theme-text-primary)" }
+            },
+            "title": {
+                id: "title",
+                name: "Title",
+                fontFamily: "var(--theme-font-heading)",
+                fontSize: 52,
+                fontWeight: "700",
+                lineHeight: 1.15,
+                letterSpacing: "-0.5%",
+                textFill: { type: "solid", value: "var(--theme-text-primary)" }
+            },
+            "subtitle": {
+                id: "subtitle",
+                name: "Subtitle",
+                fontFamily: "var(--theme-font-body)",
+                fontSize: 26,
+                fontWeight: "400",
+                lineHeight: 1.5,
+                letterSpacing: "0%",
+                textFill: { type: "solid", value: "var(--theme-text-secondary)" }
+            },
+            "heading1": {
+                id: "heading1",
+                name: "Heading 1",
+                fontFamily: "var(--theme-font-heading)",
+                fontSize: 40,
+                fontWeight: "700",
+                lineHeight: 1.2,
+                letterSpacing: "0%",
+                textFill: { type: "solid", value: "var(--theme-text-primary)" }
+            },
+            "heading2": {
+                id: "heading2",
+                name: "Heading 2",
+                fontFamily: "var(--theme-font-heading)",
+                fontSize: 30,
+                fontWeight: "700",
+                lineHeight: 1.3,
+                letterSpacing: "0%",
+                textFill: { type: "solid", value: "var(--theme-text-primary)" }
+            },
+            "heading3": {
+                id: "heading3",
+                name: "Heading 3",
+                fontFamily: "var(--theme-font-heading)",
+                fontSize: 24,
+                fontWeight: "700",
+                lineHeight: 1.35,
+                letterSpacing: "0%",
+                textFill: { type: "solid", value: "var(--theme-text-primary)" }
+            },
+            "body": {
+                id: "body",
+                name: "Body",
+                fontFamily: "var(--theme-font-body)",
+                fontSize: 18,
+                fontWeight: "400",
+                lineHeight: 1.8,
+                letterSpacing: "0%",
+                textFill: { type: "solid", value: "var(--theme-text-primary)" }
+            },
+            "bodyLarge": {
+                id: "bodyLarge",
+                name: "Body Large",
+                fontFamily: "var(--theme-font-body)",
+                fontSize: 22,
+                fontWeight: "400",
+                lineHeight: 1.7,
+                letterSpacing: "0%",
+                textFill: { type: "solid", value: "var(--theme-text-primary)" }
+            },
+            "bodySmall": {
+                id: "bodySmall",
+                name: "Body Small",
+                fontFamily: "var(--theme-font-body)",
+                fontSize: 15,
+                fontWeight: "400",
+                lineHeight: 1.7,
+                letterSpacing: "0%",
+                textFill: { type: "solid", value: "var(--theme-text-secondary)" }
+            },
+            "caption": {
+                id: "caption",
+                name: "Caption",
+                fontFamily: "var(--theme-font-body)",
+                fontSize: 13,
+                fontWeight: "500",
+                lineHeight: 1.5,
+                letterSpacing: "0.5%",
+                textFill: { type: "solid", value: "var(--theme-text-secondary)" }
+            },
+            "label": {
+                id: "label",
+                name: "Label",
+                fontFamily: "var(--theme-font-body)",
+                fontSize: 11,
+                fontWeight: "700",
+                lineHeight: 1.3,
+                letterSpacing: "4%",
+                textTransform: "uppercase",
+                textFill: { type: "solid", value: "var(--theme-text-secondary)" }
+            }
+        }
+    }
 };
 
 // ============================================
