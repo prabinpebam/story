@@ -333,6 +333,13 @@ export class TextSection extends BaseSection {
         const slideId = state.editor?.activeSlideId;
         const props = StyleResolver.getEffectiveTextProperties(el, {}, slideId);
         
+        console.log('[TextSection] Resolved props:', {
+            fontFamily: props.fontFamily,
+            fontWeight: props.fontWeight,
+            fontSize: props.fontSize,
+            textFill: props.textFill
+        });
+        
         this.fontFamilyInput.setValue(props.fontFamily, false);
         this.fontWeightInput.setValue(props.fontWeight, false);
         this.fontSizeInput.setValue(props.fontSize, false);
