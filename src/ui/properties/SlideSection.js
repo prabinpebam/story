@@ -17,6 +17,7 @@ import { StyleResolver } from '../../utils/StyleResolver.js';
 import { ThemeDiag } from '../../utils/ThemeDiagnostics.js';
 import { ThumbnailRenderer } from '../../core/renderer/ThumbnailRenderer.js';
 import { notify } from '../services/NotificationService.js';
+import { isMasterInUseBySlides } from '../../core/master/MasterUsage.js';
 
 export class SlideSection {
     constructor() {
@@ -1122,7 +1123,7 @@ export class SlideSection {
         // (Per UX spec: Master preset replacement should be prevented when in-use.)
         if (activeMaster && (activeMaster.type === 'theme' || activeMaster.type === 'slideMasterPreset')) {
             const isChangingPreset = !!currentPresetId && presetId !== currentPresetId;
-            if (isChangingPreset && this.isMasterInUseBySlides(state, themeMasterId)) {
+            if (isChangingPreset && isMasterInUseBySlides(state, themeMasterId)) {
                 notify({
                     type: 'blocked',
                     title: "Can’t change Master preset",
@@ -1148,7 +1149,7 @@ export class SlideSection {
         const fullPreset = getFullPresetById(presetId);
         
         // First dispatch the store action to update the state
-        store.dispatch('APPLY_SLIDE_MASTER_PRESET', { 
+        store.dispatch('APPLY_MASTER_PRESET_TO_MASTER', { 
             masterId: themeMasterId, 
             presetId 
         });
@@ -1183,18 +1184,6 @@ export class SlideSection {
                 store.emit('selection-changed');
             }, 0);
         }
-    }
-
-    isMasterInUseBySlides(state, masterId) {
-        const slides = state.slides || {};
-        for (const slide of Object.values(slides)) {
-            const layoutId = slide?.layoutId;
-            if (!layoutId) continue;
-            const layout = state.slideMasterPresets?.[layoutId];
-            const parentId = layout?.parentMasterId || layout?.parentId;
-            if (parentId === masterId) return true;
-        }
-        return false;
     }
 
     setupThemeListener() {

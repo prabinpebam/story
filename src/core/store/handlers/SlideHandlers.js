@@ -1,123 +1,74 @@
+import {
+    mapPlaceholders,
+    detachUnmappedPlaceholderContent,
+    restoreDetachedContent
+} from '../../master/Reconciliation.js';
 
+function reconcileLayoutChange(draft, slide, newLayoutId) {
+    const sourceLayoutId = slide.layoutId;
+    const sourceLayout = draft.slideMasterPresets[sourceLayoutId];
+    const targetLayout = draft.slideMasterPresets[newLayoutId];
 
-/**
- * Intelligently remap content when changing layouts.
- * Priority order:
- * 1. mappingId Match - Exact placeholder ID match
- * 2. Type + Index Match - Same placeholderType with same index
- * 3. Type Match - Same placeholderType (first available)
- * 4. Overflow - Content becomes a free element (no longer tied to placeholder)
- */
-function remapContent(draft, slide, newLayoutId) {
-    const oldLayoutId = slide.layoutId;
-    const oldLayout = draft.slideMasterPresets[oldLayoutId];
-    const newLayout = draft.slideMasterPresets[newLayoutId];
+    if (!sourceLayout || !targetLayout) return;
 
-    if (!oldLayout || !newLayout) return;
+    // 1) Try to restore previously detached content into placeholders on the target layout
+    restoreDetachedContent(slide, targetLayout);
 
-    // Build maps of old and new placeholders
-    const oldPlaceholders = {};
-    const newPlaceholders = {};
-    const newPlaceholdersByType = {};
+    // 2) Map placeholder overrides from source layout to target layout
+    const { mapping } = mapPlaceholders(sourceLayout, targetLayout, slide);
 
-    // Collect old placeholders with content
-    Object.values(oldLayout.elements || {}).forEach(el => {
-        if (el.isPlaceholder) {
-            oldPlaceholders[el.id] = el;
-        }
-    });
-
-    // Collect new placeholders
-    Object.values(newLayout.elements || {}).forEach(el => {
-        if (el.isPlaceholder) {
-            newPlaceholders[el.id] = el;
-            const type = el.placeholderType || 'content';
-            if (!newPlaceholdersByType[type]) {
-                newPlaceholdersByType[type] = [];
-            }
-            newPlaceholdersByType[type].push(el);
-        }
-    });
-
-    // Track which new placeholders have been mapped
-    const usedNewPlaceholders = new Set();
-    
-    // New elements object
     const newElements = {};
     const newElementOrder = [];
+    const idsToDetach = [];
 
-    // Process each slide element
-    Object.keys(slide.elements).forEach(elId => {
+    for (const elId of Object.keys(slide.elements || {})) {
         const slideEl = slide.elements[elId];
-        const oldMasterEl = oldLayout.elements?.[elId];
+        const isSourcePlaceholder = !!sourceLayout.elements?.[elId]?.isPlaceholder;
 
-        // Check if this element was in an old placeholder
-        if (oldMasterEl && oldMasterEl.isPlaceholder) {
-            const placeholderType = oldMasterEl.placeholderType || 'content';
-            let targetPlaceholder = null;
+        if (isSourcePlaceholder) {
+            const targetId = mapping[elId];
 
-            // Priority 1: Exact ID match
-            if (newPlaceholders[elId] && !usedNewPlaceholders.has(elId)) {
-                targetPlaceholder = newPlaceholders[elId];
-            }
+            if (targetId) {
+                const targetPh = targetLayout.elements?.[targetId];
+                if (!targetPh) continue;
 
-            // Priority 2 & 3: Type match
-            if (!targetPlaceholder) {
-                const candidates = newPlaceholdersByType[placeholderType] || [];
-                for (const candidate of candidates) {
-                    if (!usedNewPlaceholders.has(candidate.id)) {
-                        targetPlaceholder = candidate;
-                        break;
-                    }
-                }
-            }
-
-            if (targetPlaceholder) {
-                // Remap to new placeholder
-                usedNewPlaceholders.add(targetPlaceholder.id);
-                
-                // Keep content-related properties, use new placeholder's position
                 const remappedEl = {
-                    id: targetPlaceholder.id,
+                    id: targetId,
                     type: slideEl.type,
                     content: slideEl.content,
                     isPlaceholder: true,
-                    placeholderType: targetPlaceholder.placeholderType,
-                    x: targetPlaceholder.x,
-                    y: targetPlaceholder.y,
-                    width: targetPlaceholder.width,
-                    height: targetPlaceholder.height,
+                    placeholderType: targetPh.placeholderType,
+                    x: targetPh.x,
+                    y: targetPh.y,
+                    width: targetPh.width,
+                    height: targetPh.height,
                     rotation: slideEl.rotation || 0,
                     opacity: slideEl.opacity !== undefined ? slideEl.opacity : 1,
-                    style: { ...targetPlaceholder.style, ...slideEl.style }
+                    style: { ...targetPh.style, ...slideEl.style }
                 };
-                
-                // Preserve image source if applicable
+
                 if (slideEl.type === 'image' && slideEl.src) {
                     remappedEl.src = slideEl.src;
                 }
 
-                newElements[targetPlaceholder.id] = remappedEl;
-                newElementOrder.push(targetPlaceholder.id);
+                newElements[targetId] = remappedEl;
+                newElementOrder.push(targetId);
             } else {
-                // Priority 4: Overflow - becomes free element
-                // Keep the element but mark it as no longer a placeholder
-                const freeEl = { ...slideEl };
-                delete freeEl.isPlaceholder;
-                delete freeEl.placeholderType;
-                newElements[elId] = freeEl;
+                idsToDetach.push(elId);
+                newElements[elId] = { ...slideEl };
                 newElementOrder.push(elId);
             }
         } else {
-            // Non-placeholder element - keep as-is
             newElements[elId] = { ...slideEl };
             newElementOrder.push(elId);
         }
-    });
+    }
 
-    // Update slide
     slide.elements = newElements;
     slide.elementOrder = newElementOrder;
+
+    // 3) Detach any unmapped placeholder-origin content and add provenance metadata
+    detachUnmappedPlaceholderContent(slide, { sourceLayoutId, idsToDetach });
 }
 
 export function handleAddSlide(draft, payload) {
@@ -265,7 +216,7 @@ export function handleUpdateSlide(draft, payload) {
     const slideToUpdate = draft.slides[payload.id];
     if (slideToUpdate) {
         if (payload.layoutId && payload.layoutId !== slideToUpdate.layoutId) {
-            remapContent(draft, slideToUpdate, payload.layoutId);
+            reconcileLayoutChange(draft, slideToUpdate, payload.layoutId);
         }
 
         Object.assign(slideToUpdate, payload);

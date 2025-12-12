@@ -209,44 +209,72 @@ test.describe('Layout Picker', () => {
   });
 
   test('should preserve content when changing layouts', async ({ page }) => {
-    // Add some content to a placeholder
-    await page.evaluate(() => {
+    // Pick a placeholder type that exists in the current layout but NOT in some other layout,
+    // so we can assert detach provenance fields when switching.
+    const scenario = await page.evaluate(() => {
       const store = window._storyAppStore || window.__TEST_STORE__;
       const state = store.getState();
       const slideId = state.editor.activeSlideId;
       const slide = state.slides[slideId];
-      const layout = state.slideMasterPresets[slide.layoutId];
-      
-      // Find first placeholder
-      const placeholders = Object.values(layout.elements || {}).filter(el => el.isPlaceholder);
-      if (placeholders.length > 0) {
-        const ph = placeholders[0];
-        // Add content to slide
+      const sourceLayoutId = slide.layoutId;
+      const sourceLayout = state.slideMasterPresets[sourceLayoutId];
+
+      const layouts = Object.values(state.slideMasterPresets || {}).filter((m: any) =>
+        m && (m.type === 'layout' || m.type === 'layoutMaster')
+      ) as any[];
+
+      const placeholderEls = Object.values(sourceLayout?.elements || {}).filter((el: any) => el?.isPlaceholder) as any[];
+      if (placeholderEls.length === 0) return { ok: false };
+
+      const hasPlaceholderType = (layout: any, type: string) => {
+        return Object.values(layout?.elements || {}).some((el: any) => el?.isPlaceholder && (el.placeholderType || 'content') === type);
+      };
+
+      // Find a placeholder in the source layout whose type is missing in at least one other layout.
+      for (const ph of placeholderEls) {
+        const type = ph.placeholderType || 'content';
+        const target = layouts.find((l: any) => l.id !== sourceLayoutId && !hasPlaceholderType(l, type));
+        if (!target) continue;
+
+        // Add content to slide for this placeholder
         store.dispatch('UPDATE_SLIDE', {
           id: slideId,
           elements: {
-            ...slide.elements,
+            ...(slide.elements || {}),
             [ph.id]: {
               ...ph,
               content: 'Test Content',
               hasContent: true
             }
           },
-          elementOrder: [...slide.elementOrder, ph.id]
+          elementOrder: Array.from(new Set([...(slide.elementOrder || []), ph.id]))
         });
+
+        return {
+          ok: true,
+          slideId,
+          sourceLayoutId,
+          placeholderId: ph.id,
+          placeholderType: type,
+          targetLayoutId: target.id
+        };
       }
+
+      return { ok: false };
     });
+
+    test.skip(!scenario.ok, 'No suitable placeholder/layout pair found to validate detaching provenance');
     
     await page.waitForTimeout(300);
     
-    // Store the content
+    // Store the content (sanity check: the test content was injected)
     const contentBefore = await page.evaluate(() => {
       const store = window._storyAppStore || window.__TEST_STORE__;
       const state = store.getState();
       const slide = state.slides[state.editor.activeSlideId];
-      const elements = Object.values(slide.elements);
-      return elements.map(el => ({ id: el.id, content: el.content, type: el.type }));
+      return Object.values(slide.elements || {}).some((el: any) => el?.content === 'Test Content');
     });
+    expect(contentBefore).toBe(true);
     
     // Open property inspector
     await page.evaluate(() => {
@@ -254,26 +282,33 @@ test.describe('Layout Picker', () => {
       if (panelManager) panelManager.show('propertyInspector');
     });
     
-    // Change layout
+    // Change layout (to one that is missing the chosen placeholder type)
     await page.locator('.layout-trigger-btn').click();
     await page.waitForSelector('.layout-flyout-content');
-    await page.locator('.layout-thumbnail').nth(1).click();
+    await page.locator(`.layout-thumbnail[data-layout-id="${scenario.targetLayoutId}"]`).click();
     await page.waitForTimeout(500);
     
-    // Check content after
-    const contentAfter = await page.evaluate(() => {
+    // Check content after: should be detached into a free element with origin metadata.
+    const detached = await page.evaluate((expectedPlaceholderType) => {
       const store = window._storyAppStore || window.__TEST_STORE__;
       const state = store.getState();
       const slide = state.slides[state.editor.activeSlideId];
-      return Object.values(slide.elements).filter(el => el.content);
-    });
-    
-    // Content should still exist (either remapped or as overflow)
-    expect(contentAfter.length).toBeGreaterThan(0);
-    
-    // At least one element should have the test content
-    const hasTestContent = contentAfter.some(el => el.content === 'Test Content');
-    expect(hasTestContent).toBe(true);
+
+      const els = Object.values(slide.elements || {}) as any[];
+      return els.find(el =>
+        !el?.isPlaceholder &&
+        el?.content === 'Test Content' &&
+        el?.origin &&
+        el.origin.placeholderType === expectedPlaceholderType
+      ) || null;
+    }, scenario.placeholderType);
+
+    expect(detached).toBeTruthy();
+    expect(detached.content).toBe('Test Content');
+    expect(detached.origin.placeholderType).toBe(scenario.placeholderType);
+    expect(detached.origin.sourceLayoutId).toBe(scenario.sourceLayoutId);
+    expect(detached.origin.sourceMasterElementId).toBe(scenario.placeholderId);
+    expect(typeof detached.origin.detachedAt).toBe('number');
   });
 
   test('should update button label to reflect selected layout', async ({ page }) => {

@@ -1,7 +1,8 @@
 
 import { getDefaultPreset } from '../../constants/ColorPresets.js';
 import { getDefaultFontPreset, getPresetById as getFontPresetById } from '../../constants/FontPresets.js';
-import { getPresetById, getFullPresetById } from '../SlideMasterPresets.js';
+import { getPresetById, getFullPresetById, getPresetList } from '../SlideMasterPresets.js';
+import { isMasterInUseBySlides } from '../../master/MasterUsage.js';
 
 // ========================================
 // LUMA-LOCKED THEME HANDLERS (REFACTORED)
@@ -472,6 +473,14 @@ export function handleApplySlideMasterPreset(draft, payload) {
     
     const fullPreset = getFullPresetById(presetId);
     if (!fullPreset) {
+        return;
+    }
+
+    // Precondition gating (M3): block preset replacement if any slides use this master.
+    // When presetId is not stored yet, infer the "current" preset from the preset library (same as UI).
+    const inferredCurrentPresetId = themeMaster?.presetId || getPresetList?.()?.[0]?.id;
+    const isChangingPreset = !!inferredCurrentPresetId && presetId !== inferredCurrentPresetId;
+    if (isChangingPreset && isMasterInUseBySlides(draft, masterId)) {
         return;
     }
     

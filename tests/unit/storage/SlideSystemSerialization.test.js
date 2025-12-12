@@ -352,6 +352,55 @@ describe('Slide System Serialization (Phase 0.2)', () => {
 
             expect(restored.slides[slideId].hidden).toBe(true);
         });
+
+        it('should preserve element origin metadata (detached provenance)', async () => {
+            const slideId = mockStateWithSlides.slideOrder[0];
+
+            const detachedId = `detached-test-${Date.now()}`;
+            const origin = {
+                placeholderType: 'body',
+                sourceLayoutId: 'layout-title',
+                sourceMasterElementId: 'placeholder-body',
+                detachedAt: 12345
+            };
+
+            // Elements are object-based in app state; serializer converts to array.
+            mockStateWithSlides.slides[slideId].elements = {
+                ...(mockStateWithSlides.slides[slideId].elements || {}),
+                [detachedId]: {
+                    id: detachedId,
+                    type: 'text',
+                    content: 'Detached content',
+                    x: 10,
+                    y: 20,
+                    width: 300,
+                    height: 100,
+                    origin
+                }
+            };
+
+            mockStateWithSlides.slides[slideId].elementOrder = Array.from(new Set([
+                ...(mockStateWithSlides.slides[slideId].elementOrder || []),
+                detachedId
+            ]));
+
+            const serializer = new PresentationSerializer(mockStateWithSlides, {
+                includeThumbnail: false,
+                includeAssets: false
+            });
+
+            const blob = await serializer.serialize();
+            const deserializer = new PresentationDeserializer(blob);
+            const restored = await deserializer.deserialize();
+
+            const restoredSlide = restored.slides[slideId];
+            expect(restoredSlide).toBeDefined();
+
+            // Deserializer returns elements as array.
+            const restoredEl = (restoredSlide.elements || []).find(el => el.id === detachedId);
+            expect(restoredEl).toBeDefined();
+            expect(restoredEl.origin).toEqual(origin);
+        });
     });
 
     describe('Complete Round-trip Test', () => {

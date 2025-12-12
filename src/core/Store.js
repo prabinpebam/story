@@ -269,6 +269,7 @@ export class Store extends EventEmitter {
             case 'UPDATE_LUMA_THEME_SLOT':
             case 'UPDATE_LUMA_THEME_ADJUSTMENTS':
             case 'APPLY_SLIDE_MASTER_PRESET':
+            case 'APPLY_MASTER_PRESET_TO_MASTER':
             case 'SET_COLOR_MODE':
             case 'UPDATE_MASTER_STYLE_ASSIGNMENTS':
             case 'ADD_LAYOUT':
@@ -294,6 +295,7 @@ export class Store extends EventEmitter {
                         case 'UPDATE_LUMA_THEME_SLOT': MasterHandlers.handleUpdateLumaThemeSlot(draft, payload); break;
                         case 'UPDATE_LUMA_THEME_ADJUSTMENTS': MasterHandlers.handleUpdateLumaThemeAdjustments(draft, payload); break;
                         case 'APPLY_SLIDE_MASTER_PRESET': MasterHandlers.handleApplySlideMasterPreset(draft, payload); break;
+                        case 'APPLY_MASTER_PRESET_TO_MASTER': MasterHandlers.handleApplySlideMasterPreset(draft, payload); break;
                         case 'SET_COLOR_MODE': MasterHandlers.handleSetColorMode(draft, payload); break;
                         case 'UPDATE_MASTER_STYLE_ASSIGNMENTS': MasterHandlers.handleUpdateMasterStyleAssignments(draft, payload); break;
                         case 'ADD_LAYOUT': MasterHandlers.handleAddLayout(draft, payload); break;
@@ -313,7 +315,7 @@ export class Store extends EventEmitter {
                         _ThemeDiag.logCTA('SET_COLOR_MODE', { colorMode: payload.colorMode });
                     }
                 }
-                if (type === 'APPLY_LUMA_THEME' || type === 'APPLY_SLIDE_MASTER_PRESET') {
+                if (type === 'APPLY_LUMA_THEME' || type === 'APPLY_SLIDE_MASTER_PRESET' || type === 'APPLY_MASTER_PRESET_TO_MASTER') {
                     this.emit('theme-updated', { masterId: payload.masterId, affectedSlides: 'all' });
                     // Log CTA for theme diagnostics
                     if (_ThemeDiag) {
