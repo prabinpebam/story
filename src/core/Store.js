@@ -295,7 +295,7 @@ export class Store extends EventEmitter {
                         case 'UPDATE_LUMA_THEME_SLOT': MasterHandlers.handleUpdateLumaThemeSlot(draft, payload); break;
                         case 'UPDATE_LUMA_THEME_ADJUSTMENTS': MasterHandlers.handleUpdateLumaThemeAdjustments(draft, payload); break;
                         case 'APPLY_MASTER_PRESET_TO_MASTER': {
-                            const res = MasterHandlers.handleApplySlideMasterPreset(draft, payload);
+                            const res = MasterHandlers.handleApplyMasterPresetToMaster(draft, payload);
                             if (res?.blocked && res.notification) notificationToEmit = res.notification;
                             break;
                         }

@@ -66,14 +66,14 @@ This section tracks what is already implemented in the codebase vs. what remains
 - **Playwright:** green (full suite) and now treated as a stable CI-like gate.
   - Hardening includes IPv4 baseURL (`127.0.0.1`), strict dev-server port, capped default parallel workers, and store-based readiness waits (avoids `networkidle` flake).
   - Recent stabilization work was captured in commits `977b665` (gate hardening + flake fixes) and `79816cf` (notification dismiss selector + E2E validation).
+  - Cleanup follow-up: `9cfa759` removed the remaining `APPLY_SLIDE_MASTER_PRESET` action alias.
 
 ### Partially implemented
 
 Even though M0–M6 user-facing milestones are implemented and validated, the following **cleanup items** are still required to make the “No legacy” architecture airtight and easier to maintain:
 
-- **Remove remaining master-preset action aliasing**
-  - Status: completed — `APPLY_SLIDE_MASTER_PRESET` alias removed; only `APPLY_MASTER_PRESET_TO_MASTER` remains.
-  - Follow-up: rename the handler to match the canonical action (no behavior change).
+- **Rename the master-preset handler to match the canonical action**
+  - Status: completed — renamed to `handleApplyMasterPresetToMaster` and updated call sites/tests.
 
 - **Quarantine / eliminate `themeSettings` usage in the master/layout domain**
   - Some `themeSettings` references still exist in core runtime (migration, renderer, linked-property resolution). Some are legitimate for backwards-compatible file loading, but they must not be required for canonical runtime behavior.

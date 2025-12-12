@@ -452,17 +452,17 @@ export function handleDeleteElementFromMaster(draft, payload) {
 }
 
 // ========================================
-// SLIDE MASTER PRESET HANDLER
+// MASTER PRESET HANDLER
 // ========================================
 
 /**
- * Apply a slide master preset to a theme master.
+ * Apply a master preset to a master slide.
  * This updates the color theme, typography (from FontPresets), and background in one action.
  * Typography properties come from the font preset, only text fill colors come from the color theme.
  * @param {Object} draft - Immer draft state
  * @param {Object} payload - { masterId: string, presetId: string }
  */
-export function handleApplySlideMasterPreset(draft, payload) {
+export function handleApplyMasterPresetToMaster(draft, payload) {
     const { masterId, presetId } = payload;
     const themeMaster = draft.slideMasterPresets[masterId];
 

@@ -37,7 +37,7 @@ vi.mock('../../../../src/core/store/SlideMasterPresets.js', () => ({
     SLIDE_MASTER_PRESETS: []
 }));
 
-import { handleApplySlideMasterPreset } from '../../../../src/core/store/handlers/MasterHandlers.js';
+import { handleApplyMasterPresetToMaster } from '../../../../src/core/store/handlers/MasterHandlers.js';
 
 describe('M3: allowed apply replaces layout set (canonical master)', () => {
     it('rebuilds child layoutMasters and updates master.layoutIds when master is not in use', () => {
@@ -74,7 +74,7 @@ describe('M3: allowed apply replaces layout set (canonical master)', () => {
         };
 
         const next = produce(state, (draft) => {
-            handleApplySlideMasterPreset(draft, { masterId: 'master-x', presetId: 'preset-a' });
+            handleApplyMasterPresetToMaster(draft, { masterId: 'master-x', presetId: 'preset-a' });
         });
 
         // Old layouts removed

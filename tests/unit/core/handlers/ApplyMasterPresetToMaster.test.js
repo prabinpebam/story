@@ -18,7 +18,7 @@ vi.mock('../../../../src/core/store/SlideMasterPresets.js', () => ({
     SLIDE_MASTER_PRESETS: []
 }));
 
-import { handleApplySlideMasterPreset } from '../../../../src/core/store/handlers/MasterHandlers.js';
+import { handleApplyMasterPresetToMaster } from '../../../../src/core/store/handlers/MasterHandlers.js';
 import { isMasterInUseBySlides } from '../../../../src/core/master/MasterUsage.js';
 
 describe('M3: APPLY_MASTER_PRESET_TO_MASTER gating (handler-level)', () => {
@@ -36,7 +36,7 @@ describe('M3: APPLY_MASTER_PRESET_TO_MASTER gating (handler-level)', () => {
 
     it('allows applying the inferred current preset even if master is in use', () => {
         const next = produce(initialState, (draft) => {
-            handleApplySlideMasterPreset(draft, { masterId: 'master-default', presetId: 'preset-current' });
+            handleApplyMasterPresetToMaster(draft, { masterId: 'master-default', presetId: 'preset-current' });
         });
 
         expect(next.slideMasterPresets['master-default'].presetId).toBe('preset-current');
@@ -45,7 +45,7 @@ describe('M3: APPLY_MASTER_PRESET_TO_MASTER gating (handler-level)', () => {
     it('blocks changing to a different preset when master is in use (no mutation)', () => {
         let result;
         const next = produce(initialState, (draft) => {
-            result = handleApplySlideMasterPreset(draft, { masterId: 'master-default', presetId: 'preset-other' });
+            result = handleApplyMasterPresetToMaster(draft, { masterId: 'master-default', presetId: 'preset-other' });
         });
 
         expect(next.slideMasterPresets['master-default'].presetId).toBeUndefined();

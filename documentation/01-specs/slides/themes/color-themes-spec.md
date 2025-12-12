@@ -1657,7 +1657,7 @@ Slide Master presets store theme-linked colors using `themeSlot` references:
 
 **Application Flow:**
 ```
-1. User selects preset → handleApplySlideMasterPreset()
+1. User selects preset → handleApplyMasterPresetToMaster()
 2. Template applied with themeSlot references preserved
 3. StyleResolver.resolveThemeSlot() checks colorMode
 4. If dark mode: slot index is remapped (2 → 9)
