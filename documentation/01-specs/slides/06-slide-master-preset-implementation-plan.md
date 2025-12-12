@@ -43,11 +43,28 @@ This section tracks what is already implemented in the codebase vs. what remains
   - Allowed path replaces the master’s layout set (deletes old child layouts and materializes new `layoutMaster` children from the preset definition):
     - [tests/unit/core/handlers/ApplyMasterPresetToMaster.allowedReplacement.test.js](../../tests/unit/core/handlers/ApplyMasterPresetToMaster.allowedReplacement.test.js)
 
+- **M1 Master Preset Library (data)**
+  - Implemented as a dedicated module:
+    - [src/core/masterPresets/MasterPresetLibrary.js](../../src/core/masterPresets/MasterPresetLibrary.js)
+  - Materialization outputs canonical entities (`slideMasterPreset` + `layoutMaster` with `parentMasterId`) and avoids embedded `themeSettings`.
+  - Covered by unit tests:
+    - [tests/unit/core/masterPresets/MasterPresetLibrary.test.js](../../tests/unit/core/masterPresets/MasterPresetLibrary.test.js)
+
+- **M2 Master Preset Picker panel (UI surface)**
+  - Implemented as a PanelManager/DraggablePanel surface:
+    - [src/ui/panels/MasterPresetPicker.js](../../src/ui/panels/MasterPresetPicker.js)
+  - Wired into app bootstrap + Property Inspector (Master View, master selection):
+    - [src/main.js](../../src/main.js)
+    - [src/ui/properties/SlideSection.js](../../src/ui/properties/SlideSection.js)
+  - Playwright flows updated for panel selectors and Apply/Cancel behavior:
+    - [tests/e2e/specs/functional/master-preset-flyout.spec.ts](../../tests/e2e/specs/functional/master-preset-flyout.spec.ts)
+    - [tests/e2e/specs/functional/master-preset-blocked.spec.ts](../../tests/e2e/specs/functional/master-preset-blocked.spec.ts)
+
 ### Partially implemented
 
 ### Not started / still required by this plan
-- **M1 Master Preset Library (data)** and **M2 Master Preset Picker panel (UI surface)**
-  - The current code uses existing preset definitions in `SlideMasterPresets.js`; the dedicated library/picker panel described here is not yet implemented.
+
+See milestones below for remaining work not covered by the implemented items above.
 
 This plan implements the UX defined in:
 - [documentation/01-specs/slides/05-slide-master-preset-ux-spec.md](05-slide-master-preset-ux-spec.md)
