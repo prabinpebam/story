@@ -50,3 +50,6 @@ test-results/
 
 # Playwright local temp output (workaround folders)
 test-results-pw-temp*/
+
+# Playwright HTML report
+playwright-report/

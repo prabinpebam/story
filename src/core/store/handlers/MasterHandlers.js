@@ -1,6 +1,6 @@
 
 import { getDefaultPreset } from '../../constants/ColorPresets.js';
-import { getDefaultFontPreset } from '../../constants/FontPresets.js';
+import { getDefaultFontPreset, getPresetById as getFontPresetById } from '../../constants/FontPresets.js';
 import { getPresetById, getFullPresetById } from '../SlideMasterPresets.js';
 
 // ========================================
@@ -464,9 +464,9 @@ export function handleDeleteElementFromMaster(draft, payload) {
 export function handleApplySlideMasterPreset(draft, payload) {
     const { masterId, presetId } = payload;
     const themeMaster = draft.slideMasterPresets[masterId];
-    
-    if (!themeMaster || themeMaster.type !== 'theme') {
-        console.warn(`[ApplyPreset] Invalid theme master`, masterId, themeMaster?.type);
+
+    if (!themeMaster || (themeMaster.type !== 'theme' && themeMaster.type !== 'slideMasterPreset')) {
+        console.warn(`[ApplyPreset] Invalid master`, masterId, themeMaster?.type);
         return;
     }
     
@@ -476,65 +476,106 @@ export function handleApplySlideMasterPreset(draft, payload) {
     }
     
     const presetTheme = fullPreset.theme;
-    
-    // Store the preset ID for reference
+
+    // Store the preset ID for reference (works for both legacy and canonical roots)
     themeMaster.presetId = presetId;
-    
+
+    // ===== Canonical path: slideMasterPreset root (reference-only architecture) =====
+    if (themeMaster.type === 'slideMasterPreset') {
+        // 1) Apply luma theme as a referenced ColorThemePreset
+        const lumaTheme = presetTheme.themeSettings?.lumaTheme;
+        if (lumaTheme?.id) {
+            handleApplyLumaTheme(draft, {
+                masterId,
+                theme: {
+                    ...lumaTheme,
+                    // Some sources use resolvedColors; normalize for handler
+                    colors: lumaTheme.colors || lumaTheme.resolvedColors
+                }
+            });
+        }
+
+        // 2) Apply font preset as a referenced TypographyStylePreset
+        const fontPresetId = presetTheme.themeSettings?.fontPresetId;
+        const fontPreset = fontPresetId ? getFontPresetById(fontPresetId) : null;
+        if (fontPreset) {
+            handleApplyFontPreset(draft, { masterId, preset: fontPreset });
+        }
+
+        // 3) Apply background from preset (if present)
+        if (presetTheme.background) {
+            themeMaster.background = JSON.parse(JSON.stringify(presetTheme.background));
+        }
+
+        // 4) Update layout masters under this master (match by name)
+        const presetLayouts = fullPreset.layouts;
+        if (presetLayouts) {
+            const presetLayoutArray = Object.values(presetLayouts);
+            const existingLayoutIds = Object.keys(draft.slideMasterPresets).filter(id => {
+                const master = draft.slideMasterPresets[id];
+                return master.type === 'layoutMaster' && master.parentMasterId === masterId;
+            });
+
+            existingLayoutIds.forEach(existingLayoutId => {
+                const existingLayout = draft.slideMasterPresets[existingLayoutId];
+                const matchingPresetLayout = presetLayoutArray.find(pl => pl.name === existingLayout.name);
+                if (matchingPresetLayout) {
+                    existingLayout.elements = JSON.parse(JSON.stringify(matchingPresetLayout.elements));
+                    existingLayout.elementOrder = [...matchingPresetLayout.elementOrder];
+                }
+            });
+        }
+
+        return;
+    }
+
+    // ===== Legacy path: old 'theme' master =====
+    // Keep existing behavior for now to avoid regressions in legacy documents.
+
     // Initialize themeSettings if needed
     if (!themeMaster.themeSettings) {
         themeMaster.themeSettings = { colors: {}, fonts: {}, textStyles: {} };
     }
-    
+
     // 1. Apply luma theme (color theme) from preset
     if (presetTheme.themeSettings?.lumaTheme) {
         themeMaster.themeSettings.lumaTheme = { ...presetTheme.themeSettings.lumaTheme };
     }
-    
+
     // 2. Store font preset ID reference
     if (presetTheme.themeSettings?.fontPresetId) {
         themeMaster.themeSettings.fontPresetId = presetTheme.themeSettings.fontPresetId;
     }
-    
+
     // 3. Apply font settings (from FontPresets - includes family, weight, fallback)
     if (presetTheme.themeSettings?.fonts) {
         themeMaster.themeSettings.fonts = { ...presetTheme.themeSettings.fonts };
     }
-    
+
     // 4. Apply text styles (typography from FontPresets, colors from theme slots)
     if (presetTheme.themeSettings?.textStyles) {
         themeMaster.themeSettings.textStyles = JSON.parse(JSON.stringify(presetTheme.themeSettings.textStyles));
     }
-    
+
     // 5. Apply background from preset
     if (presetTheme.background) {
         themeMaster.background = JSON.parse(JSON.stringify(presetTheme.background));
     }
-    
+
     // 6. Update layout masters with preset's placeholder elements
-    // This applies the theme-linked textFill to the actual placeholders
-    const presetLayouts = fullPreset.layouts;
-    if (presetLayouts) {
-        
-        // Find existing layout masters that belong to this theme
+    const presetLayoutsLegacy = fullPreset.layouts;
+    if (presetLayoutsLegacy) {
         const existingLayoutIds = Object.keys(draft.slideMasterPresets).filter(id => {
             const master = draft.slideMasterPresets[id];
             return master.type === 'layout' && master.parentId === masterId;
         });
-        
-        // Map preset layout names to existing layouts by their layout type
-        // e.g., "Title Slide" preset layout -> existing layout with same name
-        const presetLayoutArray = Object.values(presetLayouts);
-        
+
+        const presetLayoutArray = Object.values(presetLayoutsLegacy);
+
         existingLayoutIds.forEach(existingLayoutId => {
             const existingLayout = draft.slideMasterPresets[existingLayoutId];
-            
-            // Find matching preset layout by name
-            const matchingPresetLayout = presetLayoutArray.find(
-                pl => pl.name === existingLayout.name
-            );
-            
+            const matchingPresetLayout = presetLayoutArray.find(pl => pl.name === existingLayout.name);
             if (matchingPresetLayout) {
-                // Update elements with theme-linked textFill
                 existingLayout.elements = JSON.parse(JSON.stringify(matchingPresetLayout.elements));
                 existingLayout.elementOrder = [...matchingPresetLayout.elementOrder];
             }

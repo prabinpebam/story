@@ -16,6 +16,7 @@ import { applyThemeToCSSVariables, COLOR_MODES } from '../panels/color-theme/Col
 import { StyleResolver } from '../../utils/StyleResolver.js';
 import { ThemeDiag } from '../../utils/ThemeDiagnostics.js';
 import { ThumbnailRenderer } from '../../core/renderer/ThumbnailRenderer.js';
+import { notify } from '../services/NotificationService.js';
 
 export class SlideSection {
     constructor() {
@@ -106,6 +107,8 @@ export class SlideSection {
 
     createPresetSection() {
         this.presetSection = new Section({ title: 'Template' });
+        // Stable hook for e2e tests (no visual impact)
+        this.presetSection.element.setAttribute('data-testid', 'master-preset-section');
         
         const presetRow = document.createElement('div');
         presetRow.className = 'pi-row preset-picker-row';
@@ -119,6 +122,7 @@ export class SlideSection {
             onClick: () => this.openPresetFlyout()
         });
         this.presetTrigger = this.presetTriggerBtn.element;
+        this.presetTrigger.setAttribute('data-testid', 'master-preset-trigger');
         presetRow.appendChild(this.presetTrigger);
         
         this.presetSection.appendChild(presetRow);
@@ -665,12 +669,14 @@ export class SlideSection {
 
         if (!currentObject) return;
 
-        // 0. Template Preset (Theme Master only)
-        const isThemeMaster = mode === 'master' && currentObject.type === 'theme';
-        if (isThemeMaster) {
+        // 0. Master Preset selector (Master View + Master Slide only)
+        // Supports legacy 'theme' and canonical 'slideMasterPreset' master-root types.
+        const isMasterRoot = mode === 'master' && (currentObject.type === 'theme' || currentObject.type === 'slideMasterPreset');
+        if (isMasterRoot) {
             this.presetSection.element.classList.remove('hidden');
             // Update preset button label with current preset name
-            const currentPresetId = currentObject.presetId || 'preset_minimal';
+            const fallbackPresetId = getPresetList()?.[0]?.id;
+            const currentPresetId = currentObject.presetId || fallbackPresetId;
             const currentPreset = getPresetById(currentPresetId);
             this.presetTriggerBtn.setLabel(currentPreset ? currentPreset.name : 'Select Template');
             this.presetDescription.textContent = currentPreset?.description || '';
@@ -937,6 +943,7 @@ export class SlideSection {
         // Create flyout content
         const content = document.createElement('div');
         content.className = 'preset-flyout-content';
+        content.setAttribute('data-testid', 'master-preset-flyout');
         
         // Title
         const title = document.createElement('div');
@@ -951,7 +958,8 @@ export class SlideSection {
         // Get current preset
         const state = store.getState();
         const themeMaster = state.slideMasterPresets[state.editor.activeMasterId];
-        const currentPresetId = themeMaster?.presetId || 'preset_minimal';
+        const fallbackPresetId = getPresetList()?.[0]?.id;
+        const currentPresetId = themeMaster?.presetId || fallbackPresetId;
         
         // Populate with presets
         const presets = getPresetList();
@@ -961,6 +969,7 @@ export class SlideSection {
             thumbnail.className = 'preset-thumbnail' + (preset.id === currentPresetId ? ' selected' : '');
             thumbnail.dataset.presetId = preset.id;
             thumbnail.title = preset.name;
+            thumbnail.setAttribute('data-testid', 'master-preset-option');
             
             // Create preview with background color
             const preview = document.createElement('div');
@@ -1050,6 +1059,35 @@ export class SlideSection {
     applyPreset(presetId) {
         const state = store.getState();
         const themeMasterId = state.editor.activeMasterId;
+
+        const activeMaster = state.slideMasterPresets?.[themeMasterId];
+        const currentPresetId = activeMaster?.presetId || getPresetList()?.[0]?.id;
+
+        // Block changing the master preset if the master is used by any slides.
+        // (Per UX spec: Master preset replacement should be prevented when in-use.)
+        if (activeMaster && (activeMaster.type === 'theme' || activeMaster.type === 'slideMasterPreset')) {
+            const isChangingPreset = !!currentPresetId && presetId !== currentPresetId;
+            if (isChangingPreset && this.isMasterInUseBySlides(state, themeMasterId)) {
+                notify({
+                    type: 'blocked',
+                    title: "Can’t change Master preset",
+                    body: 'This Master slide is used by existing slides. Move those slides to a different layout/master, then try again.',
+                    dismissible: true,
+                    autoDismissMs: 0,
+                    actionLabel: 'Open Layout Picker',
+                    onAction: () => {
+                        // Route user to the existing layout picker (Edit mode)
+                        store.dispatch('SET_MODE', 'edit');
+                        // Allow UI to re-render before attempting to open the flyout
+                        setTimeout(() => {
+                            const btn = document.querySelector('.layout-trigger-btn');
+                            if (btn) btn.click();
+                        }, 50);
+                    }
+                });
+                return;
+            }
+        }
         
         // Get the full preset to access computed hex colors
         const fullPreset = getFullPresetById(presetId);
@@ -1090,6 +1128,18 @@ export class SlideSection {
                 store.emit('selection-changed');
             }, 0);
         }
+    }
+
+    isMasterInUseBySlides(state, masterId) {
+        const slides = state.slides || {};
+        for (const slide of Object.values(slides)) {
+            const layoutId = slide?.layoutId;
+            if (!layoutId) continue;
+            const layout = state.slideMasterPresets?.[layoutId];
+            const parentId = layout?.parentMasterId || layout?.parentId;
+            if (parentId === masterId) return true;
+        }
+        return false;
     }
 
     setupThemeListener() {
