@@ -51,8 +51,13 @@ This spec is explicitly aligned with:
 - **Placeholder:** A template element that appears on slides and is filled with user content (Title, Body, Image, etc.).
 
 **Key UX rule (scope):**
-- **Change Master** switches the slide to a different **Master preset** (and therefore to that master’s layout set, theme + typography references, and master-level content).
-- **Change Layout** switches the slide to a different **Layout Master within the currently-applied Master**.
+- In Normal Edit Mode, users do not “pick a Master then pick a Layout”.
+- Users pick a **Layout** directly.
+- The selected layout’s parent Master slide is **implied** and applied automatically.
+
+**Key UX rule (Master preset replacement):**
+- Changing a **Master preset** can only be done while editing a **Master slide** in Master View.
+- Changing the Master preset **replaces the entire Master slide and its nested Layout Masters** (structure + placeholders + master-level elements), while preserving user content on regular slides via the reconciliation rules.
 
 **Key UX rule (Property Inspector visibility):**
 - The **Master preset** selector is shown in the Property Inspector **only when the user is editing the Master slide itself** (Master Mode, master selected, no element selected).
@@ -88,7 +93,7 @@ This spec is explicitly aligned with:
 ### 4.1 Entry points
 - **Menu:** View → Master → Slide Master
 - **Keyboard:** `Shift + Ctrl + M`
-- **From slide list (context):** Right-click slide thumbnail → Change Layout / Change Master
+- **From slide list (context):** Right-click slide thumbnail → Change Layout
 
 ### 4.2 Core surfaces
 - **Master View (Mode):** dedicated editing mode for masters/layouts.
@@ -96,7 +101,8 @@ This spec is explicitly aligned with:
 - **Property Inspector:**
   - In Master View: edits the active master/layout and its elements.
   - In Edit View: slide-level settings (layout selection, overrides) when nothing is selected.
-- **Master Preset Picker (Panel):** a panel surface for choosing a Master preset to apply (used by “Change Master” and by the Master slide’s PI row).
+- **Master Preset Picker (Panel):** a panel surface for choosing a Master preset to apply to the **currently selected Master slide** (Master View only).
+- **Layout Picker (Panel):** a panel surface for choosing a layout for selected slide(s) in Normal Edit Mode. It displays all Master slides and their nested layout masters, grouped intuitively, but the user selects a layout in a single action.
 
 ---
 
@@ -212,15 +218,18 @@ Each task flow is written as: **Trigger → Steps → Result → Undo/redo behav
 ### 5.6 Apply a layout to slides (and preserve content)
 
 **Trigger**
-- In Edit Mode, user changes a slide’s layout from the Slide PI.
+- In Normal Edit Mode, user opens the Layout Picker (from Slide PI or slide context menu).
 
 **Scope**
-- This action only selects among layouts that belong to the slide’s currently applied Master preset.
+- A user can select **any layout** shown in the Layout Picker.
+- Selecting a layout implicitly selects its parent Master slide (if different from current).
 
 **Steps**
-1. User opens Layout dropdown.
-2. User selects a new layout.
-3. System reconciles placeholders:
+1. User opens the Layout Picker panel.
+2. Panel presents layout options grouped by Master slide (without requiring a separate Master selection).
+3. User selects a new layout.
+4. System applies the selected layout and implicitly switches the Master slide if required.
+5. System reconciles placeholders:
    - Preserve content when placeholder types match.
    - Add new placeholders as empty.
   - Remove placeholders that no longer exist **only when they have no user content**.
@@ -306,33 +315,47 @@ If the target placeholder is already filled with user content and a detached ele
 
 ---
 
-### 5.6A Change Master for slide(s) (distinct from Change Layout)
+### 5.6A Change Master (Normal Edit Mode)
+
+**Definition**
+- In Normal Edit Mode, “Change Master” is not a separate two-step selection.
+- A slide changes its Master slide implicitly when the user picks a layout that belongs to a different Master slide in the Layout Picker.
+
+**UX rule**
+- The UI should still communicate the implied change (e.g., grouping headers / breadcrumbs), but the interaction remains a single layout selection.
+
+---
+
+### 5.6B Change Master preset for a Master slide (Master View only)
 
 **Trigger**
-- In Edit Mode, user chooses “Change Master” (context menu on slide thumbnail, or slide-level PI action).
+- In Master View, user selects a Master slide (not a layout) and uses the Property Inspector “Master preset” row.
 
 **Scope**
-- This action changes the slide’s **Master preset** (the full template container). It implies a master switch and then a layout selection within the new master.
+- This action replaces the selected Master slide’s template container by applying a different Master preset.
+
+**Precondition (required)**
+- The selected Master slide must not be in use by any normal slides.
+  - If any slide in Normal Edit Mode is currently using any Layout Master under this Master slide, the preset cannot be changed.
 
 **Steps**
-1. User opens “Change Master…”.
+1. User clicks the “Master preset” row.
 2. App opens the **Master Preset Picker panel**.
 3. User selects a target Master preset.
-4. Panel shows the layouts within the selected master and preselects a best-guess layout:
-  - Prefer a “same-named” layout (Title → Title), else
-  - Prefer the master’s default layout, else
-  - Fall back to the first layout.
-5. User confirms Apply.
-6. System runs the same placeholder reconciliation described in 5.6 (including detach/provenance/restore rules).
-
-**Result**
-- Slide now uses the new master’s structure + visuals (master-level content, referenced theme/typography), while preserving user content where possible.
+4. User confirms Apply.
+5. System replaces the selected Master slide and its nested Layout Masters with the preset’s definition.
+6. All regular slides that use layouts under this Master slide are reconciled using the same rules in 5.6 (preserve content; detach with provenance when necessary).
 
 **Undo/redo**
-- Change Master is undoable (restores previous master + layout + reconciled content).
+- Preset replacement is undoable.
 
 **Failure states**
-- Target master has no layouts → block and show error.
+- If the Master slide is in use, block the operation and show a notification (bottom-center popover above the toolbar) explaining:
+  - why the change is blocked
+  - what must be done first (move those slides to a different layout/master)
+  - that the Master preset replacement will be available once no slides use this master
+
+Notification UX is defined in [documentation/01-specs/ui-system/notification-system.md](../ui-system/notification-system.md).
 
 ---
 
@@ -463,7 +486,7 @@ If the target placeholder is already filled with user content and a detached ele
 
 ### 6.3 Property Inspector behavior
 - With no selection:
-  - In Edit Mode: Slide properties + layout selection + theme/typography overrides
+  - In Edit Mode: Slide properties + layout selection (opens Layout Picker panel) + theme/typography overrides
   - In Master Mode:
     - Master selected: show master properties including **Master preset** selector (opens Master Preset Picker panel)
     - Layout selected: show layout properties and layout-level theme/typography overrides; do **not** show Master preset selector
@@ -477,8 +500,7 @@ If the target placeholder is already filled with user content and a detached ele
 - Provide one consistent surface to choose a Master preset, without duplicating UI or inventing master-only variants.
 
 **Where it is used**
-- Edit Mode: invoked by “Change Master…” for selected slide(s).
-- Master Mode: invoked from the Master slide Property Inspector “Master preset” row.
+- Master Mode only: invoked from the Master slide Property Inspector “Master preset” row.
 
 **Panel contents (minimal)**
 - Master preset list/grid (search optional only if already exists elsewhere).
@@ -488,6 +510,21 @@ If the target placeholder is already filled with user content and a detached ele
 **Behavioral requirements**
 - Must never drop user content; uses the reconciliation rules in 5.6.
 - Must be explicit about blast radius when applying from Master Mode (changes affect all slides using that master).
+
+### 6.6 Layout Picker (Panel)
+
+**Purpose**
+- Provide a single, intuitive layout selection surface for Normal Edit Mode.
+
+**Core behavior**
+- Shows all layouts available in the file, grouped under their parent Master slide.
+- User selects a layout directly (single action).
+- The selected layout’s parent Master slide is applied implicitly.
+
+**Panel contents (minimal)**
+- Group headers per Master slide.
+- Layout thumbnails/cards under each group.
+- Selecting a layout applies it (either immediate apply or with an Apply button, matching existing panel conventions).
 
 ### 6.4 Sidebar interactions
 - Right-click master:
@@ -608,6 +645,6 @@ If the target placeholder is already filled with user content and a detached ele
 
 ## 10. Open questions
 
-- (Resolved) “Change Master” is distinct from “Change Layout”. “Change Master” switches the template container; “Change Layout” selects within the current master.
+- (Resolved) In Normal Edit Mode, users pick a layout directly from a grouped Layout Picker; the Master slide is implied by the selected layout (no two-step Master→Layout selection).
 - (Resolved) Layout-level theme/typography overrides are edited/applied from the **same Theme and Typography manager panels** used in Edit Mode; the panel is scope-aware (Apply to Master/Layout/Slide) and does not fork into a master-only UI.
 - (Resolved) Placeholder content preservation with multiple identical types: **auto-match with deterministic rules; prompt only on ambiguity/loss; fallback to detach to avoid loss.**
