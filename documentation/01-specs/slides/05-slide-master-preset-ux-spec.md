@@ -42,9 +42,17 @@ This spec is explicitly aligned with:
 ## 2. Definitions (user-facing and internal)
 
 ### 2.1 User-facing definitions
-- **Master (Slide Master Preset):** A reusable “theme + structure package” that defines global layout templates and shared background elements.
+- **Master (Slide Master Preset):** A complete reusable template package (PowerPoint-like) that contains:
+  - references to Color Theme + Typography Style presets
+  - all nested Layout Masters
+  - master-level content (images/videos/code fills/shapes/etc.)
+  - placeholder definitions that layouts use
 - **Layout:** A template slide within a master (Title Slide, Title + Content, Two Column…).
 - **Placeholder:** A template element that appears on slides and is filled with user content (Title, Body, Image, etc.).
+
+**Key UX rule (scope):**
+- **Change Master** switches the slide to a different **Master preset** (and therefore to that master’s layout set, theme + typography references, and master-level content).
+- **Change Layout** switches the slide to a different **Layout Master within the currently-applied Master**.
 
 ### 2.2 Internal system constraints (implementation-aligned)
 - Masters and layouts live in `state.slideMasterPresets`.
@@ -200,6 +208,9 @@ Each task flow is written as: **Trigger → Steps → Result → Undo/redo behav
 **Trigger**
 - In Edit Mode, user changes a slide’s layout from the Slide PI.
 
+**Scope**
+- This action only selects among layouts that belong to the slide’s currently applied Master preset.
+
 **Steps**
 1. User opens Layout dropdown.
 2. User selects a new layout.
@@ -285,6 +296,34 @@ If the target placeholder is already filled with user content and a detached ele
 
 **Failure states**
 - New layout missing required master → block selection and show warning.
+
+---
+
+### 5.6A Change Master for slide(s) (distinct from Change Layout)
+
+**Trigger**
+- In Edit Mode, user chooses “Change Master” (context menu on slide thumbnail, or slide-level PI action).
+
+**Scope**
+- This action changes the slide’s **Master preset** (the full template container). It implies a master switch and then a layout selection within the new master.
+
+**Steps**
+1. User opens “Change Master”.
+2. User selects a target Master preset.
+3. System selects a target Layout within that master:
+  - Prefer a “same-named” layout (Title → Title), else
+  - Prefer the master’s default layout, else
+  - Fall back to the first layout.
+4. System runs the same placeholder reconciliation described in 5.6 (including detach/provenance/restore rules).
+
+**Result**
+- Slide now uses the new master’s structure + visuals (master-level content, referenced theme/typography), while preserving user content where possible.
+
+**Undo/redo**
+- Change Master is undoable (restores previous master + layout + reconciled content).
+
+**Failure states**
+- Target master has no layouts → block and show error.
 
 ---
 
@@ -487,6 +526,6 @@ If the target placeholder is already filled with user content and a detached ele
 
 ## 10. Open questions
 
-- Should “Change Master” be a distinct action from “Change Layout”, or always implied by choosing a layout?
+- (Resolved) “Change Master” is distinct from “Change Layout”. “Change Master” switches the template container; “Change Layout” selects within the current master.
 - Should layout-level theme/typography overrides be edited from the same managers used in Edit Mode (recommended), or from a dedicated master-only surface?
 - (Resolved) Placeholder content preservation with multiple identical types: **auto-match with deterministic rules; prompt only on ambiguity/loss; fallback to detach to avoid loss.**
