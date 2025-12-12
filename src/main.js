@@ -28,6 +28,7 @@ import { AppMenu } from './ui/components/AppMenu/AppMenu.js';
 import { fileService } from './ui/services/FileService.js';
 import { menuActionHandler } from './ui/services/MenuActionHandler.js';
 import { FileIndicatorController } from './ui/services/FileIndicatorController.js';
+import { notify } from './ui/services/NotificationService.js';
 
 class App {
     constructor() {
@@ -78,6 +79,15 @@ class App {
     }
 
     init() {
+
+        // Store-driven notifications (e.g. blocked preset apply)
+        store.on('notification', (payload) => {
+            try {
+                notify(payload);
+            } catch (e) {
+                console.warn('Failed to show notification', e);
+            }
+        });
         
         // Initialize CursorManager
         cursorManager.init('#interaction-canvas');

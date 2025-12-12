@@ -481,7 +481,17 @@ export function handleApplySlideMasterPreset(draft, payload) {
     const inferredCurrentPresetId = themeMaster?.presetId || getPresetList?.()?.[0]?.id;
     const isChangingPreset = !!inferredCurrentPresetId && presetId !== inferredCurrentPresetId;
     if (isChangingPreset && isMasterInUseBySlides(draft, masterId)) {
-        return;
+        return {
+            blocked: true,
+            notification: {
+                type: 'blocked',
+                title: "Can’t change Master preset",
+                body: 'This Master slide is used by existing slides. Move those slides to a different layout/master, then try again.',
+                dismissible: true,
+                autoDismissMs: 0,
+                actionLabel: 'Open Layout Picker'
+            }
+        };
     }
     
     const presetTheme = fullPreset.theme;
@@ -516,26 +526,77 @@ export function handleApplySlideMasterPreset(draft, payload) {
             themeMaster.background = JSON.parse(JSON.stringify(presetTheme.background));
         }
 
-        // 4) Update layout masters under this master (match by name)
+        // 3.5) Apply master-level elements (if present)
+        if (presetTheme.elements) {
+            themeMaster.elements = JSON.parse(JSON.stringify(presetTheme.elements));
+            themeMaster.elementOrder = Array.isArray(presetTheme.elementOrder)
+                ? [...presetTheme.elementOrder]
+                : Object.keys(themeMaster.elements || {});
+        }
+
+        // 4) Replace the layout set under this master (safe because this action is blocked when in use).
+        // The preset currently provides legacy `type: 'layout'` records with `parentId`; we re-materialize them
+        // into canonical `layoutMaster` records under the selected slideMasterPreset.
         const presetLayouts = fullPreset.layouts;
         if (presetLayouts) {
             const presetLayoutArray = Object.values(presetLayouts);
-            const existingLayoutIds = Object.keys(draft.slideMasterPresets).filter(id => {
-                const master = draft.slideMasterPresets[id];
-                return master.type === 'layoutMaster' && master.parentMasterId === masterId;
-            });
 
-            existingLayoutIds.forEach(existingLayoutId => {
-                const existingLayout = draft.slideMasterPresets[existingLayoutId];
-                const matchingPresetLayout = presetLayoutArray.find(pl => pl.name === existingLayout.name);
-                if (matchingPresetLayout) {
-                    existingLayout.elements = JSON.parse(JSON.stringify(matchingPresetLayout.elements));
-                    existingLayout.elementOrder = [...matchingPresetLayout.elementOrder];
-                }
+            const existingChildLayoutIds = Object.keys(draft.slideMasterPresets).filter(id => {
+                const master = draft.slideMasterPresets[id];
+                return master?.type === 'layoutMaster' && master.parentMasterId === masterId;
             });
+            const existingByName = new Map(
+                existingChildLayoutIds
+                    .map(id => draft.slideMasterPresets[id])
+                    .filter(Boolean)
+                    .map(layout => [layout.name, layout])
+            );
+
+            const nextLayoutIds = [];
+
+            for (const presetLayout of presetLayoutArray) {
+                if (!presetLayout?.name) continue;
+
+                const existing = existingByName.get(presetLayout.name);
+                const layoutId = existing?.id || `layout-${masterId}-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+
+                const nextLayout = {
+                    id: layoutId,
+                    type: 'layoutMaster',
+                    parentMasterId: masterId,
+                    name: presetLayout.name,
+                    background: presetLayout.background ?? null,
+                    // Preset references (null = inherit from parent master)
+                    colorThemeId: null,
+                    typographyStyleId: null,
+                    elements: JSON.parse(JSON.stringify(presetLayout.elements || {})),
+                    elementOrder: Array.isArray(presetLayout.elementOrder)
+                        ? [...presetLayout.elementOrder]
+                        : Object.keys(presetLayout.elements || {})
+                };
+
+                draft.slideMasterPresets[layoutId] = nextLayout;
+                nextLayoutIds.push(layoutId);
+            }
+
+            // Delete old child layouts that are no longer referenced
+            const nextLayoutIdSet = new Set(nextLayoutIds);
+            for (const oldLayoutId of existingChildLayoutIds) {
+                if (!nextLayoutIdSet.has(oldLayoutId)) {
+                    delete draft.slideMasterPresets[oldLayoutId];
+                }
+            }
+
+            // Update master layoutIds
+            themeMaster.layoutIds = nextLayoutIds;
+
+            // Keep selection valid
+            if (draft.editor?.activeMasterId && !draft.slideMasterPresets[draft.editor.activeMasterId]) {
+                draft.editor.activeMasterId = masterId;
+            }
         }
 
-        return;
+        return { blocked: false };
     }
 
     // ===== Legacy path: old 'theme' master =====
@@ -590,7 +651,7 @@ export function handleApplySlideMasterPreset(draft, payload) {
             }
         });
     }
-    
+    return { blocked: false };
 }
 
 // ========================================

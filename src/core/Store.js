@@ -278,6 +278,7 @@ export class Store extends EventEmitter {
             case 'RENAME_MASTER':
             case 'REORDER_MASTERS':
                 this.snapshot(type);
+                let notificationToEmit = null;
                 this.state = produce(this.state, draft => {
                     switch(type) {
                         case 'UPDATE_MASTER': MasterHandlers.handleUpdateMaster(draft, payload); break;
@@ -294,8 +295,16 @@ export class Store extends EventEmitter {
                         case 'APPLY_LUMA_THEME': MasterHandlers.handleApplyLumaTheme(draft, payload); break;
                         case 'UPDATE_LUMA_THEME_SLOT': MasterHandlers.handleUpdateLumaThemeSlot(draft, payload); break;
                         case 'UPDATE_LUMA_THEME_ADJUSTMENTS': MasterHandlers.handleUpdateLumaThemeAdjustments(draft, payload); break;
-                        case 'APPLY_SLIDE_MASTER_PRESET': MasterHandlers.handleApplySlideMasterPreset(draft, payload); break;
-                        case 'APPLY_MASTER_PRESET_TO_MASTER': MasterHandlers.handleApplySlideMasterPreset(draft, payload); break;
+                        case 'APPLY_SLIDE_MASTER_PRESET': {
+                            const res = MasterHandlers.handleApplySlideMasterPreset(draft, payload);
+                            if (res?.blocked && res.notification) notificationToEmit = res.notification;
+                            break;
+                        }
+                        case 'APPLY_MASTER_PRESET_TO_MASTER': {
+                            const res = MasterHandlers.handleApplySlideMasterPreset(draft, payload);
+                            if (res?.blocked && res.notification) notificationToEmit = res.notification;
+                            break;
+                        }
                         case 'SET_COLOR_MODE': MasterHandlers.handleSetColorMode(draft, payload); break;
                         case 'UPDATE_MASTER_STYLE_ASSIGNMENTS': MasterHandlers.handleUpdateMasterStyleAssignments(draft, payload); break;
                         case 'ADD_LAYOUT': MasterHandlers.handleAddLayout(draft, payload); break;
@@ -306,6 +315,10 @@ export class Store extends EventEmitter {
                     }
                 });
                 this.emit('state-changed', this.state);
+
+                if (notificationToEmit) {
+                    this.emit('notification', notificationToEmit);
+                }
                 
                 // Emit theme-related events for coordinated re-renders
                 if (type === 'SET_COLOR_MODE') {

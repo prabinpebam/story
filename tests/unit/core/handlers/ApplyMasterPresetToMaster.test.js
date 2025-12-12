@@ -43,10 +43,16 @@ describe('M3: APPLY_MASTER_PRESET_TO_MASTER gating (handler-level)', () => {
     });
 
     it('blocks changing to a different preset when master is in use (no mutation)', () => {
+        let result;
         const next = produce(initialState, (draft) => {
-            handleApplySlideMasterPreset(draft, { masterId: 'master-default', presetId: 'preset-other' });
+            result = handleApplySlideMasterPreset(draft, { masterId: 'master-default', presetId: 'preset-other' });
         });
 
         expect(next.slideMasterPresets['master-default'].presetId).toBeUndefined();
+
+        expect(result?.blocked).toBe(true);
+        expect(result?.notification?.type).toBe('blocked');
+        expect(result?.notification?.title).toBe("Can’t change Master preset");
+        expect(result?.notification?.body).toContain('used by existing slides');
     });
 });

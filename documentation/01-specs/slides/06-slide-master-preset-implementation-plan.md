@@ -4,6 +4,44 @@
 **Last Updated:** December 12, 2025
 **Status:** Draft
 
+## Current repo status (as of Dec 12, 2025)
+
+This section tracks what is already implemented in the codebase vs. what remains from the milestones below.
+
+### Implemented
+
+- **M4 Reconciliation engine (content preservation)**
+  - Implemented in [src/core/master/Reconciliation.js](../../src/core/master/Reconciliation.js) and wired into layout changes in [src/core/store/handlers/SlideHandlers.js](../../src/core/store/handlers/SlideHandlers.js).
+  - Provenance on detach (`origin.placeholderType`, `origin.sourceLayoutId`, `origin.sourceMasterElementId`, `origin.detachedAt`) is implemented and covered.
+  - Tests:
+    - Unit: [tests/unit/core/master/Reconciliation.test.js](../../tests/unit/core/master/Reconciliation.test.js)
+    - E2E: [tests/e2e/specs/functional/layout-reconciliation-detach-restore.spec.ts](../../tests/e2e/specs/functional/layout-reconciliation-detach-restore.spec.ts)
+
+- **M6 Layout Picker grouped by master**
+  - Implemented earlier and covered by Playwright in [tests/e2e/specs/functional/layout-picker.spec.ts](../../tests/e2e/specs/functional/layout-picker.spec.ts).
+
+### Partially implemented
+
+- **M3 Apply master preset to a master slide (store action)**
+  - `APPLY_MASTER_PRESET_TO_MASTER` exists (handled in [src/core/Store.js](../../src/core/Store.js)) and is wired from the UI.
+  - Precondition gating (blocked when master is in use) is enforced in the handler and covered by unit test:
+    - [src/core/store/handlers/MasterHandlers.js](../../src/core/store/handlers/MasterHandlers.js)
+    - [tests/unit/core/handlers/ApplyMasterPresetToMaster.test.js](../../tests/unit/core/handlers/ApplyMasterPresetToMaster.test.js)
+  - **Remaining gap:** the allowed path does not yet fully “replace the layout set (delete old child layouts, create new child layouts)” per this plan; current behavior updates existing layouts by name when applying preset.
+
+- **M5 Notification system integration (blocked flows)**
+  - Bottom-center popover notification service exists:
+    - [src/ui/services/NotificationService.js](../../src/ui/services/NotificationService.js)
+  - Store-level blocked flows now emit a notification event from [src/core/Store.js](../../src/core/Store.js), which is forwarded to the UI in [src/main.js](../../src/main.js).
+  - UI-level blocking may still exist for fast feedback, but the store/handler path is now authoritative for correctness.
+
+### Not started / still required by this plan
+
+- **M0 “No legacy support” cleanup**
+  - Legacy codepaths still exist (e.g. legacy master types and legacy branches in master handlers).
+- **M1 Master Preset Library (data)** and **M2 Master Preset Picker panel (UI surface)**
+  - The current code uses existing preset definitions in `SlideMasterPresets.js`; the dedicated library/picker panel described here is not yet implemented.
+
 This plan implements the UX defined in:
 - [documentation/01-specs/slides/05-slide-master-preset-ux-spec.md](05-slide-master-preset-ux-spec.md)
 - [documentation/01-specs/ui-system/notification-system.md](../ui-system/notification-system.md)
