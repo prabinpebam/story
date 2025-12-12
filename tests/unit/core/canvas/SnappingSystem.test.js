@@ -527,8 +527,8 @@ describe('SnappingSystem', () => {
             };
 
             const mockLayout = {
-                type: 'layout',
-                parentId: 'master-1',
+                type: 'layoutMaster',
+                parentMasterId: 'master-1',
                 width: 1920,
                 height: 1080,
                 elements: {}

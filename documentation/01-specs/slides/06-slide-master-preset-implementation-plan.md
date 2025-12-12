@@ -10,6 +10,15 @@ This section tracks what is already implemented in the codebase vs. what remains
 
 ### Implemented
 
+- **M0 “No legacy support” cleanup (foundation)**
+  - Canonical master types are now consistently used in the Master Preset + Master/Layout runtime flow:
+    - Master slide: `type: 'slideMasterPreset'`
+    - Layout master: `type: 'layoutMaster'` with `parentMasterId`
+  - Legacy master/layout schema support has been removed/quarantined in core runtime codepaths (no `type: 'theme'` / `type: 'layout'` branches in the master/layout domain).
+  - The preset materializer now produces canonical `slideMasterPreset` + `layoutMaster` records (no legacy `parentId` linkage in the master/layout domain):
+    - [src/core/store/SlideMasterPresets.js](../../src/core/store/SlideMasterPresets.js)
+  - Tests are green after this cleanup (Vitest full suite).
+
 - **M4 Reconciliation engine (content preservation)**
   - Implemented in [src/core/master/Reconciliation.js](../../src/core/master/Reconciliation.js) and wired into layout changes in [src/core/store/handlers/SlideHandlers.js](../../src/core/store/handlers/SlideHandlers.js).
   - Provenance on detach (`origin.placeholderType`, `origin.sourceLayoutId`, `origin.sourceMasterElementId`, `origin.detachedAt`) is implemented and covered.
@@ -37,10 +46,6 @@ This section tracks what is already implemented in the codebase vs. what remains
 ### Partially implemented
 
 ### Not started / still required by this plan
-
-- **M0 “No legacy support” cleanup**
-  - Canonical master types are used in the core Master Preset flow (`slideMasterPreset` + `layoutMaster`, `parentMasterId`).
-  - **Remaining:** remove/quarantine the last legacy master/layout type branches (`type: 'theme'` / `type: 'layout'`, `parentId`) and embedded `themeSettings` editing paths so the app does not maintain dual schema logic.
 - **M1 Master Preset Library (data)** and **M2 Master Preset Picker panel (UI surface)**
   - The current code uses existing preset definitions in `SlideMasterPresets.js`; the dedicated library/picker panel described here is not yet implemented.
 
@@ -95,12 +100,13 @@ This plan is intentionally “no legacy”, but the current codebase still conta
 
 - **Two master models exist today**
   - Canonical (required): `type: 'slideMasterPreset'` + `type: 'layoutMaster'` with `parentMasterId` (see [src/core/store/InitialState.js](../../src/core/store/InitialState.js)).
-  - Legacy (must remove): `type: 'theme'` / `type: 'layout'` with `parentId` and embedded `themeSettings` (see [src/core/store/SlideMasterPresets.js](../../src/core/store/SlideMasterPresets.js)).
+  - Legacy (must remove): `type: 'theme'` / `type: 'layout'` with `parentId` and embedded `themeSettings`.
+    - As of Dec 12, 2025: core master/layout runtime codepaths have been migrated to the canonical model; remaining uses of the word “theme” in code (e.g. `source.type === 'theme'`) refer to **color-linking semantics**, not the master/layout schema.
 
 - **Slide Property Inspector currently exposes a “Template / Select Template” UI**
   - Implemented in [src/ui/properties/SlideSection.js](../../src/ui/properties/SlideSection.js) and wired to the legacy preset generator.
   - This conflicts with the UX spec: Master preset selection must exist **only** for Master slides in Master View.
-  - Also note: the UI is currently shown only for `type === 'theme'` masters; canonical masters are `type === 'slideMasterPreset'`.
+  - Also note: the surface must remain scoped to Master View + Master slide selection (not layout masters).
 
 - **Notifications are duplicated and not aligned to the new spec**
   - There are multiple ad-hoc toast implementations in the UI.

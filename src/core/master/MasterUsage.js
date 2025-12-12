@@ -8,8 +8,7 @@ export function isMasterInUseBySlides(state, masterId) {
         const layoutId = slide?.layoutId;
         if (!layoutId) continue;
         const layout = state.slideMasterPresets?.[layoutId];
-        const parentId = layout?.parentMasterId || layout?.parentId;
-        if (parentId === masterId) return true;
+        if (layout?.parentMasterId === masterId) return true;
     }
 
     return false;

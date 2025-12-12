@@ -279,7 +279,7 @@ function createSlideMasterPreset(id, name, colorTheme, fontPresetId, description
     
     const themeMaster = {
         id: themeId,
-        type: 'theme',
+        type: 'slideMasterPreset',
         name,
         description,
         presetId: id,
@@ -339,19 +339,19 @@ function createSlideMasterPreset(id, name, colorTheme, fontPresetId, description
 
 /**
  * Create layout masters with placeholders using font preset styles
- * @param {string} parentId - Parent theme master ID
+ * @param {string} parentMasterId - Parent master ID
  * @param {Object} fontPreset - Font preset from FontPresets.js
  * @param {Object} themeSlots - Slot mapping (DARK_THEME or LIGHT_THEME)
  */
-function createLayoutMastersWithFontPreset(parentId, fontPreset, themeSlots = DARK_THEME) {
+function createLayoutMastersWithFontPreset(parentMasterId, fontPreset, themeSlots = DARK_THEME) {
     const styles = fontPreset.styles;
     const fonts = fontPreset.fonts;
     
     return {
-        [`${parentId}-layout-title`]: {
-            id: `${parentId}-layout-title`,
-            type: 'layout',
-            parentId,
+        [`${parentMasterId}-layout-title`]: {
+            id: `${parentMasterId}-layout-title`,
+            type: 'layoutMaster',
+            parentMasterId,
             name: 'Title Slide',
             background: null,
             elements: {
@@ -370,10 +370,10 @@ function createLayoutMastersWithFontPreset(parentId, fontPreset, themeSlots = DA
             },
             elementOrder: ['placeholder-title', 'placeholder-subtitle']
         },
-        [`${parentId}-layout-title-content`]: {
-            id: `${parentId}-layout-title-content`,
-            type: 'layout',
-            parentId,
+        [`${parentMasterId}-layout-title-content`]: {
+            id: `${parentMasterId}-layout-title-content`,
+            type: 'layoutMaster',
+            parentMasterId,
             name: 'Title and Content',
             background: null,
             elements: {
@@ -392,10 +392,10 @@ function createLayoutMastersWithFontPreset(parentId, fontPreset, themeSlots = DA
             },
             elementOrder: ['placeholder-title', 'placeholder-body']
         },
-        [`${parentId}-layout-section-header`]: {
-            id: `${parentId}-layout-section-header`,
-            type: 'layout',
-            parentId,
+        [`${parentMasterId}-layout-section-header`]: {
+            id: `${parentMasterId}-layout-section-header`,
+            type: 'layoutMaster',
+            parentMasterId,
             name: 'Section Header',
             background: null,
             elements: {
@@ -414,10 +414,10 @@ function createLayoutMastersWithFontPreset(parentId, fontPreset, themeSlots = DA
             },
             elementOrder: ['placeholder-title', 'placeholder-subtitle']
         },
-        [`${parentId}-layout-two-content`]: {
-            id: `${parentId}-layout-two-content`,
-            type: 'layout',
-            parentId,
+        [`${parentMasterId}-layout-two-content`]: {
+            id: `${parentMasterId}-layout-two-content`,
+            type: 'layoutMaster',
+            parentMasterId,
             name: 'Two Column',
             background: null,
             elements: {
@@ -442,10 +442,10 @@ function createLayoutMastersWithFontPreset(parentId, fontPreset, themeSlots = DA
             },
             elementOrder: ['placeholder-title', 'placeholder-left', 'placeholder-right']
         },
-        [`${parentId}-layout-comparison`]: {
-            id: `${parentId}-layout-comparison`,
-            type: 'layout',
-            parentId,
+        [`${parentMasterId}-layout-comparison`]: {
+            id: `${parentMasterId}-layout-comparison`,
+            type: 'layoutMaster',
+            parentMasterId,
             name: 'Comparison',
             background: null,
             elements: {
@@ -482,19 +482,19 @@ function createLayoutMastersWithFontPreset(parentId, fontPreset, themeSlots = DA
             },
             elementOrder: ['placeholder-title', 'placeholder-left-title', 'placeholder-left', 'placeholder-right-title', 'placeholder-right']
         },
-        [`${parentId}-layout-blank`]: {
-            id: `${parentId}-layout-blank`,
-            type: 'layout',
-            parentId,
+        [`${parentMasterId}-layout-blank`]: {
+            id: `${parentMasterId}-layout-blank`,
+            type: 'layoutMaster',
+            parentMasterId,
             name: 'Blank',
             background: null,
             elements: {},
             elementOrder: []
         },
-        [`${parentId}-layout-picture-caption`]: {
-            id: `${parentId}-layout-picture-caption`,
-            type: 'layout',
-            parentId,
+        [`${parentMasterId}-layout-picture-caption`]: {
+            id: `${parentMasterId}-layout-picture-caption`,
+            type: 'layoutMaster',
+            parentMasterId,
             name: 'Picture with Caption',
             background: null,
             elements: {
@@ -523,10 +523,10 @@ function createLayoutMastersWithFontPreset(parentId, fontPreset, themeSlots = DA
             },
             elementOrder: ['placeholder-title', 'placeholder-picture', 'placeholder-caption']
         },
-        [`${parentId}-layout-content-caption`]: {
-            id: `${parentId}-layout-content-caption`,
-            type: 'layout',
-            parentId,
+        [`${parentMasterId}-layout-content-caption`]: {
+            id: `${parentMasterId}-layout-content-caption`,
+            type: 'layoutMaster',
+            parentMasterId,
             name: 'Content with Caption',
             background: null,
             elements: {

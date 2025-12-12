@@ -101,17 +101,16 @@ export function migrateThemeSettings(themeSettings) {
 }
 
 /**
- * Migrates the entire masters object to the new schema.
- * @param {Object} masters - The masters object from state.
- * @returns {Object} Updated masters with migrated theme settings.
+ * Normalizes themeSettings on existing slide master preset records.
+ * Note: This project is "no legacy" for master/layout schema, so we do NOT support
+ * migrating old `state.masters` or legacy master types here.
  */
-export function migrateMasters(masters) {
-    if (!masters || typeof masters !== 'object') return masters;
-    
+export function normalizeSlideMasterPresetThemeSettings(slideMasterPresets) {
+    if (!slideMasterPresets || typeof slideMasterPresets !== 'object') return slideMasterPresets;
+
     const migrated = {};
-    
-    for (const [id, master] of Object.entries(masters)) {
-        if (master.type === 'theme' && master.themeSettings) {
+    for (const [id, master] of Object.entries(slideMasterPresets)) {
+        if (master?.themeSettings) {
             migrated[id] = {
                 ...master,
                 themeSettings: migrateThemeSettings(master.themeSettings)
@@ -120,7 +119,6 @@ export function migrateMasters(masters) {
             migrated[id] = master;
         }
     }
-    
     return migrated;
 }
 
@@ -133,13 +131,10 @@ export function migrateState(state) {
     if (!state) return state;
     
     const migrated = { ...state };
-    
-    // Migrate masters (legacy support - now called slideMasterPresets)
-    if (state.masters) {
-        migrated.slideMasterPresets = migrateMasters(state.masters);
-        delete migrated.masters; // Remove old property
-    } else if (state.slideMasterPresets) {
-        migrated.slideMasterPresets = migrateMasters(state.slideMasterPresets);
+
+    // Canonical-only: we only normalize existing `slideMasterPresets`.
+    if (state.slideMasterPresets) {
+        migrated.slideMasterPresets = normalizeSlideMasterPresetThemeSettings(state.slideMasterPresets);
     }
     
     return migrated;
@@ -164,7 +159,7 @@ export const StateMigration = {
     isOldColorSchema,
     migrateColorsToNewSchema,
     migrateThemeSettings,
-    migrateMasters,
+    normalizeSlideMasterPresetThemeSettings,
     migrateState,
     validateColorSchema,
     DEFAULT_12_COLOR_SCHEMA
