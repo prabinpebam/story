@@ -66,4 +66,42 @@ test.describe('Master Preset - Blocked When In Use', () => {
     const afterMaster = after.slideMasterPresets[after.editor.activeMasterId];
     expect(afterMaster?.presetId).toBe(beforePresetId);
   });
+
+  test('blocks store-dispatched preset change (bypasses UI gating) and shows notification', async ({ page, getState, dispatchAction }) => {
+    await editor.editMaster();
+
+    // Ensure master root selected
+    await page.locator('[data-testid="slide-list-item"]').first().click();
+
+    const before = await getState();
+    const masterId = before.editor.activeMasterId;
+    const beforeMaster = before.slideMasterPresets[masterId];
+    const beforePresetId = beforeMaster?.presetId;
+
+    // Choose a different presetId than the inferred current (library default)
+    const targetPresetId = 'electric-bold';
+
+    await dispatchAction('APPLY_MASTER_PRESET_TO_MASTER', { masterId, presetId: targetPresetId });
+
+    // Notification should appear (store-driven)
+    const notification = page.locator('[data-testid="notification-popover"]');
+    await expect(notification).toBeVisible();
+    await expect(notification).toContainText("Can’t change Master preset");
+
+    // Action should exist and route to layout picker
+    const actionBtn = notification.locator('[data-testid="notification-action"]');
+    await expect(actionBtn).toBeVisible();
+    await actionBtn.click();
+
+    await expect.poll(async () => {
+      const state = await getState();
+      return state.editor.mode;
+    }, { timeout: 2000 }).toBe('edit');
+
+    await expect(page.locator('.layout-flyout-content')).toBeVisible();
+
+    const after = await getState();
+    const afterMaster = after.slideMasterPresets[after.editor.activeMasterId];
+    expect(afterMaster?.presetId).toBe(beforePresetId);
+  });
 });

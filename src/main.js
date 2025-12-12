@@ -83,7 +83,20 @@ class App {
         // Store-driven notifications (e.g. blocked preset apply)
         store.on('notification', (payload) => {
             try {
-                notify(payload);
+                const next = { ...payload };
+
+                // Standardize common actions for store-driven notifications
+                if (next.actionLabel === 'Open Layout Picker' && typeof next.onAction !== 'function') {
+                    next.onAction = () => {
+                        store.dispatch('SET_MODE', 'edit');
+                        setTimeout(() => {
+                            const btn = document.querySelector('.layout-trigger-btn');
+                            if (btn) btn.click();
+                        }, 50);
+                    };
+                }
+
+                notify(next);
             } catch (e) {
                 console.warn('Failed to show notification', e);
             }
