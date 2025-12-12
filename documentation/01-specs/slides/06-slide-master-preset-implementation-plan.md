@@ -65,9 +65,22 @@ This section tracks what is already implemented in the codebase vs. what remains
 - **Vitest:** green (full suite).
 - **Playwright:** green (full suite) and now treated as a stable CI-like gate.
   - Hardening includes IPv4 baseURL (`127.0.0.1`), strict dev-server port, capped default parallel workers, and store-based readiness waits (avoids `networkidle` flake).
-  - Recent stabilization work was captured in commit `977b665`.
+  - Recent stabilization work was captured in commits `977b665` (gate hardening + flake fixes) and `79816cf` (notification dismiss selector + E2E validation).
 
 ### Partially implemented
+
+Even though M0–M6 user-facing milestones are implemented and validated, the following **cleanup items** are still required to make the “No legacy” architecture airtight and easier to maintain:
+
+- **Remove remaining master-preset action aliasing**
+  - Today both `APPLY_SLIDE_MASTER_PRESET` and `APPLY_MASTER_PRESET_TO_MASTER` route to the same handler.
+  - Goal: keep only the canonical action(s) and align handler naming with the canonical model.
+
+- **Quarantine / eliminate `themeSettings` usage in the master/layout domain**
+  - Some `themeSettings` references still exist in core runtime (migration, renderer, linked-property resolution). Some are legitimate for backwards-compatible file loading, but they must not be required for canonical runtime behavior.
+  - Goal: master/layout records use **references** (`colorThemeId`, `typographyStyleId`) and resolution happens via `StyleResolver` (cascade-aware), with any legacy compatibility confined to a single adapter/migration layer.
+
+- **Tighten invariants with tests**
+  - Add/maintain unit tests asserting canonical master/layout records do not persist embedded `themeSettings` and that layout masters link via `parentMasterId`.
 
 ### Not started / still required by this plan
 
