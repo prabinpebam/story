@@ -16,6 +16,9 @@ This spec is explicitly aligned with:
 - Placeholder behavior in [documentation/01-specs/slides/master-placeholder-integration.md](master-placeholder-integration.md)
 - Product principles in [documentation/00-product/principles.md](../00-product/principles.md)
 
+Implementation planning is tracked in:
+- [documentation/01-specs/slides/06-slide-master-preset-implementation-plan.md](06-slide-master-preset-implementation-plan.md)
+
 ---
 
 ## 1. Principles (non-negotiable)
