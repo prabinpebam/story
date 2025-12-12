@@ -6,33 +6,76 @@ import { COLOR_MODES } from '../../../src/ui/panels/color-theme/ColorThemeUtils.
 describe('StyleResolver', () => {
     // Mock state for testing
     const createMockState = (overrides = {}) => ({
+        colorThemePresets: {
+            'color-theme-default': {
+                id: 'color-theme-default',
+                name: 'Default Theme',
+                lumaTheme: {
+                    id: 'color-theme-default',
+                    name: 'Default Theme',
+                    colorMode: 'dark',
+                    slots: [
+                        { hex: '#0a0810' },  // Slot 0
+                        { hex: '#14101e' },  // Slot 1
+                        { hex: '#231c32' },  // Slot 2
+                        { hex: '#342a48' },  // Slot 3
+                        { hex: '#4d3f6a' },  // Slot 4
+                        { hex: '#665788' },  // Slot 5
+                        { hex: '#7f6fa5' },  // Slot 6
+                        { hex: '#9888bf' },  // Slot 7
+                        { hex: '#b4a9d4' },  // Slot 8
+                        { hex: '#c9c1e3' },  // Slot 9
+                        { hex: '#ded9ef' },  // Slot 10
+                        { hex: '#f7f5fc' }   // Slot 11
+                    ],
+                    resolvedColors: [
+                        '#0a0810',
+                        '#14101e',
+                        '#231c32',
+                        '#342a48',
+                        '#4d3f6a',
+                        '#665788',
+                        '#7f6fa5',
+                        '#9888bf',
+                        '#b4a9d4',
+                        '#c9c1e3',
+                        '#ded9ef',
+                        '#f7f5fc'
+                    ]
+                }
+            },
+            'forest-theme': {
+                id: 'forest-theme',
+                name: 'Forest Theme',
+                lumaTheme: {
+                    id: 'forest-theme',
+                    name: 'Forest Theme',
+                    colorMode: 'dark',
+                    slots: Array(12).fill(null).map((_, i) => ({ hex: i === 0 ? '#001a0f' : '#0b5d3b' })),
+                    resolvedColors: Array(12).fill('#0b5d3b').map((v, i) => (i === 0 ? '#001a0f' : v))
+                }
+            },
+            'sunset-theme': {
+                id: 'sunset-theme',
+                name: 'Sunset Theme',
+                lumaTheme: {
+                    id: 'sunset-theme',
+                    name: 'Sunset Theme',
+                    colorMode: 'dark',
+                    slots: Array(12).fill(null).map((_, i) => ({ hex: i === 0 ? '#2a0a00' : '#ff6b35' })),
+                    resolvedColors: Array(12).fill('#ff6b35').map((v, i) => (i === 0 ? '#2a0a00' : v))
+                }
+            }
+        },
         slideMasterPresets: {
             'master-default': {
                 id: 'master-default',
                 type: 'slideMasterPreset',
                 name: 'Default Theme',
-                colorThemeId: null,
+                colorThemeId: 'color-theme-default',
                 colorModeId: 'dark',
                 typographyStyleId: null,
-                themeSettings: {
-                    lumaTheme: {
-                        colorMode: 'dark',
-                        slots: [
-                            { hex: '#0a0810' },  // Slot 0
-                            { hex: '#14101e' },  // Slot 1
-                            { hex: '#231c32' },  // Slot 2
-                            { hex: '#342a48' },  // Slot 3
-                            { hex: '#4d3f6a' },  // Slot 4
-                            { hex: '#665788' },  // Slot 5
-                            { hex: '#7f6fa5' },  // Slot 6
-                            { hex: '#9888bf' },  // Slot 7
-                            { hex: '#b4a9d4' },  // Slot 8
-                            { hex: '#c9c1e3' },  // Slot 9
-                            { hex: '#ded9ef' },  // Slot 10
-                            { hex: '#f7f5fc' }   // Slot 11
-                        ]
-                    }
-                }
+                themeSettings: undefined
             },
             'layout-title': {
                 id: 'layout-title',
@@ -209,7 +252,7 @@ describe('StyleResolver', () => {
         it('should return light mode when master uses light mode', () => {
             const mockState = createMockState();
             mockState.slideMasterPresets['master-default'].colorModeId = 'light';
-            mockState.slideMasterPresets['master-default'].themeSettings.lumaTheme.colorMode = 'light';
+            mockState.colorThemePresets['color-theme-default'].lumaTheme.colorMode = 'light';
             store.getState = vi.fn(() => mockState);
 
             const result = StyleResolver.getColorMode();
@@ -333,7 +376,7 @@ describe('StyleResolver', () => {
 
         it('should use fallback when slot not found', () => {
             const mockState = createMockState();
-            mockState.slideMasterPresets['master-default'].themeSettings.lumaTheme.slots = [];
+            mockState.colorThemePresets['color-theme-default'].lumaTheme.slots = [];
             store.getState = vi.fn(() => mockState);
 
             const result = StyleResolver.resolveThemeSlot(0, '#fallback', 'slide-1');
@@ -367,7 +410,7 @@ describe('StyleResolver', () => {
         it('should not apply mapping in light mode', () => {
             const mockState = createMockState();
             mockState.slideMasterPresets['master-default'].colorModeId = 'light';
-            mockState.slideMasterPresets['master-default'].themeSettings.lumaTheme.colorMode = 'light';
+            mockState.colorThemePresets['color-theme-default'].lumaTheme.colorMode = 'light';
             store.getState = vi.fn(() => mockState);
 
             const slot0Result = StyleResolver.resolveThemeSlot(0);
@@ -505,10 +548,8 @@ describe('StyleResolver', () => {
 
         it('should return null when no typography preset is found', () => {
             const mockState = createMockState();
-            // Ensure master has no typographyStyleId and no embedded themeSettings
+            // Ensure master has no typographyStyleId
             delete mockState.slideMasterPresets['master-default'].typographyStyleId;
-            delete mockState.slideMasterPresets['master-default'].themeSettings.fonts;
-            delete mockState.slideMasterPresets['master-default'].themeSettings.textStyles;
             mockState.slides['slide-1'].masterSlideId = 'master-default';
             
             store.getState = vi.fn(() => mockState);

@@ -24,26 +24,47 @@ let mockState = {
             id: 'theme-default',
             type: 'slideMasterPreset',
             name: 'Default Theme',
+            colorThemeId: 'color-theme-default',
             typographyStyleId: 'typo-modern', // FIXED: Use correct key
-            themeSettings: {
-                lumaTheme: {
-                    id: 'luma-1',
-                    colorMode: 'light',
-                    resolvedColors: [
-                        '#0A0A0A', // slot 0 - darkest (TEXT_PRIMARY for light mode)
-                        '#1A1A1A', // slot 1
-                        '#2E2E2E', // slot 2 - (TEXT_SECONDARY for light mode)
-                        '#424242', // slot 3
-                        '#565656', // slot 4
-                        '#6A6A6A', // slot 5
-                        '#7E7E7E', // slot 6
-                        '#929292', // slot 7
-                        '#B4B4B4', // slot 8
-                        '#CCCCCC', // slot 9 - (TEXT_SECONDARY for dark mode)
-                        '#E6E6E6', // slot 10
-                        '#F7F7F7'  // slot 11 - lightest (TEXT_PRIMARY for dark mode)
-                    ]
-                }
+            themeSettings: undefined
+        }
+    },
+    colorThemePresets: {
+        'color-theme-default': {
+            id: 'color-theme-default',
+            name: 'Default Theme',
+            lumaTheme: {
+                id: 'luma-1',
+                name: 'Default Theme',
+                colorMode: 'light',
+                slots: [
+                    { hex: '#0A0A0A' },
+                    { hex: '#1A1A1A' },
+                    { hex: '#2E2E2E' },
+                    { hex: '#424242' },
+                    { hex: '#565656' },
+                    { hex: '#6A6A6A' },
+                    { hex: '#7E7E7E' },
+                    { hex: '#929292' },
+                    { hex: '#B4B4B4' },
+                    { hex: '#CCCCCC' },
+                    { hex: '#E6E6E6' },
+                    { hex: '#F7F7F7' }
+                ],
+                resolvedColors: [
+                    '#0A0A0A', // slot 0 - darkest (TEXT_PRIMARY for light mode)
+                    '#1A1A1A', // slot 1
+                    '#2E2E2E', // slot 2 - (TEXT_SECONDARY for light mode)
+                    '#424242', // slot 3
+                    '#565656', // slot 4
+                    '#6A6A6A', // slot 5
+                    '#7E7E7E', // slot 6
+                    '#929292', // slot 7
+                    '#B4B4B4', // slot 8
+                    '#CCCCCC', // slot 9 - (TEXT_SECONDARY for dark mode)
+                    '#E6E6E6', // slot 10
+                    '#F7F7F7'  // slot 11 - lightest (TEXT_PRIMARY for dark mode)
+                ]
             }
         }
     },
@@ -221,7 +242,7 @@ describe('Property Inspector Typography Display', () => {
     describe('Dark vs Light Theme Color Mode', () => {
         it('should use light text colors for dark theme', () => {
             // Change to dark theme
-            mockState.slideMasterPresets['theme-default'].themeSettings.lumaTheme.colorMode = 'dark';
+            mockState.colorThemePresets['color-theme-default'].lumaTheme.colorMode = 'dark';
 
             const element = {
                 id: 'text-1',
@@ -238,7 +259,7 @@ describe('Property Inspector Typography Display', () => {
 
         it('should use dark text colors for light theme', () => {
             // Reset to light theme (previous test changed it to dark)
-            mockState.slideMasterPresets['theme-default'].themeSettings.lumaTheme.colorMode = 'light';
+            mockState.colorThemePresets['color-theme-default'].lumaTheme.colorMode = 'light';
             
             const element = {
                 id: 'text-1',
@@ -262,12 +283,12 @@ describe('Property Inspector Typography Display', () => {
             };
 
             // Light mode - should use slot 2
-            mockState.slideMasterPresets['theme-default'].themeSettings.lumaTheme.colorMode = 'light';
+            mockState.colorThemePresets['color-theme-default'].lumaTheme.colorMode = 'light';
             let props = StyleResolver.getEffectiveTextProperties(element, {}, mockSlideId);
             expect(props.textFill.value).toBe('#2E2E2E'); // slot 2
 
             // Dark mode - should use slot 9
-            mockState.slideMasterPresets['theme-default'].themeSettings.lumaTheme.colorMode = 'dark';
+            mockState.colorThemePresets['color-theme-default'].lumaTheme.colorMode = 'dark';
             props = StyleResolver.getEffectiveTextProperties(element, {}, mockSlideId);
             expect(props.textFill.value).toBe('#CCCCCC'); // slot 9
         });
@@ -336,7 +357,7 @@ describe('Property Inspector Typography Display', () => {
         });
 
         it('should handle missing color theme gracefully', () => {
-            delete mockState.slideMasterPresets['theme-default'].themeSettings.lumaTheme;
+            delete mockState.colorThemePresets['color-theme-default'].lumaTheme;
 
             const element = {
                 id: 'text-1',

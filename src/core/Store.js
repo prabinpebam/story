@@ -510,53 +510,22 @@ export class Store extends EventEmitter {
             themeSource = themeInfo?.source || 'master';
         }
 
-        // If no layout, return slide as is (legacy support)
+        // If no layout, return slide as is
         if (!slide.layoutId || !this.state.slideMasterPresets || !this.state.slideMasterPresets[slide.layoutId]) {
-            // Get typography fonts through cascade even without layout
-            let themeSettings = {};
-            if (StyleResolver) {
-                const typoInfo = StyleResolver.getEffectiveTypographyStyle(slideId);
-                const typographyPreset = this.state.typographyStylePresets?.[typoInfo.typographyStyleId];
-                if (typographyPreset?.fonts) {
-                    themeSettings = {
-                        fonts: typographyPreset.fonts
-                    };
-                }
-            }
-            
             return {
                 ...slide,
                 effectiveBackground: slide.background || { type: 'solid', value: '#FFFFFF' },
                 effectiveElements: slide.elements,
                 effectiveOrder: slide.elementOrder,
                 resolvedLumaTheme,
-                themeSource,
-                themeSettings
+                themeSource
             };
         }
 
         const layout = this.state.slideMasterPresets[slide.layoutId];
         const theme = this.state.slideMasterPresets[layout.parentMasterId];
 
-        // Resolve Theme Settings using cascade-aware StyleResolver
-        // Get typography style through cascade (slide → layout → master)
-        let themeSettings = {};
-        if (theme) {
-            themeSettings = theme.themeSettings || {};
-        }
-        
-        // Use StyleResolver to get cascade-aware typography fonts
-        if (StyleResolver) {
-            const typoInfo = StyleResolver.getEffectiveTypographyStyle(slideId);
-            const typographyPreset = this.state.typographyStylePresets?.[typoInfo.typographyStyleId];
-            if (typographyPreset?.fonts) {
-                // Override themeSettings.fonts with cascade-resolved fonts
-                themeSettings = {
-                    ...themeSettings,
-                    fonts: typographyPreset.fonts
-                };
-            }
-        }
+        // Canonical-only: masters/layouts do not embed themeSettings.
 
         // 1. Resolve Background
         let background = slide.background;
@@ -614,7 +583,6 @@ export class Store extends EventEmitter {
             effectiveBackground: background,
             effectiveElements,
             effectiveOrder,
-            themeSettings,
             resolvedLumaTheme,
             themeSource
         };

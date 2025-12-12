@@ -27,22 +27,22 @@ describe('Slide Color Theme Controls - Frontend UI Tests', () => {
     
     // Helper to create a minimal test state
     function createTestState(overrides = {}) {
+        const defaultLumaTheme = {
+            id: 'default',
+            name: 'Default Theme',
+            slots: Array(12).fill(null).map(() => ({ h: 220, s: 80 })),
+            adjustments: { saturation: 0, contrast: 0 },
+            resolvedColors: Array(12).fill('#3B82F6'),
+            colorMode: 'light'
+        };
+
         return {
             slideMasterPresets: {
                 'master-default': {
                     id: 'master-default',
                     type: 'slideMasterPreset',
                     name: 'Default Master',
-                    themeSettings: {
-                        lumaTheme: {
-                            id: 'default',
-                            name: 'Default Theme',
-                            slots: Array(12).fill(null).map((_, i) => ({ h: 220, s: 80 })),
-                            adjustments: { saturation: 0, contrast: 0 },
-                            resolvedColors: Array(12).fill('#3B82F6')
-                        },
-                        fonts: { heading: 'Inter', body: 'Inter' }
-                    },
+                    colorThemeId: 'color-theme-default',
                     colorModeId: 'light'
                 },
                 'layout-title': {
@@ -52,7 +52,13 @@ describe('Slide Color Theme Controls - Frontend UI Tests', () => {
                     parentMasterId: 'master-default'
                 }
             },
-            colorThemePresets: {},
+            colorThemePresets: {
+                'color-theme-default': {
+                    id: 'color-theme-default',
+                    name: 'Default Theme',
+                    lumaTheme: defaultLumaTheme
+                }
+            },
             slides: {
                 'slide-1': {
                     id: 'slide-1',

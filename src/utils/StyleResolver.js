@@ -2,6 +2,25 @@ import { getEffectiveSlotIndex, COLOR_MODES, generateThemeColors, DEFAULT_ADJUST
 import { THEME_PRESETS, getPresetById } from '../ui/panels/color-theme/ThemePresets.js';
 import { ThemeDiag } from './ThemeDiagnostics.js';
 
+const DEFAULT_COLOR_THEME_ID = 'color-theme-default';
+const DEFAULT_TYPOGRAPHY_STYLE_ID = 'typo-style-default';
+
+// Canonical 12-slot order used by ColorThemePresets
+const COLOR_SLOT_ORDER = [
+    'background1',
+    'background2',
+    'text1',
+    'text2',
+    'accent1',
+    'accent2',
+    'accent3',
+    'accent4',
+    'accent5',
+    'accent6',
+    'hyperlink',
+    'followedHyperlink'
+];
+
 // Lazy import to avoid circular dependency with Store
 // We access store through window global which is set after Store is initialized
 function getStore() {
@@ -19,6 +38,59 @@ function getStore() {
  * Designed to be reusable for both Color Themes and Typography Styles.
  */
 export const StyleResolver = {
+
+    _colorsObjectToResolvedArray(colors) {
+        if (!colors || typeof colors !== 'object') return [];
+        return COLOR_SLOT_ORDER.map(key => colors[key]).filter(Boolean);
+    },
+
+    _resolvedArrayToColorsObject(resolvedColors) {
+        if (!Array.isArray(resolvedColors)) return null;
+        const obj = {};
+        COLOR_SLOT_ORDER.forEach((key, index) => {
+            if (resolvedColors[index]) obj[key] = resolvedColors[index];
+        });
+        return obj;
+    },
+
+    _getLumaThemeForColorThemeId(state, colorThemeId, colorMode) {
+        const themeId = colorThemeId || DEFAULT_COLOR_THEME_ID;
+        const preset = state?.colorThemePresets?.[themeId];
+        if (preset) {
+            // Prefer explicit lumaTheme if the preset provides it
+            if (preset.lumaTheme) {
+                return {
+                    ...preset.lumaTheme,
+                    id: preset.lumaTheme.id || preset.id,
+                    name: preset.lumaTheme.name || preset.name,
+                    colorMode: preset.lumaTheme.colorMode || colorMode
+                };
+            }
+
+            // Canonical preset shape (InitialState): { colors: { background1..followedHyperlink }, isDark }
+            if (preset.colors) {
+                const resolvedColors = this._colorsObjectToResolvedArray(preset.colors);
+                return {
+                    id: preset.id,
+                    name: preset.name,
+                    slots: resolvedColors.map(hex => ({ h: null, s: null, hex })),
+                    resolvedColors,
+                    colorMode: colorMode || (preset.isDark ? COLOR_MODES.DARK : COLOR_MODES.LIGHT)
+                };
+            }
+        }
+
+        // Fallback: look up from the older ThemePresets library
+        const fallback = this._lookupThemeById(themeId);
+        if (fallback) {
+            return {
+                ...fallback,
+                colorMode: fallback.colorMode || colorMode
+            };
+        }
+
+        return null;
+    },
 
     // ============================================
     // CASCADING STYLE SYSTEM
@@ -92,8 +164,7 @@ export const StyleResolver = {
      */
     _getMasterThemeInfo(state) {
         const themeMaster = Object.values(state.slideMasterPresets || {}).find(m => m.type === 'slideMasterPreset');
-        const themeId = themeMaster?.colorThemeId || 
-                       (themeMaster?.themeSettings?.lumaTheme ? 'default' : null);
+        const themeId = themeMaster?.styleAssignments?.colorTheme || themeMaster?.colorThemeId || DEFAULT_COLOR_THEME_ID;
         
         return {
             themeId,
@@ -114,27 +185,27 @@ export const StyleResolver = {
         if (!store) return COLOR_MODES.LIGHT;
         const state = store.getState();
         const themeMaster = Object.values(state.slideMasterPresets || {}).find(m => m.type === 'slideMasterPreset');
+
+        if (!themeMaster) return COLOR_MODES.LIGHT;
         
         // Check colorModeId first
         if (themeMaster?.colorModeId) {
             return themeMaster.colorModeId;
         }
         
-        // Check referenced color theme (New Architecture)
-        if (themeMaster?.colorThemeId) {
-            const preset = state.colorThemePresets?.[themeMaster.colorThemeId];
-            if (preset) {
-                // Check lumaTheme specific mode
-                if (preset.lumaTheme?.colorMode) {
-                    return preset.lumaTheme.colorMode;
-                }
-                // Check standard isDark property
-                return preset.isDark ? COLOR_MODES.DARK : COLOR_MODES.LIGHT;
+        // Check referenced color theme (canonical)
+        const themeId = themeMaster?.styleAssignments?.colorTheme || themeMaster?.colorThemeId || DEFAULT_COLOR_THEME_ID;
+        const preset = state.colorThemePresets?.[themeId];
+        if (preset) {
+            // Check lumaTheme specific mode
+            if (preset.lumaTheme?.colorMode) {
+                return preset.lumaTheme.colorMode;
             }
+            // Check standard isDark property
+            return preset.isDark ? COLOR_MODES.DARK : COLOR_MODES.LIGHT;
         }
-        
-        // Fallback to lumaTheme colorMode (Legacy)
-        return themeMaster?.themeSettings?.lumaTheme?.colorMode || COLOR_MODES.LIGHT;
+
+        return COLOR_MODES.LIGHT;
     },
     
     /**
@@ -159,22 +230,13 @@ export const StyleResolver = {
         
         // Get the theme master
         const themeMaster = Object.values(state.slideMasterPresets || {}).find(m => m.type === 'slideMasterPreset');
+
+        // No theme master exists
+        if (!themeMaster) return null;
         
-        // Resolve Master Luma Theme
-        let masterLumaTheme = null;
-        
-        // 1. Try Reference (New Architecture)
-        if (themeMaster?.colorThemeId) {
-            const preset = state.colorThemePresets?.[themeMaster.colorThemeId];
-            if (preset?.lumaTheme) {
-                masterLumaTheme = preset.lumaTheme;
-            }
-        }
-        
-        // 2. Fallback to Embedded (Legacy)
-        if (!masterLumaTheme) {
-            masterLumaTheme = themeMaster?.themeSettings?.lumaTheme || null;
-        }
+        const colorMode = this.getColorMode();
+        const masterThemeId = themeMaster?.styleAssignments?.colorTheme || themeMaster?.colorThemeId || DEFAULT_COLOR_THEME_ID;
+        const masterLumaTheme = this._getLumaThemeForColorThemeId(state, masterThemeId, colorMode);
         
         // If we have a slideId, check for slide-level override
         if (slideId) {
@@ -182,16 +244,8 @@ export const StyleResolver = {
             
             // If the slide or layout has a specific theme assigned, look it up
             if (themeInfo.themeId && themeInfo.source !== 'master') {
-                // Try to find in state first
-                const statePreset = state.colorThemePresets?.[themeInfo.themeId];
-                if (statePreset?.lumaTheme) {
-                    return statePreset.lumaTheme;
-                }
-
-                const resolvedTheme = this._lookupThemeById(themeInfo.themeId);
-                if (resolvedTheme) {
-                    return resolvedTheme;
-                }
+                const resolved = this._getLumaThemeForColorThemeId(state, themeInfo.themeId, colorMode);
+                if (resolved) return resolved;
             }
         }
         
@@ -305,8 +359,8 @@ export const StyleResolver = {
         const colorMode = this.getColorMode();
         
         if (master.type === 'slideMasterPreset') {
-            // Theme master - show its lumaTheme directly
-            const lumaTheme = master.themeSettings?.lumaTheme || null;
+            const themeId = master.styleAssignments?.colorTheme || master.colorThemeId || DEFAULT_COLOR_THEME_ID;
+            const lumaTheme = this._getLumaThemeForColorThemeId(state, themeId, colorMode);
             return {
                 lumaTheme,
                 colorMode,
@@ -317,9 +371,10 @@ export const StyleResolver = {
             };
         } else if (master.type === 'layoutMaster') {
             // Layout master - check for override, otherwise inherit from parent (theme master)
-            if (master.colorThemeId) {
+            const layoutThemeId = master.styleAssignments?.colorTheme || master.colorThemeId;
+            if (layoutThemeId) {
                 // Layout has its own theme override
-                const lumaTheme = this._lookupThemeById(master.colorThemeId);
+                const lumaTheme = this._getLumaThemeForColorThemeId(state, layoutThemeId, colorMode);
                 return {
                     lumaTheme,
                     colorMode,
@@ -331,12 +386,13 @@ export const StyleResolver = {
             } else {
                 // Layout inherits from parent theme master
                 const parentMaster = master.parentMasterId ? state.slideMasterPresets?.[master.parentMasterId] : null;
-                const lumaTheme = parentMaster?.themeSettings?.lumaTheme || null;
+                const parentThemeId = parentMaster?.styleAssignments?.colorTheme || parentMaster?.colorThemeId || DEFAULT_COLOR_THEME_ID;
+                const lumaTheme = this._getLumaThemeForColorThemeId(state, parentThemeId, colorMode);
                 return {
                     lumaTheme,
                     colorMode,
                     source: 'master',
-                    sourceId: parentMaster?.id || 'theme-default',
+                    sourceId: parentMaster?.id || 'master-default',
                     sourceLabel: `Inherited from ${parentMaster?.name || 'Theme Master'}`,
                     isInherited: true
                 };
@@ -603,7 +659,7 @@ export const StyleResolver = {
         const themeMaster = Object.values(state.slideMasterPresets || {}).find(m => m.type === 'slideMasterPreset');
         const typographyStyleId = themeMaster?.typographyStyleId || 
                                  themeMaster?.styleAssignments?.typographyStyle ||
-                                 'typo-style-default';
+                                 DEFAULT_TYPOGRAPHY_STYLE_ID;
         
         return {
             typographyStyleId,
@@ -683,11 +739,7 @@ export const StyleResolver = {
             }
         }
         
-        // Fallback to embedded legacy
-        return {
-            fonts: themeMaster.themeSettings?.fonts || { heading: 'Inter', body: 'Inter' },
-            textStyles: themeMaster.themeSettings?.textStyles || {}
-        };
+        return { fonts: { heading: 'Inter', body: 'Inter' }, textStyles: {} };
     },
 
     /**

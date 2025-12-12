@@ -52,7 +52,10 @@ export class SlideView {
         // CSS variables are applied ONLY to this slide's DOM element, not globally.
         // This allows different slides to have different themes without pollution.
         
-        const themeInfo = StyleResolver.getThemeInfoForSlide(this.slideId);
+        const isMasterRecord = slideData?.type === 'slideMasterPreset' || slideData?.type === 'layoutMaster';
+        const themeInfo = isMasterRecord
+            ? StyleResolver.getThemeInfoForMaster(this.slideId)
+            : StyleResolver.getThemeInfoForSlide(this.slideId);
         
         if (themeInfo?.lumaTheme) {
             const lumaTheme = themeInfo.lumaTheme;
@@ -81,32 +84,59 @@ export class SlideView {
             ThemeDiag.logSlideViewApply(this.slideId, lumaTheme, this.domElement);
         }
         
-        // Inject Legacy Theme Variables (for backwards compatibility)
-        if (slideData.themeSettings) {
-            const { colors, fonts } = slideData.themeSettings;
-            if (colors) {
-                // 12-color theme schema (legacy)
-                if (colors.background1) this.domElement.style.setProperty('--theme-background1', colors.background1);
-                if (colors.background2) this.domElement.style.setProperty('--theme-background2', colors.background2);
-                if (colors.text1) this.domElement.style.setProperty('--theme-text1', colors.text1);
-                if (colors.text2) this.domElement.style.setProperty('--theme-text2', colors.text2);
-                if (colors.accent1) this.domElement.style.setProperty('--theme-accent1', colors.accent1);
-                if (colors.accent2) this.domElement.style.setProperty('--theme-accent2', colors.accent2);
-                if (colors.accent3) this.domElement.style.setProperty('--theme-accent3', colors.accent3);
-                if (colors.accent4) this.domElement.style.setProperty('--theme-accent4', colors.accent4);
-                if (colors.accent5) this.domElement.style.setProperty('--theme-accent5', colors.accent5);
-                if (colors.accent6) this.domElement.style.setProperty('--theme-accent6', colors.accent6);
-                if (colors.hyperlink) this.domElement.style.setProperty('--theme-hyperlink', colors.hyperlink);
-                if (colors.followedHyperlink) this.domElement.style.setProperty('--theme-followed-hyperlink', colors.followedHyperlink);
-                // Legacy aliases for backwards compatibility
-                if (colors.accent) this.domElement.style.setProperty('--theme-accent', colors.accent);
-                if (colors.textPrimary) this.domElement.style.setProperty('--theme-text-primary', colors.textPrimary);
-                if (colors.textSecondary) this.domElement.style.setProperty('--theme-text-secondary', colors.textSecondary);
+        // Canonical theme variables (named slots + fonts)
+        const state = store.getState();
+        const resolveThemeAndTypographyIds = () => {
+            if (!isMasterRecord) {
+                const themeId = StyleResolver.getEffectiveColorTheme(this.slideId)?.themeId || 'color-theme-default';
+                const typoId = StyleResolver.getEffectiveTypographyStyle(this.slideId)?.typographyStyleId || 'typo-style-default';
+                return { themeId, typoId };
             }
-            if (fonts) {
-                if (fonts.heading) this.domElement.style.setProperty('--theme-font-heading', fonts.heading);
-                if (fonts.body) this.domElement.style.setProperty('--theme-font-body', fonts.body);
+
+            if (slideData.type === 'slideMasterPreset') {
+                const themeId = slideData.styleAssignments?.colorTheme || slideData.colorThemeId || 'color-theme-default';
+                const typoId = slideData.styleAssignments?.typographyStyle || slideData.typographyStyleId || 'typo-style-default';
+                return { themeId, typoId };
             }
+
+            // layoutMaster
+            const parent = slideData.parentMasterId ? state.slideMasterPresets?.[slideData.parentMasterId] : null;
+            const themeId = slideData.styleAssignments?.colorTheme || slideData.colorThemeId || parent?.styleAssignments?.colorTheme || parent?.colorThemeId || 'color-theme-default';
+            const typoId = slideData.styleAssignments?.typographyStyle || slideData.typographyStyleId || parent?.styleAssignments?.typographyStyle || parent?.typographyStyleId || 'typo-style-default';
+            return { themeId, typoId };
+        };
+
+        const { themeId, typoId } = resolveThemeAndTypographyIds();
+
+        const colorPreset = state.colorThemePresets?.[themeId] || null;
+        const colors = colorPreset?.colors || StyleResolver._resolvedArrayToColorsObject(themeInfo?.lumaTheme?.resolvedColors);
+        if (colors) {
+            // Canonical 12-color schema
+            if (colors.background1) this.domElement.style.setProperty('--theme-background1', colors.background1);
+            if (colors.background2) this.domElement.style.setProperty('--theme-background2', colors.background2);
+            if (colors.text1) this.domElement.style.setProperty('--theme-text1', colors.text1);
+            if (colors.text2) this.domElement.style.setProperty('--theme-text2', colors.text2);
+            if (colors.accent1) this.domElement.style.setProperty('--theme-accent1', colors.accent1);
+            if (colors.accent2) this.domElement.style.setProperty('--theme-accent2', colors.accent2);
+            if (colors.accent3) this.domElement.style.setProperty('--theme-accent3', colors.accent3);
+            if (colors.accent4) this.domElement.style.setProperty('--theme-accent4', colors.accent4);
+            if (colors.accent5) this.domElement.style.setProperty('--theme-accent5', colors.accent5);
+            if (colors.accent6) this.domElement.style.setProperty('--theme-accent6', colors.accent6);
+            if (colors.hyperlink) this.domElement.style.setProperty('--theme-hyperlink', colors.hyperlink);
+            if (colors.followedHyperlink) this.domElement.style.setProperty('--theme-followed-hyperlink', colors.followedHyperlink);
+
+            // Aliases used by existing style tokens
+            if (colors.accent1) this.domElement.style.setProperty('--theme-accent', colors.accent1);
+            if (colors.text1) this.domElement.style.setProperty('--theme-text-primary', colors.text1);
+            if (colors.text2) this.domElement.style.setProperty('--theme-text-secondary', colors.text2);
+        }
+
+        const typoPreset = state.typographyStylePresets?.[typoId] || null;
+        const fonts = typoPreset?.fonts || null;
+        if (fonts) {
+            if (fonts.heading) this.domElement.style.setProperty('--theme-font-heading', fonts.heading);
+            if (fonts.body) this.domElement.style.setProperty('--theme-font-body', fonts.body);
+            if (fonts.monospace) this.domElement.style.setProperty('--theme-font-monospace', fonts.monospace);
         }
 
         // Update Background

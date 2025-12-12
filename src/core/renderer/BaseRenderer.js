@@ -84,8 +84,7 @@ export class BaseRenderer {
                     height: item.height || 1080,
                     effectiveBackground: item.background || { type: 'solid', value: '#ffffff' },
                     effectiveElements: item.elements || {},
-                    effectiveOrder: item.elementOrder || [],
-                    themeSettings: item.themeSettings
+                    effectiveOrder: item.elementOrder || []
                 };
             } else if (item.type === 'layoutMaster') {
                 const masterId = item.parentMasterId;
@@ -128,8 +127,7 @@ export class BaseRenderer {
                     height: item.height || 1080,
                     effectiveBackground,
                     effectiveElements,
-                    effectiveOrder,
-                    themeSettings: master ? master.themeSettings : {}
+                    effectiveOrder
                 };
             }
             return null;

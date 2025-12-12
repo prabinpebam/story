@@ -447,25 +447,37 @@ class LinkedPropertyManager extends EventEmitter {
     getThemeColors() {
         const state = store.getState();
         const activeSlideId = state.editor?.activeSlideId;
-        
-        if (activeSlideId) {
-            const slide = state.slides[activeSlideId];
-            if (slide?.layoutId) {
-                const layout = state.slideMasterPresets[slide.layoutId];
-                if (layout?.parentMasterId) {
-                    const theme = state.slideMasterPresets[layout.parentMasterId];
-                    return theme?.themeSettings?.colors || {};
-                }
+
+        const resolveThemeId = () => {
+            const slide = activeSlideId ? state.slides?.[activeSlideId] : null;
+            if (slide) {
+                const slideThemeId = slide.styleAssignments?.colorTheme || slide.colorThemeId;
+                if (slideThemeId) return slideThemeId;
+
+                const layout = slide.layoutId ? state.slideMasterPresets?.[slide.layoutId] : null;
+                const layoutThemeId = layout?.styleAssignments?.colorTheme || layout?.colorThemeId;
+                if (layoutThemeId) return layoutThemeId;
+
+                const master = layout?.parentMasterId ? state.slideMasterPresets?.[layout.parentMasterId] : null;
+                const masterThemeId = master?.styleAssignments?.colorTheme || master?.colorThemeId;
+                if (masterThemeId) return masterThemeId;
             }
+
+            const themeMaster = Object.values(state.slideMasterPresets || {}).find(m => m.type === 'slideMasterPreset');
+            return themeMaster?.styleAssignments?.colorTheme || themeMaster?.colorThemeId || 'color-theme-default';
+        };
+
+        const themeId = resolveThemeId();
+        const preset = state.colorThemePresets?.[themeId];
+        if (preset?.colors) return preset.colors;
+        if (preset?.lumaTheme?.resolvedColors && Array.isArray(preset.lumaTheme.resolvedColors)) {
+            const order = ['background1','background2','text1','text2','accent1','accent2','accent3','accent4','accent5','accent6','hyperlink','followedHyperlink'];
+            const obj = {};
+            order.forEach((key, index) => {
+                if (preset.lumaTheme.resolvedColors[index]) obj[key] = preset.lumaTheme.resolvedColors[index];
+            });
+            return obj;
         }
-        
-        // Fallback to first slide master preset
-        for (const master of Object.values(state.slideMasterPresets || {})) {
-            if (master.type === 'slideMasterPreset') {
-                return master.themeSettings?.colors || {};
-            }
-        }
-        
         return {};
     }
 
@@ -476,26 +488,29 @@ class LinkedPropertyManager extends EventEmitter {
     getTypographyStyles() {
         const state = store.getState();
         const activeSlideId = state.editor?.activeSlideId;
-        
-        if (activeSlideId) {
-            const slide = state.slides[activeSlideId];
-            if (slide?.layoutId) {
-                const layout = state.slideMasterPresets[slide.layoutId];
-                if (layout?.parentMasterId) {
-                    const theme = state.slideMasterPresets[layout.parentMasterId];
-                    return theme?.themeSettings?.textStyles || {};
-                }
+
+        const resolveTypographyId = () => {
+            const slide = activeSlideId ? state.slides?.[activeSlideId] : null;
+            if (slide) {
+                const slideId = slide.styleAssignments?.typographyStyle || slide.typographyStyleId;
+                if (slideId) return slideId;
+
+                const layout = slide.layoutId ? state.slideMasterPresets?.[slide.layoutId] : null;
+                const layoutId = layout?.styleAssignments?.typographyStyle || layout?.typographyStyleId;
+                if (layoutId) return layoutId;
+
+                const master = layout?.parentMasterId ? state.slideMasterPresets?.[layout.parentMasterId] : null;
+                const masterId = master?.styleAssignments?.typographyStyle || master?.typographyStyleId;
+                if (masterId) return masterId;
             }
-        }
-        
-        // Fallback to first slide master preset
-        for (const master of Object.values(state.slideMasterPresets || {})) {
-            if (master.type === 'slideMasterPreset') {
-                return master.themeSettings?.textStyles || {};
-            }
-        }
-        
-        return {};
+
+            const themeMaster = Object.values(state.slideMasterPresets || {}).find(m => m.type === 'slideMasterPreset');
+            return themeMaster?.styleAssignments?.typographyStyle || themeMaster?.typographyStyleId || 'typo-style-default';
+        };
+
+        const styleId = resolveTypographyId();
+        const preset = state.typographyStylePresets?.[styleId];
+        return preset?.textStyles || {};
     }
 
     /**
@@ -505,26 +520,29 @@ class LinkedPropertyManager extends EventEmitter {
     getThemeFonts() {
         const state = store.getState();
         const activeSlideId = state.editor?.activeSlideId;
-        
-        if (activeSlideId) {
-            const slide = state.slides[activeSlideId];
-            if (slide?.layoutId) {
-                const layout = state.slideMasterPresets[slide.layoutId];
-                if (layout?.parentMasterId) {
-                    const theme = state.slideMasterPresets[layout.parentMasterId];
-                    return theme?.themeSettings?.fonts || { heading: 'Inter', body: 'Inter' };
-                }
+
+        const resolveTypographyId = () => {
+            const slide = activeSlideId ? state.slides?.[activeSlideId] : null;
+            if (slide) {
+                const slideId = slide.styleAssignments?.typographyStyle || slide.typographyStyleId;
+                if (slideId) return slideId;
+
+                const layout = slide.layoutId ? state.slideMasterPresets?.[slide.layoutId] : null;
+                const layoutId = layout?.styleAssignments?.typographyStyle || layout?.typographyStyleId;
+                if (layoutId) return layoutId;
+
+                const master = layout?.parentMasterId ? state.slideMasterPresets?.[layout.parentMasterId] : null;
+                const masterId = master?.styleAssignments?.typographyStyle || master?.typographyStyleId;
+                if (masterId) return masterId;
             }
-        }
-        
-        // Fallback
-        for (const master of Object.values(state.slideMasterPresets || {})) {
-            if (master.type === 'slideMasterPreset') {
-                return master.themeSettings?.fonts || { heading: 'Inter', body: 'Inter' };
-            }
-        }
-        
-        return { heading: 'Inter', body: 'Inter' };
+
+            const themeMaster = Object.values(state.slideMasterPresets || {}).find(m => m.type === 'slideMasterPreset');
+            return themeMaster?.styleAssignments?.typographyStyle || themeMaster?.typographyStyleId || 'typo-style-default';
+        };
+
+        const styleId = resolveTypographyId();
+        const preset = state.typographyStylePresets?.[styleId];
+        return preset?.fonts || { heading: 'Inter', body: 'Inter' };
     }
 
     /**
