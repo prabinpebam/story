@@ -44,8 +44,48 @@ export class TypographyStyleManager extends DraggablePanel {
         this.searchQuery = '';
         this.originalFonts = null; // For preview/cancel
         this.expandedStyles = new Set(['title', 'body']); // Expanded style editors
+
+        this._presetFontsPreloadPromise = null;
         
         this.buildUI();
+    }
+
+    onOpen() {
+        // Keep the list up to date and ensure previews render with correct fonts.
+        if (this.activeTab === 'presets') {
+            this.renderPresetGrid();
+        }
+        this.preloadAllPresetFonts();
+    }
+
+    preloadAllPresetFonts() {
+        if (this._presetFontsPreloadPromise) return this._presetFontsPreloadPromise;
+
+        const state = store.getState();
+        const presets = Object.values(state.typographyStylePresets || {});
+
+        const fontFamilies = new Set();
+        presets.forEach(preset => {
+            if (preset?.fonts?.heading) fontFamilies.add(preset.fonts.heading);
+            if (preset?.fonts?.body) fontFamilies.add(preset.fonts.body);
+
+            // Defensive: some presets may include explicit per-style families.
+            if (preset?.textStyles) {
+                Object.values(preset.textStyles).forEach(style => {
+                    if (style?.fontFamily) fontFamilies.add(style.fontFamily);
+                });
+            }
+        });
+
+        this._presetFontsPreloadPromise = Promise.allSettled(
+            Array.from(fontFamilies)
+                .filter(Boolean)
+                .map(family => fontManager.loadFont(family))
+        ).catch(() => {
+            // Avoid breaking panel open if font loading fails.
+        });
+
+        return this._presetFontsPreloadPromise;
     }
 
     buildUI() {
