@@ -10,14 +10,11 @@ import { FillSection } from './FillSection.js';
 import { panelManager } from '../PanelManager.js';
 import { Icons } from '../Icons.js';
 import { ThemeSwatches } from '../components/ThemeSwatches.js';
-import { SLIDE_MASTER_PRESETS, getPresetById, getPresetList, getFullPresetById } from '../../core/store/SlideMasterPresets.js';
-import { THEME_PRESETS, getPresetById as getThemePresetById } from '../panels/color-theme/ThemePresets.js';
-import { applyThemeToCSSVariables, COLOR_MODES } from '../panels/color-theme/ColorThemeUtils.js';
+import { getPresetById, getPresetList } from '../../core/store/SlideMasterPresets.js';
+import { COLOR_MODES } from '../panels/color-theme/ColorThemeUtils.js';
 import { StyleResolver } from '../../utils/StyleResolver.js';
 import { ThemeDiag } from '../../utils/ThemeDiagnostics.js';
 import { ThumbnailRenderer } from '../../core/renderer/ThumbnailRenderer.js';
-import { notify } from '../services/NotificationService.js';
-import { isMasterInUseBySlides } from '../../core/master/MasterUsage.js';
 
 export class SlideSection {
     constructor() {
@@ -26,7 +23,6 @@ export class SlideSection {
         this.element.className = 'slide-properties';
         
         this.layoutFlyout = null;
-        this.presetFlyout = null;
         
         this.fillSection = new FillSection({
             title: 'Background',
@@ -107,7 +103,7 @@ export class SlideSection {
     }
 
     createPresetSection() {
-        this.presetSection = new Section({ title: 'Template' });
+        this.presetSection = new Section({ title: 'Master preset' });
         // Stable hook for e2e tests (no visual impact)
         this.presetSection.element.setAttribute('data-testid', 'master-preset-section');
         
@@ -116,14 +112,21 @@ export class SlideSection {
         
         // Preset trigger button
         this.presetTriggerBtn = new Button({
-            label: 'Select Template',
+            label: 'Select Master Preset',
             variant: 'secondary',
             size: 'sm',
             className: 'preset-trigger-btn',
-            onClick: () => this.openPresetFlyout()
+            onClick: () => {
+                const state = store.getState();
+                const panel = panelManager.get('master-preset-picker');
+                if (panel && typeof panel.setMasterId === 'function') {
+                    panel.setMasterId(state.editor.activeMasterId);
+                }
+                panelManager.open('master-preset-picker');
+            }
         });
         this.presetTrigger = this.presetTriggerBtn.element;
-        this.presetTrigger.setAttribute('data-testid', 'master-preset-trigger');
+        this.presetTrigger.setAttribute('data-testid', 'master-preset-row-button');
         presetRow.appendChild(this.presetTrigger);
         
         this.presetSection.appendChild(presetRow);
@@ -995,196 +998,6 @@ export class SlideSection {
         this.layoutFlyout.open();
     }
 
-    openPresetFlyout() {
-        // Create flyout content
-        const content = document.createElement('div');
-        content.className = 'preset-flyout-content';
-        content.setAttribute('data-testid', 'master-preset-flyout');
-        
-        // Title
-        const title = document.createElement('div');
-        title.className = 'preset-flyout-title';
-        title.textContent = 'Select Master Preset';
-        content.appendChild(title);
-        
-        // Grid container
-        const grid = document.createElement('div');
-        grid.className = 'preset-flyout-grid';
-        
-        // Get current preset
-        const state = store.getState();
-        const themeMaster = state.slideMasterPresets[state.editor.activeMasterId];
-        const fallbackPresetId = getPresetList()?.[0]?.id;
-        const currentPresetId = themeMaster?.presetId || fallbackPresetId;
-        
-        // Populate with presets
-        const presets = getPresetList();
-        
-        presets.forEach(preset => {
-            const thumbnail = document.createElement('div');
-            thumbnail.className = 'preset-thumbnail' + (preset.id === currentPresetId ? ' selected' : '');
-            thumbnail.dataset.presetId = preset.id;
-            thumbnail.title = preset.name;
-            thumbnail.setAttribute('data-testid', 'master-preset-option');
-            
-            // Create preview with background color
-            const preview = document.createElement('div');
-            preview.className = 'preset-preview';
-            
-            // Set background from preset's background fill
-            const bgFill = preset.background?.[0];
-            if (bgFill) {
-                if (bgFill.themeSlot) {
-                    // Use theme color from preset's theme
-                    const themePreset = this.getThemePresetColors(preset.colorThemeId);
-                    if (themePreset) {
-                        const slot = themePreset.slots[bgFill.themeSlot - 1];
-                        if (slot) {
-                            preview.style.backgroundColor = slot.hex;
-                        }
-                    }
-                } else if (bgFill.value) {
-                    preview.style.backgroundColor = bgFill.value;
-                }
-            }
-            
-            // Add accent color swatches to preview
-            const swatches = document.createElement('div');
-            swatches.className = 'preset-swatches';
-            
-            const themePreset = this.getThemePresetColors(preset.colorThemeId);
-            if (themePreset) {
-                // Show first 4 accent colors
-                [1, 2, 3, 4].forEach(slotIndex => {
-                    const slot = themePreset.slots[slotIndex - 1];
-                    if (slot) {
-                        const swatch = document.createElement('div');
-                        swatch.className = 'preset-swatch';
-                        swatch.style.backgroundColor = slot.hex;
-                        swatches.appendChild(swatch);
-                    }
-                });
-            }
-            preview.appendChild(swatches);
-            
-            thumbnail.appendChild(preview);
-            
-            // Label
-            const label = document.createElement('div');
-            label.className = 'preset-label';
-            label.textContent = preset.name;
-            thumbnail.appendChild(label);
-            
-            // Click handler
-            thumbnail.addEventListener('click', () => {
-                if (preset.id !== currentPresetId) {
-                    this.applyPreset(preset.id);
-                    // Update button text
-                    this.presetTriggerBtn.setLabel(preset.name);
-                }
-                // Close flyout
-                if (this.presetFlyout) {
-                    this.presetFlyout.close();
-                }
-            });
-            
-            grid.appendChild(thumbnail);
-        });
-        
-        content.appendChild(grid);
-        
-        // Create or update flyout
-        if (this.presetFlyout) {
-            this.presetFlyout.close();
-        }
-        
-        this.presetFlyout = new Flyout({
-            trigger: this.presetTrigger,
-            content: content,
-            position: 'left'
-        });
-        
-        this.presetFlyout.open();
-    }
-
-    getThemePresetColors(colorThemeId) {
-        // Use the imported THEME_PRESETS to get color values for previews
-        return THEME_PRESETS.find(p => p.id === colorThemeId);
-    }
-
-    applyPreset(presetId) {
-        const state = store.getState();
-        const themeMasterId = state.editor.activeMasterId;
-
-        const activeMaster = state.slideMasterPresets?.[themeMasterId];
-        const currentPresetId = activeMaster?.presetId || getPresetList()?.[0]?.id;
-
-        // Block changing the master preset if the master is used by any slides.
-        // (Per UX spec: Master preset replacement should be prevented when in-use.)
-        if (activeMaster && activeMaster.type === 'slideMasterPreset') {
-            const isChangingPreset = !!currentPresetId && presetId !== currentPresetId;
-            if (isChangingPreset && isMasterInUseBySlides(state, themeMasterId)) {
-                notify({
-                    type: 'blocked',
-                    title: "Can’t change Master preset",
-                    body: 'This Master slide is used by existing slides. Move those slides to a different layout/master, then try again.',
-                    dismissible: true,
-                    autoDismissMs: 0,
-                    actionLabel: 'Open Layout Picker',
-                    onAction: () => {
-                        // Route user to the existing layout picker (Edit mode)
-                        store.dispatch('SET_MODE', 'edit');
-                        // Allow UI to re-render before attempting to open the flyout
-                        setTimeout(() => {
-                            const btn = document.querySelector('.layout-trigger-btn');
-                            if (btn) btn.click();
-                        }, 50);
-                    }
-                });
-                return;
-            }
-        }
-        
-        // Get the full preset to access computed hex colors
-        const fullPreset = getFullPresetById(presetId);
-        
-        // First dispatch the store action to update the state
-        store.dispatch('APPLY_MASTER_PRESET_TO_MASTER', { 
-            masterId: themeMasterId, 
-            presetId 
-        });
-        
-        // After dispatch, update panels (CSS vars are applied per-slide by SlideView)
-        if (fullPreset) {
-            const lumaTheme = fullPreset.theme.themeSettings?.lumaTheme;
-            
-            // NOTE: CSS variables are NOT applied globally.
-            // SlideView.update() applies per-slide CSS vars via StyleResolver.
-            // Dispatch event to notify listeners that the master theme changed.
-            if (lumaTheme?.id) {
-                document.dispatchEvent(new CustomEvent('style:theme-updated', {
-                    detail: { masterId: themeMasterId, themeId: lumaTheme.id, affectedSlides: 'all' }
-                }));
-            }
-            
-            // Update ColorThemeManager to show the selected color theme
-            const colorThemeManager = panelManager.get('color-theme-manager');
-            if (colorThemeManager && lumaTheme?.id) {
-                // Just update the visual selection without triggering another store dispatch
-                colorThemeManager.selectedThemeId = lumaTheme.id;
-                colorThemeManager.renderThemeList();
-                colorThemeManager.renderThemeEditor();
-            }
-            
-            // Force a full state refresh to ensure all UI components update
-            // This emits 'state-changed' again to re-render PropertyInspector
-            // Use setTimeout to allow CSS variables to propagate first
-            setTimeout(() => {
-                store.emit('state-changed', store.getState());
-                store.emit('selection-changed');
-            }, 0);
-        }
-    }
 
     setupThemeListener() {
         const updateTheme = (theme) => {

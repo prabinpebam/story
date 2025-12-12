@@ -7,7 +7,7 @@ import { EditorPage } from '../../pages/EditorPage';
  * - Selecting a preset updates state on the active master root
  */
 
-test.describe('Master Preset - Flyout', () => {
+test.describe('Master Preset - Picker Panel', () => {
   let editor: EditorPage;
 
   test.beforeEach(async ({ page }) => {
@@ -16,7 +16,7 @@ test.describe('Master Preset - Flyout', () => {
     await editor.waitForLoad();
   });
 
-  test('opens flyout and applies a preset to an unused canonical master root', async ({ page, dispatchAction, getState }) => {
+  test('opens picker panel and applies a preset to an unused canonical master root', async ({ page, dispatchAction, getState }) => {
     // Seed a second (unused) master root so preset changes are allowed per blocking rules.
     const current = await getState();
     const masters = { ...current.slideMasterPresets };
@@ -47,14 +47,14 @@ test.describe('Master Preset - Flyout', () => {
     const masterPresetSection = editor.propertyInspector.locator('[data-testid="master-preset-section"]');
     await expect(masterPresetSection).toBeVisible();
 
-    const trigger = editor.propertyInspector.locator('[data-testid="master-preset-trigger"]');
+    const trigger = editor.propertyInspector.locator('[data-testid="master-preset-row-button"]');
     await expect(trigger).toBeVisible();
     await trigger.click();
 
-    const flyout = page.locator('[data-testid="master-preset-flyout"]');
-    await expect(flyout).toBeVisible();
+    const panel = page.locator('[data-testid="master-preset-picker-panel"]');
+    await expect(panel).toBeVisible();
 
-    const options = flyout.locator('[data-testid="master-preset-option"]');
+    const options = panel.locator('[data-testid="master-preset-item"]');
     await expect(options.first()).toBeVisible();
 
     // Click a different preset (avoid clicking the selected one)
@@ -64,6 +64,10 @@ test.describe('Master Preset - Flyout', () => {
     const targetPresetId = await targetOption.getAttribute('data-preset-id');
     expect(targetPresetId).toBeTruthy();
     await targetOption.click();
+
+    const applyBtn = panel.locator('[data-testid="master-preset-apply"]');
+    await expect(applyBtn).toBeVisible();
+    await applyBtn.click();
 
     // Verify state updated on active master root
     await expect.poll(async () => {

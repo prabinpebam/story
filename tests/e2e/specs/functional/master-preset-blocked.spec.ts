@@ -27,14 +27,14 @@ test.describe('Master Preset - Blocked When In Use', () => {
     const beforeMaster = before.slideMasterPresets[before.editor.activeMasterId];
     const beforePresetId = beforeMaster?.presetId;
 
-    const trigger = editor.propertyInspector.locator('[data-testid="master-preset-trigger"]');
+    const trigger = editor.propertyInspector.locator('[data-testid="master-preset-row-button"]');
     await trigger.click();
 
-    const flyout = page.locator('[data-testid="master-preset-flyout"]');
-    await expect(flyout).toBeVisible();
+    const panel = page.locator('[data-testid="master-preset-picker-panel"]');
+    await expect(panel).toBeVisible();
 
     // Attempt to click a different preset option
-    const options = flyout.locator('[data-testid="master-preset-option"]');
+    const options = panel.locator('[data-testid="master-preset-item"]');
     await expect(options.first()).toBeVisible();
     if (await options.count() > 1) {
       await options.nth(1).click();
@@ -42,6 +42,10 @@ test.describe('Master Preset - Blocked When In Use', () => {
       // If only one option exists, the test cannot validate blocking.
       throw new Error('Expected >1 preset option to test blocking');
     }
+
+    const applyBtn = panel.locator('[data-testid="master-preset-apply"]');
+    await expect(applyBtn).toBeVisible();
+    await applyBtn.click();
 
     // Notification should appear
     const notification = page.locator('[data-testid="notification-popover"]');

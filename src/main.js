@@ -21,6 +21,7 @@ import { panelManager } from './ui/PanelManager.js';
 import { ColorThemeManager } from './ui/panels/ColorThemeManager.js';
 import { TypographyStyleManager } from './ui/panels/TypographyStyleManager.js';
 import { CodeFillPanel } from './ui/panels/CodeFillPanel.js';
+import { MasterPresetPicker } from './ui/panels/MasterPresetPicker.js';
 import { ProfileButton } from './ui/auth/ProfileButton.js';
 import { SignInModal } from './ui/auth/SignInModal.js';
 import { authService, bootAuth } from './core/auth/index.js';
@@ -144,6 +145,9 @@ class App {
         panelManager.register('code-fill-panel', this.codeFillPanel, {
             shortcut: 'ctrl+shift+k'
         });
+
+        this.masterPresetPicker = new MasterPresetPicker();
+        panelManager.register('master-preset-picker', this.masterPresetPicker);
 
         // Initialize Auth UI
         this.signInModal = new SignInModal();
