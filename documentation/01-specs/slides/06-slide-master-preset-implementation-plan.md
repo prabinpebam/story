@@ -72,8 +72,8 @@ This section tracks what is already implemented in the codebase vs. what remains
 Even though M0–M6 user-facing milestones are implemented and validated, the following **cleanup items** are still required to make the “No legacy” architecture airtight and easier to maintain:
 
 - **Remove remaining master-preset action aliasing**
-  - Today both `APPLY_SLIDE_MASTER_PRESET` and `APPLY_MASTER_PRESET_TO_MASTER` route to the same handler.
-  - Goal: keep only the canonical action(s) and align handler naming with the canonical model.
+  - Status: completed — `APPLY_SLIDE_MASTER_PRESET` alias removed; only `APPLY_MASTER_PRESET_TO_MASTER` remains.
+  - Follow-up: rename the handler to match the canonical action (no behavior change).
 
 - **Quarantine / eliminate `themeSettings` usage in the master/layout domain**
   - Some `themeSettings` references still exist in core runtime (migration, renderer, linked-property resolution). Some are legitimate for backwards-compatible file loading, but they must not be required for canonical runtime behavior.
