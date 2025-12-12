@@ -42,7 +42,7 @@ This spec is explicitly aligned with:
 ## 2. Definitions (user-facing and internal)
 
 ### 2.1 User-facing definitions
-- **Master (Slide Master Preset):** A complete reusable template package (PowerPoint-like) that contains:
+- **Master (Slide Master Preset / “Master slide”):** A complete reusable template container (PowerPoint-like) that contains:
   - references to Color Theme + Typography Style presets
   - all nested Layout Masters
   - master-level content (images/videos/code fills/shapes/etc.)
@@ -53,6 +53,10 @@ This spec is explicitly aligned with:
 **Key UX rule (scope):**
 - **Change Master** switches the slide to a different **Master preset** (and therefore to that master’s layout set, theme + typography references, and master-level content).
 - **Change Layout** switches the slide to a different **Layout Master within the currently-applied Master**.
+
+**Key UX rule (Property Inspector visibility):**
+- The **Master preset** selector is shown in the Property Inspector **only when the user is editing the Master slide itself** (Master Mode, master selected, no element selected).
+- The Master preset selector is **not shown** when editing a Layout Master.
 
 ### 2.2 Internal system constraints (implementation-aligned)
 - Masters and layouts live in `state.slideMasterPresets`.
@@ -66,6 +70,7 @@ This spec is explicitly aligned with:
 
 ### 3.1 Goals
 - Create, edit, and manage multiple Slide Master Presets in a single presentation.
+- Support multiple Master slides in the same `.str` file (PowerPoint-like), where each Master slide can reference a different Master preset.
 - Support layout creation and placeholder editing.
 - Apply a layout (and thereby its master) to slides, preserving content where possible.
 - Enable overrides for color and typography at master/layout/slide/element levels.
@@ -91,6 +96,7 @@ This spec is explicitly aligned with:
 - **Property Inspector:**
   - In Master View: edits the active master/layout and its elements.
   - In Edit View: slide-level settings (layout selection, overrides) when nothing is selected.
+- **Master Preset Picker (Panel):** a panel surface for choosing a Master preset to apply (used by “Change Master” and by the Master slide’s PI row).
 
 ---
 
@@ -217,7 +223,8 @@ Each task flow is written as: **Trigger → Steps → Result → Undo/redo behav
 3. System reconciles placeholders:
    - Preserve content when placeholder types match.
    - Add new placeholders as empty.
-   - Remove placeholders that no longer exist.
+  - Remove placeholders that no longer exist **only when they have no user content**.
+  - If a placeholder no longer exists and it contains user content, apply the detach/provenance rules in 5.6.1 (never drop content).
    - Keep non-placeholder slide elements.
 
 #### 5.6.1 Case analysis (PowerPoint-like)
@@ -308,13 +315,15 @@ If the target placeholder is already filled with user content and a detached ele
 - This action changes the slide’s **Master preset** (the full template container). It implies a master switch and then a layout selection within the new master.
 
 **Steps**
-1. User opens “Change Master”.
-2. User selects a target Master preset.
-3. System selects a target Layout within that master:
+1. User opens “Change Master…”.
+2. App opens the **Master Preset Picker panel**.
+3. User selects a target Master preset.
+4. Panel shows the layouts within the selected master and preselects a best-guess layout:
   - Prefer a “same-named” layout (Title → Title), else
   - Prefer the master’s default layout, else
   - Fall back to the first layout.
-4. System runs the same placeholder reconciliation described in 5.6 (including detach/provenance/restore rules).
+5. User confirms Apply.
+6. System runs the same placeholder reconciliation described in 5.6 (including detach/provenance/restore rules).
 
 **Result**
 - Slide now uses the new master’s structure + visuals (master-level content, referenced theme/typography), while preserving user content where possible.
@@ -332,15 +341,38 @@ If the target placeholder is already filled with user content and a detached ele
 **Trigger**
 - User opens Color Theme manager or Typography Style manager.
 
+**Core intention (comprehension check)**
+- There is **one** Color Theme Manager and **one** Typography Style Manager in the product.
+- They are the **same panels with the same behaviors** in Edit Mode and Master Mode.
+- We do **not** introduce a master-only theme/typography surface.
+- The only thing that changes between contexts is the **scope that an “Apply” targets** (Master vs Layout vs Slide) and the **inherit/override messaging**.
+
+**Important distinction: editing a preset vs applying a preset**
+- **Editing** in the manager modifies a preset in the preset library (e.g., `state.colorThemePresets`, `state.typographyStylePresets`).
+  - This affects **everything** that references that preset ID.
+- **Applying** in the manager (or via the PI row that opens it) sets the referencing ID at the current scope (Master/Layout/Slide) to point to a chosen preset.
+  - This is how we create “overrides” while still obeying the architecture rule: masters/layouts/slides **reference IDs** and never embed values.
+
 **Rules**
 - Overrides are stored at the relevant level:
   - Master: updates master style assignments / referenced IDs.
   - Layout: layout-level style assignment / referenced IDs.
   - Slide: slide-level style assignment / referenced IDs.
 
+**Scope selection (how the same manager applies to different levels)**
+- When the manager is opened from a context with **no element selected**:
+  - In **Master Mode** with a master selected: default apply target is **Master**.
+  - In **Master Mode** with a layout selected: default apply target is **Layout**.
+  - In **Edit Mode** with slide-level context (no element selected): default apply target is **Slide**.
+- The manager must show a clear, persistent scope indicator (e.g., “Applying to: Layout • Title + Content”).
+- “Reset to inherited” uses the same cascade model:
+  - Layout reset → inherit from Master
+  - Slide reset → inherit from Layout (then Master)
+
 **UX requirements**
 - UI must show whether the current selection is inherited or overridden.
 - “Reset to inherited” must be available where overrides exist.
+- Applying a preset at Layout/Master level is a **template edit** and should be messaged as such (blast radius), but still uses the same manager panel.
 
 **Dependencies**
 - Must remain consistent with cascade behavior used by style resolution.
@@ -383,6 +415,36 @@ If the target placeholder is already filled with user content and a detached ele
 
 ---
 
+### 5.10 Reset slide to layout (preserve content)
+
+**Trigger**
+- In Edit Mode, user chooses “Reset to Layout” for a slide (context menu).
+
+**Steps**
+1. User triggers “Reset to Layout”.
+2. App shows a confirmation describing blast radius (resets layout-related overrides).
+3. System resets slide-level overrides back to its referenced layout defaults.
+4. Placeholder content is preserved (consistent with the Master system spec).
+
+**Result**
+- Slide matches the layout geometry/visibility defaults while keeping user content.
+
+**Undo/redo**
+- Reset is undoable.
+
+---
+
+### 5.11 Preserve master (master travels with slides)
+
+**Trigger**
+- In Master View, user toggles “Preserve” on the active Master slide (toolbar).
+
+**Behavior**
+- When Preserve is enabled for a master, slides using that master carry it during import/export/merge flows (PowerPoint-like intent).
+- Preserve must not change day-to-day editing behavior; it only changes packaging / dependency behavior.
+
+---
+
 ## 6. Detailed UI specification (aligned with current app)
 
 ### 6.1 Master View layout
@@ -402,10 +464,30 @@ If the target placeholder is already filled with user content and a detached ele
 ### 6.3 Property Inspector behavior
 - With no selection:
   - In Edit Mode: Slide properties + layout selection + theme/typography overrides
-  - In Master Mode: master/layout properties (name, referenced theme/typography IDs)
+  - In Master Mode:
+    - Master selected: show master properties including **Master preset** selector (opens Master Preset Picker panel)
+    - Layout selected: show layout properties and layout-level theme/typography overrides; do **not** show Master preset selector
 - With element selection:
   - Same element editing sections as Edit Mode
   - Inherited elements in child contexts must be clearly locked and explain why
+
+### 6.5 Master Preset Picker (Panel)
+
+**Purpose**
+- Provide one consistent surface to choose a Master preset, without duplicating UI or inventing master-only variants.
+
+**Where it is used**
+- Edit Mode: invoked by “Change Master…” for selected slide(s).
+- Master Mode: invoked from the Master slide Property Inspector “Master preset” row.
+
+**Panel contents (minimal)**
+- Master preset list/grid (search optional only if already exists elsewhere).
+- For the selected master preset: a layout picker grid (same visual language as the existing layout picker).
+- Primary action: Apply.
+
+**Behavioral requirements**
+- Must never drop user content; uses the reconciliation rules in 5.6.
+- Must be explicit about blast radius when applying from Master Mode (changes affect all slides using that master).
 
 ### 6.4 Sidebar interactions
 - Right-click master:
@@ -527,5 +609,5 @@ If the target placeholder is already filled with user content and a detached ele
 ## 10. Open questions
 
 - (Resolved) “Change Master” is distinct from “Change Layout”. “Change Master” switches the template container; “Change Layout” selects within the current master.
-- Should layout-level theme/typography overrides be edited from the same managers used in Edit Mode (recommended), or from a dedicated master-only surface?
+- (Resolved) Layout-level theme/typography overrides are edited/applied from the **same Theme and Typography manager panels** used in Edit Mode; the panel is scope-aware (Apply to Master/Layout/Slide) and does not fork into a master-only UI.
 - (Resolved) Placeholder content preservation with multiple identical types: **auto-match with deterministic rules; prompt only on ambiguity/loss; fallback to detach to avoid loss.**
