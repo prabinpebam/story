@@ -640,10 +640,12 @@ export const StyleResolver = {
             const themeMaster = Object.values(state.slideMasterPresets || {}).find(m => m.type === 'slideMasterPreset');
             return this._resolveTypographyFromMaster(state, themeMaster);
         }
-        
-        // 1. Check slide's own typographyStyleId
-        if (slide.typographyStyleId) {
-            const preset = state.typographyStylePresets?.[slide.typographyStyleId];
+
+        // Prefer the canonical cascade resolver, so slide/layout/master styleAssignments work.
+        const effective = this.getEffectiveTypographyStyle(slideId);
+        const effectiveId = effective?.typographyStyleId;
+        if (effectiveId) {
+            const preset = state.typographyStylePresets?.[effectiveId];
             if (preset) {
                 return {
                     id: preset.id,
@@ -652,21 +654,9 @@ export const StyleResolver = {
                 };
             }
         }
-        
-        // 2. Check layout master
+
+        // Fallback: resolve from master (legacy embedded settings or missing preset id)
         const layout = slide.layoutId ? state.slideMasterPresets?.[slide.layoutId] : null;
-        if (layout?.typographyStyleId) {
-            const preset = state.typographyStylePresets?.[layout.typographyStyleId];
-            if (preset) {
-                return {
-                    id: preset.id,
-                    fonts: preset.fonts,
-                    textStyles: preset.textStyles
-                };
-            }
-        }
-        
-        // 3. Check theme master (parent of layout)
         const themeMaster = layout?.parentMasterId ? state.slideMasterPresets?.[layout.parentMasterId] : null;
         return this._resolveTypographyFromMaster(state, themeMaster);
     },
@@ -681,8 +671,9 @@ export const StyleResolver = {
         }
         
         // Try reference architecture first
-        if (themeMaster.typographyStyleId) {
-            const preset = state.typographyStylePresets?.[themeMaster.typographyStyleId];
+        const masterTypographyId = themeMaster.styleAssignments?.typographyStyle || themeMaster.typographyStyleId;
+        if (masterTypographyId) {
+            const preset = state.typographyStylePresets?.[masterTypographyId];
             if (preset) {
                 return {
                     id: preset.id,

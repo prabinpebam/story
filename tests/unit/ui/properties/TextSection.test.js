@@ -25,7 +25,8 @@ vi.mock('../../../../src/ui/components/NumberInput.js', () => ({
 vi.mock('../../../../src/ui/components/IconButton.js', () => ({
     IconButton: vi.fn(() => ({
         element: document.createElement('button'),
-        setActive: vi.fn()
+        setActive: vi.fn(),
+        setDisabled: vi.fn()
     }))
 }));
 
@@ -39,7 +40,8 @@ vi.mock('../../../../src/ui/components/Dropdown.js', () => ({
     Dropdown: vi.fn(() => ({
         element: document.createElement('div'),
         setValue: vi.fn(),
-        setOptions: vi.fn()
+        setOptions: vi.fn(),
+        setMixed: vi.fn()
     }))
 }));
 
@@ -183,13 +185,16 @@ describe('TextSection', () => {
         }));
 
         IconButton.mockImplementation(() => ({
-            element: document.createElement('button')
+            element: document.createElement('button'),
+            setDisabled: vi.fn(),
+            setActive: vi.fn()
         }));
 
         Dropdown.mockImplementation(() => ({
             element: document.createElement('div'),
             setValue: vi.fn(),
-            setOptions: vi.fn()
+            setOptions: vi.fn(),
+            setMixed: vi.fn()
         }));
 
         store.getState.mockReturnValue({
@@ -289,6 +294,151 @@ describe('TextSection', () => {
             textSection.update(['element-1']);
             expect(StyleResolver.getEffectiveTextProperties).toHaveBeenCalled();
         });
+
+        it('should lock typography controls when textStyleId is set (strict linking)', () => {
+            store.getState.mockReturnValue({
+                editor: {
+                    mode: 'edit',
+                    activeSlideId: 'slide-1',
+                    selectedElementIds: ['element-1'],
+                    editingElementId: null
+                },
+                slides: {
+                    'slide-1': {
+                        id: 'slide-1',
+                        elements: {
+                            'element-1': {
+                                id: 'element-1',
+                                type: 'text',
+                                textStyleId: 'title'
+                            }
+                        }
+                    }
+                },
+                slideMasterPresets: {}
+            });
+
+            textSection.selection = ['element-1'];
+            textSection.update(['element-1']);
+
+            expect(textSection.fontFamilyInput.element.style.pointerEvents).toBe('none');
+            expect(textSection.fontWeightInput.element.style.pointerEvents).toBe('none');
+            expect(textSection.fontSizeInput.element.style.pointerEvents).toBe('none');
+            expect(textSection.fillHexInput.disabled).toBe(true);
+            expect(textSection.fillSwatch.style.pointerEvents).toBe('none');
+            expect(textSection.overrideIndicator.classList.contains('hidden')).toBe(true);
+
+            // Alignment buttons should be disabled via IconButton.setDisabled
+            const alignButtonMocks = IconButton.mock.results
+                .map(r => r.value)
+                .filter(v => v && typeof v.setDisabled === 'function');
+            expect(alignButtonMocks.length).toBeGreaterThan(0);
+            expect(alignButtonMocks.some(v => v.setDisabled.mock.calls.some(([arg]) => arg === true))).toBe(true);
+        });
+
+        it('should unlock typography controls when no style is applied', () => {
+            store.getState.mockReturnValue({
+                editor: {
+                    mode: 'edit',
+                    activeSlideId: 'slide-1',
+                    selectedElementIds: ['element-1'],
+                    editingElementId: null
+                },
+                slides: {
+                    'slide-1': {
+                        id: 'slide-1',
+                        elements: {
+                            'element-1': {
+                                id: 'element-1',
+                                type: 'text',
+                                textStyleId: null
+                            }
+                        }
+                    }
+                },
+                slideMasterPresets: {}
+            });
+
+            textSection.selection = ['element-1'];
+            textSection.update(['element-1']);
+
+            expect(textSection.fontFamilyInput.element.style.pointerEvents).toBe('auto');
+            expect(textSection.fillHexInput.disabled).toBe(false);
+        });
+
+        it('should show a Missing Style option if textStyleId is unknown', () => {
+            // Make StyleResolver return no matching style
+            StyleResolver.getTypographyStyle.mockReturnValueOnce({
+                id: 'preset-modern',
+                fonts: { heading: 'Inter', body: 'Inter' },
+                textStyles: {
+                    title: { id: 'title', name: 'Title' }
+                }
+            });
+
+            store.getState.mockReturnValue({
+                editor: {
+                    mode: 'edit',
+                    activeSlideId: 'slide-1',
+                    selectedElementIds: ['element-1'],
+                    editingElementId: null
+                },
+                slides: {
+                    'slide-1': {
+                        id: 'slide-1',
+                        elements: {
+                            'element-1': {
+                                id: 'element-1',
+                                type: 'text',
+                                textStyleId: 'does-not-exist'
+                            }
+                        }
+                    }
+                },
+                slideMasterPresets: {}
+            });
+
+            textSection.selection = ['element-1'];
+            textSection.update(['element-1']);
+
+            const setOptionsCalls = Dropdown.mock.results
+                .map(r => r.value)
+                .filter(v => v && typeof v.setOptions === 'function')
+                .flatMap(v => v.setOptions.mock.calls);
+
+            expect(setOptionsCalls.length).toBeGreaterThan(0);
+            const lastOptions = setOptionsCalls[setOptionsCalls.length - 1][0];
+            const missingOpt = lastOptions.find((o) => typeof o.label === 'string' && o.label.includes('Missing Style'));
+            expect(missingOpt).toBeDefined();
+        });
+
+        it('should set mixed state when selecting multiple text elements with different styles', () => {
+            store.getState.mockReturnValue({
+                editor: {
+                    mode: 'edit',
+                    activeSlideId: 'slide-1',
+                    selectedElementIds: ['t1', 't2'],
+                    editingElementId: null
+                },
+                slides: {
+                    'slide-1': {
+                        id: 'slide-1',
+                        elements: {
+                            t1: { id: 't1', type: 'text', textStyleId: 'title' },
+                            t2: { id: 't2', type: 'text', textStyleId: 'body' }
+                        }
+                    }
+                },
+                slideMasterPresets: {}
+            });
+
+            textSection.selection = ['t1', 't2'];
+            textSection.update(['t1', 't2']);
+
+            // At least one Dropdown instance (the style dropdown) should be set to mixed
+            const dropdownInstances = Dropdown.mock.results.map(r => r.value).filter(Boolean);
+            expect(dropdownInstances.some(d => d.setMixed.mock.calls.some(([arg]) => arg === true))).toBe(true);
+        });
     });
 
     describe('getElement()', () => {
@@ -342,6 +492,46 @@ describe('TextSection', () => {
 
             expect(store.dispatch).toHaveBeenCalledWith('UPDATE_ELEMENT', expect.objectContaining({ id: 'el-1', fontSize: 24 }), expect.anything());
             expect(store.dispatch).toHaveBeenCalledWith('UPDATE_ELEMENT', expect.objectContaining({ id: 'el-2', fontSize: 24 }), expect.anything());
+        });
+
+        it('should block textFill updates while linked (strict linking)', () => {
+            store.getState.mockReturnValue({
+                editor: {
+                    mode: 'edit',
+                    activeSlideId: 'slide-1',
+                    selectedElementIds: ['el-1'],
+                    editingElementId: null
+                },
+                slides: { 'slide-1': { elements: { 'el-1': { id: 'el-1', type: 'text', textStyleId: 'title' } } } },
+                slideMasterPresets: {}
+            });
+
+            textSection.selection = ['el-1'];
+            textSection.currentStyleId = 'title';
+            store.dispatch.mockClear();
+
+            textSection.updateProperty('textFill', { type: 'solid', value: '#ff0000' });
+            expect(store.dispatch).not.toHaveBeenCalled();
+        });
+
+        it('should block verticalAlign updates while linked (strict linking)', () => {
+            store.getState.mockReturnValue({
+                editor: {
+                    mode: 'edit',
+                    activeSlideId: 'slide-1',
+                    selectedElementIds: ['el-1'],
+                    editingElementId: null
+                },
+                slides: { 'slide-1': { elements: { 'el-1': { id: 'el-1', type: 'text', textStyleId: 'title' } } } },
+                slideMasterPresets: {}
+            });
+
+            textSection.selection = ['el-1'];
+            textSection.currentStyleId = 'title';
+            store.dispatch.mockClear();
+
+            textSection.updateProperty('verticalAlign', 'middle');
+            expect(store.dispatch).not.toHaveBeenCalled();
         });
     });
 

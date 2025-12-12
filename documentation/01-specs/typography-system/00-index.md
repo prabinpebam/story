@@ -36,6 +36,11 @@ This specification strictly separates **Application UI** (Editor chrome) from **
    - Happy Path vs. Override Path
    - Visual States (Linked, Modified, Detached)
 
+6. **[Property Inspector: Typography Linking UX (Strict)](./11-property-inspector-typography-linking-ux.md)**
+   - Comprehensive expected UX behavior (Slide mode + Text selected)
+   - Correct Heading/Body labels in Slide Typography row
+   - Strict linking: style dictates properties; detach to edit locally
+
 6. **[Implementation Status](./05-implementation-status.md)**
    - Current state vs. Specification
    - Known gaps and technical debt

@@ -330,6 +330,7 @@ export class SlideSection {
         this.headingFontName = document.createElement('span');
         this.headingFontName.className = 'theme-font-name';
         this.headingFontName.textContent = 'Inter';
+        this.headingFontName.dataset.testid = 'slide-typography-heading-font';
         headingRow.appendChild(this.headingFontName);
 
         this.headingFontPreview = document.createElement('span');
@@ -351,6 +352,7 @@ export class SlideSection {
         this.bodyFontName = document.createElement('span');
         this.bodyFontName.className = 'theme-font-name';
         this.bodyFontName.textContent = 'Inter';
+        this.bodyFontName.dataset.testid = 'slide-typography-body-font';
         bodyRow.appendChild(this.bodyFontName);
 
         this.bodyFontPreview = document.createElement('span');

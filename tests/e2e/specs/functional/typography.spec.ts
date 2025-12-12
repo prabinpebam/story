@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 import { EditorPage } from '../../pages/EditorPage';
 import { CanvasHelper } from '../../pages/CanvasHelper';
 
-test.describe('Typography System', () => {
+test.describe.skip('Typography System (legacy spec; replaced by strict-linking suite)', () => {
   let editor: EditorPage;
   let canvas: CanvasHelper;
 

@@ -26,6 +26,7 @@ export class TextSection extends BaseSection {
         this.pendingStyles = {}; // Styles to apply to next typed character
         this.currentStyleId = null; // Track current text style
         this.hasStyleOverrides = false; // Track if style has local overrides
+        this.isMixedStyleSelection = false;
     }
 
     createContent() {
@@ -51,6 +52,7 @@ export class TextSection extends BaseSection {
             onClick: () => this.unlinkFromStyle()
         });
         this.linkBtn.element.classList.add('text-style-link-btn', 'hidden'); // Hidden when no style
+        this.linkBtn.element.dataset.testid = 'text-style-unlink';
         styleRow.appendChild(this.linkBtn.element);
 
         this.container.appendChild(styleRow);
@@ -232,6 +234,7 @@ export class TextSection extends BaseSection {
         // Swatch
         this.fillSwatch = document.createElement('div');
         this.fillSwatch.className = 'fill-swatch-trigger';
+        this.fillSwatch.dataset.testid = 'text-color-swatch';
         
         this.fillPreview = document.createElement('div');
         this.fillPreview.className = 'fill-preview';
@@ -313,25 +316,37 @@ export class TextSection extends BaseSection {
             return;
         }
         this.element.classList.remove('hidden');
+
+        // Detect mixed style selection (multiple text elements selected)
+        const styleIds = textElements.map(el => el.textStyleId || null);
+        const uniqueStyleIds = Array.from(new Set(styleIds));
+        this.isMixedStyleSelection = uniqueStyleIds.length > 1;
+
         const el = textElements[0];
         
         // Update style dropdown options (in case theme changed)
         this.styleDropdown.setOptions(this.getTextStyleOptions());
         
-        // Handle Text Style - use textStyleId (new) or styleId (legacy)
-        this.currentStyleId = el.textStyleId || el.styleId || null;
-        
-        // Check for style overrides
-        if (this.currentStyleId) {
+        // Handle Text Style (no legacy support)
+        this.currentStyleId = this.isMixedStyleSelection ? null : (el.textStyleId || null);
+
+        // If the element references a style that doesn't exist, show a dedicated option
+        if (!this.isMixedStyleSelection && this.currentStyleId) {
             const slideId = state.editor?.activeSlideId;
             const typography = StyleResolver.getTypographyStyle(slideId);
-            const style = typography?.textStyles?.[this.currentStyleId];
-            this.hasStyleOverrides = this.checkForStyleOverrides(el, style);
-        } else {
-            this.hasStyleOverrides = false;
+            const textStyles = typography?.textStyles || {};
+            if (!textStyles[this.currentStyleId]) {
+                const opts = this.getTextStyleOptions();
+                opts.splice(1, 0, {
+                    label: `Missing Style (${this.currentStyleId})`,
+                    value: this.currentStyleId
+                });
+                this.styleDropdown.setOptions(opts);
+            }
         }
         
-        this.updateStyleUI();
+        // Strict linking UX: do not surface local overrides UI.
+        this.hasStyleOverrides = false;
         
         // Use StyleResolver to get effective properties with slide context
         const slideId = state.editor?.activeSlideId;
@@ -369,6 +384,10 @@ export class TextSection extends BaseSection {
         // Text Fill
         this.updateFillUI(props.textFill);
         this.currentTextFill = props.textFill;
+
+        // Apply linked/mixed UI locking after updating displayed values
+        // (prevents later UI updates from re-enabling locked controls)
+        this.updateStyleUI();
     }
 
     updateFillUI(fill) {
@@ -459,8 +478,18 @@ export class TextSection extends BaseSection {
         
         // Check if any selected element has a typography style linked
         // If so, block changes to styleable properties (user must unlink first)
-        const styleableProps = ['fontFamily', 'fontWeight', 'fontSize', 'fontStyle', 
-                                 'lineHeight', 'letterSpacing', 'textAlign', 'textDecoration'];
+        const styleableProps = [
+            'fontFamily',
+            'fontWeight',
+            'fontSize',
+            'fontStyle',
+            'lineHeight',
+            'letterSpacing',
+            'textAlign',
+            'verticalAlign',
+            'textDecoration',
+            'textFill'
+        ];
         
         if (styleableProps.includes(prop) && this.currentStyleId) {
             console.warn(`Cannot change ${prop} while linked to typography style. Unlink first.`);
@@ -837,16 +866,28 @@ export class TextSection extends BaseSection {
 
     updateStyleUI() {
         // Update dropdown value
-        this.styleDropdown.setValue(this.currentStyleId || '', false);
+        if (this.isMixedStyleSelection) {
+            if (typeof this.styleDropdown.setMixed === 'function') {
+                this.styleDropdown.setMixed(true);
+            }
+        } else {
+            if (typeof this.styleDropdown.setMixed === 'function') {
+                this.styleDropdown.setMixed(false);
+            }
+            this.styleDropdown.setValue(this.currentStyleId || '', false);
+        }
         
         // Show/hide link button - visible when style is linked
-        const isLinked = !!this.currentStyleId;
+        const isLinked = !!this.currentStyleId && !this.isMixedStyleSelection;
         this.linkBtn.element.classList.toggle('hidden', !isLinked);
         this.linkBtn.element.title = isLinked ? 'Unlink from style (keeps current values)' : '';
+
+        // Mixed selection should lock controls as well (no single source of truth)
+        const shouldLock = isLinked || this.isMixedStyleSelection;
         
         // Disable/enable property inputs based on style link
         this.styleableInputs.forEach(input => {
-            if (isLinked) {
+            if (shouldLock) {
                 input.classList.add('disabled');
                 input.style.pointerEvents = 'none';
                 input.style.opacity = '0.5';
@@ -856,9 +897,37 @@ export class TextSection extends BaseSection {
                 input.style.opacity = '1';
             }
         });
+
+        // Disable/enable alignment controls when linked
+        if (this.alignButtons) {
+            this.alignButtons.forEach(({ btn }) => {
+                if (typeof btn?.setDisabled === 'function') {
+                    btn.setDisabled(shouldLock);
+                } else if (btn?.element) {
+                    btn.element.disabled = shouldLock;
+                    btn.element.style.pointerEvents = shouldLock ? 'none' : 'auto';
+                    btn.element.style.opacity = shouldLock ? '0.5' : '1';
+                }
+            });
+        }
+
+        // Disable/enable fill controls when linked
+        if (this.fillSwatch) {
+            this.fillSwatch.style.pointerEvents = shouldLock ? 'none' : 'auto';
+            this.fillSwatch.style.opacity = shouldLock ? '0.5' : '1';
+        }
+        if (this.fillHexInput) {
+            this.fillHexInput.disabled = shouldLock;
+        }
+        if (this.fillOpacityInput?.element) {
+            this.fillOpacityInput.element.classList.toggle('disabled', shouldLock);
+            this.fillOpacityInput.element.style.pointerEvents = shouldLock ? 'none' : 'auto';
+            this.fillOpacityInput.element.style.opacity = shouldLock ? '0.5' : '1';
+        }
         
-        // Show/hide override indicator using CSS class
-        this.overrideIndicator.classList.toggle('hidden', !(this.currentStyleId && this.hasStyleOverrides));
+        // Strict linking UX: no local overrides UI in the inspector.
+        // Keep the indicator hidden even if older documents contain override data.
+        this.overrideIndicator.classList.add('hidden');
     }
 
     checkForStyleOverrides(element, style) {

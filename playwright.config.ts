@@ -6,6 +6,10 @@ import { defineConfig, devices } from '@playwright/test';
  */
 export default defineConfig({
   testDir: './tests/e2e/specs',
+
+  // Use a unique output directory per run to avoid Windows/OneDrive EPERM
+  // errors when Playwright tries to delete old per-test artifact folders.
+  outputDir: process.env.PW_OUTPUT_DIR || `test-results/pw-${Date.now()}`,
   
   /* Run tests in files in parallel */
   fullyParallel: true,

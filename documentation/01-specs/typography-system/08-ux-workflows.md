@@ -1,5 +1,9 @@
 # Typography UX Workflows & Property Inspector Spec
 
+> Note (Dec 2025): For the current expected UX where **Typography Style dictates properties** (strict linking, no local overrides), see
+> [11-property-inspector-typography-linking-ux.md](./11-property-inspector-typography-linking-ux.md).
+> This document includes an override-based workflow model that may be treated as a future enhancement.
+
 This document details the user experience for interacting with typography across the application. It aligns strictly with the **Color Theme UX** principles: "Edit with the styles you have" and "Explicit Opt-Out".
 
 ## 1. The Property Inspector (Text Section)

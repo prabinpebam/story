@@ -151,6 +151,51 @@ describe('StyleResolver', () => {
         });
     });
 
+    describe('getTypographyStyle()', () => {
+        it('should prefer slide styleAssignments.typographyStyle over master typographyStyleId', () => {
+            const mockState = createMockState({
+                typographyStylePresets: {
+                    'typo-a': {
+                        id: 'typo-a',
+                        fonts: { heading: 'Inter', body: 'Inter' },
+                        textStyles: {
+                            title: { fontFamily: 'Inter', fontSize: 40, fontWeight: '800' }
+                        }
+                    },
+                    'typo-b': {
+                        id: 'typo-b',
+                        fonts: { heading: 'Merriweather', body: 'Open Sans' },
+                        textStyles: {
+                            title: { fontFamily: 'Merriweather', fontSize: 44, fontWeight: '700' }
+                        }
+                    }
+                },
+                slideMasterPresets: {
+                    ...createMockState().slideMasterPresets,
+                    'master-default': {
+                        ...createMockState().slideMasterPresets['master-default'],
+                        typographyStyleId: 'typo-a'
+                    }
+                },
+                slides: {
+                    ...createMockState().slides,
+                    'slide-1': {
+                        ...createMockState().slides['slide-1'],
+                        typographyStyleId: null,
+                        styleAssignments: { typographyStyle: 'typo-b' }
+                    }
+                }
+            });
+
+            store.getState = vi.fn(() => mockState);
+
+            const typography = StyleResolver.getTypographyStyle('slide-1');
+            expect(typography.id).toBe('typo-b');
+            expect(typography.fonts.heading).toBe('Merriweather');
+            expect(typography.textStyles.title.fontFamily).toBe('Merriweather');
+        });
+    });
+
     describe('getColorMode()', () => {
         it('should return dark mode from master styleAssignments', () => {
             const mockState = createMockState();

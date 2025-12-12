@@ -14,7 +14,7 @@ import { CanvasHelper } from '../../pages/CanvasHelper';
  * 6. Verify property inspector updates in real-time
  * 7. Verify text object updates to match selected style
  */
-test.describe('Typography System - Core Workflow', () => {
+test.describe.skip('Typography System - Core Workflow (legacy; replaced by strict-linking suite)', () => {
   let editor: EditorPage;
   let canvas: CanvasHelper;
 
