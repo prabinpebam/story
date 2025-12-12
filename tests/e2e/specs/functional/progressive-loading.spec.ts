@@ -1,20 +1,24 @@
 import { test, expect } from '@playwright/test';
 
 test.describe('Progressive Loading Strategy', () => {
-  test.beforeEach(async ({ page }) => {
+  test('Phase 1: Boot Screen is visible initially', async ({ browser }) => {
+    // Verify initial HTML payload contains the boot screen (before JS runs)
+    const context = await browser.newContext({ javaScriptEnabled: false });
+    const page = await context.newPage();
     await page.goto('/');
-  });
 
-  test('Phase 1: Boot Screen is visible initially', async ({ page }) => {
     const bootScreen = page.locator('#boot-screen');
     await expect(bootScreen).toBeVisible();
-    
+
     // Check for logo
     const logo = bootScreen.locator('.boot-logo');
     await expect(logo).toBeVisible();
+
+    await context.close();
   });
 
   test('Phase 2: Theme Hydration applies variables before paint', async ({ page }) => {
+    await page.goto('/');
     // Force dark mode preference to ensure deterministic result
     await page.emulateMedia({ colorScheme: 'dark' });
     await page.reload();
@@ -53,6 +57,7 @@ test.describe('Progressive Loading Strategy', () => {
   });
 
   test('Resilience: Boot screen shows error after timeout', async ({ page }) => {
+    await page.goto('/');
     // The timeout is 10 seconds. We can fast-forward time or just wait.
     // Since we can't easily fast-forward native setTimeout in Playwright without mocking,
     // we might skip this or use a shorter timeout for testing if possible.
@@ -65,6 +70,7 @@ test.describe('Progressive Loading Strategy', () => {
   });
 
   test('Phase 4: Boot screen disappears when app is ready', async ({ page }) => {
+    await page.goto('/');
     // Wait for the boot screen to be detached from DOM
     // This confirms window.appReady() was called and removed the element
     const bootScreen = page.locator('#boot-screen');

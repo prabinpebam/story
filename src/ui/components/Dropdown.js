@@ -134,6 +134,23 @@ export class Dropdown {
 
         document.body.appendChild(this.menu);
 
+        // Keep the menu within the viewport (prevents options being unclickable/off-screen)
+        const menuRect = this.menu.getBoundingClientRect();
+        const padding = 8;
+
+        // Flip vertically if overflowing bottom
+        if (menuRect.bottom > window.innerHeight - padding) {
+            const top = rect.top - 4 - menuRect.height;
+            this.menu.style.top = Math.max(padding, top) + 'px';
+        }
+
+        // Shift horizontally if overflowing right
+        const updatedRect = this.menu.getBoundingClientRect();
+        if (updatedRect.right > window.innerWidth - padding) {
+            const left = window.innerWidth - padding - updatedRect.width;
+            this.menu.style.left = Math.max(padding, left) + 'px';
+        }
+
         // Close on outside click
         this.handleOutsideClick = (e) => {
             if (!this.menu.contains(e.target) && !this.element.contains(e.target)) {

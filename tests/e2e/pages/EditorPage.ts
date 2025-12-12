@@ -93,8 +93,14 @@ export class EditorPage {
      * Navigate to the editor
      */
     async goto() {
-        await this.page.goto('/');
-        await this.page.waitForLoadState('networkidle');
+        // Avoid `networkidle` (the app can keep long-lived connections open).
+        await this.page.goto('/', { waitUntil: 'domcontentloaded' });
+
+        // Ensure the app bootstrapped and exposed a store for tests.
+        await this.page.waitForFunction(() => {
+            const win = window as any;
+            return !!win.__TEST_STORE__ || !!win._storyAppStore;
+        }, null, { timeout: 15000 });
     }
     
     /**

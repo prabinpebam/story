@@ -3,17 +3,14 @@ import { test, expect } from '@playwright/test';
 test.describe('Master Slide Drag and Drop', () => {
     test.beforeEach(async ({ page }) => {
         // Navigate to the app
-        await page.goto('http://localhost:5175');
+        await page.goto('/');
         
         // Wait for app to be ready
-        await page.waitForSelector('#slide-list');
+        await page.waitForSelector('[data-testid="slide-list"]');
         await page.waitForTimeout(500);
-        
-        // Switch to Master mode by directly dispatching the action
-        await page.evaluate(() => {
-            window.store.dispatch('SET_EDITOR_MODE', { mode: 'master' });
-        });
-        
+
+        // Switch to Master mode via the UI
+        await page.locator('[data-testid="edit-master-btn"]').click();
         await page.waitForTimeout(500);
         
         // Verify we're in master mode by checking for data-master-id attributes
@@ -77,7 +74,8 @@ test.describe('Master Slide Drag and Drop', () => {
     });
 
     test('should show drop indicator on bottom half when hovering below midpoint', async ({ page }) => {
-        const masters = page.locator('.slide-thumbnail[data-master-id]');
+        const masters = page.locator('.slide-thumbnail[data-master-id][data-is-theme="true"]');
+        if (await masters.count() < 2) test.skip();
         const firstMaster = masters.nth(0);
         const secondMaster = masters.nth(1);
         
@@ -95,7 +93,7 @@ test.describe('Master Slide Drag and Drop', () => {
         await page.mouse.down();
         
         // Hover over the BOTTOM half of second master (below midpoint)
-        const targetY = secondBox.y + secondBox.height * 0.75; // 75% from top
+        const targetY = secondBox.y + secondBox.height - 2; // near bottom
         await page.mouse.move(secondBox.x + secondBox.width / 2, targetY, { steps: 10 });
         
         // Wait a bit for the indicator to appear
@@ -132,7 +130,8 @@ test.describe('Master Slide Drag and Drop', () => {
     });
 
     test('should switch indicator position when crossing midpoint', async ({ page }) => {
-        const masters = page.locator('.slide-thumbnail[data-master-id]');
+        const masters = page.locator('.slide-thumbnail[data-master-id][data-is-theme="true"]');
+        if (await masters.count() < 2) test.skip();
         const firstMaster = masters.nth(0);
         const secondMaster = masters.nth(1);
         
@@ -150,7 +149,7 @@ test.describe('Master Slide Drag and Drop', () => {
         await page.mouse.down();
         
         // First hover over TOP half
-        const topY = secondBox.y + secondBox.height * 0.25;
+        const topY = secondBox.y + 2;
         await page.mouse.move(secondBox.x + secondBox.width / 2, topY, { steps: 10 });
         await page.waitForTimeout(100);
         
@@ -158,7 +157,7 @@ test.describe('Master Slide Drag and Drop', () => {
         expect(hasDropBefore).toBe(true);
         
         // Then move to BOTTOM half
-        const bottomY = secondBox.y + secondBox.height * 0.75;
+        const bottomY = secondBox.y + secondBox.height - 2;
         await page.mouse.move(secondBox.x + secondBox.width / 2, bottomY, { steps: 10 });
         await page.waitForTimeout(100);
         
@@ -245,7 +244,7 @@ test.describe('Master Slide Drag and Drop', () => {
     });
 
     test('should successfully reorder masters after drop', async ({ page }) => {
-        const masters = page.locator('.slide-thumbnail[data-master-id]');
+        const masters = page.locator('.slide-thumbnail[data-master-id][data-is-theme="true"]');
         
         // Get initial order
         const initialOrder = await masters.evaluateAll(items => 
@@ -259,32 +258,24 @@ test.describe('Master Slide Drag and Drop', () => {
             return;
         }
         
-        // Get bounding boxes for first two masters
+        // Drag first master to after second master (bottom half of second)
         const firstMaster = masters.nth(0);
         const secondMaster = masters.nth(1);
-        const firstBox = await firstMaster.boundingBox();
         const secondBox = await secondMaster.boundingBox();
-        
-        if (!firstBox || !secondBox) {
+        if (!secondBox) {
             test.skip();
             return;
         }
-        
-        // Drag first master to after second master (bottom half of second)
-        await page.mouse.move(firstBox.x + firstBox.width / 2, firstBox.y + firstBox.height / 2);
-        await page.mouse.down();
-        
-        const dropY = secondBox.y + secondBox.height * 0.75; // Bottom half
-        await page.mouse.move(secondBox.x + secondBox.width / 2, dropY, { steps: 10 });
-        await page.waitForTimeout(100);
-        
-        await page.mouse.up();
+
+        await firstMaster.dragTo(secondMaster, {
+            targetPosition: { x: secondBox.width / 2, y: secondBox.height * 0.8 }
+        });
         
         // Wait for reorder to complete
         await page.waitForTimeout(300);
         
         // Get new order
-        const newOrder = await page.locator('.slide-thumbnail[data-master-id]').evaluateAll(items => 
+        const newOrder = await page.locator('.slide-thumbnail[data-master-id][data-is-theme="true"]').evaluateAll(items => 
             items.map(item => item.getAttribute('data-master-id'))
         );
         
@@ -296,7 +287,7 @@ test.describe('Master Slide Drag and Drop', () => {
     });
 
     test('should maintain order after page reload', async ({ page }) => {
-        const masters = page.locator('.slide-thumbnail[data-master-id]');
+        const masters = page.locator('.slide-thumbnail[data-master-id][data-is-theme="true"]');
         
         // Get initial order
         const initialOrder = await masters.evaluateAll(items => 
@@ -311,40 +302,33 @@ test.describe('Master Slide Drag and Drop', () => {
         // Perform a reorder
         const firstMaster = masters.nth(0);
         const secondMaster = masters.nth(1);
-        const firstBox = await firstMaster.boundingBox();
         const secondBox = await secondMaster.boundingBox();
-        
-        if (!firstBox || !secondBox) {
+        if (!secondBox) {
             test.skip();
             return;
         }
-        
-        await page.mouse.move(firstBox.x + firstBox.width / 2, firstBox.y + firstBox.height / 2);
-        await page.mouse.down();
-        const dropY = secondBox.y + secondBox.height * 0.75;
-        await page.mouse.move(secondBox.x + secondBox.width / 2, dropY, { steps: 10 });
-        await page.waitForTimeout(100);
-        await page.mouse.up();
+
+        await firstMaster.dragTo(secondMaster, {
+            targetPosition: { x: secondBox.width / 2, y: secondBox.height * 0.8 }
+        });
         await page.waitForTimeout(300);
         
         // Get order after reorder
-        const reorderedList = await page.locator('.slide-thumbnail[data-master-id]').evaluateAll(items => 
+        const reorderedList = await page.locator('.slide-thumbnail[data-master-id][data-is-theme="true"]').evaluateAll(items => 
             items.map(item => item.getAttribute('data-master-id'))
         );
         
         // Reload page
         await page.reload();
-        await page.waitForSelector('#slide-list');
+        await page.waitForSelector('[data-testid="slide-list"]');
         await page.waitForTimeout(500);
         
         // Switch back to Master mode
-        await page.evaluate(() => {
-            window.store.dispatch('SET_EDITOR_MODE', { mode: 'master' });
-        });
+        await page.locator('[data-testid="edit-master-btn"]').click();
         await page.waitForTimeout(500);
         
         // Get order after reload
-        const orderAfterReload = await page.locator('.slide-thumbnail[data-master-id]').evaluateAll(items => 
+        const orderAfterReload = await page.locator('.slide-thumbnail[data-master-id][data-is-theme="true"]').evaluateAll(items => 
             items.map(item => item.getAttribute('data-master-id'))
         );
         

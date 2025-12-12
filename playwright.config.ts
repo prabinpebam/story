@@ -13,6 +13,9 @@ export default defineConfig({
   
   /* Run tests in files in parallel */
   fullyParallel: true,
+
+  // Default to low parallelism for dev-server stability; override with PW_WORKERS.
+  workers: process.env.PW_WORKERS ? Number(process.env.PW_WORKERS) : 2,
   
   /* Fail the build on CI if you accidentally left test.only in the source code */
   forbidOnly: !!process.env.CI,
@@ -29,7 +32,8 @@ export default defineConfig({
   /* Shared settings for all the projects below */
   use: {
     /* Base URL for app */
-    baseURL: process.env.BASE_URL || 'http://localhost:5173',
+    // Use IPv4 explicitly to avoid occasional Windows localhost/IPv6 resolution issues.
+    baseURL: process.env.BASE_URL || 'http://127.0.0.1:5173',
     
     /* Collect trace on first retry */
     trace: 'on-first-retry',
@@ -64,9 +68,11 @@ export default defineConfig({
 
   /* Run your local dev server before starting the tests */
   webServer: {
-    command: 'npm run dev',
-    url: 'http://localhost:5173',
-    reuseExistingServer: !process.env.CI,
+    // Force a deterministic host/port; fail fast if the port is already in use.
+    command: 'npm run dev -- --host 127.0.0.1 --port 5173 --strictPort',
+    url: 'http://127.0.0.1:5173',
+    // Avoid reusing a potentially stale dev server by default.
+    reuseExistingServer: process.env.PW_REUSE_EXISTING_SERVER === 'true',
     timeout: 120 * 1000,
   },
 });

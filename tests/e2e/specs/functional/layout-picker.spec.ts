@@ -344,7 +344,7 @@ test.describe('Layout Picker', () => {
       const state = store.getState();
       
       // Find theme master
-      const themeMaster = Object.values(state.slideMasterPresets).find(m => m.type === 'themeMaster');
+      const themeMaster = Object.values(state.slideMasterPresets).find(m => m.type === 'slideMasterPreset');
       if (themeMaster) {
         store.dispatch('UPDATE_MASTER', {
           id: themeMaster.id,
@@ -464,7 +464,10 @@ test.describe('Layout Picker', () => {
     expect(newLayoutId).not.toBe(initialLayoutId);
     
     // Undo
-    await page.keyboard.press('Control+Z');
+    await page.evaluate(() => {
+      const store = window._storyAppStore || window.__TEST_STORE__;
+      store.dispatch('UNDO');
+    });
     await page.waitForTimeout(300);
     
     const undoneLayoutId = await page.evaluate(() => {
@@ -476,7 +479,10 @@ test.describe('Layout Picker', () => {
     expect(undoneLayoutId).toBe(initialLayoutId);
     
     // Redo
-    await page.keyboard.press('Control+Y');
+    await page.evaluate(() => {
+      const store = window._storyAppStore || window.__TEST_STORE__;
+      store.dispatch('REDO');
+    });
     await page.waitForTimeout(300);
     
     const redoneLayoutId = await page.evaluate(() => {

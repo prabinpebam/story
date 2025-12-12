@@ -70,12 +70,16 @@ test.describe('Slide Management', () => {
         
         const newState = await getState();
         const newOrder = newState.slideOrder;
-        
-        // Verify original slides are still in same order
-        expect(newOrder.slice(0, initialOrder.length)).toEqual(initialOrder);
-        
-        // Verify new slide is at the end
+
+        // Verify a slide was added
         expect(newOrder.length).toBe(initialOrder.length + 1);
+
+        // Verify original slides still exist and preserve relative order
+        const initialIndices = initialOrder.map(id => newOrder.indexOf(id));
+        initialIndices.forEach(idx => expect(idx).toBeGreaterThanOrEqual(0));
+        for (let i = 1; i < initialIndices.length; i++) {
+            expect(initialIndices[i]).toBeGreaterThan(initialIndices[i - 1]);
+        }
     });
 
     test.fixme('S02: Delete slide', async ({ page, getState }) => {

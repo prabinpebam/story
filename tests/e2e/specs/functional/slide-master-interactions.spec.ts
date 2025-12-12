@@ -204,23 +204,17 @@ test.describe('Slide Master Interactions', () => {
     expect(thumbnailBackground!.themeBackground).toBeDefined();
     expect(thumbnailBackground!.layoutBackground).toBeNull();
     expect(thumbnailBackground!.layoutParentId).toBe('master-default');
+
+    // Wait for thumbnails to mount a SlideView background layer
+    await page.waitForSelector('[data-testid="slide-list-item"] .slide-thumbnail-preview .slide-background');
     
-    // Check that the thumbnail container has a background (not transparent/white)
-    const thumbnails = await page.locator('[data-testid="slide-list-item"]').all();
-    expect(thumbnails.length).toBeGreaterThan(1);
-    
-    // At least one layout thumbnail should have a visible background
-    const layoutThumbnail = thumbnails[1]; // First layout after master
-    const hasBackground = await layoutThumbnail.evaluate((el) => {
-      const preview = el.querySelector('.slide-thumbnail-preview');
-      if (!preview) return false;
-      
-      // Check if SlideView inside has a background layer
-      const bgContainer = preview.querySelector('.slide-background');
-      return bgContainer !== null;
-    });
-    
-    expect(hasBackground).toBe(true);
+    // Find a layout item (not the master root) and verify its thumbnail has a SlideView background
+    const layoutItem = page.locator('[data-testid="slide-list-item"]', {
+      has: page.locator('.slide-thumbnail-title:not(.master-root)')
+    }).first();
+    await expect(layoutItem).toBeVisible();
+
+    await expect(layoutItem.locator('.slide-thumbnail-preview .slide-background')).toHaveCount(1);
     
     // Visual regression: Take screenshot of slide list (optional - may need baseline generation)
     // Uncomment after first run to generate baseline:

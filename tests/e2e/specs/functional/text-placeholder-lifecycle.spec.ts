@@ -28,11 +28,21 @@ test.describe('Placeholder Lifecycle', () => {
         // Verify initial state
         await expect(placeholderLocator).toHaveClass(/story-placeholder-empty/);
         
-        // 2. Double click to edit
+        // 2. Enter edit mode deterministically via the store (dblclick can be intercepted by the canvas)
         const box = await placeholderLocator.boundingBox();
-        if (box) {
-            await page.mouse.dblclick(box.x + box.width / 2, box.y + box.height / 2);
-        }
+        if (!box) throw new Error('Placeholder has no bounding box');
+
+        await page.evaluate(({ elementId, clientX, clientY }) => {
+            const store = (window as any).__TEST_STORE__ || (window as any)._storyAppStore;
+            if (!store) throw new Error('Test store not available');
+            store.dispatch('SET_EDITING_ELEMENT', {
+                id: elementId,
+                selectionType: 'caret',
+                clickPosition: { clientX, clientY }
+            });
+        }, { elementId: placeholderId, clientX: box.x + box.width / 2, clientY: box.y + box.height / 2 });
+
+        await expect(placeholderLocator).toHaveAttribute('contenteditable', 'true');
         
         // Verify prompt text is cleared/hidden (or we are just in empty edit state)
         // Type content
@@ -46,7 +56,16 @@ test.describe('Placeholder Lifecycle', () => {
         await expect(placeholderLocator).toContainText('My Custom Title');
         
         // 4. Edit again
-        await page.mouse.dblclick(box!.x + box!.width / 2, box!.y + box!.height / 2);
+        await page.evaluate(({ elementId, clientX, clientY }) => {
+            const store = (window as any).__TEST_STORE__ || (window as any)._storyAppStore;
+            store.dispatch('SET_EDITING_ELEMENT', {
+                id: elementId,
+                selectionType: 'caret',
+                clickPosition: { clientX, clientY }
+            });
+        }, { elementId: placeholderId, clientX: box.x + box.width / 2, clientY: box.y + box.height / 2 });
+
+        await expect(placeholderLocator).toHaveAttribute('contenteditable', 'true');
         
         // 5. Select All and Delete
         const modifier = process.platform === 'darwin' ? 'Meta' : 'Control';

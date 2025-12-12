@@ -926,9 +926,13 @@ export class SlideSection {
 
             // Create accurate preview using ThumbnailRenderer (only if effectiveLayout exists)
             if (effectiveLayout) {
+                const previewWrapper = document.createElement('div');
+                previewWrapper.className = 'layout-preview';
+
                 const preview = ThumbnailRenderer.createThumbnail(layout.id, effectiveLayout);
-                preview.className = 'layout-preview';
-                thumbnail.appendChild(preview);
+                previewWrapper.appendChild(preview);
+
+                thumbnail.appendChild(previewWrapper);
             } else {
                 const preview = document.createElement('div');
                 preview.className = 'layout-preview';

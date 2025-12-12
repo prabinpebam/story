@@ -2,11 +2,11 @@ import { test, expect } from '@playwright/test';
 
 test.describe('Slide Drag and Drop', () => {
     test.beforeEach(async ({ page }) => {
-        // Navigate to the app
-        await page.goto('http://localhost:5173');
+        // Navigate via baseURL
+        await page.goto('/');
         
         // Wait for app to be ready
-        await page.waitForSelector('#slide-list');
+        await page.waitForSelector('[data-testid="slide-list"]');
         
         // Ensure we have at least 3 slides to test with
         const slides = await page.locator('.slide-thumbnail').count();
@@ -235,9 +235,10 @@ test.describe('Slide Drag and Drop', () => {
         const slides = page.locator('.slide-thumbnail');
         
         // Get initial order
-        const initialOrder = await slides.evaluateAll(items => 
-            items.map(item => item.querySelector('.slide-number').textContent)
-        );
+        const initialOrder = await page.evaluate(() => {
+            const store = window.__TEST_STORE__ || window._storyAppStore;
+            return store.getState().slideOrder.slice();
+        });
         
         console.log('Initial order:', initialOrder);
         
@@ -250,28 +251,27 @@ test.describe('Slide Drag and Drop', () => {
         expect(firstBox).not.toBeNull();
         expect(secondBox).not.toBeNull();
         
-        // Drag first slide to after second slide (bottom half of second)
-        await page.mouse.move(firstBox.x + firstBox.width / 2, firstBox.y + firstBox.height / 2);
-        await page.mouse.down();
-        
-        const dropY = secondBox.y + secondBox.height * 0.75; // Bottom half
-        await page.mouse.move(secondBox.x + secondBox.width / 2, dropY, { steps: 10 });
-        await page.waitForTimeout(100);
-        
-        await page.mouse.up();
+        // Use Playwright dragTo to ensure HTML5 DnD dataTransfer is populated (required for REORDER_SLIDES)
+        await firstSlide.dragTo(secondSlide, {
+            targetPosition: {
+                x: Math.floor(secondBox.width / 2),
+                y: Math.floor(secondBox.height * 0.75)
+            }
+        });
         
         // Wait for reorder to complete
         await page.waitForTimeout(300);
         
         // Get new order
-        const newOrder = await page.locator('.slide-thumbnail').evaluateAll(items => 
-            items.map(item => item.querySelector('.slide-number').textContent)
-        );
+        const newOrder = await page.evaluate(() => {
+            const store = window.__TEST_STORE__ || window._storyAppStore;
+            return store.getState().slideOrder.slice();
+        });
         
         console.log('New order:', newOrder);
         
-        // Verify first and second slides swapped
-        expect(newOrder[0]).toBe('2');
-        expect(newOrder[1]).toBe('1');
+        // Verify first and second slides swapped in state
+        expect(newOrder[0]).toBe(initialOrder[1]);
+        expect(newOrder[1]).toBe(initialOrder[0]);
     });
 });

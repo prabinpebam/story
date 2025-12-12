@@ -96,13 +96,13 @@ test.describe('Master Mode', () => {
     
     test('should have masters available in state', async ({ getState }) => {
         const state = await getState();
-        
-        // Verify masters object exists
-        expect(state.masters).toBeDefined();
-        expect(typeof state.masters).toBe('object');
-        
-        // Verify at least one master exists (default theme)
-        const masterCount = Object.keys(state.masters).length;
+
+        // Canonical architecture: masters are stored in slideMasterPresets
+        expect(state.slideMasterPresets).toBeDefined();
+        expect(typeof state.slideMasterPresets).toBe('object');
+
+        // Verify at least one master preset exists (defaults)
+        const masterCount = Object.keys(state.slideMasterPresets).length;
         expect(masterCount).toBeGreaterThan(0);
     });
     

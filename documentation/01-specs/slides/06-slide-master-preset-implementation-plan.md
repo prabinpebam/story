@@ -60,6 +60,11 @@ This section tracks what is already implemented in the codebase vs. what remains
     - [tests/e2e/specs/functional/master-preset-flyout.spec.ts](../../tests/e2e/specs/functional/master-preset-flyout.spec.ts)
     - [tests/e2e/specs/functional/master-preset-blocked.spec.ts](../../tests/e2e/specs/functional/master-preset-blocked.spec.ts)
 
+### Validation status
+
+- **Vitest:** green (full suite).
+- **Playwright:** full suite is not yet a stable gate; several failures were traced to outdated specs/selectors (e.g. hardcoded dev-server port, legacy PI selector assumptions). Ongoing work is to update E2E tests to match the current canonical UI/state contracts.
+
 ### Partially implemented
 
 ### Not started / still required by this plan
