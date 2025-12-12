@@ -348,10 +348,31 @@ Each task flow is written as: **Trigger → Steps → Result → Undo/redo behav
 - Layout change mapping by placeholder type can fail when there are multiple placeholders of the same type (e.g., two images).
 
 **Improvement**
-- Add a matching strategy:
-  1) Prefer exact `masterElementId` match if present.
-  2) Else match by placeholderType + nearest position similarity.
-  3) Else fallback to first unused placeholderType.
+- Define PowerPoint-like behavior: **auto-preserve whenever the mapping is deterministic; prompt only on true ambiguity or potential loss**.
+
+**Matching strategy (deterministic, stable)**
+1) **Exact identity match**: preserve content when the source and target placeholders share the same stable identity (e.g., `masterElementId` / consistent placeholder key).
+2) **Type + role match (if available)**: if placeholders have roles (e.g., `image.left` / `image.right`, `body.primary` / `body.secondary`), match by `(placeholderType, role)`.
+3) **Type + geometry similarity**: for remaining placeholders of identical type, match one-to-one by closest bounding box similarity:
+   - center distance + size similarity (width/height)
+   - tie-breakers: top-to-bottom then left-to-right ordering
+4) **Type + index fallback**: if geometry is not usable (or ties remain), match by deterministic order (top→bottom, left→right).
+
+**When to prompt (only if necessary)**
+- Prompt the user only if:
+  - two or more targets are effectively tied (ambiguous) and an automatic choice could be incorrect, **or**
+  - some filled placeholders cannot be mapped to any target (content would be dropped), **or**
+  - multiple filled placeholders would collapse into fewer targets.
+
+**No-surprise-loss fallback**
+- If mapping is ambiguous or lossy, do not discard content.
+- Default fallback: **detach the unmatched content onto the slide as normal elements** (placed near the original placeholder position), leaving the new placeholder(s) empty.
+
+**Minimal prompt UX (PowerPoint-like, but consistent with this app)**
+- A small confirmation dialog shown only when needed:
+  - “Preserve placeholder content?”
+  - For each filled source placeholder, show a row with a dropdown to select the target placeholder.
+  - Include an option: “Keep as independent elements” (detach) to guarantee no loss.
 
 ---
 
@@ -400,4 +421,4 @@ Each task flow is written as: **Trigger → Steps → Result → Undo/redo behav
 
 - Should “Change Master” be a distinct action from “Change Layout”, or always implied by choosing a layout?
 - Should layout-level theme/typography overrides be edited from the same managers used in Edit Mode (recommended), or from a dedicated master-only surface?
-- How should we handle multiple placeholders of identical type for content preservation UX (auto vs prompt)?
+- (Resolved) Placeholder content preservation with multiple identical types: **auto-match with deterministic rules; prompt only on ambiguity/loss; fallback to detach to avoid loss.**
