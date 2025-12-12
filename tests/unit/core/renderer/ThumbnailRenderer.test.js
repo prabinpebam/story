@@ -82,7 +82,9 @@ describe('ThumbnailRenderer', () => {
             const scaleWrapper = thumbnail.querySelector('.thumbnail-scale-wrapper');
 
             expect(scaleWrapper).not.toBeNull();
-            expect(scaleWrapper.style.transform).toContain('scale');
+            // Scale is applied async (requestAnimationFrame) and depends on layout (offsetWidth).
+            // In jsdom tests, offsetWidth is 0 unless attached to the DOM.
+            expect(scaleWrapper.style.transformOrigin).toContain('top');
         });
 
         it('should contain a SlideView element', () => {

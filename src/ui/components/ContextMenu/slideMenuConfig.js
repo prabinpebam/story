@@ -238,7 +238,7 @@ export const masterThumbnailConfig = {
                 label: 'Add New Layout',
                 icon: 'fa-solid fa-plus',
                 action: () => {
-                    store.dispatch('ADD_LAYOUT', { parentId: masterId });
+                    store.dispatch('ADD_LAYOUT', { parentMasterId: masterId });
                 }
             });
             
@@ -276,7 +276,7 @@ function getAvailableLayouts(state) {
     
     // Get all layouts
     Object.values(masters).forEach(master => {
-        if (master.type === 'layout' || master.type === 'layoutMaster') {
+        if (master.type === 'layoutMaster') {
             layouts.push({
                 id: master.id,
                 name: master.name || 'Layout',
@@ -299,12 +299,12 @@ function isMasterInUse(state, masterId) {
     if (!targetMaster) return false;
 
     return Object.values(slides).some(slide => {
-        if (targetMaster.type === 'layout' || targetMaster.type === 'layoutMaster') {
+        if (targetMaster.type === 'layoutMaster') {
             return slide.layoutId === masterId;
         }
-        if (targetMaster.type === 'theme' || targetMaster.type === 'slideMasterPreset') {
+        if (targetMaster.type === 'slideMasterPreset') {
             const layout = masters[slide.layoutId];
-            return layout && (layout.parentId === masterId || layout.parentMasterId === masterId);
+            return layout?.type === 'layoutMaster' && layout.parentMasterId === masterId;
         }
         return false;
     });

@@ -672,7 +672,7 @@ export class SlideSection {
 
         // 0. Master Preset selector (Master View + Master Slide only)
         // Supports legacy 'theme' and canonical 'slideMasterPreset' master-root types.
-        const isMasterRoot = mode === 'master' && (currentObject.type === 'theme' || currentObject.type === 'slideMasterPreset');
+        const isMasterRoot = mode === 'master' && currentObject.type === 'slideMasterPreset';
         if (isMasterRoot) {
             this.presetSection.element.classList.remove('hidden');
             // Update preset button label with current preset name
@@ -881,7 +881,7 @@ export class SlideSection {
         // Group layouts by parent master (canonical: layoutMaster.parentMasterId)
         const groupMap = new Map();
         for (const layout of layouts) {
-            const parentMasterId = layout.parentMasterId || layout.parentId || 'unknown-master';
+            const parentMasterId = layout.parentMasterId || 'unknown-master';
             if (!groupMap.has(parentMasterId)) {
                 groupMap.set(parentMasterId, []);
             }
@@ -894,7 +894,7 @@ export class SlideSection {
             masterOrder = state.masterDisplayOrder.slice();
         } else {
             masterOrder = Object.values(mastersById)
-                .filter(m => m && (m.type === 'slideMasterPreset' || m.type === 'theme'))
+                .filter(m => m && m.type === 'slideMasterPreset')
                 .map(m => m.id)
                 .sort((a, b) => {
                     const ma = mastersById[a];
@@ -1004,7 +1004,7 @@ export class SlideSection {
         // Title
         const title = document.createElement('div');
         title.className = 'preset-flyout-title';
-        title.textContent = 'Select Template';
+        title.textContent = 'Select Master Preset';
         content.appendChild(title);
         
         // Grid container
@@ -1121,7 +1121,7 @@ export class SlideSection {
 
         // Block changing the master preset if the master is used by any slides.
         // (Per UX spec: Master preset replacement should be prevented when in-use.)
-        if (activeMaster && (activeMaster.type === 'theme' || activeMaster.type === 'slideMasterPreset')) {
+        if (activeMaster && activeMaster.type === 'slideMasterPreset') {
             const isChangingPreset = !!currentPresetId && presetId !== currentPresetId;
             if (isChangingPreset && isMasterInUseBySlides(state, themeMasterId)) {
                 notify({

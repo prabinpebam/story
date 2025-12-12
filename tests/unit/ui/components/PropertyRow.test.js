@@ -151,10 +151,10 @@ describe('PropertyRow', () => {
             const visibilityBtn = row.element.querySelector('.pi-property-row__visibility');
             
             row.setVisible(false);
-            expect(visibilityBtn.textContent).toBe('visibility_off');
+            expect(visibilityBtn.getAttribute('aria-label')).toBe('Show');
             
             row.setVisible(true);
-            expect(visibilityBtn.textContent).toBe('visibility');
+            expect(visibilityBtn.getAttribute('aria-label')).toBe('Hide');
         });
     });
     

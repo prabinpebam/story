@@ -7,6 +7,94 @@
 import { vi } from 'vitest';
 import JSZip from 'jszip';
 
+// ---------------------------------------------------------------------------
+// JSDOM Polyfills
+// ---------------------------------------------------------------------------
+
+// ResizeObserver is used by thumbnail/layout rendering; jsdom doesn't provide it.
+if (typeof globalThis.ResizeObserver === 'undefined') {
+    globalThis.ResizeObserver = class ResizeObserver {
+        constructor(callback) {
+            this._callback = callback;
+        }
+        observe() {
+            // No-op in tests; callers should handle initial sizing.
+        }
+        unobserve() {}
+        disconnect() {}
+    };
+}
+
+// Some UI code calls scrollIntoView; jsdom doesn't implement it.
+if (typeof globalThis.HTMLElement !== 'undefined' && !globalThis.HTMLElement.prototype.scrollIntoView) {
+    globalThis.HTMLElement.prototype.scrollIntoView = function() {};
+}
+
+// Canvas getContext is not implemented by jsdom by default.
+const createMock2dContext = () => {
+    const imageData = { data: new Uint8ClampedArray([0, 0, 0, 255]), width: 1, height: 1 };
+    return {
+        canvas: null,
+        fillStyle: '#000000',
+        strokeStyle: '#000000',
+        globalAlpha: 1,
+        lineWidth: 1,
+        font: '12px sans-serif',
+        textAlign: 'left',
+        textBaseline: 'alphabetic',
+
+        save: vi.fn(),
+        restore: vi.fn(),
+        beginPath: vi.fn(),
+        closePath: vi.fn(),
+        moveTo: vi.fn(),
+        lineTo: vi.fn(),
+        rect: vi.fn(),
+        arc: vi.fn(),
+        stroke: vi.fn(),
+        fill: vi.fn(),
+        clearRect: vi.fn(),
+        fillRect: vi.fn(),
+        strokeRect: vi.fn(),
+        translate: vi.fn(),
+        scale: vi.fn(),
+        rotate: vi.fn(),
+        setTransform: vi.fn(),
+        resetTransform: vi.fn(),
+        setLineDash: vi.fn(),
+        drawImage: vi.fn(),
+        fillText: vi.fn(),
+        strokeText: vi.fn(),
+        measureText: vi.fn(() => ({ width: 0 })),
+        getImageData: vi.fn(() => imageData),
+        putImageData: vi.fn(),
+        createLinearGradient: vi.fn(() => ({ addColorStop: vi.fn() })),
+        createRadialGradient: vi.fn(() => ({ addColorStop: vi.fn() })),
+        createPattern: vi.fn(() => null)
+    };
+};
+
+if (typeof globalThis.HTMLCanvasElement !== 'undefined') {
+    // Override jsdom's not-implemented getContext.
+    globalThis.HTMLCanvasElement.prototype.getContext = function(type) {
+        if (type !== '2d') return null;
+        const ctx = createMock2dContext();
+        ctx.canvas = this;
+        return ctx;
+    };
+
+    if (!globalThis.HTMLCanvasElement.prototype.toDataURL) {
+        globalThis.HTMLCanvasElement.prototype.toDataURL = function() {
+            return 'data:image/png;base64,';
+        };
+    }
+}
+
+// Some drag/drop code calls dataTransfer.setDragImage.
+if (typeof globalThis.DataTransfer !== 'undefined' && !globalThis.DataTransfer.prototype.setDragImage) {
+    globalThis.DataTransfer.prototype.setDragImage = function() {};
+}
+
 // Make JSZip available globally for modules that use window.JSZip
 global.JSZip = JSZip;
 if (typeof window !== 'undefined') {

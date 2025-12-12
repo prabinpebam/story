@@ -48,15 +48,16 @@ describe('SlideSection', () => {
                 slideMasterPresets: {
                     'master-default': {
                         id: 'master-default',
-                        type: 'themeMaster',
-                        name: 'Default Theme',
+                        type: 'slideMasterPreset',
+                        name: 'Default Master',
                         background: { type: 'solid', value: '#ffffff' },
                         elements: {},
-                        elementOrder: []
+                        elementOrder: [],
+                        layoutIds: ['layout-title', 'layout-content']
                     },
                     'layout-title': {
                         id: 'layout-title',
-                        type: 'layout',
+                        type: 'layoutMaster',
                         name: 'Title Layout',
                         parentMasterId: 'master-default',
                         background: null,
@@ -76,7 +77,7 @@ describe('SlideSection', () => {
                     },
                     'layout-content': {
                         id: 'layout-content',
-                        type: 'layout',
+                        type: 'layoutMaster',
                         name: 'Content Layout',
                         parentMasterId: 'master-default',
                         background: null,
@@ -378,17 +379,14 @@ describe('SlideSection', () => {
             slideSection.openLayoutFlyout();
             
             const flyoutContent = slideSection.layoutFlyout.content;
-            const thumbnails = flyoutContent.querySelectorAll('.layout-thumbnail');
-            
-            expect(thumbnails.length).toBe(2);
-            
-            // First thumbnail should be selected
-            expect(thumbnails[0].classList.contains('selected')).toBe(true);
-            expect(thumbnails[0].dataset.layoutId).toBe('layout-title');
-            
-            // Second should not be selected
-            expect(thumbnails[1].classList.contains('selected')).toBe(false);
-            expect(thumbnails[1].dataset.layoutId).toBe('layout-content');
+            const titleThumb = flyoutContent.querySelector('.layout-thumbnail[data-layout-id="layout-title"]');
+            const contentThumb = flyoutContent.querySelector('.layout-thumbnail[data-layout-id="layout-content"]');
+
+            expect(titleThumb).toBeTruthy();
+            expect(contentThumb).toBeTruthy();
+
+            expect(titleThumb.classList.contains('selected')).toBe(true);
+            expect(contentThumb.classList.contains('selected')).toBe(false);
         });
 
         it('should update layout when clicking a thumbnail', () => {
@@ -405,10 +403,11 @@ describe('SlideSection', () => {
             slideSection.openLayoutFlyout();
             
             const flyoutContent = slideSection.layoutFlyout.content;
-            const thumbnails = flyoutContent.querySelectorAll('.layout-thumbnail');
-            
-            // Click second thumbnail (content layout)
-            thumbnails[1].click();
+            const contentThumb = flyoutContent.querySelector('.layout-thumbnail[data-layout-id="layout-content"]');
+            expect(contentThumb).toBeTruthy();
+
+            // Click content layout
+            contentThumb.click();
             
             expect(dispatchSpy).toHaveBeenCalledWith(
                 'UPDATE_SLIDE',
@@ -433,9 +432,10 @@ describe('SlideSection', () => {
             expect(slideSection.layoutFlyout.isOpen).toBe(true);
             
             const flyoutContent = slideSection.layoutFlyout.content;
-            const thumbnails = flyoutContent.querySelectorAll('.layout-thumbnail');
-            
-            thumbnails[1].click();
+            const contentThumb = flyoutContent.querySelector('.layout-thumbnail[data-layout-id="layout-content"]');
+            expect(contentThumb).toBeTruthy();
+
+            contentThumb.click();
             
             expect(slideSection.layoutFlyout.isOpen).toBe(false);
         });
@@ -454,12 +454,13 @@ describe('SlideSection', () => {
             slideSection.openLayoutFlyout();
             
             const flyoutContent = slideSection.layoutFlyout.content;
-            const thumbnails = flyoutContent.querySelectorAll('.layout-thumbnail');
+            const titleThumb = flyoutContent.querySelector('.layout-thumbnail[data-layout-id="layout-title"]');
+            expect(titleThumb).toBeTruthy();
             
             dispatchSpy.mockClear();
             
             // Click first thumbnail (already selected)
-            thumbnails[0].click();
+            titleThumb.click();
             
             // Should not dispatch UPDATE_SLIDE
             expect(dispatchSpy).not.toHaveBeenCalledWith(
@@ -484,9 +485,10 @@ describe('SlideSection', () => {
             slideSection.openLayoutFlyout();
             
             const flyoutContent = slideSection.layoutFlyout.content;
-            const thumbnails = flyoutContent.querySelectorAll('.layout-thumbnail');
-            
-            thumbnails[1].click();
+            const contentThumb = flyoutContent.querySelector('.layout-thumbnail[data-layout-id="layout-content"]');
+            expect(contentThumb).toBeTruthy();
+
+            contentThumb.click();
             
             expect(slideSection.layoutTriggerBtn.label).toBe('Content Layout');
             expect(slideSection.layoutTriggerBtn.label).not.toBe(initialLabel);

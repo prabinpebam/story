@@ -1627,7 +1627,7 @@ export class ColorThemeManager extends DraggablePanel {
                 document.dispatchEvent(new CustomEvent('style:theme-updated', {
                     detail: { masterId: themeMasterId, themeId: theme.id, affectedSlides: 'all' }
                 }));
-            } else if (activeMaster.type === 'layout') {
+            } else if (activeMaster.type === 'layoutMaster') {
                 // Editing a Layout Master - assign styleAssignments.colorTheme override
                 // This only affects slides using this specific layout
                 console.log('[ColorThemeManager] Applying styleAssignments.colorTheme to layout master:', activeMasterId);

@@ -17,7 +17,7 @@ let mockState = {
     slideMasterPresets: {
         'layout-1': {
             id: 'layout-1',
-            type: 'layout',
+            type: 'layoutMaster',
             parentMasterId: 'theme-default'
         },
         'theme-default': {

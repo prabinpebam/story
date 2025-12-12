@@ -87,7 +87,7 @@ describe('DraggablePanel', () => {
             panel = new DraggablePanel({ id: 'test' });
             
             expect(panel.element).toBeDefined();
-            expect(panel.element.className).toBe('draggable-panel');
+            expect(panel.element.classList.contains('draggable-panel')).toBe(true);
             expect(panel.element.id).toBe('panel-test');
         });
 

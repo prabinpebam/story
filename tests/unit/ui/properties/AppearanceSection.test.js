@@ -169,7 +169,7 @@ describe('AppearanceSection', () => {
         it('should create opacity input', () => {
             expect(NumberInput).toHaveBeenCalledWith(
                 expect.objectContaining({
-                    label: 'Opacity',
+                    icon: 'Opacity',
                     value: 100,
                     units: '%',
                     min: 0,
@@ -200,7 +200,7 @@ describe('AppearanceSection', () => {
         it('should create radius input', () => {
             expect(NumberInput).toHaveBeenCalledWith(
                 expect.objectContaining({
-                    label: 'Radius',
+                    icon: 'Radius',
                     value: 0,
                     min: 0
                 })

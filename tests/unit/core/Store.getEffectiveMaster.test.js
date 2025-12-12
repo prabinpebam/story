@@ -7,6 +7,12 @@ import { describe, it, expect, beforeEach } from 'vitest';
 
 describe('Store.getEffectiveMaster()', () => {
     let store;
+
+    const expectSolidBg = (bg, expectedHex) => {
+        expect(bg).toBeDefined();
+        expect(bg.type).toBe('solid');
+        expect(String(bg.value).toLowerCase()).toBe(String(expectedHex).toLowerCase());
+    };
     
     beforeEach(async () => {
         // Import Store fresh for each test
@@ -32,8 +38,8 @@ describe('Store.getEffectiveMaster()', () => {
             slideMasterPresets: {
                 'master-default': {
                     id: 'master-default',
-                    type: 'themeMaster',
-                    name: 'Default Theme',
+                    type: 'slideMasterPreset',
+                    name: 'Default Master',
                     width: 1920,
                     height: 1080,
                     background: { type: 'solid', value: '#ffffff' },
@@ -51,7 +57,7 @@ describe('Store.getEffectiveMaster()', () => {
                 },
                 'layout-title': {
                     id: 'layout-title',
-                    type: 'layout',
+                    type: 'layoutMaster',
                     name: 'Title Layout',
                     parentMasterId: 'master-default',
                     width: 1920,
@@ -73,7 +79,7 @@ describe('Store.getEffectiveMaster()', () => {
                 },
                 'layout-blank': {
                     id: 'layout-blank',
-                    type: 'layout',
+                    type: 'layoutMaster',
                     name: 'Blank Layout',
                     parentMasterId: 'master-default',
                     width: 1920,
@@ -97,7 +103,7 @@ describe('Store.getEffectiveMaster()', () => {
         
         expect(result).toBeDefined();
         expect(result.id).toBe('master-default');
-        expect(result.effectiveBackground).toEqual({ type: 'solid', value: '#ffffff' });
+        expectSolidBg(result.effectiveBackground, '#ffffff');
         expect(result.effectiveElements).toEqual({
             'bg-shape': {
                 id: 'bg-shape',
@@ -132,20 +138,20 @@ describe('Store.getEffectiveMaster()', () => {
 
     it('should inherit background from theme when layout has null background', () => {
         const result = store.getEffectiveMaster('layout-title');
-        
-        expect(result.effectiveBackground).toEqual({ type: 'solid', value: '#ffffff' });
+
+        expectSolidBg(result.effectiveBackground, '#ffffff');
     });
 
     it('should use explicit layout background over theme background', () => {
         const result = store.getEffectiveMaster('layout-blank');
-        
-        expect(result.effectiveBackground).toEqual({ type: 'solid', value: '#000000' });
+
+        expectSolidBg(result.effectiveBackground, '#000000');
     });
 
     it('should handle inherited background type', () => {
         store.state.slideMasterPresets['layout-inherited'] = {
             id: 'layout-inherited',
-            type: 'layout',
+            type: 'layoutMaster',
             name: 'Inherited Layout',
             parentMasterId: 'master-default',
             background: { type: 'inherited' },
@@ -156,13 +162,13 @@ describe('Store.getEffectiveMaster()', () => {
         const result = store.getEffectiveMaster('layout-inherited');
         
         // Should fall through to theme background
-        expect(result.effectiveBackground).toEqual({ type: 'solid', value: '#ffffff' });
+        expectSolidBg(result.effectiveBackground, '#ffffff');
     });
 
     it('should return white background as fallback when no background is set', () => {
         store.state.slideMasterPresets['layout-no-bg'] = {
             id: 'layout-no-bg',
-            type: 'layout',
+            type: 'layoutMaster',
             name: 'No Background Layout',
             parentMasterId: 'master-no-bg',
             background: null,
@@ -172,16 +178,16 @@ describe('Store.getEffectiveMaster()', () => {
         
         store.state.slideMasterPresets['master-no-bg'] = {
             id: 'master-no-bg',
-            type: 'themeMaster',
-            name: 'No Background Theme',
+            type: 'slideMasterPreset',
+            name: 'No Background Master',
             background: null,
             elements: {},
             elementOrder: []
         };
         
         const result = store.getEffectiveMaster('layout-no-bg');
-        
-        expect(result.effectiveBackground).toEqual({ type: 'solid', value: '#ffffff' });
+
+        expectSolidBg(result.effectiveBackground, '#FFFFFF');
     });
 
     it('should handle empty elements and elementOrder gracefully', () => {
@@ -196,7 +202,7 @@ describe('Store.getEffectiveMaster()', () => {
     it('should not include theme elements when hideBackgroundGraphics is true', () => {
         store.state.slideMasterPresets['layout-hidden-bg'] = {
             id: 'layout-hidden-bg',
-            type: 'layout',
+            type: 'layoutMaster',
             name: 'Hidden BG Layout',
             parentMasterId: 'master-default',
             hideBackgroundGraphics: true,

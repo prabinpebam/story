@@ -246,6 +246,9 @@ describe('Bidirectional Sync', () => {
             multiState.slides['slide-1'].elements['el-3'] = { id: 'el-3', type: 'rect', x: 300 };
             
             store.getState.mockReturnValue(multiState);
+
+            // Ensure sections pick up the new multi-selection from store
+            propertyInspector.render();
             
             // Update property
             propertyInspector.positionSection.updateProperty('x', 500);

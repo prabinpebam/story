@@ -7,7 +7,7 @@ describe('PlaceholderManager', () => {
         const placeholder = placeholderManager.createPlaceholder(PLACEHOLDER_TYPES.TITLE);
         
         expect(placeholder.id).toBeDefined();
-        expect(placeholder.type).toBe('text');
+        expect(placeholder.type).toBe('placeholder');
         expect(placeholder.isPlaceholder).toBe(true);
         expect(placeholder.placeholderType).toBe(PLACEHOLDER_TYPES.TITLE);
         expect(placeholder.text).toBeDefined();

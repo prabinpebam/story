@@ -159,17 +159,20 @@ export const ThemeDiag = {
             snapshot.colorMode = lumaTheme?.colorMode || 'light';
         }
         
-        // Capture all layout masters
+        // Capture all layout masters (canonical: type='layoutMaster', parentMasterId)
         Object.values(state.slideMasterPresets || {}).forEach(master => {
-            if (master.type === 'layout') {
+            if (master?.type === 'layoutMaster') {
+                const colorThemeOverride = master.colorThemeId || master.styleAssignments?.colorTheme || null;
                 snapshot.layoutMasters[master.id] = {
                     id: master.id,
                     name: master.name,
-                    parentId: master.parentId,
+                    parentMasterId: master.parentMasterId,
+                    colorThemeId: master.colorThemeId || null,
+                    typographyStyleId: master.typographyStyleId || null,
                     styleAssignments: master.styleAssignments ? {
                         colorTheme: master.styleAssignments.colorTheme || null
                     } : null,
-                    hasThemeOverride: !!master.styleAssignments?.colorTheme
+                    hasThemeOverride: !!colorThemeOverride
                 };
             }
         });

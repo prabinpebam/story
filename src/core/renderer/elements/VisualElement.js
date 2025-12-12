@@ -73,8 +73,7 @@ export class VisualElement {
             const activeMasterId = state.editor.activeMasterId;
             const activeMaster = state.slideMasterPresets?.[activeMasterId];
             
-            // If we are editing a layout, then 'layout' source elements are local/editable
-            if (activeMaster && (activeMaster.type === 'layout' || activeMaster.type === 'layoutMaster')) {
+                if (activeMaster && activeMaster.type === 'layoutMaster') {
                 isInherited = false;
             }
         }

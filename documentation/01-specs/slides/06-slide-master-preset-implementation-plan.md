@@ -20,25 +20,27 @@ This section tracks what is already implemented in the codebase vs. what remains
 - **M6 Layout Picker grouped by master**
   - Implemented earlier and covered by Playwright in [tests/e2e/specs/functional/layout-picker.spec.ts](../../tests/e2e/specs/functional/layout-picker.spec.ts).
 
-### Partially implemented
-
-- **M3 Apply master preset to a master slide (store action)**
-  - `APPLY_MASTER_PRESET_TO_MASTER` exists (handled in [src/core/Store.js](../../src/core/Store.js)) and is wired from the UI.
-  - Precondition gating (blocked when master is in use) is enforced in the handler and covered by unit test:
-    - [src/core/store/handlers/MasterHandlers.js](../../src/core/store/handlers/MasterHandlers.js)
-    - [tests/unit/core/handlers/ApplyMasterPresetToMaster.test.js](../../tests/unit/core/handlers/ApplyMasterPresetToMaster.test.js)
-  - **Remaining gap:** the allowed path does not yet fully “replace the layout set (delete old child layouts, create new child layouts)” per this plan; current behavior updates existing layouts by name when applying preset.
-
 - **M5 Notification system integration (blocked flows)**
   - Bottom-center popover notification service exists:
     - [src/ui/services/NotificationService.js](../../src/ui/services/NotificationService.js)
-  - Store-level blocked flows now emit a notification event from [src/core/Store.js](../../src/core/Store.js), which is forwarded to the UI in [src/main.js](../../src/main.js).
-  - UI-level blocking may still exist for fast feedback, but the store/handler path is now authoritative for correctness.
+  - Store-level blocked flows emit a notification event from [src/core/Store.js](../../src/core/Store.js), which is forwarded to the UI in [src/main.js](../../src/main.js).
+  - Master preset changes blocked due to “master in use” use the shared notification pathway.
+
+- **M3 Apply master preset to a master slide (store action)**
+  - `APPLY_MASTER_PRESET_TO_MASTER` exists (handled in [src/core/Store.js](../../src/core/Store.js)) and is wired from the UI.
+  - Precondition gating (blocked when master is in use) is enforced in the handler and covered by unit tests:
+    - [src/core/store/handlers/MasterHandlers.js](../../src/core/store/handlers/MasterHandlers.js)
+    - [tests/unit/core/handlers/ApplyMasterPresetToMaster.test.js](../../tests/unit/core/handlers/ApplyMasterPresetToMaster.test.js)
+  - Allowed path replaces the master’s layout set (deletes old child layouts and materializes new `layoutMaster` children from the preset definition):
+    - [tests/unit/core/handlers/ApplyMasterPresetToMaster.allowedReplacement.test.js](../../tests/unit/core/handlers/ApplyMasterPresetToMaster.allowedReplacement.test.js)
+
+### Partially implemented
 
 ### Not started / still required by this plan
 
 - **M0 “No legacy support” cleanup**
-  - Legacy codepaths still exist (e.g. legacy master types and legacy branches in master handlers).
+  - Canonical master types are used in the core Master Preset flow (`slideMasterPreset` + `layoutMaster`, `parentMasterId`).
+  - **Remaining:** remove/quarantine the last legacy master/layout type branches (`type: 'theme'` / `type: 'layout'`, `parentId`) and embedded `themeSettings` editing paths so the app does not maintain dual schema logic.
 - **M1 Master Preset Library (data)** and **M2 Master Preset Picker panel (UI surface)**
   - The current code uses existing preset definitions in `SlideMasterPresets.js`; the dedicated library/picker panel described here is not yet implemented.
 

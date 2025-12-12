@@ -77,7 +77,7 @@ export class BaseRenderer {
             
             if (!item) return null;
 
-            if (item.type === 'theme' || item.type === 'slideMasterPreset') {
+            if (item.type === 'slideMasterPreset') {
                 return {
                     ...item,
                     width: item.width || 1920,
@@ -87,8 +87,8 @@ export class BaseRenderer {
                     effectiveOrder: item.elementOrder || [],
                     themeSettings: item.themeSettings
                 };
-            } else if (item.type === 'layout' || item.type === 'layoutMaster') {
-                const masterId = item.parentId || item.parentMasterId;
+            } else if (item.type === 'layoutMaster') {
+                const masterId = item.parentMasterId;
                 const master = masters[masterId];
                 
                 // Mark master elements as inherited/locked
@@ -99,7 +99,7 @@ export class BaseRenderer {
                 if (master) {
                     (master.elementOrder || []).forEach(elId => {
                         if (master.elements && master.elements[elId]) {
-                            effectiveElements[elId] = { ...master.elements[elId], isLocked: true, source: 'theme' };
+                            effectiveElements[elId] = { ...master.elements[elId], isLocked: true, source: 'master' };
                             effectiveOrder.push(elId);
                         }
                     });

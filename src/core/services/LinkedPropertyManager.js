@@ -519,7 +519,7 @@ class LinkedPropertyManager extends EventEmitter {
         
         // Fallback
         for (const master of Object.values(state.slideMasterPresets || {})) {
-            if (master.type === 'theme') {
+            if (master.type === 'slideMasterPreset') {
                 return master.themeSettings?.fonts || { heading: 'Inter', body: 'Inter' };
             }
         }

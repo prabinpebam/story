@@ -67,23 +67,23 @@ export class SlideList {
             size: 'xs',
             title: 'Add Layout',
             onClick: () => {
-                // Determine parent ID
+                // Determine parent master
                 const activeId = state.editor.activeMasterId;
                 const activeMaster = state.slideMasterPresets[activeId];
-                let parentId = activeId;
+                let parentMasterId = activeId;
                 
-                if (activeMaster && activeMaster.type === 'layout') {
-                    parentId = activeMaster.parentId;
+                if (activeMaster && activeMaster.type === 'layoutMaster') {
+                    parentMasterId = activeMaster.parentMasterId;
                 }
                 
-                // If we still don't have a valid parent (e.g. no selection), pick the first theme
-                if (!parentId || (state.slideMasterPresets[parentId]?.type !== 'theme' && state.slideMasterPresets[parentId]?.type !== 'slideMasterPreset')) {
-                    const firstTheme = Object.values(state.slideMasterPresets).find(m => m.type === 'theme' || m.type === 'slideMasterPreset');
-                    if (firstTheme) parentId = firstTheme.id;
+                // If we still don't have a valid parent (e.g. no selection), pick the first master
+                if (!parentMasterId || state.slideMasterPresets[parentMasterId]?.type !== 'slideMasterPreset') {
+                    const firstMaster = Object.values(state.slideMasterPresets).find(m => m.type === 'slideMasterPreset');
+                    if (firstMaster) parentMasterId = firstMaster.id;
                 }
                 
-                if (parentId) {
-                    store.dispatch('ADD_LAYOUT', { parentId });
+                if (parentMasterId) {
+                    store.dispatch('ADD_LAYOUT', { parentMasterId });
                 }
             }
         });
@@ -104,10 +104,10 @@ export class SlideList {
             // Use display order if available
             themes = state.masterDisplayOrder
                 .map(id => allMasters[id])
-                .filter(m => m && (m.type === 'theme' || m.type === 'slideMasterPreset'));
+                .filter(m => m && m.type === 'slideMasterPreset');
         } else {
             // Fallback to object values
-            themes = Object.values(allMasters).filter(m => m.type === 'theme' || m.type === 'slideMasterPreset');
+            themes = Object.values(allMasters).filter(m => m.type === 'slideMasterPreset');
         }
 
         themes.forEach(theme => {
@@ -116,7 +116,9 @@ export class SlideList {
             list.appendChild(masterItem);
 
             // 2. Render Layouts
-            const layouts = Object.values(allMasters).filter(m => (m.type === 'layout' || m.type === 'layoutMaster') && (m.parentId === theme.id || m.parentMasterId === theme.id));
+            const layouts = (theme.layoutIds || [])
+                .map(id => allMasters[id])
+                .filter(m => m && m.type === 'layoutMaster' && m.parentMasterId === theme.id);
             
             if (layouts.length > 0) {
                 const layoutsContainer = document.createElement('div');
@@ -170,17 +172,16 @@ export class SlideList {
             height: 1080,
             effectiveBackground: slideOrMaster.background,
             effectiveElements: slideOrMaster.elements || {},
-            effectiveOrder: slideOrMaster.elementOrder || [],
-            themeSettings: slideOrMaster.themeSettings
+            effectiveOrder: slideOrMaster.elementOrder || []
         };
         
         // If layout, inherit background from parent theme
         if (!isMasterRoot && (!masterData.effectiveBackground || masterData.effectiveBackground.type === 'inherited')) {
-            const parentId = slideOrMaster.parentMasterId || slideOrMaster.parentId;
-            if (parentId && state.slideMasterPresets[parentId]) {
-                masterData.effectiveBackground = state.slideMasterPresets[parentId].background;
+            const parentMasterId = slideOrMaster.parentMasterId;
+            if (parentMasterId && state.slideMasterPresets[parentMasterId]) {
+                masterData.effectiveBackground = state.slideMasterPresets[parentMasterId].background;
                 // Note: themeSettings no longer exists, use colorThemeId instead
-                masterData.colorThemeId = state.slideMasterPresets[parentId].colorThemeId;
+                masterData.colorThemeId = state.slideMasterPresets[parentMasterId].colorThemeId;
             }
         }
         

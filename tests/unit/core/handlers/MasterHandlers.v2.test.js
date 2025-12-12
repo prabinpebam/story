@@ -20,18 +20,20 @@ describe('MasterHandlers V2', () => {
                 'master-1': {
                     id: 'master-1',
                     name: 'Master 1',
-                    type: 'slideMasterPreset'
+                    type: 'slideMasterPreset',
+                    layoutIds: ['layout-1']
                 },
                 'master-2': {
                     id: 'master-2',
                     name: 'Master 2',
-                    type: 'slideMasterPreset'
+                    type: 'slideMasterPreset',
+                    layoutIds: []
                 },
                 'layout-1': {
                     id: 'layout-1',
                     name: 'Layout 1',
                     type: 'layoutMaster',
-                    parentId: 'master-1'
+                    parentMasterId: 'master-1'
                 }
             },
             editor: {
@@ -46,20 +48,21 @@ describe('MasterHandlers V2', () => {
     describe('handleAddLayout', () => {
         it('should add a new layout to the specified master', () => {
             const newState = produce(initialState, draft => {
-                MasterHandlers.handleAddLayout(draft, { parentId: 'master-1' });
+                MasterHandlers.handleAddLayout(draft, { parentMasterId: 'master-1' });
             });
             
-            const layouts = Object.values(newState.slideMasterPresets).filter(m => m.parentId === 'master-1');
+            const layouts = Object.values(newState.slideMasterPresets).filter(m => m.parentMasterId === 'master-1');
             expect(layouts.length).toBe(2); // layout-1 + new layout
             const newLayout = layouts.find(l => l.id !== 'layout-1');
             expect(newLayout).toBeDefined();
-            expect(newLayout.type).toBe('layout');
+            expect(newLayout.type).toBe('layoutMaster');
+            expect(newState.slideMasterPresets['master-1'].layoutIds).toContain(newLayout.id);
             expect(newState.editor.activeMasterId).toBe(newLayout.id);
         });
 
         it('should not modify state if master is not found', () => {
             const newState = produce(initialState, draft => {
-                MasterHandlers.handleAddLayout(draft, { parentId: 'non-existent' });
+                MasterHandlers.handleAddLayout(draft, { parentMasterId: 'non-existent' });
             });
             expect(Object.keys(newState.slideMasterPresets).length).toBe(3);
         });
@@ -83,11 +86,12 @@ describe('MasterHandlers V2', () => {
                 MasterHandlers.handleDuplicateMaster(draft, { id: 'layout-1' });
             });
             
-            const layouts = Object.values(newState.slideMasterPresets).filter(m => m.type === 'layoutMaster' || m.type === 'layout');
+            const layouts = Object.values(newState.slideMasterPresets).filter(m => m.type === 'layoutMaster');
             expect(layouts.length).toBe(2);
             const newLayout = layouts.find(l => l.id !== 'layout-1');
             expect(newLayout.name).toContain('Copy');
-            expect(newLayout.parentId).toBe('master-1');
+            expect(newLayout.parentMasterId).toBe('master-1');
+            expect(newState.slideMasterPresets['master-1'].layoutIds).toContain(newLayout.id);
         });
     });
 
@@ -116,6 +120,7 @@ describe('MasterHandlers V2', () => {
             });
             
             expect(newState.slideMasterPresets['master-1']).toBeUndefined();
+            expect(newState.slideMasterPresets['layout-1']).toBeUndefined();
         });
 
         it('should delete a layout if not used', () => {
