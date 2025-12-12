@@ -209,6 +209,74 @@ Each task flow is written as: **Trigger → Steps → Result → Undo/redo behav
    - Remove placeholders that no longer exist.
    - Keep non-placeholder slide elements.
 
+#### 5.6.1 Case analysis (PowerPoint-like)
+
+The system must behave differently based on **whether user-authored content exists** and **whether a deterministic mapping exists**.
+
+**CASE 1: Slide placeholders have no user content**
+- Example: placeholder text boxes still show prompt content (empty/untouched).
+- User changes layout.
+- Behavior:
+  - Replace the old layout placeholder set with the new layout placeholder set.
+  - No content preservation logic needed (no user content).
+  - No prompts.
+
+**CASE 2: Slide contains user content inside placeholder(s)**
+
+**CASE 2A: Deterministic mapping exists (safe preserve)**
+- Example: Title placeholder → Title placeholder in new layout.
+- Behavior:
+  - Preserve the user content by mapping from source placeholder → target placeholder.
+  - Preserve overrides where valid (style overrides remain on the placeholder element per placeholder integration rules).
+  - No prompts.
+
+**CASE 2B: No mapping exists (e.g., switching to Blank layout)**
+- Example: current layout has Title/Body placeholders, new layout has none.
+- Behavior:
+  - Convert placeholder-origin user content into **regular slide elements** (detached content) so nothing is lost.
+  - The new layout placeholders (if any) are created empty.
+  - Crucially: the system must still remember where the detached elements came from so a later layout change can “put them back”.
+
+#### 5.6.2 Provenance tracking (required for restore)
+
+When placeholder-origin content is detached (CASE 2B), each resulting regular element must carry origin metadata.
+
+**Required metadata fields (conceptual)**
+- `origin.placeholderType` (e.g., `title`, `body`, `caption`)
+- `origin.sourceLayoutId` (the layout the placeholder came from)
+- `origin.sourceMasterElementId` (stable placeholder identity if available)
+- `origin.detachedAt` timestamp/version (for debugging and conflict resolution)
+
+This metadata must survive:
+- undo/redo
+- serialization
+- collaboration merges
+
+#### 5.6.3 Restore rules when switching to another layout later
+
+If a slide has detached elements with `origin.*` metadata and the user changes to a layout where matching placeholders exist:
+
+1) Attempt to map detached elements back into placeholders using the same deterministic strategy defined in “Content preservation edge cases”.
+2) If a match is found:
+   - Move the element’s content into the placeholder element.
+   - Delete the detached regular element (or mark as migrated) to avoid duplicates.
+3) If no match is found:
+   - Keep the detached element as a normal slide element.
+
+**PowerPoint-like UX rule:** restoring should be automatic and silent when deterministic; never drop content; only prompt if mapping is ambiguous or would overwrite existing filled placeholder content.
+
+#### 5.6.4 Conflict rules (avoid overwriting user work)
+
+If the target placeholder is already filled with user content and a detached element also wants to map there:
+- Do not overwrite.
+- Default behavior:
+  - Keep the existing placeholder content.
+  - Keep the detached element as a normal slide element.
+- Prompt only if the user is about to lose track of content placement (rare) and offer:
+  - “Replace placeholder content”
+  - “Keep both (detach)” (default)
+  - “Choose another placeholder”
+
 **Result**
 - Slide changes to new layout without losing meaningful content.
 
