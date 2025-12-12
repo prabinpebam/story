@@ -763,6 +763,21 @@ select.pi-input option {
     justify-items: center;
 }
 
+.layout-flyout-group {
+    margin-top: var(--spacing-3);
+}
+
+.layout-flyout-group:first-child {
+    margin-top: 0;
+}
+
+.layout-flyout-group-title {
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-medium);
+    color: var(--color-text-secondary);
+    margin-bottom: var(--spacing-2);
+}
+
 .layout-flyout-grid .layout-thumbnail {
     padding: var(--spacing-2);
 }

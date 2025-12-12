@@ -863,6 +863,7 @@ export class SlideSection {
         // Create flyout content
         const content = document.createElement('div');
         content.className = 'layout-flyout-content';
+        content.setAttribute('data-testid', 'layout-picker-flyout');
         
         // Title
         const title = document.createElement('div');
@@ -870,60 +871,114 @@ export class SlideSection {
         title.textContent = 'Select Layout';
         content.appendChild(title);
         
-        // Grid container
-        const grid = document.createElement('div');
-        grid.className = 'layout-flyout-grid';
-        
-        // Populate with layouts
         const layouts = this.currentLayouts || [];
         const currentLayoutId = this.currentLayoutId;
         const state = this.currentState;
-        
-        layouts.forEach(layout => {
+
+        const mastersById = state?.slideMasterPresets || {};
+
+        // Group layouts by parent master (canonical: layoutMaster.parentMasterId)
+        const groupMap = new Map();
+        for (const layout of layouts) {
+            const parentMasterId = layout.parentMasterId || layout.parentId || 'unknown-master';
+            if (!groupMap.has(parentMasterId)) {
+                groupMap.set(parentMasterId, []);
+            }
+            groupMap.get(parentMasterId).push(layout);
+        }
+
+        // Determine master order (prefer explicit display order if present)
+        let masterOrder = [];
+        if (Array.isArray(state?.masterDisplayOrder) && state.masterDisplayOrder.length > 0) {
+            masterOrder = state.masterDisplayOrder.slice();
+        } else {
+            masterOrder = Object.values(mastersById)
+                .filter(m => m && (m.type === 'slideMasterPreset' || m.type === 'theme'))
+                .map(m => m.id)
+                .sort((a, b) => {
+                    const ma = mastersById[a];
+                    const mb = mastersById[b];
+                    return String(ma?.name || a).localeCompare(String(mb?.name || b));
+                });
+        }
+
+        const orderedMasterIds = [];
+        for (const masterId of masterOrder) {
+            if (groupMap.has(masterId)) orderedMasterIds.push(masterId);
+        }
+        for (const [masterId] of groupMap.entries()) {
+            if (!orderedMasterIds.includes(masterId)) orderedMasterIds.push(masterId);
+        }
+
+        const makeLayoutThumbnail = (layout) => {
             const thumbnail = document.createElement('div');
             thumbnail.className = 'layout-thumbnail' + (layout.id === currentLayoutId ? ' selected' : '');
             thumbnail.dataset.layoutId = layout.id;
+            thumbnail.setAttribute('data-testid', 'layout-picker-option');
             thumbnail.title = layout.name;
-            
+
             // Get effective layout data (with theme inheritance)
             const effectiveLayout = store.getEffectiveMaster(layout.id);
-            
+
             // Create accurate preview using ThumbnailRenderer (only if effectiveLayout exists)
             if (effectiveLayout) {
                 const preview = ThumbnailRenderer.createThumbnail(layout.id, effectiveLayout);
                 preview.className = 'layout-preview';
                 thumbnail.appendChild(preview);
             } else {
-                // Fallback: create empty preview if layout data unavailable
                 const preview = document.createElement('div');
                 preview.className = 'layout-preview';
                 thumbnail.appendChild(preview);
             }
-            
-            // Label
+
             const label = document.createElement('div');
             label.className = 'layout-label';
             label.textContent = layout.name;
             thumbnail.appendChild(label);
-            
-            // Click handler
+
             thumbnail.addEventListener('click', () => {
                 if (layout.id !== currentLayoutId) {
                     this.layoutSelect.setValue(layout.id);
                     this.updateLayout(layout.id);
-                    // Update button text
                     this.layoutTriggerBtn.setLabel(layout.name);
                 }
-                // Close flyout
                 if (this.layoutFlyout) {
                     this.layoutFlyout.close();
                 }
             });
-            
-            grid.appendChild(thumbnail);
+
+            return thumbnail;
+        };
+
+        // Render groups (Master -> Layouts), while keeping single-step selection.
+        orderedMasterIds.forEach(masterId => {
+            const group = document.createElement('div');
+            group.className = 'layout-flyout-group';
+            group.setAttribute('data-testid', 'layout-picker-group');
+            group.dataset.masterId = masterId;
+
+            const master = mastersById?.[masterId];
+            const groupTitle = document.createElement('div');
+            groupTitle.className = 'layout-flyout-group-title';
+            groupTitle.setAttribute('data-testid', 'layout-picker-group-title');
+            groupTitle.textContent = master?.name || 'Master';
+            group.appendChild(groupTitle);
+
+            const grid = document.createElement('div');
+            grid.className = 'layout-flyout-grid';
+
+            const groupLayouts = groupMap.get(masterId) || [];
+            // Stable ordering inside group
+            groupLayouts
+                .slice()
+                .sort((a, b) => String(a.name || a.id).localeCompare(String(b.name || b.id)))
+                .forEach(layout => {
+                    grid.appendChild(makeLayoutThumbnail(layout));
+                });
+
+            group.appendChild(grid);
+            content.appendChild(group);
         });
-        
-        content.appendChild(grid);
         
         // Create or update flyout
         if (this.layoutFlyout) {
