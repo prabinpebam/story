@@ -1,7 +1,7 @@
 
 import { getDefaultPreset } from '../../constants/ColorPresets.js';
 import { getDefaultFontPreset, getPresetById as getFontPresetById } from '../../constants/FontPresets.js';
-import { getPresetById, getFullPresetById, getPresetList } from '../SlideMasterPresets.js';
+import { getPresetById, getPresetList, materializePreset } from '../SlideMasterPresets.js';
 import { isMasterInUseBySlides } from '../../master/MasterUsage.js';
 
 // ========================================
@@ -472,10 +472,8 @@ export function handleApplyMasterPresetToMaster(draft, payload) {
         return;
     }
     
-    const fullPreset = getFullPresetById(presetId);
-    if (!fullPreset) {
-        return;
-    }
+    const presetMeta = getPresetById(presetId);
+    if (!presetMeta) return;
 
     // Precondition gating (M3): block preset replacement if any slides use this master.
     // When presetId is not stored yet, infer the "current" preset from the preset library (same as UI).
@@ -494,106 +492,46 @@ export function handleApplyMasterPresetToMaster(draft, payload) {
             }
         };
     }
-    
-    const presetTheme = fullPreset.theme;
 
     // Store the preset ID for reference
     themeMaster.presetId = presetId;
 
-    // 1) Apply luma theme as a referenced ColorThemePreset
-    const lumaTheme = presetTheme.themeSettings?.lumaTheme;
-    if (lumaTheme?.id) {
-        handleApplyLumaTheme(draft, {
-            masterId,
-            theme: {
-                ...lumaTheme,
-                // Some sources use resolvedColors; normalize for handler
-                colors: lumaTheme.colors || lumaTheme.resolvedColors
-            }
-        });
+    // Canonical apply: materialize a template into the existing masterId.
+    const { master, layouts } = materializePreset(presetId, {
+        masterId,
+        masterName: themeMaster.name
+    });
+
+    // Replace master fields (keep id/type stable)
+    themeMaster.name = master.name;
+    themeMaster.colorThemeId = master.colorThemeId;
+    themeMaster.typographyStyleId = master.typographyStyleId;
+    themeMaster.background = master.background;
+    themeMaster.elements = master.elements;
+    themeMaster.elementOrder = master.elementOrder;
+    themeMaster.layoutIds = master.layoutIds;
+
+    // Remove legacy embedded themeSettings if any linger
+    if (themeMaster.themeSettings) {
+        delete themeMaster.themeSettings;
     }
 
-    // 2) Apply font preset as a referenced TypographyStylePreset
-    const fontPresetId = presetTheme.themeSettings?.fontPresetId;
-    const fontPreset = fontPresetId ? getFontPresetById(fontPresetId) : null;
-    if (fontPreset) {
-        handleApplyFontPreset(draft, { masterId, preset: fontPreset });
+    // Replace child layouts under this master
+    const existingChildLayoutIds = Object.keys(draft.slideMasterPresets).filter(id => {
+        const m = draft.slideMasterPresets[id];
+        return m?.type === 'layoutMaster' && m.parentMasterId === masterId;
+    });
+    for (const oldLayoutId of existingChildLayoutIds) {
+        delete draft.slideMasterPresets[oldLayoutId];
     }
 
-    // 3) Apply background from preset (if present)
-    if (presetTheme.background) {
-        themeMaster.background = JSON.parse(JSON.stringify(presetTheme.background));
-    }
+    Object.entries(layouts || {}).forEach(([id, layout]) => {
+        draft.slideMasterPresets[id] = layout;
+    });
 
-    // 3.5) Apply master-level elements (if present)
-    if (presetTheme.elements) {
-        themeMaster.elements = JSON.parse(JSON.stringify(presetTheme.elements));
-        themeMaster.elementOrder = Array.isArray(presetTheme.elementOrder)
-            ? [...presetTheme.elementOrder]
-            : Object.keys(themeMaster.elements || {});
-    }
-
-    // 4) Replace the layout set under this master (safe because this action is blocked when in use).
-    // Preset layouts may come from older sources; we re-materialize them into canonical `layoutMaster` records.
-    const presetLayouts = fullPreset.layouts;
-    if (presetLayouts) {
-        const presetLayoutArray = Object.values(presetLayouts);
-
-        const existingChildLayoutIds = Object.keys(draft.slideMasterPresets).filter(id => {
-            const master = draft.slideMasterPresets[id];
-            return master?.type === 'layoutMaster' && master.parentMasterId === masterId;
-        });
-
-        // Replace means: delete the old child layouts and create a fresh set from the preset.
-        // This is safe because the action is blocked when any normal slide uses layouts under this master.
-        for (const oldLayoutId of existingChildLayoutIds) {
-            delete draft.slideMasterPresets[oldLayoutId];
-        }
-
-        const nextLayoutIds = [];
-        const usedIds = new Set(Object.keys(draft.slideMasterPresets));
-        const makeLayoutId = (presetLayout, index) => {
-            const base = String(presetLayout?.id || presetLayout?.name || `layout-${index}`)
-                .replace(/\s+/g, '-')
-                .replace(/[^a-zA-Z0-9_-]/g, '')
-                .slice(0, 80) || `layout-${index}`;
-            let candidate = `layout-${masterId}-${presetId}-${base}`;
-            let n = 1;
-            while (usedIds.has(candidate)) {
-                candidate = `layout-${masterId}-${presetId}-${base}-${n++}`;
-            }
-            usedIds.add(candidate);
-            return candidate;
-        };
-
-        presetLayoutArray.forEach((presetLayout, index) => {
-            if (!presetLayout?.name) return;
-
-            const layoutId = makeLayoutId(presetLayout, index);
-            draft.slideMasterPresets[layoutId] = {
-                id: layoutId,
-                type: 'layoutMaster',
-                parentMasterId: masterId,
-                name: presetLayout.name,
-                background: presetLayout.background ?? null,
-                // Preset references (null = inherit from parent master)
-                colorThemeId: null,
-                typographyStyleId: null,
-                elements: JSON.parse(JSON.stringify(presetLayout.elements || {})),
-                elementOrder: Array.isArray(presetLayout.elementOrder)
-                    ? [...presetLayout.elementOrder]
-                    : Object.keys(presetLayout.elements || {})
-            };
-            nextLayoutIds.push(layoutId);
-        });
-
-        // Update master layoutIds
-        themeMaster.layoutIds = nextLayoutIds;
-
-        // Keep selection valid
-        if (draft.editor?.activeMasterId && !draft.slideMasterPresets[draft.editor.activeMasterId]) {
-            draft.editor.activeMasterId = masterId;
-        }
+    // Keep selection valid
+    if (draft.editor?.activeMasterId && !draft.slideMasterPresets[draft.editor.activeMasterId]) {
+        draft.editor.activeMasterId = masterId;
     }
 
     return { blocked: false };

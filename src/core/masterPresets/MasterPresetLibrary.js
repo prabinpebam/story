@@ -21,14 +21,46 @@ function deriveLayoutKey(layoutId) {
  */
 export const MASTER_PRESET_DEFINITIONS = [
     {
-        id: 'default-master-preset',
-        name: 'Default Master',
-        description: 'Clean, professional default master preset',
-        colorThemeId: 'color-theme-default',
-        typographyStyleId: 'typo-style-default',
+        id: 'master-preset-minimal',
+        name: 'Minimal',
+        description: 'Clean whitespace, neutral palette, minimalist typography',
+        colorThemeId: 'preset_neutral',
+        typographyStyleId: 'typo-style-minimal',
 
         // Use the current DEFAULT_MASTERS templates as the geometry source of truth.
         // These templates are already canonical and reference-only.
+        templateMasterId: 'master-default'
+    },
+    {
+        id: 'master-preset-corporate',
+        name: 'Corporate',
+        description: 'Balanced, professional look with strong hierarchy',
+        colorThemeId: 'preset_ocean_sunset',
+        typographyStyleId: 'typo-style-corporate',
+        templateMasterId: 'master-default'
+    },
+    {
+        id: 'master-preset-editorial',
+        name: 'Editorial',
+        description: 'Magazine-inspired rhythm with editorial typography',
+        colorThemeId: 'preset_emerald_gold',
+        typographyStyleId: 'typo-style-editorial',
+        templateMasterId: 'master-default'
+    },
+    {
+        id: 'master-preset-tech',
+        name: 'Tech',
+        description: 'Crisp contrast and modern tech-forward feel',
+        colorThemeId: 'preset_cosmic_nebula',
+        typographyStyleId: 'typo-style-tech',
+        templateMasterId: 'master-default'
+    },
+    {
+        id: 'master-preset-playful',
+        name: 'Playful',
+        description: 'Vibrant, friendly palette and playful typography',
+        colorThemeId: 'preset_tropical_paradise',
+        typographyStyleId: 'typo-style-playful',
         templateMasterId: 'master-default'
     }
 ];

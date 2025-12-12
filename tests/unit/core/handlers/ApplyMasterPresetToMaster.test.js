@@ -4,18 +4,44 @@ import { createInitialState } from '../../../../src/core/store/InitialState.js';
 
 // Provide a stable preset list so the handler can infer the "current" preset when master.presetId is absent.
 vi.mock('../../../../src/core/store/SlideMasterPresets.js', () => ({
-    getPresetById: () => null,
-    getPresetList: () => ([{ id: 'preset-current', name: 'Current Preset' }]),
-    getFullPresetById: (id) => ({
+    getPresetById: (id) => ({
         id,
-        theme: {
-            // Keep minimal so we don't trigger font/theme side effects in the handler.
-            themeSettings: {},
-            background: { type: 'solid', value: '#FFFFFF' }
-        },
-        layouts: null
+        name: 'Preset',
+        description: '',
+        colorThemeId: 'preset_neutral',
+        typographyStyleId: 'typo-style-minimal',
+        templateMasterId: 'master-default'
     }),
-    SLIDE_MASTER_PRESETS: []
+    getPresetList: () => ([{ id: 'master-preset-minimal', name: 'Minimal' }]),
+    materializePreset: (presetId, { masterId, masterName } = {}) => {
+        return {
+            master: {
+                id: masterId,
+                type: 'slideMasterPreset',
+                name: masterName || 'Master',
+                colorThemeId: 'preset_neutral',
+                typographyStyleId: 'typo-style-minimal',
+                background: null,
+                elements: {},
+                elementOrder: [],
+                layoutIds: [`${masterId}-layout-one`]
+            },
+            layouts: {
+                [`${masterId}-layout-one`]: {
+                    id: `${masterId}-layout-one`,
+                    type: 'layoutMaster',
+                    parentMasterId: masterId,
+                    layoutKey: 'one',
+                    name: 'One',
+                    background: null,
+                    colorThemeId: null,
+                    typographyStyleId: null,
+                    elements: {},
+                    elementOrder: []
+                }
+            }
+        };
+    }
 }));
 
 import { handleApplyMasterPresetToMaster } from '../../../../src/core/store/handlers/MasterHandlers.js';
@@ -36,16 +62,16 @@ describe('M3: APPLY_MASTER_PRESET_TO_MASTER gating (handler-level)', () => {
 
     it('allows applying the inferred current preset even if master is in use', () => {
         const next = produce(initialState, (draft) => {
-            handleApplyMasterPresetToMaster(draft, { masterId: 'master-default', presetId: 'preset-current' });
+            handleApplyMasterPresetToMaster(draft, { masterId: 'master-default', presetId: 'master-preset-minimal' });
         });
 
-        expect(next.slideMasterPresets['master-default'].presetId).toBe('preset-current');
+        expect(next.slideMasterPresets['master-default'].presetId).toBe('master-preset-minimal');
     });
 
     it('blocks changing to a different preset when master is in use (no mutation)', () => {
         let result;
         const next = produce(initialState, (draft) => {
-            result = handleApplyMasterPresetToMaster(draft, { masterId: 'master-default', presetId: 'preset-other' });
+            result = handleApplyMasterPresetToMaster(draft, { masterId: 'master-default', presetId: 'master-preset-corporate' });
         });
 
         expect(next.slideMasterPresets['master-default'].presetId).toBeUndefined();

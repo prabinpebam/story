@@ -1,40 +1,60 @@
 import { describe, it, expect, vi } from 'vitest';
 import { produce } from '../../../../src/vendor/immer.js';
 
-// Mock presets to return a legacy-shaped preset with layouts that should be materialized into canonical layoutMasters.
+// Mock presets to return a canonical materialized preset.
 vi.mock('../../../../src/core/store/SlideMasterPresets.js', () => ({
-    getPresetById: () => null,
-    getPresetList: () => ([{ id: 'preset-a', name: 'Preset A' }]),
-    getFullPresetById: (id) => ({
+    getPresetById: (id) => ({
         id,
-        theme: {
-            themeSettings: {},
-            background: { type: 'solid', value: '#FFFFFF' },
-            elements: { 'master-el-1': { id: 'master-el-1', type: 'shape' } },
-            elementOrder: ['master-el-1']
-        },
-        layouts: {
-            'theme-preset-a-layout-1': {
-                id: 'theme-preset-a-layout-1',
-                type: 'layout',
-                parentId: 'theme-preset-a',
-                name: 'Title Slide',
-                background: null,
-                elements: { 'placeholder-title': { id: 'placeholder-title', type: 'text', isPlaceholder: true, placeholderType: 'title' } },
-                elementOrder: ['placeholder-title']
-            },
-            'theme-preset-a-layout-2': {
-                id: 'theme-preset-a-layout-2',
-                type: 'layout',
-                parentId: 'theme-preset-a',
-                name: 'Title + Content',
-                background: null,
-                elements: { 'placeholder-body': { id: 'placeholder-body', type: 'text', isPlaceholder: true, placeholderType: 'body' } },
-                elementOrder: ['placeholder-body']
-            }
-        }
+        name: 'Preset A',
+        description: '',
+        colorThemeId: 'preset_neutral',
+        typographyStyleId: 'typo-style-minimal',
+        templateMasterId: 'master-default'
     }),
-    SLIDE_MASTER_PRESETS: []
+    getPresetList: () => ([{ id: 'preset-a', name: 'Preset A' }]),
+    materializePreset: (presetId, { masterId, masterName } = {}) => {
+        const layout1 = `${masterId}-layout-1`;
+        const layout2 = `${masterId}-layout-2`;
+        return {
+            master: {
+                id: masterId,
+                type: 'slideMasterPreset',
+                name: masterName || 'Master',
+                colorThemeId: 'preset_neutral',
+                typographyStyleId: 'typo-style-minimal',
+                background: { type: 'solid', themeSlot: 11 },
+                elements: { 'master-el-1': { id: 'master-el-1', type: 'shape' } },
+                elementOrder: ['master-el-1'],
+                layoutIds: [layout1, layout2]
+            },
+            layouts: {
+                [layout1]: {
+                    id: layout1,
+                    type: 'layoutMaster',
+                    parentMasterId: masterId,
+                    layoutKey: 'layout-1',
+                    name: 'Title Slide',
+                    background: null,
+                    colorThemeId: null,
+                    typographyStyleId: null,
+                    elements: { 'placeholder-title': { id: 'placeholder-title', type: 'text', isPlaceholder: true, placeholderType: 'title', placeholderKey: 'placeholder-title' } },
+                    elementOrder: ['placeholder-title']
+                },
+                [layout2]: {
+                    id: layout2,
+                    type: 'layoutMaster',
+                    parentMasterId: masterId,
+                    layoutKey: 'layout-2',
+                    name: 'Title + Content',
+                    background: null,
+                    colorThemeId: null,
+                    typographyStyleId: null,
+                    elements: { 'placeholder-body': { id: 'placeholder-body', type: 'text', isPlaceholder: true, placeholderType: 'body', placeholderKey: 'placeholder-body' } },
+                    elementOrder: ['placeholder-body']
+                }
+            }
+        };
+    }
 }));
 
 import { handleApplyMasterPresetToMaster } from '../../../../src/core/store/handlers/MasterHandlers.js';

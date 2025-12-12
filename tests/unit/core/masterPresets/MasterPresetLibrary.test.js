@@ -15,15 +15,15 @@ describe('MasterPresetLibrary', () => {
     });
 
     it('can look up a preset definition by id', () => {
-        const def = getMasterPresetDefinitionById('default-master-preset');
+        const def = getMasterPresetDefinitionById('master-preset-minimal');
         expect(def).not.toBeNull();
-        expect(def.name).toBe('Default Master');
+        expect(def.name).toBe('Minimal');
         expect(def.colorThemeId).toBeTruthy();
         expect(def.typographyStyleId).toBeTruthy();
     });
 
     it('materializes canonical master + layouts with references only', () => {
-        const { master, layouts } = materializeMasterPresetDefinition('default-master-preset', {
+        const { master, layouts } = materializeMasterPresetDefinition('master-preset-minimal', {
             masterId: 'master-test',
             masterName: 'Test Master'
         });
@@ -32,8 +32,8 @@ describe('MasterPresetLibrary', () => {
             id: 'master-test',
             type: 'slideMasterPreset',
             name: 'Test Master',
-            colorThemeId: 'color-theme-default',
-            typographyStyleId: 'typo-style-default'
+            colorThemeId: 'preset_neutral',
+            typographyStyleId: 'typo-style-minimal'
         });
 
         // Must not embed legacy themeSettings
@@ -67,6 +67,6 @@ describe('MasterPresetLibrary', () => {
     });
 
     it('throws when masterId is missing', () => {
-        expect(() => materializeMasterPresetDefinition('default-master-preset')).toThrow();
+        expect(() => materializeMasterPresetDefinition('master-preset-minimal')).toThrow();
     });
 });
