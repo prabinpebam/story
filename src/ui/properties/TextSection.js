@@ -76,9 +76,9 @@ export class TextSection extends BaseSection {
         // Hidden by default, shown via .visible class
         this.container.appendChild(this.overrideIndicator);
 
-        // 1. Font Family & Style & Size
-        const fontRow = document.createElement('div');
-        fontRow.className = 'pi-grid-row cols-2-1-1';
+        // 1. Font Face (Family)
+        const fontFaceRow = document.createElement('div');
+        fontFaceRow.className = 'pi-grid-row';
 
         this.fontFamilyInput = new Dropdown({
             options: FontManager.getAvailableFonts().map(f => ({ label: f.family, value: f.family })),
@@ -92,6 +92,10 @@ export class TextSection extends BaseSection {
         // Store reference to input element for disabling
         this.fontFamilyInput.element.dataset.testid = 'font-family-select';
         this.styleableInputs = [this.fontFamilyInput.element]; // Start tracking styleable inputs
+
+        // 2. Weight | Size
+        const weightSizeRow = document.createElement('div');
+        weightSizeRow.className = 'pi-grid-row cols-1-1';
 
         this.fontWeightInput = new Dropdown({
             options: [
@@ -120,10 +124,11 @@ export class TextSection extends BaseSection {
         this.fontSizeInput.element.dataset.testid = 'font-size-input';
         this.styleableInputs.push(this.fontSizeInput.element);
 
-        fontRow.appendChild(this.fontFamilyInput.element);
-        fontRow.appendChild(this.fontWeightInput.element);
-        fontRow.appendChild(this.fontSizeInput.element);
-        this.container.appendChild(fontRow);
+        fontFaceRow.appendChild(this.fontFamilyInput.element);
+        weightSizeRow.appendChild(this.fontWeightInput.element);
+        weightSizeRow.appendChild(this.fontSizeInput.element);
+        this.container.appendChild(fontFaceRow);
+        this.container.appendChild(weightSizeRow);
 
         // 2. Text Fill
         this.fillRow = document.createElement('div');
