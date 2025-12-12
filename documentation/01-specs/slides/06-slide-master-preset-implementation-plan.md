@@ -1,10 +1,10 @@
 # Slide Master Preset — Implementation Plan (No Legacy)
 
 **Version:** 0.2
-**Last Updated:** December 12, 2025
-**Status:** Draft
+**Last Updated:** December 13, 2025
+**Status:** In progress
 
-## Current repo status (as of Dec 12, 2025)
+## Current repo status (as of Dec 13, 2025)
 
 This section tracks what is already implemented in the codebase vs. what remains from the milestones below.
 
@@ -63,7 +63,9 @@ This section tracks what is already implemented in the codebase vs. what remains
 ### Validation status
 
 - **Vitest:** green (full suite).
-- **Playwright:** full suite is not yet a stable gate; several failures were traced to outdated specs/selectors (e.g. hardcoded dev-server port, legacy PI selector assumptions). Ongoing work is to update E2E tests to match the current canonical UI/state contracts.
+- **Playwright:** green (full suite) and now treated as a stable CI-like gate.
+  - Hardening includes IPv4 baseURL (`127.0.0.1`), strict dev-server port, capped default parallel workers, and store-based readiness waits (avoids `networkidle` flake).
+  - Recent stabilization work was captured in commit `977b665`.
 
 ### Partially implemented
 

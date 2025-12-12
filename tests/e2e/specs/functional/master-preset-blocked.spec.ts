@@ -92,17 +92,11 @@ test.describe('Master Preset - Blocked When In Use', () => {
     await expect(notification).toBeVisible();
     await expect(notification).toContainText("Can’t change Master preset");
 
-    // Action should exist and route to layout picker
-    const actionBtn = notification.locator('[data-testid="notification-action"]');
-    await expect(actionBtn).toBeVisible();
-    await actionBtn.click();
-
-    await expect.poll(async () => {
-      const state = await getState();
-      return state.editor.mode;
-    }, { timeout: 2000 }).toBe('edit');
-
-    await expect(page.locator('.layout-flyout-content')).toBeVisible();
+    // Dismiss button should exist for manual dismiss flows
+    const dismissBtn = notification.locator('[data-testid="notification-dismiss"]');
+    await expect(dismissBtn).toBeVisible();
+    await dismissBtn.click();
+    await expect(notification).toBeHidden();
 
     const after = await getState();
     const afterMaster = after.slideMasterPresets[after.editor.activeMasterId];

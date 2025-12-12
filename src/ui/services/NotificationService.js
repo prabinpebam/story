@@ -50,6 +50,7 @@ function render(state) {
         closeBtn.className = 'notification-popover__close';
         closeBtn.type = 'button';
         closeBtn.setAttribute('aria-label', 'Dismiss notification');
+        closeBtn.setAttribute('data-testid', 'notification-dismiss');
         closeBtn.innerHTML = '<i class="fa-solid fa-xmark"></i>';
         closeBtn.addEventListener('click', () => dismiss());
         header.appendChild(closeBtn);
