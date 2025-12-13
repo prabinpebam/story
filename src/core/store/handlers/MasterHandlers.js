@@ -406,6 +406,7 @@ export function handleApplyMasterPresetToMaster(draft, payload) {
     themeMaster.name = master.name;
     themeMaster.colorThemeId = master.colorThemeId;
     themeMaster.typographyStyleId = master.typographyStyleId;
+    themeMaster.layoutGuide = master.layoutGuide || null;
     themeMaster.background = master.background;
     themeMaster.elements = master.elements;
     themeMaster.elementOrder = master.elementOrder;

@@ -105,6 +105,7 @@ export function materializeMasterPresetDefinition(presetId, { masterId, masterNa
         name: masterName || def.name,
         colorThemeId: def.colorThemeId,
         typographyStyleId: def.typographyStyleId,
+        layoutGuide: deepClone(templateMaster.layoutGuide || null),
         background: deepClone(templateMaster.background || null),
         elements: deepClone(templateMaster.elements || {}),
         elementOrder: deepClone(templateMaster.elementOrder || []),
@@ -139,6 +140,7 @@ export function materializeMasterPresetDefinition(presetId, { masterId, masterNa
             // Layout-level overrides can be added later; inherit by default
             colorThemeId: null,
             typographyStyleId: null,
+            layoutGuide: deepClone(templateLayout.layoutGuide || null),
             elements,
             elementOrder: deepClone(templateLayout.elementOrder || [])
         };

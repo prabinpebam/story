@@ -1173,6 +1173,15 @@ export const DEFAULT_MASTERS = {
         background: { type: "solid", themeSlot: 11, value: "#FFFFFF" },
         elements: {},
         elementOrder: [],
+        // Layout guide defaults for this master preset.
+        // Layout masters should override ONLY the column count to match their structure.
+        layoutGuide: {
+            enabled: true,
+            margins: { top: 40, right: 40, bottom: 40, left: 40 },
+            marginsLinked: true,
+            columns: { gutter: 20 },
+            appearance: { color: '#FF0000', opacity: 10 }
+        },
         // Layout IDs managed by this master
         layoutIds: [
             "layout-title",
@@ -1204,6 +1213,9 @@ export const DEFAULT_MASTERS = {
         // Preset references (null = inherit from parent master)
         colorThemeId: null,
         typographyStyleId: null,
+        layoutGuide: {
+            columns: { count: 1 }
+        },
         elements: {
             "placeholder-title": {
                 id: "placeholder-title",
@@ -1212,7 +1224,7 @@ export const DEFAULT_MASTERS = {
                 placeholderType: "title",
                 textStyleId: "display",
                 content: "<h1>Click to add title</h1>",
-                x: 160, y: 320, width: 1600, height: 240,
+                x: 40, y: 320, width: 1840, height: 240,
                 rotation: 0, opacity: 1,
                 resizing: "fixed",
                 style: { textAlign: "center", verticalAlign: "middle" }
@@ -1224,7 +1236,7 @@ export const DEFAULT_MASTERS = {
                 placeholderType: "subtitle",
                 textStyleId: "subtitle",
                 content: "<p>Click to add subtitle</p>",
-                x: 320, y: 580, width: 1280, height: 120,
+                x: 40, y: 580, width: 1840, height: 120,
                 rotation: 0, opacity: 1,
                 resizing: "fixed",
                 style: { textAlign: "center", verticalAlign: "middle" }
@@ -1242,6 +1254,9 @@ export const DEFAULT_MASTERS = {
         background: null,
         colorThemeId: null,
         typographyStyleId: null,
+        layoutGuide: {
+            columns: { count: 1 }
+        },
         elements: {
             "placeholder-title": {
                 id: "placeholder-title",
@@ -1250,7 +1265,7 @@ export const DEFAULT_MASTERS = {
                 placeholderType: "title",
                 textStyleId: "heading1",
                 content: "<h1>Click to add title</h1>",
-                x: 100, y: 60, width: 1720, height: 100,
+                x: 40, y: 40, width: 1840, height: 120,
                 rotation: 0, opacity: 1,
                 resizing: "fixed",
                 style: { textAlign: "left", verticalAlign: "middle" }
@@ -1262,7 +1277,7 @@ export const DEFAULT_MASTERS = {
                 placeholderType: "body",
                 textStyleId: "bodyLarge",
                 content: "<p>Click to add text</p>",
-                x: 100, y: 180, width: 1720, height: 840,
+                x: 40, y: 180, width: 1840, height: 860,
                 rotation: 0, opacity: 1,
                 resizing: "fixed",
                 style: { textAlign: "left", verticalAlign: "top" }
@@ -1280,6 +1295,9 @@ export const DEFAULT_MASTERS = {
         background: null,
         colorThemeId: null,
         typographyStyleId: null,
+        layoutGuide: {
+            columns: { count: 1 }
+        },
         elements: {
             "placeholder-title": {
                 id: "placeholder-title",
@@ -1288,7 +1306,7 @@ export const DEFAULT_MASTERS = {
                 placeholderType: "title",
                 textStyleId: "title",
                 content: "<h1>Section Title</h1>",
-                x: 100, y: 380, width: 1720, height: 160,
+                x: 40, y: 380, width: 1840, height: 160,
                 rotation: 0, opacity: 1,
                 resizing: "fixed",
                 style: { textAlign: "left", verticalAlign: "middle" }
@@ -1301,7 +1319,7 @@ export const DEFAULT_MASTERS = {
                 textStyleId: "bodyLarge",
                 textFill: { type: "solid", themeSlot: 3, value: "#64748B" },
                 content: "<p>Optional description for this section</p>",
-                x: 100, y: 560, width: 1400, height: 100,
+                x: 40, y: 560, width: 1840, height: 100,
                 rotation: 0, opacity: 1,
                 resizing: "fixed",
                 style: { textAlign: "left", verticalAlign: "top" }
@@ -1319,6 +1337,9 @@ export const DEFAULT_MASTERS = {
         background: null,
         colorThemeId: null,
         typographyStyleId: null,
+        layoutGuide: {
+            columns: { count: 2 }
+        },
         elements: {
             "placeholder-title": {
                 id: "placeholder-title",
@@ -1327,7 +1348,7 @@ export const DEFAULT_MASTERS = {
                 placeholderType: "title",
                 textStyleId: "heading1",
                 content: "<h1>Click to add title</h1>",
-                x: 100, y: 60, width: 1720, height: 100,
+                x: 40, y: 40, width: 1840, height: 120,
                 rotation: 0, opacity: 1,
                 resizing: "fixed",
                 style: { textAlign: "left", verticalAlign: "middle" }
@@ -1339,7 +1360,7 @@ export const DEFAULT_MASTERS = {
                 placeholderType: "body",
                 textStyleId: "body",
                 content: "<p>Click to add text</p>",
-                x: 100, y: 180, width: 830, height: 840,
+                x: 40, y: 180, width: 910, height: 860,
                 rotation: 0, opacity: 1,
                 resizing: "fixed",
                 style: { textAlign: "left", verticalAlign: "top" }
@@ -1351,7 +1372,7 @@ export const DEFAULT_MASTERS = {
                 placeholderType: "text",
                 textStyleId: "body",
                 content: "<p>Click to add text</p>",
-                x: 990, y: 180, width: 830, height: 840,
+                x: 970, y: 180, width: 910, height: 860,
                 rotation: 0, opacity: 1,
                 resizing: "fixed",
                 style: { textAlign: "left", verticalAlign: "top" }
@@ -1369,6 +1390,9 @@ export const DEFAULT_MASTERS = {
         background: null,
         colorThemeId: null,
         typographyStyleId: null,
+        layoutGuide: {
+            columns: { count: 2 }
+        },
         elements: {
             "placeholder-title": {
                 id: "placeholder-title",
@@ -1377,7 +1401,7 @@ export const DEFAULT_MASTERS = {
                 placeholderType: "title",
                 textStyleId: "heading1",
                 content: "<h1>Click to add title</h1>",
-                x: 100, y: 60, width: 1720, height: 100,
+                x: 40, y: 40, width: 1840, height: 120,
                 rotation: 0, opacity: 1,
                 resizing: "fixed",
                 style: { textAlign: "left", verticalAlign: "middle" }
@@ -1390,7 +1414,7 @@ export const DEFAULT_MASTERS = {
                 textStyleId: "heading3",
                 textFill: { type: "solid", themeSlot: 4, value: "#3B82F6" },
                 content: "<p>Option A</p>",
-                x: 100, y: 180, width: 830, height: 60,
+                x: 40, y: 180, width: 910, height: 60,
                 rotation: 0, opacity: 1,
                 resizing: "fixed",
                 style: { textAlign: "left", verticalAlign: "middle" }
@@ -1402,7 +1426,7 @@ export const DEFAULT_MASTERS = {
                 placeholderType: "text",
                 textStyleId: "body",
                 content: "<p>Click to add text</p>",
-                x: 100, y: 260, width: 830, height: 760,
+                x: 40, y: 260, width: 910, height: 780,
                 rotation: 0, opacity: 1,
                 resizing: "fixed",
                 style: { textAlign: "left", verticalAlign: "top" }
@@ -1415,7 +1439,7 @@ export const DEFAULT_MASTERS = {
                 textStyleId: "heading3",
                 textFill: { type: "solid", themeSlot: 5, value: "#8B5CF6" },
                 content: "<p>Option B</p>",
-                x: 990, y: 180, width: 830, height: 60,
+                x: 970, y: 180, width: 910, height: 60,
                 rotation: 0, opacity: 1,
                 resizing: "fixed",
                 style: { textAlign: "left", verticalAlign: "middle" }
@@ -1427,7 +1451,7 @@ export const DEFAULT_MASTERS = {
                 placeholderType: "text",
                 textStyleId: "body",
                 content: "<p>Click to add text</p>",
-                x: 990, y: 260, width: 830, height: 760,
+                x: 970, y: 260, width: 910, height: 780,
                 rotation: 0, opacity: 1,
                 resizing: "fixed",
                 style: { textAlign: "left", verticalAlign: "top" }
@@ -1444,6 +1468,9 @@ export const DEFAULT_MASTERS = {
         background: null,
         colorThemeId: null,
         typographyStyleId: null,
+        layoutGuide: {
+            columns: { count: 1 }
+        },
         elements: {
             "placeholder-title": {
                 id: "placeholder-title",
@@ -1452,7 +1479,7 @@ export const DEFAULT_MASTERS = {
                 placeholderType: "title",
                 textStyleId: "heading1",
                 content: "<h1>Click to add title</h1>",
-                x: 100, y: 60, width: 1720, height: 100,
+                x: 40, y: 40, width: 1840, height: 120,
                 rotation: 0, opacity: 1,
                 resizing: "fixed",
                 style: { textAlign: "left", verticalAlign: "middle" }
@@ -1469,6 +1496,9 @@ export const DEFAULT_MASTERS = {
         background: null,
         colorThemeId: null,
         typographyStyleId: null,
+        layoutGuide: {
+            columns: { count: 1 }
+        },
         elements: {},
         elementOrder: []
     },
@@ -1482,6 +1512,9 @@ export const DEFAULT_MASTERS = {
         background: null,
         colorThemeId: null,
         typographyStyleId: null,
+        layoutGuide: {
+            columns: { count: 3 }
+        },
         elements: {
             "placeholder-title": {
                 id: "placeholder-title",
@@ -1490,7 +1523,7 @@ export const DEFAULT_MASTERS = {
                 placeholderType: "title",
                 textStyleId: "heading1",
                 content: "<h1>Click to add title</h1>",
-                x: 100, y: 60, width: 1720, height: 100,
+                x: 40, y: 40, width: 1840, height: 120,
                 rotation: 0, opacity: 1,
                 resizing: "fixed",
                 style: { textAlign: "left", verticalAlign: "middle" }
@@ -1502,7 +1535,7 @@ export const DEFAULT_MASTERS = {
                 placeholderType: "body",
                 textStyleId: "bodyLarge",
                 content: "<p>Click to add text</p>",
-                x: 100, y: 180, width: 1200, height: 840,
+                x: 40, y: 180, width: 1220, height: 860,
                 rotation: 0, opacity: 1,
                 resizing: "fixed",
                 style: { textAlign: "left", verticalAlign: "top" }
@@ -1514,7 +1547,7 @@ export const DEFAULT_MASTERS = {
                 placeholderType: "text",
                 textStyleId: "bodySmall",
                 content: "<p>Add notes or supporting information here</p>",
-                x: 1360, y: 180, width: 460, height: 840,
+                x: 1280, y: 180, width: 600, height: 860,
                 rotation: 0, opacity: 1,
                 resizing: "fixed",
                 textFill: { type: "solid", themeSlot: 3, value: "#64748B" },
@@ -1533,6 +1566,9 @@ export const DEFAULT_MASTERS = {
         background: null,
         colorThemeId: null,
         typographyStyleId: null,
+        layoutGuide: {
+            columns: { count: 3 }
+        },
         elements: {
             "placeholder-title": {
                 id: "placeholder-title",
@@ -1541,7 +1577,7 @@ export const DEFAULT_MASTERS = {
                 placeholderType: "title",
                 textStyleId: "heading1",
                 content: "<h1>Click to add title</h1>",
-                x: 100, y: 60, width: 1720, height: 100,
+                x: 40, y: 40, width: 1840, height: 120,
                 rotation: 0, opacity: 1,
                 resizing: "fixed",
                 style: { textAlign: "left", verticalAlign: "middle" }
@@ -1556,7 +1592,7 @@ export const DEFAULT_MASTERS = {
                 backgroundFill: { type: "solid", themeSlot: 1, value: "#E2E8F0" },
                 borderRadius: 8,
                 content: "<p>🖼️ Click to add picture</p>",
-                x: 100, y: 180, width: 1200, height: 840,
+                x: 40, y: 180, width: 1220, height: 860,
                 rotation: 0, opacity: 1,
                 resizing: "fixed",
                 style: { textAlign: "center", verticalAlign: "middle" }
@@ -1569,7 +1605,7 @@ export const DEFAULT_MASTERS = {
                 textStyleId: "bodySmall",
                 textFill: { type: "solid", themeSlot: 3, value: "#64748B" },
                 content: "<p>Add image caption or description here</p>",
-                x: 1360, y: 180, width: 460, height: 840,
+                x: 1280, y: 180, width: 600, height: 860,
                 rotation: 0, opacity: 1,
                 resizing: "fixed",
                 style: { textAlign: "left", verticalAlign: "top" }
@@ -1587,6 +1623,9 @@ export const DEFAULT_MASTERS = {
         background: null,
         colorThemeId: null,
         typographyStyleId: null,
+        layoutGuide: {
+            columns: { count: 1 }
+        },
         elements: {
             "placeholder-quote": {
                 id: "placeholder-quote",
@@ -1595,7 +1634,7 @@ export const DEFAULT_MASTERS = {
                 placeholderType: "text",
                 textStyleId: "quote",
                 content: "<p>\"Click to add your quote here\"</p>",
-                x: 160, y: 300, width: 1600, height: 360,
+                x: 40, y: 300, width: 1840, height: 360,
                 rotation: 0, opacity: 1,
                 resizing: "fixed",
                 style: { textAlign: "center", verticalAlign: "middle" }
@@ -1608,7 +1647,7 @@ export const DEFAULT_MASTERS = {
                 textStyleId: "body",
                 textFill: { type: "solid", themeSlot: 3, value: "#64748B" },
                 content: "<p>— Attribution</p>",
-                x: 160, y: 680, width: 1600, height: 80,
+                x: 40, y: 680, width: 1840, height: 80,
                 rotation: 0, opacity: 1,
                 resizing: "fixed",
                 style: { textAlign: "center", verticalAlign: "top" }
@@ -1626,6 +1665,9 @@ export const DEFAULT_MASTERS = {
         background: null,
         colorThemeId: null,
         typographyStyleId: null,
+        layoutGuide: {
+            columns: { count: 1 }
+        },
         elements: {
             "placeholder-label": {
                 id: "placeholder-label",
@@ -1635,7 +1677,7 @@ export const DEFAULT_MASTERS = {
                 textStyleId: "label",
                 textFill: { type: "solid", themeSlot: 3, value: "#64748B" },
                 content: "<p>METRIC</p>",
-                x: 160, y: 300, width: 1600, height: 60,
+                x: 40, y: 300, width: 1840, height: 60,
                 rotation: 0, opacity: 1,
                 resizing: "fixed",
                 style: { textAlign: "center", verticalAlign: "bottom" }
@@ -1647,7 +1689,7 @@ export const DEFAULT_MASTERS = {
                 placeholderType: "text",
                 textStyleId: "stat",
                 content: "<p>100%</p>",
-                x: 160, y: 380, width: 1600, height: 260,
+                x: 40, y: 380, width: 1840, height: 260,
                 rotation: 0, opacity: 1,
                 resizing: "fixed",
                 style: { textAlign: "center", verticalAlign: "middle" }
@@ -1660,7 +1702,7 @@ export const DEFAULT_MASTERS = {
                 textStyleId: "bodyLarge",
                 textFill: { type: "solid", themeSlot: 3, value: "#64748B" },
                 content: "<p>Add context or description for this number</p>",
-                x: 320, y: 660, width: 1280, height: 120,
+                x: 40, y: 660, width: 1840, height: 120,
                 rotation: 0, opacity: 1,
                 resizing: "fixed",
                 style: { textAlign: "center", verticalAlign: "top" }
@@ -1678,6 +1720,9 @@ export const DEFAULT_MASTERS = {
         background: null,
         colorThemeId: null,
         typographyStyleId: null,
+        layoutGuide: {
+            columns: { count: 3 }
+        },
         elements: {
             "placeholder-title": {
                 id: "placeholder-title",
@@ -1686,7 +1731,7 @@ export const DEFAULT_MASTERS = {
                 placeholderType: "title",
                 textStyleId: "heading1",
                 content: "<h1>Click to add title</h1>",
-                x: 100, y: 60, width: 1720, height: 100,
+                x: 40, y: 40, width: 1840, height: 120,
                 rotation: 0, opacity: 1,
                 resizing: "fixed",
                 style: { textAlign: "left", verticalAlign: "middle" }
@@ -1698,7 +1743,7 @@ export const DEFAULT_MASTERS = {
                 placeholderType: "body",
                 textStyleId: "body",
                 content: "<p>Column 1</p>",
-                x: 100, y: 180, width: 540, height: 840,
+                x: 40, y: 180, width: 600, height: 860,
                 rotation: 0, opacity: 1,
                 resizing: "fixed",
                 style: { textAlign: "left", verticalAlign: "top" }
@@ -1710,7 +1755,7 @@ export const DEFAULT_MASTERS = {
                 placeholderType: "text",
                 textStyleId: "body",
                 content: "<p>Column 2</p>",
-                x: 690, y: 180, width: 540, height: 840,
+                x: 660, y: 180, width: 600, height: 860,
                 rotation: 0, opacity: 1,
                 resizing: "fixed",
                 style: { textAlign: "left", verticalAlign: "top" }
@@ -1722,7 +1767,7 @@ export const DEFAULT_MASTERS = {
                 placeholderType: "text",
                 textStyleId: "body",
                 content: "<p>Column 3</p>",
-                x: 1280, y: 180, width: 540, height: 840,
+                x: 1280, y: 180, width: 600, height: 860,
                 rotation: 0, opacity: 1,
                 resizing: "fixed",
                 style: { textAlign: "left", verticalAlign: "top" }
