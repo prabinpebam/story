@@ -26,6 +26,9 @@ This folder contains the *current, implementation-aligned* documentation for the
 
 ## Related (kept as separate sub-specs)
 
+- SVG objects (planned):
+  - [svg/00-index.md](svg/00-index.md)
+
 - Theme system (cascade + linked properties):
   - [themes/color-theme-cascade-architecture.md](themes/color-theme-cascade-architecture.md)
   - [themes/color-themes-spec.md](themes/color-themes-spec.md)
