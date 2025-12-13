@@ -86,7 +86,7 @@ This plan tracks the implementation of Property Inspector v2.0 features based on
 #### Phase 4: Theme Integration (VIEW LAYER ONLY)
 **Status:** ✅ COMPLETE (Existing Implementation)
 
-**Nomenclature (from 01-slide-master-system.md):**
+**Nomenclature (from slides architecture spec):**
 - **Slide Master Presets** - Structure and layout templates (NEVER embed colors/typography)
 - **Color Theme Presets** - Reusable color palettes (12 semantic colors)
 - **Typography Style Presets** - Reusable font systems (families, sizes, weights)
@@ -540,9 +540,9 @@ Surface existing theme system in Property Inspector UI. PI does NOT implement th
 
 **Spec Reference:** 
 - [16-theme-linked-properties.md](./16-theme-linked-properties.md) - UI patterns only
-- [01-slide-master-system.md](../../../01-specs/slides/01-slide-master-system.md) - Source of truth
+- [slides/01-architecture.md](../../../01-specs/slides/01-architecture.md) - Data model + cascade source of truth
 - [PHASE-4-IMPLEMENTATION-GUIDE.md](./PHASE-4-IMPLEMENTATION-GUIDE.md) - Detailed implementation steps
-- [01-slide-master-system.md](../../slides/01-slide-master-system.md) - Source of truth for data model
+- [slides/01-architecture.md](../../slides/01-architecture.md) - Data model + cascade source of truth
 - [Color Theme Cascade](../../slides/themes/color-theme-cascade-architecture.md) - Existing cascade logic
 
 ### 4.1 Theme-Linked Indicator in Fill Section ✅ COMPLETE
@@ -609,7 +609,7 @@ Surface existing theme system in Property Inspector UI. PI does NOT implement th
 - `src/ui/properties/SlideSection.js` - Check existing update patterns
 - `src/core/Store.js` - Find existing slide update actions
 - `src/utils/StyleResolver.js` - Understand existing cascade logic
-- `documentation/01-specs/slides/01-slide-master-system.md` - Data model source of truth
+- `documentation/01-specs/slides/01-architecture.md` - Data model source of truth
 
 **Test Coverage:**
 - Dropdown shows options from existing `state.colorThemePresets`

@@ -215,10 +215,13 @@ These are the most important specifications for understanding Story:
 ### 4.11 Slides (`01-specs/slides/`)
 | File | Description | Status |
 |------|-------------|--------|
-| [slide-management.md](../01-specs/slides/slide-management.md) | Slide CRUD, reordering | ✅ Active |
-| [slide-master-system.md](../01-specs/slides/01-slide-master-system.md) | Master slide UX | ✅ Active |
-| [master-mode-interaction.md](../01-specs/slides/master-mode-interaction.md) | Master editing mode | ✅ Active |
-| [master-placeholder-integration.md](../01-specs/slides/master-placeholder-integration.md) | Placeholder system | ✅ Active |
+| [00-index.md](../01-specs/slides/00-index.md) | Slides spec entry point (implementation-aligned) | ✅ Active |
+| [01-architecture.md](../01-specs/slides/01-architecture.md) | Slide/master/layout data model + inheritance | ✅ Active |
+| [02-master-presets-and-master-mode.md](../01-specs/slides/02-master-presets-and-master-mode.md) | Master presets + master mode behavior | ✅ Active |
+| [03-layout-guides-and-snapping.md](../01-specs/slides/03-layout-guides-and-snapping.md) | Layout guides + snapping toggles | ✅ Active |
+| [04-navigation-thumbnails-and-operations.md](../01-specs/slides/04-navigation-thumbnails-and-operations.md) | Navigation, thumbnails, slide operations | ✅ Active |
+| [themes/](../01-specs/slides/themes/) | Theme cascade + linked properties | ✅ Active |
+| [presentation/](../01-specs/slides/presentation/) | Presentation mode docs | 🔶 Mixed |
 
 ### 4.12 Storage (`01-specs/collaboration/storage/`)
 | File | Description | Status |
@@ -403,8 +406,8 @@ Documents may be outdated if they:
 
 | Feature | Spec | Tech Spec |
 |---------|------|-----------|
-| **Slide Management** | [slide-management.md](../01-specs/slides/slide-management.md) | [data-structures.md](../01-specs/core/data-structures.md) |
-| **Master Slides** | [slide-master-system.md](../01-specs/slides/01-slide-master-system.md) | [master-slide-system.md](../01-specs/slides/master-slide-system.md) |
+| **Slide Management** | [04-navigation-thumbnails-and-operations.md](../01-specs/slides/04-navigation-thumbnails-and-operations.md) | [data-structures.md](../01-specs/core/data-structures.md) |
+| **Master Slides** | [02-master-presets-and-master-mode.md](../01-specs/slides/02-master-presets-and-master-mode.md) | [master-slide-system.md](../01-specs/slides/master-slide-system.md) |
 | **Canvas Interaction** | [canvas-interaction.md](../01-specs/canvas/canvas-interaction.md) | [interaction-model.md](../01-specs/core/interaction-model.md) |
 | **Text Editing** | [text-editing-v2.md](../01-specs/text-editing/text-editing-v2.md) | [text-engine.md](../01-specs/canvas/rendering/text-engine.md) |
 | **Fill System** | [01-specs/canvas/fills/](../01-specs/canvas/fills/) | [01-specs/canvas/fills/](../01-specs/canvas/fills/) |
