@@ -14,6 +14,7 @@ export class SlideList {
         contextMenuManager.register(masterThumbnailConfig);
         
         this.isRenaming = false;
+        this.collapsedMasterIds = new Set();
         this.render();
 
         // Subscribe to store
@@ -53,7 +54,7 @@ export class SlideList {
     renderMasterList(state) {
         // List Container
         const list = document.createElement('div');
-        list.className = 'slide-list';
+        list.className = 'slide-list master-mode';
 
         // Get masters in display order
         const allMasters = state.slideMasterPresets;
@@ -69,9 +70,29 @@ export class SlideList {
             themes = Object.values(allMasters).filter(m => m.type === 'slideMasterPreset');
         }
 
+        // Ensure the active master group is expanded (avoid hiding the current selection)
+        const activeId = state.editor?.activeMasterId || null;
+        const active = activeId ? state.slideMasterPresets?.[activeId] : null;
+        if (active?.type === 'layoutMaster' && active.parentMasterId) {
+            this.collapsedMasterIds.delete(active.parentMasterId);
+        }
+
         themes.forEach(theme => {
+            const isCollapsed = this.collapsedMasterIds.has(theme.id);
+
             // 1. Render the Master Slide itself
-            const masterItem = this.createThumbnailItem(theme, state, true);
+            const masterItem = this.createThumbnailItem(theme, state, true, {
+                isCollapsed,
+                hasChildren: (theme.layoutIds || []).length > 0,
+                onToggleCollapse: () => {
+                    if (this.collapsedMasterIds.has(theme.id)) {
+                        this.collapsedMasterIds.delete(theme.id);
+                    } else {
+                        this.collapsedMasterIds.add(theme.id);
+                    }
+                    this.render();
+                }
+            });
             list.appendChild(masterItem);
 
             // 2. Render Layouts
@@ -79,7 +100,7 @@ export class SlideList {
                 .map(id => allMasters[id])
                 .filter(m => m && m.type === 'layoutMaster' && m.parentMasterId === theme.id);
             
-            if (layouts.length > 0) {
+            if (!isCollapsed && layouts.length > 0) {
                 const layoutsContainer = document.createElement('div');
                 layoutsContainer.className = 'slide-layouts-container';
                 
@@ -95,13 +116,15 @@ export class SlideList {
         this.container.appendChild(list);
     }
 
-    createThumbnailItem(slideOrMaster, state, isMasterRoot) {
+    createThumbnailItem(slideOrMaster, state, isMasterRoot, options = {}) {
         const id = slideOrMaster.id;
         const isActive = id === state.editor.activeMasterId;
         
         const item = document.createElement('div');
         item.className = `slide-thumbnail ${isActive ? 'active' : ''}`;
         item.setAttribute('data-testid', 'slide-list-item');
+        item.classList.toggle('master-root-thumbnail', !!isMasterRoot);
+        item.classList.toggle('layout-thumbnail', !isMasterRoot);
         if (isActive) {
             item.style.backgroundColor = 'var(--color-bg-active)';
             item.style.border = '1px solid var(--color-accent)';
@@ -110,6 +133,10 @@ export class SlideList {
         // Title
         const info = document.createElement('div');
         info.className = 'slide-thumbnail-info';
+        if (isMasterRoot) info.classList.add('slide-thumbnail-info--master');
+
+        const infoLeft = document.createElement('div');
+        infoLeft.className = 'slide-thumbnail-info-left';
         
         const icon = document.createElement('i');
         icon.className = isMasterRoot ? 'fa-solid fa-layer-group slide-thumbnail-icon' : 'fa-regular fa-file slide-thumbnail-icon';
@@ -118,8 +145,30 @@ export class SlideList {
         titleText.innerText = slideOrMaster.name || (isMasterRoot ? 'Master' : 'Layout');
         titleText.className = isMasterRoot ? 'slide-thumbnail-title master-root' : 'slide-thumbnail-title';
 
-        info.appendChild(icon);
-        info.appendChild(titleText);
+        infoLeft.appendChild(icon);
+        infoLeft.appendChild(titleText);
+        info.appendChild(infoLeft);
+
+        // Collapse/expand toggle for master groups
+        if (isMasterRoot && options.hasChildren) {
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'slide-thumbnail-disclosure-btn';
+            btn.setAttribute('aria-label', options.isCollapsed ? 'Expand master layouts' : 'Collapse master layouts');
+            btn.setAttribute('title', options.isCollapsed ? 'Expand layouts' : 'Collapse layouts');
+
+            const chevron = document.createElement('i');
+            chevron.className = `fa-solid fa-chevron-${options.isCollapsed ? 'right' : 'down'} slide-thumbnail-disclosure-icon`;
+            btn.appendChild(chevron);
+
+            btn.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                if (typeof options.onToggleCollapse === 'function') options.onToggleCollapse();
+            });
+
+            info.appendChild(btn);
+        }
         item.appendChild(info);
 
         // Preview - Use ThumbnailRenderer for accurate representation

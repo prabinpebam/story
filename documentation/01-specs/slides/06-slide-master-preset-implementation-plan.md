@@ -50,11 +50,10 @@ This section tracks what is already implemented in the codebase vs. what remains
   - Covered by unit tests:
     - [tests/unit/core/masterPresets/MasterPresetLibrary.test.js](../../tests/unit/core/masterPresets/MasterPresetLibrary.test.js)
 
-- **M2 Master Preset Picker panel (UI surface)**
-  - Implemented as a PanelManager/DraggablePanel surface:
-    - [src/ui/panels/MasterPresetPicker.js](../../src/ui/panels/MasterPresetPicker.js)
-  - Wired into app bootstrap + Property Inspector (Master View, master selection):
-    - [src/main.js](../../src/main.js)
+- **M2 Master Preset Picker (UI surface)**
+  - Implemented as a **dismissible flyout** (not draggable/persistent) anchored from the Property Inspector:
+    - [src/ui/components/MasterPresetFlyout.js](../../src/ui/components/MasterPresetFlyout.js)
+  - Wired into Property Inspector (Master View, master selection):
     - [src/ui/properties/SlideSection.js](../../src/ui/properties/SlideSection.js)
   - Playwright flows updated for panel selectors and Apply/Cancel behavior:
     - [tests/e2e/specs/functional/master-preset-flyout.spec.ts](../../tests/e2e/specs/functional/master-preset-flyout.spec.ts)
@@ -437,6 +436,129 @@ Priority: **Master → Layout → Slide → Element**
 **Acceptance**
 - No two-step “pick master then layout”.
 - Layout change updates slide correctly and preserves content.
+
+---
+
+### M6A — Default Master Presets (v1): 6 presets, fully theme/typography-linked
+
+**Goal:** ship a set of **6 great, diverse Master Presets** and remove the current/legacy master preset set completely, while ensuring all default master/layout templates are truly *linked* (no mystery styling).
+
+This milestone is driven by these requirements:
+- Master presets must be **reference-only** at the master/layout level (`colorThemeId`, `typographyStyleId`) and must not embed theme/typography definitions.
+- In the master preset templates:
+  - **All placeholder text must be linked to a Typography style** (via `textStyleId`).
+  - **All colors must be linked to the active Color Theme** (via `themeSlot`).
+  - **Slide background must be linked to a theme color** (via `themeSlot`).
+- In Property Inspector:
+  - Selecting a placeholder text element shows it is linked to the correct `textStyleId`.
+  - Selecting a shape/text shows fill/stroke/text colors are theme-linked (slot-based), not custom hex.
+
+#### Definition: what “linked” means in this repo
+
+- **Typography-linked text:** `element.textStyleId = '<styleId>'` and the element does **not** hardcode typography in `element.style` (especially `fontFamily`, `fontSize`, `fontWeight`, `textFill`, `color`).
+- **Theme-linked color:** fill uses a `themeSlot` reference:
+  - Shapes: `element.fill = { type: 'solid', themeSlot: <0..11>, value: <fallbackHex> }`
+  - Text: `textFill = { type: 'solid', themeSlot: <0..11>, value: <fallbackHex> }` (either coming from the linked typography style, or on the element if intentionally overridden).
+- **Slot index convention:** store `themeSlot` as **0-based** (`0..11`). UI surfaces display slots as `1..12`.
+  - Rationale: `StyleResolver.resolveThemeSlot(slotIndex)` and `ColorResolver` both treat slots as `0..11`.
+
+#### Critical prerequisite: Presentation Light/Dark mode must be master-level
+
+Per [documentation/01-specs/slides/themes/color-themes-spec.md](themes/color-themes-spec.md), the Light/Dark toggle is a **presentation setting**, not a property of a theme.
+
+**Work (prereq fixes)**
+- Ensure the “Mode” toggle in the Property Inspector targets the actual Theme Master record (the canonical `slideMasterPreset`) and stores the mode on that master (e.g. `themeMaster.colorModeId`).
+- Ensure slot resolution uses slot inversion at render time:
+  - Light: slot $N$ resolves to slot $N$
+  - Dark: slot $N$ resolves to slot $(11 - N)$
+
+**Why this matters for master presets**
+- Templates can safely pick highlight slots for backgrounds and shadow slots for dark text in Light mode, because switching to Dark mode flips the interpretation and preserves contrast.
+
+#### Work: create 6 diverse Master Presets (and remove current ones)
+
+**Target v1 preset set (6):**
+- **Minimal** — clean whitespace, simple title/body, subtle accents.
+- **Corporate** — strong hierarchy, header/footer regions, agenda/section layouts.
+- **Editorial** — bold titles, pull-quote layout, content-forward spacing.
+- **Tech** — grid-forward, callouts, comparison/table-friendly layouts.
+- **Playful** — friendly shapes, stronger accent usage, energetic composition.
+- **Portfolio / Photo** — image-forward layouts (full-bleed + caption/overlay variants).
+
+1) **Define the 6 presets** in the canonical library:
+   - File: [src/core/masterPresets/MasterPresetLibrary.js](../../src/core/masterPresets/MasterPresetLibrary.js)
+   - Replace the current set completely with the new curated set (exact IDs become part of the public file format).
+   - Each preset must reference:
+     - `colorThemeId` (a theme in `colorThemePresets` or ThemePresets IDs)
+     - `typographyStyleId` (a style preset in `typographyStylePresets`)
+
+2) **Verify dependencies exist** (or add them):
+   - `colorThemeId` values exist in state (`colorThemePresets`) or the fallback ThemePresets library.
+   - `typographyStyleId` exists in `typographyStylePresets`.
+   - All typography presets must share a consistent set of `textStyles` IDs used by placeholders (see mapping below).
+
+3) **Update any UI/tests** that assume the old master preset list length/IDs.
+
+#### Work: normalize template geometry so it is fully linked
+
+We currently clone geometry from `DEFAULT_MASTERS` during materialization.
+So the correct place to enforce “fully linked defaults” is `DEFAULT_MASTERS` (and/or a normalization step in materialization).
+
+**Option A (preferred): fix at the source**
+- Update [src/core/store/InitialState.js](../../src/core/store/InitialState.js) `DEFAULT_MASTERS` layouts so:
+  - Placeholder elements set `textStyleId` based on role.
+  - Placeholder elements do not hardcode typography/color in `element.style`.
+  - Any non-text fills/strokes/backgrounds reference `themeSlot`.
+  - Master background references a theme slot (no `#FFFFFF`).
+
+**Option B (fallback): normalize in the preset materializer**
+- Add a normalization pass inside `materializeMasterPresetDefinition()` that:
+  - assigns `textStyleId` on placeholder text elements (based on `placeholderType` and known layout role)
+  - strips typography/color overrides from placeholder `style`
+  - rewrites background/fills to `themeSlot`
+
+Option A is preferred because it keeps previewing (Layout thumbnails, preset preview backgrounds) aligned with runtime.
+
+#### Placeholder → Typography mapping (baseline)
+
+Use a stable cross-preset mapping so every typography preset supports the same style IDs:
+- `placeholderType: 'title'` → `textStyleId: 'heading1'` (or `title` for title-slide)
+- `placeholderType: 'subtitle'` → `textStyleId: 'subtitle'`
+- `placeholderType: 'body'` / `'text'` → `textStyleId: 'body'` or `bodyLarge` depending on layout
+- `placeholderType: 'caption'` → `textStyleId: 'bodySmall'`
+
+If a layout needs a distinct header (e.g. Comparison column headers), use a dedicated style ID (e.g. `heading3`) rather than hardcoding.
+
+#### Slot choices (baseline, aligns with the spec)
+
+Templates should reference slots intentionally so light/dark inversion keeps contrast:
+- **Background:** choose a highlight slot (e.g. Slot 10 → `themeSlot: 9`) for light-mode friendly backgrounds.
+- **Primary text:** choose a shadow slot (e.g. Slot 2 → `themeSlot: 1`).
+- **Secondary text:** choose a slightly lighter shadow/midtone slot.
+- **Accents:** choose accent-column slots (e.g. Slot 3/7/11 depending on use).
+
+These are defaults; users can intentionally override by applying a custom color (breaking linkage).
+
+#### Acceptance
+
+- Exactly 6 Master Presets are available in the Master Preset picker.
+- Applying a Master Preset creates masters/layouts that:
+  - store only `colorThemeId` + `typographyStyleId` references at master/layout level
+  - have placeholder text elements with `textStyleId` set (no typography hardcoding)
+  - have fills/strokes/text colors/background linked via `themeSlot`
+- Property Inspector:
+  - shows linked typography style for placeholders (`textStyleId`)
+  - shows theme-linked fills (slot-based) for default template elements
+
+#### TDD gate (required)
+
+- Vitest:
+  - Preset list length is 6 and IDs are stable.
+  - Materialized presets contain `textStyleId` on placeholder elements.
+  - Materialized presets do not embed custom colors for default template elements (themeSlot is present).
+- Playwright:
+  - Create a master from a preset and verify selecting a placeholder shows the Typography link UI.
+  - Verify default background/fill is reported as theme-linked (slot-based) in the Fill UI.
 
 ---
 

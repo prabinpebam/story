@@ -1,6 +1,7 @@
 import { store } from '../core/Store.js';
 import { Button } from './components/Button.js';
 import { Icons } from './Icons.js';
+import { MasterPresetFlyout } from './components/MasterPresetFlyout.js';
 
 /**
  * LeftPanel.js
@@ -21,6 +22,9 @@ export class LeftPanel {
         this.slidesExpanded = true;
         this.layersExpanded = true;
         this.splitRatio = 0.5; // 50/50 by default
+
+        this.masterPresetCreateFlyout = null;
+        this.addMasterButtonEl = null;
         
         // Load saved state from localStorage
         this.loadState();
@@ -257,6 +261,7 @@ export class LeftPanel {
             });
             addMasterButton.element.setAttribute('data-testid', 'add-slide-btn');
             this.slidesSection.headerControls.appendChild(addMasterButton.element);
+            this.addMasterButtonEl = addMasterButton.element;
 
             const addLayoutButton = new Button({
                 icon: Icons.PLUS,
@@ -288,6 +293,9 @@ export class LeftPanel {
         });
         addSlideButton.element.setAttribute('data-testid', 'add-slide-btn');
         this.slidesSection.headerControls.appendChild(addSlideButton.element);
+
+        // Clear master-mode refs
+        this.addMasterButtonEl = null;
     }
 
     handleAddMaster() {
@@ -301,7 +309,34 @@ export class LeftPanel {
             this.saveState();
         }
 
-        store.dispatch('ADD_MASTER', {});
+        // Toggle flyout
+        if (this.masterPresetCreateFlyout) {
+            this.masterPresetCreateFlyout.close();
+            this.masterPresetCreateFlyout = null;
+            return;
+        }
+
+        if (!this.addMasterButtonEl) {
+            // Fallback (should be rare)
+            store.dispatch('ADD_MASTER', {});
+            return;
+        }
+
+        const flyout = new MasterPresetFlyout({
+            trigger: this.addMasterButtonEl,
+            mode: 'create',
+            onCreate: (presetId) => {
+                store.dispatch('ADD_MASTER', { presetId });
+            },
+            onClose: () => {
+                this.masterPresetCreateFlyout = null;
+            },
+            // Creating a master is a structural action; don't mark as property editing interaction.
+            trackInteraction: false
+        });
+
+        flyout.open();
+        this.masterPresetCreateFlyout = flyout;
     }
 
     handleAddLayout() {

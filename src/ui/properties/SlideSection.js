@@ -5,6 +5,7 @@ import { Dropdown } from '../components/Dropdown.js';
 import { Flyout } from '../components/Flyout.js';
 import { Button } from '../components/Button.js';
 import { SegmentedControl } from '../components/SegmentedControl.js';
+import { MasterPresetFlyout } from '../components/MasterPresetFlyout.js';
 import { store } from '../../core/Store.js';
 import { FillSection } from './FillSection.js';
 import { panelManager } from '../PanelManager.js';
@@ -23,6 +24,7 @@ export class SlideSection {
         this.element.className = 'slide-properties';
         
         this.layoutFlyout = null;
+        this.masterPresetFlyout = null;
         
         this.fillSection = new FillSection({
             title: 'Background',
@@ -117,13 +119,7 @@ export class SlideSection {
             size: 'sm',
             className: 'preset-trigger-btn',
             onClick: () => {
-                const state = store.getState();
-                const masterId = state.editor?.activeMasterId;
-                const panel = panelManager.get('master-preset-picker');
-                if (panel && typeof panel.setMasterId === 'function') {
-                    panel.setMasterId(masterId);
-                }
-                panelManager.open('master-preset-picker');
+                this.openMasterPresetFlyout();
             }
         });
         this.presetTrigger = this.presetTriggerBtn.element;
@@ -138,6 +134,28 @@ export class SlideSection {
         this.presetSection.appendChild(this.presetDescription);
         
         this.element.appendChild(this.presetSection.element);
+    }
+
+    openMasterPresetFlyout() {
+        if (this.masterPresetFlyout) {
+            this.masterPresetFlyout.close();
+            this.masterPresetFlyout = null;
+        }
+
+        const state = store.getState();
+        const masterId = state.editor?.activeMasterId || null;
+
+        const flyout = new MasterPresetFlyout({
+            trigger: this.presetTrigger,
+            mode: 'apply',
+            masterId,
+            onClose: () => {
+                this.masterPresetFlyout = null;
+            }
+        });
+
+        flyout.open();
+        this.masterPresetFlyout = flyout;
     }
 
     createThemeSection() {

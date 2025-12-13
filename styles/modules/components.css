@@ -476,6 +476,15 @@ input[type="text"]:focus, input[type="number"]:focus, select:focus {
     gap: var(--spacing-2);
 }
 
+/* Master View tweaks (sidebar thumbnails) */
+.slide-list.master-mode {
+    padding: var(--spacing-1);
+}
+
+.slide-list.master-mode .slide-thumbnail {
+    padding: var(--spacing-2);
+}
+
 .slide-layouts-container {
     padding-left: var(--spacing-5);
     display: flex;
@@ -483,6 +492,11 @@ input[type="text"]:focus, input[type="number"]:focus, select:focus {
     gap: var(--spacing-2);
     margin-top: calc(var(--spacing-2) * -1);
     margin-bottom: var(--spacing-2);
+}
+
+.slide-list.master-mode .slide-layouts-container {
+    padding-left: var(--spacing-4);
+    margin-top: 0;
 }
 
 /* Slide thumbnail card */
@@ -547,6 +561,37 @@ input[type="text"]:focus, input[type="number"]:focus, select:focus {
     align-items: center;
     gap: 8px;
     margin-bottom: 6px;
+}
+
+.slide-thumbnail-info--master {
+    justify-content: space-between;
+}
+
+.slide-thumbnail-info-left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+}
+
+.slide-thumbnail-disclosure-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border: none;
+    padding: 0;
+    margin-left: auto;
+    cursor: pointer;
+    color: var(--color-text-secondary);
+}
+
+.slide-thumbnail-disclosure-btn:hover {
+    color: var(--color-text-primary);
+}
+
+.slide-thumbnail-disclosure-icon {
+    font-size: 10px;
 }
 
 .slide-thumbnail-info.slide-info {

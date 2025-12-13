@@ -556,7 +556,7 @@ export function handleApplyMasterPresetToMaster(draft, payload) {
  * Add a new master (slide master preset) after the currently selected master group.
  * @param {Object} draft - Immer draft state
  */
-export function handleAddMaster(draft) {
+export function handleAddMaster(draft, payload) {
     const mastersById = draft.slideMasterPresets || {};
 
     // Determine the "insert after" master group based on current selection
@@ -577,15 +577,22 @@ export function handleAddMaster(draft) {
             .map(m => m.id);
     }
 
-    // Choose a default preset
+    // Choose preset (UI may provide one)
+    const requestedPresetId = payload?.presetId || null;
+    const requestedPreset = requestedPresetId ? getPresetById(requestedPresetId) : null;
+
     const defaultPreset = getDefaultMasterPreset();
-    const presetId = defaultPreset?.id || getPresetList()?.[0]?.id || null;
+    const presetId = requestedPreset?.id || defaultPreset?.id || getPresetList()?.[0]?.id || null;
     if (!presetId) return;
+
+    const presetDef = getPresetById(presetId);
+    const defaultName = presetDef?.name ? `New ${presetDef.name}` : 'New Master';
+    const masterName = payload?.masterName || defaultName;
 
     const newMasterId = `master-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
     const { master, layouts } = materializePreset(presetId, {
         masterId: newMasterId,
-        masterName: 'New Master'
+        masterName
     });
 
     // Persist the preset id so the PI can display it
