@@ -226,13 +226,13 @@ export const ThemeDiag = {
                 reason: `Inherited from layout "${layout.name}"`
             };
         }
-        
-        if (themeMaster?.themeSettings?.lumaTheme) {
+
+        const masterThemeId = themeMaster?.styleAssignments?.colorTheme || themeMaster?.colorThemeId || null;
+        if (masterThemeId) {
             return {
-                themeId: themeMaster.themeSettings.lumaTheme.id || 'master-default',
-                themeName: themeMaster.themeSettings.lumaTheme.name,
+                themeId: masterThemeId,
                 source: 'master',
-                sourceId: themeMaster.id,
+                sourceId: themeMaster?.id,
                 reason: 'Inherited from Theme Master'
             };
         }
@@ -619,7 +619,7 @@ export const ThemeDiag = {
                 id: themeMaster.colorThemeId,
                 name: colorTheme?.name || themeMaster.colorThemeId,
                 source: 'master',
-                resolvedColors: themeMaster.themeSettings.lumaTheme.resolvedColors
+                resolvedColors: colorTheme?.lumaTheme?.resolvedColors
             };
         }
         
@@ -931,7 +931,7 @@ export const ThemeDiag = {
             levels: {
                 themeMaster: {
                     id: themeMaster?.id,
-                    lumaThemeName: themeMaster?.themeSettings?.lumaTheme?.name || 'none',
+                    colorThemeId: themeMaster?.colorThemeId || null,
                     styleAssignments: themeMaster?.styleAssignments?.colorTheme || null
                 },
                 layout: {

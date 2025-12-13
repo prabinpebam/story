@@ -255,10 +255,6 @@ export class Store extends EventEmitter {
 
             // Master Handlers
             case 'UPDATE_MASTER': 
-            case 'UPDATE_THEME_SETTINGS':
-            case 'APPLY_COLOR_PRESET':
-            case 'RESET_THEME_COLORS':
-            case 'UPDATE_THEME_COLOR':
             case 'APPLY_FONT_PRESET':
             case 'RESET_THEME_FONTS':
             case 'UPDATE_THEME_FONT':
@@ -282,10 +278,6 @@ export class Store extends EventEmitter {
                 this.state = produce(this.state, draft => {
                     switch(type) {
                         case 'UPDATE_MASTER': MasterHandlers.handleUpdateMaster(draft, payload); break;
-                        case 'UPDATE_THEME_SETTINGS': MasterHandlers.handleUpdateThemeSettings(draft, payload); break;
-                        case 'APPLY_COLOR_PRESET': MasterHandlers.handleApplyColorPreset(draft, payload); break;
-                        case 'RESET_THEME_COLORS': MasterHandlers.handleResetThemeColors(draft, payload); break;
-                        case 'UPDATE_THEME_COLOR': MasterHandlers.handleUpdateThemeColor(draft, payload); break;
                         case 'APPLY_FONT_PRESET': MasterHandlers.handleApplyFontPreset(draft, payload); break;
                         case 'RESET_THEME_FONTS': MasterHandlers.handleResetThemeFonts(draft, payload); break;
                         case 'UPDATE_THEME_FONT': MasterHandlers.handleUpdateThemeFont(draft, payload); break;

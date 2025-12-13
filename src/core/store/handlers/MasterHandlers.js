@@ -1,5 +1,3 @@
-
-import { getDefaultPreset as getDefaultColorPreset } from '../../constants/ColorPresets.js';
 import { getDefaultFontPreset, getPresetById as getFontPresetById } from '../../constants/FontPresets.js';
 import {
     getDefaultPreset as getDefaultMasterPreset,
@@ -169,153 +167,53 @@ export function handleUpdateMaster(draft, payload) {
     }
 }
 
-export function handleUpdateThemeSettings(draft, payload) {
-    const { id, settings } = payload;
-    const themeMaster = draft.slideMasterPresets[id];
-    
-    if (themeMaster && themeMaster.type === 'slideMasterPreset') {
-        if (!themeMaster.themeSettings) {
-            themeMaster.themeSettings = { colors: {}, fonts: {} };
-        }
-
-        if (settings.colors) {
-            Object.assign(themeMaster.themeSettings.colors, settings.colors);
-        }
-        
-        if (settings.fonts) {
-            Object.assign(themeMaster.themeSettings.fonts, settings.fonts);
-        }
-    }
-}
-
 /**
- * Apply a color preset to a theme master.
- * Replaces all 12 color roles at once.
+ * Apply a font (typography) preset to a theme master.
+ * Canonical behavior: update the master to reference a TypographyStylePreset.
+ *
  * @param {Object} draft - Immer draft state
- * @param {Object} payload - { masterId: string, preset: { colors: {...} } }
- */
-export function handleApplyColorPreset(draft, payload) {
-    const { masterId, preset } = payload;
-    const themeMaster = draft.slideMasterPresets[masterId];
-    
-    if (themeMaster && themeMaster.type === 'slideMasterPreset' && preset?.colors) {
-        if (!themeMaster.themeSettings) {
-            themeMaster.themeSettings = { colors: {}, fonts: {} };
-        }
-        
-        // Replace all color values with preset colors
-        themeMaster.themeSettings.colors = {
-            ...preset.colors,
-            // Maintain legacy aliases for backwards compatibility
-            accent: preset.colors.accent1,
-            textPrimary: preset.colors.text1,
-            textSecondary: preset.colors.text2
-        };
-    }
-}
-
-/**
- * Reset theme colors to default preset.
- * @param {Object} draft - Immer draft state
- * @param {Object} payload - { masterId: string }
- */
-export function handleResetThemeColors(draft, payload) {
-    const { masterId } = payload;
-    const themeMaster = draft.slideMasterPresets[masterId];
-    
-    if (themeMaster && themeMaster.type === 'slideMasterPreset') {
-        const defaultPreset = getDefaultColorPreset();
-        
-        if (!themeMaster.themeSettings) {
-            themeMaster.themeSettings = { colors: {}, fonts: {} };
-        }
-        
-        themeMaster.themeSettings.colors = {
-            ...defaultPreset.colors,
-            // Legacy aliases
-            accent: defaultPreset.colors.accent1,
-            textPrimary: defaultPreset.colors.text1,
-            textSecondary: defaultPreset.colors.text2
-        };
-    }
-}
-
-/**
- * Update a single color role in theme settings.
- * @param {Object} draft - Immer draft state
- * @param {Object} payload - { masterId: string, colorRole: string, value: string }
- */
-export function handleUpdateThemeColor(draft, payload) {
-    const { masterId, colorRole, value } = payload;
-    const themeMaster = draft.slideMasterPresets[masterId];
-    
-    if (themeMaster && themeMaster.type === 'slideMasterPreset') {
-        if (!themeMaster.themeSettings) {
-            themeMaster.themeSettings = { colors: {}, fonts: {} };
-        }
-        if (!themeMaster.themeSettings.colors) {
-            themeMaster.themeSettings.colors = {};
-        }
-        
-        themeMaster.themeSettings.colors[colorRole] = value;
-        
-        // Update legacy aliases if applicable
-        if (colorRole === 'accent1') {
-            themeMaster.themeSettings.colors.accent = value;
-        } else if (colorRole === 'text1') {
-            themeMaster.themeSettings.colors.textPrimary = value;
-        } else if (colorRole === 'text2') {
-            themeMaster.themeSettings.colors.textSecondary = value;
-        }
-    }
-}
-
-// ========================================
-// TYPOGRAPHY HANDLERS
-// ========================================
-
-/**
- * Apply a font preset to a theme master.
- * Updates the master to REFERENCE a TypographyStylePreset.
- * Creates/Updates the preset in the library.
- * 
- * @param {Object} draft - Immer draft state
- * @param {Object} payload - { masterId: string, preset: { id, name, fonts, styles } }
+ * @param {Object} payload - { masterId: string, preset?: Object, presetId?: string }
  */
 export function handleApplyFontPreset(draft, payload) {
-    const { masterId, preset } = payload;
-    const themeMaster = draft.slideMasterPresets[masterId];
-    
-    if (themeMaster && themeMaster.type === 'slideMasterPreset' && preset) {
-        // 1. Ensure typographyStylePresets exists
-        if (!draft.typographyStylePresets) {
-            draft.typographyStylePresets = {};
-        }
+    const { masterId, preset, presetId } = payload || {};
+    const themeMaster = draft.slideMasterPresets?.[masterId];
 
-        // 2. Create or Update the TypographyStylePreset
-        draft.typographyStylePresets[preset.id] = {
-            id: preset.id,
-            type: 'typographyStylePreset',
-            name: preset.name,
-            description: preset.description || "Custom Typography Style",
-            category: preset.category || "Custom",
-            fonts: preset.fonts || { heading: 'Inter', body: 'Inter' },
-            textStyles: preset.styles || preset.textStyles || {}
+    if (!themeMaster || themeMaster.type !== 'slideMasterPreset') return;
+
+    const resolvedPreset = preset || (presetId ? getFontPresetById(presetId) : null);
+    if (!resolvedPreset?.id) return;
+
+    if (!draft.typographyStylePresets) {
+        draft.typographyStylePresets = {};
+    }
+
+    let normalizedFonts;
+    if (!resolvedPreset.fonts) {
+        normalizedFonts = { heading: 'Inter', body: 'Inter' };
+    } else {
+        normalizedFonts = {
+            heading: resolvedPreset.fonts.heading ?? 'Inter',
+            body: resolvedPreset.fonts.body ?? 'Inter'
         };
+    }
 
-        // 3. Update the Master to REFERENCE the preset
-        themeMaster.typographyStyleId = preset.id;
-        
-        // 4. Cleanup old embedded settings (Migration)
-        if (themeMaster.themeSettings) {
-            if (themeMaster.themeSettings.fonts) delete themeMaster.themeSettings.fonts;
-            if (themeMaster.themeSettings.textStyles) delete themeMaster.themeSettings.textStyles;
-            
-            // Remove themeSettings if empty
-            if (Object.keys(themeMaster.themeSettings).length === 0) {
-                delete themeMaster.themeSettings;
-            }
-        }
+    draft.typographyStylePresets[resolvedPreset.id] = {
+        id: resolvedPreset.id,
+        type: 'typographyStylePreset',
+        name: resolvedPreset.name || 'Custom Typography',
+        description: resolvedPreset.description || 'Custom Typography Style',
+        category: resolvedPreset.category || 'Custom',
+        fonts: normalizedFonts,
+        textStyles: resolvedPreset.styles || resolvedPreset.textStyles || {}
+    };
+
+    themeMaster.typographyStyleId = resolvedPreset.id;
+
+    // Cleanup legacy embedded settings if any linger
+    if (themeMaster.themeSettings) {
+        if (themeMaster.themeSettings.fonts) delete themeMaster.themeSettings.fonts;
+        if (themeMaster.themeSettings.textStyles) delete themeMaster.themeSettings.textStyles;
+        if (Object.keys(themeMaster.themeSettings).length === 0) delete themeMaster.themeSettings;
     }
 }
 

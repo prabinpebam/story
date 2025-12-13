@@ -400,53 +400,24 @@ export class SlideSection {
             return;
         }
 
-        // Get theme master for inherited values
-        const themeMaster = Object.values(state.slideMasterPresets || {}).find(m => m.type === 'slideMasterPreset');
-        if (!themeMaster) {
-            return;
-        }
-
-        // Support both old (embedded themeSettings) and new (reference) architecture
-        // New architecture: master has colorThemeId/typographyStyleId references
-        // Old architecture: master has themeSettings.lumaTheme/fonts embedded
-        const hasNewArchitecture = themeMaster.colorThemeId || themeMaster.typographyStyleId;
-        const hasOldArchitecture = themeMaster.themeSettings;
-        
-        if (!hasNewArchitecture && !hasOldArchitecture) {
-            return;
-        }
-
-        // Use cascade-aware StyleResolver to get theme info
         const mode = state.editor.mode;
-        let themeInfo;
-        
-        if (mode === 'master') {
-            // For masters, we show the master's own theme (no cascade)
-            // Support both old (embedded) and new (reference) architecture
-            const lumaTheme = themeMaster.themeSettings?.lumaTheme || null;
-            themeInfo = {
-                lumaTheme,
-                source: 'master',
-                sourceLabel: 'Master theme',
-                isInherited: false
-            };
-        } else {
-            // For slides, use cascade-aware resolution
-            const slideId = state.editor.activeSlideId;
-            themeInfo = StyleResolver.getThemeInfoForSlide(slideId);
-        }
+        const slideId = mode === 'master' ? null : state.editor.activeSlideId;
+        const themeInfo = mode === 'master'
+            ? StyleResolver.getThemeInfoForMaster(state.editor.activeMasterId)
+            : StyleResolver.getThemeInfoForSlide(slideId);
 
         // Diagnostic logging
-        const slideId = mode === 'master' ? null : state.editor.activeSlideId;
         ThemeDiag.logPropertyInspectorDisplay(slideId, themeInfo, mode);
 
         // Get typography using cascade-aware resolution (like color theme)
         let typographyStyle;
         if (mode === 'master') {
             // Master mode: show master's own typography
-            const typographyStyleId = themeMaster.typographyStyleId || 
-                                     themeMaster.styleAssignments?.typographyStyle || 
-                                     'typo-style-default';
+            const activeMaster = state.slideMasterPresets?.[state.editor.activeMasterId];
+            const themeMaster = activeMaster?.type === 'slideMasterPreset'
+                ? activeMaster
+                : state.slideMasterPresets?.[activeMaster?.parentMasterId];
+            const typographyStyleId = themeMaster?.typographyStyleId || 'typo-style-default';
             typographyStyle = state.typographyStylePresets?.[typographyStyleId];
         } else {
             // Slide mode: use cascade resolution (slide → layout → master)

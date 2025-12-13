@@ -561,9 +561,6 @@ export class TypographyStyleManager extends DraggablePanel {
             if (preset?.fonts) {
                 currentFonts = preset.fonts;
             }
-        } else if (master.themeSettings?.fonts) {
-            // Legacy fallback
-            currentFonts = master.themeSettings.fonts;
         }
         
         // Update font dropdowns
