@@ -64,9 +64,9 @@ export const MASTER_PRESET_DEFINITIONS = [
         templateMasterId: 'master-default'
     },
     {
-        id: 'master-preset-elegant',
-        name: 'Elegant',
-        description: 'Refined palette and elegant typography for premium decks',
+        id: 'master-preset-portfolio',
+        name: 'Portfolio / Photo',
+        description: 'Image-forward layouts with strong captions and clean typography',
         colorThemeId: 'preset_rose_garden',
         typographyStyleId: 'typo-style-elegant',
         templateMasterId: 'master-default'

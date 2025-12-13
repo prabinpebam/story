@@ -90,7 +90,7 @@ test.describe('Master Preset - Blocked When In Use', () => {
       'master-preset-editorial',
       'master-preset-tech',
       'master-preset-playful',
-      'master-preset-elegant'
+      'master-preset-portfolio'
     ];
     const targetPresetId = knownPresetIds.find(id => id !== beforePresetId) || knownPresetIds[0];
 
