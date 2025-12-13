@@ -39,6 +39,35 @@ function getStore() {
  */
 export const StyleResolver = {
 
+    _normalizeLegacyTextFillToThemeSlot(fill, slideId = null) {
+        if (!fill || fill.type !== 'solid') return fill;
+        if (fill.themeSlot !== undefined && fill.themeSlot !== null) return fill;
+        if (!fill.value || typeof fill.value !== 'string') return fill;
+
+        const value = fill.value;
+        // Default templates historically used semantic CSS vars; normalize to slot-linked
+        // so UI surfaces can report “Theme Slot N” and maintain linkage in dark mode.
+        if (value.includes('var(--theme-text-primary')) {
+            const slot = 11;
+            return {
+                ...fill,
+                themeSlot: slot,
+                value: this.resolveThemeSlot(slot, '#000000', slideId)
+            };
+        }
+
+        if (value.includes('var(--theme-text-secondary')) {
+            const slot = 9;
+            return {
+                ...fill,
+                themeSlot: slot,
+                value: this.resolveThemeSlot(slot, '#666666', slideId)
+            };
+        }
+
+        return fill;
+    },
+
     _colorsObjectToResolvedArray(colors) {
         if (!colors || typeof colors !== 'object') return [];
         return COLOR_SLOT_ORDER.map(key => colors[key]).filter(Boolean);
@@ -855,6 +884,7 @@ export const StyleResolver = {
 
         // Resolve theme slot references in textFill to actual hex colors
         if (finalProps.textFill) {
+            finalProps.textFill = this._normalizeLegacyTextFillToThemeSlot(finalProps.textFill, slideId);
             finalProps.textFill = this.resolveTextFill(finalProps.textFill, slideId);
         }
 

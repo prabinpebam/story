@@ -94,4 +94,80 @@ test.describe('Master Preset - Picker Panel', () => {
     expect(activeMaster.colorThemeId).toBeTruthy();
     expect(activeMaster.typographyStyleId).toBeTruthy();
   });
+
+  test('M6A: placeholder selection shows linked typography + theme-slot text color', async ({ page, dispatchAction, getState }) => {
+    // Seed a second (unused) master root so preset changes are allowed per blocking rules.
+    const current = await getState();
+    const masters = { ...current.slideMasterPresets };
+    masters['master-unused'] = {
+      id: 'master-unused',
+      type: 'slideMasterPreset',
+      name: 'Unused Master',
+      colorThemeId: masters['master-default']?.colorThemeId || 'color-theme-default',
+      typographyStyleId: masters['master-default']?.typographyStyleId || 'typo-style-default',
+      background: masters['master-default']?.background || { type: 'solid', value: '#FFFFFF' },
+      elements: {},
+      elementOrder: [],
+      layoutIds: []
+    };
+
+    await dispatchAction('LOAD_PRESENTATION', {
+      slides: Object.values(current.slides),
+      masters
+    });
+
+    await editor.editMaster();
+
+    // Select the new unused master root deterministically
+    await dispatchAction('SET_ACTIVE_MASTER', 'master-unused');
+
+    // Open picker and apply a non-selected preset
+    const trigger = editor.propertyInspector.locator('[data-testid="master-preset-row-button"]');
+    await expect(trigger).toBeVisible();
+    await trigger.click();
+
+    const panel = page.locator('[data-testid="master-preset-picker-panel"]');
+    await expect(panel).toBeVisible();
+
+    const options = panel.locator('[data-testid="master-preset-item"]');
+    await expect(options.first()).toBeVisible();
+    const targetOption = options.nth(1);
+    await targetOption.click();
+
+    const applyBtn = panel.locator('[data-testid="master-preset-apply"]');
+    await expect(applyBtn).toBeVisible();
+    await applyBtn.click();
+
+    // Navigate into a layout under this master so we can select an actual placeholder
+    const after = await getState();
+    const masterId = after.editor.activeMasterId;
+    const master = after.slideMasterPresets[masterId];
+    expect(master.type).toBe('slideMasterPreset');
+    expect(Array.isArray(master.layoutIds)).toBe(true);
+    expect(master.layoutIds.length).toBeGreaterThan(0);
+
+    const layoutId = master.layoutIds[0];
+
+    await dispatchAction('SET_ACTIVE_MASTER', layoutId);
+
+    // Pick a text placeholder from the active layout master
+    const layout = (await getState()).slideMasterPresets[layoutId];
+    expect(layout).toBeTruthy();
+    expect(layout.type).toBe('layoutMaster');
+    const elements = Object.values(layout.elements || {});
+    const placeholder = elements.find((el: any) => el?.isPlaceholder && el?.type === 'text');
+    expect(placeholder).toBeTruthy();
+    const placeholderId = (placeholder as any).id as string;
+
+    // Select deterministically
+    await dispatchAction('UPDATE_SELECTION', [placeholderId]);
+
+    // Typography should be linked (unlink button visible)
+    await expect(editor.propertyInspector.locator('[data-testid="text-style-unlink"]')).toBeVisible();
+
+    // Text color should be theme-slot linked (title indicates Theme Slot)
+    const textColorHex = editor.propertyInspector.locator('[data-testid="text-color-hex"]');
+    await expect(textColorHex).toBeVisible();
+    await expect(textColorHex).toHaveAttribute('title', /Theme Slot\s+\d+/);
+  });
 });

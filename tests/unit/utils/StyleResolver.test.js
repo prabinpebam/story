@@ -611,6 +611,76 @@ describe('StyleResolver', () => {
             expect(props.letterSpacing).toBe('-2%');
         });
 
+        it('should normalize legacy var(--theme-text-primary) to a themeSlot-linked textFill', () => {
+            const mockState = createMockState();
+
+            mockState.typographyStylePresets = {
+                'preset-modern': {
+                    id: 'preset-modern',
+                    textStyles: {
+                        body: {
+                            id: 'body',
+                            fontFamily: 'Inter',
+                            fontSize: 16,
+                            fontWeight: '400',
+                            textFill: { type: 'solid', value: 'var(--theme-text-primary)' }
+                        }
+                    }
+                }
+            };
+
+            mockState.slideMasterPresets['master-default'].typographyStyleId = 'preset-modern';
+            mockState.slides['slide-1'].masterSlideId = 'master-default';
+            store.getState = vi.fn(() => mockState);
+
+            const element = {
+                id: 'text-1',
+                type: 'text',
+                textStyleId: 'body'
+            };
+
+            const props = StyleResolver.getEffectiveTextProperties(element, {}, 'slide-1');
+            expect(props.textFill).toBeTruthy();
+            expect(props.textFill.themeSlot).toBe(11);
+            expect(typeof props.textFill.value).toBe('string');
+            expect(props.textFill.value.startsWith('#')).toBe(true);
+        });
+
+        it('should normalize legacy var(--theme-text-secondary) to a themeSlot-linked textFill', () => {
+            const mockState = createMockState();
+
+            mockState.typographyStylePresets = {
+                'preset-modern': {
+                    id: 'preset-modern',
+                    textStyles: {
+                        caption: {
+                            id: 'caption',
+                            fontFamily: 'Inter',
+                            fontSize: 12,
+                            fontWeight: '400',
+                            textFill: { type: 'solid', value: 'var(--theme-text-secondary)' }
+                        }
+                    }
+                }
+            };
+
+            mockState.slideMasterPresets['master-default'].typographyStyleId = 'preset-modern';
+            mockState.slides['slide-1'].masterSlideId = 'master-default';
+            store.getState = vi.fn(() => mockState);
+
+            const element = {
+                id: 'text-1',
+                type: 'text',
+                textStyleId: 'caption'
+            };
+
+            const props = StyleResolver.getEffectiveTextProperties(element, {}, 'slide-1');
+            expect(props.textFill).toBeTruthy();
+            expect(props.textFill.themeSlot).toBe(9);
+            expect(typeof props.textFill.value).toBe('string');
+            expect(props.textFill.value.startsWith('#')).toBe(true);
+        });
+
         it('should apply element overrides on top of theme styles', () => {
             const mockState = createMockState();
             
