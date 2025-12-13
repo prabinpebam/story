@@ -4,6 +4,7 @@
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { PresentationSerializer } from '../../../src/core/storage/serialization/PresentationSerializer.js';
+import { ZipFileReader } from '../../../src/core/storage/zip/ZipFileReader.js';
 
 describe('PresentationSerializer', () => {
     let mockState;
@@ -98,6 +99,45 @@ describe('PresentationSerializer', () => {
 
             expect(blob).toBeInstanceOf(Blob);
             expect(blob.size).toBeGreaterThan(0);
+        });
+
+        it('should extract inline SVG elements into assets/vectors and reference them by svgAssetPath', async () => {
+            mockState.slides = [
+                {
+                    id: 'slide-1',
+                    order: 0,
+                    elements: [
+                        {
+                            id: 'svg-1',
+                            type: 'svg',
+                            x: 100,
+                            y: 100,
+                            width: 200,
+                            height: 200,
+                            svg: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"><rect width="10" height="10"/></svg>'
+                        }
+                    ],
+                    background: { type: 'solid', color: '#FFFFFF' }
+                }
+            ];
+
+            const serializer = new PresentationSerializer(mockState, { includeThumbnail: false });
+            const blob = await serializer.serialize();
+
+            const reader = new ZipFileReader();
+            await reader.init(blob);
+
+            const slide = await reader.readSlide('slide-1');
+            expect(Array.isArray(slide.elements)).toBe(true);
+            expect(slide.elements[0].type).toBe('svg');
+            expect(slide.elements[0].svg).toBeUndefined();
+            expect(slide.elements[0].svgAssetPath).toMatch(/^vectors\/([a-f0-9]{64})\.svg$/);
+
+            const svgAssetPath = slide.elements[0].svgAssetPath;
+            const assetBuffer = await reader.readAssetAsArrayBuffer(svgAssetPath);
+            const assetText = new TextDecoder().decode(new Uint8Array(assetBuffer));
+            expect(assetText).toMatch(/<svg/i);
+            expect(assetText).toMatch(/<rect/i);
         });
     });
 

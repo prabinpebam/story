@@ -23,6 +23,10 @@ export class PresentationSerializer {
         };
         this.writer = new ZipFileWriter();
         this.assetMap = new Map(); // Track asset paths for deduplication
+
+        // Internal pre-processing (SVG vector assets)
+        this._preparedSlides = null;
+        this._generatedAssets = new Map(); // assetId -> { blob, mimeType }
     }
 
     /**
@@ -30,6 +34,9 @@ export class PresentationSerializer {
      * @returns {Promise<Blob>} The .str file as a Blob
      */
     async serialize() {
+        // Preprocess slides/assets that require async work (e.g., SVG → vector assets)
+        await this.prepareForSerialization();
+
         // 1. Build and add manifest
         const manifest = await this.buildManifest();
         this.writer.addManifest(manifest);
@@ -76,6 +83,56 @@ export class PresentationSerializer {
     }
 
     /**
+     * Prepare slides for serialization (async preprocessing).
+     * Currently used to extract inline SVG into deterministic vector assets.
+     */
+    async prepareForSerialization() {
+        if (this._preparedSlides) return;
+
+        // Support both object-based slides (keyed by ID) and array-based slides
+        const slidesObj = this.state.slides || {};
+        const slideOrder = this.state.slideOrder || Object.keys(slidesObj);
+        const slides = Array.isArray(slidesObj) ? slidesObj : slideOrder.map(id => slidesObj[id]).filter(Boolean);
+
+        this._preparedSlides = [];
+
+        for (const slide of slides) {
+            const slideData = this.serializeSlide(slide);
+            await this._extractSvgAssetsFromSlide(slideData);
+            this._preparedSlides.push(slideData);
+        }
+    }
+
+    async _extractSvgAssetsFromSlide(slideData) {
+        if (!slideData || !Array.isArray(slideData.elements)) return;
+
+        for (const el of slideData.elements) {
+            if (!el || el.type !== 'svg') continue;
+            if (typeof el.svg !== 'string' || el.svg.trim().length === 0) continue;
+
+            const svgText = el.svg;
+            const bytes = new TextEncoder().encode(svgText);
+            const hash = await this.hashBlob(bytes.buffer);
+            const assetId = `vec_${hash}`;
+            const assetPath = `vectors/${hash}.svg`;
+
+            if (!this._generatedAssets.has(assetId)) {
+                const blob = new Blob([svgText], { type: 'image/svg+xml' });
+                this._generatedAssets.set(assetId, { blob, mimeType: 'image/svg+xml' });
+            }
+
+            // Store reference on the element and remove inline SVG from slide JSON
+            el.svgAssetId = assetId;
+            el.svgAssetPath = assetPath;
+            el.svgHash = el.svgHash || hash;
+            delete el.svg;
+
+            // Pre-seed asset map for deterministic paths
+            this.assetMap.set(assetId, assetPath);
+        }
+    }
+
+    /**
      * Build the manifest
      * @returns {Promise<Object>} Manifest object
      */
@@ -92,16 +149,11 @@ export class PresentationSerializer {
         }
 
         // Add slide chunks
-        // Support both object-based slides (keyed by ID) and array-based slides
-        const slidesObj = this.state.slides || {};
-        const slideOrder = this.state.slideOrder || Object.keys(slidesObj);
-        const slides = Array.isArray(slidesObj) ? slidesObj : slideOrder.map(id => slidesObj[id]).filter(Boolean);
-        
+        const slides = this._preparedSlides || [];
         for (let i = 0; i < slides.length; i++) {
-            const slide = slides[i];
-            const slideData = this.serializeSlide(slide);
+            const slideData = slides[i];
             const slideJson = JSON.stringify(slideData);
-            builder.addSlideChunk(slide.id, slideJson.length, i);
+            builder.addSlideChunk(slideData.id, slideJson.length, i);
         }
 
         // Add asset chunks
@@ -111,7 +163,9 @@ export class PresentationSerializer {
             if (asset) {
                 const hash = await this.hashBlob(asset.blob || asset.data);
                 const ext = this.getExtension(asset.mimeType || asset.type);
-                const path = `images/${hash}.${ext}`;
+                const existingPath = this.assetMap.get(assetId);
+                const folder = ext === 'svg' ? 'vectors' : 'images';
+                const path = existingPath || `${folder}/${hash}.${ext}`;
                 const size = asset.blob?.size || asset.data?.size || 0;
                 
                 builder.addAssetChunk(assetId, path, size, hash, asset.mimeType || asset.type);
@@ -161,14 +215,9 @@ export class PresentationSerializer {
      * Add all slides to the archive
      */
     async addSlides() {
-        // Support both object-based slides (keyed by ID) and array-based slides
-        const slidesObj = this.state.slides || {};
-        const slideOrder = this.state.slideOrder || Object.keys(slidesObj);
-        const slides = Array.isArray(slidesObj) ? slidesObj : slideOrder.map(id => slidesObj[id]).filter(Boolean);
-        
-        for (const slide of slides) {
-            const slideData = this.serializeSlide(slide);
-            this.writer.addSlide(slide.id, slideData);
+        const slides = this._preparedSlides || [];
+        for (const slideData of slides) {
+            this.writer.addSlide(slideData.id, slideData);
         }
     }
 
@@ -414,7 +463,15 @@ export class PresentationSerializer {
                 if (element.props?.assetId) {
                     ids.add(element.props.assetId);
                 }
+                if (element.svgAssetId) {
+                    ids.add(element.svgAssetId);
+                }
             }
+        }
+
+        // Include generated vector assets
+        for (const assetId of this._generatedAssets.keys()) {
+            ids.add(assetId);
         }
 
         return ids;
@@ -426,6 +483,9 @@ export class PresentationSerializer {
      * @returns {Object|null} Asset object or null
      */
     getAsset(assetId) {
+        if (this._generatedAssets.has(assetId)) {
+            return this._generatedAssets.get(assetId);
+        }
         if (!this.state.assets) return null;
         
         // Handle Map or plain object
@@ -494,12 +554,34 @@ export class PresentationSerializer {
     async hashBlob(data) {
         let buffer;
         if (data instanceof Blob) {
-            buffer = await data.arrayBuffer();
+            if (typeof data.arrayBuffer === 'function') {
+                buffer = await data.arrayBuffer();
+            } else if (typeof Response !== 'undefined') {
+                buffer = await new Response(data).arrayBuffer();
+            } else if (typeof FileReader !== 'undefined') {
+                buffer = await new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onload = () => resolve(reader.result);
+                    reader.onerror = () => reject(reader.error);
+                    reader.readAsArrayBuffer(data);
+                });
+            } else {
+                throw new Error('No available method to read Blob as ArrayBuffer');
+            }
         } else {
             buffer = data;
         }
 
-        const hashBuffer = await crypto.subtle.digest('SHA-256', buffer);
+        // Normalize cross-realm ArrayBuffers (jsdom) into a Uint8Array.
+        let hashInput = buffer;
+        const bufferTag = Object.prototype.toString.call(buffer);
+        if (bufferTag === '[object ArrayBuffer]') {
+            hashInput = new Uint8Array(buffer);
+        } else if (ArrayBuffer.isView(buffer)) {
+            hashInput = new Uint8Array(buffer.buffer, buffer.byteOffset, buffer.byteLength);
+        }
+
+        const hashBuffer = await crypto.subtle.digest('SHA-256', hashInput);
         const hashArray = Array.from(new Uint8Array(hashBuffer));
         return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
     }

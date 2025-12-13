@@ -160,6 +160,24 @@ class App {
             this.settingsModal.open();
         });
 
+        window.addEventListener('story:insert-svg', async (e) => {
+            try {
+                const file = e.detail?.file;
+                if (!file || !this.canvasManager) return;
+
+                const state = store.getState();
+                const { zoom, pan } = state.editor;
+                const rect = document.getElementById('canvas-container')?.getBoundingClientRect() || { width: 800, height: 600 };
+
+                const centerX = (rect.width / 2 - pan.x) / zoom;
+                const centerY = (rect.height / 2 - pan.y) / zoom;
+
+                await this.canvasManager.createSvgElement(file, centerX, centerY);
+            } catch (error) {
+                console.error('Failed to insert SVG:', error);
+            }
+        });
+
         this.setupThemeListener();
         this.bindEvents();
     }

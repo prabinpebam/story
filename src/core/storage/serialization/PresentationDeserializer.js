@@ -5,6 +5,7 @@
 
 import { ZipFileReader } from '../zip/ZipFileReader.js';
 import { FILE_FORMAT, STORAGE_ERRORS } from '../constants/StorageConstants.js';
+import { sanitizeSvg } from '../../svg/SvgSanitizer.js';
 
 export class PresentationDeserializer {
     /**
@@ -47,6 +48,9 @@ export class PresentationDeserializer {
         // 7. Read all slides
         const slides = await this.loadSlides();
 
+        // 7.5 Hydrate SVG elements from vector assets
+        await this.hydrateSvgElements(slides);
+
         // 8. Build asset loader (lazy loading)
         const assetLoader = this.createAssetLoader();
 
@@ -64,6 +68,51 @@ export class PresentationDeserializer {
             assetLoader,
             thumbnail
         };
+    }
+
+    /**
+     * Load SVG markup for any SVG elements referencing svgAssetPath.
+     * This keeps runtime rendering simple (elements contain inline sanitized svg).
+     */
+    async hydrateSvgElements(slides) {
+        if (!slides) return;
+
+        const cache = new Map(); // assetPath -> svgText
+
+        for (const slide of Object.values(slides)) {
+            if (!slide) continue;
+
+            const elements = Array.isArray(slide.elements) ? slide.elements : Object.values(slide.elements || {});
+            for (const el of elements) {
+                if (!el || el.type !== 'svg') continue;
+                if (typeof el.svg === 'string' && el.svg.trim().length > 0) continue;
+
+                const assetPath = el.svgAssetPath;
+                if (!assetPath) continue;
+
+                try {
+                    let svgText = cache.get(assetPath);
+                    if (!svgText) {
+                        const blob = await this.reader.readAssetAsBlob(assetPath);
+                        svgText = await blob.text();
+                        cache.set(assetPath, svgText);
+                    }
+
+                    const sanitized = sanitizeSvg(svgText);
+                    if (sanitized.ok) {
+                        el.svg = sanitized.svg;
+                        // Infer hash from vectors/<sha>.svg if possible
+                        const m = String(assetPath).match(/vectors\/([a-f0-9]{64})\.svg$/i);
+                        if (m) el.svgHash = m[1];
+                    } else {
+                        console.warn('SVG asset rejected on load:', sanitized.reason);
+                        el.svg = null;
+                    }
+                } catch (error) {
+                    console.warn('Failed to hydrate SVG element:', error);
+                }
+            }
+        }
     }
 
     /**

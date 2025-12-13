@@ -11,6 +11,7 @@ import { mediaAssetManager } from './media/MediaAssetManager.js';
 import { SUPPORTED_IMAGE_FORMATS, SUPPORTED_VIDEO_FORMATS } from './constants/MediaDefaults.js';
 import { contextMenuManager } from '../ui/components/ContextMenu/index.js';
 import { canvasMenuConfigs } from '../ui/components/ContextMenu/canvasMenuConfig.js';
+import { sanitizeSvg } from './svg/SvgSanitizer.js';
 
 /**
  * CanvasManager - Main orchestrator for canvas interactions
@@ -1615,9 +1616,15 @@ export class CanvasManager {
         // Handle Media Drop (Image/Video)
         if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
             const file = e.dataTransfer.files[0];
+            const isSvg = file.type === 'image/svg+xml' || file.name.toLowerCase().endsWith('.svg');
             const isImage = SUPPORTED_IMAGE_FORMATS.some(fmt => file.type === fmt || file.name.toLowerCase().endsWith(fmt.split('/')[1]));
             const isVideo = SUPPORTED_VIDEO_FORMATS.some(fmt => file.type === fmt || file.name.toLowerCase().endsWith(fmt.split('/')[1]));
-            
+
+            if (isSvg) {
+                this.createSvgElement(file, worldX, worldY);
+                return;
+            }
+
             if (isImage || isVideo) {
                 // Check if dropping onto a selected shape
                 const selectedIds = state.editor.selectedElementIds || [];
@@ -1807,6 +1814,90 @@ export class CanvasManager {
     }
 
     /**
+     * Create a new SVG element from dropped or pasted file
+     */
+    async createSvgElement(file, worldX, worldY) {
+        try {
+            const raw = await file.text();
+            const sanitized = sanitizeSvg(raw);
+            if (!sanitized.ok) {
+                console.warn('SVG rejected:', sanitized.reason);
+                return;
+            }
+
+            const { width: intrinsicW, height: intrinsicH } = this.getSvgIntrinsicSize(sanitized.svg);
+
+            let width = intrinsicW;
+            let height = intrinsicH;
+            const maxSize = 800;
+            if (width > maxSize || height > maxSize) {
+                const ratio = width / height;
+                if (width > height) {
+                    width = maxSize;
+                    height = maxSize / ratio;
+                } else {
+                    height = maxSize;
+                    width = maxSize * ratio;
+                }
+            }
+
+            const svgHash = await this.hashText(sanitized.svg);
+            const id = `svg-${Date.now()}`;
+
+            store.dispatch('ADD_ELEMENT', {
+                id,
+                type: 'svg',
+                x: worldX - width / 2,
+                y: worldY - height / 2,
+                width,
+                height,
+                rotation: 0,
+                svg: sanitized.svg,
+                svgHash,
+                fitMode: 'fit'
+            });
+
+            store.dispatch('UPDATE_SELECTION', [id]);
+        } catch (error) {
+            console.error('Failed to create SVG element:', error);
+        }
+    }
+
+    getSvgIntrinsicSize(svgMarkup) {
+        try {
+            const doc = new DOMParser().parseFromString(svgMarkup, 'image/svg+xml');
+            const svg = doc.documentElement;
+
+            const vb = svg.getAttribute('viewBox');
+            if (vb) {
+                const parts = vb.split(/[ ,]+/).map(n => Number(n)).filter(n => Number.isFinite(n));
+                if (parts.length === 4 && parts[2] > 0 && parts[3] > 0) {
+                    return { width: parts[2], height: parts[3] };
+                }
+            }
+
+            const wAttr = svg.getAttribute('width');
+            const hAttr = svg.getAttribute('height');
+            const w = wAttr ? Number(String(wAttr).replace(/[^0-9.]/g, '')) : NaN;
+            const h = hAttr ? Number(String(hAttr).replace(/[^0-9.]/g, '')) : NaN;
+            if (Number.isFinite(w) && Number.isFinite(h) && w > 0 && h > 0) {
+                return { width: w, height: h };
+            }
+        } catch {
+            // fall through
+        }
+
+        return { width: 256, height: 256 };
+    }
+
+    async hashText(text) {
+        const buffer = new TextEncoder().encode(text);
+        const hashBuffer = await crypto.subtle.digest('SHA-256', buffer);
+        const hashArray = Array.from(new Uint8Array(hashBuffer));
+        return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+    }
+
+    /**
      * Handle clipboard paste for images (screenshots, copied images)
      */
     async handleClipboardPaste(e, state) {
@@ -1820,6 +1911,19 @@ export class CanvasManager {
                     e.preventDefault();
                     
                     const blob = await item.getType(imageType);
+
+                    if (imageType === 'image/svg+xml') {
+                        const file = new File([blob], `pasted-svg-${Date.now()}.svg`, { type: imageType });
+
+                        const { zoom, pan } = state.editor;
+                        const rect = this.container.getBoundingClientRect();
+                        const centerX = (rect.width / 2 - pan.x) / zoom;
+                        const centerY = (rect.height / 2 - pan.y) / zoom;
+
+                        await this.createSvgElement(file, centerX, centerY);
+                        return;
+                    }
+
                     const file = new File([blob], `pasted-image-${Date.now()}.png`, { type: imageType });
                     
                     // Check if we should apply as fill to selected shape
@@ -1844,9 +1948,48 @@ export class CanvasManager {
                     return;
                 }
             }
+
+            // Fallback: if clipboard contains SVG markup as text (common from editors)
+            if (typeof navigator.clipboard.readText === 'function') {
+                const text = await navigator.clipboard.readText();
+                if (typeof text === 'string' && /<svg\b[^>]*>/i.test(text)) {
+                    e.preventDefault();
+                    const blob = new Blob([text], { type: 'image/svg+xml' });
+                    const file = new File([blob], `pasted-svg-${Date.now()}.svg`, { type: 'image/svg+xml' });
+
+                    const { zoom, pan } = state.editor;
+                    const rect = this.container.getBoundingClientRect();
+                    const centerX = (rect.width / 2 - pan.x) / zoom;
+                    const centerY = (rect.height / 2 - pan.y) / zoom;
+
+                    await this.createSvgElement(file, centerX, centerY);
+                    return;
+                }
+            }
         } catch (error) {
             // Clipboard API not supported or permission denied - fall through to normal paste
             console.debug('Clipboard read not available:', error.message);
+
+            // Best-effort fallback for environments where read() fails but readText() works.
+            try {
+                if (typeof navigator.clipboard.readText === 'function') {
+                    const text = await navigator.clipboard.readText();
+                    if (typeof text === 'string' && /<svg\b[^>]*>/i.test(text)) {
+                        e.preventDefault();
+                        const blob = new Blob([text], { type: 'image/svg+xml' });
+                        const file = new File([blob], `pasted-svg-${Date.now()}.svg`, { type: 'image/svg+xml' });
+
+                        const { zoom, pan } = state.editor;
+                        const rect = this.container.getBoundingClientRect();
+                        const centerX = (rect.width / 2 - pan.x) / zoom;
+                        const centerY = (rect.height / 2 - pan.y) / zoom;
+
+                        await this.createSvgElement(file, centerX, centerY);
+                    }
+                }
+            } catch {
+                // ignore
+            }
         }
     }
 
@@ -1965,8 +2108,11 @@ export class CanvasManager {
         // Paste (Ctrl+V)
         if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'v') {
             if (!state.editor.editingElementId) {
-                // Handle clipboard paste for images (screenshots, copied images)
-                this.handleClipboardPaste(e, state);
+                // Handle clipboard paste for images/SVG from system clipboard.
+                // Skip when using internal app clipboard to avoid double-paste surprises.
+                if (!window.elementClipboard && !window.slideClipboard) {
+                    this.handleClipboardPaste(e, state);
+                }
                 
                 if (window.elementClipboard) {
                     e.preventDefault();

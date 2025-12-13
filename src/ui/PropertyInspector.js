@@ -15,6 +15,7 @@ import { ExportSection } from './properties/ExportSection.js';
 import { SlideSection } from './properties/SlideSection.js';
 import { TextSection } from './properties/TextSection.js';
 import { PlaceholderSection } from './properties/PlaceholderSection.js';
+import { SvgSection } from './properties/SvgSection.js';
 
 export class PropertyInspector {
     constructor(containerId) {
@@ -34,6 +35,7 @@ export class PropertyInspector {
         this.strokeSection = new StrokeSection();
         this.effectsSection = new EffectsSection();
         this.exportSection = new ExportSection();
+        this.svgSection = new SvgSection();
         this.slideSection = new SlideSection();
         this.placeholderSection = new PlaceholderSection();
         
@@ -80,6 +82,10 @@ export class PropertyInspector {
             // 4. Typography Section (Text Only)
             this.textSection.update(selection);
             this.container.appendChild(this.textSection.section.element);
+
+            // 4.5 SVG Section (SVG only)
+            this.svgSection.update(selection);
+            this.container.appendChild(this.svgSection.section.element);
 
             // 5. Fill Section (Hide for Text as it has its own control)
             const isText = selection.length === 1 && this.getElement(state, selection[0])?.type === 'text';
@@ -160,6 +166,7 @@ export class PropertyInspector {
             'ellipse': 'Ellipse',
             'text': 'Text',
             'image': 'Image',
+            'svg': 'SVG',
             'line': 'Line',
             'group': 'Group',
             'frame': 'Frame'

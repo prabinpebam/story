@@ -46,6 +46,9 @@ export default defineConfig({
     
     /* Emulate dark color scheme for consistent test environment */
     colorScheme: 'dark',
+
+    // Needed for clipboard-based paste tests (SVG markup paste).
+    permissions: ['clipboard-read', 'clipboard-write'],
   },
 
   /* Configure projects for major browsers */

@@ -281,6 +281,7 @@ export function getMenuConfig() {
             { divider: true },
             { id: 'insert-text', label: 'Text', shortcut: 'T', icon: 'fa-solid fa-font' },
             { id: 'insert-image', label: 'Image...', shortcut: 'Shift+K', icon: 'fa-regular fa-image' },
+            { id: 'insert-svg', label: 'SVG...', icon: 'fa-regular fa-file-code' },
             { id: 'insert-video', label: 'Video...', icon: 'fa-solid fa-video' },
             { divider: true },
             { id: 'insert-icon', label: 'Icon...', shortcut: 'Shift+I', icon: 'fa-solid fa-icons' },

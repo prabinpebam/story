@@ -93,6 +93,7 @@ class MenuActionHandler {
         this.register('insert-line', () => store.dispatch('SET_ACTIVE_TOOL', 'line'));
         this.register('insert-text', () => store.dispatch('SET_ACTIVE_TOOL', 'text'));
         this.register('insert-image', () => this.openImagePicker());
+        this.register('insert-svg', () => this.openSvgPicker());
         this.register('insert-video', () => this.openVideoPicker());
         this.register('insert-icon', () => this.openIconLibrary());
         this.register('insert-code', () => this.openCodeFillPanel());
@@ -240,6 +241,21 @@ class MenuActionHandler {
             if (file) {
                 window.dispatchEvent(new CustomEvent('story:insert-image', { 
                     detail: { file } 
+                }));
+            }
+        };
+        input.click();
+    }
+
+    openSvgPicker() {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = '.svg,image/svg+xml';
+        input.onchange = (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                window.dispatchEvent(new CustomEvent('story:insert-svg', {
+                    detail: { file }
                 }));
             }
         };
