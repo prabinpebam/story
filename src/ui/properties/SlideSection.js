@@ -246,14 +246,13 @@ export class SlideSection {
         modeRow.appendChild(modeLabel);
         
         // Get current color mode from store
-        const state = store.getState();
-        const themeMaster = state.slideMasterPresets?.['master-default'];
-        const currentMode = themeMaster?.colorModeId || COLOR_MODES.LIGHT;
+        const currentMode = StyleResolver.getColorMode();
         
         this.modeToggle = new SegmentedControl({
+            testId: 'theme-mode-toggle',
             options: [
-                { value: COLOR_MODES.LIGHT, label: 'Light', icon: '<i class="fa-solid fa-sun"></i>' },
-                { value: COLOR_MODES.DARK, label: 'Dark', icon: '<i class="fa-solid fa-moon"></i>' }
+                { value: COLOR_MODES.LIGHT, label: 'Light', icon: '<i class="fa-solid fa-sun"></i>', testId: 'theme-mode-light' },
+                { value: COLOR_MODES.DARK, label: 'Dark', icon: '<i class="fa-solid fa-moon"></i>', testId: 'theme-mode-dark' }
             ],
             value: currentMode,
             onChange: (mode) => this.updateColorMode(mode)
@@ -281,8 +280,8 @@ export class SlideSection {
      */
     updateColorMode(mode) {
         const state = store.getState();
-        const themeMasterId = 'master-default';
-        const themeMaster = state.slideMasterPresets?.[themeMasterId];
+        const themeMasterId = this._getActiveThemeMasterId(state);
+        const themeMaster = themeMasterId ? state.slideMasterPresets?.[themeMasterId] : null;
         
         if (!themeMaster) return;
         
@@ -298,6 +297,25 @@ export class SlideSection {
         document.dispatchEvent(new CustomEvent('style:color-mode-changed', {
             detail: { masterId: themeMasterId, colorMode: mode }
         }));
+    }
+
+    _getActiveThemeMasterId(state) {
+        if (!state) return null;
+        const mode = state.editor?.mode;
+
+        if (mode === 'master') {
+            const activeMasterId = state.editor?.activeMasterId;
+            const active = activeMasterId ? state.slideMasterPresets?.[activeMasterId] : null;
+            if (active?.type === 'slideMasterPreset') return active.id;
+            if (active?.type === 'layoutMaster' && active.parentMasterId) return active.parentMasterId;
+        } else {
+            const slideId = state.editor?.activeSlideId;
+            const slide = slideId ? state.slides?.[slideId] : null;
+            const layout = slide?.layoutId ? state.slideMasterPresets?.[slide.layoutId] : null;
+            if (layout?.type === 'layoutMaster' && layout.parentMasterId) return layout.parentMasterId;
+        }
+
+        return Object.values(state.slideMasterPresets || {}).find(m => m.type === 'slideMasterPreset')?.id || null;
     }
 
     createTypographySectionContent() {
@@ -510,7 +528,7 @@ export class SlideSection {
         // This prevents per-slide themes from polluting other slides.
 
         // Update mode toggle to reflect current color mode
-        const colorMode = lumaTheme?.colorMode || COLOR_MODES.LIGHT;
+        const colorMode = themeInfo?.colorMode || COLOR_MODES.LIGHT;
         if (this.modeToggle && this.modeToggle.selectedValue !== colorMode) {
             this.modeToggle.selectedValue = colorMode;
             // Update visual state of toggle buttons

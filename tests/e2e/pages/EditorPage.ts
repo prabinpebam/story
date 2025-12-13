@@ -107,6 +107,9 @@ export class EditorPage {
      * Wait for editor to be fully loaded
      */
     async waitForLoad() {
+        // Ensure the boot overlay is gone before interacting with the canvas.
+        // (Hidden also covers the detached case.)
+        await this.page.locator('#boot-screen').waitFor({ state: 'hidden', timeout: 15000 });
         await this.toolbar.waitFor({ state: 'visible' });
         await this.canvas.waitFor({ state: 'visible' });
         await this.sidebar.waitFor({ state: 'visible' });

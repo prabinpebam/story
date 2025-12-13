@@ -154,8 +154,8 @@ test.describe('Typography UX (Strict Linking)', () => {
     const fontSizeVal = await editor.fontSizeInput.inputValue();
     const colorHexVal = (await editor.textColorHex.inputValue()).trim();
 
-    // Controls should be locked
-    await expect(editor.textColorHex).toBeDisabled();
+    // Typography-related controls should be locked, but text color remains editable.
+    await expect(editor.textColorHex).toBeEnabled();
     await expect(editor.alignLeftBtn).toBeDisabled();
 
     const ffPointer = await editor.fontFamilySelect.evaluate((el: HTMLElement) => getComputedStyle(el).pointerEvents);

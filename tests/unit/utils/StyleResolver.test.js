@@ -269,6 +269,40 @@ describe('StyleResolver', () => {
 
             expect(result).toBe('dark');
         });
+
+        it('should resolve color mode from the slide\'s master (not the first master)', () => {
+            const mockState = createMockState();
+
+            // Add a second master with a different mode
+            mockState.slideMasterPresets['master-alt'] = {
+                id: 'master-alt',
+                type: 'slideMasterPreset',
+                name: 'Alt Master',
+                colorThemeId: 'color-theme-default',
+                colorModeId: 'light',
+                typographyStyleId: null,
+                themeSettings: undefined
+            };
+            mockState.slideMasterPresets['layout-alt'] = {
+                id: 'layout-alt',
+                type: 'layoutMaster',
+                parentMasterId: 'master-alt',
+                name: 'Alt Layout',
+                colorThemeId: null,
+                typographyStyleId: null
+            };
+            mockState.slides['slide-alt'] = {
+                id: 'slide-alt',
+                layoutId: 'layout-alt',
+                colorThemeId: null,
+                typographyStyleId: null
+            };
+
+            store.getState = vi.fn(() => mockState);
+
+            const result = StyleResolver.getColorMode('slide-alt');
+            expect(result).toBe('light');
+        });
     });
 
     describe('getLumaTheme()', () => {
@@ -416,6 +450,60 @@ describe('StyleResolver', () => {
             const slot0Result = StyleResolver.resolveThemeSlot(0);
 
             expect(slot0Result).toBe('#0a0810'); // Actual slot 0 value
+        });
+
+        it('should apply mapping based on the slide\'s master context when multiple masters exist', () => {
+            const mockState = createMockState();
+
+            // Default master stays dark; add a light-mode master
+            mockState.slideMasterPresets['master-alt'] = {
+                id: 'master-alt',
+                type: 'slideMasterPreset',
+                name: 'Alt Master',
+                colorThemeId: 'color-theme-default',
+                colorModeId: 'light',
+                typographyStyleId: null,
+                themeSettings: undefined
+            };
+            mockState.slideMasterPresets['layout-alt'] = {
+                id: 'layout-alt',
+                type: 'layoutMaster',
+                parentMasterId: 'master-alt',
+                name: 'Alt Layout',
+                colorThemeId: null,
+                typographyStyleId: null
+            };
+            mockState.slides['slide-alt'] = {
+                id: 'slide-alt',
+                layoutId: 'layout-alt',
+                colorThemeId: null,
+                typographyStyleId: null
+            };
+
+            store.getState = vi.fn(() => mockState);
+
+            // Slot 0 should be un-inverted for the light-mode master
+            const slot0ForAlt = StyleResolver.resolveThemeSlot(0, '#fallback', 'slide-alt');
+            expect(slot0ForAlt).toBe('#0a0810');
+
+            // Slot 0 should still be inverted for the dark-mode default master
+            const slot0ForDefault = StyleResolver.resolveThemeSlot(0, '#fallback', 'slide-1');
+            expect(slot0ForDefault).toBe('#f7f5fc');
+        });
+
+        it('should infer master-mode context from editor.activeMasterId', () => {
+            const mockState = createMockState({
+                editor: {
+                    mode: 'master',
+                    activeMasterId: 'master-default'
+                }
+            });
+            // Ensure master-default is dark so slot 0 inverts to slot 11
+            mockState.slideMasterPresets['master-default'].colorModeId = 'dark';
+            store.getState = vi.fn(() => mockState);
+
+            const slot0 = StyleResolver.resolveThemeSlot(0);
+            expect(slot0).toBe('#f7f5fc');
         });
     });
 
@@ -611,7 +699,7 @@ describe('StyleResolver', () => {
             expect(props.letterSpacing).toBe('-2%');
         });
 
-        it('should normalize legacy var(--theme-text-primary) to a themeSlot-linked textFill', () => {
+        it('should ignore typography-provided textFill (text color is driven by Color Theme)', () => {
             const mockState = createMockState();
 
             mockState.typographyStylePresets = {
@@ -641,42 +729,42 @@ describe('StyleResolver', () => {
 
             const props = StyleResolver.getEffectiveTextProperties(element, {}, 'slide-1');
             expect(props.textFill).toBeTruthy();
-            expect(props.textFill.themeSlot).toBe(11);
+            // Default textFill is theme-linked (slot 2 => index 1)
+            expect(props.textFill.themeSlot).toBe(1);
             expect(typeof props.textFill.value).toBe('string');
             expect(props.textFill.value.startsWith('#')).toBe(true);
         });
 
-        it('should normalize legacy var(--theme-text-secondary) to a themeSlot-linked textFill', () => {
+        it('should normalize legacy var(--theme-text-primary) when present on the element textFill', () => {
             const mockState = createMockState();
-
-            mockState.typographyStylePresets = {
-                'preset-modern': {
-                    id: 'preset-modern',
-                    textStyles: {
-                        caption: {
-                            id: 'caption',
-                            fontFamily: 'Inter',
-                            fontSize: 12,
-                            fontWeight: '400',
-                            textFill: { type: 'solid', value: 'var(--theme-text-secondary)' }
-                        }
-                    }
-                }
-            };
-
-            mockState.slideMasterPresets['master-default'].typographyStyleId = 'preset-modern';
-            mockState.slides['slide-1'].masterSlideId = 'master-default';
             store.getState = vi.fn(() => mockState);
 
             const element = {
                 id: 'text-1',
                 type: 'text',
-                textStyleId: 'caption'
+                textFill: { type: 'solid', value: 'var(--theme-text-primary)' }
             };
 
             const props = StyleResolver.getEffectiveTextProperties(element, {}, 'slide-1');
             expect(props.textFill).toBeTruthy();
-            expect(props.textFill.themeSlot).toBe(9);
+            expect(props.textFill.themeSlot).toBe(1);
+            expect(typeof props.textFill.value).toBe('string');
+            expect(props.textFill.value.startsWith('#')).toBe(true);
+        });
+
+        it('should normalize legacy var(--theme-text-secondary) when present on the element textFill', () => {
+            const mockState = createMockState();
+            store.getState = vi.fn(() => mockState);
+
+            const element = {
+                id: 'text-1',
+                type: 'text',
+                textFill: { type: 'solid', value: 'var(--theme-text-secondary)' }
+            };
+
+            const props = StyleResolver.getEffectiveTextProperties(element, {}, 'slide-1');
+            expect(props.textFill).toBeTruthy();
+            expect(props.textFill.themeSlot).toBe(3);
             expect(typeof props.textFill.value).toBe('string');
             expect(props.textFill.value.startsWith('#')).toBe(true);
         });

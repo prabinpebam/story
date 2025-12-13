@@ -421,6 +421,89 @@ describe('ColorThemeManager', () => {
         });
     });
 
+    describe('applyThemeToStore (master-mode targeting)', () => {
+        const makeTheme = (id) => ({
+            id,
+            name: id,
+            // 12 slots required by generateThemeColors()
+            slots: Array.from({ length: 12 }, () => ({ h: 0, s: 0 })),
+            adjustments: {}
+        });
+
+        it('dispatches APPLY_LUMA_THEME to the active theme master (slideMasterPreset)', () => {
+            mockGetState.mockReturnValue({
+                editor: {
+                    activeSlideId: 'slide-1',
+                    activeMasterId: 'master-default',
+                    mode: 'master'
+                },
+                slides: {
+                    'slide-1': { id: 'slide-1', layoutId: 'layout-1' }
+                },
+                slideMasterPresets: {
+                    'master-default': {
+                        id: 'master-default',
+                        type: 'slideMasterPreset',
+                        colorThemeId: 'preset_neutral',
+                        colorModeId: 'light'
+                    },
+                    'layout-1': {
+                        id: 'layout-1',
+                        type: 'layoutMaster',
+                        parentMasterId: 'master-default'
+                    }
+                },
+                colorThemePresets: {
+                    'preset_neutral': { id: 'preset_neutral', type: 'colorThemePreset', name: 'Neutral', colors: {} }
+                }
+            });
+
+            manager.applyThemeToStore(makeTheme('preset_ocean_sunset'));
+
+            expect(mockDispatch).toHaveBeenCalledWith('APPLY_LUMA_THEME', expect.objectContaining({
+                masterId: 'master-default',
+                theme: expect.objectContaining({ id: 'preset_ocean_sunset' })
+            }));
+        });
+
+        it('dispatches UPDATE_MASTER_STYLE_ASSIGNMENTS when editing a layout master', () => {
+            mockGetState.mockReturnValue({
+                editor: {
+                    activeSlideId: 'slide-1',
+                    activeMasterId: 'layout-title',
+                    mode: 'master'
+                },
+                slides: {
+                    'slide-1': { id: 'slide-1', layoutId: 'layout-title' }
+                },
+                slideMasterPresets: {
+                    'master-default': {
+                        id: 'master-default',
+                        type: 'slideMasterPreset',
+                        colorThemeId: 'preset_neutral',
+                        colorModeId: 'light'
+                    },
+                    'layout-title': {
+                        id: 'layout-title',
+                        type: 'layoutMaster',
+                        parentMasterId: 'master-default',
+                        colorThemeId: null
+                    }
+                },
+                colorThemePresets: {
+                    'preset_neutral': { id: 'preset_neutral', type: 'colorThemePreset', name: 'Neutral', colors: {} }
+                }
+            });
+
+            manager.applyThemeToStore(makeTheme('preset_ocean_sunset'));
+
+            expect(mockDispatch).toHaveBeenCalledWith('UPDATE_MASTER_STYLE_ASSIGNMENTS', expect.objectContaining({
+                masterId: 'layout-title',
+                styleAssignments: { colorTheme: 'preset_ocean_sunset' }
+            }));
+        });
+    });
+
     describe.skip('Store Integration', () => {
         // TODO: Update tests for new preset architecture
         // These tests need ColorThemeManager to be fully updated to work with:

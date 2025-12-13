@@ -59,7 +59,7 @@ import {
     getSlotRow
 } from './ColorThemeUtils.js';
 import { HueSaturationPopover } from './HueSaturationPopover.js';
-import { THEME_PRESETS, isPresetTheme } from './ThemePresets.js';
+import { THEME_PRESETS, isPresetTheme, getPresetById } from './ThemePresets.js';
 import { ThemeDiag } from '../../../utils/ThemeDiagnostics.js';
 
 export class ColorThemeManager extends DraggablePanel {
@@ -139,9 +139,12 @@ export class ColorThemeManager extends DraggablePanel {
         
         this.contentElement.appendChild(columns);
         
-        // Select first theme by default
-        if (this.themes.length > 0) {
-            this.selectTheme(this.themes[0].id);
+        // Select an initial theme for the UI WITHOUT mutating the document.
+        // The panel is instantiated at app boot; it must not create slide-level overrides.
+        const current = this.getThemeFromStore();
+        const initialId = current?.id || this.themes[0]?.id || null;
+        if (initialId) {
+            this.selectTheme(initialId, { applyToStore: false });
         }
     }
     
@@ -861,7 +864,7 @@ export class ColorThemeManager extends DraggablePanel {
     /**
      * Select a theme
      */
-    selectTheme(themeId) {
+    selectTheme(themeId, { applyToStore = true } = {}) {
         this.selectedThemeId = themeId;
         this.selectedColumnIndex = null;
         this.closeColorPicker();
@@ -884,7 +887,9 @@ export class ColorThemeManager extends DraggablePanel {
                     `Slide: ${state.editor.activeSlideId}`
             });
             
-            this.managerOptions.onThemeChange(theme);
+            if (applyToStore) {
+                this.managerOptions.onThemeChange(theme);
+            }
         }
     }
     
@@ -1571,7 +1576,18 @@ export class ColorThemeManager extends DraggablePanel {
         
         const state = store.getState();
         const mode = state.editor.mode;
-        const themeMasterId = 'theme-default';
+
+        const resolveThemeMasterId = () => {
+            const activeMasterId = state.editor.activeMasterId;
+            if (!activeMasterId) return null;
+            const activeMaster = state.slideMasterPresets?.[activeMasterId];
+            if (!activeMaster) return null;
+            if (activeMaster.type === 'slideMasterPreset') return activeMasterId;
+            if (activeMaster.type === 'layoutMaster') return activeMaster.parentMasterId || null;
+            return null;
+        };
+
+        const themeMasterId = resolveThemeMasterId();
         
         console.log('[ColorThemeManager.applyThemeToStore]', {
             mode,
@@ -1588,7 +1604,9 @@ export class ColorThemeManager extends DraggablePanel {
         const colors = generateThemeColors(theme.slots, theme.adjustments || DEFAULT_ADJUSTMENTS);
         
         // Get current color mode for CSS variable application
-        const currentColorMode = state.slideMasterPresets?.[themeMasterId]?.colorModeId || COLOR_MODES.LIGHT;
+        const currentColorMode = themeMasterId
+            ? (state.slideMasterPresets?.[themeMasterId]?.colorModeId || COLOR_MODES.LIGHT)
+            : COLOR_MODES.LIGHT;
         
         if (mode === 'master') {
             // Master Mode: Check what type of master we're editing
@@ -1609,6 +1627,11 @@ export class ColorThemeManager extends DraggablePanel {
             if (activeMaster.type === 'slideMasterPreset') {
                 // Editing the Theme Master itself - apply the full lumaTheme
                 // This sets the default theme for all slides that inherit from master
+                if (!themeMasterId) {
+                    console.warn('[ColorThemeManager] No theme master could be resolved for master-mode theme application');
+                    return;
+                }
+
                 console.log('[ColorThemeManager] Applying lumaTheme to theme master:', themeMasterId);
                 store.dispatch('APPLY_LUMA_THEME', {
                     masterId: themeMasterId,
@@ -1700,9 +1723,32 @@ export class ColorThemeManager extends DraggablePanel {
      */
     getThemeFromStore() {
         const state = store.getState();
-        const themeMaster = state.slideMasterPresets?.['master-default'];
-        if (!themeMaster?.colorThemeId) return null;
-        return state.colorThemePresets?.[themeMaster.colorThemeId] || null;
+
+        const mode = state.editor?.mode;
+        const activeSlideId = state.editor?.activeSlideId || null;
+        const activeMasterId = state.editor?.activeMasterId || null;
+
+        // Resolve the effective theme master for the current context.
+        let themeMaster = null;
+        if (mode === 'master' && activeMasterId) {
+            const m = state.slideMasterPresets?.[activeMasterId] || null;
+            if (m?.type === 'slideMasterPreset') themeMaster = m;
+            if (m?.type === 'layoutMaster' && m.parentMasterId) {
+                themeMaster = state.slideMasterPresets?.[m.parentMasterId] || null;
+            }
+        } else if (activeSlideId) {
+            const slide = state.slides?.[activeSlideId] || null;
+            const layout = slide?.layoutId ? state.slideMasterPresets?.[slide.layoutId] : null;
+            if (layout?.type === 'layoutMaster' && layout.parentMasterId) {
+                themeMaster = state.slideMasterPresets?.[layout.parentMasterId] || null;
+            }
+        }
+
+        const themeId = themeMaster?.styleAssignments?.colorTheme || themeMaster?.colorThemeId || null;
+        if (!themeId) return null;
+
+        // Prefer store themes (custom/user-edited), fall back to built-in presets.
+        return state.colorThemePresets?.[themeId] || getPresetById(themeId) || null;
     }
     
     // =========================================

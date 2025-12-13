@@ -34,6 +34,40 @@ export class VisualElement {
 
     applyStyles(el) {
         const div = this.domElement;
+
+        // =====================================================
+        // TEST/DEBUG METADATA (DOM-exposed)
+        // =====================================================
+        // Keep these lightweight and stable for Playwright.
+        if (el?.type) {
+            div.setAttribute('data-element-type', String(el.type));
+        } else {
+            div.removeAttribute('data-element-type');
+        }
+
+        if (el?.source) {
+            div.setAttribute('data-source', String(el.source));
+        } else {
+            div.removeAttribute('data-source');
+        }
+
+        if (el?.isPlaceholder === true) {
+            div.setAttribute('data-is-placeholder', 'true');
+        } else {
+            div.removeAttribute('data-is-placeholder');
+        }
+
+        if (el?.placeholderType) {
+            div.setAttribute('data-placeholder-type', String(el.placeholderType));
+        } else {
+            div.removeAttribute('data-placeholder-type');
+        }
+
+        if (el?.textStyleId) {
+            div.setAttribute('data-text-style-id', String(el.textStyleId));
+        } else {
+            div.removeAttribute('data-text-style-id');
+        }
         
         // Calculate absolute position if parent exists
         let x = el.x;

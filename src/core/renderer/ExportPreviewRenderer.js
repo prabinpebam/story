@@ -24,16 +24,33 @@ async function renderExportPreview(elements, options = {}) {
             maxWidth = 200,
             maxHeight = 200
         } = options;
+
+        const createPlaceholderCanvas = () => {
+            const canvas = document.createElement('canvas');
+            canvas.width = 200;
+            canvas.height = 150;
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = '#f5f5f5';
+            ctx.fillRect(0, 0, 200, 150);
+            ctx.fillStyle = '#999';
+            ctx.font = '12px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText('Preview unavailable', 100, 75);
+            return canvas;
+        };
         
+        // Expected transient states (e.g., selection/resize) can produce empty sets.
+        // Avoid throwing/logging for these: just show the placeholder.
         if (!elements || elements.length === 0) {
-            throw new Error('No elements provided for preview');
+            return createPlaceholderCanvas();
         }
         
         // Calculate bounding box of all elements
         const bounds = calculateBounds(elements);
         
+        // Expected transient state: elements exist but are not yet fully laid out.
         if (bounds.width === 0 || bounds.height === 0) {
-            throw new Error('Elements have zero dimensions');
+            return createPlaceholderCanvas();
         }
         
         // Calculate actual dimensions with scale

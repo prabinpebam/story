@@ -464,7 +464,7 @@ class LinkedPropertyManager extends EventEmitter {
             }
 
             const themeMaster = Object.values(state.slideMasterPresets || {}).find(m => m.type === 'slideMasterPreset');
-            return themeMaster?.styleAssignments?.colorTheme || themeMaster?.colorThemeId || 'color-theme-default';
+            return themeMaster?.styleAssignments?.colorTheme || themeMaster?.colorThemeId || 'preset_neutral';
         };
 
         const themeId = resolveThemeId();

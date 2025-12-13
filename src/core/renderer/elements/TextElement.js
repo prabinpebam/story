@@ -418,11 +418,20 @@ export class TextElement extends VisualElement {
 
         if (!fill) {
             // Fallback to black if no fill
+            div.removeAttribute('data-text-fill-type');
+            div.removeAttribute('data-text-fill-theme-slot');
             div.style.color = 'black';
             div.style.background = 'none';
             div.style.webkitBackgroundClip = 'border-box';
             div.style.webkitTextFillColor = 'currentcolor';
             return;
+        }
+
+        div.setAttribute('data-text-fill-type', String(fill.type || ''));
+        if (fill.themeSlot !== undefined && fill.themeSlot !== null) {
+            div.setAttribute('data-text-fill-theme-slot', String(fill.themeSlot));
+        } else {
+            div.removeAttribute('data-text-fill-theme-slot');
         }
 
         if (fill.type === 'solid') {

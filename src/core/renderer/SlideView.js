@@ -3,6 +3,7 @@ import { CodeRunner } from '../effects/CodeRunner.js';
 import { store } from '../Store.js';
 import { ThemeDiag } from '../../utils/ThemeDiagnostics.js';
 import { StyleResolver } from '../../utils/StyleResolver.js';
+import { getEffectiveSlotIndex } from '../../ui/panels/color-theme/ColorThemeUtils.js';
 
 export class SlideView {
     constructor(slideId) {
@@ -18,6 +19,8 @@ export class SlideView {
         this.domElement = document.createElement('div');
         this.domElement.className = 'slide-view';
         this.domElement.id = `view-${this.slideId}`;
+        this.domElement.setAttribute('data-testid', 'slide-view');
+        this.domElement.setAttribute('data-slide-id', this.slideId);
         this.domElement.style.position = 'absolute';
         this.domElement.style.top = '0';
         this.domElement.style.left = '0';
@@ -25,6 +28,7 @@ export class SlideView {
         
         this.bgContainer = document.createElement('div');
         this.bgContainer.className = 'slide-background';
+        this.bgContainer.setAttribute('data-testid', 'slide-background');
         this.bgContainer.style.position = 'absolute';
         this.bgContainer.style.top = '0';
         this.bgContainer.style.left = '0';
@@ -57,51 +61,51 @@ export class SlideView {
             ? StyleResolver.getThemeInfoForMaster(this.slideId)
             : StyleResolver.getThemeInfoForSlide(this.slideId);
         
-        if (themeInfo?.lumaTheme) {
-            const lumaTheme = themeInfo.lumaTheme;
-            // Apply resolved colors from luma theme to this slide's container
-            const colors = lumaTheme.resolvedColors || lumaTheme.slots?.map(s => s.hex) || [];
-            colors.forEach((hex, index) => {
+        // NOTE: The renderer relies on CSS variables (e.g., var(--theme-slot1)) for theme-linked
+        // fills. To make Light/Dark mode visually affect the rendered slide, we apply an
+        // effective slot mapping when setting per-slide variables.
+        const lumaThemeForVars = themeInfo?.lumaTheme || slideData.resolvedLumaTheme || null;
+        const colorModeForVars = themeInfo?.colorMode || (isMasterRecord
+            ? StyleResolver.getColorMode(null, this.slideId)
+            : StyleResolver.getColorMode(this.slideId));
+
+        let effectiveResolvedColors = null;
+        if (lumaThemeForVars) {
+            const baseColors = lumaThemeForVars.resolvedColors || lumaThemeForVars.slots?.map(s => s.hex) || [];
+            effectiveResolvedColors = Array.from({ length: 12 }, (_, slotIndex) => {
+                const effectiveIndex = getEffectiveSlotIndex(slotIndex, colorModeForVars);
+                return baseColors[effectiveIndex] || baseColors[slotIndex] || null;
+            });
+
+            effectiveResolvedColors.forEach((hex, index) => {
                 if (hex) {
                     // --theme-slot1 through --theme-slot12 on this slide's DOM element
                     this.domElement.style.setProperty(`--theme-slot${index + 1}`, hex);
                 }
             });
-            
+
             // Diagnostic logging
-            ThemeDiag.logSlideViewApply(this.slideId, lumaTheme, this.domElement);
-        } else if (slideData.resolvedLumaTheme) {
-            // Fallback to slideData.resolvedLumaTheme if StyleResolver returns nothing
-            // This handles edge cases during initialization
-            const lumaTheme = slideData.resolvedLumaTheme;
-            const colors = lumaTheme.resolvedColors || lumaTheme.slots?.map(s => s.hex) || [];
-            colors.forEach((hex, index) => {
-                if (hex) {
-                    this.domElement.style.setProperty(`--theme-slot${index + 1}`, hex);
-                }
-            });
-            
-            ThemeDiag.logSlideViewApply(this.slideId, lumaTheme, this.domElement);
+            ThemeDiag.logSlideViewApply(this.slideId, lumaThemeForVars, this.domElement);
         }
         
         // Canonical theme variables (named slots + fonts)
         const state = store.getState();
         const resolveThemeAndTypographyIds = () => {
             if (!isMasterRecord) {
-                const themeId = StyleResolver.getEffectiveColorTheme(this.slideId)?.themeId || 'color-theme-default';
+                const themeId = StyleResolver.getEffectiveColorTheme(this.slideId)?.themeId || 'preset_neutral';
                 const typoId = StyleResolver.getEffectiveTypographyStyle(this.slideId)?.typographyStyleId || 'typo-style-default';
                 return { themeId, typoId };
             }
 
             if (slideData.type === 'slideMasterPreset') {
-                const themeId = slideData.styleAssignments?.colorTheme || slideData.colorThemeId || 'color-theme-default';
+                const themeId = slideData.styleAssignments?.colorTheme || slideData.colorThemeId || 'preset_neutral';
                 const typoId = slideData.styleAssignments?.typographyStyle || slideData.typographyStyleId || 'typo-style-default';
                 return { themeId, typoId };
             }
 
             // layoutMaster
             const parent = slideData.parentMasterId ? state.slideMasterPresets?.[slideData.parentMasterId] : null;
-            const themeId = slideData.styleAssignments?.colorTheme || slideData.colorThemeId || parent?.styleAssignments?.colorTheme || parent?.colorThemeId || 'color-theme-default';
+            const themeId = slideData.styleAssignments?.colorTheme || slideData.colorThemeId || parent?.styleAssignments?.colorTheme || parent?.colorThemeId || 'preset_neutral';
             const typoId = slideData.styleAssignments?.typographyStyle || slideData.typographyStyleId || parent?.styleAssignments?.typographyStyle || parent?.typographyStyleId || 'typo-style-default';
             return { themeId, typoId };
         };
@@ -109,7 +113,8 @@ export class SlideView {
         const { themeId, typoId } = resolveThemeAndTypographyIds();
 
         const colorPreset = state.colorThemePresets?.[themeId] || null;
-        const colors = colorPreset?.colors || StyleResolver._resolvedArrayToColorsObject(themeInfo?.lumaTheme?.resolvedColors);
+        // Prefer the mode-mapped resolved colors (if we computed them above); otherwise fall back.
+        const colors = colorPreset?.colors || StyleResolver._resolvedArrayToColorsObject(effectiveResolvedColors || themeInfo?.lumaTheme?.resolvedColors);
         if (colors) {
             // Canonical 12-color schema
             if (colors.background1) this.domElement.style.setProperty('--theme-background1', colors.background1);
@@ -127,8 +132,19 @@ export class SlideView {
 
             // Aliases used by existing style tokens
             if (colors.accent1) this.domElement.style.setProperty('--theme-accent', colors.accent1);
-            if (colors.text1) this.domElement.style.setProperty('--theme-text-primary', colors.text1);
-            if (colors.text2) this.domElement.style.setProperty('--theme-text-secondary', colors.text2);
+            // Prefer slot-based meaning when we have effective slot colors computed.
+            // This keeps semantic vars aligned with StyleResolver's normalization.
+            if (effectiveResolvedColors?.[0]) {
+                this.domElement.style.setProperty('--theme-text-primary', effectiveResolvedColors[0]);
+            } else if (colors.text1) {
+                this.domElement.style.setProperty('--theme-text-primary', colors.text1);
+            }
+
+            if (effectiveResolvedColors?.[2]) {
+                this.domElement.style.setProperty('--theme-text-secondary', effectiveResolvedColors[2]);
+            } else if (colors.text2) {
+                this.domElement.style.setProperty('--theme-text-secondary', colors.text2);
+            }
         }
 
         const typoPreset = state.typographyStylePresets?.[typoId] || null;
@@ -227,6 +243,11 @@ export class SlideView {
 
             const layer = document.createElement('div');
             layer.className = 'bg-layer';
+            layer.setAttribute('data-testid', `slide-bg-layer-${index}`);
+            if (fill?.type) layer.setAttribute('data-fill-type', String(fill.type));
+            if (fill?.themeSlot !== undefined && fill?.themeSlot !== null) {
+                layer.setAttribute('data-theme-slot', String(fill.themeSlot));
+            }
             layer.style.position = 'absolute';
             layer.style.top = '0';
             layer.style.left = '0';

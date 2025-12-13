@@ -174,6 +174,7 @@ export class ThemeSwatches {
         // Swatches grid using unified swatch-grid class
         this.swatchGrid = document.createElement('div');
         this.swatchGrid.className = `swatch-grid ${GRID_COLUMNS[this.options.columns]}`;
+        this.swatchGrid.setAttribute('data-testid', 'theme-swatches-grid');
         this.element.appendChild(this.swatchGrid);
         
         this.updateSwatches();
@@ -183,10 +184,13 @@ export class ThemeSwatches {
      * Get the current slide ID (from options or active slide)
      */
     getCurrentSlideId() {
+        const state = store.getState();
+        if (state.editor?.mode === 'master') {
+            return null;
+        }
         if (this.options.slideId) {
             return this.options.slideId;
         }
-        const state = store.getState();
         return state.editor?.activeSlideId || null;
     }
 
@@ -215,26 +219,36 @@ export class ThemeSwatches {
      */
     getColors() {
         const lumaTheme = this.getLumaTheme();
-        
+
+        // Base colors in canonical order (0..11)
+        let baseColors = null;
+
         // Try resolvedColors array first
         if (lumaTheme?.resolvedColors && Array.isArray(lumaTheme.resolvedColors)) {
-            return lumaTheme.resolvedColors;
+            baseColors = lumaTheme.resolvedColors;
         }
-        
+
         // Fallback: try getting hex from individual slots
-        if (lumaTheme?.slots && Array.isArray(lumaTheme.slots)) {
+        if (!baseColors && lumaTheme?.slots && Array.isArray(lumaTheme.slots)) {
             const hexColors = lumaTheme.slots.map(slot => slot.hex);
             if (hexColors.every(c => c)) {
-                return hexColors;
+                baseColors = hexColors;
             }
         }
-        
+
         // Final fallback: generate grayscale from luma values if no theme
-        return LUMA_SLOTS.map(slot => {
-            const l = slot.luma;
-            const hex = Math.round(l * 2.55).toString(16).padStart(2, '0');
-            return `#${hex}${hex}${hex}`;
-        });
+        if (!baseColors) {
+            baseColors = LUMA_SLOTS.map(slot => {
+                const l = slot.luma;
+                const hex = Math.round(l * 2.55).toString(16).padStart(2, '0');
+                return `#${hex}${hex}${hex}`;
+            });
+        }
+
+        // Mode-aware display: show the resolved color for each slot index
+        // (in dark mode this will invert via StyleResolver.resolveThemeSlot)
+        const slideId = this.getCurrentSlideId();
+        return baseColors.map((fallback, slotIndex) => StyleResolver.resolveThemeSlot(slotIndex, fallback, slideId));
     }
 
     updateSwatches() {
@@ -262,7 +276,7 @@ export class ThemeSwatches {
         LUMA_SLOTS.forEach((slotDef, index) => {
             const color = colors[index] || '#808080';
             const tooltip = `Slot ${slotDef.slot} (L: ${slotDef.luma}%)`;
-            const swatch = this.createSwatch(color, tooltip, index);
+            const swatch = this.createSwatch(color, tooltip, index, slotDef.slot);
             this.swatchGrid.appendChild(swatch);
         });
     }
@@ -299,7 +313,7 @@ export class ThemeSwatches {
         this.sourceIndicator.appendChild(label);
     }
 
-    createSwatch(color, tooltip, slotIndex) {
+    createSwatch(color, tooltip, slotIndex, slotNumber = null) {
         // Use <button> for proper semantics and keyboard accessibility
         const swatch = document.createElement('button');
         swatch.type = 'button';
@@ -316,6 +330,10 @@ export class ThemeSwatches {
         
         // Color itself must be inline (dynamic per swatch)
         swatch.style.backgroundColor = color;
+
+        if (slotNumber !== null && slotNumber !== undefined) {
+            swatch.setAttribute('data-testid', `theme-swatch-slot-${slotNumber}`);
+        }
         
         // Accessibility
         swatch.title = `${tooltip}: ${color}`;

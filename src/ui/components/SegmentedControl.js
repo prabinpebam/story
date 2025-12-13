@@ -7,12 +7,14 @@ export class SegmentedControl {
             this.options = optionsOrConfig;
             this.selectedValue = selectedValue;
             this.onChange = onChange;
+            this.testId = null;
         } else {
             // Config object pattern
             const config = optionsOrConfig || {};
             this.options = config.options || [];
             this.selectedValue = config.value;
             this.onChange = config.onChange;
+            this.testId = config.testId || null;
         }
         
         this.element = this.create();
@@ -20,6 +22,9 @@ export class SegmentedControl {
 
     create() {
         const container = document.createElement('div');
+        if (this.testId) {
+            container.setAttribute('data-testid', this.testId);
+        }
         container.style.display = 'flex';
         container.style.border = '1px solid var(--color-border)';
         container.style.borderRadius = '2px';
@@ -28,6 +33,9 @@ export class SegmentedControl {
 
         this.options.forEach((opt, index) => {
             const btn = document.createElement('div');
+            if (opt.testId) {
+                btn.setAttribute('data-testid', opt.testId);
+            }
             if (opt.icon) {
                 // Check if it's an SVG string or HTML tag
                 if (opt.icon.trim().startsWith('<')) {

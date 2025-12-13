@@ -12,32 +12,8 @@
 // COLOR THEME PRESETS (Separate Library)
 // ============================================
 export const DEFAULT_COLOR_THEME_PRESETS = {
-    "color-theme-default": {
-        id: "color-theme-default",
-        type: "colorThemePreset",
-        name: "Default Colors",
-        description: "Clean and professional",
-        category: "Professional",
-        isDark: false,
-        colors: {
-            // Background Colors - Clean and professional
-            background1: "#FFFFFF",         // Pure white
-            background2: "#F8FAFC",         // Slate 50 - subtle gray-blue
-            // Text Colors - High contrast, easy to read
-            text1: "#0F172A",               // Slate 900 - near black, softer than pure black
-            text2: "#64748B",               // Slate 500 - medium gray for secondary text
-            // Accent Colors - Vibrant, modern palette
-            accent1: "#3B82F6",             // Blue 500 - Primary brand color
-            accent2: "#8B5CF6",             // Violet 500 - Creative/highlight
-            accent3: "#10B981",             // Emerald 500 - Success/positive
-            accent4: "#F59E0B",             // Amber 500 - Warning/attention
-            accent5: "#EF4444",             // Red 500 - Alert/important
-            accent6: "#06B6D4",             // Cyan 500 - Info/cool accent
-            // Link Colors
-            hyperlink: "#2563EB",           // Blue 600
-            followedHyperlink: "#7C3AED"    // Violet 600
-        }
-    }
+    // Intentionally empty: built-in luma-locked theme presets live in
+    // src/ui/panels/color-theme/ThemePresets.js and are resolved via StyleResolver.
 };
 
 // ============================================
@@ -1189,10 +1165,12 @@ export const DEFAULT_MASTERS = {
         type: "slideMasterPreset",
         name: "Default Master",
         // REFERENCES ONLY (never embed actual colors/typography)
-        colorThemeId: "color-theme-default",
+        // Must reference an existing built-in color theme preset (no "Default" theme).
+        colorThemeId: "preset_neutral",
         typographyStyleId: "typo-style-default",
         // Slide background is theme-linked (slot-based) and independent of app chrome
-        background: { type: "solid", themeSlot: 0, value: "#FFFFFF" },
+        // Use a highlight slot so light/dark inversion preserves contrast.
+        background: { type: "solid", themeSlot: 11, value: "#FFFFFF" },
         elements: {},
         elementOrder: [],
         // Layout IDs managed by this master
@@ -1823,30 +1801,6 @@ export function createInitialState() {
                 id: "slide-1",
                 layoutId: "layout-title",
                 title: "Title Slide",
-                width: 1920,
-                height: 1080,
-                background: null,
-                colorThemeId: null,
-                typographyStyleId: null,
-                elements: {
-                    "placeholder-title": { 
-                        ...DEFAULT_MASTERS["layout-title"].elements["placeholder-title"],
-                        content: "<h1>Click to add title</h1>"
-                    },
-                    "placeholder-subtitle": {
-                        ...DEFAULT_MASTERS["layout-title"].elements["placeholder-subtitle"],
-                        content: "<p>Click to add subtitle</p>"
-                    }
-                }, 
-                elementOrder: ["placeholder-title", "placeholder-subtitle"],
-                notes: "",
-                transition: "magic"
-            },
-            // Slide 2: Title and Content - all properties inherited, no overrides
-            "slide-2": {
-                id: "slide-2",
-                layoutId: "layout-title-content",
-                title: "Title and Content",
                 width: 1920,
                 height: 1080,
                 background: null,

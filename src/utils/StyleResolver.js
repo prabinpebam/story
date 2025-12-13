@@ -2,7 +2,7 @@ import { getEffectiveSlotIndex, COLOR_MODES, generateThemeColors, DEFAULT_ADJUST
 import { THEME_PRESETS, getPresetById } from '../ui/panels/color-theme/ThemePresets.js';
 import { ThemeDiag } from './ThemeDiagnostics.js';
 
-const DEFAULT_COLOR_THEME_ID = 'color-theme-default';
+const DEFAULT_COLOR_THEME_ID = 'preset_neutral';
 const DEFAULT_TYPOGRAPHY_STYLE_ID = 'typo-style-default';
 
 // Canonical 12-slot order used by ColorThemePresets
@@ -39,6 +39,33 @@ function getStore() {
  */
 export const StyleResolver = {
 
+    _getThemeMasterForContext(state, { slideId = null, masterId = null } = {}) {
+        if (!state) return null;
+
+        // 1) Master context (master mode)
+        if (masterId) {
+            const master = state.slideMasterPresets?.[masterId];
+            if (master?.type === 'slideMasterPreset') return master;
+            if (master?.type === 'layoutMaster' && master.parentMasterId) {
+                const parent = state.slideMasterPresets?.[master.parentMasterId];
+                if (parent?.type === 'slideMasterPreset') return parent;
+            }
+        }
+
+        // 2) Slide context (edit mode)
+        if (slideId) {
+            const slide = state.slides?.[slideId];
+            const layout = slide?.layoutId ? state.slideMasterPresets?.[slide.layoutId] : null;
+            if (layout?.type === 'layoutMaster' && layout.parentMasterId) {
+                const parent = state.slideMasterPresets?.[layout.parentMasterId];
+                if (parent?.type === 'slideMasterPreset') return parent;
+            }
+        }
+
+        // 3) Fallback: first available master
+        return Object.values(state.slideMasterPresets || {}).find(m => m.type === 'slideMasterPreset') || null;
+    },
+
     _normalizeLegacyTextFillToThemeSlot(fill, slideId = null) {
         if (!fill || fill.type !== 'solid') return fill;
         if (fill.themeSlot !== undefined && fill.themeSlot !== null) return fill;
@@ -48,7 +75,9 @@ export const StyleResolver = {
         // Default templates historically used semantic CSS vars; normalize to slot-linked
         // so UI surfaces can report “Theme Slot N” and maintain linkage in dark mode.
         if (value.includes('var(--theme-text-primary')) {
-            const slot = 11;
+            // Map semantic "primary text" to a dark (shadow) slot.
+            // Slot indices are 0-based; Slot 2 (index 1) is a strong primary shadow.
+            const slot = 1;
             return {
                 ...fill,
                 themeSlot: slot,
@@ -57,7 +86,8 @@ export const StyleResolver = {
         }
 
         if (value.includes('var(--theme-text-secondary')) {
-            const slot = 9;
+            // Map semantic "secondary text" to a lighter shadow slot.
+            const slot = 3;
             return {
                 ...fill,
                 themeSlot: slot,
@@ -209,11 +239,22 @@ export const StyleResolver = {
      * 
      * @returns {string} 'light' or 'dark'
      */
-    getColorMode() {
+    getColorMode(slideId = null, masterId = null) {
         const store = getStore();
         if (!store) return COLOR_MODES.LIGHT;
         const state = store.getState();
-        const themeMaster = Object.values(state.slideMasterPresets || {}).find(m => m.type === 'slideMasterPreset');
+
+        // If no explicit context was provided, infer from editor mode.
+        if (!slideId && !masterId) {
+            const mode = state.editor?.mode;
+            if (mode === 'master') {
+                masterId = state.editor?.activeMasterId || null;
+            } else {
+                slideId = state.editor?.activeSlideId || null;
+            }
+        }
+
+        const themeMaster = this._getThemeMasterForContext(state, { slideId, masterId });
 
         if (!themeMaster) return COLOR_MODES.LIGHT;
         
@@ -251,19 +292,26 @@ export const StyleResolver = {
         const store = getStore();
         if (!store) return null;
         const state = store.getState();
-        
-        // If no slideId, try to get active slide
+
+        let masterId = null;
+
+        // If no slideId, infer context from editor mode.
         if (!slideId) {
-            slideId = state.editor?.activeSlideId;
+            const mode = state.editor?.mode;
+            if (mode === 'master') {
+                masterId = state.editor?.activeMasterId || null;
+            } else {
+                slideId = state.editor?.activeSlideId || null;
+            }
         }
-        
-        // Get the theme master
-        const themeMaster = Object.values(state.slideMasterPresets || {}).find(m => m.type === 'slideMasterPreset');
+
+        // Resolve the correct theme master for this context.
+        const themeMaster = this._getThemeMasterForContext(state, { slideId, masterId });
 
         // No theme master exists
         if (!themeMaster) return null;
-        
-        const colorMode = this.getColorMode();
+
+        const colorMode = this.getColorMode(slideId, themeMaster?.id || masterId);
         const masterThemeId = themeMaster?.styleAssignments?.colorTheme || themeMaster?.colorThemeId || DEFAULT_COLOR_THEME_ID;
         const masterLumaTheme = this._getLumaThemeForColorThemeId(state, masterThemeId, colorMode);
         
@@ -349,7 +397,7 @@ export const StyleResolver = {
     getThemeInfoForSlide(slideId) {
         const themeInfo = this.getEffectiveColorTheme(slideId);
         const lumaTheme = this.getLumaTheme(slideId);
-        const colorMode = this.getColorMode();
+        const colorMode = this.getColorMode(slideId);
         
         const result = {
             lumaTheme,
@@ -385,7 +433,7 @@ export const StyleResolver = {
             return { lumaTheme: null, source: 'master', sourceId: null, sourceLabel: 'Master not found', isInherited: true };
         }
         
-        const colorMode = this.getColorMode();
+        const colorMode = this.getColorMode(null, masterId);
         
         if (master.type === 'slideMasterPreset') {
             const themeId = master.styleAssignments?.colorTheme || master.colorThemeId || DEFAULT_COLOR_THEME_ID;
@@ -515,14 +563,15 @@ export const StyleResolver = {
         const lumaTheme = this.getLumaTheme(slideId);
         
         // Get the color mode
-        const colorMode = this.getColorMode();
+        const colorMode = this.getColorMode(slideId);
         
         // Map the slot index based on color mode
         // In dark mode, this will flip shadow/highlight clusters
         const effectiveSlotIndex = getEffectiveSlotIndex(slotIndex, colorMode);
         
-        if (lumaTheme?.slots?.[effectiveSlotIndex]) {
-            return lumaTheme.slots[effectiveSlotIndex].hex || fallback;
+        const slot = lumaTheme?.slots?.[effectiveSlotIndex];
+        if (slot?.hex) {
+            return slot.hex;
         }
         
         // Try resolvedColors array as fallback
@@ -787,7 +836,9 @@ export const StyleResolver = {
             fontSize: 16,
             fontWeight: '400',
             fontStyle: 'normal',
-            textFill: { type: 'solid', value: '#000000' },
+            // Text color is driven by the active Color Theme (not the Typography style).
+            // Default to a dark theme-linked slot so light/dark inversion preserves contrast.
+            textFill: { type: 'solid', themeSlot: 1, value: '#000000' },
             lineHeight: 1.5,
             letterSpacing: '0%',
             textAlign: 'left',
@@ -830,7 +881,8 @@ export const StyleResolver = {
             if (themeStyle) {
                 // Apply theme style properties, skipping id and name
                 Object.keys(themeStyle).forEach(key => {
-                    if (key !== 'id' && key !== 'name' && themeStyle[key] !== undefined) {
+                    // NOTE: textFill is intentionally NOT applied from typography styles.
+                    if (key !== 'id' && key !== 'name' && key !== 'textFill' && themeStyle[key] !== undefined) {
                         finalProps[key] = themeStyle[key];
                     }
                 });

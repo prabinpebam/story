@@ -493,7 +493,9 @@ export class TextSection extends BaseSection {
             'textAlign',
             'verticalAlign',
             'textDecoration',
-            'textFill'
+            // NOTE: textFill is intentionally NOT style-locked.
+            // Text color is driven by Color Theme and should remain overridable
+            // even when a Typography style (textStyleId) is applied.
         ];
         
         if (styleableProps.includes(prop) && this.currentStyleId) {
@@ -887,12 +889,14 @@ export class TextSection extends BaseSection {
         this.linkBtn.element.classList.toggle('hidden', !isLinked);
         this.linkBtn.element.title = isLinked ? 'Unlink from style (keeps current values)' : '';
 
-        // Mixed selection should lock controls as well (no single source of truth)
-        const shouldLock = isLinked || this.isMixedStyleSelection;
+        // Typography properties lock when linked; text color remains editable.
+        const shouldLockTypography = isLinked || this.isMixedStyleSelection;
+        // Mixed selection should lock fill controls (cannot represent a single value).
+        const shouldLockFill = this.isMixedStyleSelection;
         
         // Disable/enable property inputs based on style link
         this.styleableInputs.forEach(input => {
-            if (shouldLock) {
+            if (shouldLockTypography) {
                 input.classList.add('disabled');
                 input.style.pointerEvents = 'none';
                 input.style.opacity = '0.5';
@@ -907,27 +911,27 @@ export class TextSection extends BaseSection {
         if (this.alignButtons) {
             this.alignButtons.forEach(({ btn }) => {
                 if (typeof btn?.setDisabled === 'function') {
-                    btn.setDisabled(shouldLock);
+                    btn.setDisabled(shouldLockTypography);
                 } else if (btn?.element) {
-                    btn.element.disabled = shouldLock;
-                    btn.element.style.pointerEvents = shouldLock ? 'none' : 'auto';
-                    btn.element.style.opacity = shouldLock ? '0.5' : '1';
+                    btn.element.disabled = shouldLockTypography;
+                    btn.element.style.pointerEvents = shouldLockTypography ? 'none' : 'auto';
+                    btn.element.style.opacity = shouldLockTypography ? '0.5' : '1';
                 }
             });
         }
 
-        // Disable/enable fill controls when linked
+        // Disable/enable fill controls (text color) only for mixed selection.
         if (this.fillSwatch) {
-            this.fillSwatch.style.pointerEvents = shouldLock ? 'none' : 'auto';
-            this.fillSwatch.style.opacity = shouldLock ? '0.5' : '1';
+            this.fillSwatch.style.pointerEvents = shouldLockFill ? 'none' : 'auto';
+            this.fillSwatch.style.opacity = shouldLockFill ? '0.5' : '1';
         }
         if (this.fillHexInput) {
-            this.fillHexInput.disabled = shouldLock;
+            this.fillHexInput.disabled = shouldLockFill;
         }
         if (this.fillOpacityInput?.element) {
-            this.fillOpacityInput.element.classList.toggle('disabled', shouldLock);
-            this.fillOpacityInput.element.style.pointerEvents = shouldLock ? 'none' : 'auto';
-            this.fillOpacityInput.element.style.opacity = shouldLock ? '0.5' : '1';
+            this.fillOpacityInput.element.classList.toggle('disabled', shouldLockFill);
+            this.fillOpacityInput.element.style.pointerEvents = shouldLockFill ? 'none' : 'auto';
+            this.fillOpacityInput.element.style.opacity = shouldLockFill ? '0.5' : '1';
         }
         
         // Strict linking UX: no local overrides UI in the inspector.

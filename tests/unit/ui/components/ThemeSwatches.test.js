@@ -95,39 +95,50 @@ vi.mock('../../../../src/core/Store.js', () => ({
 }));
 
 // Mock StyleResolver to return cascade-aware theme info
-vi.mock('../../../../src/utils/StyleResolver.js', () => ({
-    StyleResolver: {
-        getThemeInfoForSlide: vi.fn(() => ({
-            lumaTheme: {
-                id: 'preset_neutral',
-                name: 'Neutral',
-                resolvedColors: [
-                    '#0d0d0d', '#1a1a1a', '#2e2e2e', '#404040',
-                    '#595959', '#737373', '#8c8c8c', '#a6a6a6',
-                    '#b3b3b3', '#cccccc', '#e6e6e6', '#f8f8f8'
-                ]
-            },
-            source: 'master',
-            sourceLabel: 'from Master',
-            isInherited: true
-        })),
-        getThemeInfoForCurrentContext: vi.fn(() => ({
-            lumaTheme: {
-                id: 'preset_neutral',
-                name: 'Neutral',
-                resolvedColors: [
-                    '#0d0d0d', '#1a1a1a', '#2e2e2e', '#404040',
-                    '#595959', '#737373', '#8c8c8c', '#a6a6a6',
-                    '#b3b3b3', '#cccccc', '#e6e6e6', '#f8f8f8'
-                ]
-            },
-            source: 'master',
-            sourceLabel: 'from Master',
-            isInherited: true
-        })),
-        getEffectiveColorTheme: vi.fn()
-    }
-}));
+vi.mock('../../../../src/utils/StyleResolver.js', () => {
+    const resolvedColors = [
+        '#0d0d0d', '#1a1a1a', '#2e2e2e', '#404040',
+        '#595959', '#737373', '#8c8c8c', '#a6a6a6',
+        '#b3b3b3', '#cccccc', '#e6e6e6', '#f8f8f8'
+    ];
+
+    const getThemeInfoForSlide = vi.fn(() => ({
+        lumaTheme: {
+            id: 'preset_neutral',
+            name: 'Neutral',
+            resolvedColors
+        },
+        source: 'master',
+        sourceLabel: 'from Master',
+        isInherited: true
+    }));
+
+    const getThemeInfoForCurrentContext = vi.fn(() => ({
+        lumaTheme: {
+            id: 'preset_neutral',
+            name: 'Neutral',
+            resolvedColors
+        },
+        source: 'master',
+        sourceLabel: 'from Master',
+        isInherited: true
+    }));
+
+    const resolveThemeSlot = vi.fn((slotIndex, fallback, slideId) => {
+        const themeInfo = slideId ? getThemeInfoForSlide(slideId) : getThemeInfoForCurrentContext();
+        const colors = themeInfo?.lumaTheme?.resolvedColors;
+        return (Array.isArray(colors) ? colors[slotIndex] : undefined) ?? fallback;
+    });
+
+    return {
+        StyleResolver: {
+            getThemeInfoForSlide,
+            getThemeInfoForCurrentContext,
+            resolveThemeSlot,
+            getEffectiveColorTheme: vi.fn()
+        }
+    };
+});
 
 import { ThemeSwatches } from '../../../../src/ui/components/ThemeSwatches.js';
 import { store } from '../../../../src/core/Store.js';

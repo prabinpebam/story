@@ -137,6 +137,30 @@ test.describe('Color Theme Manager', () => {
     // Marking as fixme for now as it requires more robust setup helpers.
   });
 
+  test('TM07: Apply Preset Theme in Master mode targets active theme master', async ({ page }) => {
+    // Enter Master mode (theme master editing)
+    await editor.editMaster();
+
+    // Open CTM
+    await page.keyboard.press('Control+Shift+C');
+    const panel = page.locator('.ctm');
+    await expect(panel).toBeVisible();
+
+    const stateBefore = await editor.getState();
+    const beforeThemeId = stateBefore.slideMasterPresets?.['master-default']?.colorThemeId;
+    expect(beforeThemeId).toBeTruthy();
+
+    // Click a preset theme that should differ from the default
+    const presetToApply = panel.locator('.ctm__theme-item').nth(1);
+    await expect(presetToApply).toBeVisible();
+    await presetToApply.click();
+
+    await expect.poll(async () => {
+      const stateAfter = await editor.getState();
+      return stateAfter.slideMasterPresets?.['master-default']?.colorThemeId;
+    }, { timeout: 2000 }).not.toBe(beforeThemeId);
+  });
+
   test('TM08: Save Custom Theme', async ({ page }) => {
     // 1. Open CTM
     await page.keyboard.press('Control+Shift+C');
