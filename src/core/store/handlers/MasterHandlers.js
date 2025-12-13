@@ -1,7 +1,12 @@
 
-import { getDefaultPreset } from '../../constants/ColorPresets.js';
+import { getDefaultPreset as getDefaultColorPreset } from '../../constants/ColorPresets.js';
 import { getDefaultFontPreset, getPresetById as getFontPresetById } from '../../constants/FontPresets.js';
-import { getPresetById, getPresetList, materializePreset } from '../SlideMasterPresets.js';
+import {
+    getDefaultPreset as getDefaultMasterPreset,
+    getPresetById,
+    getPresetList,
+    materializePreset
+} from '../SlideMasterPresets.js';
 import { isMasterInUseBySlides } from '../../master/MasterUsage.js';
 
 // ========================================
@@ -228,7 +233,7 @@ export function handleResetThemeColors(draft, payload) {
     const themeMaster = draft.slideMasterPresets[masterId];
     
     if (themeMaster && themeMaster.type === 'slideMasterPreset') {
-        const defaultPreset = getDefaultPreset();
+        const defaultPreset = getDefaultColorPreset();
         
         if (!themeMaster.themeSettings) {
             themeMaster.themeSettings = { colors: {}, fonts: {} };
@@ -548,12 +553,70 @@ export function handleApplyMasterPresetToMaster(draft, payload) {
 // ========================================
 
 /**
- * Add a new layout to a slide master preset.
+ * Add a new master (slide master preset) after the currently selected master group.
  * @param {Object} draft - Immer draft state
- * @param {Object} payload - { parentMasterId: string }
+ */
+export function handleAddMaster(draft) {
+    const mastersById = draft.slideMasterPresets || {};
+
+    // Determine the "insert after" master group based on current selection
+    const activeId = draft.editor?.activeMasterId || null;
+    const active = activeId ? mastersById[activeId] : null;
+
+    let insertAfterMasterId = null;
+    if (active?.type === 'slideMasterPreset') {
+        insertAfterMasterId = active.id;
+    } else if (active?.type === 'layoutMaster') {
+        insertAfterMasterId = active.parentMasterId;
+    }
+
+    // Ensure display order exists
+    if (!Array.isArray(draft.masterDisplayOrder)) {
+        draft.masterDisplayOrder = Object.values(mastersById)
+            .filter(m => m?.type === 'slideMasterPreset')
+            .map(m => m.id);
+    }
+
+    // Choose a default preset
+    const defaultPreset = getDefaultMasterPreset();
+    const presetId = defaultPreset?.id || getPresetList()?.[0]?.id || null;
+    if (!presetId) return;
+
+    const newMasterId = `master-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+    const { master, layouts } = materializePreset(presetId, {
+        masterId: newMasterId,
+        masterName: 'New Master'
+    });
+
+    // Persist the preset id so the PI can display it
+    master.presetId = presetId;
+
+    draft.slideMasterPresets[newMasterId] = master;
+    Object.entries(layouts || {}).forEach(([id, layout]) => {
+        draft.slideMasterPresets[id] = layout;
+    });
+
+    // Insert in display order after selected master group, else append
+    const idx = insertAfterMasterId ? draft.masterDisplayOrder.indexOf(insertAfterMasterId) : -1;
+    if (idx >= 0) {
+        draft.masterDisplayOrder.splice(idx + 1, 0, newMasterId);
+    } else {
+        draft.masterDisplayOrder.push(newMasterId);
+    }
+
+    // Select the new master
+    draft.editor.activeMasterId = newMasterId;
+}
+
+/**
+ * Add a new layout to a slide master preset.
+ * Inserts after the currently selected master/layout when possible.
+ * @param {Object} draft - Immer draft state
+ * @param {Object} payload - { parentMasterId: string, insertAfterId?: string }
  */
 export function handleAddLayout(draft, payload) {
     const parentMasterId = payload?.parentMasterId;
+    const insertAfterId = payload?.insertAfterId || null;
     const parentMaster = parentMasterId ? draft.slideMasterPresets[parentMasterId] : null;
     
     if (parentMaster && parentMaster.type === 'slideMasterPreset') {
@@ -577,7 +640,23 @@ export function handleAddLayout(draft, payload) {
         if (!Array.isArray(parentMaster.layoutIds)) {
             parentMaster.layoutIds = [];
         }
-        parentMaster.layoutIds.push(newLayoutId);
+
+        // Insert after the selected item when possible.
+        // - If insertAfterId is a layout under this master, insert after it.
+        // - If insertAfterId is the master itself (master selected), insert as the first layout.
+        const isInsertAfterMaster = insertAfterId && insertAfterId === parentMasterId;
+        if (isInsertAfterMaster) {
+            parentMaster.layoutIds.splice(0, 0, newLayoutId);
+        } else if (insertAfterId) {
+            const idx = parentMaster.layoutIds.indexOf(insertAfterId);
+            if (idx >= 0) {
+                parentMaster.layoutIds.splice(idx + 1, 0, newLayoutId);
+            } else {
+                parentMaster.layoutIds.push(newLayoutId);
+            }
+        } else {
+            parentMaster.layoutIds.push(newLayoutId);
+        }
         
         // Select the new layout
         draft.editor.activeMasterId = newLayoutId;

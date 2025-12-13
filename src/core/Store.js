@@ -272,6 +272,7 @@ export class Store extends EventEmitter {
             case 'SET_COLOR_MODE':
             case 'UPDATE_MASTER_STYLE_ASSIGNMENTS':
             case 'ADD_LAYOUT':
+            case 'ADD_MASTER':
             case 'DUPLICATE_MASTER':
             case 'DELETE_MASTER':
             case 'RENAME_MASTER':
@@ -302,6 +303,7 @@ export class Store extends EventEmitter {
                         case 'SET_COLOR_MODE': MasterHandlers.handleSetColorMode(draft, payload); break;
                         case 'UPDATE_MASTER_STYLE_ASSIGNMENTS': MasterHandlers.handleUpdateMasterStyleAssignments(draft, payload); break;
                         case 'ADD_LAYOUT': MasterHandlers.handleAddLayout(draft, payload); break;
+                        case 'ADD_MASTER': MasterHandlers.handleAddMaster(draft, payload); break;
                         case 'DUPLICATE_MASTER': MasterHandlers.handleDuplicateMaster(draft, payload); break;
                         case 'DELETE_MASTER': MasterHandlers.handleDeleteMaster(draft, payload); break;
                         case 'RENAME_MASTER': MasterHandlers.handleRenameMaster(draft, payload); break;

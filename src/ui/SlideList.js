@@ -1,8 +1,6 @@
 import { store } from '../core/Store.js';
 import { ThumbnailRenderer } from '../core/renderer/ThumbnailRenderer.js';
 import { contextMenuManager, slideThumbnailConfig, masterThumbnailConfig } from './components/ContextMenu/index.js';
-import { Button } from './components/Button.js';
-import { Icons } from './Icons.js';
 
 export class SlideList {
     constructor(containerId) {
@@ -53,45 +51,6 @@ export class SlideList {
     }
 
     renderMasterList(state) {
-        // Header
-        const header = document.createElement('div');
-        header.className = 'slide-list-header';
-
-        const title = document.createElement('div');
-        title.className = 'section-title slide-list-title';
-        title.innerText = 'MASTERS';
-        
-        const addBtn = new Button({
-            icon: Icons.PLUS,
-            variant: 'text',
-            size: 'xs',
-            title: 'Add Layout',
-            onClick: () => {
-                // Determine parent master
-                const activeId = state.editor.activeMasterId;
-                const activeMaster = state.slideMasterPresets[activeId];
-                let parentMasterId = activeId;
-                
-                if (activeMaster && activeMaster.type === 'layoutMaster') {
-                    parentMasterId = activeMaster.parentMasterId;
-                }
-                
-                // If we still don't have a valid parent (e.g. no selection), pick the first master
-                if (!parentMasterId || state.slideMasterPresets[parentMasterId]?.type !== 'slideMasterPreset') {
-                    const firstMaster = Object.values(state.slideMasterPresets).find(m => m.type === 'slideMasterPreset');
-                    if (firstMaster) parentMasterId = firstMaster.id;
-                }
-                
-                if (parentMasterId) {
-                    store.dispatch('ADD_LAYOUT', { parentMasterId });
-                }
-            }
-        });
-        
-        header.appendChild(title);
-        header.appendChild(addBtn.element);
-        this.container.appendChild(header);
-
         // List Container
         const list = document.createElement('div');
         list.className = 'slide-list';

@@ -84,7 +84,13 @@ export class LeftPanel {
         this.updateLayout();
         
         // Listen for mode changes to update title
-        store.on('state-changed', () => this.updateSlidesTitle());
+        store.on('state-changed', () => {
+            this.updateSlidesTitle();
+            this.updateSlidesHeaderControls();
+        });
+
+        // Initial header controls
+        this.updateSlidesHeaderControls();
     }
     
     createSection(id, title, expanded) {
@@ -106,21 +112,15 @@ export class LeftPanel {
         header.appendChild(chevron);
         header.appendChild(titleEl);
         
-        // Add button for slides section
+        // Header controls container (buttons live here)
+        const headerControls = document.createElement('div');
+        headerControls.className = 'accordion-header-controls';
+        header.appendChild(headerControls);
+
+        // Add button for slides section (created by updateSlidesHeaderControls)
         let addButton = null;
         if (id === 'slides') {
-            addButton = new Button({
-                icon: Icons.PLUS,
-                variant: 'text',
-                size: 'xs',
-                title: 'Add Slide',
-                onClick: (e) => {
-                    e.stopPropagation(); // Prevent header click (collapse)
-                    this.handleAddSlide();
-                }
-            });
-            addButton.element.setAttribute('data-testid', 'add-slide-btn');
-            header.appendChild(addButton.element);
+            addButton = { element: null };
         }
         
         // Content
@@ -138,7 +138,7 @@ export class LeftPanel {
             }
         });
         
-        return { wrapper, header, content, chevron, titleEl, addButton };
+        return { wrapper, header, content, chevron, titleEl, addButton, headerControls };
     }
     
     toggleSection(sectionId) {
@@ -235,6 +235,111 @@ export class LeftPanel {
         const state = store.getState();
         const title = state.editor.mode === 'master' ? 'MASTERS' : 'SLIDES';
         this.slidesSection.titleEl.textContent = title;
+    }
+
+    updateSlidesHeaderControls() {
+        if (!this.slidesSection?.headerControls) return;
+
+        const state = store.getState();
+        this.slidesSection.headerControls.innerHTML = '';
+
+        if (state.editor.mode === 'master') {
+            const addMasterButton = new Button({
+                icon: Icons.PLUS,
+                variant: 'text',
+                size: 'xs',
+                title: 'Add Master',
+                ariaLabel: 'Add Master',
+                onClick: (e) => {
+                    e.stopPropagation();
+                    this.handleAddMaster();
+                }
+            });
+            addMasterButton.element.setAttribute('data-testid', 'add-slide-btn');
+            this.slidesSection.headerControls.appendChild(addMasterButton.element);
+
+            const addLayoutButton = new Button({
+                icon: Icons.PLUS,
+                variant: 'text',
+                size: 'xs',
+                title: 'Add Layout',
+                ariaLabel: 'Add Layout',
+                onClick: (e) => {
+                    e.stopPropagation();
+                    this.handleAddLayout();
+                }
+            });
+            addLayoutButton.element.setAttribute('data-testid', 'add-layout-btn');
+            this.slidesSection.headerControls.appendChild(addLayoutButton.element);
+
+            return;
+        }
+
+        const addSlideButton = new Button({
+            icon: Icons.PLUS,
+            variant: 'text',
+            size: 'xs',
+            title: 'Add Slide',
+            ariaLabel: 'Add Slide',
+            onClick: (e) => {
+                e.stopPropagation(); // Prevent header click (collapse)
+                this.handleAddSlide();
+            }
+        });
+        addSlideButton.element.setAttribute('data-testid', 'add-slide-btn');
+        this.slidesSection.headerControls.appendChild(addSlideButton.element);
+    }
+
+    handleAddMaster() {
+        // If slides section is collapsed, expand it first
+        if (!this.slidesExpanded) {
+            this.slidesExpanded = true;
+            this.slidesSection.wrapper.classList.add('expanded');
+            this.slidesSection.wrapper.classList.remove('collapsed');
+            this.slidesSection.chevron.className = 'fa-solid fa-chevron-down accordion-chevron';
+            this.updateLayout();
+            this.saveState();
+        }
+
+        store.dispatch('ADD_MASTER', {});
+    }
+
+    handleAddLayout() {
+        const state = store.getState();
+
+        // If slides section is collapsed, expand it first
+        if (!this.slidesExpanded) {
+            this.slidesExpanded = true;
+            this.slidesSection.wrapper.classList.add('expanded');
+            this.slidesSection.wrapper.classList.remove('collapsed');
+            this.slidesSection.chevron.className = 'fa-solid fa-chevron-down accordion-chevron';
+            this.updateLayout();
+            this.saveState();
+        }
+
+        const activeId = state.editor.activeMasterId;
+        const active = activeId ? state.slideMasterPresets?.[activeId] : null;
+
+        let parentMasterId = null;
+        let insertAfterId = null;
+
+        if (active?.type === 'layoutMaster') {
+            parentMasterId = active.parentMasterId;
+            insertAfterId = active.id;
+        } else if (active?.type === 'slideMasterPreset') {
+            parentMasterId = active.id;
+            insertAfterId = active.id; // special-case: insert first layout after master
+        }
+
+        if (!parentMasterId || state.slideMasterPresets?.[parentMasterId]?.type !== 'slideMasterPreset') {
+            const firstMaster = Object.values(state.slideMasterPresets || {}).find(m => m.type === 'slideMasterPreset');
+            parentMasterId = firstMaster?.id || null;
+            insertAfterId = null;
+        }
+
+        if (parentMasterId) {
+            store.dispatch('ADD_LAYOUT', { parentMasterId, insertAfterId });
+        }
     }
     
     /**
