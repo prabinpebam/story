@@ -167,6 +167,27 @@ export const DEFAULT_TYPOGRAPHY_STYLE_PRESETS = {
                     letterSpacing: "3%",
                     textTransform: "uppercase",
                     textFill: { type: "solid", value: "var(--theme-text-secondary)" }
+                },
+                "quote": {
+                    id: "quote",
+                    name: "Quote",
+                    fontFamily: "var(--theme-font-heading)",
+                    fontSize: 40,
+                    fontWeight: "400",
+                    fontStyle: "italic",
+                    lineHeight: 1.4,
+                    letterSpacing: "0%",
+                    textFill: { type: "solid", value: "var(--theme-text-primary)" }
+                },
+                "stat": {
+                    id: "stat",
+                    name: "Stat",
+                    fontFamily: "var(--theme-font-heading)",
+                    fontSize: 144,
+                    fontWeight: "800",
+                    lineHeight: 1.0,
+                    letterSpacing: "-2%",
+                    textFill: { type: "solid", themeSlot: 4, value: "#3B82F6" }
                 }
             }
         },
@@ -293,6 +314,27 @@ export const DEFAULT_TYPOGRAPHY_STYLE_PRESETS = {
                 letterSpacing: "3%",
                 textTransform: "uppercase",
                 textFill: { type: "solid", value: "var(--theme-text-secondary)" }
+            },
+            "quote": {
+                id: "quote",
+                name: "Quote",
+                fontFamily: "var(--theme-font-heading)",
+                fontSize: 40,
+                fontWeight: "400",
+                fontStyle: "italic",
+                lineHeight: 1.4,
+                letterSpacing: "0%",
+                textFill: { type: "solid", value: "var(--theme-text-primary)" }
+            },
+            "stat": {
+                id: "stat",
+                name: "Stat",
+                fontFamily: "var(--theme-font-heading)",
+                fontSize: 144,
+                fontWeight: "800",
+                lineHeight: 1.0,
+                letterSpacing: "-2%",
+                textFill: { type: "solid", themeSlot: 4, value: "#3B82F6" }
             }
         }
     },
@@ -419,6 +461,27 @@ export const DEFAULT_TYPOGRAPHY_STYLE_PRESETS = {
                 letterSpacing: "4%",
                 textTransform: "uppercase",
                 textFill: { type: "solid", value: "var(--theme-text-secondary)" }
+            },
+            "quote": {
+                id: "quote",
+                name: "Quote",
+                fontFamily: "var(--theme-font-heading)",
+                fontSize: 40,
+                fontWeight: "400",
+                fontStyle: "italic",
+                lineHeight: 1.4,
+                letterSpacing: "0%",
+                textFill: { type: "solid", value: "var(--theme-text-primary)" }
+            },
+            "stat": {
+                id: "stat",
+                name: "Stat",
+                fontFamily: "var(--theme-font-heading)",
+                fontSize: 144,
+                fontWeight: "800",
+                lineHeight: 1.0,
+                letterSpacing: "-2%",
+                textFill: { type: "solid", themeSlot: 4, value: "#3B82F6" }
             }
         }
     },
@@ -545,6 +608,27 @@ export const DEFAULT_TYPOGRAPHY_STYLE_PRESETS = {
                 letterSpacing: "4%",
                 textTransform: "uppercase",
                 textFill: { type: "solid", value: "var(--theme-text-secondary)" }
+            },
+            "quote": {
+                id: "quote",
+                name: "Quote",
+                fontFamily: "var(--theme-font-heading)",
+                fontSize: 40,
+                fontWeight: "400",
+                fontStyle: "italic",
+                lineHeight: 1.4,
+                letterSpacing: "0%",
+                textFill: { type: "solid", value: "var(--theme-text-primary)" }
+            },
+            "stat": {
+                id: "stat",
+                name: "Stat",
+                fontFamily: "var(--theme-font-heading)",
+                fontSize: 144,
+                fontWeight: "800",
+                lineHeight: 1.0,
+                letterSpacing: "-2%",
+                textFill: { type: "solid", themeSlot: 4, value: "#3B82F6" }
             }
         }
     },
@@ -671,6 +755,27 @@ export const DEFAULT_TYPOGRAPHY_STYLE_PRESETS = {
                 letterSpacing: "5%",
                 textTransform: "uppercase",
                 textFill: { type: "solid", value: "var(--theme-text-secondary)" }
+            },
+            "quote": {
+                id: "quote",
+                name: "Quote",
+                fontFamily: "var(--theme-font-heading)",
+                fontSize: 40,
+                fontWeight: "400",
+                fontStyle: "italic",
+                lineHeight: 1.4,
+                letterSpacing: "0%",
+                textFill: { type: "solid", value: "var(--theme-text-primary)" }
+            },
+            "stat": {
+                id: "stat",
+                name: "Stat",
+                fontFamily: "var(--theme-font-heading)",
+                fontSize: 144,
+                fontWeight: "800",
+                lineHeight: 1.0,
+                letterSpacing: "-2%",
+                textFill: { type: "solid", themeSlot: 4, value: "#3B82F6" }
             }
         }
     },
@@ -797,6 +902,27 @@ export const DEFAULT_TYPOGRAPHY_STYLE_PRESETS = {
                 letterSpacing: "2%",
                 textTransform: "uppercase",
                 textFill: { type: "solid", value: "var(--theme-text-secondary)" }
+            },
+            "quote": {
+                id: "quote",
+                name: "Quote",
+                fontFamily: "var(--theme-font-heading)",
+                fontSize: 40,
+                fontWeight: "400",
+                fontStyle: "italic",
+                lineHeight: 1.4,
+                letterSpacing: "0%",
+                textFill: { type: "solid", value: "var(--theme-text-primary)" }
+            },
+            "stat": {
+                id: "stat",
+                name: "Stat",
+                fontFamily: "var(--theme-font-heading)",
+                fontSize: 144,
+                fontWeight: "800",
+                lineHeight: 1.0,
+                letterSpacing: "-2%",
+                textFill: { type: "solid", themeSlot: 4, value: "#3B82F6" }
             }
         }
     },
@@ -1065,8 +1191,8 @@ export const DEFAULT_MASTERS = {
         // REFERENCES ONLY (never embed actual colors/typography)
         colorThemeId: "color-theme-default",
         typographyStyleId: "typo-style-default",
-        // Use fixed white background for slide content - independent of app theme
-        background: { type: "solid", value: "#FFFFFF" },
+        // Slide background is theme-linked (slot-based) and independent of app chrome
+        background: { type: "solid", themeSlot: 0, value: "#FFFFFF" },
         elements: {},
         elementOrder: [],
         // Layout IDs managed by this master
@@ -1076,6 +1202,12 @@ export const DEFAULT_MASTERS = {
             "layout-section-header",
             "layout-two-column",
             "layout-comparison",
+            "layout-title-only",
+            "layout-content-caption",
+            "layout-picture-with-caption",
+            "layout-quote",
+            "layout-big-number",
+            "layout-three-column",
             "layout-blank"
         ]
     },
@@ -1100,22 +1232,24 @@ export const DEFAULT_MASTERS = {
                 type: "text",
                 isPlaceholder: true,
                 placeholderType: "title",
+                textStyleId: "display",
                 content: "<h1>Click to add title</h1>",
                 x: 160, y: 320, width: 1600, height: 240,
                 rotation: 0, opacity: 1,
                 resizing: "fixed",
-                style: { fontSize: 80, textAlign: "center", verticalAlign: "middle", color: "var(--theme-text-primary, #0F172A)", fontFamily: "var(--theme-font-heading, Inter)", fontWeight: "800", letterSpacing: "-0.02em" }
+                style: { textAlign: "center", verticalAlign: "middle" }
             },
             "placeholder-subtitle": {
                 id: "placeholder-subtitle",
                 type: "text",
                 isPlaceholder: true,
                 placeholderType: "subtitle",
+                textStyleId: "subtitle",
                 content: "<p>Click to add subtitle</p>",
                 x: 320, y: 580, width: 1280, height: 120,
                 rotation: 0, opacity: 1,
                 resizing: "fixed",
-                style: { fontSize: 28, textAlign: "center", verticalAlign: "middle", color: "var(--theme-text-secondary, #64748B)", fontFamily: "var(--theme-font-body, Inter)", fontWeight: "400", lineHeight: 1.4 }
+                style: { textAlign: "center", verticalAlign: "middle" }
             }
         },
         elementOrder: ["placeholder-title", "placeholder-subtitle"]
@@ -1136,22 +1270,24 @@ export const DEFAULT_MASTERS = {
                 type: "text",
                 isPlaceholder: true,
                 placeholderType: "title",
+                textStyleId: "heading1",
                 content: "<h1>Click to add title</h1>",
                 x: 100, y: 60, width: 1720, height: 100,
                 rotation: 0, opacity: 1,
                 resizing: "fixed",
-                style: { fontSize: 44, textAlign: "left", verticalAlign: "middle", color: "var(--theme-text-primary, #0F172A)", fontFamily: "var(--theme-font-heading, Inter)", fontWeight: "700", letterSpacing: "-0.01em" }
+                style: { textAlign: "left", verticalAlign: "middle" }
             },
             "placeholder-body": {
                 id: "placeholder-body",
                 type: "text",
                 isPlaceholder: true,
                 placeholderType: "body",
+                textStyleId: "bodyLarge",
                 content: "<p>Click to add text</p>",
                 x: 100, y: 180, width: 1720, height: 840,
                 rotation: 0, opacity: 1,
                 resizing: "fixed",
-                style: { fontSize: 24, textAlign: "left", verticalAlign: "top", color: "var(--theme-text-primary, #0F172A)", fontFamily: "var(--theme-font-body, Inter)", fontWeight: "400", lineHeight: 1.5 }
+                style: { textAlign: "left", verticalAlign: "top" }
             }
         },
         elementOrder: ["placeholder-title", "placeholder-body"]
@@ -1172,22 +1308,25 @@ export const DEFAULT_MASTERS = {
                 type: "text",
                 isPlaceholder: true,
                 placeholderType: "title",
+                textStyleId: "title",
                 content: "<h1>Section Title</h1>",
                 x: 100, y: 380, width: 1720, height: 160,
                 rotation: 0, opacity: 1,
                 resizing: "fixed",
-                style: { fontSize: 64, textAlign: "left", verticalAlign: "middle", color: "var(--theme-text-primary, #0F172A)", fontFamily: "var(--theme-font-heading, Inter)", fontWeight: "700", letterSpacing: "-0.02em" }
+                style: { textAlign: "left", verticalAlign: "middle" }
             },
             "placeholder-subtitle": {
                 id: "placeholder-subtitle",
                 type: "text",
                 isPlaceholder: true,
                 placeholderType: "subtitle",
+                textStyleId: "bodyLarge",
+                textFill: { type: "solid", themeSlot: 3, value: "#64748B" },
                 content: "<p>Optional description for this section</p>",
                 x: 100, y: 560, width: 1400, height: 100,
                 rotation: 0, opacity: 1,
                 resizing: "fixed",
-                style: { fontSize: 24, textAlign: "left", verticalAlign: "top", color: "var(--theme-text-secondary, #64748B)", fontFamily: "var(--theme-font-body, Inter)", fontWeight: "400", lineHeight: 1.4 }
+                style: { textAlign: "left", verticalAlign: "top" }
             }
         },
         elementOrder: ["placeholder-title", "placeholder-subtitle"]
@@ -1208,33 +1347,36 @@ export const DEFAULT_MASTERS = {
                 type: "text",
                 isPlaceholder: true,
                 placeholderType: "title",
+                textStyleId: "heading1",
                 content: "<h1>Click to add title</h1>",
                 x: 100, y: 60, width: 1720, height: 100,
                 rotation: 0, opacity: 1,
                 resizing: "fixed",
-                style: { fontSize: 44, textAlign: "left", verticalAlign: "middle", color: "var(--theme-text-primary, #0F172A)", fontFamily: "var(--theme-font-heading, Inter)", fontWeight: "700", letterSpacing: "-0.01em" }
+                style: { textAlign: "left", verticalAlign: "middle" }
             },
             "placeholder-left": {
                 id: "placeholder-left",
                 type: "text",
                 isPlaceholder: true,
                 placeholderType: "body",
+                textStyleId: "body",
                 content: "<p>Click to add text</p>",
                 x: 100, y: 180, width: 830, height: 840,
                 rotation: 0, opacity: 1,
                 resizing: "fixed",
-                style: { fontSize: 20, textAlign: "left", verticalAlign: "top", color: "var(--theme-text-primary, #0F172A)", fontFamily: "var(--theme-font-body, Inter)", fontWeight: "400", lineHeight: 1.6 }
+                style: { textAlign: "left", verticalAlign: "top" }
             },
             "placeholder-right": {
                 id: "placeholder-right",
                 type: "text",
                 isPlaceholder: true,
                 placeholderType: "text",
+                textStyleId: "body",
                 content: "<p>Click to add text</p>",
                 x: 990, y: 180, width: 830, height: 840,
                 rotation: 0, opacity: 1,
                 resizing: "fixed",
-                style: { fontSize: 20, textAlign: "left", verticalAlign: "top", color: "var(--theme-text-primary, #0F172A)", fontFamily: "var(--theme-font-body, Inter)", fontWeight: "400", lineHeight: 1.6 }
+                style: { textAlign: "left", verticalAlign: "top" }
             }
         },
         elementOrder: ["placeholder-title", "placeholder-left", "placeholder-right"]
@@ -1255,55 +1397,62 @@ export const DEFAULT_MASTERS = {
                 type: "text",
                 isPlaceholder: true,
                 placeholderType: "title",
+                textStyleId: "heading1",
                 content: "<h1>Click to add title</h1>",
                 x: 100, y: 60, width: 1720, height: 100,
                 rotation: 0, opacity: 1,
                 resizing: "fixed",
-                style: { fontSize: 44, textAlign: "left", verticalAlign: "middle", color: "var(--theme-text-primary, #0F172A)", fontFamily: "var(--theme-font-heading, Inter)", fontWeight: "700", letterSpacing: "-0.01em" }
+                style: { textAlign: "left", verticalAlign: "middle" }
             },
             "placeholder-left-header": {
                 id: "placeholder-left-header",
                 type: "text",
                 isPlaceholder: true,
                 placeholderType: "text",
+                textStyleId: "heading3",
+                textFill: { type: "solid", themeSlot: 4, value: "#3B82F6" },
                 content: "<p>Option A</p>",
                 x: 100, y: 180, width: 830, height: 60,
                 rotation: 0, opacity: 1,
                 resizing: "fixed",
-                style: { fontSize: 28, textAlign: "left", verticalAlign: "middle", color: "var(--theme-accent-1, #3B82F6)", fontFamily: "var(--theme-font-heading, Inter)", fontWeight: "600" }
+                style: { textAlign: "left", verticalAlign: "middle" }
             },
             "placeholder-left-content": {
                 id: "placeholder-left-content",
                 type: "text",
                 isPlaceholder: true,
                 placeholderType: "text",
+                textStyleId: "body",
                 content: "<p>Click to add text</p>",
                 x: 100, y: 260, width: 830, height: 760,
                 rotation: 0, opacity: 1,
                 resizing: "fixed",
-                style: { fontSize: 20, textAlign: "left", verticalAlign: "top", color: "var(--theme-text-primary, #0F172A)", fontFamily: "var(--theme-font-body, Inter)", fontWeight: "400", lineHeight: 1.6 }
+                style: { textAlign: "left", verticalAlign: "top" }
             },
             "placeholder-right-header": {
                 id: "placeholder-right-header",
                 type: "text",
                 isPlaceholder: true,
                 placeholderType: "text",
+                textStyleId: "heading3",
+                textFill: { type: "solid", themeSlot: 5, value: "#8B5CF6" },
                 content: "<p>Option B</p>",
                 x: 990, y: 180, width: 830, height: 60,
                 rotation: 0, opacity: 1,
                 resizing: "fixed",
-                style: { fontSize: 28, textAlign: "left", verticalAlign: "middle", color: "var(--theme-accent-2, #8B5CF6)", fontFamily: "var(--theme-font-heading, Inter)", fontWeight: "600" }
+                style: { textAlign: "left", verticalAlign: "middle" }
             },
             "placeholder-right-content": {
                 id: "placeholder-right-content",
                 type: "text",
                 isPlaceholder: true,
                 placeholderType: "text",
+                textStyleId: "body",
                 content: "<p>Click to add text</p>",
                 x: 990, y: 260, width: 830, height: 760,
                 rotation: 0, opacity: 1,
                 resizing: "fixed",
-                style: { fontSize: 20, textAlign: "left", verticalAlign: "top", color: "var(--theme-text-primary, #0F172A)", fontFamily: "var(--theme-font-body, Inter)", fontWeight: "400", lineHeight: 1.6 }
+                style: { textAlign: "left", verticalAlign: "top" }
             }
         },
         elementOrder: ["placeholder-title", "placeholder-left-header", "placeholder-left-content", "placeholder-right-header", "placeholder-right-content"]
@@ -1323,11 +1472,12 @@ export const DEFAULT_MASTERS = {
                 type: "text",
                 isPlaceholder: true,
                 placeholderType: "title",
+                textStyleId: "heading1",
                 content: "<h1>Click to add title</h1>",
                 x: 100, y: 60, width: 1720, height: 100,
                 rotation: 0, opacity: 1,
                 resizing: "fixed",
-                style: { fontSize: 44, textAlign: "left", verticalAlign: "middle", color: "var(--theme-text-primary, #0F172A)", fontFamily: "var(--theme-font-heading, Inter)", fontWeight: "700", letterSpacing: "-0.01em" }
+                style: { textAlign: "left", verticalAlign: "middle" }
             }
         },
         elementOrder: ["placeholder-title"]
@@ -1360,33 +1510,37 @@ export const DEFAULT_MASTERS = {
                 type: "text",
                 isPlaceholder: true,
                 placeholderType: "title",
+                textStyleId: "heading1",
                 content: "<h1>Click to add title</h1>",
                 x: 100, y: 60, width: 1720, height: 100,
                 rotation: 0, opacity: 1,
                 resizing: "fixed",
-                style: { fontSize: 44, textAlign: "left", verticalAlign: "middle", color: "var(--theme-text-primary, #0F172A)", fontFamily: "var(--theme-font-heading, Inter)", fontWeight: "700", letterSpacing: "-0.01em" }
+                style: { textAlign: "left", verticalAlign: "middle" }
             },
             "placeholder-body": {
                 id: "placeholder-body",
                 type: "text",
                 isPlaceholder: true,
                 placeholderType: "body",
+                textStyleId: "bodyLarge",
                 content: "<p>Click to add text</p>",
                 x: 100, y: 180, width: 1200, height: 840,
                 rotation: 0, opacity: 1,
                 resizing: "fixed",
-                style: { fontSize: 24, textAlign: "left", verticalAlign: "top", color: "var(--theme-text-primary, #0F172A)", fontFamily: "var(--theme-font-body, Inter)", fontWeight: "400", lineHeight: 1.5 }
+                style: { textAlign: "left", verticalAlign: "top" }
             },
             "placeholder-caption": {
                 id: "placeholder-caption",
                 type: "text",
                 isPlaceholder: true,
                 placeholderType: "text",
+                textStyleId: "bodySmall",
                 content: "<p>Add notes or supporting information here</p>",
                 x: 1360, y: 180, width: 460, height: 840,
                 rotation: 0, opacity: 1,
                 resizing: "fixed",
-                style: { fontSize: 16, textAlign: "left", verticalAlign: "top", color: "var(--theme-text-secondary, #64748B)", fontFamily: "var(--theme-font-body, Inter)", fontWeight: "400", lineHeight: 1.6 }
+                textFill: { type: "solid", themeSlot: 3, value: "#64748B" },
+                style: { textAlign: "left", verticalAlign: "top" }
             }
         },
         elementOrder: ["placeholder-title", "placeholder-body", "placeholder-caption"]
@@ -1407,33 +1561,40 @@ export const DEFAULT_MASTERS = {
                 type: "text",
                 isPlaceholder: true,
                 placeholderType: "title",
+                textStyleId: "heading1",
                 content: "<h1>Click to add title</h1>",
                 x: 100, y: 60, width: 1720, height: 100,
                 rotation: 0, opacity: 1,
                 resizing: "fixed",
-                style: { fontSize: 44, textAlign: "left", verticalAlign: "middle", color: "var(--theme-text-primary, #0F172A)", fontFamily: "var(--theme-font-heading, Inter)", fontWeight: "700", letterSpacing: "-0.01em" }
+                style: { textAlign: "left", verticalAlign: "middle" }
             },
             "placeholder-picture": {
                 id: "placeholder-picture",
                 type: "text",
                 isPlaceholder: true,
                 placeholderType: "picture",
-                content: "<p style='opacity:0.6;text-align:center;'>🖼️ Click to add picture</p>",
+                textStyleId: "bodyLarge",
+                textFill: { type: "solid", themeSlot: 3, value: "#64748B" },
+                backgroundFill: { type: "solid", themeSlot: 1, value: "#E2E8F0" },
+                borderRadius: 8,
+                content: "<p>🖼️ Click to add picture</p>",
                 x: 100, y: 180, width: 1200, height: 840,
                 rotation: 0, opacity: 1,
                 resizing: "fixed",
-                style: { fontSize: 24, textAlign: "center", verticalAlign: "middle", color: "var(--theme-text-secondary, #64748B)", fontFamily: "var(--theme-font-body, Inter)", fontWeight: "400", backgroundColor: "var(--theme-background2, #F8FAFC)", borderRadius: "8px" }
+                style: { textAlign: "center", verticalAlign: "middle" }
             },
             "placeholder-caption": {
                 id: "placeholder-caption",
                 type: "text",
                 isPlaceholder: true,
                 placeholderType: "text",
+                textStyleId: "bodySmall",
+                textFill: { type: "solid", themeSlot: 3, value: "#64748B" },
                 content: "<p>Add image caption or description here</p>",
                 x: 1360, y: 180, width: 460, height: 840,
                 rotation: 0, opacity: 1,
                 resizing: "fixed",
-                style: { fontSize: 16, textAlign: "left", verticalAlign: "top", color: "var(--theme-text-secondary, #64748B)", fontFamily: "var(--theme-font-body, Inter)", fontWeight: "400", lineHeight: 1.6 }
+                style: { textAlign: "left", verticalAlign: "top" }
             }
         },
         elementOrder: ["placeholder-title", "placeholder-picture", "placeholder-caption"]
@@ -1454,22 +1615,25 @@ export const DEFAULT_MASTERS = {
                 type: "text",
                 isPlaceholder: true,
                 placeholderType: "text",
+                textStyleId: "quote",
                 content: "<p>\"Click to add your quote here\"</p>",
                 x: 160, y: 300, width: 1600, height: 360,
                 rotation: 0, opacity: 1,
                 resizing: "fixed",
-                style: { fontSize: 40, textAlign: "center", verticalAlign: "middle", color: "var(--theme-text-primary, #0F172A)", fontFamily: "var(--theme-font-heading, Inter)", fontWeight: "400", fontStyle: "italic", lineHeight: 1.4 }
+                style: { textAlign: "center", verticalAlign: "middle" }
             },
             "placeholder-attribution": {
                 id: "placeholder-attribution",
                 type: "text",
                 isPlaceholder: true,
                 placeholderType: "text",
+                textStyleId: "body",
+                textFill: { type: "solid", themeSlot: 3, value: "#64748B" },
                 content: "<p>— Attribution</p>",
                 x: 160, y: 680, width: 1600, height: 80,
                 rotation: 0, opacity: 1,
                 resizing: "fixed",
-                style: { fontSize: 20, textAlign: "center", verticalAlign: "top", color: "var(--theme-text-secondary, #64748B)", fontFamily: "var(--theme-font-body, Inter)", fontWeight: "500" }
+                style: { textAlign: "center", verticalAlign: "top" }
             }
         },
         elementOrder: ["placeholder-quote", "placeholder-attribution"]
@@ -1490,33 +1654,38 @@ export const DEFAULT_MASTERS = {
                 type: "text",
                 isPlaceholder: true,
                 placeholderType: "text",
+                textStyleId: "label",
+                textFill: { type: "solid", themeSlot: 3, value: "#64748B" },
                 content: "<p>METRIC</p>",
                 x: 160, y: 300, width: 1600, height: 60,
                 rotation: 0, opacity: 1,
                 resizing: "fixed",
-                style: { fontSize: 16, textAlign: "center", verticalAlign: "bottom", color: "var(--theme-text-secondary, #64748B)", fontFamily: "var(--theme-font-body, Inter)", fontWeight: "600", letterSpacing: "0.1em", textTransform: "uppercase" }
+                style: { textAlign: "center", verticalAlign: "bottom" }
             },
             "placeholder-number": {
                 id: "placeholder-number",
                 type: "text",
                 isPlaceholder: true,
                 placeholderType: "text",
+                textStyleId: "stat",
                 content: "<p>100%</p>",
                 x: 160, y: 380, width: 1600, height: 260,
                 rotation: 0, opacity: 1,
                 resizing: "fixed",
-                style: { fontSize: 144, textAlign: "center", verticalAlign: "middle", color: "var(--theme-accent-1, #3B82F6)", fontFamily: "var(--theme-font-heading, Inter)", fontWeight: "800", letterSpacing: "-0.02em" }
+                style: { textAlign: "center", verticalAlign: "middle" }
             },
             "placeholder-description": {
                 id: "placeholder-description",
                 type: "text",
                 isPlaceholder: true,
                 placeholderType: "text",
+                textStyleId: "bodyLarge",
+                textFill: { type: "solid", themeSlot: 3, value: "#64748B" },
                 content: "<p>Add context or description for this number</p>",
                 x: 320, y: 660, width: 1280, height: 120,
                 rotation: 0, opacity: 1,
                 resizing: "fixed",
-                style: { fontSize: 24, textAlign: "center", verticalAlign: "top", color: "var(--theme-text-secondary, #64748B)", fontFamily: "var(--theme-font-body, Inter)", fontWeight: "400", lineHeight: 1.4 }
+                style: { textAlign: "center", verticalAlign: "top" }
             }
         },
         elementOrder: ["placeholder-label", "placeholder-number", "placeholder-description"]
@@ -1537,44 +1706,48 @@ export const DEFAULT_MASTERS = {
                 type: "text",
                 isPlaceholder: true,
                 placeholderType: "title",
+                textStyleId: "heading1",
                 content: "<h1>Click to add title</h1>",
                 x: 100, y: 60, width: 1720, height: 100,
                 rotation: 0, opacity: 1,
                 resizing: "fixed",
-                style: { fontSize: 44, textAlign: "left", verticalAlign: "middle", color: "var(--theme-text-primary, #0F172A)", fontFamily: "var(--theme-font-heading, Inter)", fontWeight: "700", letterSpacing: "-0.01em" }
+                style: { textAlign: "left", verticalAlign: "middle" }
             },
             "placeholder-col1": {
                 id: "placeholder-col1",
                 type: "text",
                 isPlaceholder: true,
                 placeholderType: "body",
+                textStyleId: "body",
                 content: "<p>Column 1</p>",
                 x: 100, y: 180, width: 540, height: 840,
                 rotation: 0, opacity: 1,
                 resizing: "fixed",
-                style: { fontSize: 20, textAlign: "left", verticalAlign: "top", color: "var(--theme-text-primary, #0F172A)", fontFamily: "var(--theme-font-body, Inter)", fontWeight: "400", lineHeight: 1.6 }
+                style: { textAlign: "left", verticalAlign: "top" }
             },
             "placeholder-col2": {
                 id: "placeholder-col2",
                 type: "text",
                 isPlaceholder: true,
                 placeholderType: "text",
+                textStyleId: "body",
                 content: "<p>Column 2</p>",
                 x: 690, y: 180, width: 540, height: 840,
                 rotation: 0, opacity: 1,
                 resizing: "fixed",
-                style: { fontSize: 20, textAlign: "left", verticalAlign: "top", color: "var(--theme-text-primary, #0F172A)", fontFamily: "var(--theme-font-body, Inter)", fontWeight: "400", lineHeight: 1.6 }
+                style: { textAlign: "left", verticalAlign: "top" }
             },
             "placeholder-col3": {
                 id: "placeholder-col3",
                 type: "text",
                 isPlaceholder: true,
                 placeholderType: "text",
+                textStyleId: "body",
                 content: "<p>Column 3</p>",
                 x: 1280, y: 180, width: 540, height: 840,
                 rotation: 0, opacity: 1,
                 resizing: "fixed",
-                style: { fontSize: 20, textAlign: "left", verticalAlign: "top", color: "var(--theme-text-primary, #0F172A)", fontFamily: "var(--theme-font-body, Inter)", fontWeight: "400", lineHeight: 1.6 }
+                style: { textAlign: "left", verticalAlign: "top" }
             }
         },
         elementOrder: ["placeholder-title", "placeholder-col1", "placeholder-col2", "placeholder-col3"]

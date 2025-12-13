@@ -19,7 +19,9 @@ test.describe('Master Slide Drag and Drop', () => {
     });
 
     test('should show drop indicator on top half when hovering above midpoint', async ({ page }) => {
-        const masters = page.locator('.slide-thumbnail[data-master-id]');
+        // Only target master roots (not layouts), since layouts don't participate in master reordering.
+        const masters = page.locator('.slide-thumbnail[data-master-id][data-is-theme="true"]');
+        if (await masters.count() < 2) test.skip();
         const firstMaster = masters.nth(0);
         const secondMaster = masters.nth(1);
         

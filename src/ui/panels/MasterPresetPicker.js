@@ -3,7 +3,7 @@ import { Button } from '../components/Button.js';
 import { store } from '../../core/Store.js';
 import { getPresetList } from '../../core/store/SlideMasterPresets.js';
 import { getPresetById as getThemePresetById } from './color-theme/ThemePresets.js';
-import { generateThemeColors, DEFAULT_ADJUSTMENTS } from './color-theme/ColorThemeUtils.js';
+import { generateThemeColors, DEFAULT_ADJUSTMENTS, getEffectiveSlotIndex, COLOR_MODES } from './color-theme/ColorThemeUtils.js';
 
 const COLOR_SLOT_ORDER = [
     'background1',
@@ -141,13 +141,16 @@ export class MasterPresetPicker extends DraggablePanel {
             preview.className = 'preset-preview';
 
             const hexColors = resolveThemeHexColors(preset.colorThemeId);
+            const state = store.getState();
+            const themeMaster = Object.values(state.slideMasterPresets || {}).find(m => m.type === 'slideMasterPreset');
+            const colorMode = themeMaster?.colorModeId || COLOR_MODES.LIGHT;
 
             const bgFill = Array.isArray(preset.background)
                 ? preset.background[0]
                 : preset.background;
             if (bgFill) {
-                if (bgFill.themeSlot) {
-                    const slotIndex = bgFill.themeSlot - 1;
+                if (bgFill.themeSlot !== undefined && bgFill.themeSlot !== null) {
+                    const slotIndex = getEffectiveSlotIndex(bgFill.themeSlot, colorMode);
                     const hex = Array.isArray(hexColors) ? hexColors[slotIndex] : null;
                     if (hex) preview.style.backgroundColor = hex;
                 } else if (bgFill.value) {
@@ -159,8 +162,9 @@ export class MasterPresetPicker extends DraggablePanel {
             swatches.className = 'preset-swatches';
 
             if (Array.isArray(hexColors)) {
-                [1, 2, 3, 4].forEach(slotNumber => {
-                    const hex = hexColors[slotNumber - 1];
+                [0, 1, 2, 3].forEach(slotIndex => {
+                    const effectiveSlotIndex = getEffectiveSlotIndex(slotIndex, colorMode);
+                    const hex = hexColors[effectiveSlotIndex];
                     if (!hex) return;
                     const swatch = document.createElement('div');
                     swatch.className = 'preset-swatch';

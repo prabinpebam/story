@@ -378,6 +378,25 @@ export class TextElement extends VisualElement {
 
         // Text Fill
         this.applyTextFill(div, props.textFill);
+
+        // Background Fill (optional)
+        // Supports theme-linked fills via CSS variables.
+        const backgroundFill = el.backgroundFill || el.style?.backgroundFill || null;
+        if (backgroundFill && backgroundFill.type === 'solid') {
+            if (backgroundFill.themeSlot !== undefined && backgroundFill.themeSlot !== null) {
+                const slotNumber = backgroundFill.themeSlot + 1;
+                const fallbackColor = backgroundFill.value || '#000000';
+                div.style.backgroundColor = `var(--theme-slot${slotNumber}, ${fallbackColor})`;
+            } else if (backgroundFill.value) {
+                div.style.backgroundColor = backgroundFill.value;
+            } else {
+                div.style.backgroundColor = '';
+            }
+        } else if (el.style?.backgroundColor) {
+            div.style.backgroundColor = el.style.backgroundColor;
+        } else {
+            div.style.backgroundColor = '';
+        }
         
         this.applyEffects(div, el);
     }

@@ -9,7 +9,7 @@ describe('MasterPresetLibrary', () => {
     it('exposes a list of preset definitions', () => {
         const list = getMasterPresetDefinitionList();
         expect(Array.isArray(list)).toBe(true);
-        expect(list.length).toBeGreaterThan(0);
+        expect(list.length).toBe(6);
         expect(list[0]).toHaveProperty('id');
         expect(list[0]).toHaveProperty('name');
     });
@@ -39,6 +39,11 @@ describe('MasterPresetLibrary', () => {
         // Must not embed legacy themeSettings
         expect(master.themeSettings).toBeUndefined();
 
+        // Master background must be theme-slot linked (0-based)
+        expect(master.background).toBeTruthy();
+        expect(master.background.type).toBe('solid');
+        expect(master.background.themeSlot).toBe(0);
+
         expect(Array.isArray(master.layoutIds)).toBe(true);
         expect(master.layoutIds.length).toBeGreaterThan(0);
 
@@ -57,6 +62,22 @@ describe('MasterPresetLibrary', () => {
             for (const element of Object.values(layout.elements || {})) {
                 if (element?.isPlaceholder) {
                     expect(element.placeholderKey).toBeTruthy();
+
+                    // Typography must be linked via shared textStyleId
+                    expect(element.textStyleId).toBeTruthy();
+
+                    // Must not hardcode typography in element.style
+                    const style = element.style || {};
+                    expect(style.fontFamily).toBeUndefined();
+                    expect(style.fontSize).toBeUndefined();
+                    expect(style.fontWeight).toBeUndefined();
+                    expect(style.lineHeight).toBeUndefined();
+                    expect(style.letterSpacing).toBeUndefined();
+
+                    // If element has an explicit textFill, it must be theme-linked
+                    if (element.textFill) {
+                        expect(element.textFill.themeSlot).not.toBeUndefined();
+                    }
                 }
             }
         }

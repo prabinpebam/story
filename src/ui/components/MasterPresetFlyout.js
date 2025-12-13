@@ -3,7 +3,7 @@ import { Button } from './Button.js';
 import { store } from '../../core/Store.js';
 import { getPresetById, getPresetList } from '../../core/store/SlideMasterPresets.js';
 import { getPresetById as getThemePresetById } from '../panels/color-theme/ThemePresets.js';
-import { generateThemeColors, DEFAULT_ADJUSTMENTS } from '../panels/color-theme/ColorThemeUtils.js';
+import { generateThemeColors, DEFAULT_ADJUSTMENTS, getEffectiveSlotIndex, COLOR_MODES } from '../panels/color-theme/ColorThemeUtils.js';
 
 const COLOR_SLOT_ORDER = [
     'background1',
@@ -42,6 +42,12 @@ function resolveThemeHexColors(themeId) {
     }
 
     return null;
+}
+
+function getCurrentColorMode() {
+    const state = store.getState();
+    const themeMaster = Object.values(state.slideMasterPresets || {}).find(m => m.type === 'slideMasterPreset');
+    return themeMaster?.colorModeId || COLOR_MODES.LIGHT;
 }
 
 /**
@@ -140,13 +146,14 @@ export class MasterPresetFlyout extends Flyout {
             preview.className = 'preset-preview';
 
             const hexColors = resolveThemeHexColors(preset.colorThemeId);
+            const colorMode = getCurrentColorMode();
 
             const bgFill = Array.isArray(preset.background)
                 ? preset.background[0]
                 : preset.background;
             if (bgFill) {
-                if (bgFill.themeSlot) {
-                    const slotIndex = bgFill.themeSlot - 1;
+                if (bgFill.themeSlot !== undefined && bgFill.themeSlot !== null) {
+                    const slotIndex = getEffectiveSlotIndex(bgFill.themeSlot, colorMode);
                     const hex = Array.isArray(hexColors) ? hexColors[slotIndex] : null;
                     if (hex) preview.style.backgroundColor = hex;
                 } else if (bgFill.value) {
@@ -158,8 +165,9 @@ export class MasterPresetFlyout extends Flyout {
             swatches.className = 'preset-swatches';
 
             if (Array.isArray(hexColors)) {
-                [1, 2, 3, 4].forEach(slotNumber => {
-                    const hex = hexColors[slotNumber - 1];
+                [0, 1, 2, 3].forEach(slotIndex => {
+                    const effectiveSlotIndex = getEffectiveSlotIndex(slotIndex, colorMode);
+                    const hex = hexColors[effectiveSlotIndex];
                     if (!hex) return;
                     const swatch = document.createElement('div');
                     swatch.className = 'preset-swatch';

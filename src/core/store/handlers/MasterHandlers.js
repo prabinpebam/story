@@ -122,20 +122,11 @@ export function handleSetColorMode(draft, payload) {
     const { masterId, colorMode } = payload;
     const themeMaster = draft.slideMasterPresets[masterId];
     
-    if (themeMaster?.colorThemeId && (colorMode === 'light' || colorMode === 'dark')) {
-        const themeId = themeMaster.colorThemeId;
-        const preset = draft.colorThemePresets?.[themeId];
-        
-        if (preset) {
-            // Update standard property
-            preset.isDark = (colorMode === 'dark');
-            
-            // Update luma specific property if it exists
-            if (preset.lumaTheme) {
-                preset.lumaTheme.colorMode = colorMode;
-            }
-        }
-    }
+    if (!themeMaster || themeMaster.type !== 'slideMasterPreset') return;
+    if (colorMode !== 'light' && colorMode !== 'dark') return;
+
+    // Color mode is a master-level presentation setting.
+    themeMaster.colorModeId = colorMode;
 }
 
 /**

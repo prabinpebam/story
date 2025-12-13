@@ -94,7 +94,7 @@ describe('LumaThemeHandlers', () => {
     });
 
     describe('handleSetColorMode', () => {
-        it('should update color mode on referenced preset', () => {
+        it('should store color mode on the master (not mutate preset)', () => {
             // Setup state with a referenced theme
             const stateWithTheme = produce(initialState, draft => {
                 draft.slideMasterPresets['master-1'].colorThemeId = 'theme-1';
@@ -112,9 +112,12 @@ describe('LumaThemeHandlers', () => {
                 });
             });
 
+            expect(newState.slideMasterPresets['master-1'].colorModeId).toBe('dark');
+
+            // Referenced preset remains unchanged
             const preset = newState.colorThemePresets['theme-1'];
-            expect(preset.isDark).toBe(true);
-            expect(preset.lumaTheme.colorMode).toBe('dark');
+            expect(preset.isDark).toBe(false);
+            expect(preset.lumaTheme.colorMode).toBe('light');
         });
     });
 });

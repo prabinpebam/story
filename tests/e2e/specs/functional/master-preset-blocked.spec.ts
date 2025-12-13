@@ -82,8 +82,17 @@ test.describe('Master Preset - Blocked When In Use', () => {
     const beforeMaster = before.slideMasterPresets[masterId];
     const beforePresetId = beforeMaster?.presetId;
 
-    // Choose a different presetId than the inferred current (library default)
-    const targetPresetId = 'electric-bold';
+    // Choose a different presetId than the inferred current.
+    // Keep this in sync with src/core/masterPresets/MasterPresetLibrary.js
+    const knownPresetIds = [
+      'master-preset-minimal',
+      'master-preset-corporate',
+      'master-preset-editorial',
+      'master-preset-tech',
+      'master-preset-playful',
+      'master-preset-elegant'
+    ];
+    const targetPresetId = knownPresetIds.find(id => id !== beforePresetId) || knownPresetIds[0];
 
     await dispatchAction('APPLY_MASTER_PRESET_TO_MASTER', { masterId, presetId: targetPresetId });
 

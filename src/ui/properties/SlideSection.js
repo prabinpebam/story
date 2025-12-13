@@ -281,7 +281,7 @@ export class SlideSection {
      */
     updateColorMode(mode) {
         const state = store.getState();
-        const themeMasterId = 'theme-default';
+        const themeMasterId = 'master-default';
         const themeMaster = state.slideMasterPresets?.[themeMasterId];
         
         if (!themeMaster) return;

@@ -62,6 +62,14 @@ export const MASTER_PRESET_DEFINITIONS = [
         colorThemeId: 'preset_tropical_paradise',
         typographyStyleId: 'typo-style-playful',
         templateMasterId: 'master-default'
+    },
+    {
+        id: 'master-preset-elegant',
+        name: 'Elegant',
+        description: 'Refined palette and elegant typography for premium decks',
+        colorThemeId: 'preset_rose_garden',
+        typographyStyleId: 'typo-style-elegant',
+        templateMasterId: 'master-default'
     }
 ];
 
