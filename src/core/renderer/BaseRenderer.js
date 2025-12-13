@@ -8,7 +8,8 @@ export class BaseRenderer {
         this.layers = {
             background: null,
             content: null,
-            overlay: null
+            overlay: null,
+            top: null
         };
         this.activeSlideViews = new Map(); // ID -> SlideView
         
@@ -53,7 +54,12 @@ export class BaseRenderer {
         this.layers.overlay.className = 'layer-overlay';
         this.layers.overlay.style.pointerEvents = 'none'; 
 
-        [this.layers.background, this.layers.content, this.layers.overlay].forEach(layer => {
+        // Top-most DOM overlay layer (above selection/handles)
+        this.layers.top = document.createElement('div');
+        this.layers.top.className = 'layer-top';
+        this.layers.top.style.pointerEvents = 'none';
+
+        [this.layers.background, this.layers.content, this.layers.overlay, this.layers.top].forEach(layer => {
             layer.style.position = 'absolute';
             layer.style.top = '0';
             layer.style.left = '0';

@@ -1766,6 +1766,10 @@ export function createInitialState() {
             pan: { x: 0, y: 0 },
             gridEnabled: true,
             snapToGrid: true,
+            snapToObject: true,
+            snapToSlide: true,
+            snapToColumns: true,
+            showLayoutGuides: false,
             constrainProportions: false,
             textEdit: {
                 isEditing: false,

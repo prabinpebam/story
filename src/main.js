@@ -29,6 +29,7 @@ import { fileService } from './ui/services/FileService.js';
 import { menuActionHandler } from './ui/services/MenuActionHandler.js';
 import { FileIndicatorController } from './ui/services/FileIndicatorController.js';
 import { notify } from './ui/services/NotificationService.js';
+import { ViewportControls } from './ui/ViewportControls.js';
 
 class App {
     constructor() {
@@ -122,6 +123,7 @@ class App {
         this.settingsModal = new SettingsModal();
         this.gridView = new GridView('presentation-grid-view');
         this.hud = new HUD('presentation-hud');
+        this.viewportControls = new ViewportControls();
         
         // Initialize App Menu (file menu in sidebar header)
         this.appMenu = new AppMenu('app-menu-container');

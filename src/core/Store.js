@@ -118,6 +118,10 @@ export class Store extends EventEmitter {
             case 'UPDATE_SELECTION': 
             case 'TOGGLE_THEME': 
             case 'TOGGLE_CONSTRAIN_PROPORTIONS':
+            case 'TOGGLE_LAYOUT_GUIDES':
+            case 'TOGGLE_SNAP_TO_OBJECT':
+            case 'TOGGLE_SNAP_TO_SLIDE':
+            case 'TOGGLE_SNAP_TO_COLUMNS':
                 // Handle interaction state for text editing (prevents multiple history entries)
                 if (type === 'SET_EDITING_ELEMENT') {
                     const isEnteringEditMode = payload && (typeof payload === 'string' || payload.id);
@@ -146,6 +150,10 @@ export class Store extends EventEmitter {
                         case 'UPDATE_SELECTION': EditorHandlers.handleUpdateSelection(draft, payload); break;
                         case 'TOGGLE_THEME': EditorHandlers.handleToggleTheme(draft); break;
                         case 'TOGGLE_CONSTRAIN_PROPORTIONS': EditorHandlers.handleToggleConstrainProportions(draft, payload); break;
+                        case 'TOGGLE_LAYOUT_GUIDES': EditorHandlers.handleToggleLayoutGuides(draft); break;
+                        case 'TOGGLE_SNAP_TO_OBJECT': EditorHandlers.handleToggleSnapToObject(draft); break;
+                        case 'TOGGLE_SNAP_TO_SLIDE': EditorHandlers.handleToggleSnapToSlide(draft); break;
+                        case 'TOGGLE_SNAP_TO_COLUMNS': EditorHandlers.handleToggleSnapToColumns(draft); break;
                     }
                 });
                 

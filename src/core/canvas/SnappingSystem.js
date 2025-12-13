@@ -1,5 +1,6 @@
 import { store } from '../Store.js';
 import { GeometryUtils } from './GeometryUtils.js';
+import { getEffectiveLayoutGuideForState, getContentBounds, getColumnEdgesX } from '../utils/LayoutGuideUtils.js';
 
 /**
  * SnappingSystem - Handles element snapping to guides, other elements, and spacing
@@ -9,9 +10,42 @@ export class SnappingSystem {
         this.cm = canvasManager;
     }
 
+    getActiveSlideDimensions(state, activeContainer) {
+        // In master mode, the active container can be a master/layout record without width/height.
+        // Use the active slide dimensions as the canonical coordinate space.
+        const fallback = { width: 1920, height: 1080 };
+        if (!state?.editor) return fallback;
+
+        if (state.editor.mode !== 'master') {
+            return {
+                width: Number(activeContainer?.width || fallback.width),
+                height: Number(activeContainer?.height || fallback.height)
+            };
+        }
+
+        const activeSlide = state.slides?.[state.editor.activeSlideId] || null;
+        if (activeSlide) {
+            return {
+                width: Number(activeSlide.width || fallback.width),
+                height: Number(activeSlide.height || fallback.height)
+            };
+        }
+
+        return {
+            width: Number(activeContainer?.width || fallback.width),
+            height: Number(activeContainer?.height || fallback.height)
+        };
+    }
+
     updateMeasurementGuides(mouseX, mouseY) {
         const state = store.getState();
         const { selectedElementIds, zoom, pan } = state.editor;
+
+        const snapToObject = state?.editor?.snapToObject !== false;
+        if (!snapToObject) {
+            this.cm.measurementGuides = null;
+            return;
+        }
         
         // Only works if exactly one element is selected
         if (selectedElementIds.length !== 1) {
@@ -114,6 +148,10 @@ export class SnappingSystem {
 
     checkSpacingGuides(id, x, y, width, height, zoom) {
         const state = store.getState();
+        const snapToObject = state?.editor?.snapToObject !== false;
+        if (!snapToObject) {
+            return { x, y, guides: [] };
+        }
         const slide = this.cm.getActiveContainer(state);
         const SNAP_THRESHOLD = 5 / zoom;
         
@@ -277,6 +315,11 @@ export class SnappingSystem {
     snapToGuides(id, x, y, width, height, zoom) {
         const state = store.getState();
         const slide = this.cm.getActiveContainer(state);
+        const snapToObject = state?.editor?.snapToObject !== false;
+        const snapToSlide = state?.editor?.snapToSlide !== false;
+        const snapToColumns = state?.editor?.snapToColumns !== false;
+
+        const { width: slideWidth, height: slideHeight } = this.getActiveSlideDimensions(state, slide);
         const SNAP_THRESHOLD = 5 / zoom;
         
         let snappedX = x;
@@ -291,15 +334,42 @@ export class SnappingSystem {
         
         // Potential snap targets
         const targets = { x: [], y: [] };
-        
-        // Add Canvas Center & Borders
-        targets.x.push({ value: slide.width / 2, type: 'center' });
-        targets.x.push({ value: 0, type: 'left' });
-        targets.x.push({ value: slide.width, type: 'right' });
 
-        targets.y.push({ value: slide.height / 2, type: 'middle' });
-        targets.y.push({ value: 0, type: 'top' });
-        targets.y.push({ value: slide.height, type: 'bottom' });
+        const guide = (snapToSlide || snapToColumns) ? getEffectiveLayoutGuideForState(state) : null;
+
+        if (snapToSlide) {
+            // Slide edges + center
+            targets.x.push({ value: slideWidth / 2, type: 'center' });
+            targets.x.push({ value: 0, type: 'left' });
+            targets.x.push({ value: slideWidth, type: 'right' });
+
+            targets.y.push({ value: slideHeight / 2, type: 'middle' });
+            targets.y.push({ value: 0, type: 'top' });
+            targets.y.push({ value: slideHeight, type: 'bottom' });
+
+            // Slide margin edges (effective layout guide)
+            if (guide && guide.enabled !== false) {
+                const m = guide.margins || {};
+                const ml = Number(m.left ?? 0);
+                const mr = Number(m.right ?? 0);
+                const mt = Number(m.top ?? 0);
+                const mb = Number(m.bottom ?? 0);
+                targets.x.push({ value: ml, type: 'margin-left' });
+                targets.x.push({ value: slideWidth - mr, type: 'margin-right' });
+                targets.y.push({ value: mt, type: 'margin-top' });
+                targets.y.push({ value: slideHeight - mb, type: 'margin-bottom' });
+            }
+        }
+
+        if (snapToColumns) {
+            if (guide && guide.enabled !== false) {
+                const bounds = getContentBounds(slideWidth, slideHeight, guide.margins);
+                const edges = getColumnEdgesX(bounds, guide.columns?.count, guide.columns?.gutter);
+                for (const v of edges) {
+                    targets.x.push({ value: v, type: 'column-edge' });
+                }
+            }
+        }
         
         // Add other elements
         const addSnapTargets = (container) => {
@@ -321,13 +391,15 @@ export class SnappingSystem {
             });
         };
 
-        // 1. Current Container Elements
-        addSnapTargets(slide);
+        if (snapToObject) {
+            // 1. Current Container Elements
+            addSnapTargets(slide);
 
-        // 2. Inherited Elements (if editing a Layout)
-        if (state.editor.mode === 'master' && slide.type === 'layoutMaster' && slide.parentMasterId) {
-            const master = state.slideMasterPresets[slide.parentMasterId];
-            addSnapTargets(master);
+            // 2. Inherited Elements (if editing a Layout)
+            if (state.editor.mode === 'master' && slide?.type === 'layoutMaster' && slide.parentMasterId) {
+                const master = state.slideMasterPresets?.[slide.parentMasterId];
+                addSnapTargets(master);
+            }
         }
         
         // Check X Snaps
@@ -393,6 +465,11 @@ export class SnappingSystem {
     snapResize(id, handle, x, y, width, height, zoom) {
         const state = store.getState();
         const slide = this.cm.getActiveContainer(state);
+        const snapToObject = state?.editor?.snapToObject !== false;
+        const snapToSlide = state?.editor?.snapToSlide !== false;
+        const snapToColumns = state?.editor?.snapToColumns !== false;
+
+        const { width: slideWidth, height: slideHeight } = this.getActiveSlideDimensions(state, slide);
         const SNAP_THRESHOLD = 5 / zoom;
         
         let snappedX = x;
@@ -408,25 +485,53 @@ export class SnappingSystem {
         }
 
         const targets = { x: [], y: [] };
-        
-        targets.x.push({ value: slide.width / 2, type: 'center' });
-        targets.x.push({ value: 0, type: 'left' });
-        targets.x.push({ value: slide.width, type: 'right' });
 
-        targets.y.push({ value: slide.height / 2, type: 'middle' });
-        targets.y.push({ value: 0, type: 'top' });
-        targets.y.push({ value: slide.height, type: 'bottom' });
-        
-        Object.values(slide.elements).forEach(rawEl => {
-            if (rawEl.id === id) return;
-            const el = GeometryUtils.getAbsoluteElement(rawEl, slide);
-            targets.x.push({ value: el.x, type: 'left' });
-            targets.x.push({ value: el.x + el.width / 2, type: 'center' });
-            targets.x.push({ value: el.x + el.width, type: 'right' });
-            targets.y.push({ value: el.y, type: 'top' });
-            targets.y.push({ value: el.y + el.height / 2, type: 'middle' });
-            targets.y.push({ value: el.y + el.height, type: 'bottom' });
-        });
+        const guide = (snapToSlide || snapToColumns) ? getEffectiveLayoutGuideForState(state) : null;
+
+        if (snapToSlide) {
+            targets.x.push({ value: slideWidth / 2, type: 'center' });
+            targets.x.push({ value: 0, type: 'left' });
+            targets.x.push({ value: slideWidth, type: 'right' });
+
+            targets.y.push({ value: slideHeight / 2, type: 'middle' });
+            targets.y.push({ value: 0, type: 'top' });
+            targets.y.push({ value: slideHeight, type: 'bottom' });
+
+            if (guide && guide.enabled !== false) {
+                const m = guide.margins || {};
+                const ml = Number(m.left ?? 0);
+                const mr = Number(m.right ?? 0);
+                const mt = Number(m.top ?? 0);
+                const mb = Number(m.bottom ?? 0);
+                targets.x.push({ value: ml, type: 'margin-left' });
+                targets.x.push({ value: slideWidth - mr, type: 'margin-right' });
+                targets.y.push({ value: mt, type: 'margin-top' });
+                targets.y.push({ value: slideHeight - mb, type: 'margin-bottom' });
+            }
+        }
+
+        if (snapToColumns) {
+            if (guide && guide.enabled !== false) {
+                const bounds = getContentBounds(slideWidth, slideHeight, guide.margins);
+                const edges = getColumnEdgesX(bounds, guide.columns?.count, guide.columns?.gutter);
+                for (const v of edges) {
+                    targets.x.push({ value: v, type: 'column-edge' });
+                }
+            }
+        }
+
+        if (snapToObject) {
+            Object.values(slide.elements).forEach(rawEl => {
+                if (rawEl.id === id) return;
+                const el = GeometryUtils.getAbsoluteElement(rawEl, slide);
+                targets.x.push({ value: el.x, type: 'left' });
+                targets.x.push({ value: el.x + el.width / 2, type: 'center' });
+                targets.x.push({ value: el.x + el.width, type: 'right' });
+                targets.y.push({ value: el.y, type: 'top' });
+                targets.y.push({ value: el.y + el.height / 2, type: 'middle' });
+                targets.y.push({ value: el.y + el.height, type: 'bottom' });
+            });
+        }
 
         let minDiffX = SNAP_THRESHOLD;
         let minDiffY = SNAP_THRESHOLD;

@@ -36,11 +36,24 @@ describe('SnappingSystem', () => {
         mockState = {
             editor: {
                 mode: 'edit',
+                activeSlideId: 'slide-1',
                 zoom: 1,
                 pan: { x: 0, y: 0 },
-                selectedElementIds: []
+                selectedElementIds: [],
+                snapToObject: true,
+                snapToSlide: true,
+                snapToColumns: true
             },
-            masters: {}
+            slides: {
+                'slide-1': {
+                    id: 'slide-1',
+                    width: 1920,
+                    height: 1080,
+                    layoutId: null,
+                    elements: {}
+                }
+            },
+            slideMasterPresets: {}
         };
 
         store.getState.mockReturnValue(mockState);
@@ -53,6 +66,25 @@ describe('SnappingSystem', () => {
     });
 
     describe('snapToGuides()', () => {
+        it('should not snap when all snapping categories are disabled', () => {
+            mockState.editor.snapToObject = false;
+            mockState.editor.snapToSlide = false;
+            mockState.editor.snapToColumns = false;
+            store.getState.mockReturnValue(mockState);
+
+            const mockSlide = {
+                width: 1920,
+                height: 1080,
+                elements: {}
+            };
+            mockCanvasManager.getActiveContainer.mockReturnValue(mockSlide);
+
+            const result = snappingSystem.snapToGuides('el-1', 3, 100, 50, 50, 1);
+            expect(result.x).toBe(3);
+            expect(result.y).toBe(100);
+            expect(result.guides).toEqual([]);
+        });
+
         it('should return original position when no snap targets', () => {
             const mockSlide = {
                 width: 1920,
@@ -542,13 +574,13 @@ describe('SnappingSystem', () => {
             expect(result.x).toBe(200);
         });
 
-        it('should throw when slide is missing', () => {
+        it('should not throw when slide is missing', () => {
             mockCanvasManager.getActiveContainer.mockReturnValue(null);
 
-            // The implementation does not guard against null slide
-            expect(() => {
-                snappingSystem.snapToGuides('el-1', 100, 100, 50, 50, 1);
-            }).toThrow();
+            const result = snappingSystem.snapToGuides('el-1', 100, 100, 50, 50, 1);
+            expect(result.x).toBe(100);
+            expect(result.y).toBe(100);
+            expect(result.guides).toEqual([]);
         });
 
         it('should handle element without rotation property', () => {

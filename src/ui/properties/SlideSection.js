@@ -10,6 +10,7 @@ import { store } from '../../core/Store.js';
 import { FillSection } from './FillSection.js';
 import { panelManager } from '../PanelManager.js';
 import { Icons } from '../Icons.js';
+import { FillFlyout } from '../components/FillFlyout/FillFlyout.js';
 import { ThemeSwatches } from '../components/ThemeSwatches.js';
 import { getPresetById, getPresetList } from '../../core/store/SlideMasterPresets.js';
 import { COLOR_MODES } from '../panels/color-theme/ColorThemeUtils.js';
@@ -36,6 +37,14 @@ export class SlideSection {
         this.createContent();
         this.setupThemeListener();
     }
+
+    static DEFAULT_LAYOUT_GUIDE = {
+        enabled: true,
+        margins: { top: 40, right: 40, bottom: 40, left: 40 },
+        marginsLinked: true,
+        columns: { count: 3, gutter: 20 },
+        appearance: { color: '#FF0000', opacity: 10 }
+    };
 
     createContent() {
         // 1. Name Row (Master Mode only) - standalone, no section
@@ -101,7 +110,411 @@ export class SlideSection {
         // 3. Theme Section
         this.createThemeSection();
 
+        // 3.5 Layout Guides (Master Mode only)
+        this.createLayoutGuideSection();
+
         // 4. Background (FillSection) - Appended separately in PropertyInspector
+    }
+
+    createLayoutGuideSection() {
+        this.layoutGuideSection = new Section({ title: 'Layout guides' });
+        this.layoutGuideSection.element.setAttribute('data-testid', 'layout-guide-section');
+
+        this.layoutGuideFlyout = null;
+
+        // Margins header: link toggle
+        const headerRow = document.createElement('div');
+        headerRow.className = 'pi-row pi-row--space-between';
+
+        const label = document.createElement('div');
+        label.className = 'pi-label';
+        label.textContent = 'Margins';
+        headerRow.appendChild(label);
+
+        this.marginLinkBtn = new Button({
+            icon: Icons.LINK || '🔗',
+            size: 'xs',
+            variant: 'text',
+            ariaLabel: 'Toggle linked margins',
+            onClick: () => this.toggleLayoutGuideMarginsLinked()
+        });
+        this.marginLinkBtn.element.setAttribute('data-testid', 'layout-guide-margin-link-toggle');
+        headerRow.appendChild(this.marginLinkBtn.element);
+
+        this.layoutGuideSection.appendChild(headerRow);
+
+        // Linked margin: single input
+        this.marginAllRow = document.createElement('div');
+        this.marginAllRow.className = 'pi-row';
+        this.marginAllInput = new NumberInput({
+            label: 'Margin',
+            min: 0,
+            onChange: (val, isTransient) => this.updateLayoutGuideMargin('all', val, isTransient)
+        });
+        this.marginAllInput.element.setAttribute('data-testid', 'layout-guide-margin-all');
+        this.marginAllRow.appendChild(this.marginAllInput.element);
+        this.layoutGuideSection.appendChild(this.marginAllRow);
+
+        // Unlinked margins: two rows
+        this.marginUnlinkedRow1 = document.createElement('div');
+        this.marginUnlinkedRow1.className = 'pi-row hidden';
+        this.marginLeftInput = new NumberInput({
+            label: 'Left',
+            min: 0,
+            onChange: (val, isTransient) => this.updateLayoutGuideMargin('left', val, isTransient)
+        });
+        this.marginLeftInput.element.setAttribute('data-testid', 'layout-guide-margin-left');
+        this.marginTopInput = new NumberInput({
+            label: 'Top',
+            min: 0,
+            onChange: (val, isTransient) => this.updateLayoutGuideMargin('top', val, isTransient)
+        });
+        this.marginTopInput.element.setAttribute('data-testid', 'layout-guide-margin-top');
+        this.marginUnlinkedRow1.appendChild(this.marginLeftInput.element);
+        this.marginUnlinkedRow1.appendChild(this.marginTopInput.element);
+        this.layoutGuideSection.appendChild(this.marginUnlinkedRow1);
+
+        this.marginUnlinkedRow2 = document.createElement('div');
+        this.marginUnlinkedRow2.className = 'pi-row hidden';
+        this.marginRightInput = new NumberInput({
+            label: 'Right',
+            min: 0,
+            onChange: (val, isTransient) => this.updateLayoutGuideMargin('right', val, isTransient)
+        });
+        this.marginRightInput.element.setAttribute('data-testid', 'layout-guide-margin-right');
+        this.marginBottomInput = new NumberInput({
+            label: 'Bottom',
+            min: 0,
+            onChange: (val, isTransient) => this.updateLayoutGuideMargin('bottom', val, isTransient)
+        });
+        this.marginBottomInput.element.setAttribute('data-testid', 'layout-guide-margin-bottom');
+        this.marginUnlinkedRow2.appendChild(this.marginRightInput.element);
+        this.marginUnlinkedRow2.appendChild(this.marginBottomInput.element);
+        this.layoutGuideSection.appendChild(this.marginUnlinkedRow2);
+
+        // Columns + gutter
+        const columnsRow = document.createElement('div');
+        columnsRow.className = 'pi-row';
+
+        this.columnsCountInput = new NumberInput({
+            label: 'Columns',
+            min: 1,
+            max: 24,
+            step: 1,
+            precision: 0,
+            onChange: (val, isTransient) => this.updateLayoutGuideColumnsCount(val, isTransient)
+        });
+        this.columnsCountInput.element.setAttribute('data-testid', 'layout-guide-columns');
+
+        this.gutterInput = new NumberInput({
+            label: 'Gutter',
+            min: 0,
+            step: 1,
+            precision: 0,
+            onChange: (val, isTransient) => this.updateLayoutGuideGutter(val, isTransient)
+        });
+        this.gutterInput.element.setAttribute('data-testid', 'layout-guide-gutter');
+
+        columnsRow.appendChild(this.columnsCountInput.element);
+        columnsRow.appendChild(this.gutterInput.element);
+        this.layoutGuideSection.appendChild(columnsRow);
+
+        // Color + Opacity (reuse FillFlyout + existing fill input group styles)
+        const appearanceRow = document.createElement('div');
+        appearanceRow.className = 'pi-row';
+
+        const combinedInput = document.createElement('div');
+        combinedInput.className = 'fill-input-group';
+
+        this.layoutGuideColorSwatch = document.createElement('div');
+        this.layoutGuideColorSwatch.className = 'fill-swatch-trigger';
+        this.layoutGuideColorSwatch.dataset.testid = 'layout-guide-color-swatch';
+
+        this.layoutGuideColorPreview = document.createElement('div');
+        this.layoutGuideColorPreview.className = 'fill-preview';
+        this.layoutGuideColorSwatch.appendChild(this.layoutGuideColorPreview);
+        this.layoutGuideColorSwatch.onclick = (e) => {
+            e.stopPropagation();
+            this.openLayoutGuideFillFlyout(this.layoutGuideColorSwatch);
+        };
+        combinedInput.appendChild(this.layoutGuideColorSwatch);
+
+        this.layoutGuideColorHexInput = document.createElement('input');
+        this.layoutGuideColorHexInput.type = 'text';
+        this.layoutGuideColorHexInput.className = 'fill-hex-input';
+        this.layoutGuideColorHexInput.spellcheck = false;
+        this.layoutGuideColorHexInput.dataset.testid = 'layout-guide-color-hex';
+        this.layoutGuideColorHexInput.onchange = (e) => {
+            let val = e.target.value.trim();
+            if (!val.startsWith('#')) val = '#' + val;
+            if (/^#[0-9A-F]{6}$/i.test(val) || /^#[0-9A-F]{3}$/i.test(val)) {
+                this.updateLayoutGuideAppearance({ color: val.toUpperCase() }, false);
+            }
+        };
+        combinedInput.appendChild(this.layoutGuideColorHexInput);
+
+        const separator = document.createElement('div');
+        separator.className = 'fill-separator';
+        combinedInput.appendChild(separator);
+
+        this.layoutGuideOpacityInput = new NumberInput({
+            value: 10,
+            min: 0,
+            max: 100,
+            step: 1,
+            units: '%',
+            scrubbable: true,
+            onChange: (val, isTransient) => this.updateLayoutGuideAppearance({ opacity: val }, isTransient)
+        });
+        this.layoutGuideOpacityInput.element.className = 'fill-opacity-input';
+        this.layoutGuideOpacityInput.element.dataset.testid = 'layout-guide-color-opacity';
+        combinedInput.appendChild(this.layoutGuideOpacityInput.element);
+
+        appearanceRow.appendChild(combinedInput);
+        this.layoutGuideSection.appendChild(appearanceRow);
+
+        this.element.appendChild(this.layoutGuideSection.element);
+    }
+
+    getEffectiveLayoutGuide(state, currentObject) {
+        const fallback = SlideSection.DEFAULT_LAYOUT_GUIDE;
+        const direct = currentObject?.layoutGuide || null;
+        if (direct) {
+            return {
+                ...fallback,
+                ...direct,
+                margins: { ...fallback.margins, ...(direct.margins || {}) },
+                columns: { ...fallback.columns, ...(direct.columns || {}) },
+                appearance: { ...fallback.appearance, ...(direct.appearance || {}) }
+            };
+        }
+
+        if (currentObject?.type === 'layoutMaster' && currentObject?.parentMasterId) {
+            const parent = state.slideMasterPresets?.[currentObject.parentMasterId] || null;
+            const parentGuide = parent?.layoutGuide || null;
+            if (parentGuide) {
+                return {
+                    ...fallback,
+                    ...parentGuide,
+                    margins: { ...fallback.margins, ...(parentGuide.margins || {}) },
+                    columns: { ...fallback.columns, ...(parentGuide.columns || {}) },
+                    appearance: { ...fallback.appearance, ...(parentGuide.appearance || {}) }
+                };
+            }
+        }
+
+        return fallback;
+    }
+
+    clampMargins(margins, width, height) {
+        const next = {
+            top: Math.max(0, margins.top),
+            right: Math.max(0, margins.right),
+            bottom: Math.max(0, margins.bottom),
+            left: Math.max(0, margins.left)
+        };
+
+        const safeWidth = Math.max(1, Number(width) || 1);
+        const safeHeight = Math.max(1, Number(height) || 1);
+
+        // Ensure content bounds remain positive (strictly > 0)
+        next.left = Math.min(next.left, safeWidth - next.right - 1);
+        next.right = Math.min(next.right, safeWidth - next.left - 1);
+        next.top = Math.min(next.top, safeHeight - next.bottom - 1);
+        next.bottom = Math.min(next.bottom, safeHeight - next.top - 1);
+
+        // Re-ensure non-negative after pair clamping
+        next.left = Math.max(0, next.left);
+        next.right = Math.max(0, next.right);
+        next.top = Math.max(0, next.top);
+        next.bottom = Math.max(0, next.bottom);
+
+        return next;
+    }
+
+    getActiveSlideDimensions(state) {
+        const slideId = state.editor?.activeSlideId;
+        const slide = slideId ? state.slides?.[slideId] : null;
+        const width = Number(slide?.width) || 1920;
+        const height = Number(slide?.height) || 1080;
+        return { width, height };
+    }
+
+    clampGutter({ count, gutter }, contentWidth) {
+        const safeCount = Math.max(1, Math.min(24, Number(count) || 1));
+        const safeGutter = Math.max(0, Number(gutter) || 0);
+        const totalGutters = safeGutter * (safeCount - 1);
+        const maxGutter = safeCount > 1 ? Math.max(0, (contentWidth - 1) / (safeCount - 1)) : safeGutter;
+        return {
+            count: safeCount,
+            gutter: Math.min(safeGutter, maxGutter)
+        };
+    }
+
+    toggleLayoutGuideMarginsLinked() {
+        const state = store.getState();
+        const mode = state.editor.mode;
+        if (mode !== 'master') return;
+
+        const id = state.editor.activeMasterId;
+        const currentObject = state.slideMasterPresets?.[id];
+        if (!currentObject) return;
+
+        const effective = this.getEffectiveLayoutGuide(state, currentObject);
+        const nextLinked = !(effective.marginsLinked === true);
+
+        // If turning linking back on, normalize all sides to current top (simple + stable).
+        const normalized = nextLinked
+            ? {
+                top: effective.margins.top,
+                right: effective.margins.top,
+                bottom: effective.margins.top,
+                left: effective.margins.top
+            }
+            : { ...effective.margins };
+
+        const dims = this.getActiveSlideDimensions(state);
+        const clamped = this.clampMargins(normalized, dims.width, dims.height);
+
+        store.dispatch('UPDATE_MASTER', {
+            id,
+            layoutGuide: {
+                ...effective,
+                marginsLinked: nextLinked,
+                margins: clamped
+            }
+        });
+    }
+
+    updateLayoutGuideMargin(side, val, isTransient = false) {
+        const state = store.getState();
+        const mode = state.editor.mode;
+        if (mode !== 'master') return;
+
+        const id = state.editor.activeMasterId;
+        const currentObject = state.slideMasterPresets?.[id];
+        if (!currentObject) return;
+
+        const effective = this.getEffectiveLayoutGuide(state, currentObject);
+        const marginsLinked = effective.marginsLinked !== false;
+        const safeVal = Math.max(0, val);
+
+        const baseMargins = marginsLinked || side === 'all'
+            ? { top: safeVal, right: safeVal, bottom: safeVal, left: safeVal }
+            : { ...effective.margins, [side]: safeVal };
+
+        const dims = this.getActiveSlideDimensions(state);
+        const nextMargins = this.clampMargins(baseMargins, dims.width, dims.height);
+
+        store.dispatch(
+            'UPDATE_MASTER',
+            {
+                id,
+                layoutGuide: {
+                    ...effective,
+                    margins: nextMargins,
+                    marginsLinked
+                }
+            },
+            { skipHistory: isTransient }
+        );
+    }
+
+    updateLayoutGuideColumnsCount(val, isTransient = false) {
+        const state = store.getState();
+        if (state.editor.mode !== 'master') return;
+
+        const id = state.editor.activeMasterId;
+        const currentObject = state.slideMasterPresets?.[id];
+        if (!currentObject) return;
+
+        const effective = this.getEffectiveLayoutGuide(state, currentObject);
+        const dims = this.getActiveSlideDimensions(state);
+        const width = dims.width;
+        const contentWidth = Math.max(0, width - effective.margins.left - effective.margins.right);
+        const nextColumns = this.clampGutter({ count: val, gutter: effective.columns.gutter }, contentWidth);
+
+        store.dispatch(
+            'UPDATE_MASTER',
+            { id, layoutGuide: { ...effective, columns: nextColumns } },
+            { skipHistory: isTransient }
+        );
+    }
+
+    updateLayoutGuideGutter(val, isTransient = false) {
+        const state = store.getState();
+        if (state.editor.mode !== 'master') return;
+
+        const id = state.editor.activeMasterId;
+        const currentObject = state.slideMasterPresets?.[id];
+        if (!currentObject) return;
+
+        const effective = this.getEffectiveLayoutGuide(state, currentObject);
+        const dims = this.getActiveSlideDimensions(state);
+        const width = dims.width;
+        const contentWidth = Math.max(0, width - effective.margins.left - effective.margins.right);
+        const nextColumns = this.clampGutter({ count: effective.columns.count, gutter: val }, contentWidth);
+
+        store.dispatch(
+            'UPDATE_MASTER',
+            { id, layoutGuide: { ...effective, columns: nextColumns } },
+            { skipHistory: isTransient }
+        );
+    }
+
+    updateLayoutGuideAppearance(updates, isTransient = false) {
+        const state = store.getState();
+        if (state.editor.mode !== 'master') return;
+
+        const id = state.editor.activeMasterId;
+        const currentObject = state.slideMasterPresets?.[id];
+        if (!currentObject) return;
+
+        const effective = this.getEffectiveLayoutGuide(state, currentObject);
+        const nextAppearance = {
+            ...effective.appearance,
+            ...updates
+        };
+
+        if (typeof nextAppearance.opacity === 'number') {
+            nextAppearance.opacity = Math.max(0, Math.min(100, nextAppearance.opacity));
+        }
+
+        store.dispatch(
+            'UPDATE_MASTER',
+            { id, layoutGuide: { ...effective, appearance: nextAppearance } },
+            { skipHistory: isTransient }
+        );
+    }
+
+    openLayoutGuideFillFlyout(target) {
+        if (this.layoutGuideFlyout) {
+            this.layoutGuideFlyout.close();
+            this.layoutGuideFlyout = null;
+        }
+
+        const state = store.getState();
+        const currentObject = this.getActiveContainer(state);
+        const effective = this.getEffectiveLayoutGuide(state, currentObject);
+        const color = effective.appearance?.color || '#FF0000';
+        const opacity = typeof effective.appearance?.opacity === 'number' ? effective.appearance.opacity : 10;
+
+        const flyout = new FillFlyout({
+            trigger: target,
+            fill: { type: 'solid', color, value: color, opacity },
+            contextKey: 'layoutGuide.appearance',
+            onChange: (updates, isTransient) => {
+                if (updates.color) this.updateLayoutGuideAppearance({ color: String(updates.color).toUpperCase() }, isTransient);
+                if (updates.value && !updates.color) this.updateLayoutGuideAppearance({ color: String(updates.value).toUpperCase() }, isTransient);
+                if (typeof updates.opacity === 'number') this.updateLayoutGuideAppearance({ opacity: updates.opacity }, isTransient);
+            },
+            onClose: () => {
+                this.layoutGuideFlyout = null;
+            }
+        });
+
+        flyout.open();
+        this.layoutGuideFlyout = flyout;
     }
 
     createPresetSection() {
@@ -733,6 +1146,43 @@ export class SlideSection {
         // 3. Dimensions
         this.wInput.setValue(currentObject.width, false);
         this.hInput.setValue(currentObject.height, false);
+
+        // 3.5 Layout Guides (Master mode only; master root + layouts)
+        const hasElementSelection = Array.isArray(state.editor?.selectedElementIds) && state.editor.selectedElementIds.length > 0;
+        const supportsLayoutGuides = mode === 'master' && !hasElementSelection && (currentObject.type === 'slideMasterPreset' || currentObject.type === 'layoutMaster');
+        if (supportsLayoutGuides) {
+            this.layoutGuideSection.element.classList.remove('hidden');
+            const lg = this.getEffectiveLayoutGuide(state, currentObject);
+            const linked = lg.marginsLinked !== false;
+            this.marginLinkBtn.element.classList.toggle('unlinked', !linked);
+
+            // Linked vs unlinked margin UI
+            this.marginAllRow.classList.toggle('hidden', !linked);
+            this.marginUnlinkedRow1.classList.toggle('hidden', linked);
+            this.marginUnlinkedRow2.classList.toggle('hidden', linked);
+
+            if (linked) {
+                this.marginAllInput.setValue(lg.margins.top, false);
+            } else {
+                this.marginTopInput.setValue(lg.margins.top, false);
+                this.marginRightInput.setValue(lg.margins.right, false);
+                this.marginBottomInput.setValue(lg.margins.bottom, false);
+                this.marginLeftInput.setValue(lg.margins.left, false);
+            }
+
+            // Columns
+            this.columnsCountInput.setValue(lg.columns.count, false);
+            this.gutterInput.setValue(lg.columns.gutter, false);
+
+            // Appearance
+            const color = lg.appearance?.color || '#FF0000';
+            const opacity = typeof lg.appearance?.opacity === 'number' ? lg.appearance.opacity : 10;
+            this.layoutGuideColorPreview.style.backgroundColor = color;
+            this.layoutGuideColorHexInput.value = color;
+            this.layoutGuideOpacityInput.setValue(opacity, false);
+        } else {
+            this.layoutGuideSection.element.classList.add('hidden');
+        }
 
         // 4. Theme Display
         this.updateThemeDisplay();

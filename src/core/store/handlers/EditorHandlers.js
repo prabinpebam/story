@@ -112,3 +112,19 @@ export function handleToggleConstrainProportions(draft, payload) {
         draft.editor.constrainProportions = !draft.editor.constrainProportions;
     }
 }
+
+export function handleToggleLayoutGuides(draft) {
+    draft.editor.showLayoutGuides = !draft.editor.showLayoutGuides;
+}
+
+export function handleToggleSnapToObject(draft) {
+    draft.editor.snapToObject = !draft.editor.snapToObject;
+}
+
+export function handleToggleSnapToSlide(draft) {
+    draft.editor.snapToSlide = !draft.editor.snapToSlide;
+}
+
+export function handleToggleSnapToColumns(draft) {
+    draft.editor.snapToColumns = !draft.editor.snapToColumns;
+}
