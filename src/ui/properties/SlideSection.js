@@ -122,6 +122,32 @@ export class SlideSection {
 
         this.layoutGuideFlyout = null;
 
+        // Inheritance row (Layout Masters only): badge + reset
+        const inheritanceRow = document.createElement('div');
+        inheritanceRow.className = 'pi-row pi-row--space-between';
+
+        this.layoutGuideInheritedBadge = document.createElement('span');
+        this.layoutGuideInheritedBadge.className = 'inherited-fill-badge';
+        this.layoutGuideInheritedBadge.textContent = 'Inherited';
+        this.layoutGuideInheritedBadge.setAttribute('data-testid', 'layout-guide-inherited-badge');
+        inheritanceRow.appendChild(this.layoutGuideInheritedBadge);
+
+        const lgButtonGroup = document.createElement('div');
+        lgButtonGroup.className = 'pi-button-group';
+
+        this.layoutGuideResetBtn = new Button({
+            icon: '<i class="fa-solid fa-arrow-rotate-left"></i>',
+            variant: 'text',
+            size: 'xs',
+            title: 'Reset to inherited',
+            onClick: () => this.resetLayoutGuideToInherited()
+        });
+        this.layoutGuideResetBtn.element.setAttribute('data-testid', 'layout-guide-reset-btn');
+        lgButtonGroup.appendChild(this.layoutGuideResetBtn.element);
+
+        inheritanceRow.appendChild(lgButtonGroup);
+        this.layoutGuideSection.appendChild(inheritanceRow);
+
         // Margins header: link toggle
         const headerRow = document.createElement('div');
         headerRow.className = 'pi-row pi-row--space-between';
@@ -304,6 +330,33 @@ export class SlideSection {
         }
 
         return fallback;
+    }
+
+    getLayoutGuideInheritanceInfo(state, currentObject) {
+        const effective = this.getEffectiveLayoutGuide(state, currentObject);
+
+        // Layout masters can inherit from their parent theme master.
+        if (currentObject?.type === 'layoutMaster') {
+            const hasDirect = !!currentObject.layoutGuide;
+            const parent = currentObject.parentMasterId ? state.slideMasterPresets?.[currentObject.parentMasterId] : null;
+            const hasParent = !!parent?.layoutGuide;
+            const isInherited = !hasDirect && hasParent;
+            return { effective, isInherited, hasDirect };
+        }
+
+        return { effective, isInherited: false, hasDirect: !!currentObject?.layoutGuide };
+    }
+
+    resetLayoutGuideToInherited() {
+        const state = store.getState();
+        if (state.editor.mode !== 'master') return;
+
+        const id = state.editor.activeMasterId;
+        const currentObject = state.slideMasterPresets?.[id];
+        if (!currentObject || currentObject.type !== 'layoutMaster') return;
+
+        // Clear override so it inherits from the parent master (or defaults).
+        store.dispatch('UPDATE_MASTER', { id, layoutGuide: null });
     }
 
     clampMargins(margins, width, height) {
@@ -602,6 +655,7 @@ export class SlideSection {
         this.colorBadge = document.createElement('span');
         this.colorBadge.className = 'inherited-fill-badge';
         this.colorBadge.textContent = 'Inherited';
+        this.colorBadge.setAttribute('data-testid', 'color-theme-inherited-badge');
         headerRow.appendChild(this.colorBadge);
         
         this.colorThemeName = document.createElement('span');
@@ -629,6 +683,7 @@ export class SlideSection {
             title: 'Reset to inherited',
             onClick: () => this.resetColors()
         });
+        this.colorResetBtn.element.setAttribute('data-testid', 'color-theme-reset-btn');
         buttonGroup.appendChild(this.colorResetBtn.element);
         
         headerRow.appendChild(buttonGroup);
@@ -743,6 +798,7 @@ export class SlideSection {
         this.typoBadge = document.createElement('span');
         this.typoBadge.className = 'inherited-fill-badge';
         this.typoBadge.textContent = 'Inherited';
+        this.typoBadge.setAttribute('data-testid', 'typography-inherited-badge');
         headerRow.appendChild(this.typoBadge);
         
         this.typographyStyleName = document.createElement('span');
@@ -771,6 +827,7 @@ export class SlideSection {
             title: 'Reset to inherited',
             onClick: () => this.resetTypography()
         });
+        this.typoResetBtn.element.setAttribute('data-testid', 'typography-reset-btn');
         buttonGroup.appendChild(this.typoResetBtn.element);
         
         headerRow.appendChild(buttonGroup);
@@ -840,32 +897,43 @@ export class SlideSection {
         // Diagnostic logging
         ThemeDiag.logPropertyInspectorDisplay(slideId, themeInfo, mode);
 
-        // Get typography using cascade-aware resolution (like color theme)
+        // Get typography using cascade-aware resolution (Master slide → Layout master → Slide)
         let typographyStyle;
+        let typoInfo = null;
         if (mode === 'master') {
-            // Master mode: show master's own typography
-            const activeMaster = state.slideMasterPresets?.[state.editor.activeMasterId];
-            const themeMaster = activeMaster?.type === 'slideMasterPreset'
-                ? activeMaster
-                : state.slideMasterPresets?.[activeMaster?.parentMasterId];
-            const typographyStyleId = themeMaster?.typographyStyleId || 'typo-style-default';
-            typographyStyle = state.typographyStylePresets?.[typographyStyleId];
+            const contextId = state.editor.activeMasterId;
+            typoInfo = StyleResolver.getEffectiveTypographyStyle(contextId);
+            typographyStyle = state.typographyStylePresets?.[typoInfo?.typographyStyleId];
         } else {
-            // Slide mode: use cascade resolution (slide → layout → master)
-            const typoInfo = StyleResolver.getEffectiveTypographyStyle(slideId);
-            typographyStyle = state.typographyStylePresets?.[typoInfo.typographyStyleId];
+            typoInfo = StyleResolver.getEffectiveTypographyStyle(slideId);
+            typographyStyle = state.typographyStylePresets?.[typoInfo?.typographyStyleId];
         }
 
         // Extract fonts from resolved typography style
         const themeFonts = typographyStyle?.fonts || { heading: 'Inter', body: 'Inter' };
 
-        // Check if slide has style assignment override (cascade-aware)
-        const hasColorOverride = mode !== 'master' && 
-            currentObject.styleAssignments?.colorTheme !== undefined && 
-            currentObject.styleAssignments?.colorTheme !== null;
-        const hasTypoOverride = mode !== 'master' && 
-            currentObject.styleAssignments?.typographyStyle !== undefined && 
-            currentObject.styleAssignments?.typographyStyle !== null;
+        // Check if current entity has an explicit override (slide or layout master)
+        const hasColorOverride = (() => {
+            if (mode === 'master') {
+                const active = state.slideMasterPresets?.[state.editor.activeMasterId];
+                return active?.type === 'layoutMaster' && themeInfo?.isInherited === false;
+            }
+            return (
+                currentObject.styleAssignments?.colorTheme !== undefined &&
+                currentObject.styleAssignments?.colorTheme !== null
+            );
+        })();
+
+        const hasTypoOverride = (() => {
+            if (mode === 'master') {
+                const active = state.slideMasterPresets?.[state.editor.activeMasterId];
+                return active?.type === 'layoutMaster' && typoInfo?.isInherited === false;
+            }
+            return (
+                currentObject.styleAssignments?.typographyStyle !== undefined &&
+                currentObject.styleAssignments?.typographyStyle !== null
+            );
+        })();
 
         // Update Colors Section with cascade-aware theme info
         this.updateColorsSectionDisplay(themeInfo, hasColorOverride);
@@ -983,30 +1051,44 @@ export class SlideSection {
         const mode = state.editor.mode;
         
         if (mode === 'master') {
-            // Master mode: show typography name, hide badge, hide reset
-            const themeMaster = Object.values(state.slideMasterPresets || {}).find(m => m.type === 'slideMasterPreset');
-            const typographyStyleId = themeMaster?.typographyStyleId || themeMaster?.styleAssignments?.typographyStyle || 'typo-style-default';
-            const preset = state.typographyStylePresets?.[typographyStyleId];
+            const contextId = state.editor.activeMasterId;
+            const active = state.slideMasterPresets?.[contextId] || null;
+            const typoInfo = StyleResolver.getEffectiveTypographyStyle(contextId);
+            const preset = state.typographyStylePresets?.[typoInfo?.typographyStyleId];
             const typographyName = preset?.name || 'Default';
-            
-            this.typographyStyleName.textContent = typographyName;
-            this.typographyStyleName.classList.remove('hidden');
-            this.typoBadge.classList.add('hidden');
-            this.typoResetBtn.element.classList.add('hidden');
+
+            // Theme master: always show name, no reset.
+            if (active?.type !== 'layoutMaster') {
+                this.typographyStyleName.textContent = typographyName;
+                this.typographyStyleName.classList.remove('hidden');
+                this.typoBadge.classList.add('hidden');
+                this.typoResetBtn.element.classList.add('hidden');
+                return;
+            }
+
+            // Layout master: inherited vs override mirrors slide behavior.
+            if (typoInfo?.isInherited) {
+                this.typographyStyleName.classList.add('hidden');
+                this.typoBadge.classList.remove('hidden');
+                this.typoResetBtn.element.classList.add('hidden');
+            } else {
+                this.typographyStyleName.textContent = typographyName;
+                this.typographyStyleName.classList.remove('hidden');
+                this.typoBadge.classList.add('hidden');
+                this.typoResetBtn.element.classList.remove('hidden');
+            }
         } else {
             // Slide mode: use cascade-aware resolution
             const slideId = state.editor.activeSlideId;
             const typoInfo = StyleResolver.getEffectiveTypographyStyle(slideId);
             const preset = state.typographyStylePresets?.[typoInfo.typographyStyleId];
             const typographyName = preset?.name || 'Default';
-            
+
             if (typoInfo.isInherited) {
-                // Inherited: show badge, hide name, hide reset button
                 this.typographyStyleName.classList.add('hidden');
                 this.typoBadge.classList.remove('hidden');
                 this.typoResetBtn.element.classList.add('hidden');
             } else {
-                // Override: show name, hide badge, show reset button
                 this.typographyStyleName.textContent = typographyName;
                 this.typographyStyleName.classList.remove('hidden');
                 this.typoBadge.classList.add('hidden');
@@ -1039,9 +1121,15 @@ export class SlideSection {
         const mode = state.editor.mode;
         
         if (mode === 'master') {
-            // For masters, clear colorOverride (legacy behavior)
-            const id = state.editor.activeMasterId;
-            store.dispatch('UPDATE_MASTER', { id, colorOverride: undefined });
+            const masterId = state.editor.activeMasterId;
+            const active = state.slideMasterPresets?.[masterId];
+            // Layout masters inherit from their parent master; reset clears the override.
+            if (active?.type === 'layoutMaster') {
+                store.dispatch('UPDATE_MASTER_STYLE_ASSIGNMENTS', {
+                    masterId,
+                    styleAssignments: { colorTheme: null }
+                });
+            }
         } else {
             // For slides, use the cascade-aware style assignment system
             const slideId = state.editor.activeSlideId;
@@ -1061,12 +1149,21 @@ export class SlideSection {
         const mode = state.editor.mode;
         
         if (mode === 'master') {
-            // For masters, reset to default preset
             const masterId = state.editor.activeMasterId;
-            store.dispatch('UPDATE_MASTER_STYLE_ASSIGNMENTS', {
-                masterId,
-                styleAssignments: { typographyStyle: 'typo-style-default' }
-            });
+            const active = state.slideMasterPresets?.[masterId];
+            // Layout masters inherit from their parent master; reset clears the override.
+            if (active?.type === 'layoutMaster') {
+                store.dispatch('UPDATE_MASTER_STYLE_ASSIGNMENTS', {
+                    masterId,
+                    styleAssignments: { typographyStyle: null }
+                });
+            } else {
+                // Theme master reset remains "reset to default".
+                store.dispatch('UPDATE_MASTER_STYLE_ASSIGNMENTS', {
+                    masterId,
+                    styleAssignments: { typographyStyle: 'typo-style-default' }
+                });
+            }
         } else {
             // For slides, reset to null (inherit from cascade)
             const slideId = state.editor.activeSlideId;
@@ -1152,7 +1249,18 @@ export class SlideSection {
         const supportsLayoutGuides = mode === 'master' && !hasElementSelection && (currentObject.type === 'slideMasterPreset' || currentObject.type === 'layoutMaster');
         if (supportsLayoutGuides) {
             this.layoutGuideSection.element.classList.remove('hidden');
-            const lg = this.getEffectiveLayoutGuide(state, currentObject);
+            const { effective: lg, isInherited } = this.getLayoutGuideInheritanceInfo(state, currentObject);
+
+            // Inherited/reset UI is only meaningful for Layout Masters (children of a theme master).
+            const showInheritanceUI = currentObject.type === 'layoutMaster';
+            if (this.layoutGuideInheritedBadge) {
+                this.layoutGuideInheritedBadge.classList.toggle('hidden', !showInheritanceUI || !isInherited);
+            }
+            if (this.layoutGuideResetBtn?.element) {
+                const hasDirect = !!currentObject.layoutGuide;
+                this.layoutGuideResetBtn.element.classList.toggle('hidden', !showInheritanceUI || !hasDirect);
+            }
+
             const linked = lg.marginsLinked !== false;
             this.marginLinkBtn.element.classList.toggle('unlinked', !linked);
 

@@ -683,7 +683,53 @@ export const StyleResolver = {
         const slide = state.slides?.[slideId];
         
         if (!slide) {
-            // No slide found - return master default
+            // Master view renders masters/layouts using their master ids as the context.
+            // Support resolving typography for master ids so overrides work in Master mode.
+            const master = state.slideMasterPresets?.[slideId] || null;
+            if (master) {
+                if (master.type === 'layoutMaster') {
+                    const layoutTypographyId = master.styleAssignments?.typographyStyle || master.typographyStyleId;
+                    if (layoutTypographyId) {
+                        return {
+                            typographyStyleId: layoutTypographyId,
+                            source: 'layout',
+                            sourceId: master.id,
+                            sourceLabel: `layout ${master.name || master.id}`,
+                            isInherited: false
+                        };
+                    }
+
+                    const themeMaster = master.parentMasterId ? state.slideMasterPresets?.[master.parentMasterId] : null;
+                    const masterTypographyId = themeMaster?.styleAssignments?.typographyStyle || themeMaster?.typographyStyleId;
+                    if (masterTypographyId) {
+                        return {
+                            typographyStyleId: masterTypographyId,
+                            source: 'master',
+                            sourceId: themeMaster.id,
+                            sourceLabel: 'inherited from Master',
+                            isInherited: true
+                        };
+                    }
+
+                    return this._getMasterTypographyInfo(state);
+                }
+
+                if (master.type === 'slideMasterPreset') {
+                    const masterTypographyId = master.styleAssignments?.typographyStyle || master.typographyStyleId;
+                    if (masterTypographyId) {
+                        return {
+                            typographyStyleId: masterTypographyId,
+                            source: 'master',
+                            sourceId: master.id,
+                            sourceLabel: `master ${master.name || master.id}`,
+                            isInherited: false
+                        };
+                    }
+                    return this._getMasterTypographyInfo(state);
+                }
+            }
+
+            // No slide/master found - return master default
             return this._getMasterTypographyInfo(state);
         }
         
@@ -770,7 +816,32 @@ export const StyleResolver = {
         
         const slide = state.slides?.[slideId];
         if (!slide) {
-            // No slide found - try to get master default
+            // If the id is a master id (Master mode), resolve from that master.
+            const master = state.slideMasterPresets?.[slideId] || null;
+            if (master) {
+                if (master.type === 'layoutMaster') {
+                    const effectiveId = master.styleAssignments?.typographyStyle || master.typographyStyleId || null;
+                    if (effectiveId) {
+                        const preset = state.typographyStylePresets?.[effectiveId];
+                        if (preset) {
+                            return {
+                                id: preset.id,
+                                fonts: preset.fonts,
+                                textStyles: preset.textStyles
+                            };
+                        }
+                    }
+
+                    const themeMaster = master.parentMasterId ? state.slideMasterPresets?.[master.parentMasterId] : null;
+                    return this._resolveTypographyFromMaster(state, themeMaster);
+                }
+
+                if (master.type === 'slideMasterPreset') {
+                    return this._resolveTypographyFromMaster(state, master);
+                }
+            }
+
+            // No slide/master found - try to get master default
             const themeMaster = Object.values(state.slideMasterPresets || {}).find(m => m.type === 'slideMasterPreset');
             return this._resolveTypographyFromMaster(state, themeMaster);
         }

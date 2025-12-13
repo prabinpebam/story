@@ -60,6 +60,12 @@ class FontManager {
     }
 
     async loadFont(family) {
+        // CSS variables like var(--theme-font-heading) are not real font families.
+        // They resolve at render time via CSS; attempting to load them produces invalid requests.
+        if (!family || typeof family !== 'string' || family.includes('var(')) {
+            return Promise.resolve();
+        }
+
         if (this.loadedFonts.has(family)) {
             return Promise.resolve();
         }

@@ -120,8 +120,14 @@ class ThumbnailRendererClass {
             scaleWrapper.appendChild(instance.view.domElement);
         } else {
             // Create new SlideView
-            const slideView = new SlideView(`thumb-${slideId}`);
+            // IMPORTANT: SlideView/StyleResolver expect real slide/master IDs for cascade lookup.
+            // We keep DOM ids unique by overriding the mounted DOM element id.
+            const slideView = new SlideView(slideId);
             slideView.mount(scaleWrapper);
+            if (slideView.domElement) {
+                slideView.domElement.id = `thumb-view-${slideId}`;
+                slideView.domElement.setAttribute('data-render-context', 'thumbnail');
+            }
             slideView.update(slideData);
             
             // Store reference for later updates
