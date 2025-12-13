@@ -2,7 +2,47 @@ import { DraggablePanel } from '../components/DraggablePanel.js';
 import { Button } from '../components/Button.js';
 import { store } from '../../core/Store.js';
 import { getPresetList } from '../../core/store/SlideMasterPresets.js';
-import { THEME_PRESETS } from './color-theme/ThemePresets.js';
+import { getPresetById as getThemePresetById } from './color-theme/ThemePresets.js';
+import { generateThemeColors, DEFAULT_ADJUSTMENTS } from './color-theme/ColorThemeUtils.js';
+
+const COLOR_SLOT_ORDER = [
+    'background1',
+    'background2',
+    'text1',
+    'text2',
+    'accent1',
+    'accent2',
+    'accent3',
+    'accent4',
+    'accent5',
+    'accent6',
+    'hyperlink',
+    'followedHyperlink'
+];
+
+function colorsObjectToResolvedArray(colors) {
+    if (!colors || typeof colors !== 'object') return null;
+    const resolved = COLOR_SLOT_ORDER.map(key => colors[key]).filter(Boolean);
+    return resolved.length === 12 ? resolved : null;
+}
+
+function resolveThemeHexColors(themeId) {
+    const state = store.getState();
+    const preset = themeId ? state?.colorThemePresets?.[themeId] : null;
+    if (preset?.lumaTheme?.slots) {
+        return generateThemeColors(preset.lumaTheme.slots, preset.lumaTheme.adjustments || DEFAULT_ADJUSTMENTS);
+    }
+    if (preset?.colors) {
+        return colorsObjectToResolvedArray(preset.colors);
+    }
+
+    const themePreset = themeId ? getThemePresetById(themeId) : null;
+    if (themePreset?.slots) {
+        return generateThemeColors(themePreset.slots, themePreset.adjustments || DEFAULT_ADJUSTMENTS);
+    }
+
+    return null;
+}
 
 export class MasterPresetPicker extends DraggablePanel {
     constructor(options = {}) {
@@ -100,14 +140,16 @@ export class MasterPresetPicker extends DraggablePanel {
             const preview = document.createElement('div');
             preview.className = 'preset-preview';
 
+            const hexColors = resolveThemeHexColors(preset.colorThemeId);
+
             const bgFill = Array.isArray(preset.background)
                 ? preset.background[0]
                 : preset.background;
             if (bgFill) {
                 if (bgFill.themeSlot) {
-                    const themePreset = THEME_PRESETS.find(p => p.id === preset.colorThemeId);
-                    const slot = themePreset?.slots?.[bgFill.themeSlot - 1];
-                    if (slot?.hex) preview.style.backgroundColor = slot.hex;
+                    const slotIndex = bgFill.themeSlot - 1;
+                    const hex = Array.isArray(hexColors) ? hexColors[slotIndex] : null;
+                    if (hex) preview.style.backgroundColor = hex;
                 } else if (bgFill.value) {
                     preview.style.backgroundColor = bgFill.value;
                 }
@@ -116,14 +158,13 @@ export class MasterPresetPicker extends DraggablePanel {
             const swatches = document.createElement('div');
             swatches.className = 'preset-swatches';
 
-            const themePreset = THEME_PRESETS.find(p => p.id === preset.colorThemeId);
-            if (themePreset?.slots) {
-                [1, 2, 3, 4].forEach(slotIndex => {
-                    const slot = themePreset.slots[slotIndex - 1];
-                    if (!slot?.hex) return;
+            if (Array.isArray(hexColors)) {
+                [1, 2, 3, 4].forEach(slotNumber => {
+                    const hex = hexColors[slotNumber - 1];
+                    if (!hex) return;
                     const swatch = document.createElement('div');
                     swatch.className = 'preset-swatch';
-                    swatch.style.backgroundColor = slot.hex;
+                    swatch.style.backgroundColor = hex;
                     swatches.appendChild(swatch);
                 });
             }

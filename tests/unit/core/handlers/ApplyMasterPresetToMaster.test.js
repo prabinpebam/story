@@ -52,29 +52,37 @@ describe('M3: APPLY_MASTER_PRESET_TO_MASTER gating (handler-level)', () => {
 
     beforeEach(() => {
         initialState = createInitialState();
-        // Ensure presetId is absent to exercise the "inferred current preset" behavior.
-        delete initialState.slideMasterPresets['master-default'].presetId;
     });
 
     it('detects a master as in use when any slide uses its layouts', () => {
         expect(isMasterInUseBySlides(initialState, 'master-default')).toBe(true);
     });
 
-    it('allows applying the inferred current preset even if master is in use', () => {
-        const next = produce(initialState, (draft) => {
-            handleApplyMasterPresetToMaster(draft, { masterId: 'master-default', presetId: 'master-preset-minimal' });
+    it('allows re-applying the current preset (no-op) even if master is in use', () => {
+        let result;
+        const stateWithPreset = produce(initialState, (draft) => {
+            draft.slideMasterPresets['master-default'].presetId = 'master-preset-minimal';
+        });
+
+        const next = produce(stateWithPreset, (draft) => {
+            result = handleApplyMasterPresetToMaster(draft, { masterId: 'master-default', presetId: 'master-preset-minimal' });
         });
 
         expect(next.slideMasterPresets['master-default'].presetId).toBe('master-preset-minimal');
+        expect(result?.blocked).toBe(false);
     });
 
     it('blocks changing to a different preset when master is in use (no mutation)', () => {
         let result;
-        const next = produce(initialState, (draft) => {
+        const stateWithPreset = produce(initialState, (draft) => {
+            draft.slideMasterPresets['master-default'].presetId = 'master-preset-minimal';
+        });
+
+        const next = produce(stateWithPreset, (draft) => {
             result = handleApplyMasterPresetToMaster(draft, { masterId: 'master-default', presetId: 'master-preset-corporate' });
         });
 
-        expect(next.slideMasterPresets['master-default'].presetId).toBeUndefined();
+        expect(next.slideMasterPresets['master-default'].presetId).toBe('master-preset-minimal');
 
         expect(result?.blocked).toBe(true);
         expect(result?.notification?.type).toBe('blocked');

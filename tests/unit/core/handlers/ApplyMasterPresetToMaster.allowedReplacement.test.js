@@ -67,7 +67,7 @@ describe('M3: allowed apply replaces layout set (canonical master)', () => {
                     id: 'master-x',
                     type: 'slideMasterPreset',
                     name: 'Master X',
-                    presetId: 'preset-a',
+                    presetId: 'preset-old',
                     layoutIds: ['layout-old-1', 'layout-old-2'],
                     elements: {},
                     elementOrder: []

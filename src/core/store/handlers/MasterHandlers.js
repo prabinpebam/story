@@ -475,10 +475,11 @@ export function handleApplyMasterPresetToMaster(draft, payload) {
     const presetMeta = getPresetById(presetId);
     if (!presetMeta) return;
 
-    // Precondition gating (M3): block preset replacement if any slides use this master.
-    // When presetId is not stored yet, infer the "current" preset from the preset library (same as UI).
-    const inferredCurrentPresetId = themeMaster?.presetId || getPresetList?.()?.[0]?.id;
-    const isChangingPreset = !!inferredCurrentPresetId && presetId !== inferredCurrentPresetId;
+    // Precondition (required by UX spec): If the Master slide is in use by any normal slides,
+    // the preset cannot be changed. Safe-by-default: if the master has no known presetId,
+    // treat any requested preset as a change.
+    const currentPresetId = themeMaster?.presetId || null;
+    const isChangingPreset = presetId !== currentPresetId;
     if (isChangingPreset && isMasterInUseBySlides(draft, masterId)) {
         return {
             blocked: true,
@@ -491,6 +492,11 @@ export function handleApplyMasterPresetToMaster(draft, payload) {
                 actionLabel: 'Open Layout Picker'
             }
         };
+    }
+
+    // No-op if re-applying the current preset.
+    if (!isChangingPreset) {
+        return { blocked: false };
     }
 
     // Store the preset ID for reference

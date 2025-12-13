@@ -118,9 +118,10 @@ export class SlideSection {
             className: 'preset-trigger-btn',
             onClick: () => {
                 const state = store.getState();
+                const masterId = state.editor?.activeMasterId;
                 const panel = panelManager.get('master-preset-picker');
                 if (panel && typeof panel.setMasterId === 'function') {
-                    panel.setMasterId(state.editor.activeMasterId);
+                    panel.setMasterId(masterId);
                 }
                 panelManager.open('master-preset-picker');
             }
@@ -679,10 +680,9 @@ export class SlideSection {
         if (isMasterRoot) {
             this.presetSection.element.classList.remove('hidden');
             // Update preset button label with current preset name
-            const fallbackPresetId = getPresetList()?.[0]?.id;
-            const currentPresetId = currentObject.presetId || fallbackPresetId;
-            const currentPreset = getPresetById(currentPresetId);
-            this.presetTriggerBtn.setLabel(currentPreset ? currentPreset.name : 'Select Template');
+            const currentPresetId = currentObject.presetId || null;
+            const currentPreset = currentPresetId ? getPresetById(currentPresetId) : null;
+            this.presetTriggerBtn.setLabel(currentPreset ? currentPreset.name : 'Select Master Preset');
             this.presetDescription.textContent = currentPreset?.description || '';
         } else {
             this.presetSection.element.classList.add('hidden');
