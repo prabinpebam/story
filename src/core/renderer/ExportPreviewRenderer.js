@@ -1,3 +1,4 @@
+import { getShapeKind } from '../shapes/ShapeElementAdapter.js';
 /**
  * ExportPreviewRenderer
  * 
@@ -180,9 +181,11 @@ function calculateBounds(elements) {
  * @param {number} h
  */
 async function drawElementToCanvas(ctx, element, x, y, w, h) {
-    if (element.type === 'rect' || element.type === 'rectangle') {
+    const shapeKind = getShapeKind(element);
+
+    if (shapeKind === 'rectangle') {
         drawRectangle(ctx, element, x, y, w, h);
-    } else if (element.type === 'circle' || element.type === 'ellipse') {
+    } else if (shapeKind === 'ellipse') {
         drawEllipse(ctx, element, x, y, w, h);
     } else if (element.type === 'text') {
         await drawText(ctx, element, x, y, w, h);

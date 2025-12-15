@@ -1,5 +1,6 @@
 import { store } from '../core/Store.js';
 import { contextMenuManager, layerItemConfig } from './components/ContextMenu/index.js';
+import { getShapeKind } from '../core/shapes/ShapeElementAdapter.js';
 
 export class LayerTree {
     constructor(containerId) {
@@ -218,8 +219,8 @@ export class LayerTree {
                 default: icon.className = 'fa-regular fa-square-dashed'; break;
             }
         } else if (el.type === 'text') icon.className = 'fa-solid fa-font';
-        else if (el.type === 'rect') icon.className = 'fa-regular fa-square';
-        else if (el.type === 'circle') icon.className = 'fa-regular fa-circle';
+        else if (getShapeKind(el) === 'rectangle') icon.className = 'fa-regular fa-square';
+        else if (getShapeKind(el) === 'ellipse') icon.className = 'fa-regular fa-circle';
         else if (el.type === 'image') icon.className = 'fa-regular fa-image';
         else if (el.type === 'group') icon.className = 'fa-solid fa-layer-group';
         

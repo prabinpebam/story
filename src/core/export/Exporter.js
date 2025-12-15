@@ -14,6 +14,7 @@
  */
 
 import { store } from '../Store.js';
+import { getShapeKind } from '../shapes/ShapeElementAdapter.js';
 
 /**
  * Export elements with given presets
@@ -277,9 +278,11 @@ async function exportRaster(elements, filename, format, { width, height, bounds 
         }
         
         // Draw based on element type
-        if (element.type === 'rect' || element.type === 'rectangle') {
+        const shapeKind = getShapeKind(element);
+
+        if (shapeKind === 'rectangle') {
             drawRectangle(ctx, element, x, y, w, h);
-        } else if (element.type === 'circle' || element.type === 'ellipse') {
+        } else if (shapeKind === 'ellipse') {
             drawEllipse(ctx, element, x, y, w, h);
         } else if (element.type === 'text') {
             await drawText(ctx, element, x, y, w, h);
@@ -323,8 +326,10 @@ async function exportSVG(elements, filename, { width, height, bounds }) {
     for (const element of elements) {
         const x = element.x - bounds.x;
         const y = element.y - bounds.y;
-        
-        if (element.type === 'rectangle') {
+
+        const shapeKind = getShapeKind(element);
+
+        if (shapeKind === 'rectangle') {
             const fill = element.style?.fills?.[0]?.value || element.fill || '#000000';
             const opacity = (element.style?.fills?.[0]?.opacity ?? 100) / 100;
             const borderRadius = element.borderRadius || 0;
@@ -336,7 +341,7 @@ async function exportSVG(elements, filename, { width, height, bounds }) {
             }
             svg += `/>\n`;
             
-        } else if (element.type === 'ellipse') {
+        } else if (shapeKind === 'ellipse') {
             const fill = element.style?.fills?.[0]?.value || element.fill || '#000000';
             const opacity = (element.style?.fills?.[0]?.opacity ?? 100) / 100;
             const cx = x + element.width / 2;

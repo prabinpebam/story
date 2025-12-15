@@ -4,6 +4,7 @@ import { Dropdown } from '../components/Dropdown.js';
 import { Button } from '../components/Button.js';
 import { Icons } from '../Icons.js';
 import { store } from '../../core/Store.js';
+import { isRectangleElement } from '../../core/shapes/ShapeElementAdapter.js';
 
 /**
  * AppearanceSection - Property Inspector section for appearance controls
@@ -310,8 +311,8 @@ export class AppearanceSection extends BaseSection {
         // For radius, use first element for now (complex multi-select case)
         const element = elements[0];
         
-        // Only show radius for shapes/images/rects
-        if (element.type === 'rect' || element.type === 'image') {
+        // Only show radius for rectangles/images
+        if (isRectangleElement(element) || element.type === 'image') {
             this.radiusInput.element.classList.remove('hidden');
             
             // Check if element has per-corner radii
