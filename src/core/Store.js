@@ -10,6 +10,7 @@ import * as MasterHandlers from './store/handlers/MasterHandlers.js';
 import * as UIHandlers from './store/handlers/UIHandlers.js';
 import * as AuthHandlers from './store/handlers/AuthHandlers.js';
 import * as TextEditHandlers from './store/handlers/TextEditHandlers.js';
+import { enrichSlideWithShapeKinds } from './shapes/ShapeMigration.js';
 
 // Lazy-loaded modules to avoid circular dependency (StyleResolver imports store)
 let _StyleResolver = null;
@@ -417,15 +418,17 @@ export class Store extends EventEmitter {
                         
                         for (const slide of slidesArray) {
                             if (slide && slide.id) {
+                                const migratedSlide = enrichSlideWithShapeKinds(slide);
+
                                 // Convert elements array to object keyed by ID if needed
-                                if (Array.isArray(slide.elements)) {
+                                if (Array.isArray(migratedSlide.elements)) {
                                     const elementsObj = {};
                                     // Use existing elementOrder if provided, otherwise build from array order
-                                    const elementOrder = slide.elementOrder && slide.elementOrder.length > 0 
-                                        ? [...slide.elementOrder] 
+                                    const elementOrder = migratedSlide.elementOrder && migratedSlide.elementOrder.length > 0 
+                                        ? [...migratedSlide.elementOrder] 
                                         : [];
                                     
-                                    for (const el of slide.elements) {
+                                    for (const el of migratedSlide.elements) {
                                         if (el && el.id) {
                                             elementsObj[el.id] = el;
                                             // Only add to elementOrder if not already there
@@ -434,11 +437,11 @@ export class Store extends EventEmitter {
                                             }
                                         }
                                     }
-                                    slide.elements = elementsObj;
-                                    slide.elementOrder = elementOrder;
+                                    migratedSlide.elements = elementsObj;
+                                    migratedSlide.elementOrder = elementOrder;
                                 }
-                                slidesObj[slide.id] = slide;
-                                slideOrder.push(slide.id);
+                                slidesObj[migratedSlide.id] = migratedSlide;
+                                slideOrder.push(migratedSlide.id);
                             }
                         }
                         
