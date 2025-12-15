@@ -22,7 +22,7 @@
     - No gutters before 1st column and after last column. If there's a gutter, it should always be between 2 columns.
     - Gutter widths are linked for a slide, meaning you can have only 1 gutter width in a slide. If you change the value, it changes for all the gutter in that slide.
 - Default gutter width is 20px
-- Is applied as an overlay that's on top of everything on the slide
+- Is applied as a non-interactive overlay drawn above slide content but below selection/gizmos
      - Default color: #FF0000
      - Default opacity: 10%
      - Users can change these values
@@ -58,7 +58,7 @@ Use appropriate icons for the 2 new addition.
 - Snapping can be enabled or disabled separately for the following elements
     - Snap to Object
     - Snap to slide, this includes slide margin, slide edges, slide center.
-    - Snap to columns    - 
+    - Snap to columns
 
 
 ---
@@ -173,7 +173,7 @@ All numeric values are in pixels.
 - Render within the content bounds.
 - Columns are visualized as filled rectangles.
 - Gutters are visualized as empty space between column rectangles.
-- Overlay draws on top of everything on the slide (above content and selection visuals).
+- Overlay draws above slide content but below selection visuals/gizmos.
 
 ### Color and opacity
 
@@ -253,7 +253,7 @@ Snapping can be enabled/disabled separately for:
     - Slide margin edges
 - **Snap to columns**
     - Column left/right edges
-    - (Optional for v1) Column centers
+    - Column centers
 
 Notes:
 
@@ -270,6 +270,15 @@ Notes:
     - Use the same threshold distance.
     - Use the same alignment guide rendering style (if any).
 
+Determinism + anti-jitter requirements (required):
+- Layout-guide snapping MUST follow the canonical snapping rules defined in `documentation/01-specs/canvas/canvas-interaction.md`:
+    - sticky capture + hysteresis
+    - deterministic tie-break (including category priority)
+    - stable `targetKey` strings
+
+Integration requirement:
+- Layout guide snapping must be implemented as an additional snap-target provider feeding the existing snapping engine (no parallel snapping system).
+
 ## Acceptance criteria
 
 - Layout guide can be configured in Master View using the Property Inspector section.
@@ -278,6 +287,11 @@ Notes:
 - Viewport has a toggle to show/hide layout guide overlay.
 - Snapping options flyout exists and can enable/disable snapping categories independently.
 - Elements snap to margin and column edges when the respective snapping options are enabled.
+
+## Quality critique (gaps + risks)
+- Overlay layering is easy to get wrong; if the guide draws above selection handles, core editing becomes unusable. The overlay MUST never occlude selection UI.
+- Without explicit deterministic tie-break rules (above), snapping will feel random in dense scenes and will regress over time.
+- Snapping targets should be computed once per interaction start where possible to avoid per-mousemove allocations.
 
 ## Test and validation notes (for implementation)
 

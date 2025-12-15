@@ -80,12 +80,39 @@ When an object is selected, a **Transform Gizmo** (Bounding Box) appears.
 ## 6. Snapping & Alignment (Smart Guides)
 - **Trigger:** Active during Move and Resize operations.
 - **Targets:**
-    - **Slide Center:** Vertical and Horizontal center lines.
-    - **Other Objects:** Edges (Left, Right, Top, Bottom) and Centers of nearby objects.
+    - **Slide:** Edges + center lines.
+    - **Other Objects:** Edges (Left, Right, Top, Bottom) and centers of nearby objects.
+    - **Additional target providers** may add targets (e.g. layout margins/columns, vector points) but must follow the deterministic rules below.
 - **Visual Feedback:**
     - **Magenta Lines:** Appear when edges align.
     - **Distance Markers:** Show pixel gap when spacing is equal between 3+ objects.
 - **Threshold:** Snapping occurs within 5px distance.
+
+### 6.1 Anti-jitter (required)
+- Snapping MUST use sticky capture + hysteresis:
+  - Once snapped to a target, remain snapped until the cursor/handle exits a slightly larger release threshold.
+  - This prevents flicker when multiple nearby candidates exist.
+
+### 6.2 Deterministic tie-break (required)
+If multiple snap candidates are within threshold, the chosen snap must be deterministic:
+1) Prefer the candidate with smallest absolute distance.
+2) Tie-break by category priority:
+   - Object targets > layout columns > layout margins > slide guides.
+3) Tie-break by axis priority: X before Y.
+4) Tie-break by a stable identifier (`targetKey`).
+
+### 6.3 Stable target keys (required)
+Each snap candidate MUST provide a stable `targetKey` string so results do not depend on iteration order.
+
+Canonical format (string):
+- `category:type:id:axis`
+
+Examples:
+- `object:center:elem-123:x`
+- `object:edge:elem-123:left:x`
+- `layout:column:slide-001:col-2:left:x`
+- `layout:margin:slide-001:left:x`
+- `slide:center:slide-001:x`
 
 ## 7. Multi-Selection
 - **Shift + Click:** Add/Remove object from selection.
