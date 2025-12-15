@@ -15,7 +15,14 @@ Existing baseline: `src/core/canvas/HitTesting.js`.
 - Shapes must coexist with existing bbox/handle hit testing and selection rules.
 
 ## 1. Hit target priority
-- Points/handles (vector mode)
+Vector edit targets (vector mode):
+- Handles
+- Nodes
+- Edges
+- Faces
+
+Object mode targets:
+- Transform handles/bbox handles (existing)
 - Stroke
 - Fill
 
@@ -38,6 +45,8 @@ Stable hit keys:
   - Examples:
 	 - `point:anchor:elem-123:pt-7`
 	 - `handle:out:elem-123:pt-7`
+	 - `edge:segment:elem-123:edge-12`
+	 - `face:region:elem-123:face-3`
 	 - `stroke:layer:elem-123:stroke-0`
 	 - `fill:layer:elem-123:fill-2`
 
@@ -65,6 +74,19 @@ Minimum algorithm requirements (v1):
 	- Respect `style.strokes[].position` when possible; if unsupported in hit test, document the approximation.
 - Point/handle hit test:
 	- Use screen-pixel slop scaled by zoom (and presentation scale where relevant).
+
+Vector Network hit testing (required):
+- Node hit test:
+	- distance-to-node-center <= node slop
+- Handle hit test:
+	- distance-to-handle-endpoint <= handle slop
+- Edge hit test:
+	- distance-to-edge centerline <= edge slop
+- Face hit test:
+	- point-in-face test using the derived face polygon(s) and the effective fill rule
+
+Note:
+- “Face” here refers to faces derived from Vector Networks (see [08a-vector-networks.md](./08a-vector-networks.md)). Faces are not independent stored objects; they are derived.
 
 Mode gating:
 - In `presentation`, editing hit testing must be disabled (no handle/point targets).

@@ -6,7 +6,7 @@
 
 This document specifies how Shapes editing integrates with Story’s existing undo/redo.
 
-Key constraint: Story currently uses **snapshot-based history** for most actions. Shapes must align to this model first, while remaining compatible with future collaboration/event-log approaches.
+Key constraint: Story currently uses **snapshot-based history** for most actions. Shapes must align to this model first, while remaining compatible with collaboration/event-log approaches.
 
 Principles reference: `documentation/00-product/principles.md`
 
@@ -73,13 +73,13 @@ Even with snapshots, we must ensure that each user action is logically atomic:
 
 ---
 
-## 5. Forward compatibility (collaboration/event log)
+## 5. Collaboration readiness (event log)
 
-While the current implementation uses snapshots, the specs will define intent-level operations for shapes so we can evolve later.
+While the current implementation uses snapshots, the specs define intent-level operations for shapes so the system remains collaboration-ready.
 
 Constraints to keep now:
 - Avoid storing derived geometry in document state.
-- Prefer absolute values (not deltas) in any future operation representation.
+- Prefer absolute values (not deltas) in any operation representation.
 
 ---
 

@@ -25,7 +25,7 @@ Figma-class learning to incorporate:
 - Hit-test acceleration cache (optional)
 
 Tessellation requirements:
-- Tessellation is required (not optional/future). Canonical: [16a-tessellation-and-aa.md](./16a-tessellation-and-aa.md)
+- Tessellation is required (not optional). Canonical: [16a-tessellation-and-aa.md](./16a-tessellation-and-aa.md)
 - Mesh caches must bucket by LOD to avoid re-tessellation on tiny zoom deltas.
 
 Current-implementation alignment notes:

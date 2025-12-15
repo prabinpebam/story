@@ -1,31 +1,71 @@
-# Vector Editing UX (Points/Handles)
+# Vector Editing UX (Vector Networks)
 
 **Status**: Draft
 
-Defines how points/handles are visualized and manipulated.
+Defines how Vector Network edit targets (nodes/handles/edges/faces) are visualized and manipulated.
+
+This UX MUST be backed by the Vector Network model described in [08a-vector-networks.md](./08a-vector-networks.md) and the operations defined in [21-vector-editing-operations.md](./21-vector-editing-operations.md).
 
 ---
 
 ## 1. Visualization
-- Anchor points
-- Handle lines
-- Handle endpoints
-- Selected vs unselected styling (accent token driven)
+Required edit target visuals:
+- Nodes (anchors)
+- Handle lines + handle endpoints (when node has handles)
+- Edges (highlight on hover/selection)
+- Faces (selectable filled regions when derived faces exist)
+
+Selection styling:
+- Selected vs unselected styling MUST be accent-token driven.
+- Hover styling MUST be subtle and MUST NOT obscure the selected target.
+
+Face visualization rule:
+- Face selection highlight MUST follow derived faces computed from the network; it is not a separate stored geometry.
 
 ## 2. Interaction
 - Click select
 - Drag point
 - Drag handle
-- Box/lasso selection in vector mode (if supported)
+
+Required interactions (v1):
+- Click node → select node
+- Click edge → select edge
+- Click face (when faces exist) → select face
+- Drag selected node(s) → move nodes (sticky capture)
+- Drag handle endpoint → move handle (sticky capture)
+
+Box selection (required):
+- Dragging on empty canvas in Vector Edit mode performs a box selection.
+- Box selection can select nodes and edges; faces may be included only when the selection rectangle fully contains the face bounds.
+
+Modifiers (required):
+- Add to selection: Shift
+- Toggle selection membership: Ctrl/Cmd
+
+Double-click behaviors (required):
+- Double-click edge → insert node on edge at closest parameter $t$ (deterministic)
+- Double-click node → toggle node type corner ↔ smooth (see operations spec)
 
 ## 3. Context actions
 - Insert point
 - Delete point
 - Split/join
 
+Network context actions (required):
+- Insert node on edge
+- Delete node
+- Delete edge
+- Connect nodes (when a tool/modifier is active)
+- Convert node type (corner/smooth/symmetric)
+- Convert edge type (line/curve)
+
 ## 4. Accessibility
 - Keyboard escape
 - Focus rules
+
+Additional requirements:
+- Keyboard nudge moves selected nodes by the canonical nudge step used elsewhere.
+- Escape exits Vector Edit mode to Object mode without mutating document state.
 
 ## 5. Figma-class UX learnings (editing stability)
 - Sticky capture: once a point/handle is grabbed, keep it as the target until pointer up (no mid-drag retargeting).
@@ -34,5 +74,9 @@ Defines how points/handles are visualized and manipulated.
 - Keep handle math local-space first; avoid drift from repeated world-space conversions during long drags.
 - If an operation would create degenerate segments, clamp/repair deterministically and provide quiet feedback (status hint), not modal errors.
 
+Deterministic targeting contract (required):
+- All hover and click targeting MUST follow [12-hit-testing.md](./12-hit-testing.md), including deterministic tie-break and stable `hitKey`.
+- Once a target is captured on pointer-down, it MUST remain the active drag target until pointer-up.
+
 ## 6. Quality critique (gaps + risks)
-- This spec should define whether lasso/box selection is supported in v1 and, if not, explicitly mark it as non-goal to avoid partial implementations.
+- Box selection is required (defined above). Any additional selection tools beyond box selection are out of scope unless already present in the product.

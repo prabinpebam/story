@@ -152,7 +152,7 @@ Rendering/performance/interop specs (scaffolded):
 - [16-rendering-architecture.md](./16-rendering-architecture.md)
 - [16a-tessellation-and-aa.md](./16a-tessellation-and-aa.md)
 - [17-caching-and-performance.md](./17-caching-and-performance.md)
-- [18-operation-model-future-collab.md](./18-operation-model-future-collab.md)
+- [18-operation-model-collaboration-readiness.md](./18-operation-model-collaboration-readiness.md)
 - [19-serialization-and-interop.md](./19-serialization-and-interop.md)
 
 Interaction/UX specs (scaffolded):

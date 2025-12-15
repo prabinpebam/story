@@ -102,7 +102,7 @@ Risk:
 - Some specs describe “Figma-class” behaviors that assume a full geometry/render backend; Story currently renders shapes in the DOM with layered fills/strokes and uses canvas for interaction UI.
 
 Spec requirement:
-- Specs must always define DOM-first behavior and clearly label any future backend as optional.
+- Specs must always define DOM-first behavior and clearly label any alternative backend as optional.
 
 ---
 

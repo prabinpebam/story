@@ -273,7 +273,7 @@ Spec: [17-caching-and-performance.md](./17-caching-and-performance.md)
 
 Specs:
 - Undo/redo compatibility (current): [11-undo-redo-and-operations.md](./11-undo-redo-and-operations.md)
-- Collaboration-ready operation model (contract, even while using snapshots): [18-operation-model-future-collab.md](./18-operation-model-future-collab.md)
+- Collaboration-ready operation model (contract, even while using snapshots): [18-operation-model-collaboration-readiness.md](./18-operation-model-collaboration-readiness.md)
 
 ---
 

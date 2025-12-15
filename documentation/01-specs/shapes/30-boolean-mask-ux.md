@@ -31,7 +31,7 @@ Progressive refinement feedback:
 
 Mask edit affordances:
 - Clearly indicate whether edits are affecting the mask shape or the masked content.
-- Allow toggling mask inversion (if supported) via inspector.
+- Allow toggling mask inversion via inspector (required).
 
 ## 4. Undo
 - Each boolean/mask action is undoable.

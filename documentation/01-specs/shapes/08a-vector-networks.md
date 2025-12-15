@@ -62,7 +62,7 @@ Each edge stores per-endpoint controls so branching tangents can differ by edge.
 - If `kind:'cubic'`:
   - `c1`: `{ dx, dy }` control vector relative to `from` node
   - `c2`: `{ dx, dy }` control vector relative to `to` node
-- `styleHints` (optional): future-proof (but must round-trip)
+- `styleHints` (optional): reserved for styling metadata; must round-trip losslessly
 
 **Hard rules**:
 - Controls are stored as vectors relative to their endpoint nodes (transform-safe).

@@ -17,7 +17,7 @@ Existing baseline: `documentation/01-specs/canvas/canvas-interaction.md`.
 ## 2. Creation UX
 - Drag to create shapes
 - Shift to constrain
-- Alt to draw from center (if supported)
+- Alt/Option to draw from center (required)
 
 ## 3. Viewport behaviors
 - Zoom-to-cursor consistency during edit.

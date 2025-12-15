@@ -46,7 +46,7 @@ The mask shape (`maskShapeId`) must be resolvable into a vector outline for `cli
 Minimum v1 requirement:
 - mask shape supports shapes (`type:'shape'`) and SVG (`type:'svg'`).
 
-Optional (future) extensions:
+Out of scope for v1:
 - allow text-as-mask (text outline → path)
 - allow image/video-as-mask (alpha mask)
 

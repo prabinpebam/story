@@ -28,7 +28,7 @@ The tree must remain stable under reorder/undo and must reflect the actual seria
 ## 2. Drag/drop
 - Reparenting
 - Z-order
-- Boolean operand reorder (if supported)
+- Boolean operand reorder (required)
 
 ## 3. Breadcrumb/drill-in
 - Show current edit context (mask/boolean depth)

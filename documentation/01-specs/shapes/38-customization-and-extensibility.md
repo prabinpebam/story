@@ -2,7 +2,7 @@
 
 **Status**: Draft
 
-Defines future-friendly extension points without over-engineering.
+Defines extension points without over-engineering.
 
 ---
 
@@ -17,7 +17,7 @@ Rules:
 - Preferences must not change `.str` document data unless the preference is explicitly a document setting (most are user settings).
 
 ## 2. Extensibility
-- Future plugin hooks (non-goal for v1, but leave room)
+- Plugin hooks are out of scope for v1.
 
 Non-goals (v1):
 - No third-party plugin API.
@@ -32,8 +32,8 @@ Safe extension points to preserve:
 - No architecture dead-ends that block new shape types.
 
 Acceptance additions:
-- Unknown future fields in shape nodes are preserved round-trip in `.str` (lossless persistence).
-- Future shape kinds can be added without changing core interaction state machine structure (tool chooses capabilities per kind).
+- Unknown fields in shape nodes are preserved round-trip in `.str` (lossless persistence).
+- New shape kinds can be added without changing core interaction state machine structure (tool chooses capabilities per kind).
 
 ## 4. Quality critique (gaps + risks)
 - “Leave room for plugins” is too vague; the real risk is accidentally hard-coding assumptions (only rect/ellipse/path) into hit-testing, selection, and serialization.

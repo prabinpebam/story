@@ -124,13 +124,13 @@ Canonical schema:
 
 Notes:
 - All coordinates are in element-local space.
-- If we later add arcs/quadratics, they must be added as new `kind` values (additive, forward-compatible).
+- Arc/quadratic inputs MUST be normalized to cubic segments on import (no additional `kind` values required).
 
 ### 4.4 Point model
 If we implement a point-based editing model (anchors with handles) on top of `segments`, we must ensure stable identity.
 
 Requirements:
-- Anchors/handles must have stable IDs or stable addressing across edits (to support future op logs and to avoid selection jumping).
+- Anchors/handles must have stable IDs or stable addressing across edits (to support operation logs and to avoid selection jumping).
 - Handles remain **relative** vectors to their anchor when represented as a point model.
 
 If a point model is persisted (optional, v1 may compute it on demand), canonical fields are:

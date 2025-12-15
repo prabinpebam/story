@@ -48,7 +48,7 @@ These are common lessons from building serious vector editors (Figma-class). The
 - Keep boolean ops and masks **editable** by storing them as nodes referencing operands.
 - Enable **vector editing** (points/handles/continuity) in a way that remains stable under transforms and zoom.
 - Preserve performance via **caching + invalidation**, not via destructive flattening.
-- Make undo/redo and future collaboration feasible via **operation-level edits**.
+- Make undo/redo and collaboration readiness feasible via **operation-level edits**.
 
 ### Non-Goals (v1 boundaries)
 - NURBS/CAD curves.
@@ -120,7 +120,7 @@ Input (pointer/keys)
 
 ### Responsibilities
 - **Interaction Controller**: decides *what the user intends* and emits operations.
-- **Operation Log**: the only mutator; also enables undo/redo + future collab.
+- **Operation Log**: the only mutator; also enables undo/redo + collaboration readiness.
 - **Document Model**: authoritative nodes/geometry/style.
 - **Geometry Engine**: pure functions to resolve geometry, booleans, bounds.
 - **Renderer**: consumes resolved geometry; caches render-specific artifacts.
@@ -223,7 +223,7 @@ Edits set “dirty flags” on:
 
 ## 8. Quality critique (gaps + risks)
 - The architecture diagram implies an “Operation Log” as the only mutator; Story currently uses snapshot history. Specs must be careful not to imply new infra is required for v1.
-- Node identity below element-level (points/segments) is a common missing piece; without stable sub-IDs, selection and future op logs will be brittle.
+- Node identity below element-level (points/segments) is a common missing piece; without stable sub-IDs, selection and operation logs will be brittle.
 - Mode/container confusion (slide vs master vs presentation) is a repeat failure mode; every interaction spec must route through a single active-container utility.
 - the node edited
 - dependent derived nodes (boolean/mask parents)

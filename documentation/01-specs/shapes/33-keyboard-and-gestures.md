@@ -24,7 +24,7 @@ Mode gating:
 - Escape to exit
 
 Vector editing gestures (v1):
-- Double-click shape → enter vector edit (if supported for that shape kind).
+- Double-click a vector-capable shape → enter vector edit; for non-vector-capable shapes, double-click is a no-op.
 - Double-click point → toggle corner↔smooth (see [21-vector-editing-operations.md](./21-vector-editing-operations.md)).
 - Alt-drag handle → break/unlink handles (explicit; never inferred).
 
