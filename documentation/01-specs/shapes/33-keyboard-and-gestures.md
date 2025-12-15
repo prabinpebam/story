@@ -23,6 +23,23 @@ Mode gating:
 - Double click to enter edit
 - Escape to exit
 
+## 3.1 Paste (Ctrl/Cmd+V) — interop
+When not in text-editing focus, `Ctrl/Cmd+V` MUST attempt a shapes import paste.
+
+Mode gating:
+- In `presentation`, paste MUST not mutate document state.
+
+Paste priority (system clipboard):
+- Prefer vector payloads for editability:
+	1) `image/svg+xml`
+	2) `text/html` containing an `<svg>`
+	3) `text/plain` containing an `<svg>`
+	4) raster `image/*` (fallback)
+
+Behavior contract:
+- Figma clipboard paste MUST follow [19a-figma-clipboard-import.md](./19a-figma-clipboard-import.md) and produce editable Story elements.
+- Paste MUST be a single undo step.
+
 Vector editing gestures (v1):
 - Double-click a vector-capable shape → enter vector edit; for non-vector-capable shapes, double-click is a no-op.
 - Double-click point → toggle corner↔smooth (see [21-vector-editing-operations.md](./21-vector-editing-operations.md)).

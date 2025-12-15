@@ -31,6 +31,10 @@ We standardize on:
 - `type: 'svg'` for imported raw SVG markup elements (existing)
 - `type: 'text'`, `type: 'image'`, `type: 'group'` remain unchanged
 
+Interop requirement:
+- **Figma clipboard paste** MUST import into editable Story elements (primarily `type:'shape'`, `type:'group'`, and `type:'text'` when representable) per [19a-figma-clipboard-import.md](./19a-figma-clipboard-import.md).
+- `type:'svg'` is reserved for explicit “raw SVG element” import and last-resort fallback behavior; it is not the primary representation for Figma paste.
+
 Rationale:
 - Avoid proliferating types (`rectangle`, `ellipse`, `rect`, `circle`, …).
 - Keep a stable base for renderer and inspector.
@@ -58,6 +62,11 @@ All elements keep existing fields:
 Constraints:
 - We do not introduce new rendering-only fields into the document schema.
 - All persisted fields MUST be JSON-serializable and safe to round-trip through `.str` (no DOM nodes, functions, cyclic refs).
+
+Optional import provenance (allowed, not required):
+- Elements created via interop may include an `interop` metadata object, e.g.:
+  - `interop: { source: 'figma-clipboard', importedAt: <number>, warnings?: string[] }`
+- `interop` MUST be treated as non-rendering metadata and MUST round-trip losslessly.
 
 ---
 

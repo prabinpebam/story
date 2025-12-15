@@ -53,6 +53,14 @@ Fallback policy (interop):
 - `video` fills: export as raster snapshot (default) or a deterministic fallback visual with metadata.
 - Effects that can’t map to SVG filters: rasterize affected element for export (explicitly best-effort).
 
+Import mapping requirement:
+- Figma clipboard paste MUST map imported paints/effects into the existing `style` model (fills/strokes/effects) per [19a-figma-clipboard-import.md](./19a-figma-clipboard-import.md).
+- Minimum required effect mapping for Figma paste:
+  - drop shadow
+  - inner shadow
+  - layer blur
+- Unsupported effects MUST be dropped with a stable warning; geometry remains editable.
+
 ## 5. Inspector alignment
 - Continue using `FillSection`, `StrokeSection`, `EffectsSection`.
 - Any new geometry controls must not introduce new tokens/components.

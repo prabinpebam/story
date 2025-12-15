@@ -285,6 +285,15 @@ Specs:
 
 Spec: [19-serialization-and-interop.md](./19-serialization-and-interop.md)
 
+### 11.3 Figma clipboard paste → editable elements
+- Clipboard payload extraction (`image/svg+xml`, `text/html`, `text/plain`)
+- Sanitization + limits
+- SVG/HTML → IR → Story element conversion
+- Text import + outline fallback
+- Paint/effects mapping + deterministic degrade ladder
+
+Spec: [19a-figma-clipboard-import.md](./19a-figma-clipboard-import.md)
+
 ---
 
 ## 12. Tooling & Developer Ergonomics

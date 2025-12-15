@@ -34,6 +34,7 @@ It is intentionally structured like the existing specs (see `typography-system/0
   - **Boolean** (union/subtract/intersect/exclude)
   - **Mask/Clip** (single masking model that works for shapes, text, images, and videos)
 - Export/serialization requirements (at least internal persistence; SVG mapping as target)
+- Figma clipboard paste → editable Story elements (SVG/HTML clipboard import)
 - Undo/redo correctness and collaboration-readiness at the operation layer
 - Performance strategy: caching, incremental recompute, dirty regions
 
@@ -41,7 +42,7 @@ It is intentionally structured like the existing specs (see `typography-system/0
 - CAD/NURBS curves
 - Gradient mesh authoring (existing mesh gradient system can remain separate)
 - Full Illustrator-class pathfinder edge cases on day 1
-- Arbitrary SVG import fidelity
+- Arbitrary SVG import fidelity beyond the defined supported subset (Figma paste is covered; “random SVG from the internet” fidelity is not)
 
 ---
 
@@ -154,6 +155,7 @@ Rendering/performance/interop specs (scaffolded):
 - [17-caching-and-performance.md](./17-caching-and-performance.md)
 - [18-operation-model-collaboration-readiness.md](./18-operation-model-collaboration-readiness.md)
 - [19-serialization-and-interop.md](./19-serialization-and-interop.md)
+- [19a-figma-clipboard-import.md](./19a-figma-clipboard-import.md)
 
 Interaction/UX specs (scaffolded):
 - [20-interaction-modes-and-state-machine.md](./20-interaction-modes-and-state-machine.md)

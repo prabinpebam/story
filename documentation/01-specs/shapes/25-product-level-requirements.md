@@ -38,8 +38,14 @@ Failure-handling rules (must be non-destructive):
 
 Security constraints aligned to current features:
 - Imported SVG must be sanitized (no scripts, no event handlers, no external URLs).
+- Figma clipboard paste import MUST apply the same sanitization and MUST not fetch external resources (see [19a-figma-clipboard-import.md](./19a-figma-clipboard-import.md)).
 - Code fills are authored content; do not execute any code sourced from untrusted imports.
 - Export must not leak local file paths or machine-specific identifiers.
+
+Import safety requirements (Figma paste):
+- Paste import MUST be a total function (no crashes, no partial commits).
+- Paste import MUST enforce payload size/node-count guardrails.
+- Unsupported features MUST degrade safely and emit non-blocking warnings.
 
 ## 5. Acceptance
 - Large presentations remain usable.

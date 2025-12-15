@@ -36,15 +36,36 @@ Figma-class learning to incorporate:
 - Preserve authoring intent in the document model even if export flattens it (e.g. booleans/masks remain editable in-app).
 
 ## 3. Import (deferred but spec’d)
-- SVG parsing safety (sanitization already exists for raw SVG elements).
-- Define which features are supported and which are baked or dropped.
+Import is required for two distinct user-facing paths:
+1) **Figma clipboard paste → editable Story elements** (required): see [19a-figma-clipboard-import.md](./19a-figma-clipboard-import.md).
+2) **Raw SVG element import** (optional, lower-fidelity): importing arbitrary SVG markup as `type:'svg'` elements.
 
-Minimum supported import subset (v1):
-- Basic paths (`d`), groups, transforms.
-- Solid fills, strokes (basic width/join/cap/dash).
+Shared requirements:
+- SVG parsing safety is mandatory (sanitization).
+- Importer must be explicit about what is supported vs baked vs dropped.
 
-Explicitly not guaranteed (v1):
-- Filters/effects, complex blend modes, nested masks with non-trivial units.
+### 3.1 Figma clipboard paste (required)
+The Figma paste pathway is the primary “editable import” contract.
+
+Minimum required support for Figma paste (v1):
+- SVG extraction from `image/svg+xml`, `text/html`, and `text/plain` clipboard payloads.
+- Groups, transforms, paths.
+- Solid fills, linear/radial gradients.
+- Strokes (width/join/cap/dash; alignment via bake-to-path when needed).
+- Clips/masks where representable.
+- Text import as `type:'text'` when representable; otherwise outline-to-path fallback.
+
+Not guaranteed for Figma paste (v1) but MUST degrade safely per [19a-figma-clipboard-import.md](./19a-figma-clipboard-import.md):
+- Unsupported blend modes.
+- Complex filter graphs.
+- Text-on-path / per-glyph transforms.
+
+### 3.2 Raw SVG import (optional)
+Raw SVG import is explicitly not required to be high-fidelity for arbitrary SVG.
+It MUST be sanitized and it MUST not break the document.
+
+Explicitly not guaranteed (v1) for raw SVG import:
+- Filters/effects fidelity, complex blend modes, nested masks with non-trivial units.
 - SVG animation, scripts, external references.
 
 ## 4. Security

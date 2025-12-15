@@ -30,6 +30,38 @@ Required location:
 - `tests/corpus/shapes/`
 	- `booleans/` — boolean operation repros
 	- `paths/` — general path robustness repros (self-intersections, degenerates)
+	- `figma-paste/` — Figma clipboard paste repros (SVG/HTML payloads + expected editable output)
+
+### 2.1a Figma paste corpus (required)
+Figma paste is a high-risk integration (clipboard → SVG/HTML → editable elements). CI MUST pin behavior via fixtures.
+
+Required location:
+- `tests/corpus/shapes/figma-paste/`
+
+Fixture requirements (JSON, stable and hand-editable):
+- Each fixture MUST include:
+	- `id` (stable string)
+	- `description`
+	- `clipboard`:
+		- optional `imageSvgXml` (string SVG markup)
+		- optional `textHtml` (string HTML)
+		- optional `textPlain` (string)
+	- `importOptions`:
+		- `idSeed` (string) for deterministic IDs
+		- optional `placement: 'viewportCenter'`
+	- `expected`:
+		- `elementsCanonicalHash` (hash of canonicalized created elements)
+		- `warnings` (stable list of warning codes)
+		- `elementCount` (number)
+		- `topLevelCount` (number)
+
+Acceptance invariants:
+- Import MUST be a total function: no crash, no NaN/Infinity, no partial commit.
+- Same fixture + same `idSeed` MUST produce identical canonical hash across runs.
+- Unsupported features MUST yield stable warning codes (see [19a-figma-clipboard-import.md](./19a-figma-clipboard-import.md)).
+
+Hashing scope (required):
+- `elementsCanonicalHash` MUST hash only the newly created elements (not the full slide) and MUST ignore runtime-only fields.
 
 Corpus entry format (JSON, stable and hand-editable):
 - Each fixture MUST include:
@@ -86,6 +118,9 @@ Figma-class learnings (what actually prevents regressions):
 
 ## 3. Determinism tests
 - Replay same action sequence produces same geometry outputs.
+
+Figma paste determinism:
+- For a fixed clipboard payload and a fixed `idSeed`, imported Story elements MUST be byte-stable after canonicalization.
 
 ## 4. Feature flags
 - Gate experimental booleans/vector edit mode behind flags if needed.
