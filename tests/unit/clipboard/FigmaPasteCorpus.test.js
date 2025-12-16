@@ -17,6 +17,7 @@ function readText(filePath) {
 
 describe('Figma paste corpus (determinism)', () => {
     const cases = [
+        { name: 'blend-mode-basic' },
         { name: 'clip-path-basic' },
         { name: 'mask-basic' },
         { name: 'filter-basic' },

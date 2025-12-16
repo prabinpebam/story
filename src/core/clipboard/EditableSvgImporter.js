@@ -1425,6 +1425,14 @@ function hasUnsupportedFilter(node) {
     return true;
 }
 
+function getMixBlendMode(node) {
+    const raw = getInheritedPresentation(node, 'mix-blend-mode');
+    if (typeof raw !== 'string') return null;
+    const v = raw.trim().toLowerCase();
+    if (!v || v === 'normal') return null;
+    return v;
+}
+
 function getVectorEffect(node) {
     const raw = getInheritedPresentation(node, 'vector-effect');
     if (typeof raw !== 'string') return null;
@@ -1870,6 +1878,12 @@ export function importEditableShapesFromSanitizedSvg(sanitizedSvg, options) {
 
         if (hasUnsupportedFilter(node)) {
             warnings.push('WARN_FILTER_UNSUPPORTED');
+        }
+
+        const mixBlendMode = getMixBlendMode(node);
+        if (mixBlendMode) {
+            // Conservative: Story shape paints currently import with normal blend.
+            warnings.push('WARN_BLEND_MODE_UNSUPPORTED');
         }
 
         const paint = resolvePaintForNode(node);

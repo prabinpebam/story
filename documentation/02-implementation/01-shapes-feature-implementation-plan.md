@@ -54,7 +54,8 @@ This status snapshot reflects what is implemented in the repo today (not “plan
   - [x] Imported as repeating `image` fill (SVG tile data URI)
   - [x] Detects `clip-path` usage and imports the shape anyway (clip is ignored; deterministic warning)
   - [x] Detects `mask` usage and imports the shape anyway (mask is ignored; deterministic warning)
- - [x] Detects `filter` usage and imports the shape anyway (filter is ignored; deterministic warning)
+  - [x] Detects `filter` usage and imports the shape anyway (filter is ignored; deterministic warning)
+  - [x] Detects `mix-blend-mode` usage and imports the shape anyway (blend is ignored; deterministic warning)
   - [x] Vitest: `tests/unit/clipboard/EditableSvgImporter.test.js`
   - [x] Playwright: `tests/e2e/specs/functional/clipboard-html-svg-paste-editable.spec.ts`
 

@@ -1,0 +1,6 @@
+{
+  "name": "blend-mode-basic",
+  "warnings": ["WARN_BLEND_MODE_UNSUPPORTED"],
+  "elementsCount": 1,
+  "sha256": "c5b3a097b15eacf417f0bd18bf6928c5a5615b2431bdf419a2ae709e17adb47e"
+}
