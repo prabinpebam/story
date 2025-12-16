@@ -884,7 +884,8 @@ export function importEditableShapesFromSanitizedSvg(sanitizedSvg, options) {
             const width = toNumber(node.getAttribute('width')) ?? 0;
             const height = toNumber(node.getAttribute('height')) ?? 0;
             if (width > 0 && height > 0) {
-                const { fills, strokes } = styleForNode(node);
+                const bboxOverride = { x, y, width, height };
+                const { fills, strokes } = styleForNode(node, { bboxOverride });
                 const rx = toNumber(node.getAttribute('rx')) ?? null;
                 const ry = toNumber(node.getAttribute('ry')) ?? null;
                 const borderRadius = rx !== null || ry !== null ? Math.max(0, Math.min(rx ?? ry ?? 0, ry ?? rx ?? 0)) : 0;
@@ -908,7 +909,8 @@ export function importEditableShapesFromSanitizedSvg(sanitizedSvg, options) {
             const cy = (toNumber(node.getAttribute('cy')) ?? 0) + nextAccumulated.ty;
             const r = toNumber(node.getAttribute('r')) ?? 0;
             if (r > 0) {
-                const { fills, strokes } = styleForNode(node);
+                const bboxOverride = { x: cx - r, y: cy - r, width: 2 * r, height: 2 * r };
+                const { fills, strokes } = styleForNode(node, { bboxOverride });
                 elements.push({
                     id: makeId(),
                     type: 'shape',
@@ -928,7 +930,8 @@ export function importEditableShapesFromSanitizedSvg(sanitizedSvg, options) {
             const rx = toNumber(node.getAttribute('rx')) ?? 0;
             const ry = toNumber(node.getAttribute('ry')) ?? 0;
             if (rx > 0 && ry > 0) {
-                const { fills, strokes } = styleForNode(node);
+                const bboxOverride = { x: cx - rx, y: cy - ry, width: 2 * rx, height: 2 * ry };
+                const { fills, strokes } = styleForNode(node, { bboxOverride });
                 elements.push({
                     id: makeId(),
                     type: 'shape',
