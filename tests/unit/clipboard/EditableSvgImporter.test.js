@@ -166,6 +166,28 @@ describe('EditableSvgImporter.importEditableShapesFromSanitizedSvg', () => {
         expect(Math.abs(b.x - a.x)).toBeCloseTo(10, 6);
     });
 
+    it('supports transform lists containing an axis-aligned matrix(...)', () => {
+        const svg = `
+            <svg xmlns="http://www.w3.org/2000/svg">
+                <g transform="matrix(2 0 0 2 10 0) scale(2)">
+                    <rect x="0" y="0" width="10" height="10" fill="#f00" />
+                </g>
+            </svg>
+        `;
+
+        const res = importEditableShapesFromSanitizedSvg(svg, { centerX: 0, centerY: 0, idSeed: 't' });
+        expect(res.ok).toBe(true);
+        if (!res.ok) return;
+
+        expect(res.elements).toHaveLength(1);
+        const el = res.elements[0];
+        expect(el.shapeKind).toBe('rectangle');
+
+        // Right-to-left application: scale(2) then matrix(2x + 10) => net scale 4.
+        expect(el.width).toBeCloseTo(40, 6);
+        expect(el.height).toBeCloseTo(40, 6);
+    });
+
         it('warns and degrades when fill/stroke are url(#...) paints', () => {
                 const svg = `
                     <svg xmlns="http://www.w3.org/2000/svg">

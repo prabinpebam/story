@@ -1101,6 +1101,19 @@ function parseScaleTranslateOnlyTransform(transform) {
             if (sx === null || sy === null) return { ok: false };
             if (sx <= 0 || sy <= 0) return { ok: false };
             parts.push({ sx, sy, tx: 0, ty: 0 });
+        } else if (m.name === 'matrix') {
+            // SVG matrix(a b c d e f)
+            if (rawParts.length !== 6) return { ok: false };
+            const a = toNumber(rawParts[0]);
+            const b = toNumber(rawParts[1]);
+            const c = toNumber(rawParts[2]);
+            const d = toNumber(rawParts[3]);
+            const e = toNumber(rawParts[4]);
+            const f = toNumber(rawParts[5]);
+            if (a === null || b === null || c === null || d === null || e === null || f === null) return { ok: false };
+            if (b !== 0 || c !== 0) return { ok: false };
+            if (a <= 0 || d <= 0) return { ok: false };
+            parts.push({ sx: a, sy: d, tx: e, ty: f });
         } else {
             return { ok: false };
         }
