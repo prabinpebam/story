@@ -516,4 +516,24 @@ describe('EditableSvgImporter.importEditableShapesFromSanitizedSvg', () => {
                 expect(res.elements.length).toBeGreaterThan(0);
                 expect(res.warnings).toContain('WARN_PATH_UNSUPPORTED');
         });
+
+        it('computes a tighter bbox for cubic paths using extrema (not control points)', () => {
+                // For y(t) with p0=0, c1=100, c2=100, p1=0:
+                // y(t) = 300 t (1-t) has max 75 at t=0.5.
+                // With pad=0.5, expected height is 75 + 1 = 76.
+                const svg = `
+                    <svg xmlns="http://www.w3.org/2000/svg">
+                        <path d="M0 0 C 0 100 10 100 10 0" fill="none" stroke="#000" stroke-width="1" />
+                    </svg>
+                `;
+
+                const res = importEditableShapesFromSanitizedSvg(svg, { centerX: 0, centerY: 0, idSeed: 't' });
+                expect(res.ok).toBe(true);
+                if (!res.ok) return;
+
+                const el = res.elements[0];
+                expect(el.shapeKind).toBe('vector');
+                expect(el.height).toBeCloseTo(76, 3);
+                expect(el.width).toBeCloseTo(11, 3);
+        });
 });

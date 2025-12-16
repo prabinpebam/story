@@ -734,6 +734,44 @@ function parsePathDataToVectorPaths(d, options) {
     return { ok: true, paths };
 }
 
+function solveQuadratic(a, b, c) {
+    // Solve a*t^2 + b*t + c = 0
+    const eps = 1e-12;
+    if (Math.abs(a) < eps) {
+        if (Math.abs(b) < eps) return [];
+        return [(-c) / b];
+    }
+    const disc = b * b - 4 * a * c;
+    if (disc < 0) return [];
+    const sqrt = Math.sqrt(disc);
+    return [(-b + sqrt) / (2 * a), (-b - sqrt) / (2 * a)];
+}
+
+function cubicAt(p0, c1, c2, p3, t) {
+    const mt = 1 - t;
+    const mt2 = mt * mt;
+    const t2 = t * t;
+    const a = mt2 * mt;
+    const b = 3 * mt2 * t;
+    const c = 3 * mt * t2;
+    const d = t2 * t;
+    return a * p0 + b * c1 + c * c2 + d * p3;
+}
+
+function cubicExtremaTs(p0, c1, c2, p3) {
+    // Find t in (0,1) where derivative is 0.
+    // Derivative for cubic Bezier coordinate:
+    // 3a t^2 + 2b t + c = 0
+    // where a = -p0 + 3c1 - 3c2 + p3
+    //       b = 3p0 - 6c1 + 3c2
+    //       c = -3p0 + 3c1
+    const A = 3 * (-p0 + 3 * c1 - 3 * c2 + p3);
+    const B = 2 * (3 * p0 - 6 * c1 + 3 * c2);
+    const C = (-3 * p0 + 3 * c1);
+    const roots = solveQuadratic(A, B, C);
+    return roots.filter(t => Number.isFinite(t) && t > 1e-8 && t < 1 - 1e-8);
+}
+
 function parseColorToHexAndAlpha(color) {
     if (typeof color !== 'string') return null;
     const c = color.trim();
@@ -1295,7 +1333,7 @@ export function importEditableShapesFromSanitizedSvg(sanitizedSvg, options) {
             const fillRule = getFillRuleForNode(node);
             const parsed = parsePathDataToVectorPaths(d, { fillRule });
             if (parsed.ok) {
-                // Compute a bbox from the parsed geometry (line/cubic). Note: no cubic extrema yet; use control points.
+                // Compute a bbox from the parsed geometry (line/cubic) using cubic extrema for tighter bounds.
                 let minX = Infinity;
                 let minY = Infinity;
                 let maxX = -Infinity;
@@ -1317,9 +1355,17 @@ export function importEditableShapesFromSanitizedSvg(sanitizedSvg, options) {
                             includePoint(seg.to);
                             curP = { ...seg.to };
                         } else if (seg.kind === 'cubic') {
-                            includePoint(seg.c1);
-                            includePoint(seg.c2);
                             includePoint(seg.to);
+
+                            const tsX = cubicExtremaTs(curP.x, seg.c1.x, seg.c2.x, seg.to.x);
+                            const tsY = cubicExtremaTs(curP.y, seg.c1.y, seg.c2.y, seg.to.y);
+                            const ts = Array.from(new Set([...tsX, ...tsY]));
+                            for (const t of ts) {
+                                const x = cubicAt(curP.x, seg.c1.x, seg.c2.x, seg.to.x, t);
+                                const y = cubicAt(curP.y, seg.c1.y, seg.c2.y, seg.to.y, t);
+                                if (Number.isFinite(x) && Number.isFinite(y)) includePoint({ x, y });
+                            }
+
                             curP = { ...seg.to };
                         }
                     }
