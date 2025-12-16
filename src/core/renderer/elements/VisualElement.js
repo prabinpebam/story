@@ -1,4 +1,5 @@
 import { store } from '../../Store.js';
+import { getShapeKind } from '../../shapes/ShapeElementAdapter.js';
 
 export class VisualElement {
     constructor(data) {
@@ -67,6 +68,14 @@ export class VisualElement {
             div.setAttribute('data-text-style-id', String(el.textStyleId));
         } else {
             div.removeAttribute('data-text-style-id');
+        }
+
+        // Canonical shape metadata (use adapter so legacy `type:'rect'` etc are covered)
+        const shapeKind = getShapeKind(el);
+        if (shapeKind) {
+            div.setAttribute('data-shape-kind', String(shapeKind));
+        } else {
+            div.removeAttribute('data-shape-kind');
         }
         
         // Calculate absolute position if parent exists

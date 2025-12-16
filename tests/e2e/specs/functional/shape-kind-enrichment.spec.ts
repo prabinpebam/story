@@ -111,5 +111,21 @@ test.describe('Shapes: shapeKind enrichment on load', () => {
     // Non-shape element should not get shapeKind metadata.
     expect(textAfter.type).toBe('text');
     expect('shapeKind' in textAfter).toBe(false);
+
+    // DOM validation: renderer exposes canonical `data-shape-kind` for Playwright.
+    const slideView = editor.canvas.locator('[data-testid="slide-view"]').first();
+    await expect(slideView).toBeVisible();
+
+    const rectEl = slideView.locator('[data-element-id="shape-legacy-rect-1"]').first();
+    await expect(rectEl).toBeVisible();
+    await expect(rectEl).toHaveAttribute('data-shape-kind', 'rectangle');
+
+    const circleEl = slideView.locator('[data-element-id="shape-legacy-circle-1"]').first();
+    await expect(circleEl).toBeVisible();
+    await expect(circleEl).toHaveAttribute('data-shape-kind', 'ellipse');
+
+    const textEl = slideView.locator('[data-element-id="text-1"]').first();
+    await expect(textEl).toBeVisible();
+    await expect(textEl).not.toHaveAttribute('data-shape-kind', /.+/);
   });
 });
