@@ -118,4 +118,46 @@ test.describe('Clipboard: paste SVG from text/html (editable shapes flag)', () =
     const anyGradientFill = newShapes.some((el: any) => el?.style?.fills?.[0]?.type === 'gradient');
     expect(anyGradientFill).toBe(true);
   });
+
+  test('pasting HTML containing an <svg><path/></svg> imports a vector shape', async ({ page, getState }) => {
+    const before = await getState();
+    const slideId = before.editor.activeSlideId;
+    expect(slideId).toBeTruthy();
+
+    const beforeElements = before.slides[slideId]?.elements || {};
+    const beforeIds = new Set(Object.keys(beforeElements));
+
+    const svg = '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="10"><path d="M0 0 L20 0 L20 10 Z" fill="#00ff00" /></svg>';
+    const html = `<div data-from="test">${svg}</div>`;
+
+    await page.evaluate(async ({ html }) => {
+      const item = new ClipboardItem({
+        'text/html': new Blob([html], { type: 'text/html' })
+      });
+      await navigator.clipboard.write([item]);
+    }, { html });
+
+    await page.keyboard.down('Control');
+    await page.keyboard.press('v');
+    await page.keyboard.up('Control');
+
+    await expect.poll(async () => {
+      const after = await getState();
+      const count = Object.keys(after.slides[slideId]?.elements || {}).length;
+      return count;
+    }, { timeout: 4000 }).toBeGreaterThan(beforeIds.size);
+
+    const after = await getState();
+    const afterElements = after.slides[slideId]?.elements || {};
+
+    const newElements = Object.entries(afterElements)
+      .filter(([id]) => !beforeIds.has(id))
+      .map(([, el]: any) => el);
+
+    const newShapes = newElements.filter((el: any) => el && el.type === 'shape');
+    expect(newShapes.length).toBeGreaterThan(0);
+
+    const anyVectorShape = newShapes.some((el: any) => el?.shapeKind === 'vector' && Array.isArray(el?.paths) && el.paths.length > 0);
+    expect(anyVectorShape).toBe(true);
+  });
 });

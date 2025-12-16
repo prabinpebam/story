@@ -261,7 +261,221 @@ function getPrimitiveLocalBBox(node) {
         const ry = toNumber(node.getAttribute('ry')) ?? 0;
         return { x: cx - rx, y: cy - ry, width: 2 * rx, height: 2 * ry };
     }
+    if (tag === 'line') {
+        const x1 = toNumber(node.getAttribute('x1')) ?? 0;
+        const y1 = toNumber(node.getAttribute('y1')) ?? 0;
+        const x2 = toNumber(node.getAttribute('x2')) ?? 0;
+        const y2 = toNumber(node.getAttribute('y2')) ?? 0;
+        const minX = Math.min(x1, x2);
+        const minY = Math.min(y1, y2);
+        const maxX = Math.max(x1, x2);
+        const maxY = Math.max(y1, y2);
+        return { x: minX, y: minY, width: maxX - minX, height: maxY - minY };
+    }
+    if (tag === 'polyline' || tag === 'polygon') {
+        const pts = parsePointsAttribute(node.getAttribute('points'));
+        if (!pts || pts.length < 2) return null;
+        let minX = Infinity;
+        let minY = Infinity;
+        let maxX = -Infinity;
+        let maxY = -Infinity;
+        for (const p of pts) {
+            minX = Math.min(minX, p.x);
+            minY = Math.min(minY, p.y);
+            maxX = Math.max(maxX, p.x);
+            maxY = Math.max(maxY, p.y);
+        }
+        if (!Number.isFinite(minX) || !Number.isFinite(minY) || !Number.isFinite(maxX) || !Number.isFinite(maxY)) return null;
+        return { x: minX, y: minY, width: maxX - minX, height: maxY - minY };
+    }
     return null;
+}
+
+function parsePointsAttribute(pointsAttr) {
+    if (typeof pointsAttr !== 'string') return null;
+    const raw = pointsAttr.trim();
+    if (raw.length === 0) return null;
+
+    // SVG points: comma/space separated list of numbers.
+    // Examples:
+    // - "0,0 10,10 20,0"
+    // - "0 0 10 10 20 0"
+    const tokens = raw.split(/[\s,]+/).filter(Boolean);
+    if (tokens.length < 4 || tokens.length % 2 !== 0) return null;
+
+    const pts = [];
+    for (let i = 0; i < tokens.length; i += 2) {
+        const x = toNumber(tokens[i]);
+        const y = toNumber(tokens[i + 1]);
+        if (x === null || y === null) return null;
+        pts.push({ x, y });
+    }
+    return pts;
+}
+
+function makeVectorPathFromPoints(points, { closed }) {
+    if (!Array.isArray(points) || points.length < 2) return null;
+    const start = { x: points[0].x, y: points[0].y };
+    const segments = [];
+    for (let i = 1; i < points.length; i++) {
+        segments.push({ kind: 'line', to: { x: points[i].x, y: points[i].y } });
+    }
+    return {
+        closed: !!closed,
+        fillRule: 'nonzero',
+        start,
+        segments
+    };
+}
+
+function parsePathDataToVectorPaths(d) {
+    // Conservative subset: M/m L/l H/h V/v C/c Z/z.
+    // Returns { ok:true, paths:Path[] } or { ok:false, reason }.
+    if (typeof d !== 'string') return { ok: false, reason: 'MISSING_D' };
+    const input = d.trim();
+    if (input.length === 0) return { ok: false, reason: 'EMPTY_D' };
+
+    // Tokenize commands and numbers.
+    const tokens = [];
+    const re = /([a-zA-Z])|([+-]?(?:\d+\.?\d*|\.\d+)(?:e[+-]?\d+)?)/g;
+    let m;
+    while ((m = re.exec(input)) !== null) {
+        if (m[1]) tokens.push({ t: 'cmd', v: m[1] });
+        else if (m[2]) tokens.push({ t: 'num', v: Number(m[2]) });
+    }
+
+    let i = 0;
+    function peek() {
+        return tokens[i] || null;
+    }
+    function take() {
+        return tokens[i++] || null;
+    }
+    function takeNumber() {
+        const tok = take();
+        if (!tok || tok.t !== 'num' || !Number.isFinite(tok.v)) return null;
+        return tok.v;
+    }
+
+    const paths = [];
+    let cur = { x: 0, y: 0 };
+    let subpathStart = null;
+    let activePath = null;
+    let lastCmd = null;
+
+    function ensurePathStart(x, y) {
+        activePath = {
+            closed: false,
+            fillRule: 'nonzero',
+            start: { x, y },
+            segments: []
+        };
+        paths.push(activePath);
+        subpathStart = { x, y };
+        cur = { x, y };
+    }
+
+    while (i < tokens.length) {
+        const tok = peek();
+        let cmd;
+        if (tok && tok.t === 'cmd') {
+            cmd = String(take().v);
+            lastCmd = cmd;
+        } else if (lastCmd) {
+            // Implied command repeat.
+            cmd = lastCmd;
+        } else {
+            return { ok: false, reason: 'PATH_PARSE_FAILED' };
+        }
+
+        const isRel = cmd === cmd.toLowerCase();
+        const upper = cmd.toUpperCase();
+
+        if (upper === 'M') {
+            const x = takeNumber();
+            const y = takeNumber();
+            if (x === null || y === null) return { ok: false, reason: 'PATH_PARSE_FAILED' };
+            const nx = isRel ? cur.x + x : x;
+            const ny = isRel ? cur.y + y : y;
+            ensurePathStart(nx, ny);
+
+            // Subsequent pairs are treated as implicit L.
+            while (true) {
+                const n1 = peek();
+                if (!n1 || n1.t !== 'num') break;
+                const lx = takeNumber();
+                const ly = takeNumber();
+                if (lx === null || ly === null) return { ok: false, reason: 'PATH_PARSE_FAILED' };
+                const x2 = isRel ? cur.x + lx : lx;
+                const y2 = isRel ? cur.y + ly : ly;
+                activePath.segments.push({ kind: 'line', to: { x: x2, y: y2 } });
+                cur = { x: x2, y: y2 };
+                lastCmd = isRel ? 'l' : 'L';
+            }
+        } else if (upper === 'L') {
+            if (!activePath) return { ok: false, reason: 'MISSING_MOVETO' };
+            while (true) {
+                const n1 = peek();
+                if (!n1 || n1.t !== 'num') break;
+                const x = takeNumber();
+                const y = takeNumber();
+                if (x === null || y === null) return { ok: false, reason: 'PATH_PARSE_FAILED' };
+                const nx = isRel ? cur.x + x : x;
+                const ny = isRel ? cur.y + y : y;
+                activePath.segments.push({ kind: 'line', to: { x: nx, y: ny } });
+                cur = { x: nx, y: ny };
+            }
+        } else if (upper === 'H') {
+            if (!activePath) return { ok: false, reason: 'MISSING_MOVETO' };
+            while (true) {
+                const n1 = peek();
+                if (!n1 || n1.t !== 'num') break;
+                const x = takeNumber();
+                if (x === null) return { ok: false, reason: 'PATH_PARSE_FAILED' };
+                const nx = isRel ? cur.x + x : x;
+                activePath.segments.push({ kind: 'line', to: { x: nx, y: cur.y } });
+                cur = { x: nx, y: cur.y };
+            }
+        } else if (upper === 'V') {
+            if (!activePath) return { ok: false, reason: 'MISSING_MOVETO' };
+            while (true) {
+                const n1 = peek();
+                if (!n1 || n1.t !== 'num') break;
+                const y = takeNumber();
+                if (y === null) return { ok: false, reason: 'PATH_PARSE_FAILED' };
+                const ny = isRel ? cur.y + y : y;
+                activePath.segments.push({ kind: 'line', to: { x: cur.x, y: ny } });
+                cur = { x: cur.x, y: ny };
+            }
+        } else if (upper === 'C') {
+            if (!activePath) return { ok: false, reason: 'MISSING_MOVETO' };
+            while (true) {
+                const n1 = peek();
+                if (!n1 || n1.t !== 'num') break;
+                const x1 = takeNumber();
+                const y1 = takeNumber();
+                const x2 = takeNumber();
+                const y2 = takeNumber();
+                const x = takeNumber();
+                const y = takeNumber();
+                if ([x1, y1, x2, y2, x, y].some(v => v === null)) return { ok: false, reason: 'PATH_PARSE_FAILED' };
+                const c1 = { x: isRel ? cur.x + x1 : x1, y: isRel ? cur.y + y1 : y1 };
+                const c2 = { x: isRel ? cur.x + x2 : x2, y: isRel ? cur.y + y2 : y2 };
+                const to = { x: isRel ? cur.x + x : x, y: isRel ? cur.y + y : y };
+                activePath.segments.push({ kind: 'cubic', c1, c2, to });
+                cur = { ...to };
+            }
+        } else if (upper === 'Z') {
+            if (!activePath || !subpathStart) return { ok: false, reason: 'MISSING_MOVETO' };
+            activePath.closed = true;
+            cur = { ...subpathStart };
+        } else {
+            return { ok: false, reason: 'UNSUPPORTED_PATH_COMMAND' };
+        }
+    }
+
+    if (paths.length === 0) return { ok: false, reason: 'EMPTY_PATHS' };
+    return { ok: true, paths };
 }
 
 function parseColorToHexAndAlpha(color) {
@@ -725,6 +939,168 @@ export function importEditableShapesFromSanitizedSvg(sanitizedSvg, options) {
                     rotation: 0,
                     style: { fills, strokes }
                 });
+            }
+        } else if (tag === 'line') {
+            const x1 = (toNumber(node.getAttribute('x1')) ?? 0) + nextAccumulated.tx;
+            const y1 = (toNumber(node.getAttribute('y1')) ?? 0) + nextAccumulated.ty;
+            const x2 = (toNumber(node.getAttribute('x2')) ?? 0) + nextAccumulated.tx;
+            const y2 = (toNumber(node.getAttribute('y2')) ?? 0) + nextAccumulated.ty;
+
+            const minX = Math.min(x1, x2);
+            const minY = Math.min(y1, y2);
+            const maxX = Math.max(x1, x2);
+            const maxY = Math.max(y1, y2);
+
+            const pad = 0.5;
+            const x = minX - pad;
+            const y = minY - pad;
+            const width = (maxX - minX) + 2 * pad;
+            const height = (maxY - minY) + 2 * pad;
+
+            if (width > 0 && height > 0) {
+                const { fills, strokes } = styleForNode(node);
+                elements.push({
+                    id: makeId(),
+                    type: 'shape',
+                    shape: 'line',
+                    shapeKind: 'line',
+                    x,
+                    y,
+                    width,
+                    height,
+                    rotation: 0,
+                    params: {
+                        p1: { x: x1 - x, y: y1 - y },
+                        p2: { x: x2 - x, y: y2 - y }
+                    },
+                    style: { fills, strokes }
+                });
+            }
+        } else if (tag === 'polyline' || tag === 'polygon') {
+            const pts = parsePointsAttribute(node.getAttribute('points'));
+            if (pts && pts.length >= 2) {
+                const translated = pts.map(p => ({ x: p.x + nextAccumulated.tx, y: p.y + nextAccumulated.ty }));
+
+                let minX = Infinity;
+                let minY = Infinity;
+                let maxX = -Infinity;
+                let maxY = -Infinity;
+                for (const p of translated) {
+                    minX = Math.min(minX, p.x);
+                    minY = Math.min(minY, p.y);
+                    maxX = Math.max(maxX, p.x);
+                    maxY = Math.max(maxY, p.y);
+                }
+
+                const pad = 0.5;
+                const x = minX - pad;
+                const y = minY - pad;
+                const width = (maxX - minX) + 2 * pad;
+                const height = (maxY - minY) + 2 * pad;
+
+                if (width > 0 && height > 0) {
+                    const localPts = translated.map(p => ({ x: p.x - x, y: p.y - y }));
+                    const path = makeVectorPathFromPoints(localPts, { closed: tag === 'polygon' });
+                    if (path) {
+                        const { fills, strokes } = styleForNode(node);
+                        elements.push({
+                            id: makeId(),
+                            type: 'shape',
+                            shape: 'vector',
+                            shapeKind: 'vector',
+                            x,
+                            y,
+                            width,
+                            height,
+                            rotation: 0,
+                            paths: [path],
+                            style: { fills, strokes }
+                        });
+                    }
+                }
+            }
+        } else if (tag === 'path') {
+            const d = node.getAttribute('d') ?? '';
+            const parsed = parsePathDataToVectorPaths(d);
+            if (parsed.ok) {
+                // Compute a bbox from the parsed geometry (line/cubic). Note: no cubic extrema yet; use control points.
+                let minX = Infinity;
+                let minY = Infinity;
+                let maxX = -Infinity;
+                let maxY = -Infinity;
+
+                function includePoint(p) {
+                    minX = Math.min(minX, p.x);
+                    minY = Math.min(minY, p.y);
+                    maxX = Math.max(maxX, p.x);
+                    maxY = Math.max(maxY, p.y);
+                }
+
+                for (const path of parsed.paths) {
+                    if (!path?.start) continue;
+                    includePoint(path.start);
+                    let curP = { ...path.start };
+                    for (const seg of path.segments || []) {
+                        if (seg.kind === 'line') {
+                            includePoint(seg.to);
+                            curP = { ...seg.to };
+                        } else if (seg.kind === 'cubic') {
+                            includePoint(seg.c1);
+                            includePoint(seg.c2);
+                            includePoint(seg.to);
+                            curP = { ...seg.to };
+                        }
+                    }
+                    if (path.closed) includePoint(path.start);
+                }
+
+                if (Number.isFinite(minX) && Number.isFinite(minY) && Number.isFinite(maxX) && Number.isFinite(maxY)) {
+                    const pad = 0.5;
+                    const x = minX - pad + nextAccumulated.tx;
+                    const y = minY - pad + nextAccumulated.ty;
+                    const width = (maxX - minX) + 2 * pad;
+                    const height = (maxY - minY) + 2 * pad;
+
+                    if (width > 0 && height > 0) {
+                        const localPaths = parsed.paths.map(p => ({
+                            ...p,
+                            start: { x: p.start.x - (minX - pad), y: p.start.y - (minY - pad) },
+                            segments: (p.segments || []).map(seg => {
+                                if (seg.kind === 'line') {
+                                    return { kind: 'line', to: { x: seg.to.x - (minX - pad), y: seg.to.y - (minY - pad) } };
+                                }
+                                if (seg.kind === 'cubic') {
+                                    return {
+                                        kind: 'cubic',
+                                        c1: { x: seg.c1.x - (minX - pad), y: seg.c1.y - (minY - pad) },
+                                        c2: { x: seg.c2.x - (minX - pad), y: seg.c2.y - (minY - pad) },
+                                        to: { x: seg.to.x - (minX - pad), y: seg.to.y - (minY - pad) }
+                                    };
+                                }
+                                return seg;
+                            })
+                        }));
+
+                        const { fills, strokes } = styleForNode(node);
+                        elements.push({
+                            id: makeId(),
+                            type: 'shape',
+                            shape: 'vector',
+                            shapeKind: 'vector',
+                            x,
+                            y,
+                            width,
+                            height,
+                            rotation: 0,
+                            paths: localPaths,
+                            style: { fills, strokes }
+                        });
+                    }
+                } else {
+                    warnings.push('WARN_PATH_BBOX_FAILED');
+                }
+            } else if (parsed.reason === 'UNSUPPORTED_PATH_COMMAND') {
+                warnings.push('WARN_PATH_UNSUPPORTED');
             }
         }
 

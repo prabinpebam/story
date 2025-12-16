@@ -3,6 +3,7 @@ import { CodeRunner } from '../../effects/CodeRunner.js';
 import { store } from '../../Store.js';
 import { mediaAssetManager } from '../../media/MediaAssetManager.js';
 import { FilterEngine } from '../../media/FilterEngine.js';
+import { getShapeKind } from '../../shapes/ShapeElementAdapter.js';
 
 export class ShapeElement extends VisualElement {
     constructor(data) {
@@ -85,6 +86,16 @@ export class ShapeElement extends VisualElement {
 
         if (!div) return;
 
+        const shapeKind = getShapeKind(el);
+        if (shapeKind === 'line' || shapeKind === 'vector') {
+            this.applyVectorGeometry(div, el, shapeKind);
+            this.applyEffects(div, el);
+            return;
+        } else {
+            const existingGeometry = div.querySelector('svg.geometry-layer');
+            if (existingGeometry) existingGeometry.remove();
+        }
+
         this.applyFills(div, el);
         this.applyStrokes(div, el);
         this.applyEffects(div, el);
@@ -97,6 +108,192 @@ export class ShapeElement extends VisualElement {
             const icon = div.querySelector('.placeholder-icon-container');
             if (icon) icon.remove();
         }
+    }
+
+    applyVectorGeometry(div, el, shapeKind) {
+        // Remove legacy fill/stroke layers so we don't double-render.
+        this.clearComplexFills(div);
+        const fillLayers = Array.from(div.children).filter(c => c.classList && c.classList.contains('fill-layer'));
+        fillLayers.forEach(l => l.remove());
+        const strokeLayers = Array.from(div.children).filter(c => c.classList && c.classList.contains('stroke-layer'));
+        strokeLayers.forEach(l => l.remove());
+
+        div.style.background = 'transparent';
+        div.style.backgroundImage = 'none';
+        div.style.borderRadius = '0px';
+
+        let svg = div.querySelector('svg.geometry-layer');
+        if (!svg) {
+            svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+            svg.setAttribute('class', 'geometry-layer');
+            svg.style.position = 'absolute';
+            svg.style.left = '0';
+            svg.style.top = '0';
+            svg.style.width = '100%';
+            svg.style.height = '100%';
+            svg.style.pointerEvents = 'none';
+            svg.style.overflow = 'visible';
+            // Keep behind selection UI overlays.
+            svg.style.zIndex = '1';
+            div.appendChild(svg);
+        }
+
+        const width = Math.max(0, Number(el.width) || 0);
+        const height = Math.max(0, Number(el.height) || 0);
+        svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
+        svg.setAttribute('width', '100%');
+        svg.setAttribute('height', '100%');
+
+        while (svg.firstChild) svg.removeChild(svg.firstChild);
+
+        const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+        svg.appendChild(defs);
+
+        const fills = el.style?.fills || [];
+        const strokes = el.style?.strokes || [];
+
+        const makeGradId = (prefix, index, value) => {
+            const valueString = typeof value === 'string' ? value : JSON.stringify(value);
+            const valueHash = valueString.split('').reduce((a, b) => { a = ((a << 5) - a) + b.charCodeAt(0); return a & a; }, 0);
+            return `${prefix}-${el.id}-${index}-${valueHash}`;
+        };
+
+        const appendFillShape = (fill, index, dOrPoints) => {
+            if (!fill || fill.visible === false) return;
+            const opacity = (fill.opacity !== undefined) ? fill.opacity / 100 : 1;
+
+            let shapeEl;
+            if (shapeKind === 'line') {
+                // Lines don't render fill.
+                return;
+            }
+
+            shapeEl = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+            shapeEl.setAttribute('d', dOrPoints);
+            shapeEl.setAttribute('stroke', 'none');
+
+            if (fill.type === 'gradient' && fill.value) {
+                const gradId = makeGradId('fill-grad', index, fill.value);
+                const gradEl = this.createSVGGradient(gradId, fill.value);
+                defs.appendChild(gradEl);
+                shapeEl.setAttribute('fill', `url(#${gradId})`);
+            } else {
+                const color = fill.color || fill.value || 'transparent';
+                shapeEl.setAttribute('fill', color);
+            }
+            shapeEl.setAttribute('fill-opacity', String(opacity));
+            svg.appendChild(shapeEl);
+        };
+
+        const appendStrokeShape = (stroke, index, dOrLine) => {
+            if (!stroke || stroke.visible === false) return;
+
+            const opacity = (stroke.opacity !== undefined) ? stroke.opacity / 100 : 1;
+            const strokeWidth = stroke.width || 0;
+            if (strokeWidth <= 0) return;
+
+            let shapeEl;
+            if (shapeKind === 'line') {
+                shapeEl = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                shapeEl.setAttribute('x1', String(dOrLine.x1));
+                shapeEl.setAttribute('y1', String(dOrLine.y1));
+                shapeEl.setAttribute('x2', String(dOrLine.x2));
+                shapeEl.setAttribute('y2', String(dOrLine.y2));
+            } else {
+                shapeEl = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                shapeEl.setAttribute('d', dOrLine);
+            }
+
+            if (stroke.type === 'gradient' && stroke.value) {
+                const gradId = makeGradId('stroke-grad', index, stroke.value);
+                const gradEl = this.createSVGGradient(gradId, stroke.value);
+                defs.appendChild(gradEl);
+                shapeEl.setAttribute('stroke', `url(#${gradId})`);
+            } else {
+                const color = stroke.themeSlot
+                    ? `var(--theme-${stroke.themeSlot})`
+                    : (stroke.color || 'transparent');
+                shapeEl.setAttribute('stroke', color);
+            }
+
+            shapeEl.setAttribute('stroke-width', String(strokeWidth));
+            shapeEl.setAttribute('stroke-opacity', String(opacity));
+            shapeEl.setAttribute('fill', 'none');
+
+            // Dashes
+            let dashArray = 'none';
+            if (stroke.style === 'dashed') {
+                dashArray = stroke.dashArray ? stroke.dashArray.replace(/,/g, ' ') : '4 4';
+            } else if (stroke.style === 'dotted') {
+                dashArray = stroke.dashArray ? stroke.dashArray.replace(/,/g, ' ') : '1 3';
+            } else if (stroke.style === 'custom') {
+                dashArray = stroke.dashArray ? stroke.dashArray.replace(/,/g, ' ') : 'none';
+            }
+            shapeEl.setAttribute('stroke-dasharray', dashArray);
+            if (stroke.dashOffset !== undefined && stroke.dashOffset !== null && Number.isFinite(stroke.dashOffset)) {
+                shapeEl.setAttribute('stroke-dashoffset', String(stroke.dashOffset));
+            }
+
+            shapeEl.setAttribute('stroke-linecap', stroke.dashCap || 'butt');
+            shapeEl.setAttribute('stroke-linejoin', stroke.join || 'miter');
+            if (stroke.join === 'miter') {
+                shapeEl.setAttribute('stroke-miterlimit', stroke.miterLimit || 4);
+            }
+
+            svg.appendChild(shapeEl);
+        };
+
+        if (shapeKind === 'line') {
+            const p1 = el.params?.p1;
+            const p2 = el.params?.p2;
+            const x1 = Number(p1?.x) || 0;
+            const y1 = Number(p1?.y) || 0;
+            const x2 = Number(p2?.x) || 0;
+            const y2 = Number(p2?.y) || 0;
+
+            strokes.forEach((stroke, idx) => appendStrokeShape(stroke, idx, { x1, y1, x2, y2 }));
+            return;
+        }
+
+        const paths = Array.isArray(el.paths) ? el.paths : [];
+        const d = this.buildVectorPathD(paths);
+        if (!d || d.length === 0) return;
+
+        // Fills behind strokes
+        fills.forEach((fill, idx) => appendFillShape(fill, idx, d));
+        strokes.forEach((stroke, idx) => appendStrokeShape(stroke, idx, d));
+    }
+
+    buildVectorPathD(paths) {
+        if (!Array.isArray(paths) || paths.length === 0) return '';
+        const parts = [];
+        for (const path of paths) {
+            if (!path || !path.start) continue;
+            const sx = Number(path.start.x);
+            const sy = Number(path.start.y);
+            if (!Number.isFinite(sx) || !Number.isFinite(sy)) continue;
+            parts.push(`M ${sx} ${sy}`);
+            for (const seg of path.segments || []) {
+                if (!seg || typeof seg.kind !== 'string') continue;
+                if (seg.kind === 'line') {
+                    const x = Number(seg.to?.x);
+                    const y = Number(seg.to?.y);
+                    if (!Number.isFinite(x) || !Number.isFinite(y)) continue;
+                    parts.push(`L ${x} ${y}`);
+                } else if (seg.kind === 'cubic') {
+                    const x1 = Number(seg.c1?.x);
+                    const y1 = Number(seg.c1?.y);
+                    const x2 = Number(seg.c2?.x);
+                    const y2 = Number(seg.c2?.y);
+                    const x = Number(seg.to?.x);
+                    const y = Number(seg.to?.y);
+                    if (![x1, y1, x2, y2, x, y].every(Number.isFinite)) continue;
+                    parts.push(`C ${x1} ${y1} ${x2} ${y2} ${x} ${y}`);
+                }
+            }
+            if (path.closed) parts.push('Z');
+        }
+        return parts.join(' ');
     }
 
     renderPlaceholderIcon(div, el) {

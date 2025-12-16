@@ -316,4 +316,77 @@ describe('EditableSvgImporter.importEditableShapesFromSanitizedSvg', () => {
                 expect(res.ok).toBe(false);
                 expect(res).toMatchObject({ reason: 'TRANSFORM_UNSUPPORTED' });
         });
+
+        it('imports <line> as shapeKind:line with normalized local endpoints', () => {
+                const svg = `
+                    <svg xmlns="http://www.w3.org/2000/svg">
+                        <line x1="0" y1="0" x2="10" y2="0" stroke="#ff0000" stroke-width="2" />
+                    </svg>
+                `;
+
+                const res = importEditableShapesFromSanitizedSvg(svg, { centerX: 0, centerY: 0, idSeed: 't' });
+                expect(res.ok).toBe(true);
+                if (!res.ok) return;
+
+                expect(res.elements).toHaveLength(1);
+                const el = res.elements[0];
+                expect(el.type).toBe('shape');
+                expect(el.shapeKind).toBe('line');
+                expect(el.params?.p1).toBeTruthy();
+                expect(el.params?.p2).toBeTruthy();
+
+                // Stroke should map through.
+                expect(el.style?.strokes?.[0]).toMatchObject({ type: 'solid', color: '#ff0000', width: 2 });
+        });
+
+        it('imports <polyline> as shapeKind:vector (open path)', () => {
+                const svg = `
+                    <svg xmlns="http://www.w3.org/2000/svg">
+                        <polyline points="0,0 10,0 10,10" fill="none" stroke="#000" stroke-width="1" />
+                    </svg>
+                `;
+
+                const res = importEditableShapesFromSanitizedSvg(svg, { centerX: 0, centerY: 0, idSeed: 't' });
+                expect(res.ok).toBe(true);
+                if (!res.ok) return;
+
+                const el = res.elements[0];
+                expect(el.shapeKind).toBe('vector');
+                expect(Array.isArray(el.paths)).toBe(true);
+                expect(el.paths[0]).toMatchObject({ closed: false });
+                expect(el.paths[0].segments?.length).toBe(2);
+        });
+
+        it('imports <path> (M/L/Z) as shapeKind:vector', () => {
+                const svg = `
+                    <svg xmlns="http://www.w3.org/2000/svg">
+                        <path d="M0 0 L10 0 L10 10 Z" fill="#00ff00" />
+                    </svg>
+                `;
+
+                const res = importEditableShapesFromSanitizedSvg(svg, { centerX: 0, centerY: 0, idSeed: 't' });
+                expect(res.ok).toBe(true);
+                if (!res.ok) return;
+
+                const el = res.elements[0];
+                expect(el.shapeKind).toBe('vector');
+                expect(el.paths?.[0]?.closed).toBe(true);
+                expect(el.style?.fills?.[0]).toMatchObject({ type: 'solid', value: '#00ff00', color: '#00ff00' });
+        });
+
+        it('warns on unsupported <path> commands but still imports supported primitives', () => {
+                const svg = `
+                    <svg xmlns="http://www.w3.org/2000/svg">
+                        <rect x="0" y="0" width="10" height="10" fill="#000" />
+                        <path d="M0 0 Q 10 10 20 0" fill="#f00" />
+                    </svg>
+                `;
+
+                const res = importEditableShapesFromSanitizedSvg(svg, { centerX: 0, centerY: 0, idSeed: 't' });
+                expect(res.ok).toBe(true);
+                if (!res.ok) return;
+
+                expect(res.elements.length).toBeGreaterThan(0);
+                expect(res.warnings).toContain('WARN_PATH_UNSUPPORTED');
+        });
 });
