@@ -539,6 +539,28 @@ describe('EditableSvgImporter.importEditableShapesFromSanitizedSvg', () => {
                 expect(el.style?.fills?.[0]).toMatchObject({ type: 'solid', value: '#808080', opacity: 100 });
         });
 
+        it('falls back deterministically for unsupported url(#...) paints like <pattern>', () => {
+                const svg = `
+                    <svg xmlns="http://www.w3.org/2000/svg">
+                        <defs>
+                            <pattern id="p" width="10" height="10" patternUnits="userSpaceOnUse">
+                                <rect x="0" y="0" width="10" height="10" fill="#ff0000" />
+                            </pattern>
+                        </defs>
+                        <rect x="0" y="0" width="10" height="10" fill="url(#p)" />
+                    </svg>
+                `;
+
+                const res = importEditableShapesFromSanitizedSvg(svg, { centerX: 0, centerY: 0, idSeed: 't' });
+                expect(res.ok).toBe(true);
+                if (!res.ok) return;
+
+                expect(res.warnings).toContain('WARN_GRADIENT_PAINT_UNSUPPORTED');
+
+                const el = res.elements.find((e) => e?.style?.fills?.[0]?.type === 'solid' && e?.style?.fills?.[0]?.value === '#808080');
+                expect(el).toBeTruthy();
+        });
+
         it('warns and falls back when userSpaceOnUse gradient coords are missing', () => {
                 const svg = `
                     <svg xmlns="http://www.w3.org/2000/svg">

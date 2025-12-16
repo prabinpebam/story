@@ -22,6 +22,7 @@ describe('Figma paste corpus (determinism)', () => {
         { name: 'gradient-transform-userspace-viewbox' },
         { name: 'gradient-transform-rotate-unsupported' },
         { name: 'radial-gradient-fallback' },
+        { name: 'pattern-paint-fallback' },
         { name: 'group-scale-rect' },
         { name: 'transform-order-translate-scale' },
         { name: 'transform-list-matrix-scale' }

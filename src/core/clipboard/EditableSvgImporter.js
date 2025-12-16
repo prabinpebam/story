@@ -1392,6 +1392,12 @@ export function importEditableShapesFromSanitizedSvg(sanitizedSvg, options) {
 
         const tag = String(node.nodeName).toLowerCase();
 
+        // <defs> is non-rendering; never import primitives inside it.
+        // We still allow referenced defs (gradients/patterns) to be resolved via doc.getElementById.
+        if (tag === 'defs') {
+            return;
+        }
+
         if (tag === 'rect') {
             const rawX = toNumber(node.getAttribute('x')) ?? 0;
             const rawY = toNumber(node.getAttribute('y')) ?? 0;
