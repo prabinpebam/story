@@ -100,7 +100,7 @@ Update this section at least weekly so everyone sees the “north star”.
 - Next milestone gate: M3 — Selection + Hit Testing
 - Active tracks (max 2): M2 rendering contract; Phase 10 interop hardening
 - Blockers / open decisions: TBD
-- Last shipped (pending commit): M1 non-UI contracts (schema + transforms + coordinate spaces + numerics) and M2 nested parent-rotation render parity (Vitest + Playwright regression).
+- Last shipped (commit 79378ea): M1 non-UI contracts (schema + transforms + coordinate spaces + numerics) and M2 nested parent-rotation render parity (Vitest + Playwright regression).
 
 ---
 
