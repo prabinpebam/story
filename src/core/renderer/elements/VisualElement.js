@@ -1,5 +1,6 @@
 import { store } from '../../Store.js';
 import { getShapeKind } from '../../shapes/ShapeElementAdapter.js';
+import { computeElementWorldRotation, computeElementWorldTopLeft } from '../../shapes/SceneGraphTransforms.js';
 
 export class VisualElement {
     constructor(data) {
@@ -78,21 +79,17 @@ export class VisualElement {
             div.removeAttribute('data-shape-kind');
         }
         
-        // Calculate absolute position if parent exists
+        // Calculate world position/rotation for nested elements.
+        // We render everything as absolute-positioned siblings, so we must bake parent transforms into left/top.
         let x = el.x;
         let y = el.y;
         let rotation = el.rotation || 0;
-        
+
         if (this.slideData && el.parentId) {
-            let parentId = el.parentId;
-            while (parentId) {
-                const parent = this.slideData.elements[parentId];
-                if (!parent) break;
-                x += parent.x;
-                y += parent.y;
-                rotation += (parent.rotation || 0);
-                parentId = parent.parentId;
-            }
+            const topLeft = computeElementWorldTopLeft(this.slideData, el);
+            x = topLeft.x;
+            y = topLeft.y;
+            rotation = computeElementWorldRotation(this.slideData, el);
         }
 
         div.style.left = `${x}px`;

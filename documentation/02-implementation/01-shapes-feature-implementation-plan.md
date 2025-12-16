@@ -18,6 +18,92 @@ References (must stay in sync):
 
 ---
 
+## How This Plan Controls Execution (No Drift)
+
+This file is not just a “plan”; it is the **source of truth for execution**.
+
+Rules:
+- Every Shapes PR must map to **exactly one** phase/milestone goal *and* update the **Spec Coverage Ledger** below.
+- If work cannot be tied to a ledger row (spec → tests → implementation), it is a **rabbit hole** and should be parked.
+- The **Topic Tree & Spec Map** remains the authoritative scope: `documentation/01-specs/shapes/00-topic-tree-and-spec-map.md`.
+
+Minimum PR bookkeeping (required):
+- Add/extend the failing test first (per `documentation/02-implementation/00-strict-tdd-and-dom-validation.md`).
+- Update:
+  - `Current Status (Snapshot)` (when materially changed),
+  - the ledger row(s) touched (Readiness/Implementation/Tests/Artifacts),
+  - and the phase “exit criteria” checklist item(s) you advanced.
+
+---
+
+## Milestones & Gates (Bigger Picture)
+
+Phases below are the long-form roadmap. To keep day-to-day work aligned, we use milestone gates.
+
+Milestone gate definitions (prescriptive):
+
+### M0 — Inventory & Baseline Test Harness
+Exit criteria:
+- We can run at least one end-to-end Shapes flow deterministically in CI.
+- We have a reliable place to store regression fixtures (corpus/goldens/perf) and a stable canonical hashing policy.
+
+### M1 — Authoritative Model + Transforms (Non-UI)
+Exit criteria:
+- Data model is versioned/migratable and validated.
+- Transform + coordinate system contracts are implemented and unit-tested.
+
+### M2 — Rendering Contract + Style/Paint Parity
+Exit criteria:
+- Shapes render through the existing Story paint stack (fills/strokes/effects) with deterministic output.
+- Mode gating is correct (edit/master/presentation behavior).
+
+### M3 — Selection + Hit Testing
+Exit criteria:
+- Hit testing + selection rules match spec and are covered by Playwright.
+
+### M4 — Editing UX (Object + Vector)
+Exit criteria:
+- Object mode and vector mode edits are implemented with correct undo/redo coalescing.
+
+### M5 — Booleans + Masks (Non-destructive)
+Exit criteria:
+- Boolean + mask nodes exist with deterministic failure policy and regression fixtures.
+
+### M6 — Interop + Export Hardening
+Exit criteria:
+- Interop/export flows are stable, deterministic, and covered (including degrade ladder + warnings).
+
+Gate policy (prevents rabbit holes):
+- Prefer work that advances the **earliest incomplete milestone**.
+- Phase 10 (interop) work is allowed, but should be explicitly justified as either:
+  - unblocking a milestone gate (e.g., export contract), or
+  - required product acceptance for paste/import.
+
+---
+
+## Work-in-Progress Limits (Prevents Getting Lost)
+
+To keep progress visible and avoid deep wandering:
+- Maximum **2 active tracks** at once (e.g., “model+transforms” and “rendering contract”).
+- Maximum **1 exploratory spike** at a time; spikes must end with:
+  - a spec update (decision recorded), *or*
+  - a testable plan item created in this file.
+- If an increment takes longer than a single PR, split it into smaller PRs with intermediate, testable acceptance.
+
+---
+
+## Progress Dashboard (Update Weekly)
+
+Update this section at least weekly so everyone sees the “north star”.
+
+- Current milestone gate: M2 — Rendering Contract + Style/Paint Parity
+- Next milestone gate: M3 — Selection + Hit Testing
+- Active tracks (max 2): M2 rendering contract; Phase 10 interop hardening
+- Blockers / open decisions: TBD
+- Last shipped (pending commit): M1 non-UI contracts (schema + transforms + coordinate spaces + numerics) and M2 nested parent-rotation render parity (Vitest + Playwright regression).
+
+---
+
 ## Current Status (Snapshot — 2025-12-16)
 
 This status snapshot reflects what is implemented in the repo today (not “planned”), with emphasis on the interop work we’ve been actively shipping.
@@ -25,6 +111,8 @@ This status snapshot reflects what is implemented in the repo today (not “plan
 ### Phase Status
 - Phase 0 (Tooling/Test harness): **PARTIAL** — Playwright + Vitest are in place and we have functional clipboard-paste coverage; initial Shapes corpus scaffolding + deterministic hashing is now present, but broader corpus coverage is still sparse.
 - Phase 1–9 (Foundations → UX): **NOT TRACKED IN THIS PLAN FILE YET** — this document still needs a pass to mark what already exists in Story vs what remains for the new Shapes system.
+- Milestone M1 (Authoritative Model + Transforms): **DONE** — canonical shape schema/migration/validation + transforms + coordinate spaces are implemented and covered by Vitest.
+- Milestone M2 (Rendering Contract): **IN PROGRESS** — first renderer parity increment shipped (nested parent rotation world positioning) with Vitest + Playwright regression coverage.
 - Phase 10 (Interop: Figma paste → editable elements): **IN PROGRESS** — editable SVG paste pipeline implemented for a conservative subset, behind a feature flag, with unit + Playwright coverage.
 - Phase 11–12 (Perf/A11y/extensibility): **NOT STARTED (for Shapes program)**
 
@@ -328,7 +416,9 @@ Tests required:
 ---
 
 # Spec-by-Spec Coverage Checklist (Nothing Missed)
-Use this section to track progress. Each spec must be fully checked.
+This section is the **traceability system** that prevents gaps.
+
+Use the ledger table below to track progress. Every Shapes PR must update at least one row.
 
 Legend:
 - **Spec readiness**: the spec has no v1-critical “TBD”/open decisions.
@@ -346,6 +436,68 @@ For every spec file below, check:
 - [ ] Corpus/goldens added if relevant
 
 ---
+
+## Spec Coverage Ledger (Source of Truth)
+
+Status values (use these exact words to keep search/filters simple):
+- **Readiness**: `NOT REVIEWED` | `BLOCKED` | `READY`
+- **Implementation**: `NOT STARTED` | `IN PROGRESS` | `DONE`
+- **Tests**: `NONE` | `VITEST` | `PLAYWRIGHT` | `VITEST+PLAYWRIGHT`
+- **Artifacts**: `NONE` | `CORPUS` | `GOLDENS` | `PERF` | `MIXED`
+
+| Spec file | Readiness | Implementation | Tests | Artifacts | Notes (owner, links, gaps) |
+|---|---|---|---|---|---|
+| `00-index.md` | NOT REVIEWED | NOT STARTED | NONE | NONE |  |
+| `00-topic-tree-and-spec-map.md` | NOT REVIEWED | NOT STARTED | NONE | NONE |  |
+| `01-system-architecture.md` | NOT REVIEWED | NOT STARTED | NONE | NONE |  |
+| `02-data-model-and-serialization.md` | NOT REVIEWED | DONE | VITEST | NONE | Canonical v1 schema + migration + validation: `src/core/shapes/ShapeSchema.js`; tests: `tests/unit/shapes/ShapeSchema.test.js`. Existing migration hooks remain: `src/core/shapes/ShapeMigration.js`, `src/core/shapes/ShapeElementAdapter.js`. |
+| `03-coordinate-systems.md` | NOT REVIEWED | DONE | VITEST | NONE | Mode-aware container selection + world/screen mapping contract: `src/core/shapes/CoordinateSpaces.js`; tests: `tests/unit/shapes/CoordinateSpaces.test.js`. (Runtime alignment with `CanvasManager`/`PresentationManager` still TBD.) |
+| `04-precision-and-numerics.md` | NOT REVIEWED | IN PROGRESS | VITEST | NONE | Central epsilon + numeric helpers: `src/core/shapes/Epsilon.js`; tests: `tests/unit/shapes/Epsilon.test.js`. |
+| `05-scene-graph-and-node-types.md` | NOT REVIEWED | IN PROGRESS | VITEST+PLAYWRIGHT | NONE | Parent-chain world transforms for DOM rendering: `src/core/shapes/SceneGraphTransforms.js`, renderer integration: `src/core/renderer/elements/VisualElement.js`, `src/core/renderer/elements/ShapeElement.js`; tests: `tests/unit/shapes/SceneGraphTransforms.test.js`, `tests/e2e/specs/functional/nested-parent-rotation-render.spec.ts`. |
+| `06-transform-system.md` | NOT REVIEWED | DONE | VITEST | NONE | Affine transform utilities + element box transforms: `src/core/shapes/Transform2D.js`; tests: `tests/unit/shapes/Transform2D.test.js`. (Runtime alignment with `GeometryUtils` still TBD.) |
+| `07-parametric-geometry.md` | NOT REVIEWED | IN PROGRESS | NONE | NONE | Multiple shape kinds rendered + bounded: `src/core/renderer/elements/ShapeElement.js`, `src/core/canvas/GeometryUtils.js`, `src/core/shapes/ShapeElementAdapter.js` (parametric spec parity TBD). |
+| `08-path-representation.md` | NOT REVIEWED | NOT STARTED | NONE | NONE |  |
+| `08a-vector-networks.md` | NOT REVIEWED | NOT STARTED | NONE | NONE |  |
+| `09-segments-and-beziers.md` | NOT REVIEWED | NOT STARTED | NONE | NONE |  |
+| `10-control-points-and-handles.md` | NOT REVIEWED | NOT STARTED | NONE | NONE |  |
+| `11-continuity-and-smoothness.md` | NOT REVIEWED | NOT STARTED | NONE | NONE |  |
+| `11-undo-redo-and-operations.md` | NOT REVIEWED | IN PROGRESS | NONE | NONE | Snapshot undo/redo exists: `src/core/HistoryManager.js` (Shapes op semantics spec parity TBD). |
+| `12-hit-testing.md` | NOT REVIEWED | IN PROGRESS | NONE | NONE | Element + handle hit-testing exists: `src/core/canvas/HitTesting.js`, `src/core/CanvasManager.js` (Shapes-specific hit rules TBD). |
+| `13-boolean-geometry-system.md` | NOT REVIEWED | NOT STARTED | NONE | NONE |  |
+| `14-style-and-paint-integration.md` | NOT REVIEWED | IN PROGRESS | NONE | NONE | Paint stack present (fills/strokes/effects): `src/core/renderer/elements/ShapeElement.js`, UI panels: `src/ui/properties/FillSection.js`, `src/ui/properties/StrokeSection.js`, `src/ui/properties/EffectsSection.js` (spec parity TBD). |
+| `15-masking-and-clipping.md` | NOT REVIEWED | NOT STARTED | NONE | NONE |  |
+| `15-current-implementation-alignment.md` | NOT REVIEWED | NOT STARTED | NONE | NONE |  |
+| `16-design-system-alignment.md` | NOT REVIEWED | NOT STARTED | NONE | NONE |  |
+| `16-rendering-architecture.md` | NOT REVIEWED | IN PROGRESS | NONE | NONE | Renderer exists with shape-specific element renderer: `src/core/renderer/elements/ShapeElement.js`, `src/core/renderer/` (Shapes architecture spec parity TBD). |
+| `16a-tessellation-and-aa.md` | NOT REVIEWED | NOT STARTED | NONE | NONE |  |
+| `17-caching-and-performance.md` | NOT REVIEWED | NOT STARTED | NONE | NONE |  |
+| `18-operation-model-collaboration-readiness.md` | NOT REVIEWED | IN PROGRESS | NONE | NONE | Operation + inverse ops plumbing exists: `src/core/collaboration/sync/StateSyncEngine.js` (Shapes op model alignment TBD). |
+| `18-operation-model-future-collab.md` | NOT REVIEWED | NOT STARTED | NONE | NONE |  |
+| `19-serialization-and-interop.md` | NOT REVIEWED | IN PROGRESS | NONE | NONE | Export + clipboard integration exists: `src/core/export/Exporter.js`, editable SVG importer in `src/core/clipboard/EditableSvgImporter.js` (spec parity TBD). |
+| `19a-figma-clipboard-import.md` | NOT REVIEWED | IN PROGRESS | VITEST+PLAYWRIGHT | CORPUS | Editable SVG paste subset + deterministic degrade ladder is shipping. |
+| `20-interaction-modes-and-state-machine.md` | NOT REVIEWED | IN PROGRESS | NONE | NONE | Canvas interaction state + tools exist: `src/core/CanvasManager.js` (Shapes-specific mode gating TBD). |
+| `21-vector-editing-operations.md` | NOT REVIEWED | NOT STARTED | NONE | NONE |  |
+| `22-selection-and-focus-ux.md` | NOT REVIEWED | IN PROGRESS | NONE | NONE | Selection + inspector wiring exists: `src/core/CanvasManager.js`, `src/ui/PropertyInspector.js` (Shapes UX spec parity TBD). |
+| `23-snapping-and-guides-shapes.md` | NOT REVIEWED | IN PROGRESS | NONE | NONE | Snapping system exists: `src/core/canvas/SnappingSystem.js`, `src/core/CanvasManager.js` (Shapes delta TBD). |
+| `25-product-level-requirements.md` | NOT REVIEWED | NOT STARTED | NONE | NONE |  |
+| `26-canvas-and-viewport-shapes.md` | NOT REVIEWED | IN PROGRESS | NONE | NONE | Canvas/viewport orchestration exists: `src/core/CanvasManager.js` (Shapes delta TBD). |
+| `27-object-editing-ux.md` | NOT REVIEWED | NOT STARTED | NONE | NONE |  |
+| `28-vector-editing-ux.md` | NOT REVIEWED | NOT STARTED | NONE | NONE |  |
+| `29-continuity-curve-ux.md` | NOT REVIEWED | NOT STARTED | NONE | NONE |  |
+| `30-boolean-mask-ux.md` | NOT REVIEWED | NOT STARTED | NONE | NONE |  |
+| `31-styling-ui.md` | NOT REVIEWED | IN PROGRESS | NONE | NONE | Styling UI sections exist: `src/ui/PropertyInspector.js`, `src/ui/properties/FillSection.js`, `src/ui/properties/StrokeSection.js`, `src/ui/properties/EffectsSection.js` (Shapes spec parity TBD). |
+| `32-layer-panel-ux.md` | NOT REVIEWED | IN PROGRESS | NONE | NONE | Layer tree exists: `src/ui/LayerTree.js`, container wiring: `src/ui/LeftPanel.js` (Shapes UX delta TBD). |
+| `33-keyboard-and-gestures.md` | NOT REVIEWED | IN PROGRESS | NONE | NONE | Global shortcuts + input-blocking exist: `src/main.js`, `src/core/InputManager.js`; canvas gestures (pan/zoom/drag) exist: `src/core/CanvasManager.js` (Shapes-specific bindings TBD). |
+| `34-feedback-and-status.md` | NOT REVIEWED | NOT STARTED | NONE | NONE |  |
+| `35-undo-redo-ux.md` | NOT REVIEWED | IN PROGRESS | NONE | NONE | Undo/redo UX wiring exists via shortcuts + menu actions: `src/main.js`, `src/ui/components/AppMenu/menuConfig.js`, `src/ui/services/MenuActionHandler.js`, store dispatch: `src/core/Store.js`; text edit bridging: `src/core/text/HistoryBridge.js`, `src/core/text/TextEditManager.js`. |
+| `36-perceived-performance.md` | NOT REVIEWED | NOT STARTED | NONE | NONE |  |
+| `37-accessibility.md` | NOT REVIEWED | NOT STARTED | NONE | NONE |  |
+| `38-customization-and-extensibility.md` | NOT REVIEWED | NOT STARTED | NONE | NONE |  |
+
+---
+
+## Spec Inventory (Reference List)
+Keep this list as the stable, human-friendly grouping. Use the ledger above for status.
 
 ## Index and map
 - `00-index.md` — Shapes & Vector Editing Specification (Index)

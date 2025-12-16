@@ -4,6 +4,7 @@ import { store } from '../../Store.js';
 import { mediaAssetManager } from '../../media/MediaAssetManager.js';
 import { FilterEngine } from '../../media/FilterEngine.js';
 import { getShapeKind } from '../../shapes/ShapeElementAdapter.js';
+import { computeElementWorldCenter, computeElementWorldRotation } from '../../shapes/SceneGraphTransforms.js';
 
 export class ShapeElement extends VisualElement {
     constructor(data) {
@@ -35,52 +36,22 @@ export class ShapeElement extends VisualElement {
             };
         }
         
-        let accX = el.x;
-        let accY = el.y;
-        let accRotation = el.rotation || 0;
-        
-        // Walk up parent chain
-        let parentId = el.parentId;
-        while (parentId) {
-            const parent = slide.elements ? slide.elements[parentId] : null;
-            if (!parent) break;
-            
-            // Parent rotation affects child position
-            if (parent.rotation) {
-                const rad = parent.rotation * Math.PI / 180;
-                const cos = Math.cos(rad);
-                const sin = Math.sin(rad);
-                
-                // Rotate child position around parent center
-                const pcx = parent.width / 2;
-                const pcy = parent.height / 2;
-                const dx = accX - pcx;
-                const dy = accY - pcy;
-                
-                accX = dx * cos - dy * sin + pcx + parent.x;
-                accY = dx * sin + dy * cos + pcy + parent.y;
-                accRotation += parent.rotation;
-            } else {
-                accX += parent.x;
-                accY += parent.y;
-            }
-            
-            parentId = parent.parentId;
-        }
-        
+        const center = computeElementWorldCenter(slide, el);
+        const rotation = computeElementWorldRotation(slide, el);
+
         return {
-            x: accX,
-            y: accY,
+            x: center.x - el.width / 2,
+            y: center.y - el.height / 2,
             width: el.width,
             height: el.height,
-            rotation: accRotation,
-            cx: accX + el.width / 2,
-            cy: accY + el.height / 2
+            rotation,
+            cx: center.x,
+            cy: center.y
         };
     }
 
-    update(newData) {
-        super.update(newData);
+    update(newData, slideData) {
+        super.update(newData, slideData);
         const el = this.data;
         const div = this.domElement;
 
