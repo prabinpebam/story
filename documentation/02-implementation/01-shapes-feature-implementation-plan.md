@@ -23,7 +23,7 @@ References (must stay in sync):
 This status snapshot reflects what is implemented in the repo today (not “planned”), with emphasis on the interop work we’ve been actively shipping.
 
 ### Phase Status
-- Phase 0 (Tooling/Test harness): **PARTIAL** — Playwright + Vitest are in place and we have functional clipboard-paste coverage, but the Shapes corpus scaffolding directories are **not** present yet.
+- Phase 0 (Tooling/Test harness): **PARTIAL** — Playwright + Vitest are in place and we have functional clipboard-paste coverage; initial Shapes corpus scaffolding + deterministic hashing is now present, but broader corpus coverage is still sparse.
 - Phase 1–9 (Foundations → UX): **NOT TRACKED IN THIS PLAN FILE YET** — this document still needs a pass to mark what already exists in Story vs what remains for the new Shapes system.
 - Phase 10 (Interop: Figma paste → editable elements): **IN PROGRESS** — editable SVG paste pipeline implemented for a conservative subset, behind a feature flag, with unit + Playwright coverage.
 - Phase 11–12 (Perf/A11y/extensibility): **NOT STARTED (for Shapes program)**
@@ -33,6 +33,10 @@ This status snapshot reflects what is implemented in the repo today (not “plan
 - [x] Deterministic element IDs for pasted SVG imports (seeded)
 - [x] Editable import for SVG primitives: `rect`, `circle`, `ellipse`, `line`, `polyline`, `polygon`
 - [x] Editable import for `path` as vector geometry with conservative path command support: `M/L/H/V/C/S/Q/T/A/Z` (abs+rel)
+- [x] Conservative node `transform` baking for axis-aligned scale/translate
+  - [x] `translate(...)`, `scale(...)`
+  - [x] Multi-part `translate/scale` lists (SVG right-to-left ordering)
+  - [x] `matrix(a 0 0 d e f)` only (scale + translate; no rotate/shear)
 - [x] Linear gradient import (`linearGradient`) for fills + strokes
   - [x] `objectBoundingBox`
   - [x] `userSpaceOnUse` when explicit coords exist
@@ -45,9 +49,9 @@ This status snapshot reflects what is implemented in the repo today (not “plan
   - [x] Playwright: `tests/e2e/specs/functional/clipboard-html-svg-paste-editable.spec.ts`
 
 ### Phase 10 — Not Implemented Yet (Known Gaps)
-- [ ] Corpus fixtures: `tests/corpus/shapes/figma-paste/` (directory + canonical hash + warnings)
+- [x] Corpus fixtures: `tests/corpus/shapes/figma-paste/` (directory + canonical hash + warnings)
 - [ ] Broader SVG paint support (e.g. radial gradients, patterns)
-- [ ] Broader transform support beyond translation and root viewBox (e.g. rotate/skew; non-translation matrices)
+- [ ] Broader transform support beyond axis-aligned scale/translate (e.g. rotate/skew; general matrices)
 - [ ] Clip-path/masking import for pasted SVG (if required by spec)
 
 ---
