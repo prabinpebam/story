@@ -44,6 +44,7 @@ This status snapshot reflects what is implemented in the repo today (not “plan
 - [x] Radial gradient import (`radialGradient`) for fills + strokes (conservative subset)
   - [x] `objectBoundingBox` with explicit/parseable `cx/cy/r`
   - [x] Deterministic fallback for unsupported features (e.g. rotate `gradientTransform`, non-centered focal points)
+- [x] `<defs>` is treated as non-rendering (skipped during import traversal)
 - [x] `fill-rule` preserved (`evenodd`/`nonzero`) for vectors
 - [x] Stroke-aware bounds for line/vector/path (bbox expands by half stroke width)
 - [x] SVG root `viewBox` baked as scale+translate (scale/translate only; still conservative)
@@ -88,7 +89,7 @@ Required deliverables:
 - Corpus scaffolding (per shapes testing spec):
   - `tests/corpus/shapes/booleans/` (NOT PRESENT YET)
   - `tests/corpus/shapes/paths/` (NOT PRESENT YET)
-  - `tests/corpus/shapes/figma-paste/` (NOT PRESENT YET)
+  - `tests/corpus/shapes/figma-paste/` (PRESENT)
 
 Gate:
 - No feature work begins until at least one end-to-end shapes test can run locally and in CI.
