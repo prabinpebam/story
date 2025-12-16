@@ -1416,6 +1416,14 @@ function hasUnsupportedMask(node) {
     return true;
 }
 
+function getVectorEffect(node) {
+    const raw = getInheritedPresentation(node, 'vector-effect');
+    if (typeof raw !== 'string') return null;
+    const v = raw.trim().toLowerCase();
+    if (!v || v === 'none') return null;
+    return v;
+}
+
 function getFillRuleForNode(node) {
     const raw = getInheritedPresentation(node, 'fill-rule');
     const v = typeof raw === 'string' ? raw.trim().toLowerCase() : '';
@@ -1845,6 +1853,13 @@ export function importEditableShapesFromSanitizedSvg(sanitizedSvg, options) {
 
         const paint = resolvePaintForNode(node);
 
+        const vectorEffect = getVectorEffect(node);
+        const hasNonScalingStroke = vectorEffect === 'non-scaling-stroke';
+        // Other vector-effect values are currently ignored.
+        if (vectorEffect && !hasNonScalingStroke) {
+            warnings.push('WARN_VECTOR_EFFECT_UNSUPPORTED');
+        }
+
         const bboxOverride = options?.bboxOverride ?? null;
         const userSpaceTransform = options?.userSpaceTransform ?? null;
 
@@ -1853,7 +1868,7 @@ export function importEditableShapesFromSanitizedSvg(sanitizedSvg, options) {
         const sx = Number.isFinite(userSpaceTransform?.sx) ? userSpaceTransform.sx : 1;
         const sy = Number.isFinite(userSpaceTransform?.sy) ? userSpaceTransform.sy : 1;
         const strokeScale = Math.max(Math.abs(sx), Math.abs(sy));
-        if (strokeScale !== 1 && paint?.stroke) {
+        if (!hasNonScalingStroke && strokeScale !== 1 && paint?.stroke) {
             if (Number.isFinite(paint.stroke.width)) paint.stroke.width = paint.stroke.width * strokeScale;
             if (Number.isFinite(paint.stroke.dashOffset)) paint.stroke.dashOffset = paint.stroke.dashOffset * strokeScale;
             if (typeof paint.stroke.dashArray === 'string') paint.stroke.dashArray = scaleDashArrayString(paint.stroke.dashArray, strokeScale);

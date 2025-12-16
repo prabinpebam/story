@@ -40,6 +40,7 @@ describe('Figma paste corpus (determinism)', () => {
         { name: 'transform-rotate-ignored' },
         { name: 'transform-translate-rotate-salvaged' },
         { name: 'transform-matrix-shear-salvage-translate' },
+        { name: 'vector-effect-non-scaling-stroke' },
         { name: 'transform-order-translate-scale' },
         { name: 'transform-list-matrix-scale' }
     ];

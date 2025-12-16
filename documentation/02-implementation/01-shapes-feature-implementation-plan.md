@@ -65,6 +65,7 @@ This status snapshot reflects what is implemented in the repo today (not “plan
   - [x] Detects `mask` usage and imports the shape anyway (mask is ignored; deterministic warning)
 - [x] `fill-rule` preserved (`evenodd`/`nonzero`) for vectors
 - [x] Stroke-aware bounds for line/vector/path (bbox expands by half stroke width)
+- [x] Supports `vector-effect="non-scaling-stroke"` by not scaling stroke widths when baking scale transforms
 - [x] SVG root `viewBox` baked as scale+translate (scale/translate only; still conservative)
 - [x] Automated coverage:
   - [x] Vitest: `tests/unit/clipboard/EditableSvgImporter.test.js`

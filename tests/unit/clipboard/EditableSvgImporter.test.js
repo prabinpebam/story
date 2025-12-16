@@ -1157,6 +1157,30 @@ describe('EditableSvgImporter.importEditableShapesFromSanitizedSvg', () => {
                 expect(b.x - a.x).toBeCloseTo(10, 6);
         });
 
+        it('respects vector-effect="non-scaling-stroke" by not scaling stroke width/dashes when baking scale transforms', () => {
+                const svg = `
+                    <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40">
+                        <g transform="scale(2)">
+                            <rect x="0" y="0" width="10" height="10" fill="none" stroke="#000" stroke-width="2" vector-effect="non-scaling-stroke" />
+                        </g>
+                    </svg>
+                `;
+
+                const res = importEditableShapesFromSanitizedSvg(svg, { centerX: 0, centerY: 0, idSeed: 't' });
+                expect(res.ok).toBe(true);
+                if (!res.ok) return;
+
+                expect(res.warnings || []).not.toContain('WARN_VECTOR_EFFECT_UNSUPPORTED');
+                expect(res.elements).toHaveLength(1);
+
+                const el = res.elements[0];
+                // Geometry is scaled.
+                expect(el.width).toBeCloseTo(20, 6);
+                expect(el.height).toBeCloseTo(20, 6);
+                // Stroke width should remain unscaled.
+                expect(el.style?.strokes?.[0]?.width).toBe(2);
+        });
+
         it('imports <line> as shapeKind:line with normalized local endpoints', () => {
                 const svg = `
                     <svg xmlns="http://www.w3.org/2000/svg">
