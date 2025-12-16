@@ -40,7 +40,7 @@ This status snapshot reflects what is implemented in the repo today (not “plan
 - [x] Linear gradient import (`linearGradient`) for fills + strokes
   - [x] `objectBoundingBox`
   - [x] `userSpaceOnUse` when explicit coords exist
-  - [x] Deterministic warning + degrade for unsupported `gradientTransform` (translation-only transform is ignored with warning)
+  - [x] Deterministic warning + directional import for axis-aligned `gradientTransform` (applies to direction only; warns)
 - [x] `fill-rule` preserved (`evenodd`/`nonzero`) for vectors
 - [x] Stroke-aware bounds for line/vector/path (bbox expands by half stroke width)
 - [x] SVG root `viewBox` baked as scale+translate (scale/translate only; still conservative)

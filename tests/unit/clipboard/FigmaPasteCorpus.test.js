@@ -18,6 +18,7 @@ function readText(filePath) {
 describe('Figma paste corpus (determinism)', () => {
     const cases = [
         { name: 'basic-rect-gradient' },
+        { name: 'gradient-transform-scale' },
         { name: 'group-scale-rect' },
         { name: 'transform-order-translate-scale' },
         { name: 'transform-list-matrix-scale' }

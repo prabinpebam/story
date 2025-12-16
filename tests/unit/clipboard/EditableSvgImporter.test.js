@@ -431,6 +431,62 @@ describe('EditableSvgImporter.importEditableShapesFromSanitizedSvg', () => {
                 expect(el.style?.fills?.[0]?.type).toBe('gradient');
         });
 
+        it('applies axis-aligned scale gradientTransform to gradient direction (with WARN_GRADIENT_TRANSFORM_IGNORED)', () => {
+                // Without transform: (0,0)->(1,1) => 45deg vector => CSS 135deg.
+                // With scaleX=2, scaleY=1: (0,0)->(2,1) => atan2(1,2) => CSS ~116.565deg.
+                const svg = `
+                    <svg xmlns="http://www.w3.org/2000/svg">
+                        <defs>
+                            <linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="100%" gradientTransform="scale(2 1)">
+                                <stop offset="0%" stop-color="#ff0000" />
+                                <stop offset="100%" stop-color="#0000ff" />
+                            </linearGradient>
+                        </defs>
+                        <rect x="0" y="0" width="10" height="10" fill="url(#g)" />
+                    </svg>
+                `;
+
+                const res = importEditableShapesFromSanitizedSvg(svg, { centerX: 0, centerY: 0, idSeed: 't' });
+                expect(res.ok).toBe(true);
+                if (!res.ok) return;
+
+                expect(res.warnings).toContain('WARN_GRADIENT_TRANSFORM_IGNORED');
+
+                const el = res.elements[0];
+                expect(el.style?.fills?.[0]?.type).toBe('gradient');
+                const css = el.style.fills[0].value;
+                const m = String(css).match(/linear-gradient\(\s*([0-9.]+)deg/i);
+                expect(m).toBeTruthy();
+                const deg = m ? Number(m[1]) : NaN;
+                expect(deg).toBeCloseTo(116.565, 3);
+        });
+
+        it('accepts axis-aligned matrix(...) gradientTransform and applies it to direction', () => {
+                const svg = `
+                    <svg xmlns="http://www.w3.org/2000/svg">
+                        <defs>
+                            <linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="100%" gradientTransform="matrix(2 0 0 1 0 0)">
+                                <stop offset="0%" stop-color="#ff0000" />
+                                <stop offset="100%" stop-color="#0000ff" />
+                            </linearGradient>
+                        </defs>
+                        <rect x="0" y="0" width="10" height="10" fill="url(#g)" />
+                    </svg>
+                `;
+
+                const res = importEditableShapesFromSanitizedSvg(svg, { centerX: 0, centerY: 0, idSeed: 't' });
+                expect(res.ok).toBe(true);
+                if (!res.ok) return;
+
+                const el = res.elements[0];
+                expect(el.style?.fills?.[0]?.type).toBe('gradient');
+                const css = el.style.fills[0].value;
+                const m = String(css).match(/linear-gradient\(\s*([0-9.]+)deg/i);
+                expect(m).toBeTruthy();
+                const deg = m ? Number(m[1]) : NaN;
+                expect(deg).toBeCloseTo(116.565, 3);
+        });
+
         it('warns and falls back when userSpaceOnUse gradient coords are missing', () => {
                 const svg = `
                     <svg xmlns="http://www.w3.org/2000/svg">

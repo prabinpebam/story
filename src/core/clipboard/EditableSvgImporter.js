@@ -154,15 +154,17 @@ function resolveLinearGradientCss(doc, gradientId, options) {
     const unitsTrimmed = typeof units === 'string' ? units.trim() : '';
 
     const gradientTransform = grad.getAttribute('gradientTransform');
+    let gradientAxisTransform = { sx: 1, sy: 1, tx: 0, ty: 0 };
     if (typeof gradientTransform === 'string' && gradientTransform.trim().length > 0) {
-        const parsed = parseTranslationOnlyTransform(gradientTransform);
+        const parsed = parseScaleTranslateOnlyTransform(gradientTransform);
         if (!parsed.ok) {
             return { ok: false, reason: 'GRADIENT_TRANSFORM_UNSUPPORTED' };
         }
-        // Translation-only gradientTransform cannot be faithfully represented by our current
-        // gradient model (angle + stops), but it is safe to import directionally.
-        // Keep deterministic by importing and surfacing a stable warning.
-        if (parsed.tx !== 0 || parsed.ty !== 0) {
+        gradientAxisTransform = { sx: parsed.sx, sy: parsed.sy, tx: parsed.tx, ty: parsed.ty };
+        // Even when axis-aligned, gradientTransform cannot be fully represented by our current
+        // gradient model (angle + stops). We apply it only to the direction vector and keep
+        // deterministic by importing and surfacing a stable warning when it is non-identity.
+        if (parsed.tx !== 0 || parsed.ty !== 0 || parsed.sx !== 1 || parsed.sy !== 1) {
             warnings.push('WARN_GRADIENT_TRANSFORM_IGNORED');
         }
     }
@@ -180,6 +182,12 @@ function resolveLinearGradientCss(doc, gradientId, options) {
         if (x1 === null || y1 === null || x2 === null || y2 === null) {
             return { ok: false, reason: 'GRADIENT_COORDS_UNSUPPORTED' };
         }
+
+        // Apply gradientTransform in objectBoundingBox space.
+        x1 = x1 * gradientAxisTransform.sx + gradientAxisTransform.tx;
+        y1 = y1 * gradientAxisTransform.sy + gradientAxisTransform.ty;
+        x2 = x2 * gradientAxisTransform.sx + gradientAxisTransform.tx;
+        y2 = y2 * gradientAxisTransform.sy + gradientAxisTransform.ty;
     } else if (unitsTrimmed === 'userSpaceOnUse') {
         const bbox = options?.elementBBox;
         const userSpaceTransform = options?.userSpaceTransform;
@@ -201,14 +209,20 @@ function resolveLinearGradientCss(doc, gradientId, options) {
             return { ok: false, reason: 'GRADIENT_COORDS_UNSUPPORTED' };
         }
 
+        // Apply gradientTransform in user space before applying root user-space bake.
+        const ux1g = ux1 * gradientAxisTransform.sx + gradientAxisTransform.tx;
+        const uy1g = uy1 * gradientAxisTransform.sy + gradientAxisTransform.ty;
+        const ux2g = ux2 * gradientAxisTransform.sx + gradientAxisTransform.tx;
+        const uy2g = uy2 * gradientAxisTransform.sy + gradientAxisTransform.ty;
+
         // Normalize userSpaceOnUse coordinates into the element's bbox.
         // The bbox we pass around is expressed in the same coordinate system as the baked geometry.
         // When the SVG root uses a viewBox (or when we bake translations), apply the same
         // scale/translation to the gradient coords so they remain comparable.
-        const ux1t = ux1 * sx + tx;
-        const uy1t = uy1 * sy + ty;
-        const ux2t = ux2 * sx + tx;
-        const uy2t = uy2 * sy + ty;
+        const ux1t = ux1g * sx + tx;
+        const uy1t = uy1g * sy + ty;
+        const ux2t = ux2g * sx + tx;
+        const uy2t = uy2g * sy + ty;
 
         x1 = (ux1t - bbox.x) / bbox.width;
         y1 = (uy1t - bbox.y) / bbox.height;

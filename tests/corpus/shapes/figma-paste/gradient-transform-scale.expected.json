@@ -1,0 +1,6 @@
+{
+  "name": "gradient-transform-scale",
+  "warnings": ["WARN_GRADIENT_TRANSFORM_IGNORED"],
+  "elementsCount": 1,
+  "sha256": "c25ee5e335125cccc87d73ca7fd627f043160ac0dfd10c7aa32e0827e9279261"
+}
