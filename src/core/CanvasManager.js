@@ -13,6 +13,7 @@ import { contextMenuManager } from '../ui/components/ContextMenu/index.js';
 import { canvasMenuConfigs } from '../ui/components/ContextMenu/canvasMenuConfig.js';
 import { sanitizeSvg } from './svg/SvgSanitizer.js';
 import { extractFirstSvgFromHtml } from './clipboard/ClipboardSvgExtractor.js';
+import { importEditableShapesFromSanitizedSvg } from './clipboard/EditableSvgImporter.js';
 
 /**
  * CanvasManager - Main orchestrator for canvas interactions
@@ -1864,6 +1865,62 @@ export class CanvasManager {
         }
     }
 
+    isEditableSvgPasteEnabled() {
+        // Default OFF to avoid behavior changes unless explicitly enabled.
+        // Tests can enable via: window.__FEATURE_FLAGS__ = { ENABLE_EDITABLE_SVG_PASTE: true }
+        return Boolean(window?.__FEATURE_FLAGS__?.ENABLE_EDITABLE_SVG_PASTE);
+    }
+
+    async tryCreateEditableShapesFromSvgMarkup(svgMarkup, worldX, worldY) {
+        if (!this.isEditableSvgPasteEnabled()) return false;
+
+        const sanitized = sanitizeSvg(svgMarkup);
+        if (!sanitized.ok) {
+            return false;
+        }
+
+        let svgHash = null;
+        try {
+            svgHash = await this.hashText(sanitized.svg);
+        } catch {
+            // ignore
+        }
+
+        this._editableSvgPasteCounter = (this._editableSvgPasteCounter || 0) + 1;
+        const seedPart = typeof svgHash === 'string' && svgHash.length >= 8 ? svgHash.slice(0, 8) : 'nohash';
+
+        const imported = importEditableShapesFromSanitizedSvg(sanitized.svg, {
+            centerX: worldX,
+            centerY: worldY,
+            idSeed: `paste-${seedPart}-${this._editableSvgPasteCounter}`
+        });
+
+        if (!imported.ok || !Array.isArray(imported.elements) || imported.elements.length === 0) {
+            return false;
+        }
+
+        if (Array.isArray(imported.warnings) && imported.warnings.length > 0) {
+            console.warn('Editable SVG import warnings:', imported.warnings);
+        }
+
+        store.dispatch('START_INTERACTION');
+        try {
+            const ids = [];
+            for (const el of imported.elements) {
+                store.dispatch('ADD_ELEMENT', el);
+                if (el?.id) ids.push(el.id);
+            }
+
+            if (ids.length > 0) {
+                store.dispatch('UPDATE_SELECTION', ids);
+            }
+        } finally {
+            store.dispatch('END_INTERACTION');
+        }
+
+        return true;
+    }
+
     getSvgIntrinsicSize(svgMarkup) {
         try {
             const doc = new DOMParser().parseFromString(svgMarkup, 'image/svg+xml');
@@ -1924,6 +1981,10 @@ export class CanvasManager {
                             const centerX = (rect.width / 2 - pan.x) / zoom;
                             const centerY = (rect.height / 2 - pan.y) / zoom;
 
+                            if (await this.tryCreateEditableShapesFromSvgMarkup(svgMarkup, centerX, centerY)) {
+                                return;
+                            }
+
                             await this.createSvgElement(file, centerX, centerY);
                             return;
                         }
@@ -1946,6 +2007,15 @@ export class CanvasManager {
                         const rect = this.container.getBoundingClientRect();
                         const centerX = (rect.width / 2 - pan.x) / zoom;
                         const centerY = (rect.height / 2 - pan.y) / zoom;
+
+                        try {
+                            const svgMarkup = await blob.text();
+                            if (await this.tryCreateEditableShapesFromSvgMarkup(svgMarkup, centerX, centerY)) {
+                                return;
+                            }
+                        } catch {
+                            // ignore and fall through
+                        }
 
                         await this.createSvgElement(file, centerX, centerY);
                         return;
@@ -1989,6 +2059,10 @@ export class CanvasManager {
                     const centerX = (rect.width / 2 - pan.x) / zoom;
                     const centerY = (rect.height / 2 - pan.y) / zoom;
 
+                    if (await this.tryCreateEditableShapesFromSvgMarkup(text, centerX, centerY)) {
+                        return;
+                    }
+
                     await this.createSvgElement(file, centerX, centerY);
                     return;
                 }
@@ -2010,6 +2084,10 @@ export class CanvasManager {
                         const rect = this.container.getBoundingClientRect();
                         const centerX = (rect.width / 2 - pan.x) / zoom;
                         const centerY = (rect.height / 2 - pan.y) / zoom;
+
+                        if (await this.tryCreateEditableShapesFromSvgMarkup(text, centerX, centerY)) {
+                            return;
+                        }
 
                         await this.createSvgElement(file, centerX, centerY);
                     }

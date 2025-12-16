@@ -781,6 +781,11 @@ export class ShapeElement extends VisualElement {
                      dashArray = stroke.dashArray ? stroke.dashArray.replace(/,/g, ' ') : 'none';
                  }
                  rect.setAttribute('stroke-dasharray', dashArray);
+                 if (stroke.dashOffset !== undefined && stroke.dashOffset !== null && Number.isFinite(stroke.dashOffset)) {
+                     rect.setAttribute('stroke-dashoffset', String(stroke.dashOffset));
+                 } else {
+                     rect.removeAttribute('stroke-dashoffset');
+                 }
                  rect.setAttribute('stroke-linecap', stroke.dashCap || 'butt');
                  rect.setAttribute('stroke-linejoin', stroke.join || 'miter');
                  if (stroke.join === 'miter') {
