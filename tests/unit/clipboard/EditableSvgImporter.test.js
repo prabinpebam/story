@@ -523,7 +523,7 @@ describe('EditableSvgImporter.importEditableShapesFromSanitizedSvg', () => {
                 // With pad=0.5, expected height is 75 + 1 = 76.
                 const svg = `
                     <svg xmlns="http://www.w3.org/2000/svg">
-                        <path d="M0 0 C 0 100 10 100 10 0" fill="none" stroke="#000" stroke-width="1" />
+                        <path d="M0 0 C 0 100 10 100 10 0" fill="#000" stroke="none" />
                     </svg>
                 `;
 
@@ -536,4 +536,24 @@ describe('EditableSvgImporter.importEditableShapesFromSanitizedSvg', () => {
                 expect(el.height).toBeCloseTo(76, 3);
                 expect(el.width).toBeCloseTo(11, 3);
         });
+
+            it('expands <line> bounds by half stroke width (stroke-aware bbox)', () => {
+                // Horizontal line from (0,0) to (10,0) with stroke-width 10.
+                // basePad=0.5, strokePad=5 => visualPad=5.5
+                // width = 10 + 2*5.5 = 21; height = 0 + 2*5.5 = 11
+                const svg = `
+                    <svg xmlns="http://www.w3.org/2000/svg">
+                    <line x1="0" y1="0" x2="10" y2="0" stroke="#000" stroke-width="10" />
+                    </svg>
+                `;
+
+                const res = importEditableShapesFromSanitizedSvg(svg, { centerX: 0, centerY: 0, idSeed: 't' });
+                expect(res.ok).toBe(true);
+                if (!res.ok) return;
+
+                const el = res.elements[0];
+                expect(el.shapeKind).toBe('line');
+                expect(el.width).toBeCloseTo(21, 6);
+                expect(el.height).toBeCloseTo(11, 6);
+            });
 });

@@ -1257,14 +1257,24 @@ export function importEditableShapesFromSanitizedSvg(sanitizedSvg, options) {
             const maxX = Math.max(x1, x2);
             const maxY = Math.max(y1, y2);
 
-            const pad = 0.5;
-            const x = minX - pad;
-            const y = minY - pad;
-            const width = (maxX - minX) + 2 * pad;
-            const height = (maxY - minY) + 2 * pad;
+            const paint = resolvePaintForNode(node);
+            const strokePad = (!paint.stroke?.none && Number.isFinite(paint.stroke?.width)) ? (Math.max(0, paint.stroke.width) / 2) : 0;
+            const basePad = 0.5;
+            const geomPad = basePad;
+            const visualPad = basePad + strokePad;
+
+            const xGeom = minX - geomPad;
+            const yGeom = minY - geomPad;
+            const widthGeom = (maxX - minX) + 2 * geomPad;
+            const heightGeom = (maxY - minY) + 2 * geomPad;
+
+            const x = minX - visualPad;
+            const y = minY - visualPad;
+            const width = (maxX - minX) + 2 * visualPad;
+            const height = (maxY - minY) + 2 * visualPad;
 
             if (width > 0 && height > 0) {
-                const bboxOverride = { x, y, width, height };
+                const bboxOverride = { x: xGeom, y: yGeom, width: widthGeom, height: heightGeom };
                 const { fills, strokes } = styleForNode(node, { bboxOverride });
                 elements.push({
                     id: makeId(),
@@ -1299,18 +1309,28 @@ export function importEditableShapesFromSanitizedSvg(sanitizedSvg, options) {
                     maxY = Math.max(maxY, p.y);
                 }
 
-                const pad = 0.5;
-                const x = minX - pad;
-                const y = minY - pad;
-                const width = (maxX - minX) + 2 * pad;
-                const height = (maxY - minY) + 2 * pad;
+                const paint = resolvePaintForNode(node);
+                const strokePad = (!paint.stroke?.none && Number.isFinite(paint.stroke?.width)) ? (Math.max(0, paint.stroke.width) / 2) : 0;
+                const basePad = 0.5;
+                const geomPad = basePad;
+                const visualPad = basePad + strokePad;
+
+                const xGeom = minX - geomPad;
+                const yGeom = minY - geomPad;
+                const widthGeom = (maxX - minX) + 2 * geomPad;
+                const heightGeom = (maxY - minY) + 2 * geomPad;
+
+                const x = minX - visualPad;
+                const y = minY - visualPad;
+                const width = (maxX - minX) + 2 * visualPad;
+                const height = (maxY - minY) + 2 * visualPad;
 
                 if (width > 0 && height > 0) {
                     const localPts = translated.map(p => ({ x: p.x - x, y: p.y - y }));
                     const fillRule = getFillRuleForNode(node);
                     const path = makeVectorPathFromPoints(localPts, { closed: tag === 'polygon', fillRule });
                     if (path) {
-                        const bboxOverride = { x, y, width, height };
+                        const bboxOverride = { x: xGeom, y: yGeom, width: widthGeom, height: heightGeom };
                         const { fills, strokes } = styleForNode(node, { bboxOverride });
                         elements.push({
                             id: makeId(),
@@ -1373,33 +1393,43 @@ export function importEditableShapesFromSanitizedSvg(sanitizedSvg, options) {
                 }
 
                 if (Number.isFinite(minX) && Number.isFinite(minY) && Number.isFinite(maxX) && Number.isFinite(maxY)) {
-                    const pad = 0.5;
-                    const x = minX - pad + nextAccumulated.tx;
-                    const y = minY - pad + nextAccumulated.ty;
-                    const width = (maxX - minX) + 2 * pad;
-                    const height = (maxY - minY) + 2 * pad;
+                    const paint = resolvePaintForNode(node);
+                    const strokePad = (!paint.stroke?.none && Number.isFinite(paint.stroke?.width)) ? (Math.max(0, paint.stroke.width) / 2) : 0;
+                    const basePad = 0.5;
+                    const geomPad = basePad;
+                    const visualPad = basePad + strokePad;
+
+                    const xGeom = minX - geomPad + nextAccumulated.tx;
+                    const yGeom = minY - geomPad + nextAccumulated.ty;
+                    const widthGeom = (maxX - minX) + 2 * geomPad;
+                    const heightGeom = (maxY - minY) + 2 * geomPad;
+
+                    const x = minX - visualPad + nextAccumulated.tx;
+                    const y = minY - visualPad + nextAccumulated.ty;
+                    const width = (maxX - minX) + 2 * visualPad;
+                    const height = (maxY - minY) + 2 * visualPad;
 
                     if (width > 0 && height > 0) {
                         const localPaths = parsed.paths.map(p => ({
                             ...p,
-                            start: { x: p.start.x - (minX - pad), y: p.start.y - (minY - pad) },
+                            start: { x: p.start.x - (minX - visualPad), y: p.start.y - (minY - visualPad) },
                             segments: (p.segments || []).map(seg => {
                                 if (seg.kind === 'line') {
-                                    return { kind: 'line', to: { x: seg.to.x - (minX - pad), y: seg.to.y - (minY - pad) } };
+                                    return { kind: 'line', to: { x: seg.to.x - (minX - visualPad), y: seg.to.y - (minY - visualPad) } };
                                 }
                                 if (seg.kind === 'cubic') {
                                     return {
                                         kind: 'cubic',
-                                        c1: { x: seg.c1.x - (minX - pad), y: seg.c1.y - (minY - pad) },
-                                        c2: { x: seg.c2.x - (minX - pad), y: seg.c2.y - (minY - pad) },
-                                        to: { x: seg.to.x - (minX - pad), y: seg.to.y - (minY - pad) }
+                                        c1: { x: seg.c1.x - (minX - visualPad), y: seg.c1.y - (minY - visualPad) },
+                                        c2: { x: seg.c2.x - (minX - visualPad), y: seg.c2.y - (minY - visualPad) },
+                                        to: { x: seg.to.x - (minX - visualPad), y: seg.to.y - (minY - visualPad) }
                                     };
                                 }
                                 return seg;
                             })
                         }));
 
-                        const bboxOverride = { x, y, width, height };
+                        const bboxOverride = { x: xGeom, y: yGeom, width: widthGeom, height: heightGeom };
                         const { fills, strokes } = styleForNode(node, { bboxOverride });
                         elements.push({
                             id: makeId(),
