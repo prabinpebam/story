@@ -119,6 +119,58 @@ test.describe('Clipboard: paste SVG from text/html (editable shapes flag)', () =
     expect(anyGradientFill).toBe(true);
   });
 
+  test('pasting HTML containing an <svg> with <radialGradient> falls back to solid fill (deterministic)', async ({ page, getState }) => {
+    const before = await getState();
+    const slideId = before.editor.activeSlideId;
+    expect(slideId).toBeTruthy();
+
+    const beforeElements = before.slides[slideId]?.elements || {};
+    const beforeIds = new Set(Object.keys(beforeElements));
+
+    const svg = `
+      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="10">
+        <defs>
+          <radialGradient id="g">
+            <stop offset="0%" stop-color="#ff0000" />
+            <stop offset="100%" stop-color="#0000ff" />
+          </radialGradient>
+        </defs>
+        <rect x="0" y="0" width="20" height="10" fill="url(#g)" />
+      </svg>
+    `;
+    const html = `<div data-from="test">${svg}</div>`;
+
+    await page.evaluate(async ({ html }) => {
+      const item = new ClipboardItem({
+        'text/html': new Blob([html], { type: 'text/html' })
+      });
+      await navigator.clipboard.write([item]);
+    }, { html });
+
+    await page.keyboard.down('Control');
+    await page.keyboard.press('v');
+    await page.keyboard.up('Control');
+
+    await expect.poll(async () => {
+      const after = await getState();
+      const count = Object.keys(after.slides[slideId]?.elements || {}).length;
+      return count;
+    }, { timeout: 4000 }).toBeGreaterThan(beforeIds.size);
+
+    const after = await getState();
+    const afterElements = after.slides[slideId]?.elements || {};
+    const newElements = Object.entries(afterElements)
+      .filter(([id]) => !beforeIds.has(id))
+      .map(([, el]: any) => el);
+
+    const newShapes = newElements.filter((el: any) => el && el.type === 'shape');
+    expect(newShapes.length).toBeGreaterThan(0);
+
+    const shape = newShapes[0];
+    expect(shape?.style?.fills?.[0]?.type).toBe('solid');
+    expect(shape?.style?.fills?.[0]?.value).toBe('#808080');
+  });
+
   test('pasting HTML containing an <svg> with <linearGradient gradientTransform="scale(...)"> applies transform to gradient direction', async ({ page, getState }) => {
     const before = await getState();
     const slideId = before.editor.activeSlideId;
