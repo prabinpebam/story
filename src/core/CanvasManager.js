@@ -57,6 +57,7 @@ export class CanvasManager {
         this.activeGuides = [];
         this.measurementGuides = null;
         this.vectorNodeDrag = null;
+        this.vectorMarqueeSelection = null;
 
         // Initialize sub-modules
         this.viewportController = new ViewportController(this);
@@ -433,6 +434,12 @@ export class CanvasManager {
                 return;
             }
 
+            // Vector deep edit routing: in vector mode, do not allow object drag/handles.
+            if (state.editor.deepEdit && state.editor.deepEdit.kind === 'vector') {
+                this._handleVectorEditMouseDown(mouseX, mouseY, e);
+                return;
+            }
+
             const hit = this.hitTest(mouseX, mouseY);
 
             if (hit) {
@@ -455,6 +462,30 @@ export class CanvasManager {
         }
     }
 
+    _handleVectorEditMouseDown(mouseX, mouseY, e) {
+        const state = store.getState();
+        const hit = this.hitTest(mouseX, mouseY);
+
+        if (hit && hit.type === 'vector-node') {
+            this._handleVectorNodeClick(hit, mouseX, mouseY, e);
+            return;
+        }
+
+        const deepEdit = state.editor.deepEdit;
+        const currentNodes = deepEdit?.selection?.nodes || [];
+        let baseSelection = currentNodes;
+        if (!e.shiftKey && !e.ctrlKey && !e.metaKey) {
+            baseSelection = [];
+        }
+
+        this.interactionState = 'VECTOR_SELECTING';
+        this.dragStart = { x: mouseX, y: mouseY };
+        this.dragCurrent = { x: mouseX, y: mouseY };
+        this.vectorMarqueeSelection = {
+            baseSelection: Array.isArray(baseSelection) ? [...baseSelection] : []
+        };
+    }
+
     _handleVectorNodeClick(hit, mouseX, mouseY, e) {
         const state = store.getState();
         const slide = this.getActiveContainer(state);
@@ -466,8 +497,29 @@ export class CanvasManager {
         // Ensure we're in vector deep edit for this element.
         const deepEdit = state.editor.deepEdit;
         if (!deepEdit || deepEdit.kind !== 'vector' || deepEdit.elementId !== hit.elementId) {
-            store.dispatch('SET_DEEP_EDIT', { kind: 'vector', elementId: hit.elementId });
+            store.dispatch('SET_DEEP_EDIT', { kind: 'vector', elementId: hit.elementId, selection: { nodes: [] } });
         }
+
+        // Update deep selection for the clicked node.
+        const latestState = store.getState();
+        const currentDeep = latestState.editor.deepEdit;
+        const currentNodes = currentDeep?.selection?.nodes || [];
+        const nodeId = `p${hit.pathIndex}:${hit.nodeKind === 'start' ? 'start' : `s${(hit.segmentIndex ?? 0) + 1}`}`;
+        let nextNodes;
+
+        if (e.ctrlKey || e.metaKey) {
+            const set = new Set(currentNodes);
+            if (set.has(nodeId)) set.delete(nodeId);
+            else set.add(nodeId);
+            nextNodes = Array.from(set);
+        } else if (e.shiftKey) {
+            nextNodes = Array.from(new Set([...currentNodes, nodeId]));
+        } else {
+            nextNodes = [nodeId];
+        }
+
+        nextNodes.sort((a, b) => a.localeCompare(b));
+        store.dispatch('SET_DEEP_EDIT', { ...currentDeep, selection: { ...(currentDeep?.selection || {}), nodes: nextNodes } });
 
         // Keep element selected while deep editing.
         if (!state.editor.selectedElementIds.includes(hit.elementId)) {
@@ -632,6 +684,9 @@ export class CanvasManager {
             case 'SELECTING':
                 this._handleMarqueeSelection(mouseX, mouseY);
                 break;
+            case 'VECTOR_SELECTING':
+                this._handleVectorMarqueeSelection(mouseX, mouseY, e);
+                break;
             case 'PANNING':
                 this._handlePanning(mouseX, mouseY, e);
                 break;
@@ -738,6 +793,97 @@ export class CanvasManager {
         if (!isSame) {
             store.dispatch('UPDATE_SELECTION', newSelection);
         }
+    }
+
+    _handleVectorMarqueeSelection(mouseX, mouseY, e) {
+        this.dragCurrent = { x: mouseX, y: mouseY };
+
+        const state = store.getState();
+        const deepEdit = state.editor.deepEdit;
+        if (!deepEdit || deepEdit.kind !== 'vector' || !deepEdit.elementId) return;
+
+        const slide = this.getActiveContainer(state);
+        const el = slide?.elements?.[deepEdit.elementId];
+        if (!slide || !el || el.type !== 'vector' || !Array.isArray(el.paths)) return;
+
+        const { zoom, pan } = state.editor;
+        const startX = (this.dragStart.x - pan.x) / zoom;
+        const startY = (this.dragStart.y - pan.y) / zoom;
+        const currentX = (mouseX - pan.x) / zoom;
+        const currentY = (mouseY - pan.y) / zoom;
+
+        const marqueeRect = {
+            x: Math.min(startX, currentX),
+            y: Math.min(startY, currentY),
+            width: Math.abs(currentX - startX),
+            height: Math.abs(currentY - startY)
+        };
+
+        const absEl = GeometryUtils.getAbsoluteElement(el, slide);
+        const rad = (absEl.rotation || 0) * Math.PI / 180;
+        const cos = Math.cos(rad);
+        const sin = Math.sin(rad);
+        const cx = absEl.x + absEl.width / 2;
+        const cy = absEl.y + absEl.height / 2;
+
+        const nodes = [];
+        el.paths.forEach((path, pathIndex) => {
+            if (!path) return;
+
+            if (path.start) {
+                nodes.push({ id: `p${pathIndex}:start`, local: { x: Number(path.start.x), y: Number(path.start.y) } });
+            }
+            if (Array.isArray(path.segments)) {
+                path.segments.forEach((seg, segIndex) => {
+                    if (!seg || !seg.to) return;
+                    nodes.push({ id: `p${pathIndex}:s${segIndex + 1}`, local: { x: Number(seg.to.x), y: Number(seg.to.y) } });
+                });
+            }
+        });
+
+        const inBox = [];
+        for (const node of nodes) {
+            const unrotX = absEl.x + node.local.x;
+            const unrotY = absEl.y + node.local.y;
+
+            const dx = unrotX - cx;
+            const dy = unrotY - cy;
+            const wx = cx + (dx * cos - dy * sin);
+            const wy = cy + (dx * sin + dy * cos);
+
+            if (
+                wx >= marqueeRect.x &&
+                wx <= marqueeRect.x + marqueeRect.width &&
+                wy >= marqueeRect.y &&
+                wy <= marqueeRect.y + marqueeRect.height
+            ) {
+                inBox.push(node.id);
+            }
+        }
+
+        const base = this.vectorMarqueeSelection?.baseSelection || [];
+        let nextNodes;
+
+        if (e.ctrlKey || e.metaKey) {
+            const set = new Set(base);
+            for (const id of inBox) {
+                if (set.has(id)) set.delete(id);
+                else set.add(id);
+            }
+            nextNodes = Array.from(set);
+        } else {
+            nextNodes = Array.from(new Set([...base, ...inBox]));
+        }
+
+        nextNodes.sort((a, b) => a.localeCompare(b));
+
+        store.dispatch('SET_DEEP_EDIT', {
+            ...deepEdit,
+            selection: {
+                ...(deepEdit.selection || {}),
+                nodes: nextNodes
+            }
+        });
     }
 
     _handlePanning(mouseX, mouseY, e) {
@@ -1386,6 +1532,7 @@ export class CanvasManager {
         this.initialElementState = {};
         this.initialRotationAngle = null;
         this.vectorNodeDrag = null;
+        this.vectorMarqueeSelection = null;
     }
 
     /**
@@ -1662,7 +1809,7 @@ export class CanvasManager {
                     });
                 } else if (element.type === 'vector') {
                     store.dispatch('UPDATE_SELECTION', [hit.id]);
-                    store.dispatch('SET_DEEP_EDIT', { kind: 'vector', elementId: hit.id });
+                    store.dispatch('SET_DEEP_EDIT', { kind: 'vector', elementId: hit.id, selection: { nodes: [] } });
                 } else {
                     store.dispatch('UPDATE_SELECTION', [hit.id]);
                 }
