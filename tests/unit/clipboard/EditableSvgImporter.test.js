@@ -1181,6 +1181,26 @@ describe('EditableSvgImporter.importEditableShapesFromSanitizedSvg', () => {
                 expect(el.style?.strokes?.[0]?.width).toBe(2);
         });
 
+            it('warns deterministically when paint-order is present (paint order ignored; shape still imports)', () => {
+                const svg = `
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="10">
+                    <rect x="0" y="0" width="20" height="10" fill="#ff0000" stroke="#0000ff" stroke-width="2" paint-order="stroke fill" />
+                    </svg>
+                `;
+
+                const res = importEditableShapesFromSanitizedSvg(svg, { centerX: 0, centerY: 0, idSeed: 't' });
+                expect(res.ok).toBe(true);
+                if (!res.ok) return;
+
+                expect(res.warnings).toContain('WARN_PAINT_ORDER_UNSUPPORTED');
+                expect(res.elements).toHaveLength(1);
+
+                const el = res.elements[0];
+                expect(el.type).toBe('shape');
+                expect(el.style?.fills?.[0]).toMatchObject({ type: 'solid', value: '#ff0000', opacity: 100 });
+                expect(el.style?.strokes?.[0]).toMatchObject({ type: 'solid', color: '#0000ff', width: 2, opacity: 100 });
+            });
+
         it('imports <line> as shapeKind:line with normalized local endpoints', () => {
                 const svg = `
                     <svg xmlns="http://www.w3.org/2000/svg">

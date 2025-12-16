@@ -65,7 +65,8 @@ This status snapshot reflects what is implemented in the repo today (not “plan
   - [x] Detects `mask` usage and imports the shape anyway (mask is ignored; deterministic warning)
 - [x] `fill-rule` preserved (`evenodd`/`nonzero`) for vectors
 - [x] Stroke-aware bounds for line/vector/path (bbox expands by half stroke width)
-- [x] Supports `vector-effect="non-scaling-stroke"` by not scaling stroke widths when baking scale transforms
+- [x] Supports `vector-effect="non-scaling-stroke"` by not scaling stroke widths when baking scale transforms (other `vector-effect` values are ignored; deterministic warning)
+- [x] Detects `paint-order` and imports the shape anyway (paint order is ignored; deterministic warning)
 - [x] SVG root `viewBox` baked as scale+translate (scale/translate only; still conservative)
 - [x] Automated coverage:
   - [x] Vitest: `tests/unit/clipboard/EditableSvgImporter.test.js`
@@ -75,7 +76,7 @@ This status snapshot reflects what is implemented in the repo today (not “plan
 - [x] Corpus fixtures: `tests/corpus/shapes/figma-paste/` (directory + canonical hash + warnings)
 - [ ] Broader SVG paint support (beyond the conservative pattern subset)
 - [ ] Broader transform support beyond axis-aligned scale/translate (e.g. rotate/skew; general matrices)
-- [ ] True rotate/skew/general matrix support (baked transforms); current behavior ignores and warns
+- [ ] True rotate/skew/general matrix support (baked transforms); current behavior warns+ignores (with limited salvage for translate/scale)
 - [ ] True clip-path + masking rendering/import for pasted SVG (current behavior ignores and warns)
 
 ---

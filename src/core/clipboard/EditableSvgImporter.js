@@ -1424,6 +1424,14 @@ function getVectorEffect(node) {
     return v;
 }
 
+function getPaintOrder(node) {
+    const raw = getInheritedPresentation(node, 'paint-order');
+    if (typeof raw !== 'string') return null;
+    const v = raw.trim().toLowerCase();
+    if (!v || v === 'normal') return null;
+    return v;
+}
+
 function getFillRuleForNode(node) {
     const raw = getInheritedPresentation(node, 'fill-rule');
     const v = typeof raw === 'string' ? raw.trim().toLowerCase() : '';
@@ -1858,6 +1866,12 @@ export function importEditableShapesFromSanitizedSvg(sanitizedSvg, options) {
         // Other vector-effect values are currently ignored.
         if (vectorEffect && !hasNonScalingStroke) {
             warnings.push('WARN_VECTOR_EFFECT_UNSUPPORTED');
+        }
+        const paintOrder = getPaintOrder(node);
+        if (paintOrder) {
+            // Conservative: we do not currently support changing paint order.
+            // Import remains deterministic with existing fill/stroke order.
+            warnings.push('WARN_PAINT_ORDER_UNSUPPORTED');
         }
 
         const bboxOverride = options?.bboxOverride ?? null;
