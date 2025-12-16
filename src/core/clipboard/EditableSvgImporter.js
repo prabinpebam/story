@@ -182,6 +182,11 @@ function resolveLinearGradientCss(doc, gradientId, options) {
         }
     } else if (unitsTrimmed === 'userSpaceOnUse') {
         const bbox = options?.elementBBox;
+        const userSpaceTransform = options?.userSpaceTransform;
+        const sx = Number.isFinite(userSpaceTransform?.sx) ? userSpaceTransform.sx : 1;
+        const sy = Number.isFinite(userSpaceTransform?.sy) ? userSpaceTransform.sy : 1;
+        const tx = Number.isFinite(userSpaceTransform?.tx) ? userSpaceTransform.tx : 0;
+        const ty = Number.isFinite(userSpaceTransform?.ty) ? userSpaceTransform.ty : 0;
         if (!bbox || !Number.isFinite(bbox.x) || !Number.isFinite(bbox.y) || !Number.isFinite(bbox.width) || !Number.isFinite(bbox.height) || bbox.width <= 0 || bbox.height <= 0) {
             return { ok: false, reason: 'MISSING_ELEMENT_BBOX' };
         }
@@ -196,10 +201,19 @@ function resolveLinearGradientCss(doc, gradientId, options) {
             return { ok: false, reason: 'GRADIENT_COORDS_UNSUPPORTED' };
         }
 
-        x1 = (ux1 - bbox.x) / bbox.width;
-        y1 = (uy1 - bbox.y) / bbox.height;
-        x2 = (ux2 - bbox.x) / bbox.width;
-        y2 = (uy2 - bbox.y) / bbox.height;
+        // Normalize userSpaceOnUse coordinates into the element's bbox.
+        // The bbox we pass around is expressed in the same coordinate system as the baked geometry.
+        // When the SVG root uses a viewBox (or when we bake translations), apply the same
+        // scale/translation to the gradient coords so they remain comparable.
+        const ux1t = ux1 * sx + tx;
+        const uy1t = uy1 * sy + ty;
+        const ux2t = ux2 * sx + tx;
+        const uy2t = uy2 * sy + ty;
+
+        x1 = (ux1t - bbox.x) / bbox.width;
+        y1 = (uy1t - bbox.y) / bbox.height;
+        x2 = (ux2t - bbox.x) / bbox.width;
+        y2 = (uy2t - bbox.y) / bbox.height;
     } else {
         return { ok: false, reason: 'GRADIENT_UNITS_UNSUPPORTED' };
     }
@@ -289,6 +303,59 @@ function getPrimitiveLocalBBox(node) {
         return { x: minX, y: minY, width: maxX - minX, height: maxY - minY };
     }
     return null;
+}
+
+function transformPoint(p, t) {
+    const sx = Number.isFinite(t?.sx) ? t.sx : 1;
+    const sy = Number.isFinite(t?.sy) ? t.sy : 1;
+    const tx = Number.isFinite(t?.tx) ? t.tx : 0;
+    const ty = Number.isFinite(t?.ty) ? t.ty : 0;
+    return { x: p.x * sx + tx, y: p.y * sy + ty };
+}
+
+function transformBBox(bbox, t) {
+    if (!bbox) return null;
+    const p0 = transformPoint({ x: bbox.x, y: bbox.y }, t);
+    const p1 = transformPoint({ x: bbox.x + bbox.width, y: bbox.y + bbox.height }, t);
+    const minX = Math.min(p0.x, p1.x);
+    const minY = Math.min(p0.y, p1.y);
+    const maxX = Math.max(p0.x, p1.x);
+    const maxY = Math.max(p0.y, p1.y);
+    return { x: minX, y: minY, width: maxX - minX, height: maxY - minY };
+}
+
+function parseViewBox(value) {
+    if (typeof value !== 'string') return null;
+    const parts = value.trim().split(/\s+|\s*,\s*/).filter(Boolean);
+    if (parts.length !== 4) return null;
+    const minX = toNumber(parts[0]);
+    const minY = toNumber(parts[1]);
+    const width = toNumber(parts[2]);
+    const height = toNumber(parts[3]);
+    if (![minX, minY, width, height].every(Number.isFinite)) return null;
+    if (width <= 0 || height <= 0) return null;
+    return { minX, minY, width, height };
+}
+
+function getSvgRootTransform(svg) {
+    // Map SVG viewBox user units into viewport (width/height) user units.
+    // We keep this conservative: scale + translate only.
+    const vb = parseViewBox(svg?.getAttribute?.('viewBox'));
+    if (!vb) return { sx: 1, sy: 1, tx: 0, ty: 0 };
+
+    const widthAttr = svg.getAttribute?.('width');
+    const heightAttr = svg.getAttribute?.('height');
+    const viewportW = toLengthNumber(widthAttr) ?? vb.width;
+    const viewportH = toLengthNumber(heightAttr) ?? vb.height;
+    if (!Number.isFinite(viewportW) || !Number.isFinite(viewportH) || viewportW <= 0 || viewportH <= 0) {
+        return { sx: 1, sy: 1, tx: 0, ty: 0 };
+    }
+
+    const sx = viewportW / vb.width;
+    const sy = viewportH / vb.height;
+    const tx = -vb.minX * sx;
+    const ty = -vb.minY * sy;
+    return { sx, sy, tx, ty };
 }
 
 function parsePointsAttribute(pointsAttr) {
@@ -1039,14 +1106,16 @@ export function importEditableShapesFromSanitizedSvg(sanitizedSvg, options) {
         const paint = resolvePaintForNode(node);
 
         const bboxOverride = options?.bboxOverride ?? null;
+        const userSpaceTransform = options?.userSpaceTransform ?? null;
 
         let fillGradientCss = null;
         if (paint.unsupported?.fillUrlPaint) {
             const fillRaw = getInheritedPresentation(node, 'fill');
             const gradId = parseUrlPaintId(fillRaw);
             if (gradId) {
-                const bbox = bboxOverride ?? getPrimitiveLocalBBox(node);
-                const resolved = resolveLinearGradientCss(doc, gradId, { elementBBox: bbox });
+                const primitiveBBox = getPrimitiveLocalBBox(node);
+                const bbox = bboxOverride ?? transformBBox(primitiveBBox, userSpaceTransform);
+                const resolved = resolveLinearGradientCss(doc, gradId, { elementBBox: bbox, userSpaceTransform });
                 if (resolved.ok) {
                     fillGradientCss = resolved.css;
                     if (Array.isArray(resolved.warnings)) warnings.push(...resolved.warnings);
@@ -1063,8 +1132,9 @@ export function importEditableShapesFromSanitizedSvg(sanitizedSvg, options) {
             const strokeRaw = getInheritedPresentation(node, 'stroke');
             const gradId = parseUrlPaintId(strokeRaw);
             if (gradId) {
-                const bbox = bboxOverride ?? getPrimitiveLocalBBox(node);
-                const resolved = resolveLinearGradientCss(doc, gradId, { elementBBox: bbox });
+                const primitiveBBox = getPrimitiveLocalBBox(node);
+                const bbox = bboxOverride ?? transformBBox(primitiveBBox, userSpaceTransform);
+                const resolved = resolveLinearGradientCss(doc, gradId, { elementBBox: bbox, userSpaceTransform });
                 if (resolved.ok) {
                     strokeGradientCss = resolved.css;
                     if (Array.isArray(resolved.warnings)) warnings.push(...resolved.warnings);
@@ -1173,23 +1243,31 @@ export function importEditableShapesFromSanitizedSvg(sanitizedSvg, options) {
         }
 
         const nextAccumulated = {
-            tx: accumulated.tx + local.tx,
-            ty: accumulated.ty + local.ty
+            sx: accumulated.sx,
+            sy: accumulated.sy,
+            tx: accumulated.tx + local.tx * accumulated.sx,
+            ty: accumulated.ty + local.ty * accumulated.sy
         };
 
         const tag = String(node.nodeName).toLowerCase();
 
         if (tag === 'rect') {
-            const x = (toNumber(node.getAttribute('x')) ?? 0) + nextAccumulated.tx;
-            const y = (toNumber(node.getAttribute('y')) ?? 0) + nextAccumulated.ty;
-            const width = toNumber(node.getAttribute('width')) ?? 0;
-            const height = toNumber(node.getAttribute('height')) ?? 0;
+            const rawX = toNumber(node.getAttribute('x')) ?? 0;
+            const rawY = toNumber(node.getAttribute('y')) ?? 0;
+            const rawW = toNumber(node.getAttribute('width')) ?? 0;
+            const rawH = toNumber(node.getAttribute('height')) ?? 0;
+            const x = rawX * nextAccumulated.sx + nextAccumulated.tx;
+            const y = rawY * nextAccumulated.sy + nextAccumulated.ty;
+            const width = rawW * nextAccumulated.sx;
+            const height = rawH * nextAccumulated.sy;
             if (width > 0 && height > 0) {
                 const bboxOverride = { x, y, width, height };
-                const { fills, strokes } = styleForNode(node, { bboxOverride });
+                const { fills, strokes } = styleForNode(node, { bboxOverride, userSpaceTransform: nextAccumulated });
                 const rx = toNumber(node.getAttribute('rx')) ?? null;
                 const ry = toNumber(node.getAttribute('ry')) ?? null;
-                const borderRadius = rx !== null || ry !== null ? Math.max(0, Math.min(rx ?? ry ?? 0, ry ?? rx ?? 0)) : 0;
+                const rxScaled = rx !== null ? Math.max(0, rx * nextAccumulated.sx) : null;
+                const ryScaled = ry !== null ? Math.max(0, ry * nextAccumulated.sy) : null;
+                const borderRadius = rxScaled !== null || ryScaled !== null ? Math.max(0, Math.min(rxScaled ?? ryScaled ?? 0, ryScaled ?? rxScaled ?? 0)) : 0;
 
                 elements.push({
                     id: makeId(),
@@ -1206,33 +1284,41 @@ export function importEditableShapesFromSanitizedSvg(sanitizedSvg, options) {
                 });
             }
         } else if (tag === 'circle') {
-            const cx = (toNumber(node.getAttribute('cx')) ?? 0) + nextAccumulated.tx;
-            const cy = (toNumber(node.getAttribute('cy')) ?? 0) + nextAccumulated.ty;
+            const rawCx = toNumber(node.getAttribute('cx')) ?? 0;
+            const rawCy = toNumber(node.getAttribute('cy')) ?? 0;
             const r = toNumber(node.getAttribute('r')) ?? 0;
             if (r > 0) {
-                const bboxOverride = { x: cx - r, y: cy - r, width: 2 * r, height: 2 * r };
-                const { fills, strokes } = styleForNode(node, { bboxOverride });
+                const cx = rawCx * nextAccumulated.sx + nextAccumulated.tx;
+                const cy = rawCy * nextAccumulated.sy + nextAccumulated.ty;
+                const rx = r * nextAccumulated.sx;
+                const ry = r * nextAccumulated.sy;
+                const bboxOverride = { x: cx - rx, y: cy - ry, width: 2 * rx, height: 2 * ry };
+                const { fills, strokes } = styleForNode(node, { bboxOverride, userSpaceTransform: nextAccumulated });
                 elements.push({
                     id: makeId(),
                     type: 'shape',
                     shape: 'ellipse',
                     shapeKind: 'ellipse',
-                    x: cx - r,
-                    y: cy - r,
-                    width: 2 * r,
-                    height: 2 * r,
+                    x: cx - rx,
+                    y: cy - ry,
+                    width: 2 * rx,
+                    height: 2 * ry,
                     rotation: 0,
                     style: { fills, strokes }
                 });
             }
         } else if (tag === 'ellipse') {
-            const cx = (toNumber(node.getAttribute('cx')) ?? 0) + nextAccumulated.tx;
-            const cy = (toNumber(node.getAttribute('cy')) ?? 0) + nextAccumulated.ty;
-            const rx = toNumber(node.getAttribute('rx')) ?? 0;
-            const ry = toNumber(node.getAttribute('ry')) ?? 0;
+            const rawCx = toNumber(node.getAttribute('cx')) ?? 0;
+            const rawCy = toNumber(node.getAttribute('cy')) ?? 0;
+            const rawRx = toNumber(node.getAttribute('rx')) ?? 0;
+            const rawRy = toNumber(node.getAttribute('ry')) ?? 0;
+            const cx = rawCx * nextAccumulated.sx + nextAccumulated.tx;
+            const cy = rawCy * nextAccumulated.sy + nextAccumulated.ty;
+            const rx = rawRx * nextAccumulated.sx;
+            const ry = rawRy * nextAccumulated.sy;
             if (rx > 0 && ry > 0) {
                 const bboxOverride = { x: cx - rx, y: cy - ry, width: 2 * rx, height: 2 * ry };
-                const { fills, strokes } = styleForNode(node, { bboxOverride });
+                const { fills, strokes } = styleForNode(node, { bboxOverride, userSpaceTransform: nextAccumulated });
                 elements.push({
                     id: makeId(),
                     type: 'shape',
@@ -1247,10 +1333,14 @@ export function importEditableShapesFromSanitizedSvg(sanitizedSvg, options) {
                 });
             }
         } else if (tag === 'line') {
-            const x1 = (toNumber(node.getAttribute('x1')) ?? 0) + nextAccumulated.tx;
-            const y1 = (toNumber(node.getAttribute('y1')) ?? 0) + nextAccumulated.ty;
-            const x2 = (toNumber(node.getAttribute('x2')) ?? 0) + nextAccumulated.tx;
-            const y2 = (toNumber(node.getAttribute('y2')) ?? 0) + nextAccumulated.ty;
+            const rawX1 = toNumber(node.getAttribute('x1')) ?? 0;
+            const rawY1 = toNumber(node.getAttribute('y1')) ?? 0;
+            const rawX2 = toNumber(node.getAttribute('x2')) ?? 0;
+            const rawY2 = toNumber(node.getAttribute('y2')) ?? 0;
+            const x1 = rawX1 * nextAccumulated.sx + nextAccumulated.tx;
+            const y1 = rawY1 * nextAccumulated.sy + nextAccumulated.ty;
+            const x2 = rawX2 * nextAccumulated.sx + nextAccumulated.tx;
+            const y2 = rawY2 * nextAccumulated.sy + nextAccumulated.ty;
 
             const minX = Math.min(x1, x2);
             const minY = Math.min(y1, y2);
@@ -1275,7 +1365,7 @@ export function importEditableShapesFromSanitizedSvg(sanitizedSvg, options) {
 
             if (width > 0 && height > 0) {
                 const bboxOverride = { x: xGeom, y: yGeom, width: widthGeom, height: heightGeom };
-                const { fills, strokes } = styleForNode(node, { bboxOverride });
+                const { fills, strokes } = styleForNode(node, { bboxOverride, userSpaceTransform: nextAccumulated });
                 elements.push({
                     id: makeId(),
                     type: 'shape',
@@ -1296,7 +1386,7 @@ export function importEditableShapesFromSanitizedSvg(sanitizedSvg, options) {
         } else if (tag === 'polyline' || tag === 'polygon') {
             const pts = parsePointsAttribute(node.getAttribute('points'));
             if (pts && pts.length >= 2) {
-                const translated = pts.map(p => ({ x: p.x + nextAccumulated.tx, y: p.y + nextAccumulated.ty }));
+                const translated = pts.map(p => transformPoint(p, nextAccumulated));
 
                 let minX = Infinity;
                 let minY = Infinity;
@@ -1331,7 +1421,7 @@ export function importEditableShapesFromSanitizedSvg(sanitizedSvg, options) {
                     const path = makeVectorPathFromPoints(localPts, { closed: tag === 'polygon', fillRule });
                     if (path) {
                         const bboxOverride = { x: xGeom, y: yGeom, width: widthGeom, height: heightGeom };
-                        const { fills, strokes } = styleForNode(node, { bboxOverride });
+                        const { fills, strokes } = styleForNode(node, { bboxOverride, userSpaceTransform: nextAccumulated });
                         elements.push({
                             id: makeId(),
                             type: 'shape',
@@ -1368,28 +1458,37 @@ export function importEditableShapesFromSanitizedSvg(sanitizedSvg, options) {
 
                 for (const path of parsed.paths) {
                     if (!path?.start) continue;
-                    includePoint(path.start);
+                    const startT = transformPoint(path.start, nextAccumulated);
+                    includePoint(startT);
                     let curP = { ...path.start };
+                    let curT = { ...startT };
                     for (const seg of path.segments || []) {
                         if (seg.kind === 'line') {
-                            includePoint(seg.to);
+                            const toT = transformPoint(seg.to, nextAccumulated);
+                            includePoint(toT);
                             curP = { ...seg.to };
+                            curT = { ...toT };
                         } else if (seg.kind === 'cubic') {
-                            includePoint(seg.to);
+                            const toT = transformPoint(seg.to, nextAccumulated);
+                            includePoint(toT);
 
-                            const tsX = cubicExtremaTs(curP.x, seg.c1.x, seg.c2.x, seg.to.x);
-                            const tsY = cubicExtremaTs(curP.y, seg.c1.y, seg.c2.y, seg.to.y);
+                            const c1T = transformPoint(seg.c1, nextAccumulated);
+                            const c2T = transformPoint(seg.c2, nextAccumulated);
+
+                            const tsX = cubicExtremaTs(curT.x, c1T.x, c2T.x, toT.x);
+                            const tsY = cubicExtremaTs(curT.y, c1T.y, c2T.y, toT.y);
                             const ts = Array.from(new Set([...tsX, ...tsY]));
                             for (const t of ts) {
-                                const x = cubicAt(curP.x, seg.c1.x, seg.c2.x, seg.to.x, t);
-                                const y = cubicAt(curP.y, seg.c1.y, seg.c2.y, seg.to.y, t);
+                                const x = cubicAt(curT.x, c1T.x, c2T.x, toT.x, t);
+                                const y = cubicAt(curT.y, c1T.y, c2T.y, toT.y, t);
                                 if (Number.isFinite(x) && Number.isFinite(y)) includePoint({ x, y });
                             }
 
                             curP = { ...seg.to };
+                            curT = { ...toT };
                         }
                     }
-                    if (path.closed) includePoint(path.start);
+                    if (path.closed) includePoint(startT);
                 }
 
                 if (Number.isFinite(minX) && Number.isFinite(minY) && Number.isFinite(maxX) && Number.isFinite(maxY)) {
@@ -1399,30 +1498,37 @@ export function importEditableShapesFromSanitizedSvg(sanitizedSvg, options) {
                     const geomPad = basePad;
                     const visualPad = basePad + strokePad;
 
-                    const xGeom = minX - geomPad + nextAccumulated.tx;
-                    const yGeom = minY - geomPad + nextAccumulated.ty;
+                    const xGeom = minX - geomPad;
+                    const yGeom = minY - geomPad;
                     const widthGeom = (maxX - minX) + 2 * geomPad;
                     const heightGeom = (maxY - minY) + 2 * geomPad;
 
-                    const x = minX - visualPad + nextAccumulated.tx;
-                    const y = minY - visualPad + nextAccumulated.ty;
+                    const x = minX - visualPad;
+                    const y = minY - visualPad;
                     const width = (maxX - minX) + 2 * visualPad;
                     const height = (maxY - minY) + 2 * visualPad;
 
                     if (width > 0 && height > 0) {
                         const localPaths = parsed.paths.map(p => ({
                             ...p,
-                            start: { x: p.start.x - (minX - visualPad), y: p.start.y - (minY - visualPad) },
+                            start: (() => {
+                                const pt = transformPoint(p.start, nextAccumulated);
+                                return { x: pt.x - (minX - visualPad), y: pt.y - (minY - visualPad) };
+                            })(),
                             segments: (p.segments || []).map(seg => {
                                 if (seg.kind === 'line') {
-                                    return { kind: 'line', to: { x: seg.to.x - (minX - visualPad), y: seg.to.y - (minY - visualPad) } };
+                                    const pt = transformPoint(seg.to, nextAccumulated);
+                                    return { kind: 'line', to: { x: pt.x - (minX - visualPad), y: pt.y - (minY - visualPad) } };
                                 }
                                 if (seg.kind === 'cubic') {
+                                    const c1 = transformPoint(seg.c1, nextAccumulated);
+                                    const c2 = transformPoint(seg.c2, nextAccumulated);
+                                    const to = transformPoint(seg.to, nextAccumulated);
                                     return {
                                         kind: 'cubic',
-                                        c1: { x: seg.c1.x - (minX - visualPad), y: seg.c1.y - (minY - visualPad) },
-                                        c2: { x: seg.c2.x - (minX - visualPad), y: seg.c2.y - (minY - visualPad) },
-                                        to: { x: seg.to.x - (minX - visualPad), y: seg.to.y - (minY - visualPad) }
+                                        c1: { x: c1.x - (minX - visualPad), y: c1.y - (minY - visualPad) },
+                                        c2: { x: c2.x - (minX - visualPad), y: c2.y - (minY - visualPad) },
+                                        to: { x: to.x - (minX - visualPad), y: to.y - (minY - visualPad) }
                                     };
                                 }
                                 return seg;
@@ -1430,7 +1536,7 @@ export function importEditableShapesFromSanitizedSvg(sanitizedSvg, options) {
                         }));
 
                         const bboxOverride = { x: xGeom, y: yGeom, width: widthGeom, height: heightGeom };
-                        const { fills, strokes } = styleForNode(node, { bboxOverride });
+                        const { fills, strokes } = styleForNode(node, { bboxOverride, userSpaceTransform: nextAccumulated });
                         elements.push({
                             id: makeId(),
                             type: 'shape',
@@ -1460,7 +1566,8 @@ export function importEditableShapesFromSanitizedSvg(sanitizedSvg, options) {
     }
 
     try {
-        walk(svg, { tx: 0, ty: 0 });
+        const rootT = getSvgRootTransform(svg);
+        walk(svg, rootT);
     } catch (e) {
         if (e && e.message === 'TRANSFORM_UNSUPPORTED') {
             return { ok: false, reason: 'TRANSFORM_UNSUPPORTED', warnings: ['WARN_TRANSFORM_BAKED'] };

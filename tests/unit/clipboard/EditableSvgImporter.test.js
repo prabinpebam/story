@@ -255,6 +255,75 @@ describe('EditableSvgImporter.importEditableShapesFromSanitizedSvg', () => {
                 expect(el.style?.fills?.[0]?.type).toBe('gradient');
         });
 
+        it('applies SVG root viewBox scaling to geometry', () => {
+                const svg = `
+                    <svg xmlns="http://www.w3.org/2000/svg" width="200" height="100" viewBox="0 0 100 50">
+                        <rect x="0" y="0" width="100" height="50" fill="#000" />
+                    </svg>
+                `;
+
+                const res = importEditableShapesFromSanitizedSvg(svg, { centerX: 0, centerY: 0, idSeed: 't' });
+                expect(res.ok).toBe(true);
+                if (!res.ok) return;
+
+                const el = res.elements[0];
+                expect(el.shapeKind).toBe('rectangle');
+                expect(el.width).toBeCloseTo(200, 6);
+                expect(el.height).toBeCloseTo(100, 6);
+                // Centered around (0,0)
+                expect(el.x).toBeCloseTo(-100, 6);
+                expect(el.y).toBeCloseTo(-50, 6);
+        });
+
+        it('applies SVG root viewBox min-x/min-y translation to geometry', () => {
+                const svg = `
+                    <svg xmlns="http://www.w3.org/2000/svg" width="100" height="50" viewBox="10 20 100 50">
+                        <rect x="10" y="20" width="100" height="50" fill="#000" />
+                    </svg>
+                `;
+
+                const res = importEditableShapesFromSanitizedSvg(svg, { centerX: 0, centerY: 0, idSeed: 't' });
+                expect(res.ok).toBe(true);
+                if (!res.ok) return;
+
+                const el = res.elements[0];
+                expect(el.shapeKind).toBe('rectangle');
+                expect(el.width).toBeCloseTo(100, 6);
+                expect(el.height).toBeCloseTo(50, 6);
+                // Centered around (0,0)
+                expect(el.x).toBeCloseTo(-50, 6);
+                expect(el.y).toBeCloseTo(-25, 6);
+        });
+
+        it('applies viewBox scaling to userSpaceOnUse gradient coords (non-uniform scaling affects angle)', () => {
+                // Non-uniform root scaling: scaleX=2, scaleY=1.
+                // A userSpaceOnUse diagonal gradient (0,0)->(100,100) becomes (0,0)->(200,100),
+                // which maps to a 45deg diagonal in normalized bbox space => CSS 135deg.
+                const svg = `
+                    <svg xmlns="http://www.w3.org/2000/svg" width="200" height="100" viewBox="0 0 100 100">
+                        <defs>
+                            <linearGradient id="g" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="100" y2="100">
+                                <stop offset="0%" stop-color="#ff0000" />
+                                <stop offset="100%" stop-color="#0000ff" />
+                            </linearGradient>
+                        </defs>
+                        <rect x="0" y="0" width="100" height="100" fill="url(#g)" />
+                    </svg>
+                `;
+
+                const res = importEditableShapesFromSanitizedSvg(svg, { centerX: 0, centerY: 0, idSeed: 't' });
+                expect(res.ok).toBe(true);
+                if (!res.ok) return;
+
+                const el = res.elements[0];
+                expect(el.style?.fills?.[0]?.type).toBe('gradient');
+                const css = el.style.fills[0].value;
+                const m = String(css).match(/linear-gradient\(\s*([0-9.]+)deg/i);
+                expect(m).toBeTruthy();
+                const deg = m ? Number(m[1]) : NaN;
+                expect(deg).toBeCloseTo(135, 3);
+        });
+
         it('imports linearGradient stroke as a gradient stroke (no WARN_GRADIENT_PAINT_UNSUPPORTED)', () => {
                 const svg = `
                     <svg xmlns="http://www.w3.org/2000/svg">
