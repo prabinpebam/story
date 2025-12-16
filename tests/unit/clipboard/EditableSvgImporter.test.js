@@ -485,6 +485,22 @@ describe('EditableSvgImporter.importEditableShapesFromSanitizedSvg', () => {
                 expect(kinds.every(k => k === 'cubic' || k === 'line')).toBe(true);
             });
 
+            it('imports fill-rule="evenodd" onto vector paths', () => {
+                const svg = `
+                    <svg xmlns="http://www.w3.org/2000/svg">
+                    <path d="M0 0 L10 0 L10 10 Z" fill="#000" fill-rule="evenodd" />
+                    </svg>
+                `;
+
+                const res = importEditableShapesFromSanitizedSvg(svg, { centerX: 0, centerY: 0, idSeed: 't' });
+                expect(res.ok).toBe(true);
+                if (!res.ok) return;
+
+                const el = res.elements[0];
+                expect(el.shapeKind).toBe('vector');
+                expect(el.paths?.[0]?.fillRule).toBe('evenodd');
+            });
+
         it('warns on unsupported <path> commands but still imports supported primitives', () => {
                 const svg = `
                     <svg xmlns="http://www.w3.org/2000/svg">

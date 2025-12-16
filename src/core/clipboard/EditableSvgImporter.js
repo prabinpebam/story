@@ -313,22 +313,23 @@ function parsePointsAttribute(pointsAttr) {
     return pts;
 }
 
-function makeVectorPathFromPoints(points, { closed }) {
+function makeVectorPathFromPoints(points, { closed, fillRule }) {
     if (!Array.isArray(points) || points.length < 2) return null;
     const start = { x: points[0].x, y: points[0].y };
     const segments = [];
     for (let i = 1; i < points.length; i++) {
         segments.push({ kind: 'line', to: { x: points[i].x, y: points[i].y } });
     }
+    const fr = typeof fillRule === 'string' && fillRule.trim().toLowerCase() === 'evenodd' ? 'evenodd' : 'nonzero';
     return {
         closed: !!closed,
-        fillRule: 'nonzero',
+        fillRule: fr,
         start,
         segments
     };
 }
 
-function parsePathDataToVectorPaths(d) {
+function parsePathDataToVectorPaths(d, options) {
     // Conservative subset: M/m L/l H/h V/v C/c S/s Q/q T/t A/a Z/z.
     // Returns { ok:true, paths:Path[] } or { ok:false, reason }.
     if (typeof d !== 'string') return { ok: false, reason: 'MISSING_D' };
@@ -362,6 +363,12 @@ function parsePathDataToVectorPaths(d) {
     let subpathStart = null;
     let activePath = null;
     let lastCmd = null;
+
+    const defaultFillRule = (() => {
+        const raw = options?.fillRule;
+        const v = typeof raw === 'string' ? raw.trim().toLowerCase() : '';
+        return v === 'evenodd' ? 'evenodd' : 'nonzero';
+    })();
 
     // Track previous curve controls for smooth commands.
     let lastCubicControl = null; // absolute {x,y} of previous cubic's c2
@@ -502,7 +509,7 @@ function parsePathDataToVectorPaths(d) {
     function ensurePathStart(x, y) {
         activePath = {
             closed: false,
-            fillRule: 'nonzero',
+            fillRule: defaultFillRule,
             start: { x, y },
             segments: []
         };
@@ -801,6 +808,13 @@ function getInheritedPresentation(node, name) {
         cur = cur.parentNode;
     }
     return null;
+}
+
+function getFillRuleForNode(node) {
+    const raw = getInheritedPresentation(node, 'fill-rule');
+    const v = typeof raw === 'string' ? raw.trim().toLowerCase() : '';
+    if (v === 'evenodd') return 'evenodd';
+    return 'nonzero';
 }
 
 function resolvePaintForNode(node) {
@@ -1255,7 +1269,8 @@ export function importEditableShapesFromSanitizedSvg(sanitizedSvg, options) {
 
                 if (width > 0 && height > 0) {
                     const localPts = translated.map(p => ({ x: p.x - x, y: p.y - y }));
-                    const path = makeVectorPathFromPoints(localPts, { closed: tag === 'polygon' });
+                    const fillRule = getFillRuleForNode(node);
+                    const path = makeVectorPathFromPoints(localPts, { closed: tag === 'polygon', fillRule });
                     if (path) {
                         const bboxOverride = { x, y, width, height };
                         const { fills, strokes } = styleForNode(node, { bboxOverride });
@@ -1277,7 +1292,8 @@ export function importEditableShapesFromSanitizedSvg(sanitizedSvg, options) {
             }
         } else if (tag === 'path') {
             const d = node.getAttribute('d') ?? '';
-            const parsed = parsePathDataToVectorPaths(d);
+            const fillRule = getFillRuleForNode(node);
+            const parsed = parsePathDataToVectorPaths(d, { fillRule });
             if (parsed.ok) {
                 // Compute a bbox from the parsed geometry (line/cubic). Note: no cubic extrema yet; use control points.
                 let minX = Infinity;

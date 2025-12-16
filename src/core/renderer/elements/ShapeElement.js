@@ -158,7 +158,7 @@ export class ShapeElement extends VisualElement {
             return `${prefix}-${el.id}-${index}-${valueHash}`;
         };
 
-        const appendFillShape = (fill, index, dOrPoints) => {
+        const appendFillShape = (fill, index, dOrPoints, fillRule) => {
             if (!fill || fill.visible === false) return;
             const opacity = (fill.opacity !== undefined) ? fill.opacity / 100 : 1;
 
@@ -171,6 +171,10 @@ export class ShapeElement extends VisualElement {
             shapeEl = document.createElementNS('http://www.w3.org/2000/svg', 'path');
             shapeEl.setAttribute('d', dOrPoints);
             shapeEl.setAttribute('stroke', 'none');
+            if (fillRule) {
+                shapeEl.setAttribute('fill-rule', fillRule);
+                shapeEl.setAttribute('clip-rule', fillRule);
+            }
 
             if (fill.type === 'gradient' && fill.value) {
                 const gradId = makeGradId('fill-grad', index, fill.value);
@@ -259,8 +263,14 @@ export class ShapeElement extends VisualElement {
         const d = this.buildVectorPathD(paths);
         if (!d || d.length === 0) return;
 
+        const fillRule = (() => {
+            const fr = paths.find(p => p && typeof p.fillRule === 'string')?.fillRule;
+            const v = typeof fr === 'string' ? fr.trim().toLowerCase() : '';
+            return v === 'evenodd' ? 'evenodd' : 'nonzero';
+        })();
+
         // Fills behind strokes
-        fills.forEach((fill, idx) => appendFillShape(fill, idx, d));
+        fills.forEach((fill, idx) => appendFillShape(fill, idx, d, fillRule));
         strokes.forEach((stroke, idx) => appendStrokeShape(stroke, idx, d));
     }
 
