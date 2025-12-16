@@ -100,7 +100,7 @@ Update this section at least weekly so everyone sees the “north star”.
 - Next milestone gate: M5 — Booleans + Masks (Non-destructive)
 - Active tracks (max 2): M4 editing UX; Phase 10 interop hardening
 - Blockers / open decisions: TBD
-- Last shipped (commit db225f9): M2 viewport/mode parity regression (edit vs presentation) + presentation non-fullscreen fallback (Playwright).
+- Last shipped (commit f7f91b5): M3 deterministic hit testing + selection regressions (tie-break ladder + overlap/sticky-drag/clear selection coverage).
 
 ---
 
