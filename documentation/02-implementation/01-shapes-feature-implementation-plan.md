@@ -38,6 +38,7 @@ This status snapshot reflects what is implemented in the repo today (not “plan
   - [x] Multi-part `translate/scale` lists (SVG right-to-left ordering)
   - [x] `matrix(a 0 0 d e f)` only (scale + translate; no rotate/shear)
   - [x] Unsupported transforms (rotate/skew/general matrices) are ignored (import continues; deterministic warning)
+  - [x] Mixed transform lists salvage any translate/scale/matrix axis-aligned parts and ignore the rest (deterministic warning)
 - [x] Linear gradient import (`linearGradient`) for fills + strokes
   - [x] `objectBoundingBox`
   - [x] `userSpaceOnUse` when explicit coords exist

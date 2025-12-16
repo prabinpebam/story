@@ -1634,9 +1634,120 @@ function parseScaleTranslateOnlyTransform(transform) {
     return { ok: false };
 }
 
+function parseTransformSalvageAxisAligned(transform) {
+    // Tolerant transform parsing: keep axis-aligned translate/scale/matrix parts,
+    // ignore unsupported parts (rotate/skew/general matrices), and report that we did so.
+    // SVG applies transform lists right-to-left.
+    if (typeof transform !== 'string') return { ok: true, sx: 1, sy: 1, tx: 0, ty: 0, hadUnsupported: false };
+    const t = transform.trim();
+    if (t.length === 0) return { ok: true, sx: 1, sy: 1, tx: 0, ty: 0, hadUnsupported: false };
+
+    function composeAxisAligned(a, b) {
+        // Return a ∘ b (apply b first, then a):
+        // p' = a(b(p))
+        const sx = b.sx * a.sx;
+        const sy = b.sy * a.sy;
+        const tx = b.tx * a.sx + a.tx;
+        const ty = b.ty * a.sy + a.ty;
+        return { sx, sy, tx, ty };
+    }
+
+    const fnRe = /([a-zA-Z]+)\s*\(([^)]*)\)/g;
+    const matches = [];
+    for (const m of t.matchAll(fnRe)) {
+        matches.push({ name: m[1].toLowerCase(), args: m[2] });
+    }
+    if (matches.length === 0) {
+        return { ok: true, sx: 1, sy: 1, tx: 0, ty: 0, hadUnsupported: true };
+    }
+
+    const leftover = t.replace(fnRe, '').replace(/[\s,]/g, '');
+    const hadTrailingGarbage = leftover.length !== 0;
+
+    const parts = [];
+    let hadUnsupported = hadTrailingGarbage;
+    for (const m of matches) {
+        const rawParts = String(m.args)
+            .trim()
+            .replace(/,/g, ' ')
+            .split(/\s+/)
+            .filter(Boolean);
+
+        if (m.name === 'translate') {
+            if (rawParts.length < 1 || rawParts.length > 2) {
+                hadUnsupported = true;
+                continue;
+            }
+            const tx = toNumber(rawParts[0]);
+            const ty = rawParts.length === 2 ? toNumber(rawParts[1]) : 0;
+            if (tx === null || ty === null) {
+                hadUnsupported = true;
+                continue;
+            }
+            parts.push({ sx: 1, sy: 1, tx, ty });
+        } else if (m.name === 'scale') {
+            if (rawParts.length < 1 || rawParts.length > 2) {
+                hadUnsupported = true;
+                continue;
+            }
+            const sx = toNumber(rawParts[0]);
+            const sy = rawParts.length === 2 ? toNumber(rawParts[1]) : sx;
+            if (sx === null || sy === null) {
+                hadUnsupported = true;
+                continue;
+            }
+            if (sx <= 0 || sy <= 0) {
+                hadUnsupported = true;
+                continue;
+            }
+            parts.push({ sx, sy, tx: 0, ty: 0 });
+        } else if (m.name === 'matrix') {
+            // SVG matrix(a b c d e f)
+            if (rawParts.length !== 6) {
+                hadUnsupported = true;
+                continue;
+            }
+            const a = toNumber(rawParts[0]);
+            const b = toNumber(rawParts[1]);
+            const c = toNumber(rawParts[2]);
+            const d = toNumber(rawParts[3]);
+            const e = toNumber(rawParts[4]);
+            const f = toNumber(rawParts[5]);
+            if (a === null || b === null || c === null || d === null || e === null || f === null) {
+                hadUnsupported = true;
+                continue;
+            }
+            if (b !== 0 || c !== 0) {
+                hadUnsupported = true;
+                continue;
+            }
+            if (a <= 0 || d <= 0) {
+                hadUnsupported = true;
+                continue;
+            }
+            parts.push({ sx: a, sy: d, tx: e, ty: f });
+        } else {
+            // rotate/skewX/skewY/etc
+            hadUnsupported = true;
+        }
+    }
+
+    // SVG applies transform lists right-to-left.
+    let combined = { sx: 1, sy: 1, tx: 0, ty: 0 };
+    for (let i = parts.length - 1; i >= 0; i--) {
+        combined = composeAxisAligned(parts[i], combined);
+    }
+
+    if (!Number.isFinite(combined.sx) || !Number.isFinite(combined.sy) || !Number.isFinite(combined.tx) || !Number.isFinite(combined.ty)) {
+        return { ok: true, sx: 1, sy: 1, tx: 0, ty: 0, hadUnsupported: true };
+    }
+
+    return { ok: true, ...combined, hadUnsupported };
+}
+
 function readNodeTranslation(node) {
     const t = node?.getAttribute?.('transform');
-    return parseScaleTranslateOnlyTransform(t);
+    return parseTransformSalvageAxisAligned(t);
 }
 
 function scaleDashArrayString(dashArray, scale) {
@@ -1901,12 +2012,9 @@ export function importEditableShapesFromSanitizedSvg(sanitizedSvg, options) {
         if (!node) return;
         if (node.nodeType !== 1) return;
 
-        let local = readNodeTranslation(node);
-        if (!local.ok) {
-            // Conservative: ignore unsupported transforms (rotate/skew/general matrix), but still import.
-            // This keeps the import deterministic and non-fatal.
+        const local = readNodeTranslation(node);
+        if (local?.hadUnsupported) {
             warnings.push('WARN_TRANSFORM_UNSUPPORTED');
-            local = { ok: true, sx: 1, sy: 1, tx: 0, ty: 0 };
         }
 
         const nextAccumulated = {
