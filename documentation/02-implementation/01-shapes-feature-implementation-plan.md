@@ -54,6 +54,7 @@ This status snapshot reflects what is implemented in the repo today (not “plan
   - [x] Supports `x/y` offsets; imports phase via `tileOffsetX/tileOffsetY`
   - [x] Axis-aligned `patternTransform` (translate/scale/matrix; no rotate/skew)
   - [x] `href` / `xlink:href` inheritance for patterns (conservative: depth-limited chain, first-defined attr wins, children inherited if missing)
+  - [x] Deterministic fallback + warning for broken `href` chains (cycle/missing target)
   - [x] `patternUnits="objectBoundingBox"` when `patternContentUnits="objectBoundingBox"` and no `patternTransform`
   - [x] `patternUnits="objectBoundingBox"` when `patternContentUnits="userSpaceOnUse"` and no `patternTransform` (conservative: normalizes user-space content into a `0..1` tile)
   - [x] Imported as repeating `image` fill (SVG tile data URI)

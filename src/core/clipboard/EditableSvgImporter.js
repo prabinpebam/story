@@ -1717,7 +1717,11 @@ export function importEditableShapesFromSanitizedSvg(sanitizedSvg, options) {
                     if (resolved.ok) {
                         fillPaintFill = resolved.fill;
                     } else {
-                        warnings.push('WARN_GRADIENT_PAINT_UNSUPPORTED');
+                        if (resolved.reason === 'PATTERN_HREF_CYCLE' || resolved.reason === 'PATTERN_HREF_UNSUPPORTED') {
+                            warnings.push('WARN_PATTERN_HREF_UNSUPPORTED');
+                        } else {
+                            warnings.push('WARN_GRADIENT_PAINT_UNSUPPORTED');
+                        }
                     }
                 } else {
                     const resolved = resolveUrlPaintCss(doc, gradId, { elementBBox: bbox, userSpaceTransform });

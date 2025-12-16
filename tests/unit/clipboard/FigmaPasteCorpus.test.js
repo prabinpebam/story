@@ -31,6 +31,7 @@ describe('Figma paste corpus (determinism)', () => {
         { name: 'pattern-objectBoundingBox-basic' },
         { name: 'pattern-objectBoundingBox-contentUnits-userSpaceOnUse' },
         { name: 'pattern-href-basic' },
+        { name: 'pattern-href-cycle' },
         { name: 'pattern-paint-fallback' },
         { name: 'group-scale-rect' },
         { name: 'transform-order-translate-scale' },

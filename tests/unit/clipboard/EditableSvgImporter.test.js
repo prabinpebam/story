@@ -926,6 +926,49 @@ describe('EditableSvgImporter.importEditableShapesFromSanitizedSvg', () => {
                 expect(decoded).toMatch(/<rect[^>]+x="50"[^>]+y="20"[^>]+width="50"[^>]+height="50"/);
         });
 
+        it('warns deterministically when <pattern href> has a cycle (falls back to solid fill)', () => {
+                const svg = `
+                    <svg xmlns="http://www.w3.org/2000/svg">
+                        <defs>
+                            <pattern id="a" href="#b" width="10" height="10" patternUnits="userSpaceOnUse" />
+                            <pattern id="b" href="#a" width="10" height="10" patternUnits="userSpaceOnUse">
+                                <rect x="0" y="0" width="10" height="10" fill="#ff0000" />
+                            </pattern>
+                        </defs>
+                        <rect x="0" y="0" width="10" height="10" fill="url(#a)" />
+                    </svg>
+                `;
+
+                const res = importEditableShapesFromSanitizedSvg(svg, { centerX: 0, centerY: 0, idSeed: 't' });
+                expect(res.ok).toBe(true);
+                if (!res.ok) return;
+
+                expect(res.warnings).toContain('WARN_PATTERN_HREF_UNSUPPORTED');
+
+                const el = res.elements[0];
+                expect(el.style?.fills?.[0]).toMatchObject({ type: 'solid', value: '#808080', opacity: 100 });
+        });
+
+        it('warns deterministically when <pattern href> target is missing (falls back to solid fill)', () => {
+                const svg = `
+                    <svg xmlns="http://www.w3.org/2000/svg">
+                        <defs>
+                            <pattern id="ref" href="#missing" width="10" height="10" patternUnits="userSpaceOnUse" />
+                        </defs>
+                        <rect x="0" y="0" width="10" height="10" fill="url(#ref)" />
+                    </svg>
+                `;
+
+                const res = importEditableShapesFromSanitizedSvg(svg, { centerX: 0, centerY: 0, idSeed: 't' });
+                expect(res.ok).toBe(true);
+                if (!res.ok) return;
+
+                expect(res.warnings).toContain('WARN_PATTERN_HREF_UNSUPPORTED');
+
+                const el = res.elements[0];
+                expect(el.style?.fills?.[0]).toMatchObject({ type: 'solid', value: '#808080', opacity: 100 });
+        });
+
         it('warns and falls back when userSpaceOnUse gradient coords are missing', () => {
                 const svg = `
                     <svg xmlns="http://www.w3.org/2000/svg">
