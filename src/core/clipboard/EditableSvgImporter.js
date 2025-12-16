@@ -436,19 +436,72 @@ function svgToDataUri(svgMarkup) {
     return `data:image/svg+xml,${encoded}`;
 }
 
+function getHrefIdFromPattern(patternEl) {
+    if (!patternEl?.getAttribute) return null;
+    const raw = patternEl.getAttribute('href') ?? patternEl.getAttribute('xlink:href');
+    if (typeof raw !== 'string') return null;
+    const s = raw.trim();
+    if (s.length === 0) return null;
+    // Common forms: "#id" or "id".
+    return s.startsWith('#') ? s.slice(1) : s;
+}
+
+function resolvePatternInheritanceChain(doc, patternEl) {
+    // Conservative: follow a small href chain and inherit missing attrs/children.
+    const chain = [];
+    const seen = new Set();
+    let current = patternEl;
+    for (let depth = 0; depth < 8; depth++) {
+        if (!current) break;
+        chain.push(current);
+
+        const hrefId = getHrefIdFromPattern(current);
+        if (!hrefId) break;
+        if (seen.has(hrefId)) return { ok: false, reason: 'PATTERN_HREF_CYCLE' };
+        seen.add(hrefId);
+
+        const next = doc?.getElementById?.(hrefId);
+        if (!next || String(next.nodeName).toLowerCase() !== 'pattern') {
+            return { ok: false, reason: 'PATTERN_HREF_UNSUPPORTED' };
+        }
+        current = next;
+    }
+    return { ok: true, chain };
+}
+
+function inheritedPatternAttr(chain, name) {
+    for (const el of chain) {
+        const v = el?.getAttribute?.(name);
+        if (typeof v === 'string' && v.trim().length > 0) return v;
+    }
+    return null;
+}
+
+function inheritedPatternChildren(chain) {
+    for (const el of chain) {
+        const kids = Array.from(el?.children || []);
+        if (kids.length > 0) return kids;
+    }
+    return [];
+}
+
 function resolvePatternPaintFill(doc, patternId, options) {
-    const p = doc?.getElementById?.(patternId);
-    if (!p) return { ok: false, reason: 'MISSING_PATTERN' };
-    if (String(p.nodeName).toLowerCase() !== 'pattern') {
+    const p0 = doc?.getElementById?.(patternId);
+    if (!p0) return { ok: false, reason: 'MISSING_PATTERN' };
+    if (String(p0.nodeName).toLowerCase() !== 'pattern') {
         return { ok: false, reason: 'UNSUPPORTED_PATTERN_TYPE' };
     }
 
-    const units = p.getAttribute('patternUnits');
+    const inh = resolvePatternInheritanceChain(doc, p0);
+    if (!inh.ok) return { ok: false, reason: inh.reason };
+    const chain = inh.chain;
+
+    const units = inheritedPatternAttr(chain, 'patternUnits');
     const unitsTrimmed = typeof units === 'string' ? units.trim() : '';
     // Spec default for patternUnits is objectBoundingBox.
     const unitsEffective = unitsTrimmed || 'objectBoundingBox';
 
-    const patternTransform = p.getAttribute('patternTransform');
+    const patternTransform = inheritedPatternAttr(chain, 'patternTransform');
     let patternAxisTransform = { sx: 1, sy: 1, tx: 0, ty: 0 };
     if (typeof patternTransform === 'string' && patternTransform.trim().length > 0) {
         if (unitsEffective === 'objectBoundingBox') {
@@ -481,8 +534,8 @@ function resolvePatternPaintFill(doc, patternId, options) {
     let tileSvg;
 
     if (unitsEffective === 'userSpaceOnUse') {
-        const x = parseUserSpaceCoord(p.getAttribute('x')) ?? 0;
-        const y = parseUserSpaceCoord(p.getAttribute('y')) ?? 0;
+        const x = parseUserSpaceCoord(inheritedPatternAttr(chain, 'x')) ?? 0;
+        const y = parseUserSpaceCoord(inheritedPatternAttr(chain, 'y')) ?? 0;
         if (!Number.isFinite(x) || !Number.isFinite(y)) {
             return { ok: false, reason: 'PATTERN_COORDS_UNSUPPORTED' };
         }
@@ -498,8 +551,8 @@ function resolvePatternPaintFill(doc, patternId, options) {
             return { ok: false, reason: 'PATTERN_COORDS_UNSUPPORTED' };
         }
 
-        const width = parseUserSpaceCoord(p.getAttribute('width'));
-        const height = parseUserSpaceCoord(p.getAttribute('height'));
+        const width = parseUserSpaceCoord(inheritedPatternAttr(chain, 'width'));
+        const height = parseUserSpaceCoord(inheritedPatternAttr(chain, 'height'));
         if (!Number.isFinite(width) || !Number.isFinite(height) || width <= 0 || height <= 0) {
             return { ok: false, reason: 'PATTERN_SIZE_UNSUPPORTED' };
         }
@@ -522,7 +575,7 @@ function resolvePatternPaintFill(doc, patternId, options) {
         let serializedChildren = '';
         try {
             const serializer = new XMLSerializer();
-            const children = Array.from(p.children || []);
+            const children = inheritedPatternChildren(chain);
             serializedChildren = children.map((c) => serializer.serializeToString(c)).join('');
         } catch {
             return { ok: false, reason: 'PATTERN_SERIALIZE_FAILED' };
@@ -530,17 +583,17 @@ function resolvePatternPaintFill(doc, patternId, options) {
 
         tileSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">${serializedChildren}</svg>`;
     } else if (unitsEffective === 'objectBoundingBox') {
-        const contentUnits = p.getAttribute('patternContentUnits');
+        const contentUnits = inheritedPatternAttr(chain, 'patternContentUnits');
         const contentUnitsTrimmed = typeof contentUnits === 'string' ? contentUnits.trim() : '';
         const contentUnitsEffective = contentUnitsTrimmed || 'objectBoundingBox';
         if (contentUnitsEffective !== 'objectBoundingBox' && contentUnitsEffective !== 'userSpaceOnUse') {
             return { ok: false, reason: 'PATTERN_CONTENT_UNITS_UNSUPPORTED' };
         }
 
-        const xFrac = parseObjectBoundingBoxCoord(p.getAttribute('x'), 0);
-        const yFrac = parseObjectBoundingBoxCoord(p.getAttribute('y'), 0);
-        const wFrac = parseObjectBoundingBoxCoord(p.getAttribute('width'), null);
-        const hFrac = parseObjectBoundingBoxCoord(p.getAttribute('height'), null);
+        const xFrac = parseObjectBoundingBoxCoord(inheritedPatternAttr(chain, 'x'), 0);
+        const yFrac = parseObjectBoundingBoxCoord(inheritedPatternAttr(chain, 'y'), 0);
+        const wFrac = parseObjectBoundingBoxCoord(inheritedPatternAttr(chain, 'width'), null);
+        const hFrac = parseObjectBoundingBoxCoord(inheritedPatternAttr(chain, 'height'), null);
         if (xFrac === null || yFrac === null || wFrac === null || hFrac === null) {
             return { ok: false, reason: 'PATTERN_COORDS_UNSUPPORTED' };
         }
@@ -563,7 +616,7 @@ function resolvePatternPaintFill(doc, patternId, options) {
         let serializedChildren = '';
         try {
             const serializer = new XMLSerializer();
-            const children = Array.from(p.children || []);
+            const children = inheritedPatternChildren(chain);
             serializedChildren = children.map((c) => serializer.serializeToString(c)).join('');
         } catch {
             return { ok: false, reason: 'PATTERN_SERIALIZE_FAILED' };

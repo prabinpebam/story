@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <pattern id="base" width="10" height="10" patternUnits="userSpaceOnUse">
+      <rect x="0" y="0" width="10" height="10" fill="#ff0000" />
+    </pattern>
+    <pattern id="ref" href="#base" />
+  </defs>
+  <rect x="0" y="0" width="20" height="10" fill="url(#ref)" />
+</svg>

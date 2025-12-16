@@ -28,6 +28,7 @@ describe('Figma paste corpus (determinism)', () => {
         { name: 'pattern-transform-axis-aligned' },
         { name: 'pattern-objectBoundingBox-basic' },
         { name: 'pattern-objectBoundingBox-contentUnits-userSpaceOnUse' },
+        { name: 'pattern-href-basic' },
         { name: 'pattern-paint-fallback' },
         { name: 'group-scale-rect' },
         { name: 'transform-order-translate-scale' },

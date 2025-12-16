@@ -703,6 +703,64 @@ describe('EditableSvgImporter.importEditableShapesFromSanitizedSvg', () => {
                 expect(f0?.tileOffsetY).toBe(-22);
         });
 
+        it('imports userSpaceOnUse <pattern> that inherits from another pattern via href="#..." (conservative subset)', () => {
+                const svg = `
+                    <svg xmlns="http://www.w3.org/2000/svg">
+                        <defs>
+                            <pattern id="base" width="10" height="10" patternUnits="userSpaceOnUse">
+                                <rect x="0" y="0" width="10" height="10" fill="#ff0000" />
+                            </pattern>
+                            <pattern id="ref" href="#base" />
+                        </defs>
+                        <rect x="0" y="0" width="20" height="10" fill="url(#ref)" />
+                    </svg>
+                `;
+
+                const res = importEditableShapesFromSanitizedSvg(svg, { centerX: 0, centerY: 0, idSeed: 't' });
+                expect(res.ok).toBe(true);
+                if (!res.ok) return;
+
+                expect(res.warnings).not.toContain('WARN_GRADIENT_PAINT_UNSUPPORTED');
+
+                const f0 = res.elements[0]?.style?.fills?.[0];
+                expect(f0?.type).toBe('image');
+                expect(f0?.repeat).toBe('repeat');
+                expect(f0?.tileWidth).toBe(10);
+                expect(f0?.tileHeight).toBe(10);
+
+                const decoded = decodeURIComponent(String(f0?.value || '').replace(/^data:image\/svg\+xml,/, ''));
+                expect(decoded).toMatch(/<rect[^>]+fill="#ff0000"/);
+        });
+
+        it('imports userSpaceOnUse <pattern> that inherits via xlink:href (conservative subset)', () => {
+                const svg = `
+                    <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+                        <defs>
+                            <pattern id="base" width="10" height="10" patternUnits="userSpaceOnUse">
+                                <rect x="0" y="0" width="10" height="10" fill="#00ff00" />
+                            </pattern>
+                            <pattern id="ref" xlink:href="#base" />
+                        </defs>
+                        <rect x="0" y="0" width="20" height="10" fill="url(#ref)" />
+                    </svg>
+                `;
+
+                const res = importEditableShapesFromSanitizedSvg(svg, { centerX: 0, centerY: 0, idSeed: 't' });
+                expect(res.ok).toBe(true);
+                if (!res.ok) return;
+
+                expect(res.warnings).not.toContain('WARN_GRADIENT_PAINT_UNSUPPORTED');
+
+                const f0 = res.elements[0]?.style?.fills?.[0];
+                expect(f0?.type).toBe('image');
+                expect(f0?.repeat).toBe('repeat');
+                expect(f0?.tileWidth).toBe(10);
+                expect(f0?.tileHeight).toBe(10);
+
+                const decoded = decodeURIComponent(String(f0?.value || '').replace(/^data:image\/svg\+xml,/, ''));
+                expect(decoded).toMatch(/<rect[^>]+fill="#00ff00"/);
+        });
+
         it('imports objectBoundingBox <pattern> (conservative subset) as repeating image fill with tile size derived from element bbox', () => {
                 const svg = `
                     <svg xmlns="http://www.w3.org/2000/svg">
