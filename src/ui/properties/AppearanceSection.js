@@ -81,6 +81,7 @@ export class AppearanceSection extends BaseSection {
         // Corner Radius Row (Uniform Mode)
         this.radiusRow = document.createElement('div');
         this.radiusRow.className = 'pi-row pi-radius-row';
+        this.radiusRow.setAttribute('data-testid', 'appearance-radius-row');
 
         this.radiusInput = new NumberInput({
             icon: Icons.BORDER_RADIUS || 'Radius',
@@ -88,6 +89,7 @@ export class AppearanceSection extends BaseSection {
             min: 0,
             onChange: (val, isTransient) => this._handleUniformRadiusChange(val, isTransient)
         });
+        this.radiusInput.element.setAttribute('data-testid', 'appearance-radius-input');
 
         // Link/Unlink button for radius
         this.radiusLinkBtn = new Button({
@@ -98,6 +100,7 @@ export class AppearanceSection extends BaseSection {
             onClick: () => this._toggleRadiusLink()
         });
         this.radiusLinkBtn.element.classList.add('pi-radius-link-btn');
+        this.radiusLinkBtn.element.setAttribute('data-testid', 'appearance-radius-link');
 
         this.radiusRow.appendChild(this.radiusInput.element);
         this.radiusRow.appendChild(this.radiusLinkBtn.element);
@@ -106,6 +109,7 @@ export class AppearanceSection extends BaseSection {
         // Per-Corner Radius Row (hidden by default)
         this.perCornerRow = document.createElement('div');
         this.perCornerRow.className = 'pi-row pi-radius-per-corner hidden';
+        this.perCornerRow.setAttribute('data-testid', 'appearance-radius-per-corner');
         
         // Create 4 corner inputs in a 2x2 grid
         const cornerGrid = document.createElement('div');
@@ -270,12 +274,12 @@ export class AppearanceSection extends BaseSection {
      */
     _updateRadiusUI() {
         if (this._radiusLinked) {
-            this.radiusRow.classList.remove('hidden');
+            this.radiusInput.element.classList.remove('hidden');
             this.perCornerRow.classList.add('hidden');
             this.radiusLinkBtn.element.classList.remove('unlinked');
             this.radiusLinkBtn.element.setAttribute('aria-pressed', 'true');
         } else {
-            this.radiusRow.classList.add('hidden');
+            this.radiusInput.element.classList.add('hidden');
             this.perCornerRow.classList.remove('hidden');
             this.radiusLinkBtn.element.classList.add('unlinked');
             this.radiusLinkBtn.element.setAttribute('aria-pressed', 'false');
@@ -313,7 +317,8 @@ export class AppearanceSection extends BaseSection {
         
         // Only show radius for rectangles/images
         if (isRectangleElement(element) || element.type === 'image') {
-            this.radiusInput.element.classList.remove('hidden');
+            this.radiusRow.classList.remove('hidden');
+            this.radiusLinkBtn.element.classList.remove('hidden');
             
             // Check if element has per-corner radii
             const hasPerCorner = element.cornerRadii && (
@@ -338,7 +343,9 @@ export class AppearanceSection extends BaseSection {
             
             this._updateRadiusUI();
         } else {
+            this.radiusRow.classList.add('hidden');
             this.radiusInput.element.classList.add('hidden');
+            this.radiusLinkBtn.element.classList.add('hidden');
             this.perCornerRow.classList.add('hidden');
         }
     }
