@@ -96,10 +96,10 @@ To keep progress visible and avoid deep wandering:
 
 Update this section at least weekly so everyone sees the “north star”.
 
-- Current milestone gate: M4 — Editing UX (Object + Vector)
-- Next milestone gate: M5 — Booleans + Masks (Non-destructive)
-- Active tracks (max 2): M4 editing UX; Phase 10 interop hardening
-- Blockers / open decisions: M4 is still partial — remaining spec gaps include richer vector mode UX (edge/handle/face targeting, box select), broader object editing modifiers/UX, and more explicit state-machine/spec parity.
+- Current milestone gate: M5 — Booleans + Masks (Non-destructive)
+- Next milestone gate: M6 — Interop + Export Hardening
+- Active tracks (max 2): M5 booleans+masks; Phase 10 interop hardening
+- Blockers / open decisions: M5 not started — boolean/mask model + UX scope still needs spec readiness pass.
 - Last shipped (commit f7f91b5): M3 deterministic hit testing + selection regressions (tie-break ladder + overlap/sticky-drag/clear selection coverage).
 
 ---
@@ -114,7 +114,7 @@ This status snapshot reflects what is implemented in the repo today (not “plan
 - Milestone M1 (Authoritative Model + Transforms): **DONE** — canonical shape schema/migration/validation + transforms + coordinate spaces are implemented and covered by Vitest.
 - Milestone M2 (Rendering Contract): **DONE** — renderer parity increments shipped (nested parent rotation + viewport/mode parity) with Playwright regressions; presentation now degrades gracefully when fullscreen is blocked.
 - Milestone M3 (Selection + Hit Testing): **DONE** — deterministic hit tie-break implemented (priority → distance → z-order → hitKey) with Vitest unit coverage; Playwright regressions cover click selection, multi-select toggling, overlap z-order selection, sticky selection during drag, and click-empty clears selection.
-- Milestone M4 (Editing UX: Object + Vector): **IN PROGRESS** — object drag-move + resize undo coalescing covered by Playwright; vector deep-edit entry/exit + node drag (single undo step) + vector-mode node box selection implemented and covered by Playwright.
+- Milestone M4 (Editing UX: Object + Vector): **DONE** — object move/resize/rotate undo coalescing covered by Playwright; vector deep edit supports node/edge/handle hit + editing (box select with Shift/Ctrl, dblclick edge insert, dblclick node corner↔smooth, delete node/edge, nudge, handle drag), all coalesced into single undo steps and covered by Playwright.
 - Phase 10 (Interop: Figma paste → editable elements): **IN PROGRESS** — editable SVG paste pipeline implemented for a conservative subset, behind a feature flag, with unit + Playwright coverage.
 - Phase 11–12 (Perf/A11y/extensibility): **NOT STARTED (for Shapes program)**
 
@@ -478,7 +478,7 @@ Status values (use these exact words to keep search/filters simple):
 | `19-serialization-and-interop.md` | NOT REVIEWED | IN PROGRESS | NONE | NONE | Export + clipboard integration exists: `src/core/export/Exporter.js`, editable SVG importer in `src/core/clipboard/EditableSvgImporter.js` (spec parity TBD). |
 | `19a-figma-clipboard-import.md` | NOT REVIEWED | IN PROGRESS | VITEST+PLAYWRIGHT | CORPUS | Editable SVG paste subset + deterministic degrade ladder is shipping. |
 | `20-interaction-modes-and-state-machine.md` | NOT REVIEWED | IN PROGRESS | PLAYWRIGHT | NONE | Canvas interaction state + tools exist: `src/core/CanvasManager.js`. Deep edit state added (`editor.deepEdit`) with Escape exit; vector node drag interaction added with bracketing; vector-mode marquee selection routes to deepEdit node selection. Coverage: `tests/e2e/specs/functional/m4-editing-ux.spec.ts`. |
-| `21-vector-editing-operations.md` | NOT REVIEWED | NOT STARTED | NONE | NONE |  |
+| `21-vector-editing-operations.md` | NOT REVIEWED | IN PROGRESS | PLAYWRIGHT | NONE | Implemented v1 ops in deep edit: dblclick edge insert node, delete node, delete edge, arrow-key nudge, cubic handle drag, dblclick node corner↔smooth; coverage: `tests/e2e/specs/functional/m4-editing-ux.spec.ts`. |
 | `22-selection-and-focus-ux.md` | NOT REVIEWED | DONE | PLAYWRIGHT | NONE | Selection wiring exists: `src/core/CanvasManager.js`, `src/ui/PropertyInspector.js`. Functional coverage: `tests/e2e/specs/functional/m3-selection-hit-testing.spec.ts` (multi-select toggling, sticky selection during drag, click-empty clears selection). (Hover hysteresis + vector-mode focus UX remain spec TODOs.) |
 | `23-snapping-and-guides-shapes.md` | NOT REVIEWED | IN PROGRESS | NONE | NONE | Snapping system exists: `src/core/canvas/SnappingSystem.js`, `src/core/CanvasManager.js` (Shapes delta TBD). |
 | `25-product-level-requirements.md` | NOT REVIEWED | NOT STARTED | NONE | NONE |  |

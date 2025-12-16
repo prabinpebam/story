@@ -9,6 +9,27 @@ export class HitTesting {
         this.cm = canvasManager;
     }
 
+    _pointToSegmentDistance(px, py, ax, ay, bx, by) {
+        const abx = bx - ax;
+        const aby = by - ay;
+        const apx = px - ax;
+        const apy = py - ay;
+        const abLen2 = abx * abx + aby * aby;
+        if (abLen2 <= 0) {
+            const dx = px - ax;
+            const dy = py - ay;
+            return { distance: Math.sqrt(dx * dx + dy * dy), t: 0 };
+        }
+        let t = (apx * abx + apy * aby) / abLen2;
+        if (t < 0) t = 0;
+        if (t > 1) t = 1;
+        const cx = ax + t * abx;
+        const cy = ay + t * aby;
+        const dx = px - cx;
+        const dy = py - cy;
+        return { distance: Math.sqrt(dx * dx + dy * dy), t };
+    }
+
     _toElementLocalPoint(wx, wy, absEl) {
         const { x, y, width, height, rotation } = absEl;
         const cx = x + width / 2;
@@ -79,6 +100,121 @@ export class HitTesting {
                         }
                     });
                 }
+            }
+        });
+
+        const best = HitTesting.chooseBestHitCandidate(candidates);
+        return best ? best.result : null;
+    }
+
+    _hitTestVectorHandles(state, slide, worldX, worldY) {
+        const deepEdit = state?.editor?.deepEdit;
+        if (!deepEdit || deepEdit.kind !== 'vector') return null;
+
+        const elementId = deepEdit.elementId;
+        if (!elementId) return null;
+
+        const el = slide?.elements?.[elementId];
+        if (!el || el.type !== 'vector' || !Array.isArray(el.paths)) return null;
+
+        const { zoom } = state.editor;
+        const absEl = GeometryUtils.getAbsoluteElement(el, slide);
+        const local = this._toElementLocalPoint(worldX, worldY, absEl);
+
+        const threshold = 6 / zoom;
+        const candidates = [];
+
+        el.paths.forEach((path, pathIndex) => {
+            if (!path || !path.start || !Array.isArray(path.segments)) return;
+
+            for (let segIndex = 0; segIndex < path.segments.length; segIndex++) {
+                const seg = path.segments[segIndex];
+                if (!seg || seg.kind !== 'cubic') continue;
+
+                const addHandle = (control, pt, handleId) => {
+                    if (!pt) return;
+                    const dx = local.x - Number(pt.x);
+                    const dy = local.y - Number(pt.y);
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+                    if (dist <= threshold) {
+                        candidates.push({
+                            priorityRank: 0,
+                            distance: dist,
+                            zOrder: Number.POSITIVE_INFINITY,
+                            hitKey: `vector:${elementId}:path:${pathIndex}:handle:${handleId}`,
+                            result: {
+                                type: 'vector-handle',
+                                elementId,
+                                pathIndex,
+                                segmentIndex: segIndex,
+                                control,
+                                handleId
+                            }
+                        });
+                    }
+                };
+
+                const prevNodeId = segIndex === 0 ? `p${pathIndex}:start` : `p${pathIndex}:s${segIndex}`;
+                const endNodeId = `p${pathIndex}:s${segIndex + 1}`;
+
+                addHandle('c1', seg.c1, `${prevNodeId}:out`);
+                addHandle('c2', seg.c2, `${endNodeId}:in`);
+            }
+        });
+
+        const best = HitTesting.chooseBestHitCandidate(candidates);
+        return best ? best.result : null;
+    }
+
+    _hitTestVectorEdges(state, slide, worldX, worldY) {
+        const deepEdit = state?.editor?.deepEdit;
+        if (!deepEdit || deepEdit.kind !== 'vector') return null;
+
+        const elementId = deepEdit.elementId;
+        if (!elementId) return null;
+
+        const el = slide?.elements?.[elementId];
+        if (!el || el.type !== 'vector' || !Array.isArray(el.paths)) return null;
+
+        const { zoom } = state.editor;
+        const absEl = GeometryUtils.getAbsoluteElement(el, slide);
+        const local = this._toElementLocalPoint(worldX, worldY, absEl);
+
+        const threshold = 6 / zoom;
+        const candidates = [];
+
+        el.paths.forEach((path, pathIndex) => {
+            if (!path || !path.start || !Array.isArray(path.segments)) return;
+
+            let prev = { x: Number(path.start.x), y: Number(path.start.y) };
+            for (let segIndex = 0; segIndex < path.segments.length; segIndex++) {
+                const seg = path.segments[segIndex];
+                if (!seg || !seg.to) {
+                    continue;
+                }
+                const next = { x: Number(seg.to.x), y: Number(seg.to.y) };
+
+                // v1: edge hit testing supports line segments (cubic can be added later).
+                if (seg.kind === 'line') {
+                    const { distance, t } = this._pointToSegmentDistance(local.x, local.y, prev.x, prev.y, next.x, next.y);
+                    if (distance <= threshold) {
+                        candidates.push({
+                            priorityRank: 1,
+                            distance,
+                            zOrder: Number.POSITIVE_INFINITY,
+                            hitKey: `vector:${elementId}:path:${pathIndex}:edge:${segIndex}`,
+                            result: {
+                                type: 'vector-edge',
+                                elementId,
+                                pathIndex,
+                                segmentIndex: segIndex,
+                                t
+                            }
+                        });
+                    }
+                }
+
+                prev = next;
             }
         });
 
@@ -174,9 +310,15 @@ export class HitTesting {
         const slide = this.cm.getActiveContainer(state);
         if (!slide) return null;
 
-        // Deep edit hit testing (vector nodes) takes priority.
-        const deepHit = this._hitTestVectorNodes(state, slide, worldX, worldY);
-        if (deepHit) return deepHit;
+        // Deep edit hit testing takes priority.
+        const deepHandleHit = this._hitTestVectorHandles(state, slide, worldX, worldY);
+        if (deepHandleHit) return deepHandleHit;
+
+        const deepNodeHit = this._hitTestVectorNodes(state, slide, worldX, worldY);
+        if (deepNodeHit) return deepNodeHit;
+
+        const deepEdgeHit = this._hitTestVectorEdges(state, slide, worldX, worldY);
+        if (deepEdgeHit) return deepEdgeHit;
 
         // Check handles first (if selected)
         if (state.editor.selectedElementIds.length > 0) {

@@ -58,6 +58,7 @@ export class CanvasManager {
         this.measurementGuides = null;
         this.vectorNodeDrag = null;
         this.vectorMarqueeSelection = null;
+        this.vectorHandleDrag = null;
 
         // Initialize sub-modules
         this.viewportController = new ViewportController(this);
@@ -466,8 +467,18 @@ export class CanvasManager {
         const state = store.getState();
         const hit = this.hitTest(mouseX, mouseY);
 
+        if (hit && hit.type === 'vector-handle') {
+            this._handleVectorHandleClick(hit, mouseX, mouseY, e);
+            return;
+        }
+
         if (hit && hit.type === 'vector-node') {
             this._handleVectorNodeClick(hit, mouseX, mouseY, e);
+            return;
+        }
+
+        if (hit && hit.type === 'vector-edge') {
+            this._handleVectorEdgeClick(hit, e);
             return;
         }
 
@@ -484,6 +495,113 @@ export class CanvasManager {
         this.vectorMarqueeSelection = {
             baseSelection: Array.isArray(baseSelection) ? [...baseSelection] : []
         };
+    }
+
+    _handleVectorEdgeClick(hit, e) {
+        const state = store.getState();
+        const deepEdit = state.editor.deepEdit;
+        if (!deepEdit || deepEdit.kind !== 'vector' || deepEdit.elementId !== hit.elementId) return;
+
+        const edgeId = `p${hit.pathIndex}:e${hit.segmentIndex}`;
+        const currentEdges = deepEdit.selection?.edges || [];
+        const currentNodes = deepEdit.selection?.nodes || [];
+        const currentHandles = deepEdit.selection?.handles || [];
+
+        let nextEdges;
+        let nextNodes = currentNodes;
+        let nextHandles = currentHandles;
+
+        if (e.ctrlKey || e.metaKey) {
+            const set = new Set(currentEdges);
+            if (set.has(edgeId)) set.delete(edgeId);
+            else set.add(edgeId);
+            nextEdges = Array.from(set);
+        } else if (e.shiftKey) {
+            nextEdges = Array.from(new Set([...currentEdges, edgeId]));
+        } else {
+            nextEdges = [edgeId];
+            nextNodes = [];
+            nextHandles = [];
+        }
+
+        nextEdges.sort((a, b) => a.localeCompare(b));
+
+        store.dispatch('SET_DEEP_EDIT', {
+            ...deepEdit,
+            selection: {
+                ...(deepEdit.selection || {}),
+                nodes: nextNodes,
+                handles: nextHandles,
+                edges: nextEdges
+            }
+        });
+
+        // Keep element selected while deep editing.
+        if (!state.editor.selectedElementIds.includes(hit.elementId)) {
+            store.dispatch('UPDATE_SELECTION', [hit.elementId]);
+        }
+    }
+
+    _handleVectorHandleClick(hit, mouseX, mouseY, e) {
+        const state = store.getState();
+        const slide = this.getActiveContainer(state);
+        if (!slide) return;
+
+        const el = slide.elements?.[hit.elementId];
+        if (!el || el.type !== 'vector') return;
+
+        const deepEdit = state.editor.deepEdit;
+        if (!deepEdit || deepEdit.kind !== 'vector' || deepEdit.elementId !== hit.elementId) {
+            store.dispatch('SET_DEEP_EDIT', { kind: 'vector', elementId: hit.elementId, selection: { nodes: [], edges: [], handles: [] } });
+        }
+
+        const latestState = store.getState();
+        const currentDeep = latestState.editor.deepEdit;
+        const currentHandles = currentDeep?.selection?.handles || [];
+        const handleId = String(hit.handleId);
+        let nextHandles;
+
+        if (e.ctrlKey || e.metaKey) {
+            const set = new Set(currentHandles);
+            if (set.has(handleId)) set.delete(handleId);
+            else set.add(handleId);
+            nextHandles = Array.from(set);
+        } else if (e.shiftKey) {
+            nextHandles = Array.from(new Set([...currentHandles, handleId]));
+        } else {
+            nextHandles = [handleId];
+        }
+
+        nextHandles.sort((a, b) => a.localeCompare(b));
+        store.dispatch('SET_DEEP_EDIT', {
+            ...currentDeep,
+            selection: {
+                ...(currentDeep?.selection || {}),
+                nodes: e.shiftKey || e.ctrlKey || e.metaKey ? (currentDeep?.selection?.nodes || []) : [],
+                edges: e.shiftKey || e.ctrlKey || e.metaKey ? (currentDeep?.selection?.edges || []) : [],
+                handles: nextHandles
+            }
+        });
+
+        if (!state.editor.selectedElementIds.includes(hit.elementId)) {
+            store.dispatch('UPDATE_SELECTION', [hit.elementId]);
+        }
+
+        this.interactionState = 'VECTOR_HANDLE_DRAGGING';
+        this.dragStart = { x: mouseX, y: mouseY };
+        this.vectorHandleDrag = {
+            elementId: hit.elementId,
+            pathIndex: hit.pathIndex,
+            segmentIndex: hit.segmentIndex,
+            control: hit.control
+        };
+
+        store.dispatch('START_INTERACTION');
+        this.initialElementState = {
+            id: el.id,
+            paths: JSON.parse(JSON.stringify(el.paths || []))
+        };
+        e.stopPropagation();
     }
 
     _handleVectorNodeClick(hit, mouseX, mouseY, e) {
@@ -696,6 +814,9 @@ export class CanvasManager {
             case 'VECTOR_NODE_DRAGGING':
                 this._handleVectorNodeDragging(mouseX, mouseY, e);
                 break;
+            case 'VECTOR_HANDLE_DRAGGING':
+                this._handleVectorHandleDragging(mouseX, mouseY, e);
+                break;
             case 'RESIZING':
                 this._handleResizing(mouseX, mouseY, e);
                 break;
@@ -706,6 +827,46 @@ export class CanvasManager {
 
         this.lastMouseX = mouseX;
         this.lastMouseY = mouseY;
+    }
+
+    _handleVectorHandleDragging(mouseX, mouseY, e) {
+        const state = store.getState();
+        const slide = this.getActiveContainer(state);
+        if (!slide || !this.vectorHandleDrag) return;
+
+        const { zoom } = state.editor;
+        const dxWorld = (mouseX - this.dragStart.x) / zoom;
+        const dyWorld = (mouseY - this.dragStart.y) / zoom;
+
+        const el = slide.elements?.[this.vectorHandleDrag.elementId];
+        if (!el || el.type !== 'vector') return;
+
+        const worldRotationDeg = computeElementWorldRotation(slide, el);
+        const rad = (-worldRotationDeg || 0) * Math.PI / 180;
+        const cos = Math.cos(rad);
+        const sin = Math.sin(rad);
+
+        const dxLocal = dxWorld * cos - dyWorld * sin;
+        const dyLocal = dxWorld * sin + dyWorld * cos;
+
+        const basePaths = this.initialElementState?.paths;
+        if (!Array.isArray(basePaths)) return;
+
+        const paths = JSON.parse(JSON.stringify(basePaths));
+        const path = paths[this.vectorHandleDrag.pathIndex];
+        if (!path || !Array.isArray(path.segments)) return;
+
+        const seg = path.segments[this.vectorHandleDrag.segmentIndex];
+        if (!seg || seg.kind !== 'cubic') return;
+
+        const key = this.vectorHandleDrag.control;
+        if (key !== 'c1' && key !== 'c2') return;
+        if (!seg[key]) return;
+        seg[key].x = Number(seg[key].x) + dxLocal;
+        seg[key].y = Number(seg[key].y) + dyLocal;
+
+        store.dispatch('UPDATE_ELEMENT', { id: el.id, paths });
+        e.preventDefault();
     }
 
     _handleVectorNodeDragging(mouseX, mouseY, e) {
@@ -1497,7 +1658,7 @@ export class CanvasManager {
             this.panStart = null;
         }
 
-        if (this.interactionState === 'RESIZING' || this.interactionState === 'DRAGGING' || this.interactionState === 'VECTOR_NODE_DRAGGING') {
+        if (this.interactionState === 'RESIZING' || this.interactionState === 'DRAGGING' || this.interactionState === 'VECTOR_NODE_DRAGGING' || this.interactionState === 'VECTOR_HANDLE_DRAGGING') {
             // Check for click (no drag) on local placeholder
             if (this.interactionState === 'DRAGGING') {
                 const dist = Math.hypot(mouseX - this.dragStart.x, mouseY - this.dragStart.y);
@@ -1533,6 +1694,7 @@ export class CanvasManager {
         this.initialRotationAngle = null;
         this.vectorNodeDrag = null;
         this.vectorMarqueeSelection = null;
+        this.vectorHandleDrag = null;
     }
 
     /**
@@ -1772,10 +1934,19 @@ export class CanvasManager {
     }
 
     handleDoubleClick(e) {
-        if (this._lastDblClickTime && Date.now() - this._lastDblClickTime < 100) {
+        // De-dupe: this handler is registered on both container + canvas.
+        // Suppress only the immediate duplicate event for the same gesture.
+        const ts = typeof e.timeStamp === 'number' ? e.timeStamp : Date.now();
+        const last = this._lastDblClickMeta;
+        if (
+            last &&
+            Math.abs(ts - last.ts) <= 5 &&
+            last.x === e.clientX &&
+            last.y === e.clientY
+        ) {
             return;
         }
-        this._lastDblClickTime = Date.now();
+        this._lastDblClickMeta = { ts, x: e.clientX, y: e.clientY };
         
         const state = store.getState();
         if (state.editor.mode === 'presentation') return;
@@ -1786,6 +1957,19 @@ export class CanvasManager {
         const mouseY = e.clientY - rect.top;
 
         const hit = this.hitTest(mouseX, mouseY);
+
+        // Vector deep edit double-click behaviors.
+        if (state.editor.deepEdit && state.editor.deepEdit.kind === 'vector') {
+            if (hit && hit.type === 'vector-edge') {
+                this._insertVectorNodeOnEdge(hit);
+                return;
+            }
+
+            if (hit && hit.type === 'vector-node') {
+                this._toggleVectorNodeCornerSmooth(hit);
+                return;
+            }
+        }
 
         if (hit && hit.type === 'element') {
             const container = this.getActiveContainer(state);
@@ -1815,6 +1999,367 @@ export class CanvasManager {
                 }
             }
         }
+    }
+
+    _insertVectorNodeOnEdge(hit) {
+        const state = store.getState();
+        const deepEdit = state.editor.deepEdit;
+        if (!deepEdit || deepEdit.kind !== 'vector' || !deepEdit.elementId) return;
+
+        const slide = this.getActiveContainer(state);
+        const el = slide?.elements?.[deepEdit.elementId];
+        if (!slide || !el || el.type !== 'vector' || !Array.isArray(el.paths)) return;
+
+        const path = el.paths?.[hit.pathIndex];
+        if (!path || !path.start || !Array.isArray(path.segments)) return;
+
+        const segIndex = hit.segmentIndex;
+        const seg = path.segments?.[segIndex];
+        if (!seg || seg.kind !== 'line' || !seg.to) return;
+
+        const t = Math.max(0, Math.min(1, Number(hit.t)));
+
+        const getNodePoint = (index) => {
+            if (index < 0) return { x: Number(path.start.x), y: Number(path.start.y) };
+            const s = path.segments[index];
+            return { x: Number(s?.to?.x), y: Number(s?.to?.y) };
+        };
+
+        const a = segIndex === 0 ? { x: Number(path.start.x), y: Number(path.start.y) } : getNodePoint(segIndex - 1);
+        const b = { x: Number(seg.to.x), y: Number(seg.to.y) };
+        const ix = a.x + (b.x - a.x) * t;
+        const iy = a.y + (b.y - a.y) * t;
+
+        const nextPaths = JSON.parse(JSON.stringify(el.paths));
+        const nextPath = nextPaths[hit.pathIndex];
+        const oldSeg = nextPath.segments[segIndex];
+
+        const inserted = { x: ix, y: iy };
+        nextPath.segments.splice(
+            segIndex,
+            1,
+            { kind: 'line', to: inserted },
+            { kind: oldSeg.kind, to: oldSeg.to }
+        );
+
+        store.dispatch('START_INTERACTION');
+        store.dispatch('UPDATE_ELEMENT', { id: el.id, paths: nextPaths });
+        store.dispatch('END_INTERACTION');
+
+        const insertedNodeId = `p${hit.pathIndex}:s${segIndex + 1}`;
+        store.dispatch('SET_DEEP_EDIT', {
+            ...deepEdit,
+            selection: {
+                ...(deepEdit.selection || {}),
+                nodes: [insertedNodeId]
+            }
+        });
+    }
+
+    _toggleVectorNodeCornerSmooth(hit) {
+        const state = store.getState();
+        const deepEdit = state.editor.deepEdit;
+        if (!deepEdit || deepEdit.kind !== 'vector' || !deepEdit.elementId) return;
+
+        const slide = this.getActiveContainer(state);
+        const el = slide?.elements?.[deepEdit.elementId];
+        if (!slide || !el || el.type !== 'vector' || !Array.isArray(el.paths)) return;
+
+        const pathIndex = hit.pathIndex;
+        const nextPaths = JSON.parse(JSON.stringify(el.paths));
+        const path = nextPaths[pathIndex];
+        if (!path || !path.start || !Array.isArray(path.segments) || path.segments.length === 0) return;
+
+        const eps = 0.001;
+        const dist = (a, b) => {
+            const dx = Number(a.x) - Number(b.x);
+            const dy = Number(a.y) - Number(b.y);
+            return Math.sqrt(dx * dx + dy * dy);
+        };
+        const norm = (vx, vy) => {
+            const len = Math.sqrt(vx * vx + vy * vy);
+            if (len <= 0) return { x: 0, y: 0, len: 0 };
+            return { x: vx / len, y: vy / len, len };
+        };
+
+        const nodeId = `p${pathIndex}:${hit.nodeKind === 'start' ? 'start' : `s${(hit.segmentIndex ?? 0) + 1}`}`;
+
+        // Resolve anchor point.
+        let anchor;
+        if (hit.nodeKind === 'start') {
+            anchor = { x: Number(path.start.x), y: Number(path.start.y) };
+        } else {
+            const inSeg = path.segments[hit.segmentIndex];
+            if (!inSeg || !inSeg.to) return;
+            anchor = { x: Number(inSeg.to.x), y: Number(inSeg.to.y) };
+        }
+
+        // Determine incoming/outgoing segment indices.
+        let incomingSegIndex = null;
+        let outgoingSegIndex = null;
+
+        if (hit.nodeKind === 'start') {
+            outgoingSegIndex = 0;
+            if (path.closed) incomingSegIndex = path.segments.length - 1;
+        } else {
+            incomingSegIndex = hit.segmentIndex;
+            if (hit.segmentIndex + 1 < path.segments.length) outgoingSegIndex = hit.segmentIndex + 1;
+            else if (path.closed) outgoingSegIndex = 0;
+        }
+
+        const getNodePointAtSegmentEnd = (segIndex) => {
+            const s = path.segments[segIndex];
+            return s && s.to ? { x: Number(s.to.x), y: Number(s.to.y) } : null;
+        };
+        const getNodePointBeforeSegment = (segIndex) => {
+            if (segIndex === 0) return { x: Number(path.start.x), y: Number(path.start.y) };
+            return getNodePointAtSegmentEnd(segIndex - 1);
+        };
+
+        const incomingSeg = incomingSegIndex != null ? path.segments[incomingSegIndex] : null;
+        const outgoingSeg = outgoingSegIndex != null ? path.segments[outgoingSegIndex] : null;
+
+        const prevPoint = incomingSegIndex != null ? getNodePointBeforeSegment(incomingSegIndex) : null;
+        const nextPoint = outgoingSegIndex != null ? getNodePointAtSegmentEnd(outgoingSegIndex) : null;
+
+        const ensureCubic = (segIndex, startPt, endPt) => {
+            const s = path.segments[segIndex];
+            if (!s || !endPt) return;
+            if (s.kind === 'cubic') return;
+            if (s.kind === 'line') {
+                s.kind = 'cubic';
+                s.c1 = {
+                    x: Number(startPt.x) + (Number(endPt.x) - Number(startPt.x)) / 3,
+                    y: Number(startPt.y) + (Number(endPt.y) - Number(startPt.y)) / 3
+                };
+                s.c2 = {
+                    x: Number(startPt.x) + 2 * (Number(endPt.x) - Number(startPt.x)) / 3,
+                    y: Number(startPt.y) + 2 * (Number(endPt.y) - Number(startPt.y)) / 3
+                };
+            }
+        };
+
+        // Determine whether this node is currently "smooth" (any adjacent handle non-zero).
+        const isSmooth = (() => {
+            let smooth = false;
+            if (incomingSeg && incomingSeg.kind === 'cubic' && incomingSeg.c2) {
+                if (dist(incomingSeg.c2, anchor) > eps) smooth = true;
+            }
+            if (outgoingSeg && outgoingSeg.kind === 'cubic' && outgoingSeg.c1) {
+                if (dist(outgoingSeg.c1, anchor) > eps) smooth = true;
+            }
+            return smooth;
+        })();
+
+        if (!isSmooth) {
+            // Corner -> Smooth: ensure cubic segments and expand the node-adjacent handles.
+            if (incomingSegIndex != null && prevPoint) {
+                ensureCubic(incomingSegIndex, prevPoint, anchor);
+            }
+            if (outgoingSegIndex != null && nextPoint) {
+                ensureCubic(outgoingSegIndex, anchor, nextPoint);
+            }
+
+            const inVec = prevPoint ? norm(anchor.x - prevPoint.x, anchor.y - prevPoint.y) : { x: 0, y: 0, len: 0 };
+            const outVec = nextPoint ? norm(nextPoint.x - anchor.x, nextPoint.y - anchor.y) : { x: 0, y: 0, len: 0 };
+
+            const baseLen = (() => {
+                if (inVec.len > 0 && outVec.len > 0) return Math.min(inVec.len, outVec.len);
+                return Math.max(inVec.len, outVec.len);
+            })();
+            const handleLen = Math.max(4, Math.min(baseLen / 3, 40));
+
+            const inSeg2 = incomingSegIndex != null ? path.segments[incomingSegIndex] : null;
+            if (inSeg2 && inSeg2.kind === 'cubic') {
+                inSeg2.c2 = { x: anchor.x - inVec.x * handleLen, y: anchor.y - inVec.y * handleLen };
+            }
+            const outSeg2 = outgoingSegIndex != null ? path.segments[outgoingSegIndex] : null;
+            if (outSeg2 && outSeg2.kind === 'cubic') {
+                outSeg2.c1 = { x: anchor.x + outVec.x * handleLen, y: anchor.y + outVec.y * handleLen };
+            }
+        } else {
+            // Smooth -> Corner: collapse the node-adjacent handles to the anchor.
+            if (incomingSegIndex != null) {
+                const s = path.segments[incomingSegIndex];
+                if (s && s.kind === 'cubic') {
+                    s.c2 = { x: anchor.x, y: anchor.y };
+                }
+            }
+            if (outgoingSegIndex != null) {
+                const s = path.segments[outgoingSegIndex];
+                if (s && s.kind === 'cubic') {
+                    s.c1 = { x: anchor.x, y: anchor.y };
+                }
+            }
+        }
+
+        store.dispatch('START_INTERACTION');
+        store.dispatch('UPDATE_ELEMENT', { id: el.id, paths: nextPaths });
+        store.dispatch('END_INTERACTION');
+
+        store.dispatch('SET_DEEP_EDIT', {
+            ...deepEdit,
+            selection: {
+                ...(deepEdit.selection || {}),
+                nodes: [nodeId],
+                edges: [],
+                handles: []
+            }
+        });
+    }
+
+    _applyVectorNodeNudge(dx, dy) {
+        const state = store.getState();
+        const deepEdit = state.editor.deepEdit;
+        if (!deepEdit || deepEdit.kind !== 'vector' || !deepEdit.elementId) return;
+
+        const nodes = deepEdit.selection?.nodes;
+        if (!Array.isArray(nodes) || nodes.length === 0) return;
+
+        const slide = this.getActiveContainer(state);
+        const el = slide?.elements?.[deepEdit.elementId];
+        if (!slide || !el || el.type !== 'vector' || !Array.isArray(el.paths)) return;
+
+        const nextPaths = JSON.parse(JSON.stringify(el.paths));
+
+        for (const nodeId of nodes) {
+            const m = /^p(\d+):(start|s(\d+))$/.exec(String(nodeId));
+            if (!m) continue;
+            const pathIndex = Number(m[1]);
+            const kind = m[2];
+            const segNum = m[3] ? Number(m[3]) : null;
+
+            const p = nextPaths[pathIndex];
+            if (!p || !p.start || !Array.isArray(p.segments)) continue;
+
+            if (kind === 'start') {
+                p.start.x = Number(p.start.x) + dx;
+                p.start.y = Number(p.start.y) + dy;
+            } else if (segNum != null && segNum >= 1) {
+                const segIndex = segNum - 1;
+                const seg = p.segments[segIndex];
+                if (!seg || !seg.to) continue;
+                seg.to.x = Number(seg.to.x) + dx;
+                seg.to.y = Number(seg.to.y) + dy;
+            }
+        }
+
+        store.dispatch('START_INTERACTION');
+        store.dispatch('UPDATE_ELEMENT', { id: el.id, paths: nextPaths });
+        store.dispatch('END_INTERACTION');
+    }
+
+    _deleteSelectedVectorNodes() {
+        const state = store.getState();
+        const deepEdit = state.editor.deepEdit;
+        if (!deepEdit || deepEdit.kind !== 'vector' || !deepEdit.elementId) return;
+
+        const nodes = deepEdit.selection?.nodes;
+        if (!Array.isArray(nodes) || nodes.length === 0) return;
+
+        const slide = this.getActiveContainer(state);
+        const el = slide?.elements?.[deepEdit.elementId];
+        if (!slide || !el || el.type !== 'vector' || !Array.isArray(el.paths)) return;
+
+        const nextPaths = JSON.parse(JSON.stringify(el.paths));
+
+        // Group deletions per path to keep index shifts deterministic.
+        const deletesByPath = new Map();
+        for (const nodeId of nodes) {
+            const m = /^p(\d+):(start|s(\d+))$/.exec(String(nodeId));
+            if (!m) continue;
+            const pathIndex = Number(m[1]);
+            const kind = m[2];
+            const segNum = m[3] ? Number(m[3]) : null;
+            if (!deletesByPath.has(pathIndex)) {
+                deletesByPath.set(pathIndex, { deleteStart: false, segmentIndices: [] });
+            }
+            const entry = deletesByPath.get(pathIndex);
+            if (kind === 'start') {
+                entry.deleteStart = true;
+            } else if (segNum != null && segNum >= 1) {
+                entry.segmentIndices.push(segNum - 1);
+            }
+        }
+
+        for (const [pathIndex, entry] of deletesByPath.entries()) {
+            const p = nextPaths[pathIndex];
+            if (!p || !p.start || !Array.isArray(p.segments)) continue;
+
+            const uniqueSegs = Array.from(new Set(entry.segmentIndices)).sort((a, b) => b - a);
+            for (const segIndex of uniqueSegs) {
+                if (segIndex >= 0 && segIndex < p.segments.length) {
+                    p.segments.splice(segIndex, 1);
+                }
+            }
+
+            if (entry.deleteStart) {
+                if (p.segments.length > 0 && p.segments[0]?.to) {
+                    p.start = { x: Number(p.segments[0].to.x), y: Number(p.segments[0].to.y) };
+                    p.segments.splice(0, 1);
+                }
+            }
+        }
+
+        store.dispatch('START_INTERACTION');
+        store.dispatch('UPDATE_ELEMENT', { id: el.id, paths: nextPaths });
+        store.dispatch('END_INTERACTION');
+
+        store.dispatch('SET_DEEP_EDIT', {
+            ...deepEdit,
+            selection: {
+                ...(deepEdit.selection || {}),
+                nodes: []
+            }
+        });
+    }
+
+    _deleteSelectedVectorEdges() {
+        const state = store.getState();
+        const deepEdit = state.editor.deepEdit;
+        if (!deepEdit || deepEdit.kind !== 'vector' || !deepEdit.elementId) return;
+
+        const edges = deepEdit.selection?.edges;
+        if (!Array.isArray(edges) || edges.length === 0) return;
+
+        const slide = this.getActiveContainer(state);
+        const el = slide?.elements?.[deepEdit.elementId];
+        if (!slide || !el || el.type !== 'vector' || !Array.isArray(el.paths)) return;
+
+        const nextPaths = JSON.parse(JSON.stringify(el.paths));
+
+        const deletesByPath = new Map();
+        for (const edgeId of edges) {
+            const m = /^p(\d+):e(\d+)$/.exec(String(edgeId));
+            if (!m) continue;
+            const pathIndex = Number(m[1]);
+            const segIndex = Number(m[2]);
+            if (!deletesByPath.has(pathIndex)) deletesByPath.set(pathIndex, []);
+            deletesByPath.get(pathIndex).push(segIndex);
+        }
+
+        for (const [pathIndex, segIndices] of deletesByPath.entries()) {
+            const p = nextPaths[pathIndex];
+            if (!p || !Array.isArray(p.segments)) continue;
+            const unique = Array.from(new Set(segIndices)).sort((a, b) => b - a);
+            for (const segIndex of unique) {
+                if (segIndex >= 0 && segIndex < p.segments.length) {
+                    p.segments.splice(segIndex, 1);
+                }
+            }
+        }
+
+        store.dispatch('START_INTERACTION');
+        store.dispatch('UPDATE_ELEMENT', { id: el.id, paths: nextPaths });
+        store.dispatch('END_INTERACTION');
+
+        store.dispatch('SET_DEEP_EDIT', {
+            ...deepEdit,
+            selection: {
+                ...(deepEdit.selection || {}),
+                edges: []
+            }
+        });
     }
 
     handleDrop(e) {
@@ -2502,6 +3047,23 @@ export class CanvasManager {
         if (e.key === 'Delete' || e.key === 'Backspace') {
             if (state.editor.editingElementId) return;
 
+            // Vector deep edit delete: delete selected nodes (not the whole element).
+            if (state.editor.deepEdit && state.editor.deepEdit.kind === 'vector') {
+                const nodes = state.editor.deepEdit.selection?.nodes;
+                if (Array.isArray(nodes) && nodes.length > 0) {
+                    e.preventDefault();
+                    this._deleteSelectedVectorNodes();
+                    return;
+                }
+
+                const edges = state.editor.deepEdit.selection?.edges;
+                if (Array.isArray(edges) && edges.length > 0) {
+                    e.preventDefault();
+                    this._deleteSelectedVectorEdges();
+                    return;
+                }
+            }
+
             if (state.editor.selectedSlideIds && state.editor.selectedSlideIds.length > 0) {
                 if (confirm('Delete selected slide(s)?')) {
                     state.editor.selectedSlideIds.forEach(id => store.dispatch('DELETE_SLIDE', id));
@@ -2520,6 +3082,25 @@ export class CanvasManager {
         // Nudge (Arrow Keys)
         if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
             if (state.editor.editingElementId) return;
+
+            // Vector deep edit nudge: move selected nodes in element-local space.
+            if (state.editor.deepEdit && state.editor.deepEdit.kind === 'vector') {
+                const nodes = state.editor.deepEdit.selection?.nodes;
+                if (Array.isArray(nodes) && nodes.length > 0) {
+                    e.preventDefault();
+                    const step = e.shiftKey ? 10 : 1;
+                    let dx = 0;
+                    let dy = 0;
+                    switch (e.key) {
+                        case 'ArrowUp': dy = -step; break;
+                        case 'ArrowDown': dy = step; break;
+                        case 'ArrowLeft': dx = -step; break;
+                        case 'ArrowRight': dx = step; break;
+                    }
+                    this._applyVectorNodeNudge(dx, dy);
+                    return;
+                }
+            }
 
             const selectedIds = state.editor.selectedElementIds;
             if (selectedIds.length > 0) {
