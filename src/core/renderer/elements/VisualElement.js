@@ -1,6 +1,7 @@
 import { store } from '../../Store.js';
 import { getShapeKind } from '../../shapes/ShapeElementAdapter.js';
 import { computeElementWorldRotation, computeElementWorldTopLeft } from '../../shapes/SceneGraphTransforms.js';
+import { applyUnifiedMaskingToElementDom } from '../../shapes/masking/MaskEngine.js';
 
 export class VisualElement {
     constructor(data) {
@@ -138,6 +139,10 @@ export class VisualElement {
         // Border Radius is common enough to be here
         const radius = el.borderRadius || el.style?.radius || 0;
         div.style.borderRadius = `${radius}px`;
+
+        // Unified masking (clip-path) applies to the entire rendered output of the element.
+        // This must happen after sizing/position styles are applied.
+        applyUnifiedMaskingToElementDom(div, el, this.slideData);
     }
 
     unmount() {

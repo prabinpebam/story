@@ -16,6 +16,8 @@ import { SlideSection } from './properties/SlideSection.js';
 import { TextSection } from './properties/TextSection.js';
 import { PlaceholderSection } from './properties/PlaceholderSection.js';
 import { SvgSection } from './properties/SvgSection.js';
+import { MaskSection } from './properties/MaskSection.js';
+import { BooleanSection } from './properties/BooleanSection.js';
 
 export class PropertyInspector {
     constructor(containerId) {
@@ -36,6 +38,8 @@ export class PropertyInspector {
         this.effectsSection = new EffectsSection();
         this.exportSection = new ExportSection();
         this.svgSection = new SvgSection();
+        this.maskSection = new MaskSection();
+        this.booleanSection = new BooleanSection();
         this.slideSection = new SlideSection();
         this.placeholderSection = new PlaceholderSection();
         
@@ -86,6 +90,14 @@ export class PropertyInspector {
             // 4.5 SVG Section (SVG only)
             this.svgSection.update(selection);
             this.container.appendChild(this.svgSection.section.element);
+
+            // 4.6 Mask Section (mask nodes only)
+            this.maskSection.update(selection);
+            this.container.appendChild(this.maskSection.section.element);
+
+            // 4.7 Boolean Section (boolean nodes only)
+            this.booleanSection.update(selection);
+            this.container.appendChild(this.booleanSection.section.element);
 
             // 5. Fill Section (Hide for Text as it has its own control)
             const isText = selection.length === 1 && this.getElement(state, selection[0])?.type === 'text';

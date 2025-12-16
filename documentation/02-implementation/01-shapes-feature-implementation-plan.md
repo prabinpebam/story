@@ -96,10 +96,10 @@ To keep progress visible and avoid deep wandering:
 
 Update this section at least weekly so everyone sees the “north star”.
 
-- Current milestone gate: M5 — Booleans + Masks (Non-destructive)
+- Current milestone gate: M6 — Interop + Export Hardening
 - Next milestone gate: M6 — Interop + Export Hardening
-- Active tracks (max 2): M5 booleans+masks; Phase 10 interop hardening
-- Blockers / open decisions: M5 not started — boolean/mask model + UX scope still needs spec readiness pass.
+- Active tracks (max 2): M6 export hardening; Phase 10 interop hardening
+- Blockers / open decisions: M6 scope + acceptance criteria still needs a readiness pass.
 - Last shipped (commit f7f91b5): M3 deterministic hit testing + selection regressions (tie-break ladder + overlap/sticky-drag/clear selection coverage).
 
 ---
@@ -115,6 +115,7 @@ This status snapshot reflects what is implemented in the repo today (not “plan
 - Milestone M2 (Rendering Contract): **DONE** — renderer parity increments shipped (nested parent rotation + viewport/mode parity) with Playwright regressions; presentation now degrades gracefully when fullscreen is blocked.
 - Milestone M3 (Selection + Hit Testing): **DONE** — deterministic hit tie-break implemented (priority → distance → z-order → hitKey) with Vitest unit coverage; Playwright regressions cover click selection, multi-select toggling, overlap z-order selection, sticky selection during drag, and click-empty clears selection.
 - Milestone M4 (Editing UX: Object + Vector): **DONE** — object move/resize/rotate undo coalescing covered by Playwright; vector deep edit supports node/edge/handle hit + editing (box select with Shift/Ctrl, dblclick edge insert, dblclick node corner↔smooth, delete node/edge, nudge, handle drag), all coalesced into single undo steps and covered by Playwright.
+- Milestone M5 (Booleans + Masks: Non-destructive): **DONE** — boolean nodes render derived vector geometry (non-destructive) with deterministic fallback policy and a CI-gated Vitest corpus; mask nodes apply unified DOM clip-path masking across element types (incl. text) with invert support and Playwright gates.
 - Phase 10 (Interop: Figma paste → editable elements): **IN PROGRESS** — editable SVG paste pipeline implemented for a conservative subset, behind a feature flag, with unit + Playwright coverage.
 - Phase 11–12 (Perf/A11y/extensibility): **NOT STARTED (for Shapes program)**
 
@@ -185,7 +186,7 @@ Required deliverables:
 - Vitest:
   - Helpers for canonical JSON hashing, numeric bucketing, seeded randomness.
 - Corpus scaffolding (per shapes testing spec):
-  - `tests/corpus/shapes/booleans/` (NOT PRESENT YET)
+  - `tests/corpus/shapes/booleans/` (PRESENT)
   - `tests/corpus/shapes/paths/` (NOT PRESENT YET)
   - `tests/corpus/shapes/figma-paste/` (PRESENT)
 

@@ -231,6 +231,23 @@ export class Store extends EventEmitter {
                 }
                 break;
 
+            // Shape composition (booleans + masks)
+            case 'CREATE_BOOLEAN_FROM_SELECTION':
+            case 'CREATE_MASK_FROM_SELECTION':
+            case 'SET_BOOLEAN_OPERATION':
+            case 'SET_MASK_INVERT':
+                this.snapshot(type);
+                this.state = produce(this.state, draft => {
+                    switch (type) {
+                        case 'CREATE_BOOLEAN_FROM_SELECTION': ElementHandlers.handleCreateBooleanFromSelection(draft, payload); break;
+                        case 'CREATE_MASK_FROM_SELECTION': ElementHandlers.handleCreateMaskFromSelection(draft, payload); break;
+                        case 'SET_BOOLEAN_OPERATION': ElementHandlers.handleSetBooleanOperation(draft, payload); break;
+                        case 'SET_MASK_INVERT': ElementHandlers.handleSetMaskInvert(draft, payload); break;
+                    }
+                });
+                this.emit('state-changed', this.state);
+                break;
+
             // Element Handlers
             case 'ADD_ELEMENT': 
             case 'UPDATE_ELEMENT': 

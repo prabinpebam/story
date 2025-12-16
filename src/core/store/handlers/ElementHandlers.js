@@ -7,6 +7,179 @@ function getActiveContainer(draft) {
     }
 }
 
+function isPlainObject(v) {
+    return !!v && typeof v === 'object' && !Array.isArray(v);
+}
+
+function getShapeKindSafe(el) {
+    // Avoid importing ShapeElementAdapter here to keep handler lightweight.
+    if (!el || typeof el !== 'object') return null;
+    if (el.type === 'shape' && typeof el.shapeKind === 'string') return el.shapeKind;
+    if (el.type === 'rect' || el.type === 'rectangle') return 'rectangle';
+    if (el.type === 'circle' || el.type === 'ellipse') return 'ellipse';
+    if (el.type === 'line') return 'line';
+    if (el.type === 'vector') return 'vector';
+    if (el.type === 'shape' && typeof el.shape === 'string') return el.shape;
+    return null;
+}
+
+function getElementBounds(el) {
+    const x = Number(el?.x) || 0;
+    const y = Number(el?.y) || 0;
+    const w = Math.max(0, Number(el?.width) || 0);
+    const h = Math.max(0, Number(el?.height) || 0);
+    return { x, y, w, h };
+}
+
+function computeUnionBounds(elements) {
+    let minX = Infinity;
+    let minY = Infinity;
+    let maxX = -Infinity;
+    let maxY = -Infinity;
+    for (const el of elements) {
+        const b = getElementBounds(el);
+        minX = Math.min(minX, b.x);
+        minY = Math.min(minY, b.y);
+        maxX = Math.max(maxX, b.x + b.w);
+        maxY = Math.max(maxY, b.y + b.h);
+    }
+    if (!Number.isFinite(minX) || !Number.isFinite(minY) || !Number.isFinite(maxX) || !Number.isFinite(maxY)) {
+        return { x: 0, y: 0, w: 0, h: 0 };
+    }
+    return { x: minX, y: minY, w: Math.max(0, maxX - minX), h: Math.max(0, maxY - minY) };
+}
+
+function generateElementId(container, prefix) {
+    if (!container || !container.elements) {
+        return `${prefix}-1`;
+    }
+
+    // Deterministic, collision-free within the active container.
+    // Example: shape-boolean-1, shape-boolean-2, ...
+    let i = 1;
+    while (container.elements[`${prefix}-${i}`]) i++;
+    return `${prefix}-${i}`;
+}
+
+export function handleCreateBooleanFromSelection(draft, payload) {
+    const container = getActiveContainer(draft);
+    if (!container) return;
+
+    const selection = Array.isArray(payload?.ids) ? payload.ids : draft.editor.selectedElementIds;
+    if (!Array.isArray(selection) || selection.length < 2) return;
+
+    const operation = payload?.operation || 'union';
+    if (!['union', 'subtract', 'intersect', 'exclude'].includes(operation)) return;
+
+    const operandIds = selection.filter((id) => typeof id === 'string' && container.elements[id]);
+    if (operandIds.length < 2) return;
+
+    // Disallow selecting other composition nodes as operands for v1.
+    const operandEls = operandIds
+        .map((id) => container.elements[id])
+        .filter(Boolean)
+        .filter((el) => {
+            const k = getShapeKindSafe(el);
+            return !!k && k !== 'boolean' && k !== 'mask';
+        });
+    if (operandEls.length < 2) return;
+
+    const bounds = computeUnionBounds(operandEls);
+    const first = operandEls[0];
+
+    const id = payload?.id || generateElementId(container, 'shape-boolean');
+    const booleanEl = {
+        id,
+        type: 'shape',
+        shapeKind: 'boolean',
+        x: bounds.x,
+        y: bounds.y,
+        width: bounds.w,
+        height: bounds.h,
+        rotation: 0,
+        operation,
+        operands: operandEls.map((el) => el.id),
+        style: isPlainObject(first?.style) ? JSON.parse(JSON.stringify(first.style)) : { fills: [{ type: 'solid', value: '#000000', opacity: 100, visible: true }] }
+    };
+
+    container.elements[id] = booleanEl;
+    container.elementOrder.push(id);
+    draft.editor.selectedElementIds = [id];
+}
+
+export function handleSetBooleanOperation(draft, payload) {
+    const container = getActiveContainer(draft);
+    if (!container) return;
+    const id = payload?.id;
+    const operation = payload?.operation;
+    if (typeof id !== 'string' || !container.elements[id]) return;
+    if (!['union', 'subtract', 'intersect', 'exclude'].includes(operation)) return;
+    const el = container.elements[id];
+    const k = getShapeKindSafe(el);
+    if (k !== 'boolean') return;
+    el.operation = operation;
+}
+
+export function handleCreateMaskFromSelection(draft, payload) {
+    const container = getActiveContainer(draft);
+    if (!container) return;
+
+    const selection = Array.isArray(payload?.ids) ? payload.ids : draft.editor.selectedElementIds;
+    if (!Array.isArray(selection) || selection.length < 2) return;
+
+    // Determine mask shape: topmost element among selection by current stacking.
+    const order = Array.isArray(container.elementOrder) ? container.elementOrder : [];
+    const selectionIds = selection.filter((id) => typeof id === 'string' && container.elements[id]);
+    if (selectionIds.length < 2) return;
+
+    const z = (id) => {
+        const idx = order.indexOf(id);
+        return idx === -1 ? -Infinity : idx;
+    };
+    const maskShapeId = payload?.maskShapeId && container.elements[payload.maskShapeId]
+        ? payload.maskShapeId
+        : selectionIds.reduce((best, id) => (z(id) > z(best) ? id : best), selectionIds[0]);
+
+    const contentIds = payload?.contentIds
+        ? payload.contentIds.filter((id) => typeof id === 'string' && container.elements[id] && id !== maskShapeId)
+        : selectionIds.filter((id) => id !== maskShapeId);
+    if (contentIds.length === 0) return;
+
+    const id = payload?.id || generateElementId(container, 'shape-mask');
+    const maskEl = {
+        id,
+        type: 'shape',
+        shapeKind: 'mask',
+        // Position/size: use mask shape bounds so selection handles have a sane default.
+        x: Number(container.elements[maskShapeId]?.x) || 0,
+        y: Number(container.elements[maskShapeId]?.y) || 0,
+        width: Number(container.elements[maskShapeId]?.width) || 0,
+        height: Number(container.elements[maskShapeId]?.height) || 0,
+        rotation: 0,
+        maskShapeId,
+        contentIds,
+        mode: payload?.mode === 'alpha' ? 'alpha' : 'clip',
+        invert: payload?.invert === true
+    };
+
+    container.elements[id] = maskEl;
+    container.elementOrder.push(id);
+    draft.editor.selectedElementIds = [id];
+}
+
+export function handleSetMaskInvert(draft, payload) {
+    const container = getActiveContainer(draft);
+    if (!container) return;
+    const id = payload?.id;
+    const invert = payload?.invert;
+    if (typeof id !== 'string' || !container.elements[id]) return;
+    if (typeof invert !== 'boolean') return;
+    const el = container.elements[id];
+    const k = getShapeKindSafe(el);
+    if (k !== 'mask') return;
+    el.invert = invert;
+}
+
 export function handleAddElement(draft, payload) {
     const addContainer = getActiveContainer(draft);
 

@@ -5,6 +5,9 @@ import { mediaAssetManager } from '../../media/MediaAssetManager.js';
 import { FilterEngine } from '../../media/FilterEngine.js';
 import { getShapeKind } from '../../shapes/ShapeElementAdapter.js';
 import { computeElementWorldCenter, computeElementWorldRotation } from '../../shapes/SceneGraphTransforms.js';
+import { elementToWorldPolygons, worldPolygonsToElementLocal } from '../../shapes/booleans/ShapeToPolygons.js';
+import { computeBooleanPaths } from '../../shapes/booleans/BooleanEngine.js';
+import { applyUnifiedMaskingToElementDom } from '../../shapes/masking/MaskEngine.js';
 
 export class ShapeElement extends VisualElement {
     constructor(data) {
@@ -58,6 +61,35 @@ export class ShapeElement extends VisualElement {
         if (!div) return;
 
         const shapeKind = getShapeKind(el);
+
+        // Boolean: derived non-destructive vector geometry.
+        if (shapeKind === 'boolean') {
+            const derived = this.resolveBooleanDerivedPaths(el, slideData);
+            div.setAttribute('data-boolean-status', derived.status);
+
+            const renderEl = { ...el, paths: derived.paths };
+            this.applyVectorGeometry(div, renderEl, 'vector');
+            this.applyEffects(div, el);
+            return;
+        }
+
+        // Mask nodes are relationship nodes; they do not paint a separate surface.
+        if (shapeKind === 'mask') {
+            const existingGeometry = div.querySelector('svg.geometry-layer');
+            if (existingGeometry) existingGeometry.remove();
+            this.clearComplexFills(div);
+            Array.from(div.children)
+                .filter((c) => c.classList && (c.classList.contains('fill-layer') || c.classList.contains('stroke-layer')))
+                .forEach((c) => c.remove());
+            div.style.background = 'transparent';
+            div.style.backgroundImage = 'none';
+            div.style.outline = 'none';
+            div.style.borderWidth = '0px';
+            div.removeAttribute('data-boolean-status');
+            this.applyEffects(div, el);
+            return;
+        }
+
         if (shapeKind === 'line' || shapeKind === 'vector') {
             this.applyVectorGeometry(div, el, shapeKind);
             this.applyEffects(div, el);
@@ -79,6 +111,28 @@ export class ShapeElement extends VisualElement {
             const icon = div.querySelector('.placeholder-icon-container');
             if (icon) icon.remove();
         }
+    }
+
+    resolveBooleanDerivedPaths(booleanEl, slideData) {
+        const operation = booleanEl?.operation || 'union';
+        const operandIds = Array.isArray(booleanEl?.operands) ? booleanEl.operands : [];
+        const elements = slideData?.effectiveElements || slideData?.elements || {};
+
+        const operandPolysLocal = [];
+        for (const id of operandIds) {
+            const opEl = elements[id];
+            if (!opEl) continue;
+
+            const world = elementToWorldPolygons(slideData, opEl);
+            const local = worldPolygonsToElementLocal(slideData, booleanEl, world);
+            operandPolysLocal.push(local);
+        }
+
+        const res = computeBooleanPaths({ operation, operands: operandPolysLocal });
+        if (res.ok) {
+            return { status: res.status, paths: Array.isArray(res.paths) ? res.paths : [] };
+        }
+        return { status: res.status, paths: Array.isArray(res.paths) ? res.paths : [] };
     }
 
     applyVectorGeometry(div, el, shapeKind) {
@@ -1075,6 +1129,9 @@ export class ShapeElement extends VisualElement {
                 this.shadowEl.style.mixBlendMode = blendMode;
                 this.shadowEl.style.boxShadow = `${x}px ${y}px ${blur}px ${spread}px ${color}`;
                 this.shadowEl.style.display = 'block';
+
+                // Ensure shadow respects unified masking as well.
+                applyUnifiedMaskingToElementDom(this.shadowEl, el, this.slideData);
 
             } else {
                 if (this.shadowEl) {
