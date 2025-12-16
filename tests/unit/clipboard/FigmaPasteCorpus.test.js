@@ -16,23 +16,28 @@ function readText(filePath) {
 }
 
 describe('Figma paste corpus (determinism)', () => {
-    it('basic fixtures stay stable (hash + warnings)', () => {
-        const svgPath = path.join(CORPUS_DIR, 'basic-rect-gradient.svg');
-        const expectedPath = path.join(CORPUS_DIR, 'basic-rect-gradient.expected.json');
+    const cases = [
+        { name: 'basic-rect-gradient' },
+        { name: 'group-scale-rect' }
+    ];
 
-        const svg = readText(svgPath);
-        const expected = readJson(expectedPath);
+    for (const c of cases) {
+        it(`${c.name} stays stable (hash + warnings)`, () => {
+            const svgPath = path.join(CORPUS_DIR, `${c.name}.svg`);
+            const expectedPath = path.join(CORPUS_DIR, `${c.name}.expected.json`);
 
-        const res = importEditableShapesFromSanitizedSvg(svg, { centerX: 0, centerY: 0, idSeed: 'corpus' });
-        expect(res.ok).toBe(true);
-        if (!res.ok) return;
+            const svg = readText(svgPath);
+            const expected = readJson(expectedPath);
 
-        expect(res.warnings).toEqual(expected.warnings);
-        expect(res.elements.length).toBe(expected.elementsCount);
+            const res = importEditableShapesFromSanitizedSvg(svg, { centerX: 0, centerY: 0, idSeed: 'corpus' });
+            expect(res.ok).toBe(true);
+            if (!res.ok) return;
 
-        // Hash only the imported payload we care about for determinism.
-        const digest = canonicalSha256({ elements: res.elements, warnings: res.warnings });
+            expect(res.warnings).toEqual(expected.warnings);
+            expect(res.elements.length).toBe(expected.elementsCount);
 
-        expect(digest).toBe(expected.sha256);
-    });
+            const digest = canonicalSha256({ elements: res.elements, warnings: res.warnings });
+            expect(digest).toBe(expected.sha256);
+        });
+    }
 });

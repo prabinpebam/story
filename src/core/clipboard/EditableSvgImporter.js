@@ -1033,9 +1033,73 @@ function parseTranslationOnlyTransform(transform) {
     return { ok: false };
 }
 
+function parseScaleTranslateOnlyTransform(transform) {
+    // Conservative: allow only ONE of:
+    // - translate(...)
+    // - scale(...)
+    // - matrix(a 0 0 d e f) (no rotation/shear)
+    // Reject multi-part transforms.
+    if (typeof transform !== 'string') return { ok: true, sx: 1, sy: 1, tx: 0, ty: 0 };
+    const t = transform.trim();
+    if (t.length === 0) return { ok: true, sx: 1, sy: 1, tx: 0, ty: 0 };
+
+    const hasMultiple = /\)\s+\w+\s*\(/.test(t);
+    if (hasMultiple) return { ok: false };
+
+    const translateMatch = t.match(/^translate\(\s*([+-]?(?:\d+\.?\d*|\.\d+)(?:e[+-]?\d+)?)\s*(?:[,\s]+\s*([+-]?(?:\d+\.?\d*|\.\d+)(?:e[+-]?\d+)?))?\s*\)$/i);
+    if (translateMatch) {
+        const tx = toNumber(translateMatch[1]) ?? 0;
+        const ty = toNumber(translateMatch[2]) ?? 0;
+        return { ok: true, sx: 1, sy: 1, tx, ty };
+    }
+
+    const scaleMatch = t.match(/^scale\(\s*([+-]?(?:\d+\.?\d*|\.\d+)(?:e[+-]?\d+)?)\s*(?:[,\s]+\s*([+-]?(?:\d+\.?\d*|\.\d+)(?:e[+-]?\d+)?))?\s*\)$/i);
+    if (scaleMatch) {
+        const sx = toNumber(scaleMatch[1]);
+        const sy = toNumber(scaleMatch[2]);
+        if (sx === null) return { ok: false };
+        return { ok: true, sx, sy: sy === null ? sx : sy, tx: 0, ty: 0 };
+    }
+
+    const matrixMatch = t.match(/^matrix\(\s*([+-]?(?:\d+\.?\d*|\.\d+)(?:e[+-]?\d+)?)\s*(?:[,\s]+)\s*([+-]?(?:\d+\.?\d*|\.\d+)(?:e[+-]?\d+)?)\s*(?:[,\s]+)\s*([+-]?(?:\d+\.?\d*|\.\d+)(?:e[+-]?\d+)?)\s*(?:[,\s]+)\s*([+-]?(?:\d+\.?\d*|\.\d+)(?:e[+-]?\d+)?)\s*(?:[,\s]+)\s*([+-]?(?:\d+\.?\d*|\.\d+)(?:e[+-]?\d+)?)\s*(?:[,\s]+)\s*([+-]?(?:\d+\.?\d*|\.\d+)(?:e[+-]?\d+)?)\s*\)$/i);
+    if (matrixMatch) {
+        const a = toNumber(matrixMatch[1]);
+        const b = toNumber(matrixMatch[2]);
+        const c = toNumber(matrixMatch[3]);
+        const d = toNumber(matrixMatch[4]);
+        const e = toNumber(matrixMatch[5]);
+        const f = toNumber(matrixMatch[6]);
+
+        // Axis-aligned scale + translate only:
+        // [a 0 0 d e f]
+        if (a !== null && d !== null && e !== null && f !== null && b === 0 && c === 0) {
+            return { ok: true, sx: a, sy: d, tx: e, ty: f };
+        }
+        return { ok: false };
+    }
+
+    return { ok: false };
+}
+
 function readNodeTranslation(node) {
     const t = node?.getAttribute?.('transform');
-    return parseTranslationOnlyTransform(t);
+    return parseScaleTranslateOnlyTransform(t);
+}
+
+function scaleDashArrayString(dashArray, scale) {
+    if (typeof dashArray !== 'string') return dashArray;
+    const s = dashArray.trim();
+    if (s.length === 0) return dashArray;
+    if (s.toLowerCase() === 'none') return dashArray;
+
+    const parts = s.replace(/,/g, ' ').split(/\s+/).filter(Boolean);
+    const scaled = parts.map(p => {
+        const n = toLengthNumber(p);
+        if (n === null) return p;
+        const v = n * scale;
+        return String(Math.round(v * 1e6) / 1e6);
+    });
+    return scaled.join(' ');
 }
 
 function bboxForElements(elements) {
@@ -1107,6 +1171,17 @@ export function importEditableShapesFromSanitizedSvg(sanitizedSvg, options) {
 
         const bboxOverride = options?.bboxOverride ?? null;
         const userSpaceTransform = options?.userSpaceTransform ?? null;
+
+        // When we bake a scale transform into geometry, we must also scale stroke widths/dashes
+        // for reasonable visual fidelity and correct stroke-aware bounds.
+        const sx = Number.isFinite(userSpaceTransform?.sx) ? userSpaceTransform.sx : 1;
+        const sy = Number.isFinite(userSpaceTransform?.sy) ? userSpaceTransform.sy : 1;
+        const strokeScale = Math.max(Math.abs(sx), Math.abs(sy));
+        if (strokeScale !== 1 && paint?.stroke) {
+            if (Number.isFinite(paint.stroke.width)) paint.stroke.width = paint.stroke.width * strokeScale;
+            if (Number.isFinite(paint.stroke.dashOffset)) paint.stroke.dashOffset = paint.stroke.dashOffset * strokeScale;
+            if (typeof paint.stroke.dashArray === 'string') paint.stroke.dashArray = scaleDashArrayString(paint.stroke.dashArray, strokeScale);
+        }
 
         let fillGradientCss = null;
         if (paint.unsupported?.fillUrlPaint) {
@@ -1243,8 +1318,8 @@ export function importEditableShapesFromSanitizedSvg(sanitizedSvg, options) {
         }
 
         const nextAccumulated = {
-            sx: accumulated.sx,
-            sy: accumulated.sy,
+            sx: accumulated.sx * local.sx,
+            sy: accumulated.sy * local.sy,
             tx: accumulated.tx + local.tx * accumulated.sx,
             ty: accumulated.ty + local.ty * accumulated.sy
         };
