@@ -1,0 +1,6 @@
+{
+  "name": "gradient-transform-rotate-unsupported",
+  "warnings": ["WARN_GRADIENT_PAINT_UNSUPPORTED"],
+  "elementsCount": 1,
+  "sha256": "0dc25a9dbc79166cf555f15be2f3ad1a8a5d495552960119f3ee7870e90219e3"
+}

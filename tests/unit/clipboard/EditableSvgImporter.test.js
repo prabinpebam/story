@@ -515,6 +515,30 @@ describe('EditableSvgImporter.importEditableShapesFromSanitizedSvg', () => {
                 expect(deg).toBeCloseTo(116.565, 3);
         });
 
+        it('falls back deterministically when gradientTransform is unsupported (e.g. rotate)', () => {
+                const svg = `
+                    <svg xmlns="http://www.w3.org/2000/svg">
+                        <defs>
+                            <linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="0%" gradientTransform="rotate(45)">
+                                <stop offset="0%" stop-color="#ff0000" />
+                                <stop offset="100%" stop-color="#0000ff" />
+                            </linearGradient>
+                        </defs>
+                        <rect x="0" y="0" width="10" height="10" fill="url(#g)" />
+                    </svg>
+                `;
+
+                const res = importEditableShapesFromSanitizedSvg(svg, { centerX: 0, centerY: 0, idSeed: 't' });
+                expect(res.ok).toBe(true);
+                if (!res.ok) return;
+
+                expect(res.warnings).toContain('WARN_GRADIENT_PAINT_UNSUPPORTED');
+                expect(res.warnings).not.toContain('WARN_GRADIENT_TRANSFORM_IGNORED');
+
+                const el = res.elements[0];
+                expect(el.style?.fills?.[0]).toMatchObject({ type: 'solid', value: '#808080', opacity: 100 });
+        });
+
         it('warns and falls back when userSpaceOnUse gradient coords are missing', () => {
                 const svg = `
                     <svg xmlns="http://www.w3.org/2000/svg">
