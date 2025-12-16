@@ -7,6 +7,7 @@ import { SnappingSystem } from './canvas/SnappingSystem.js';
 import { GizmoRenderer } from './canvas/GizmoRenderer.js';
 import { mouseStateManager } from './MouseStateManager.js';
 import { cursorManager } from './CursorManager.js';
+import { computeElementWorldRotation } from './shapes/SceneGraphTransforms.js';
 import { mediaAssetManager } from './media/MediaAssetManager.js';
 import { SUPPORTED_IMAGE_FORMATS, SUPPORTED_VIDEO_FORMATS } from './constants/MediaDefaults.js';
 import { contextMenuManager } from '../ui/components/ContextMenu/index.js';
@@ -55,6 +56,7 @@ export class CanvasManager {
         this.liveResizeData = null; // Live dimensions during text editing
         this.activeGuides = [];
         this.measurementGuides = null;
+        this.vectorNodeDrag = null;
 
         // Initialize sub-modules
         this.viewportController = new ViewportController(this);
@@ -436,6 +438,8 @@ export class CanvasManager {
             if (hit) {
                 if (hit.type === 'handle') {
                     this._handleHandleClick(hit, mouseX, mouseY, e);
+                } else if (hit.type === 'vector-node') {
+                    this._handleVectorNodeClick(hit, mouseX, mouseY, e);
                 } else if (hit.type === 'element') {
                     this._handleElementClick(hit, mouseX, mouseY, e);
                 }
@@ -449,6 +453,46 @@ export class CanvasManager {
                 this.dragCurrent = { x: mouseX, y: mouseY };
             }
         }
+    }
+
+    _handleVectorNodeClick(hit, mouseX, mouseY, e) {
+        const state = store.getState();
+        const slide = this.getActiveContainer(state);
+        if (!slide) return;
+
+        const el = slide.elements?.[hit.elementId];
+        if (!el || el.type !== 'vector') return;
+
+        // Ensure we're in vector deep edit for this element.
+        const deepEdit = state.editor.deepEdit;
+        if (!deepEdit || deepEdit.kind !== 'vector' || deepEdit.elementId !== hit.elementId) {
+            store.dispatch('SET_DEEP_EDIT', { kind: 'vector', elementId: hit.elementId });
+        }
+
+        // Keep element selected while deep editing.
+        if (!state.editor.selectedElementIds.includes(hit.elementId)) {
+            store.dispatch('UPDATE_SELECTION', [hit.elementId]);
+        }
+
+        this.interactionState = 'VECTOR_NODE_DRAGGING';
+        this.dragStart = { x: mouseX, y: mouseY };
+        this.vectorNodeDrag = {
+            elementId: hit.elementId,
+            pathIndex: hit.pathIndex,
+            nodeKind: hit.nodeKind,
+            nodeIndex: hit.nodeIndex,
+            segmentIndex: hit.segmentIndex
+        };
+
+        // Snapshot once for undo coalescing.
+        store.dispatch('START_INTERACTION');
+
+        // Store initial element state (deep copy of paths) for idempotent dragging.
+        this.initialElementState = {
+            id: el.id,
+            paths: JSON.parse(JSON.stringify(el.paths || []))
+        };
+        e.stopPropagation();
     }
 
     _handleHandleClick(hit, mouseX, mouseY, e) {
@@ -594,6 +638,9 @@ export class CanvasManager {
             case 'DRAGGING':
                 this._handleDragging(mouseX, mouseY, e);
                 break;
+            case 'VECTOR_NODE_DRAGGING':
+                this._handleVectorNodeDragging(mouseX, mouseY, e);
+                break;
             case 'RESIZING':
                 this._handleResizing(mouseX, mouseY, e);
                 break;
@@ -604,6 +651,50 @@ export class CanvasManager {
 
         this.lastMouseX = mouseX;
         this.lastMouseY = mouseY;
+    }
+
+    _handleVectorNodeDragging(mouseX, mouseY, e) {
+        const state = store.getState();
+        const slide = this.getActiveContainer(state);
+        if (!slide || !this.vectorNodeDrag) return;
+
+        const { zoom } = state.editor;
+        const dxWorld = (mouseX - this.dragStart.x) / zoom;
+        const dyWorld = (mouseY - this.dragStart.y) / zoom;
+
+        const el = slide.elements?.[this.vectorNodeDrag.elementId];
+        if (!el || el.type !== 'vector') return;
+
+        const worldRotationDeg = computeElementWorldRotation(slide, el);
+        const rad = (-worldRotationDeg || 0) * Math.PI / 180;
+        const cos = Math.cos(rad);
+        const sin = Math.sin(rad);
+
+        const dxLocal = dxWorld * cos - dyWorld * sin;
+        const dyLocal = dxWorld * sin + dyWorld * cos;
+
+        const basePaths = this.initialElementState?.paths;
+        if (!Array.isArray(basePaths)) return;
+
+        const paths = JSON.parse(JSON.stringify(basePaths));
+        const path = paths[this.vectorNodeDrag.pathIndex];
+        if (!path) return;
+
+        if (this.vectorNodeDrag.nodeKind === 'start') {
+            if (!path.start) return;
+            path.start.x = Number(path.start.x) + dxLocal;
+            path.start.y = Number(path.start.y) + dyLocal;
+        } else {
+            const segIndex = this.vectorNodeDrag.segmentIndex;
+            if (!Array.isArray(path.segments) || segIndex == null) return;
+            const seg = path.segments[segIndex];
+            if (!seg || !seg.to) return;
+            seg.to.x = Number(seg.to.x) + dxLocal;
+            seg.to.y = Number(seg.to.y) + dyLocal;
+        }
+
+        store.dispatch('UPDATE_ELEMENT', { id: el.id, paths });
+        e.preventDefault();
     }
 
     _handleMarqueeSelection(mouseX, mouseY) {
@@ -1260,7 +1351,7 @@ export class CanvasManager {
             this.panStart = null;
         }
 
-        if (this.interactionState === 'RESIZING' || this.interactionState === 'DRAGGING') {
+        if (this.interactionState === 'RESIZING' || this.interactionState === 'DRAGGING' || this.interactionState === 'VECTOR_NODE_DRAGGING') {
             // Check for click (no drag) on local placeholder
             if (this.interactionState === 'DRAGGING') {
                 const dist = Math.hypot(mouseX - this.dragStart.x, mouseY - this.dragStart.y);
@@ -1294,6 +1385,7 @@ export class CanvasManager {
         this.activeHandle = null;
         this.initialElementState = {};
         this.initialRotationAngle = null;
+        this.vectorNodeDrag = null;
     }
 
     /**
@@ -1326,6 +1418,7 @@ export class CanvasManager {
         // During DRAGGING/RESIZING, suppress button state to prevent CodeFill interference
         const isSuppressed = this.interactionState === 'DRAGGING' || 
                             this.interactionState === 'RESIZING' ||
+                            this.interactionState === 'VECTOR_NODE_DRAGGING' ||
                             this.interactionState === 'PANNING' ||
                             this.interactionState === 'CREATING' ||
                             this.interactionState === 'SELECTING';
@@ -1567,6 +1660,9 @@ export class CanvasManager {
                         selectionType: 'caret',
                         clickPosition: { clientX: e.clientX, clientY: e.clientY }
                     });
+                } else if (element.type === 'vector') {
+                    store.dispatch('UPDATE_SELECTION', [hit.id]);
+                    store.dispatch('SET_DEEP_EDIT', { kind: 'vector', elementId: hit.id });
                 } else {
                     store.dispatch('UPDATE_SELECTION', [hit.id]);
                 }
@@ -2101,6 +2197,14 @@ export class CanvasManager {
     handleKeyDown(e) {
         const state = store.getState();
         if (state.editor.mode === 'presentation') return;
+
+        if (e.key === 'Escape') {
+            if (state.editor.deepEdit) {
+                store.dispatch('SET_DEEP_EDIT', null);
+                e.preventDefault();
+                return;
+            }
+        }
 
         if (e.key === 'Shift') {
             this.isShiftPressed = true;

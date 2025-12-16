@@ -92,6 +92,12 @@ export function handleSetEditingElement(draft, payload) {
     }
 }
 
+export function handleSetDeepEdit(draft, payload) {
+    // Payload is either null (exit deep edit) or an object describing deep edit mode.
+    // Example: { kind: 'vector', elementId: '...', selection: {...} }
+    draft.editor.deepEdit = payload || null;
+}
+
 export function handleUpdateViewport(draft, payload) {
     draft.editor.pan = payload.pan || draft.editor.pan;
     draft.editor.zoom = payload.zoom || draft.editor.zoom;

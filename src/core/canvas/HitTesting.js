@@ -9,6 +9,83 @@ export class HitTesting {
         this.cm = canvasManager;
     }
 
+    _toElementLocalPoint(wx, wy, absEl) {
+        const { x, y, width, height, rotation } = absEl;
+        const cx = x + width / 2;
+        const cy = y + height / 2;
+
+        const rad = -(rotation || 0) * Math.PI / 180;
+        const cos = Math.cos(rad);
+        const sin = Math.sin(rad);
+
+        const dx = wx - cx;
+        const dy = wy - cy;
+
+        const localX = (dx * cos - dy * sin) + width / 2;
+        const localY = (dx * sin + dy * cos) + height / 2;
+
+        return { x: localX, y: localY };
+    }
+
+    _hitTestVectorNodes(state, slide, worldX, worldY) {
+        const deepEdit = state?.editor?.deepEdit;
+        if (!deepEdit || deepEdit.kind !== 'vector') return null;
+
+        const elementId = deepEdit.elementId;
+        if (!elementId) return null;
+
+        const el = slide?.elements?.[elementId];
+        if (!el || el.type !== 'vector' || !Array.isArray(el.paths)) return null;
+
+        const { zoom } = state.editor;
+        const absEl = GeometryUtils.getAbsoluteElement(el, slide);
+        const local = this._toElementLocalPoint(worldX, worldY, absEl);
+
+        const threshold = 6 / zoom;
+        const candidates = [];
+
+        el.paths.forEach((path, pathIndex) => {
+            if (!path) return;
+
+            const points = [];
+            if (path.start) {
+                points.push({ nodeKind: 'start', nodeIndex: 0, pt: path.start });
+            }
+            if (Array.isArray(path.segments)) {
+                path.segments.forEach((seg, segIndex) => {
+                    if (seg && seg.to) {
+                        points.push({ nodeKind: 'segment', nodeIndex: segIndex + 1, segmentIndex: segIndex, pt: seg.to });
+                    }
+                });
+            }
+
+            for (const p of points) {
+                const dx = local.x - Number(p.pt.x);
+                const dy = local.y - Number(p.pt.y);
+                const dist = Math.sqrt(dx * dx + dy * dy);
+                if (dist <= threshold) {
+                    candidates.push({
+                        priorityRank: 0,
+                        distance: dist,
+                        zOrder: Number.POSITIVE_INFINITY,
+                        hitKey: `vector:${elementId}:path:${pathIndex}:node:${p.nodeKind}:${p.nodeIndex}`,
+                        result: {
+                            type: 'vector-node',
+                            elementId,
+                            pathIndex,
+                            nodeKind: p.nodeKind,
+                            nodeIndex: p.nodeIndex,
+                            segmentIndex: p.segmentIndex
+                        }
+                    });
+                }
+            }
+        });
+
+        const best = HitTesting.chooseBestHitCandidate(candidates);
+        return best ? best.result : null;
+    }
+
     static chooseBestHitCandidate(candidates) {
         if (!candidates || candidates.length === 0) return null;
 
@@ -94,14 +171,18 @@ export class HitTesting {
         const worldX = (x - pan.x) / zoom;
         const worldY = (y - pan.y) / zoom;
 
+        const slide = this.cm.getActiveContainer(state);
+        if (!slide) return null;
+
+        // Deep edit hit testing (vector nodes) takes priority.
+        const deepHit = this._hitTestVectorNodes(state, slide, worldX, worldY);
+        if (deepHit) return deepHit;
+
         // Check handles first (if selected)
         if (state.editor.selectedElementIds.length > 0) {
             const handleHit = this.hitTestHandles(x, y);
             if (handleHit) return handleHit;
         }
-
-        const slide = this.cm.getActiveContainer(state);
-        if (!slide) return null;
 
         const elementsWithZ = this._getElementsWithZOrder(state, slide);
         const candidates = [];
@@ -223,12 +304,13 @@ export class HitTesting {
 
         // 3. Check Rotation (Outside Corners)
         // Rotation trigger zone is OUTSIDE the resize handle but within rotationThreshold
+        const isInsideElementBounds = localX >= 0 && localX <= width && localY >= 0 && localY <= height;
         const corners = ['nw', 'ne', 'se', 'sw'];
         for (const key of corners) {
             const h = handles[key];
             const dist = Math.sqrt(Math.pow(localX - h.x, 2) + Math.pow(localY - h.y, 2));
             // Only trigger rotation if we're outside the resize handle area but within rotation threshold
-            if (dist > hitThreshold && dist <= rotationThreshold) {
+            if (!isInsideElementBounds && dist > hitThreshold && dist <= rotationThreshold) {
                 return { handle: key, action: 'rotate' };
             }
         }

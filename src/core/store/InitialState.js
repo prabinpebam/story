@@ -1802,6 +1802,7 @@ export function createInitialState() {
             selectedSlideIds: [],
             selectedElementIds: [],
             editingElementId: null,
+            deepEdit: null,
             editModeSelectionType: null,
             textEditClickPosition: null,
             activeTool: "select",
