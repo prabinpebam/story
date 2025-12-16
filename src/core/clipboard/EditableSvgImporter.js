@@ -1384,6 +1384,24 @@ function getInheritedPresentation(node, name) {
     return null;
 }
 
+function hasUnsupportedClipPath(node) {
+    const raw = getInheritedPresentation(node, 'clip-path');
+    if (typeof raw !== 'string') return false;
+    const v = raw.trim().toLowerCase();
+    if (!v || v === 'none') return false;
+    // Conservative: any clip-path usage is currently ignored.
+    return true;
+}
+
+function hasUnsupportedMask(node) {
+    const raw = getInheritedPresentation(node, 'mask');
+    if (typeof raw !== 'string') return false;
+    const v = raw.trim().toLowerCase();
+    if (!v || v === 'none') return false;
+    // Conservative: any mask usage is currently ignored.
+    return true;
+}
+
 function getFillRuleForNode(node) {
     const raw = getInheritedPresentation(node, 'fill-rule');
     const v = typeof raw === 'string' ? raw.trim().toLowerCase() : '';
@@ -1688,6 +1706,14 @@ export function importEditableShapesFromSanitizedSvg(sanitizedSvg, options) {
     const warnings = [];
 
     function styleForNode(node, options) {
+        if (hasUnsupportedClipPath(node)) {
+            warnings.push('WARN_CLIP_PATH_UNSUPPORTED');
+        }
+
+        if (hasUnsupportedMask(node)) {
+            warnings.push('WARN_MASK_UNSUPPORTED');
+        }
+
         const paint = resolvePaintForNode(node);
 
         const bboxOverride = options?.bboxOverride ?? null;

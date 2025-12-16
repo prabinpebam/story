@@ -67,6 +67,108 @@ test.describe('Clipboard: paste SVG from text/html (editable shapes flag)', () =
     expect(rects.length).toBeGreaterThan(0);
   });
 
+  test('pasting HTML containing an <svg> with clip-path imports the shape (clip ignored; deterministic)', async ({ page, getState }) => {
+    const before = await getState();
+    const slideId = before.editor.activeSlideId;
+    expect(slideId).toBeTruthy();
+
+    const beforeElements = before.slides[slideId]?.elements || {};
+    const beforeIds = new Set(Object.keys(beforeElements));
+
+    const svg = `
+      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="10">
+        <defs>
+          <clipPath id="c">
+            <circle cx="5" cy="5" r="4" />
+          </clipPath>
+        </defs>
+        <rect x="0" y="0" width="20" height="10" clip-path="url(#c)" fill="#ff0000" />
+      </svg>
+    `;
+    const html = `<div data-from="test">${svg}</div>`;
+
+    await page.evaluate(async ({ html }) => {
+      const item = new ClipboardItem({
+        'text/html': new Blob([html], { type: 'text/html' })
+      });
+      await navigator.clipboard.write([item]);
+    }, { html });
+
+    await page.keyboard.down('Control');
+    await page.keyboard.press('v');
+    await page.keyboard.up('Control');
+
+    await expect.poll(async () => {
+      const after = await getState();
+      const count = Object.keys(after.slides[slideId]?.elements || {}).length;
+      return count;
+    }, { timeout: 4000 }).toBeGreaterThan(beforeIds.size);
+
+    const after = await getState();
+    const afterElements = after.slides[slideId]?.elements || {};
+    const newElements = Object.entries(afterElements)
+      .filter(([id]) => !beforeIds.has(id))
+      .map(([, el]: any) => el);
+
+    const newShapes = newElements.filter((el: any) => el && el.type === 'shape');
+    expect(newShapes.length).toBeGreaterThan(0);
+
+    const shape = newShapes[0];
+    expect(shape?.style?.fills?.[0]?.type).toBe('solid');
+    expect(shape?.style?.fills?.[0]?.value).toBe('#ff0000');
+  });
+
+  test('pasting HTML containing an <svg> with mask imports the shape (mask ignored; deterministic)', async ({ page, getState }) => {
+    const before = await getState();
+    const slideId = before.editor.activeSlideId;
+    expect(slideId).toBeTruthy();
+
+    const beforeElements = before.slides[slideId]?.elements || {};
+    const beforeIds = new Set(Object.keys(beforeElements));
+
+    const svg = `
+      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="10">
+        <defs>
+          <mask id="m">
+            <rect x="0" y="0" width="20" height="10" fill="#ffffff" />
+          </mask>
+        </defs>
+        <rect x="0" y="0" width="20" height="10" mask="url(#m)" fill="#ff0000" />
+      </svg>
+    `;
+    const html = `<div data-from="test">${svg}</div>`;
+
+    await page.evaluate(async ({ html }) => {
+      const item = new ClipboardItem({
+        'text/html': new Blob([html], { type: 'text/html' })
+      });
+      await navigator.clipboard.write([item]);
+    }, { html });
+
+    await page.keyboard.down('Control');
+    await page.keyboard.press('v');
+    await page.keyboard.up('Control');
+
+    await expect.poll(async () => {
+      const after = await getState();
+      const count = Object.keys(after.slides[slideId]?.elements || {}).length;
+      return count;
+    }, { timeout: 4000 }).toBeGreaterThan(beforeIds.size);
+
+    const after = await getState();
+    const afterElements = after.slides[slideId]?.elements || {};
+    const newElements = Object.entries(afterElements)
+      .filter(([id]) => !beforeIds.has(id))
+      .map(([, el]: any) => el);
+
+    const newShapes = newElements.filter((el: any) => el && el.type === 'shape');
+    expect(newShapes.length).toBeGreaterThan(0);
+
+    const shape = newShapes[0];
+    expect(shape?.style?.fills?.[0]?.type).toBe('solid');
+    expect(shape?.style?.fills?.[0]?.value).toBe('#ff0000');
+  });
+
   test('pasting HTML containing an <svg> with <linearGradient> imports a gradient fill on the shape', async ({ page, getState }) => {
     const before = await getState();
     const slideId = before.editor.activeSlideId;

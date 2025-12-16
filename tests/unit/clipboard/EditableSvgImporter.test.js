@@ -213,6 +213,52 @@ describe('EditableSvgImporter.importEditableShapesFromSanitizedSvg', () => {
                 expect(el.style.fills[0]).toMatchObject({ type: 'solid', value: '#808080', opacity: 100 });
         });
 
+        it('warns deterministically when clip-path is present (clip ignored; shape still imports)', () => {
+                const svg = `
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="10">
+                        <defs>
+                            <clipPath id="c">
+                                <circle cx="5" cy="5" r="4" />
+                            </clipPath>
+                        </defs>
+                        <rect x="0" y="0" width="20" height="10" clip-path="url(#c)" fill="#ff0000" />
+                    </svg>
+                `;
+
+                const res = importEditableShapesFromSanitizedSvg(svg, { centerX: 0, centerY: 0, idSeed: 't' });
+                expect(res.ok).toBe(true);
+                if (!res.ok) return;
+
+                expect(res.warnings).toContain('WARN_CLIP_PATH_UNSUPPORTED');
+
+                const el = res.elements[0];
+                expect(el.type).toBe('shape');
+                expect(el.style?.fills?.[0]).toMatchObject({ type: 'solid', value: '#ff0000', opacity: 100 });
+        });
+
+        it('warns deterministically when mask is present (mask ignored; shape still imports)', () => {
+                const svg = `
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="10">
+                        <defs>
+                            <mask id="m">
+                                <rect x="0" y="0" width="20" height="10" fill="#ffffff" />
+                            </mask>
+                        </defs>
+                        <rect x="0" y="0" width="20" height="10" mask="url(#m)" fill="#ff0000" />
+                    </svg>
+                `;
+
+                const res = importEditableShapesFromSanitizedSvg(svg, { centerX: 0, centerY: 0, idSeed: 't' });
+                expect(res.ok).toBe(true);
+                if (!res.ok) return;
+
+                expect(res.warnings).toContain('WARN_MASK_UNSUPPORTED');
+
+                const el = res.elements[0];
+                expect(el.type).toBe('shape');
+                expect(el.style?.fills?.[0]).toMatchObject({ type: 'solid', value: '#ff0000', opacity: 100 });
+        });
+
         it('imports objectBoundingBox radialGradient fill as a gradient fill (no warning)', () => {
                 const svg = `
                     <svg xmlns="http://www.w3.org/2000/svg">

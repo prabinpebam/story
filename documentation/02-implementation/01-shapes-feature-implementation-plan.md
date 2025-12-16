@@ -58,6 +58,8 @@ This status snapshot reflects what is implemented in the repo today (not “plan
   - [x] `patternUnits="objectBoundingBox"` when `patternContentUnits="objectBoundingBox"` and no `patternTransform`
   - [x] `patternUnits="objectBoundingBox"` when `patternContentUnits="userSpaceOnUse"` and no `patternTransform` (conservative: normalizes user-space content into a `0..1` tile)
   - [x] Imported as repeating `image` fill (SVG tile data URI)
+  - [x] Detects `clip-path` usage and imports the shape anyway (clip is ignored; deterministic warning)
+  - [x] Detects `mask` usage and imports the shape anyway (mask is ignored; deterministic warning)
 - [x] `fill-rule` preserved (`evenodd`/`nonzero`) for vectors
 - [x] Stroke-aware bounds for line/vector/path (bbox expands by half stroke width)
 - [x] SVG root `viewBox` baked as scale+translate (scale/translate only; still conservative)
@@ -69,7 +71,7 @@ This status snapshot reflects what is implemented in the repo today (not “plan
 - [x] Corpus fixtures: `tests/corpus/shapes/figma-paste/` (directory + canonical hash + warnings)
 - [ ] Broader SVG paint support (beyond the conservative pattern subset)
 - [ ] Broader transform support beyond axis-aligned scale/translate (e.g. rotate/skew; general matrices)
-- [ ] Clip-path/masking import for pasted SVG (if required by spec)
+- [ ] True clip-path + masking rendering/import for pasted SVG (current behavior ignores and warns)
 
 ---
 

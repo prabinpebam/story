@@ -1,0 +1,6 @@
+{
+  "name": "mask-basic",
+  "warnings": ["WARN_MASK_UNSUPPORTED"],
+  "elementsCount": 1,
+  "sha256": "0ce64be7fa19f4b1f824fd1c97ef44e15864ebe5c942d4991df2d2706ccde55c"
+}
