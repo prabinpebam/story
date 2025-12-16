@@ -436,7 +436,7 @@ function svgToDataUri(svgMarkup) {
     return `data:image/svg+xml,${encoded}`;
 }
 
-function resolvePatternPaintFill(doc, patternId) {
+function resolvePatternPaintFill(doc, patternId, options) {
     const p = doc?.getElementById?.(patternId);
     if (!p) return { ok: false, reason: 'MISSING_PATTERN' };
     if (String(p.nodeName).toLowerCase() !== 'pattern') {
@@ -456,19 +456,40 @@ function resolvePatternPaintFill(doc, patternId) {
         return { ok: false, reason: 'PATTERN_TRANSFORM_UNSUPPORTED' };
     }
 
+    const bbox = options?.elementBBox;
+    const userSpaceTransform = options?.userSpaceTransform;
+    const sx = Number.isFinite(userSpaceTransform?.sx) ? userSpaceTransform.sx : 1;
+    const sy = Number.isFinite(userSpaceTransform?.sy) ? userSpaceTransform.sy : 1;
+    const tx = Number.isFinite(userSpaceTransform?.tx) ? userSpaceTransform.tx : 0;
+    const ty = Number.isFinite(userSpaceTransform?.ty) ? userSpaceTransform.ty : 0;
+
+    if (!bbox || !Number.isFinite(bbox.x) || !Number.isFinite(bbox.y) || !Number.isFinite(bbox.width) || !Number.isFinite(bbox.height) || bbox.width <= 0 || bbox.height <= 0) {
+        return { ok: false, reason: 'MISSING_ELEMENT_BBOX' };
+    }
+
     const x = parseUserSpaceCoord(p.getAttribute('x')) ?? 0;
     const y = parseUserSpaceCoord(p.getAttribute('y')) ?? 0;
     if (!Number.isFinite(x) || !Number.isFinite(y)) {
         return { ok: false, reason: 'PATTERN_COORDS_UNSUPPORTED' };
     }
-    // Conservative: only support default origin alignment.
-    if (Math.abs(x) > 1e-6 || Math.abs(y) > 1e-6) {
+
+    // Apply root bake (e.g. viewBox scaling/translation) so pattern coords remain comparable to baked geometry.
+    const xt = x * sx + tx;
+    const yt = y * sy + ty;
+    if (!Number.isFinite(xt) || !Number.isFinite(yt)) {
         return { ok: false, reason: 'PATTERN_COORDS_UNSUPPORTED' };
     }
 
     const width = parseUserSpaceCoord(p.getAttribute('width'));
     const height = parseUserSpaceCoord(p.getAttribute('height'));
     if (!Number.isFinite(width) || !Number.isFinite(height) || width <= 0 || height <= 0) {
+        return { ok: false, reason: 'PATTERN_SIZE_UNSUPPORTED' };
+    }
+
+    // Scale tile dimensions along with baked geometry. Translation does not affect size.
+    const tileWidth = width * Math.abs(sx);
+    const tileHeight = height * Math.abs(sy);
+    if (!Number.isFinite(tileWidth) || !Number.isFinite(tileHeight) || tileWidth <= 0 || tileHeight <= 0) {
         return { ok: false, reason: 'PATTERN_SIZE_UNSUPPORTED' };
     }
 
@@ -485,6 +506,11 @@ function resolvePatternPaintFill(doc, patternId) {
     const tileSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">${serializedChildren}</svg>`;
     const dataUri = svgToDataUri(tileSvg);
 
+    // Preserve pattern phase relative to this element by encoding origin as an offset from the element bbox.
+    // With CSS repeating background images, this maps to background-position.
+    const tileOffsetX = xt - bbox.x;
+    const tileOffsetY = yt - bbox.y;
+
     return {
         ok: true,
         fill: {
@@ -494,8 +520,10 @@ function resolvePatternPaintFill(doc, patternId) {
             visible: true,
             blendMode: 'normal',
             repeat: 'repeat',
-            tileWidth: width,
-            tileHeight: height
+            tileWidth,
+            tileHeight,
+            tileOffsetX,
+            tileOffsetY
         }
     };
 }
@@ -1491,7 +1519,7 @@ export function importEditableShapesFromSanitizedSvg(sanitizedSvg, options) {
                 const bbox = bboxOverride ?? transformBBox(primitiveBBox, userSpaceTransform);
                 const tag = String(doc?.getElementById?.(gradId)?.nodeName || '').toLowerCase();
                 if (tag === 'pattern') {
-                    const resolved = resolvePatternPaintFill(doc, gradId);
+                    const resolved = resolvePatternPaintFill(doc, gradId, { elementBBox: bbox, userSpaceTransform });
                     if (resolved.ok) {
                         fillPaintFill = resolved.fill;
                     } else {

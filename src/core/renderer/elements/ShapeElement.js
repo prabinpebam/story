@@ -481,24 +481,26 @@ export class ShapeElement extends VisualElement {
                         } else if (fill.type === 'video' && fill.assetId) {
                             // New media fill system for video
                             this.applyVideoFill(layer, fill, el);
-                        } else if (fill.type === 'image' && !fill.assetId) {
-                            // Image fill with no asset - show placeholder
-                            this.applyMediaPlaceholder(layer, 'image');
-                        } else if (fill.type === 'video' && !fill.assetId) {
-                            // Video fill with no asset - show placeholder
-                            this.applyMediaPlaceholder(layer, 'video');
                         } else if (fill.type === 'image' && fill.value) {
                             // Legacy image fill using direct URL
                             layer.style.backgroundImage = `url(${fill.value})`;
                             if (fill.repeat === 'repeat' && Number.isFinite(fill.tileWidth) && Number.isFinite(fill.tileHeight) && fill.tileWidth > 0 && fill.tileHeight > 0) {
                                 layer.style.backgroundRepeat = 'repeat';
                                 layer.style.backgroundSize = `${fill.tileWidth}px ${fill.tileHeight}px`;
-                                layer.style.backgroundPosition = '0 0';
+                                const ox = Number.isFinite(fill.tileOffsetX) ? fill.tileOffsetX : 0;
+                                const oy = Number.isFinite(fill.tileOffsetY) ? fill.tileOffsetY : 0;
+                                layer.style.backgroundPosition = `${ox}px ${oy}px`;
                             } else {
                                 layer.style.backgroundSize = fill.scaleMode || 'cover';
                                 layer.style.backgroundPosition = 'center';
                                 layer.style.backgroundRepeat = 'no-repeat';
                             }
+                        } else if (fill.type === 'image') {
+                            // Image fill with no asset/value - show placeholder
+                            this.applyMediaPlaceholder(layer, 'image');
+                        } else if (fill.type === 'video') {
+                            // Video fill with no asset - show placeholder
+                            this.applyMediaPlaceholder(layer, 'video');
                         }
                     }
                 });

@@ -618,6 +618,36 @@ describe('EditableSvgImporter.importEditableShapesFromSanitizedSvg', () => {
                 expect(el.style.fills[0].tileHeight).toBe(10);
         });
 
+        it('imports userSpaceOnUse <pattern> with x/y offset as an image fill (supported subset) and preserves phase via tileOffset', () => {
+                const svg = `
+                    <svg xmlns="http://www.w3.org/2000/svg">
+                        <defs>
+                            <pattern id="p" x="5" y="7" width="10" height="10" patternUnits="userSpaceOnUse">
+                                <rect x="0" y="0" width="10" height="10" fill="#ff0000" />
+                            </pattern>
+                        </defs>
+                        <rect x="20" y="30" width="10" height="10" fill="url(#p)" />
+                    </svg>
+                `;
+
+                const res = importEditableShapesFromSanitizedSvg(svg, { centerX: 0, centerY: 0, idSeed: 't' });
+                expect(res.ok).toBe(true);
+                if (!res.ok) return;
+
+                expect(res.warnings).not.toContain('WARN_GRADIENT_PAINT_UNSUPPORTED');
+
+                const el = res.elements[0];
+                const f0 = el.style?.fills?.[0];
+                expect(f0?.type).toBe('image');
+                expect(f0?.repeat).toBe('repeat');
+                expect(f0?.tileWidth).toBe(10);
+                expect(f0?.tileHeight).toBe(10);
+                // tileOffset aligns the pattern origin (x,y) relative to the element bbox top-left.
+                // rect bbox is (20,30), pattern origin is (5,7) => offsets = (-15, -23)
+                expect(f0?.tileOffsetX).toBe(-15);
+                expect(f0?.tileOffsetY).toBe(-23);
+        });
+
         it('warns and falls back when userSpaceOnUse gradient coords are missing', () => {
                 const svg = `
                     <svg xmlns="http://www.w3.org/2000/svg">
