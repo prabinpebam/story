@@ -648,6 +648,61 @@ describe('EditableSvgImporter.importEditableShapesFromSanitizedSvg', () => {
                 expect(f0?.tileOffsetY).toBe(-23);
         });
 
+        it('imports userSpaceOnUse <pattern> with axis-aligned patternTransform (translate) by shifting tileOffset', () => {
+                const svg = `
+                    <svg xmlns="http://www.w3.org/2000/svg">
+                        <defs>
+                            <pattern id="p" width="10" height="10" patternUnits="userSpaceOnUse" patternTransform="translate(3 4)">
+                                <rect x="0" y="0" width="10" height="10" fill="#ff0000" />
+                            </pattern>
+                        </defs>
+                        <rect x="20" y="30" width="10" height="10" fill="url(#p)" />
+                    </svg>
+                `;
+
+                const res = importEditableShapesFromSanitizedSvg(svg, { centerX: 0, centerY: 0, idSeed: 't' });
+                expect(res.ok).toBe(true);
+                if (!res.ok) return;
+
+                expect(res.warnings).not.toContain('WARN_GRADIENT_PAINT_UNSUPPORTED');
+                const f0 = res.elements[0]?.style?.fills?.[0];
+                expect(f0?.type).toBe('image');
+                expect(f0?.repeat).toBe('repeat');
+                expect(f0?.tileWidth).toBe(10);
+                expect(f0?.tileHeight).toBe(10);
+                // pattern origin (0,0) with translate(3,4) => origin (3,4)
+                // rect bbox top-left is (20,30) => offsets = (-17,-26)
+                expect(f0?.tileOffsetX).toBe(-17);
+                expect(f0?.tileOffsetY).toBe(-26);
+        });
+
+        it('imports userSpaceOnUse <pattern> with axis-aligned patternTransform (scale+translate ordering) by scaling tile size and shifting phase', () => {
+                const svg = `
+                    <svg xmlns="http://www.w3.org/2000/svg">
+                        <defs>
+                            <pattern id="p" width="10" height="10" patternUnits="userSpaceOnUse" patternTransform="scale(2) translate(3 4)">
+                                <rect x="0" y="0" width="10" height="10" fill="#ff0000" />
+                            </pattern>
+                        </defs>
+                        <rect x="20" y="30" width="10" height="10" fill="url(#p)" />
+                    </svg>
+                `;
+
+                const res = importEditableShapesFromSanitizedSvg(svg, { centerX: 0, centerY: 0, idSeed: 't' });
+                expect(res.ok).toBe(true);
+                if (!res.ok) return;
+
+                expect(res.warnings).not.toContain('WARN_GRADIENT_PAINT_UNSUPPORTED');
+                const f0 = res.elements[0]?.style?.fills?.[0];
+                expect(f0?.type).toBe('image');
+                expect(f0?.repeat).toBe('repeat');
+                // SVG transform lists apply right-to-left: translate then scale => origin (0+3,0+4) scaled => (6,8)
+                expect(f0?.tileWidth).toBe(20);
+                expect(f0?.tileHeight).toBe(20);
+                expect(f0?.tileOffsetX).toBe(-14);
+                expect(f0?.tileOffsetY).toBe(-22);
+        });
+
         it('warns and falls back when userSpaceOnUse gradient coords are missing', () => {
                 const svg = `
                     <svg xmlns="http://www.w3.org/2000/svg">

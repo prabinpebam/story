@@ -450,10 +450,15 @@ function resolvePatternPaintFill(doc, patternId, options) {
         return { ok: false, reason: 'PATTERN_UNITS_UNSUPPORTED' };
     }
 
+    let patternAxisTransform = { sx: 1, sy: 1, tx: 0, ty: 0 };
     const patternTransform = p.getAttribute('patternTransform');
     if (typeof patternTransform === 'string' && patternTransform.trim().length > 0) {
-        // Conservative: do not attempt to map pattern transforms.
-        return { ok: false, reason: 'PATTERN_TRANSFORM_UNSUPPORTED' };
+        // Conservative: allow axis-aligned translate/scale/matrix only (no rotate/skew).
+        const parsed = parseScaleTranslateOnlyTransform(patternTransform);
+        if (!parsed.ok) {
+            return { ok: false, reason: 'PATTERN_TRANSFORM_UNSUPPORTED' };
+        }
+        patternAxisTransform = { sx: parsed.sx, sy: parsed.sy, tx: parsed.tx, ty: parsed.ty };
     }
 
     const bbox = options?.elementBBox;
@@ -473,9 +478,13 @@ function resolvePatternPaintFill(doc, patternId, options) {
         return { ok: false, reason: 'PATTERN_COORDS_UNSUPPORTED' };
     }
 
+    // Apply patternTransform in pattern/user space.
+    const xpt = x * patternAxisTransform.sx + patternAxisTransform.tx;
+    const ypt = y * patternAxisTransform.sy + patternAxisTransform.ty;
+
     // Apply root bake (e.g. viewBox scaling/translation) so pattern coords remain comparable to baked geometry.
-    const xt = x * sx + tx;
-    const yt = y * sy + ty;
+    const xt = xpt * sx + tx;
+    const yt = ypt * sy + ty;
     if (!Number.isFinite(xt) || !Number.isFinite(yt)) {
         return { ok: false, reason: 'PATTERN_COORDS_UNSUPPORTED' };
     }
@@ -486,9 +495,13 @@ function resolvePatternPaintFill(doc, patternId, options) {
         return { ok: false, reason: 'PATTERN_SIZE_UNSUPPORTED' };
     }
 
+    // Apply patternTransform scale to the tile size.
+    const wpt = width * Math.abs(patternAxisTransform.sx);
+    const hpt = height * Math.abs(patternAxisTransform.sy);
+
     // Scale tile dimensions along with baked geometry. Translation does not affect size.
-    const tileWidth = width * Math.abs(sx);
-    const tileHeight = height * Math.abs(sy);
+    const tileWidth = wpt * Math.abs(sx);
+    const tileHeight = hpt * Math.abs(sy);
     if (!Number.isFinite(tileWidth) || !Number.isFinite(tileHeight) || tileWidth <= 0 || tileHeight <= 0) {
         return { ok: false, reason: 'PATTERN_SIZE_UNSUPPORTED' };
     }
