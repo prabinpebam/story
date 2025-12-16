@@ -487,6 +487,34 @@ describe('EditableSvgImporter.importEditableShapesFromSanitizedSvg', () => {
                 expect(deg).toBeCloseTo(116.565, 3);
         });
 
+        it('applies axis-aligned gradientTransform to userSpaceOnUse gradient direction (with warning)', () => {
+                const svg = `
+                    <svg xmlns="http://www.w3.org/2000/svg">
+                        <defs>
+                            <linearGradient id="g" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="100" y2="100" gradientTransform="scale(2 1)">
+                                <stop offset="0%" stop-color="#ff0000" />
+                                <stop offset="100%" stop-color="#0000ff" />
+                            </linearGradient>
+                        </defs>
+                        <rect x="0" y="0" width="100" height="100" fill="url(#g)" />
+                    </svg>
+                `;
+
+                const res = importEditableShapesFromSanitizedSvg(svg, { centerX: 0, centerY: 0, idSeed: 't' });
+                expect(res.ok).toBe(true);
+                if (!res.ok) return;
+
+                expect(res.warnings).toContain('WARN_GRADIENT_TRANSFORM_IGNORED');
+
+                const el = res.elements[0];
+                expect(el.style?.fills?.[0]?.type).toBe('gradient');
+                const css = el.style.fills[0].value;
+                const m = String(css).match(/linear-gradient\(\s*([0-9.]+)deg/i);
+                expect(m).toBeTruthy();
+                const deg = m ? Number(m[1]) : NaN;
+                expect(deg).toBeCloseTo(116.565, 3);
+        });
+
         it('warns and falls back when userSpaceOnUse gradient coords are missing', () => {
                 const svg = `
                     <svg xmlns="http://www.w3.org/2000/svg">
