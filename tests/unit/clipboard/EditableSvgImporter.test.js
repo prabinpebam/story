@@ -259,6 +259,29 @@ describe('EditableSvgImporter.importEditableShapesFromSanitizedSvg', () => {
                 expect(el.style?.fills?.[0]).toMatchObject({ type: 'solid', value: '#ff0000', opacity: 100 });
         });
 
+        it('warns deterministically when filter is present (filter ignored; shape still imports)', () => {
+                const svg = `
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="10">
+                        <defs>
+                            <filter id="f">
+                                <feGaussianBlur stdDeviation="2" />
+                            </filter>
+                        </defs>
+                        <rect x="0" y="0" width="20" height="10" filter="url(#f)" fill="#ff0000" />
+                    </svg>
+                `;
+
+                const res = importEditableShapesFromSanitizedSvg(svg, { centerX: 0, centerY: 0, idSeed: 't' });
+                expect(res.ok).toBe(true);
+                if (!res.ok) return;
+
+                expect(res.warnings).toContain('WARN_FILTER_UNSUPPORTED');
+
+                const el = res.elements[0];
+                expect(el.type).toBe('shape');
+                expect(el.style?.fills?.[0]).toMatchObject({ type: 'solid', value: '#ff0000', opacity: 100 });
+        });
+
         it('imports objectBoundingBox radialGradient fill as a gradient fill (no warning)', () => {
                 const svg = `
                     <svg xmlns="http://www.w3.org/2000/svg">

@@ -19,6 +19,7 @@ describe('Figma paste corpus (determinism)', () => {
     const cases = [
         { name: 'clip-path-basic' },
         { name: 'mask-basic' },
+        { name: 'filter-basic' },
         { name: 'basic-rect-gradient' },
         { name: 'gradient-href-basic' },
         { name: 'gradient-href-cycle' },

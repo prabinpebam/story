@@ -1416,6 +1416,15 @@ function hasUnsupportedMask(node) {
     return true;
 }
 
+function hasUnsupportedFilter(node) {
+    const raw = getInheritedPresentation(node, 'filter');
+    if (typeof raw !== 'string') return false;
+    const v = raw.trim().toLowerCase();
+    if (!v || v === 'none') return false;
+    // Conservative: any filter usage is currently ignored.
+    return true;
+}
+
 function getVectorEffect(node) {
     const raw = getInheritedPresentation(node, 'vector-effect');
     if (typeof raw !== 'string') return null;
@@ -1857,6 +1866,10 @@ export function importEditableShapesFromSanitizedSvg(sanitizedSvg, options) {
 
         if (hasUnsupportedMask(node)) {
             warnings.push('WARN_MASK_UNSUPPORTED');
+        }
+
+        if (hasUnsupportedFilter(node)) {
+            warnings.push('WARN_FILTER_UNSUPPORTED');
         }
 
         const paint = resolvePaintForNode(node);

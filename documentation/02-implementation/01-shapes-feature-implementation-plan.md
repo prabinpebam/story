@@ -29,30 +29,21 @@ This status snapshot reflects what is implemented in the repo today (not “plan
 - Phase 11–12 (Perf/A11y/extensibility): **NOT STARTED (for Shapes program)**
 
 ### Phase 10 — Implemented Scope (Editable SVG Paste)
-- [x] Feature-flagged editable SVG paste path (keeps default behavior safe)
-- [x] Deterministic element IDs for pasted SVG imports (seeded)
-- [x] Editable import for SVG primitives: `rect`, `circle`, `ellipse`, `line`, `polyline`, `polygon`
-- [x] Editable import for `path` as vector geometry with conservative path command support: `M/L/H/V/C/S/Q/T/A/Z` (abs+rel)
-- [x] Conservative node `transform` baking for axis-aligned scale/translate
   - [x] `translate(...)`, `scale(...)`
   - [x] Multi-part `translate/scale` lists (SVG right-to-left ordering)
   - [x] `matrix(a 0 0 d e f)` only (scale + translate; no rotate/shear)
   - [x] Unsupported transforms (rotate/skew/general matrices) are ignored (import continues; deterministic warning)
   - [x] Mixed transform lists salvage any translate/scale/matrix axis-aligned parts and ignore the rest (deterministic warning)
   - [x] General `matrix(a b c d e f)` with rotate/shear salvage translation `e/f` (deterministic warning)
-- [x] Linear gradient import (`linearGradient`) for fills + strokes
   - [x] `objectBoundingBox`
   - [x] `userSpaceOnUse` when explicit coords exist
   - [x] `href` / `xlink:href` inheritance (conservative: depth-limited chain, first-defined attr wins, stops inherited if missing)
   - [x] Deterministic fallback + warning for broken `href` chains (cycle/missing target)
   - [x] Deterministic warning + directional import for axis-aligned `gradientTransform` (applies to direction only; warns)
-- [x] Radial gradient import (`radialGradient`) for fills + strokes (conservative subset)
   - [x] `objectBoundingBox` with explicit/parseable `cx/cy/r`
   - [x] `href` / `xlink:href` inheritance (conservative: depth-limited chain, first-defined attr wins, stops inherited if missing)
   - [x] Deterministic fallback + warning for broken `href` chains (cycle/missing target)
   - [x] Deterministic fallback for unsupported features (e.g. rotate `gradientTransform`, non-centered focal points)
-- [x] `<defs>` is treated as non-rendering (skipped during import traversal)
-- [x] Pattern paint import (`pattern`) for fills (conservative subset)
   - [x] `patternUnits="userSpaceOnUse"` + parseable `width/height`
   - [x] Supports `x/y` offsets; imports phase via `tileOffsetX/tileOffsetY`
   - [x] Axis-aligned `patternTransform` (translate/scale/matrix; no rotate/skew)
@@ -63,12 +54,7 @@ This status snapshot reflects what is implemented in the repo today (not “plan
   - [x] Imported as repeating `image` fill (SVG tile data URI)
   - [x] Detects `clip-path` usage and imports the shape anyway (clip is ignored; deterministic warning)
   - [x] Detects `mask` usage and imports the shape anyway (mask is ignored; deterministic warning)
-- [x] `fill-rule` preserved (`evenodd`/`nonzero`) for vectors
-- [x] Stroke-aware bounds for line/vector/path (bbox expands by half stroke width)
-- [x] Supports `vector-effect="non-scaling-stroke"` by not scaling stroke widths when baking scale transforms (other `vector-effect` values are ignored; deterministic warning)
-- [x] Detects `paint-order` and imports the shape anyway (paint order is ignored; deterministic warning)
-- [x] SVG root `viewBox` baked as scale+translate (scale/translate only; still conservative)
-- [x] Automated coverage:
+ - [x] Detects `filter` usage and imports the shape anyway (filter is ignored; deterministic warning)
   - [x] Vitest: `tests/unit/clipboard/EditableSvgImporter.test.js`
   - [x] Playwright: `tests/e2e/specs/functional/clipboard-html-svg-paste-editable.spec.ts`
 
