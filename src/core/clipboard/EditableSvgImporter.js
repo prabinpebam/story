@@ -1034,31 +1034,22 @@ function parseTranslationOnlyTransform(transform) {
 }
 
 function parseScaleTranslateOnlyTransform(transform) {
-    // Conservative: allow only ONE of:
-    // - translate(...)
-    // - scale(...)
+    // Conservative: allow only axis-aligned transforms.
+    // Supported:
+    // - One-or-more translate(...)/scale(...) functions (no rotate/skew). SVG applies lists right-to-left.
     // - matrix(a 0 0 d e f) (no rotation/shear)
-    // Reject multi-part transforms.
     if (typeof transform !== 'string') return { ok: true, sx: 1, sy: 1, tx: 0, ty: 0 };
     const t = transform.trim();
     if (t.length === 0) return { ok: true, sx: 1, sy: 1, tx: 0, ty: 0 };
 
-    const hasMultiple = /\)\s+\w+\s*\(/.test(t);
-    if (hasMultiple) return { ok: false };
-
-    const translateMatch = t.match(/^translate\(\s*([+-]?(?:\d+\.?\d*|\.\d+)(?:e[+-]?\d+)?)\s*(?:[,\s]+\s*([+-]?(?:\d+\.?\d*|\.\d+)(?:e[+-]?\d+)?))?\s*\)$/i);
-    if (translateMatch) {
-        const tx = toNumber(translateMatch[1]) ?? 0;
-        const ty = toNumber(translateMatch[2]) ?? 0;
-        return { ok: true, sx: 1, sy: 1, tx, ty };
-    }
-
-    const scaleMatch = t.match(/^scale\(\s*([+-]?(?:\d+\.?\d*|\.\d+)(?:e[+-]?\d+)?)\s*(?:[,\s]+\s*([+-]?(?:\d+\.?\d*|\.\d+)(?:e[+-]?\d+)?))?\s*\)$/i);
-    if (scaleMatch) {
-        const sx = toNumber(scaleMatch[1]);
-        const sy = toNumber(scaleMatch[2]);
-        if (sx === null) return { ok: false };
-        return { ok: true, sx, sy: sy === null ? sx : sy, tx: 0, ty: 0 };
+    function composeAxisAligned(a, b) {
+        // Return a ∘ b (apply b first, then a):
+        // p' = a(b(p))
+        const sx = b.sx * a.sx;
+        const sy = b.sy * a.sy;
+        const tx = b.tx * a.sx + a.tx;
+        const ty = b.ty * a.sy + a.ty;
+        return { sx, sy, tx, ty };
     }
 
     const matrixMatch = t.match(/^matrix\(\s*([+-]?(?:\d+\.?\d*|\.\d+)(?:e[+-]?\d+)?)\s*(?:[,\s]+)\s*([+-]?(?:\d+\.?\d*|\.\d+)(?:e[+-]?\d+)?)\s*(?:[,\s]+)\s*([+-]?(?:\d+\.?\d*|\.\d+)(?:e[+-]?\d+)?)\s*(?:[,\s]+)\s*([+-]?(?:\d+\.?\d*|\.\d+)(?:e[+-]?\d+)?)\s*(?:[,\s]+)\s*([+-]?(?:\d+\.?\d*|\.\d+)(?:e[+-]?\d+)?)\s*(?:[,\s]+)\s*([+-]?(?:\d+\.?\d*|\.\d+)(?:e[+-]?\d+)?)\s*\)$/i);
@@ -1077,6 +1068,54 @@ function parseScaleTranslateOnlyTransform(transform) {
         }
         return { ok: false };
     }
+
+    // Parse a function list like "translate(...) scale(...)".
+    const fnRe = /([a-zA-Z]+)\s*\(([^)]*)\)/g;
+    const matches = [];
+    for (const m of t.matchAll(fnRe)) {
+        matches.push({ name: m[1].toLowerCase(), args: m[2] });
+    }
+    if (matches.length === 0) return { ok: false };
+
+    const leftover = t.replace(fnRe, '').replace(/[\s,]/g, '');
+    if (leftover.length !== 0) return { ok: false };
+
+    const parts = [];
+    for (const m of matches) {
+        const rawParts = String(m.args)
+            .trim()
+            .replace(/,/g, ' ')
+            .split(/\s+/)
+            .filter(Boolean);
+
+        if (m.name === 'translate') {
+            if (rawParts.length < 1 || rawParts.length > 2) return { ok: false };
+            const tx = toNumber(rawParts[0]);
+            const ty = rawParts.length === 2 ? toNumber(rawParts[1]) : 0;
+            if (tx === null || ty === null) return { ok: false };
+            parts.push({ sx: 1, sy: 1, tx, ty });
+        } else if (m.name === 'scale') {
+            if (rawParts.length < 1 || rawParts.length > 2) return { ok: false };
+            const sx = toNumber(rawParts[0]);
+            const sy = rawParts.length === 2 ? toNumber(rawParts[1]) : sx;
+            if (sx === null || sy === null) return { ok: false };
+            if (sx <= 0 || sy <= 0) return { ok: false };
+            parts.push({ sx, sy, tx: 0, ty: 0 });
+        } else {
+            return { ok: false };
+        }
+    }
+
+    // SVG applies transform lists right-to-left.
+    let combined = { sx: 1, sy: 1, tx: 0, ty: 0 };
+    for (let i = parts.length - 1; i >= 0; i--) {
+        combined = composeAxisAligned(parts[i], combined);
+    }
+
+    if (!Number.isFinite(combined.sx) || !Number.isFinite(combined.sy) || !Number.isFinite(combined.tx) || !Number.isFinite(combined.ty)) {
+        return { ok: false };
+    }
+    return { ok: true, ...combined };
 
     return { ok: false };
 }

@@ -132,6 +132,40 @@ describe('EditableSvgImporter.importEditableShapesFromSanitizedSvg', () => {
                 expect(res.ok).toBe(true);
     });
 
+    it('supports multi-part translate/scale transforms and respects SVG right-to-left ordering', () => {
+        const svg = `
+            <svg xmlns="http://www.w3.org/2000/svg">
+                <g transform="translate(10 0) scale(2)">
+                    <rect x="0" y="0" width="10" height="10" fill="#f00" />
+                </g>
+                <g transform="scale(2) translate(10 0)">
+                    <rect x="0" y="0" width="10" height="10" fill="#0f0" />
+                </g>
+            </svg>
+        `;
+
+        const res = importEditableShapesFromSanitizedSvg(svg, { centerX: 0, centerY: 0, idSeed: 't' });
+        expect(res.ok).toBe(true);
+        if (!res.ok) return;
+
+        expect(res.elements).toHaveLength(2);
+
+        const a = res.elements[0];
+        const b = res.elements[1];
+
+        expect(a.shapeKind).toBe('rectangle');
+        expect(b.shapeKind).toBe('rectangle');
+
+        expect(a.width).toBeCloseTo(20, 6);
+        expect(a.height).toBeCloseTo(20, 6);
+        expect(b.width).toBeCloseTo(20, 6);
+        expect(b.height).toBeCloseTo(20, 6);
+
+        // SVG applies transform lists right-to-left, so translate(10) scale(2) != scale(2) translate(10).
+        // The two imported rects should end up separated on x.
+        expect(Math.abs(b.x - a.x)).toBeCloseTo(10, 6);
+    });
+
         it('warns and degrades when fill/stroke are url(#...) paints', () => {
                 const svg = `
                     <svg xmlns="http://www.w3.org/2000/svg">
