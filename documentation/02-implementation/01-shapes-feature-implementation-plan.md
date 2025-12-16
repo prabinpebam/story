@@ -96,11 +96,11 @@ To keep progress visible and avoid deep wandering:
 
 Update this section at least weekly so everyone sees the “north star”.
 
-- Current milestone gate: M2 — Rendering Contract + Style/Paint Parity
-- Next milestone gate: M3 — Selection + Hit Testing
-- Active tracks (max 2): M2 rendering contract; Phase 10 interop hardening
+- Current milestone gate: M3 — Selection + Hit Testing
+- Next milestone gate: M4 — Editing UX (Object + Vector)
+- Active tracks (max 2): M3 selection/hit testing; Phase 10 interop hardening
 - Blockers / open decisions: TBD
-- Last shipped (commit 79378ea): M1 non-UI contracts (schema + transforms + coordinate spaces + numerics) and M2 nested parent-rotation render parity (Vitest + Playwright regression).
+- Last shipped (commit db225f9): M2 viewport/mode parity regression (edit vs presentation) + presentation non-fullscreen fallback (Playwright).
 
 ---
 
@@ -112,7 +112,7 @@ This status snapshot reflects what is implemented in the repo today (not “plan
 - Phase 0 (Tooling/Test harness): **PARTIAL** — Playwright + Vitest are in place and we have functional clipboard-paste coverage; initial Shapes corpus scaffolding + deterministic hashing is now present, but broader corpus coverage is still sparse.
 - Phase 1–9 (Foundations → UX): **NOT TRACKED IN THIS PLAN FILE YET** — this document still needs a pass to mark what already exists in Story vs what remains for the new Shapes system.
 - Milestone M1 (Authoritative Model + Transforms): **DONE** — canonical shape schema/migration/validation + transforms + coordinate spaces are implemented and covered by Vitest.
-- Milestone M2 (Rendering Contract): **IN PROGRESS** — first renderer parity increment shipped (nested parent rotation world positioning) with Vitest + Playwright regression coverage.
+- Milestone M2 (Rendering Contract): **DONE** — renderer parity increments shipped (nested parent rotation + viewport/mode parity) with Playwright regressions; presentation now degrades gracefully when fullscreen is blocked.
 - Phase 10 (Interop: Figma paste → editable elements): **IN PROGRESS** — editable SVG paste pipeline implemented for a conservative subset, behind a feature flag, with unit + Playwright coverage.
 - Phase 11–12 (Perf/A11y/extensibility): **NOT STARTED (for Shapes program)**
 
@@ -451,7 +451,7 @@ Status values (use these exact words to keep search/filters simple):
 | `00-topic-tree-and-spec-map.md` | NOT REVIEWED | NOT STARTED | NONE | NONE |  |
 | `01-system-architecture.md` | NOT REVIEWED | NOT STARTED | NONE | NONE |  |
 | `02-data-model-and-serialization.md` | NOT REVIEWED | DONE | VITEST | NONE | Canonical v1 schema + migration + validation: `src/core/shapes/ShapeSchema.js`; tests: `tests/unit/shapes/ShapeSchema.test.js`. Existing migration hooks remain: `src/core/shapes/ShapeMigration.js`, `src/core/shapes/ShapeElementAdapter.js`. |
-| `03-coordinate-systems.md` | NOT REVIEWED | DONE | VITEST | NONE | Mode-aware container selection + world/screen mapping contract: `src/core/shapes/CoordinateSpaces.js`; tests: `tests/unit/shapes/CoordinateSpaces.test.js`. (Runtime alignment with `CanvasManager`/`PresentationManager` still TBD.) |
+| `03-coordinate-systems.md` | NOT REVIEWED | DONE | VITEST+PLAYWRIGHT | NONE | Mode-aware container selection + world/screen mapping contract: `src/core/shapes/CoordinateSpaces.js`; unit tests: `tests/unit/shapes/CoordinateSpaces.test.js`. Presentation mapping verified end-to-end via `src/core/PresentationManager.js` + Playwright: `tests/e2e/specs/functional/m2-rendering-mode-viewport-parity.spec.ts`. |
 | `04-precision-and-numerics.md` | NOT REVIEWED | IN PROGRESS | VITEST | NONE | Central epsilon + numeric helpers: `src/core/shapes/Epsilon.js`; tests: `tests/unit/shapes/Epsilon.test.js`. |
 | `05-scene-graph-and-node-types.md` | NOT REVIEWED | IN PROGRESS | VITEST+PLAYWRIGHT | NONE | Parent-chain world transforms for DOM rendering: `src/core/shapes/SceneGraphTransforms.js`, renderer integration: `src/core/renderer/elements/VisualElement.js`, `src/core/renderer/elements/ShapeElement.js`; tests: `tests/unit/shapes/SceneGraphTransforms.test.js`, `tests/e2e/specs/functional/nested-parent-rotation-render.spec.ts`. |
 | `06-transform-system.md` | NOT REVIEWED | DONE | VITEST | NONE | Affine transform utilities + element box transforms: `src/core/shapes/Transform2D.js`; tests: `tests/unit/shapes/Transform2D.test.js`. (Runtime alignment with `GeometryUtils` still TBD.) |
@@ -464,11 +464,11 @@ Status values (use these exact words to keep search/filters simple):
 | `11-undo-redo-and-operations.md` | NOT REVIEWED | IN PROGRESS | NONE | NONE | Snapshot undo/redo exists: `src/core/HistoryManager.js` (Shapes op semantics spec parity TBD). |
 | `12-hit-testing.md` | NOT REVIEWED | IN PROGRESS | NONE | NONE | Element + handle hit-testing exists: `src/core/canvas/HitTesting.js`, `src/core/CanvasManager.js` (Shapes-specific hit rules TBD). |
 | `13-boolean-geometry-system.md` | NOT REVIEWED | NOT STARTED | NONE | NONE |  |
-| `14-style-and-paint-integration.md` | NOT REVIEWED | IN PROGRESS | NONE | NONE | Paint stack present (fills/strokes/effects): `src/core/renderer/elements/ShapeElement.js`, UI panels: `src/ui/properties/FillSection.js`, `src/ui/properties/StrokeSection.js`, `src/ui/properties/EffectsSection.js` (spec parity TBD). |
+| `14-style-and-paint-integration.md` | NOT REVIEWED | IN PROGRESS | PLAYWRIGHT | NONE | Paint stack present (fills/strokes/effects): `src/core/renderer/elements/ShapeElement.js`, UI panels: `src/ui/properties/FillSection.js`, `src/ui/properties/StrokeSection.js`, `src/ui/properties/EffectsSection.js`. Regression coverage: `tests/e2e/specs/functional/m2-rendering-mode-viewport-parity.spec.ts` asserts fill/stroke/effects DOM output in edit mode. |
 | `15-masking-and-clipping.md` | NOT REVIEWED | NOT STARTED | NONE | NONE |  |
 | `15-current-implementation-alignment.md` | NOT REVIEWED | NOT STARTED | NONE | NONE |  |
 | `16-design-system-alignment.md` | NOT REVIEWED | NOT STARTED | NONE | NONE |  |
-| `16-rendering-architecture.md` | NOT REVIEWED | IN PROGRESS | NONE | NONE | Renderer exists with shape-specific element renderer: `src/core/renderer/elements/ShapeElement.js`, `src/core/renderer/` (Shapes architecture spec parity TBD). |
+| `16-rendering-architecture.md` | NOT REVIEWED | IN PROGRESS | PLAYWRIGHT | NONE | Renderer exists with shape-specific element renderer: `src/core/renderer/elements/ShapeElement.js`, `src/core/renderer/`. Regressions: nested transform parity (`tests/e2e/specs/functional/nested-parent-rotation-render.spec.ts`) and mode/viewport parity (`tests/e2e/specs/functional/m2-rendering-mode-viewport-parity.spec.ts`). |
 | `16a-tessellation-and-aa.md` | NOT REVIEWED | NOT STARTED | NONE | NONE |  |
 | `17-caching-and-performance.md` | NOT REVIEWED | NOT STARTED | NONE | NONE |  |
 | `18-operation-model-collaboration-readiness.md` | NOT REVIEWED | IN PROGRESS | NONE | NONE | Operation + inverse ops plumbing exists: `src/core/collaboration/sync/StateSyncEngine.js` (Shapes op model alignment TBD). |
@@ -480,7 +480,7 @@ Status values (use these exact words to keep search/filters simple):
 | `22-selection-and-focus-ux.md` | NOT REVIEWED | IN PROGRESS | NONE | NONE | Selection + inspector wiring exists: `src/core/CanvasManager.js`, `src/ui/PropertyInspector.js` (Shapes UX spec parity TBD). |
 | `23-snapping-and-guides-shapes.md` | NOT REVIEWED | IN PROGRESS | NONE | NONE | Snapping system exists: `src/core/canvas/SnappingSystem.js`, `src/core/CanvasManager.js` (Shapes delta TBD). |
 | `25-product-level-requirements.md` | NOT REVIEWED | NOT STARTED | NONE | NONE |  |
-| `26-canvas-and-viewport-shapes.md` | NOT REVIEWED | IN PROGRESS | NONE | NONE | Canvas/viewport orchestration exists: `src/core/CanvasManager.js` (Shapes delta TBD). |
+| `26-canvas-and-viewport-shapes.md` | NOT REVIEWED | IN PROGRESS | PLAYWRIGHT | NONE | Canvas/viewport orchestration exists: `src/core/CanvasManager.js`, presentation scaling: `src/core/PresentationManager.js`. Regression: `tests/e2e/specs/functional/m2-rendering-mode-viewport-parity.spec.ts` (edit vs presentation viewport behavior). |
 | `27-object-editing-ux.md` | NOT REVIEWED | NOT STARTED | NONE | NONE |  |
 | `28-vector-editing-ux.md` | NOT REVIEWED | NOT STARTED | NONE | NONE |  |
 | `29-continuity-curve-ux.md` | NOT REVIEWED | NOT STARTED | NONE | NONE |  |
