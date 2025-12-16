@@ -41,6 +41,9 @@ This status snapshot reflects what is implemented in the repo today (not “plan
   - [x] `objectBoundingBox`
   - [x] `userSpaceOnUse` when explicit coords exist
   - [x] Deterministic warning + directional import for axis-aligned `gradientTransform` (applies to direction only; warns)
+- [x] Radial gradient import (`radialGradient`) for fills + strokes (conservative subset)
+  - [x] `objectBoundingBox` with explicit/parseable `cx/cy/r`
+  - [x] Deterministic fallback for unsupported features (e.g. rotate `gradientTransform`, non-centered focal points)
 - [x] `fill-rule` preserved (`evenodd`/`nonzero`) for vectors
 - [x] Stroke-aware bounds for line/vector/path (bbox expands by half stroke width)
 - [x] SVG root `viewBox` baked as scale+translate (scale/translate only; still conservative)
@@ -50,7 +53,7 @@ This status snapshot reflects what is implemented in the repo today (not “plan
 
 ### Phase 10 — Not Implemented Yet (Known Gaps)
 - [x] Corpus fixtures: `tests/corpus/shapes/figma-paste/` (directory + canonical hash + warnings)
-- [ ] Broader SVG paint support (e.g. radial gradients, patterns)
+- [ ] Broader SVG paint support (e.g. patterns)
 - [ ] Broader transform support beyond axis-aligned scale/translate (e.g. rotate/skew; general matrices)
 - [ ] Clip-path/masking import for pasted SVG (if required by spec)
 

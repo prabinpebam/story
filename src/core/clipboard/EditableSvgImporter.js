@@ -267,6 +267,164 @@ function resolveLinearGradientCss(doc, gradientId, options) {
     return { ok: true, css: `linear-gradient(${deg}deg, ${stopsStr})`, warnings };
 }
 
+function resolveRadialGradientCss(doc, gradientId, options) {
+    const grad = doc?.getElementById?.(gradientId);
+    if (!grad) return { ok: false, reason: 'MISSING_GRADIENT' };
+    if (String(grad.nodeName).toLowerCase() !== 'radialgradient') {
+        return { ok: false, reason: 'UNSUPPORTED_GRADIENT_TYPE' };
+    }
+
+    const units = grad.getAttribute('gradientUnits');
+    const unitsTrimmed = typeof units === 'string' ? units.trim() : '';
+
+    const gradientTransform = grad.getAttribute('gradientTransform');
+    let gradientAxisTransform = { sx: 1, sy: 1, tx: 0, ty: 0 };
+    if (typeof gradientTransform === 'string' && gradientTransform.trim().length > 0) {
+        const parsed = parseScaleTranslateOnlyTransform(gradientTransform);
+        if (!parsed.ok) {
+            return { ok: false, reason: 'GRADIENT_TRANSFORM_UNSUPPORTED' };
+        }
+        gradientAxisTransform = { sx: parsed.sx, sy: parsed.sy, tx: parsed.tx, ty: parsed.ty };
+    }
+
+    let cx;
+    let cy;
+    let rx;
+    let ry;
+
+    if (!unitsTrimmed || unitsTrimmed === 'objectBoundingBox') {
+        const cx0 = parseObjectBoundingBoxCoord(grad.getAttribute('cx'), 0.5);
+        const cy0 = parseObjectBoundingBoxCoord(grad.getAttribute('cy'), 0.5);
+        const r0 = parseObjectBoundingBoxCoord(grad.getAttribute('r'), 0.5);
+        if (cx0 === null || cy0 === null || r0 === null) {
+            return { ok: false, reason: 'GRADIENT_COORDS_UNSUPPORTED' };
+        }
+
+        const fxAttr = grad.getAttribute('fx');
+        const fyAttr = grad.getAttribute('fy');
+        const fx0 = fxAttr == null ? cx0 : parseObjectBoundingBoxCoord(fxAttr, cx0);
+        const fy0 = fyAttr == null ? cy0 : parseObjectBoundingBoxCoord(fyAttr, cy0);
+        if (fx0 === null || fy0 === null) {
+            return { ok: false, reason: 'GRADIENT_COORDS_UNSUPPORTED' };
+        }
+        // Conservative subset: only support centered focal point.
+        if (Math.abs(fx0 - cx0) > 1e-6 || Math.abs(fy0 - cy0) > 1e-6) {
+            return { ok: false, reason: 'GRADIENT_FOCAL_UNSUPPORTED' };
+        }
+
+        const cx1 = cx0 * gradientAxisTransform.sx + gradientAxisTransform.tx;
+        const cy1 = cy0 * gradientAxisTransform.sy + gradientAxisTransform.ty;
+
+        const rx1 = r0 * Math.abs(gradientAxisTransform.sx);
+        const ry1 = r0 * Math.abs(gradientAxisTransform.sy);
+        if (!Number.isFinite(rx1) || !Number.isFinite(ry1) || rx1 <= 0 || ry1 <= 0) {
+            return { ok: false, reason: 'GRADIENT_COORDS_UNSUPPORTED' };
+        }
+
+        cx = cx1;
+        cy = cy1;
+        rx = rx1;
+        ry = ry1;
+    } else if (unitsTrimmed === 'userSpaceOnUse') {
+        const bbox = options?.elementBBox;
+        const userSpaceTransform = options?.userSpaceTransform;
+        const sx = Number.isFinite(userSpaceTransform?.sx) ? userSpaceTransform.sx : 1;
+        const sy = Number.isFinite(userSpaceTransform?.sy) ? userSpaceTransform.sy : 1;
+        const tx = Number.isFinite(userSpaceTransform?.tx) ? userSpaceTransform.tx : 0;
+        const ty = Number.isFinite(userSpaceTransform?.ty) ? userSpaceTransform.ty : 0;
+        if (!bbox || !Number.isFinite(bbox.x) || !Number.isFinite(bbox.y) || !Number.isFinite(bbox.width) || !Number.isFinite(bbox.height) || bbox.width <= 0 || bbox.height <= 0) {
+            return { ok: false, reason: 'MISSING_ELEMENT_BBOX' };
+        }
+
+        const ucx = parseUserSpaceCoord(grad.getAttribute('cx'));
+        const ucy = parseUserSpaceCoord(grad.getAttribute('cy'));
+        const ur = parseUserSpaceCoord(grad.getAttribute('r'));
+        // Conservative: require explicit coords for userSpaceOnUse.
+        if (ucx === null || ucy === null || ur === null) {
+            return { ok: false, reason: 'GRADIENT_COORDS_UNSUPPORTED' };
+        }
+
+        const fxAttr = grad.getAttribute('fx');
+        const fyAttr = grad.getAttribute('fy');
+        const ufx = fxAttr == null ? ucx : parseUserSpaceCoord(fxAttr);
+        const ufy = fyAttr == null ? ucy : parseUserSpaceCoord(fyAttr);
+        if (ufx === null || ufy === null) {
+            return { ok: false, reason: 'GRADIENT_COORDS_UNSUPPORTED' };
+        }
+        if (Math.abs(ufx - ucx) > 1e-6 || Math.abs(ufy - ucy) > 1e-6) {
+            return { ok: false, reason: 'GRADIENT_FOCAL_UNSUPPORTED' };
+        }
+
+        // Apply gradientTransform in user space before applying root user-space bake.
+        const gcx = ucx * gradientAxisTransform.sx + gradientAxisTransform.tx;
+        const gcy = ucy * gradientAxisTransform.sy + gradientAxisTransform.ty;
+        const grx = ur * Math.abs(gradientAxisTransform.sx);
+        const gry = ur * Math.abs(gradientAxisTransform.sy);
+        if (!Number.isFinite(grx) || !Number.isFinite(gry) || grx <= 0 || gry <= 0) {
+            return { ok: false, reason: 'GRADIENT_COORDS_UNSUPPORTED' };
+        }
+
+        // Apply the same root transform bake as geometry.
+        const tcx = gcx * sx + tx;
+        const tcy = gcy * sy + ty;
+        const trx = grx * Math.abs(sx);
+        const tryy = gry * Math.abs(sy);
+
+        cx = (tcx - bbox.x) / bbox.width;
+        cy = (tcy - bbox.y) / bbox.height;
+        rx = trx / bbox.width;
+        ry = tryy / bbox.height;
+    } else {
+        return { ok: false, reason: 'GRADIENT_UNITS_UNSUPPORTED' };
+    }
+
+    const stops = [];
+    const stopEls = Array.from(grad.children || []).filter(c => String(c.nodeName).toLowerCase() === 'stop');
+    for (const stopEl of stopEls) {
+        const offset = parseStopOffset(stopEl.getAttribute('offset'));
+        const stopColorRaw = stopEl.getAttribute('stop-color') ?? parseStyleAttribute(stopEl.getAttribute('style'))['stop-color'];
+        const stopOpacityRaw = stopEl.getAttribute('stop-opacity') ?? parseStyleAttribute(stopEl.getAttribute('style'))['stop-opacity'];
+
+        const parsed = parseColorToHexAndAlpha(stopColorRaw ?? '');
+        if (!parsed || parsed.none) continue;
+        const baseAlpha = parsed.alpha ?? 1;
+        const stopOpacity = clamp01(toNumber(stopOpacityRaw) ?? 1);
+        const alpha = clamp01(baseAlpha * stopOpacity);
+
+        const cssColor = alpha < 1 ? (rgbaString(parsed.hex, alpha) ?? parsed.hex) : parsed.hex;
+        stops.push({ offset, cssColor });
+    }
+
+    if (stops.length === 0) {
+        return { ok: false, reason: 'NO_STOPS' };
+    }
+
+    const sorted = [...stops].sort((a, b) => a.offset - b.offset);
+    const stopsStr = sorted.map(s => `${s.cssColor} ${s.offset}%`).join(', ');
+
+    const cxPct = cx * 100;
+    const cyPct = cy * 100;
+    const rxPct = rx * 100;
+    const ryPct = ry * 100;
+    if (![cxPct, cyPct, rxPct, ryPct].every(Number.isFinite)) {
+        return { ok: false, reason: 'GRADIENT_COORDS_UNSUPPORTED' };
+    }
+
+    return {
+        ok: true,
+        css: `radial-gradient(ellipse ${rxPct}% ${ryPct}% at ${cxPct}% ${cyPct}%, ${stopsStr})`
+    };
+}
+
+function resolveUrlPaintCss(doc, paintId, options) {
+    const el = doc?.getElementById?.(paintId);
+    if (!el) return { ok: false, reason: 'MISSING_PAINT' };
+    const tag = String(el.nodeName).toLowerCase();
+    if (tag === 'lineargradient') return resolveLinearGradientCss(doc, paintId, options);
+    if (tag === 'radialgradient') return resolveRadialGradientCss(doc, paintId, options);
+    return { ok: false, reason: 'UNSUPPORTED_PAINT_TYPE' };
+}
+
 function getPrimitiveLocalBBox(node) {
     const tag = String(node?.nodeName || '').toLowerCase();
     if (tag === 'rect') {
@@ -1256,7 +1414,7 @@ export function importEditableShapesFromSanitizedSvg(sanitizedSvg, options) {
             if (gradId) {
                 const primitiveBBox = getPrimitiveLocalBBox(node);
                 const bbox = bboxOverride ?? transformBBox(primitiveBBox, userSpaceTransform);
-                const resolved = resolveLinearGradientCss(doc, gradId, { elementBBox: bbox, userSpaceTransform });
+                const resolved = resolveUrlPaintCss(doc, gradId, { elementBBox: bbox, userSpaceTransform });
                 if (resolved.ok) {
                     fillGradientCss = resolved.css;
                     if (Array.isArray(resolved.warnings)) warnings.push(...resolved.warnings);
@@ -1275,7 +1433,7 @@ export function importEditableShapesFromSanitizedSvg(sanitizedSvg, options) {
             if (gradId) {
                 const primitiveBBox = getPrimitiveLocalBBox(node);
                 const bbox = bboxOverride ?? transformBBox(primitiveBBox, userSpaceTransform);
-                const resolved = resolveLinearGradientCss(doc, gradId, { elementBBox: bbox, userSpaceTransform });
+                const resolved = resolveUrlPaintCss(doc, gradId, { elementBBox: bbox, userSpaceTransform });
                 if (resolved.ok) {
                     strokeGradientCss = resolved.css;
                     if (Array.isArray(resolved.warnings)) warnings.push(...resolved.warnings);

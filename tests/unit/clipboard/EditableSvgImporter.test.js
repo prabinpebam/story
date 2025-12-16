@@ -188,11 +188,14 @@ describe('EditableSvgImporter.importEditableShapesFromSanitizedSvg', () => {
         expect(el.height).toBeCloseTo(40, 6);
     });
 
-        it('warns and degrades when fill/stroke are url(#...) paints', () => {
+        it('warns and degrades when url(#...) paints are unsupported (e.g. radialGradient with rotate transform)', () => {
                 const svg = `
                     <svg xmlns="http://www.w3.org/2000/svg">
                         <defs>
-                            <radialGradient id="g"><stop offset="0" stop-color="#ff0000"/></radialGradient>
+                            <radialGradient id="g" gradientTransform="rotate(45)">
+                                <stop offset="0" stop-color="#ff0000"/>
+                                <stop offset="100%" stop-color="#0000ff"/>
+                            </radialGradient>
                         </defs>
                         <rect x="0" y="0" width="10" height="10" fill="url(#g)" stroke="url(#g)" />
                     </svg>
@@ -208,6 +211,33 @@ describe('EditableSvgImporter.importEditableShapesFromSanitizedSvg', () => {
                 // We can't import gradients yet; ensure result is still visible (fallback fill).
                 expect(el.style?.fills?.length).toBeGreaterThan(0);
                 expect(el.style.fills[0]).toMatchObject({ type: 'solid', value: '#808080', opacity: 100 });
+        });
+
+        it('imports objectBoundingBox radialGradient fill as a gradient fill (no warning)', () => {
+                const svg = `
+                    <svg xmlns="http://www.w3.org/2000/svg">
+                        <defs>
+                            <radialGradient id="g" cx="50%" cy="50%" r="50%">
+                                <stop offset="0%" stop-color="#ff0000" stop-opacity="1" />
+                                <stop offset="100%" stop-color="#0000ff" stop-opacity="1" />
+                            </radialGradient>
+                        </defs>
+                        <rect x="0" y="0" width="10" height="10" fill="url(#g)" />
+                    </svg>
+                `;
+
+                const res = importEditableShapesFromSanitizedSvg(svg, { centerX: 0, centerY: 0, idSeed: 't' });
+                expect(res.ok).toBe(true);
+                if (!res.ok) return;
+
+                expect(res.warnings).not.toContain('WARN_GRADIENT_PAINT_UNSUPPORTED');
+
+                const el = res.elements[0];
+                expect(el.style?.fills?.[0]?.type).toBe('gradient');
+                expect(typeof el.style?.fills?.[0]?.value).toBe('string');
+                expect(el.style.fills[0].value).toMatch(/radial-gradient\(/i);
+                expect(el.style.fills[0].value).toMatch(/#ff0000/i);
+                expect(el.style.fills[0].value).toMatch(/#0000ff/i);
         });
 
         it('imports objectBoundingBox linearGradient fill as a gradient fill (no warning)', () => {
