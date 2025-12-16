@@ -936,6 +936,38 @@ describe('EditableSvgImporter.importEditableShapesFromSanitizedSvg', () => {
                 expect(f0?.tileOffsetY).toBe(20);
         });
 
+        it('imports objectBoundingBox <pattern> with axis-aligned patternTransform (translate) by adjusting phase', () => {
+                const svg = `
+                    <svg xmlns="http://www.w3.org/2000/svg">
+                        <defs>
+                            <pattern id="p" patternUnits="objectBoundingBox" patternContentUnits="objectBoundingBox" x="0.25" y="0.2" width="0.25" height="0.5" patternTransform="translate(0.1 0.05)">
+                                <rect x="0" y="0" width="1" height="1" fill="#ff0000" />
+                            </pattern>
+                        </defs>
+                        <rect x="0" y="0" width="200" height="100" fill="url(#p)" />
+                    </svg>
+                `;
+
+                const res = importEditableShapesFromSanitizedSvg(svg, { centerX: 0, centerY: 0, idSeed: 't' });
+                expect(res.ok).toBe(true);
+                if (!res.ok) return;
+
+                expect(res.warnings).not.toContain('WARN_GRADIENT_PAINT_UNSUPPORTED');
+
+                const f0 = res.elements[0]?.style?.fills?.[0];
+                expect(f0?.type).toBe('image');
+                expect(f0?.repeat).toBe('repeat');
+
+                // Tile size = fractions of bbox (200x100)
+                expect(f0?.tileWidth).toBe(50);
+                expect(f0?.tileHeight).toBe(50);
+
+                // Phase = x/y fractions with translate(0.1,0.05) applied.
+                // x=0.25->0.35 => 70px, y=0.2->0.25 => 25px.
+                expect(f0?.tileOffsetX).toBe(70);
+                expect(f0?.tileOffsetY).toBe(25);
+        });
+
         it('imports objectBoundingBox <pattern> with patternContentUnits="userSpaceOnUse" (conservative subset) by normalizing user-space content into a 0..1 tile', () => {
                 const svg = `
                     <svg xmlns="http://www.w3.org/2000/svg" width="220" height="120">

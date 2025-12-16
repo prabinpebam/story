@@ -561,14 +561,18 @@ function resolvePatternPaintFill(doc, patternId, options) {
     const patternTransform = inheritedPatternAttr(chain, 'patternTransform');
     let patternAxisTransform = { sx: 1, sy: 1, tx: 0, ty: 0 };
     if (typeof patternTransform === 'string' && patternTransform.trim().length > 0) {
-        if (unitsEffective === 'objectBoundingBox') {
-            // Conservative: skip objectBoundingBox + patternTransform for now.
-            return { ok: false, reason: 'PATTERN_TRANSFORM_UNSUPPORTED' };
-        }
         // Conservative: allow axis-aligned translate/scale/matrix only (no rotate/skew).
         const parsed = parseScaleTranslateOnlyTransform(patternTransform);
         if (!parsed.ok) {
             return { ok: false, reason: 'PATTERN_TRANSFORM_UNSUPPORTED' };
+        }
+
+        if (unitsEffective === 'objectBoundingBox') {
+            // Conservative: for objectBoundingBox, only support positive scales.
+            // Negative scales would mirror the pattern and require additional handling.
+            if (!(parsed.sx > 0 && parsed.sy > 0)) {
+                return { ok: false, reason: 'PATTERN_TRANSFORM_UNSUPPORTED' };
+            }
         }
         patternAxisTransform = { sx: parsed.sx, sy: parsed.sy, tx: parsed.tx, ty: parsed.ty };
     }
@@ -654,18 +658,28 @@ function resolvePatternPaintFill(doc, patternId, options) {
         if (xFrac === null || yFrac === null || wFrac === null || hFrac === null) {
             return { ok: false, reason: 'PATTERN_COORDS_UNSUPPORTED' };
         }
-        if (wFrac <= 0 || hFrac <= 0) {
+
+        // Apply axis-aligned patternTransform in objectBoundingBox space.
+        const xFracT = xFrac * patternAxisTransform.sx + patternAxisTransform.tx;
+        const yFracT = yFrac * patternAxisTransform.sy + patternAxisTransform.ty;
+        const wFracT = wFrac * patternAxisTransform.sx;
+        const hFracT = hFrac * patternAxisTransform.sy;
+        if (![xFracT, yFracT, wFracT, hFracT].every(Number.isFinite)) {
+            return { ok: false, reason: 'PATTERN_COORDS_UNSUPPORTED' };
+        }
+
+        if (wFracT <= 0 || hFracT <= 0) {
             return { ok: false, reason: 'PATTERN_SIZE_UNSUPPORTED' };
         }
 
-        tileWidth = bbox.width * wFrac;
-        tileHeight = bbox.height * hFrac;
+        tileWidth = bbox.width * wFracT;
+        tileHeight = bbox.height * hFracT;
         if (!Number.isFinite(tileWidth) || !Number.isFinite(tileHeight) || tileWidth <= 0 || tileHeight <= 0) {
             return { ok: false, reason: 'PATTERN_SIZE_UNSUPPORTED' };
         }
 
-        tileOffsetX = bbox.width * xFrac;
-        tileOffsetY = bbox.height * yFrac;
+        tileOffsetX = bbox.width * xFracT;
+        tileOffsetY = bbox.height * yFracT;
         if (!Number.isFinite(tileOffsetX) || !Number.isFinite(tileOffsetY)) {
             return { ok: false, reason: 'PATTERN_COORDS_UNSUPPORTED' };
         }
