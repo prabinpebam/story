@@ -1901,9 +1901,12 @@ export function importEditableShapesFromSanitizedSvg(sanitizedSvg, options) {
         if (!node) return;
         if (node.nodeType !== 1) return;
 
-        const local = readNodeTranslation(node);
+        let local = readNodeTranslation(node);
         if (!local.ok) {
-            throw new Error('TRANSFORM_UNSUPPORTED');
+            // Conservative: ignore unsupported transforms (rotate/skew/general matrix), but still import.
+            // This keeps the import deterministic and non-fatal.
+            warnings.push('WARN_TRANSFORM_UNSUPPORTED');
+            local = { ok: true, sx: 1, sy: 1, tx: 0, ty: 0 };
         }
 
         const nextAccumulated = {
@@ -2239,9 +2242,6 @@ export function importEditableShapesFromSanitizedSvg(sanitizedSvg, options) {
         const rootT = getSvgRootTransform(svg);
         walk(svg, rootT);
     } catch (e) {
-        if (e && e.message === 'TRANSFORM_UNSUPPORTED') {
-            return { ok: false, reason: 'TRANSFORM_UNSUPPORTED', warnings: ['WARN_TRANSFORM_BAKED'] };
-        }
         return { ok: false, reason: 'IMPORT_FAILED', warnings: [] };
     }
 

@@ -1102,11 +1102,15 @@ describe('EditableSvgImporter.importEditableShapesFromSanitizedSvg', () => {
                 expect(res.ok).toBe(true);
         });
 
-        it('rejects non-translation transforms (e.g. rotate)', () => {
-                const svg = '<svg xmlns="http://www.w3.org/2000/svg"><g transform="rotate(10)"><rect width="10" height="10" /></g></svg>';
-                const res = importEditableShapesFromSanitizedSvg(svg, { centerX: 0, centerY: 0, idSeed: 't' });
-                expect(res.ok).toBe(false);
-                expect(res).toMatchObject({ reason: 'TRANSFORM_UNSUPPORTED' });
+        it('warns and ignores unsupported transforms (e.g. rotate) but still imports shapes', () => {
+            const svg = '<svg xmlns="http://www.w3.org/2000/svg"><g transform="rotate(10)"><rect width="10" height="10" fill="#ff0000" /></g></svg>';
+            const res = importEditableShapesFromSanitizedSvg(svg, { centerX: 0, centerY: 0, idSeed: 't' });
+            expect(res.ok).toBe(true);
+            if (!res.ok) return;
+
+            expect(res.warnings).toContain('WARN_TRANSFORM_UNSUPPORTED');
+            expect(res.elements).toHaveLength(1);
+            expect(res.elements[0]?.style?.fills?.[0]).toMatchObject({ type: 'solid', value: '#ff0000', opacity: 100 });
         });
 
         it('imports <line> as shapeKind:line with normalized local endpoints', () => {

@@ -37,6 +37,7 @@ This status snapshot reflects what is implemented in the repo today (not “plan
   - [x] `translate(...)`, `scale(...)`
   - [x] Multi-part `translate/scale` lists (SVG right-to-left ordering)
   - [x] `matrix(a 0 0 d e f)` only (scale + translate; no rotate/shear)
+  - [x] Unsupported transforms (rotate/skew/general matrices) are ignored (import continues; deterministic warning)
 - [x] Linear gradient import (`linearGradient`) for fills + strokes
   - [x] `objectBoundingBox`
   - [x] `userSpaceOnUse` when explicit coords exist
@@ -71,6 +72,7 @@ This status snapshot reflects what is implemented in the repo today (not “plan
 - [x] Corpus fixtures: `tests/corpus/shapes/figma-paste/` (directory + canonical hash + warnings)
 - [ ] Broader SVG paint support (beyond the conservative pattern subset)
 - [ ] Broader transform support beyond axis-aligned scale/translate (e.g. rotate/skew; general matrices)
+- [ ] True rotate/skew/general matrix support (baked transforms); current behavior ignores and warns
 - [ ] True clip-path + masking rendering/import for pasted SVG (current behavior ignores and warns)
 
 ---
