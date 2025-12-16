@@ -1135,6 +1135,28 @@ describe('EditableSvgImporter.importEditableShapesFromSanitizedSvg', () => {
                 expect(b.x - a.x).toBeCloseTo(10, 6);
         });
 
+        it('salvages translation from a general matrix with shear/rotation terms (deterministic warning)', () => {
+                const svg = `
+                    <svg xmlns="http://www.w3.org/2000/svg">
+                        <rect x="0" y="0" width="10" height="10" fill="#00ff00" />
+                        <g transform="matrix(1 1 0 1 10 0)">
+                            <rect x="0" y="0" width="10" height="10" fill="#ff0000" />
+                        </g>
+                    </svg>
+                `;
+
+                const res = importEditableShapesFromSanitizedSvg(svg, { centerX: 0, centerY: 0, idSeed: 't' });
+                expect(res.ok).toBe(true);
+                if (!res.ok) return;
+
+                expect(res.warnings).toContain('WARN_TRANSFORM_UNSUPPORTED');
+                expect(res.elements).toHaveLength(2);
+
+                const [a, b] = res.elements;
+                // Even though the matrix contains shear, we salvage the e/f translation (10,0).
+                expect(b.x - a.x).toBeCloseTo(10, 6);
+        });
+
         it('imports <line> as shapeKind:line with normalized local endpoints', () => {
                 const svg = `
                     <svg xmlns="http://www.w3.org/2000/svg">

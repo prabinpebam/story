@@ -1718,11 +1718,15 @@ function parseTransformSalvageAxisAligned(transform) {
                 continue;
             }
             if (b !== 0 || c !== 0) {
+                // Conservative: matrix includes rotation/shear. Salvage translation only.
                 hadUnsupported = true;
+                parts.push({ sx: 1, sy: 1, tx: e, ty: f });
                 continue;
             }
             if (a <= 0 || d <= 0) {
+                // Non-positive scale is not supported; still salvage translation.
                 hadUnsupported = true;
+                parts.push({ sx: 1, sy: 1, tx: e, ty: f });
                 continue;
             }
             parts.push({ sx: a, sy: d, tx: e, ty: f });

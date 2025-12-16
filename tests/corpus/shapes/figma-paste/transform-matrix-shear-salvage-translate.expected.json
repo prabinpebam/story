@@ -1,0 +1,6 @@
+{
+  "name": "transform-matrix-shear-salvage-translate",
+  "warnings": ["WARN_TRANSFORM_UNSUPPORTED"],
+  "elementsCount": 2,
+  "sha256": "10b6094e69643afc180c55addd9bd3cf7bfe1c513cc7cdafbbb75ae21a878e68"
+}

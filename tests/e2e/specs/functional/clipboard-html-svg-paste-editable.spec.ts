@@ -167,6 +167,57 @@ test.describe('Clipboard: paste SVG from text/html (editable shapes flag)', () =
     expect(xs[1] - xs[0]).toBeCloseTo(10, 2);
   });
 
+  test('pasting HTML containing an <svg> with general matrix shear salvages translation (deterministic)', async ({ page, getState }) => {
+    const before = await getState();
+    const slideId = before.editor.activeSlideId;
+    expect(slideId).toBeTruthy();
+
+    const beforeElements = before.slides[slideId]?.elements || {};
+    const beforeIds = new Set(Object.keys(beforeElements));
+
+    const svg = `
+      <svg xmlns="http://www.w3.org/2000/svg" width="40" height="20">
+        <rect x="0" y="0" width="10" height="10" fill="#00ff00" />
+        <g transform="matrix(1 1 0 1 10 0)">
+          <rect x="0" y="0" width="10" height="10" fill="#ff0000" />
+        </g>
+      </svg>
+    `;
+    const html = `<div data-from="test">${svg}</div>`;
+
+    await page.evaluate(async ({ html }) => {
+      const item = new ClipboardItem({
+        'text/html': new Blob([html], { type: 'text/html' })
+      });
+      await navigator.clipboard.write([item]);
+    }, { html });
+
+    await page.keyboard.down('Control');
+    await page.keyboard.press('v');
+    await page.keyboard.up('Control');
+
+    await expect.poll(async () => {
+      const after = await getState();
+      const count = Object.keys(after.slides[slideId]?.elements || {}).length;
+      return count;
+    }, { timeout: 4000 }).toBeGreaterThan(beforeIds.size);
+
+    const after = await getState();
+    const afterElements = after.slides[slideId]?.elements || {};
+
+    const newElements = Object.entries(afterElements)
+      .filter(([id]) => !beforeIds.has(id))
+      .map(([, el]: any) => el);
+
+    const newShapes = newElements.filter((el: any) => el && el.type === 'shape');
+    expect(newShapes.length).toBe(2);
+
+    const xs = newShapes.map((el: any) => el?.x).filter((x: any) => typeof x === 'number');
+    expect(xs.length).toBe(2);
+    xs.sort((a: number, b: number) => a - b);
+    expect(xs[1] - xs[0]).toBeCloseTo(10, 2);
+  });
+
   test('pasting HTML containing an <svg> with clip-path imports the shape (clip ignored; deterministic)', async ({ page, getState }) => {
     const before = await getState();
     const slideId = before.editor.activeSlideId;
