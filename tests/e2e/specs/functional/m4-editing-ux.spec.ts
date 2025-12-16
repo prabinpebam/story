@@ -301,4 +301,107 @@ test.describe('M4: Editing UX (object + vector) + undo coalescing', () => {
       return st.editor.deepEdit?.selection?.nodes || [];
     }).toEqual(['p0:s1', 'p0:start']);
   });
+
+  test('vector: box selection supports shift-add and ctrl-toggle', async ({ dispatchAction, getState, page }) => {
+    const current = await getState();
+    const baseSlide = Object.values(current.slides)[0] as any;
+
+    const slideId = 'slide-m4-vector-3';
+    const vId = 'shape-m4-vector-c';
+
+    const slide = {
+      ...baseSlide,
+      id: slideId,
+      name: 'M4 Vector Box Select Modifiers',
+      width: 300,
+      height: 200,
+      elements: [
+        {
+          id: vId,
+          type: 'vector',
+          x: 40,
+          y: 40,
+          width: 120,
+          height: 80,
+          rotation: 0,
+          paths: [
+            {
+              closed: false,
+              fillRule: 'nonzero',
+              start: { x: 10, y: 10 },
+              segments: [
+                { kind: 'line', to: { x: 110, y: 10 } },
+                { kind: 'line', to: { x: 110, y: 70 } }
+              ]
+            }
+          ],
+          style: {
+            fills: [{ type: 'solid', value: '#00FF00', opacity: 100, visible: true }],
+            strokes: [{ type: 'solid', value: '#000000', width: 2, opacity: 100, visible: true }]
+          }
+        }
+      ],
+      elementOrder: [vId]
+    };
+
+    await dispatchAction('LOAD_PRESENTATION', { slides: [slide] });
+    await page.waitForTimeout(150);
+    await dispatchAction('UPDATE_VIEWPORT', { pan: { x: 0, y: 0 }, zoom: 1 });
+    await dispatchAction('UPDATE_SELECTION', []);
+    await page.waitForTimeout(50);
+
+    const canvas = page.locator('#canvas-container');
+    await expect(canvas).toBeVisible();
+
+    // Enter vector edit mode.
+    await canvas.dblclick({ position: { x: 60, y: 60 } });
+    await expect.poll(async () => (await getState()).editor.deepEdit?.kind).toBe('vector');
+    await expect.poll(async () => (await getState()).editor.deepEdit?.elementId).toBe(vId);
+
+    const box = await canvas.boundingBox();
+    expect(box).toBeTruthy();
+
+    // 1) Base selection: box select start node only (world 50,50).
+    const startA = { x: (box as any).x + 46, y: (box as any).y + 46 };
+    const endA = { x: (box as any).x + 54, y: (box as any).y + 54 };
+    await page.mouse.move(startA.x, startA.y);
+    await page.mouse.down();
+    await page.mouse.move(endA.x, endA.y);
+    await page.mouse.up();
+
+    await expect.poll(async () => {
+      const st = await getState();
+      return st.editor.deepEdit?.selection?.nodes || [];
+    }).toEqual(['p0:start']);
+
+    // 2) Shift-add: box select s2 node (world 150,110) while holding Shift.
+    const startB = { x: (box as any).x + 146, y: (box as any).y + 106 };
+    const endB = { x: (box as any).x + 154, y: (box as any).y + 114 };
+    await page.keyboard.down('Shift');
+    await page.mouse.move(startB.x, startB.y);
+    await page.mouse.down();
+    await page.mouse.move(endB.x, endB.y);
+    await page.mouse.up();
+    await page.keyboard.up('Shift');
+
+    await expect.poll(async () => {
+      const st = await getState();
+      return st.editor.deepEdit?.selection?.nodes || [];
+    }).toEqual(['p0:s2', 'p0:start']);
+
+    // 3) Ctrl-toggle: toggle start node off.
+    const startC = { x: (box as any).x + 35, y: (box as any).y + 35 };
+    const endC = { x: (box as any).x + 65, y: (box as any).y + 65 };
+    await page.keyboard.down('Control');
+    await page.mouse.move(startC.x, startC.y);
+    await page.mouse.down();
+    await page.mouse.move(endC.x, endC.y);
+    await page.mouse.up();
+    await page.keyboard.up('Control');
+
+    await expect.poll(async () => {
+      const st = await getState();
+      return st.editor.deepEdit?.selection?.nodes || [];
+    }).toEqual(['p0:s2']);
+  });
 });
