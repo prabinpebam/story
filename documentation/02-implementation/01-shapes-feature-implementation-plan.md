@@ -46,9 +46,10 @@ This status snapshot reflects what is implemented in the repo today (not “plan
   - [x] Deterministic fallback for unsupported features (e.g. rotate `gradientTransform`, non-centered focal points)
 - [x] `<defs>` is treated as non-rendering (skipped during import traversal)
 - [x] Pattern paint import (`pattern`) for fills (conservative subset)
-  - [x] `patternUnits="userSpaceOnUse"` + parseable `width/height` + no `patternTransform`
+  - [x] `patternUnits="userSpaceOnUse"` + parseable `width/height`
   - [x] Supports `x/y` offsets; imports phase via `tileOffsetX/tileOffsetY`
   - [x] Axis-aligned `patternTransform` (translate/scale/matrix; no rotate/skew)
+  - [x] `patternUnits="objectBoundingBox"` when `patternContentUnits="objectBoundingBox"` and no `patternTransform`
   - [x] Imported as repeating `image` fill (SVG tile data URI)
 - [x] `fill-rule` preserved (`evenodd`/`nonzero`) for vectors
 - [x] Stroke-aware bounds for line/vector/path (bbox expands by half stroke width)

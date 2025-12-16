@@ -703,6 +703,37 @@ describe('EditableSvgImporter.importEditableShapesFromSanitizedSvg', () => {
                 expect(f0?.tileOffsetY).toBe(-22);
         });
 
+        it('imports objectBoundingBox <pattern> (conservative subset) as repeating image fill with tile size derived from element bbox', () => {
+                const svg = `
+                    <svg xmlns="http://www.w3.org/2000/svg">
+                        <defs>
+                            <pattern id="p" patternUnits="objectBoundingBox" patternContentUnits="objectBoundingBox" x="0.25" y="0.2" width="0.25" height="0.5">
+                                <rect x="0" y="0" width="1" height="1" fill="#ff0000" />
+                            </pattern>
+                        </defs>
+                        <rect x="0" y="0" width="200" height="100" fill="url(#p)" />
+                    </svg>
+                `;
+
+                const res = importEditableShapesFromSanitizedSvg(svg, { centerX: 0, centerY: 0, idSeed: 't' });
+                expect(res.ok).toBe(true);
+                if (!res.ok) return;
+
+                expect(res.warnings).not.toContain('WARN_GRADIENT_PAINT_UNSUPPORTED');
+
+                const f0 = res.elements[0]?.style?.fills?.[0];
+                expect(f0?.type).toBe('image');
+                expect(f0?.repeat).toBe('repeat');
+                expect(typeof f0?.value).toBe('string');
+                expect(f0?.value).toMatch(/^data:image\/svg\+xml,/);
+                // Tile size = fractions of bbox (200x100)
+                expect(f0?.tileWidth).toBe(50);
+                expect(f0?.tileHeight).toBe(50);
+                // Phase = x/y fractions of bbox
+                expect(f0?.tileOffsetX).toBe(50);
+                expect(f0?.tileOffsetY).toBe(20);
+        });
+
         it('warns and falls back when userSpaceOnUse gradient coords are missing', () => {
                 const svg = `
                     <svg xmlns="http://www.w3.org/2000/svg">

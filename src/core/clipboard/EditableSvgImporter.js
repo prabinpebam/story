@@ -445,14 +445,16 @@ function resolvePatternPaintFill(doc, patternId, options) {
 
     const units = p.getAttribute('patternUnits');
     const unitsTrimmed = typeof units === 'string' ? units.trim() : '';
-    // Conservative subset: require userSpaceOnUse (objectBoundingBox is more complex to map).
-    if (unitsTrimmed !== 'userSpaceOnUse') {
-        return { ok: false, reason: 'PATTERN_UNITS_UNSUPPORTED' };
-    }
+    // Spec default for patternUnits is objectBoundingBox.
+    const unitsEffective = unitsTrimmed || 'objectBoundingBox';
 
-    let patternAxisTransform = { sx: 1, sy: 1, tx: 0, ty: 0 };
     const patternTransform = p.getAttribute('patternTransform');
+    let patternAxisTransform = { sx: 1, sy: 1, tx: 0, ty: 0 };
     if (typeof patternTransform === 'string' && patternTransform.trim().length > 0) {
+        if (unitsEffective === 'objectBoundingBox') {
+            // Conservative: skip objectBoundingBox + patternTransform for now.
+            return { ok: false, reason: 'PATTERN_TRANSFORM_UNSUPPORTED' };
+        }
         // Conservative: allow axis-aligned translate/scale/matrix only (no rotate/skew).
         const parsed = parseScaleTranslateOnlyTransform(patternTransform);
         if (!parsed.ok) {
@@ -472,57 +474,107 @@ function resolvePatternPaintFill(doc, patternId, options) {
         return { ok: false, reason: 'MISSING_ELEMENT_BBOX' };
     }
 
-    const x = parseUserSpaceCoord(p.getAttribute('x')) ?? 0;
-    const y = parseUserSpaceCoord(p.getAttribute('y')) ?? 0;
-    if (!Number.isFinite(x) || !Number.isFinite(y)) {
-        return { ok: false, reason: 'PATTERN_COORDS_UNSUPPORTED' };
+    let tileWidth;
+    let tileHeight;
+    let tileOffsetX;
+    let tileOffsetY;
+    let tileSvg;
+
+    if (unitsEffective === 'userSpaceOnUse') {
+        const x = parseUserSpaceCoord(p.getAttribute('x')) ?? 0;
+        const y = parseUserSpaceCoord(p.getAttribute('y')) ?? 0;
+        if (!Number.isFinite(x) || !Number.isFinite(y)) {
+            return { ok: false, reason: 'PATTERN_COORDS_UNSUPPORTED' };
+        }
+
+        // Apply patternTransform in pattern/user space.
+        const xpt = x * patternAxisTransform.sx + patternAxisTransform.tx;
+        const ypt = y * patternAxisTransform.sy + patternAxisTransform.ty;
+
+        // Apply root bake (e.g. viewBox scaling/translation) so pattern coords remain comparable to baked geometry.
+        const xt = xpt * sx + tx;
+        const yt = ypt * sy + ty;
+        if (!Number.isFinite(xt) || !Number.isFinite(yt)) {
+            return { ok: false, reason: 'PATTERN_COORDS_UNSUPPORTED' };
+        }
+
+        const width = parseUserSpaceCoord(p.getAttribute('width'));
+        const height = parseUserSpaceCoord(p.getAttribute('height'));
+        if (!Number.isFinite(width) || !Number.isFinite(height) || width <= 0 || height <= 0) {
+            return { ok: false, reason: 'PATTERN_SIZE_UNSUPPORTED' };
+        }
+
+        // Apply patternTransform scale to the tile size.
+        const wpt = width * Math.abs(patternAxisTransform.sx);
+        const hpt = height * Math.abs(patternAxisTransform.sy);
+
+        // Scale tile dimensions along with baked geometry. Translation does not affect size.
+        tileWidth = wpt * Math.abs(sx);
+        tileHeight = hpt * Math.abs(sy);
+        if (!Number.isFinite(tileWidth) || !Number.isFinite(tileHeight) || tileWidth <= 0 || tileHeight <= 0) {
+            return { ok: false, reason: 'PATTERN_SIZE_UNSUPPORTED' };
+        }
+
+        tileOffsetX = xt - bbox.x;
+        tileOffsetY = yt - bbox.y;
+
+        // Serialize pattern children into a standalone tile SVG.
+        let serializedChildren = '';
+        try {
+            const serializer = new XMLSerializer();
+            const children = Array.from(p.children || []);
+            serializedChildren = children.map((c) => serializer.serializeToString(c)).join('');
+        } catch {
+            return { ok: false, reason: 'PATTERN_SERIALIZE_FAILED' };
+        }
+
+        tileSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">${serializedChildren}</svg>`;
+    } else if (unitsEffective === 'objectBoundingBox') {
+        const contentUnits = p.getAttribute('patternContentUnits');
+        const contentUnitsTrimmed = typeof contentUnits === 'string' ? contentUnits.trim() : '';
+        const contentUnitsEffective = contentUnitsTrimmed || 'objectBoundingBox';
+        if (contentUnitsEffective !== 'objectBoundingBox') {
+            return { ok: false, reason: 'PATTERN_CONTENT_UNITS_UNSUPPORTED' };
+        }
+
+        const xFrac = parseObjectBoundingBoxCoord(p.getAttribute('x'), 0);
+        const yFrac = parseObjectBoundingBoxCoord(p.getAttribute('y'), 0);
+        const wFrac = parseObjectBoundingBoxCoord(p.getAttribute('width'), null);
+        const hFrac = parseObjectBoundingBoxCoord(p.getAttribute('height'), null);
+        if (xFrac === null || yFrac === null || wFrac === null || hFrac === null) {
+            return { ok: false, reason: 'PATTERN_COORDS_UNSUPPORTED' };
+        }
+        if (wFrac <= 0 || hFrac <= 0) {
+            return { ok: false, reason: 'PATTERN_SIZE_UNSUPPORTED' };
+        }
+
+        tileWidth = bbox.width * wFrac;
+        tileHeight = bbox.height * hFrac;
+        if (!Number.isFinite(tileWidth) || !Number.isFinite(tileHeight) || tileWidth <= 0 || tileHeight <= 0) {
+            return { ok: false, reason: 'PATTERN_SIZE_UNSUPPORTED' };
+        }
+
+        tileOffsetX = bbox.width * xFrac;
+        tileOffsetY = bbox.height * yFrac;
+        if (!Number.isFinite(tileOffsetX) || !Number.isFinite(tileOffsetY)) {
+            return { ok: false, reason: 'PATTERN_COORDS_UNSUPPORTED' };
+        }
+
+        let serializedChildren = '';
+        try {
+            const serializer = new XMLSerializer();
+            const children = Array.from(p.children || []);
+            serializedChildren = children.map((c) => serializer.serializeToString(c)).join('');
+        } catch {
+            return { ok: false, reason: 'PATTERN_SERIALIZE_FAILED' };
+        }
+
+        // Use a normalized 0..1 tile; renderer scales to tileWidth/tileHeight.
+        tileSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="1" height="1" viewBox="0 0 1 1">${serializedChildren}</svg>`;
+    } else {
+        return { ok: false, reason: 'PATTERN_UNITS_UNSUPPORTED' };
     }
-
-    // Apply patternTransform in pattern/user space.
-    const xpt = x * patternAxisTransform.sx + patternAxisTransform.tx;
-    const ypt = y * patternAxisTransform.sy + patternAxisTransform.ty;
-
-    // Apply root bake (e.g. viewBox scaling/translation) so pattern coords remain comparable to baked geometry.
-    const xt = xpt * sx + tx;
-    const yt = ypt * sy + ty;
-    if (!Number.isFinite(xt) || !Number.isFinite(yt)) {
-        return { ok: false, reason: 'PATTERN_COORDS_UNSUPPORTED' };
-    }
-
-    const width = parseUserSpaceCoord(p.getAttribute('width'));
-    const height = parseUserSpaceCoord(p.getAttribute('height'));
-    if (!Number.isFinite(width) || !Number.isFinite(height) || width <= 0 || height <= 0) {
-        return { ok: false, reason: 'PATTERN_SIZE_UNSUPPORTED' };
-    }
-
-    // Apply patternTransform scale to the tile size.
-    const wpt = width * Math.abs(patternAxisTransform.sx);
-    const hpt = height * Math.abs(patternAxisTransform.sy);
-
-    // Scale tile dimensions along with baked geometry. Translation does not affect size.
-    const tileWidth = wpt * Math.abs(sx);
-    const tileHeight = hpt * Math.abs(sy);
-    if (!Number.isFinite(tileWidth) || !Number.isFinite(tileHeight) || tileWidth <= 0 || tileHeight <= 0) {
-        return { ok: false, reason: 'PATTERN_SIZE_UNSUPPORTED' };
-    }
-
-    // Serialize pattern children into a standalone tile SVG.
-    let serializedChildren = '';
-    try {
-        const serializer = new XMLSerializer();
-        const children = Array.from(p.children || []);
-        serializedChildren = children.map((c) => serializer.serializeToString(c)).join('');
-    } catch {
-        return { ok: false, reason: 'PATTERN_SERIALIZE_FAILED' };
-    }
-
-    const tileSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">${serializedChildren}</svg>`;
     const dataUri = svgToDataUri(tileSvg);
-
-    // Preserve pattern phase relative to this element by encoding origin as an offset from the element bbox.
-    // With CSS repeating background images, this maps to background-position.
-    const tileOffsetX = xt - bbox.x;
-    const tileOffsetY = yt - bbox.y;
 
     return {
         ok: true,
