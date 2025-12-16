@@ -119,7 +119,7 @@ test.describe('Clipboard: paste SVG from text/html (editable shapes flag)', () =
     expect(anyGradientFill).toBe(true);
   });
 
-  test('pasting HTML containing an <svg><path/></svg> imports a vector shape', async ({ page, getState }) => {
+  test('pasting HTML containing an <svg><path/></svg> imports a vector shape (Q/T supported)', async ({ page, getState }) => {
     const before = await getState();
     const slideId = before.editor.activeSlideId;
     expect(slideId).toBeTruthy();
@@ -127,7 +127,7 @@ test.describe('Clipboard: paste SVG from text/html (editable shapes flag)', () =
     const beforeElements = before.slides[slideId]?.elements || {};
     const beforeIds = new Set(Object.keys(beforeElements));
 
-    const svg = '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="10"><path d="M0 0 L20 0 L20 10 Z" fill="#00ff00" /></svg>';
+    const svg = '<svg xmlns="http://www.w3.org/2000/svg" width="40" height="20"><path d="M0 0 Q 20 0 20 10 T 40 20" fill="#00ff00" /></svg>';
     const html = `<div data-from="test">${svg}</div>`;
 
     await page.evaluate(async ({ html }) => {

@@ -329,7 +329,7 @@ function makeVectorPathFromPoints(points, { closed }) {
 }
 
 function parsePathDataToVectorPaths(d) {
-    // Conservative subset: M/m L/l H/h V/v C/c Z/z.
+    // Conservative subset: M/m L/l H/h V/v C/c S/s Q/q T/t Z/z.
     // Returns { ok:true, paths:Path[] } or { ok:false, reason }.
     if (typeof d !== 'string') return { ok: false, reason: 'MISSING_D' };
     const input = d.trim();
@@ -363,6 +363,29 @@ function parsePathDataToVectorPaths(d) {
     let activePath = null;
     let lastCmd = null;
 
+    // Track previous curve controls for smooth commands.
+    let lastCubicControl = null; // absolute {x,y} of previous cubic's c2
+    let lastQuadraticControl = null; // absolute {x,y} of previous quadratic control
+
+    function resetSmoothControls() {
+        lastCubicControl = null;
+        lastQuadraticControl = null;
+    }
+
+    function reflectPoint(p, around) {
+        if (!p) return { x: around.x, y: around.y };
+        return { x: 2 * around.x - p.x, y: 2 * around.y - p.y };
+    }
+
+    function quadToCubic(curP, q, to) {
+        // Convert quadratic Bézier to cubic Bézier.
+        // c1 = cur + 2/3*(q-cur)
+        // c2 = to  + 2/3*(q-to)
+        const c1 = { x: curP.x + (2 / 3) * (q.x - curP.x), y: curP.y + (2 / 3) * (q.y - curP.y) };
+        const c2 = { x: to.x + (2 / 3) * (q.x - to.x), y: to.y + (2 / 3) * (q.y - to.y) };
+        return { c1, c2 };
+    }
+
     function ensurePathStart(x, y) {
         activePath = {
             closed: false,
@@ -373,6 +396,7 @@ function parsePathDataToVectorPaths(d) {
         paths.push(activePath);
         subpathStart = { x, y };
         cur = { x, y };
+        resetSmoothControls();
     }
 
     while (i < tokens.length) {
@@ -410,6 +434,7 @@ function parsePathDataToVectorPaths(d) {
                 const y2 = isRel ? cur.y + ly : ly;
                 activePath.segments.push({ kind: 'line', to: { x: x2, y: y2 } });
                 cur = { x: x2, y: y2 };
+                resetSmoothControls();
                 lastCmd = isRel ? 'l' : 'L';
             }
         } else if (upper === 'L') {
@@ -424,6 +449,7 @@ function parsePathDataToVectorPaths(d) {
                 const ny = isRel ? cur.y + y : y;
                 activePath.segments.push({ kind: 'line', to: { x: nx, y: ny } });
                 cur = { x: nx, y: ny };
+                resetSmoothControls();
             }
         } else if (upper === 'H') {
             if (!activePath) return { ok: false, reason: 'MISSING_MOVETO' };
@@ -435,6 +461,7 @@ function parsePathDataToVectorPaths(d) {
                 const nx = isRel ? cur.x + x : x;
                 activePath.segments.push({ kind: 'line', to: { x: nx, y: cur.y } });
                 cur = { x: nx, y: cur.y };
+                resetSmoothControls();
             }
         } else if (upper === 'V') {
             if (!activePath) return { ok: false, reason: 'MISSING_MOVETO' };
@@ -446,6 +473,7 @@ function parsePathDataToVectorPaths(d) {
                 const ny = isRel ? cur.y + y : y;
                 activePath.segments.push({ kind: 'line', to: { x: cur.x, y: ny } });
                 cur = { x: cur.x, y: ny };
+                resetSmoothControls();
             }
         } else if (upper === 'C') {
             if (!activePath) return { ok: false, reason: 'MISSING_MOVETO' };
@@ -464,11 +492,72 @@ function parsePathDataToVectorPaths(d) {
                 const to = { x: isRel ? cur.x + x : x, y: isRel ? cur.y + y : y };
                 activePath.segments.push({ kind: 'cubic', c1, c2, to });
                 cur = { ...to };
+                lastCubicControl = { ...c2 };
+                lastQuadraticControl = null;
+            }
+        } else if (upper === 'S') {
+            if (!activePath) return { ok: false, reason: 'MISSING_MOVETO' };
+            while (true) {
+                const n1 = peek();
+                if (!n1 || n1.t !== 'num') break;
+                const x2 = takeNumber();
+                const y2 = takeNumber();
+                const x = takeNumber();
+                const y = takeNumber();
+                if ([x2, y2, x, y].some(v => v === null)) return { ok: false, reason: 'PATH_PARSE_FAILED' };
+
+                const c1 = reflectPoint(lastCubicControl, cur);
+                const c2 = { x: isRel ? cur.x + x2 : x2, y: isRel ? cur.y + y2 : y2 };
+                const to = { x: isRel ? cur.x + x : x, y: isRel ? cur.y + y : y };
+
+                activePath.segments.push({ kind: 'cubic', c1, c2, to });
+                cur = { ...to };
+                lastCubicControl = { ...c2 };
+                lastQuadraticControl = null;
+            }
+        } else if (upper === 'Q') {
+            if (!activePath) return { ok: false, reason: 'MISSING_MOVETO' };
+            while (true) {
+                const n1 = peek();
+                if (!n1 || n1.t !== 'num') break;
+                const qx = takeNumber();
+                const qy = takeNumber();
+                const x = takeNumber();
+                const y = takeNumber();
+                if ([qx, qy, x, y].some(v => v === null)) return { ok: false, reason: 'PATH_PARSE_FAILED' };
+
+                const q = { x: isRel ? cur.x + qx : qx, y: isRel ? cur.y + qy : qy };
+                const to = { x: isRel ? cur.x + x : x, y: isRel ? cur.y + y : y };
+                const { c1, c2 } = quadToCubic(cur, q, to);
+
+                activePath.segments.push({ kind: 'cubic', c1, c2, to });
+                cur = { ...to };
+                lastQuadraticControl = { ...q };
+                lastCubicControl = { ...c2 };
+            }
+        } else if (upper === 'T') {
+            if (!activePath) return { ok: false, reason: 'MISSING_MOVETO' };
+            while (true) {
+                const n1 = peek();
+                if (!n1 || n1.t !== 'num') break;
+                const x = takeNumber();
+                const y = takeNumber();
+                if ([x, y].some(v => v === null)) return { ok: false, reason: 'PATH_PARSE_FAILED' };
+
+                const q = reflectPoint(lastQuadraticControl, cur);
+                const to = { x: isRel ? cur.x + x : x, y: isRel ? cur.y + y : y };
+                const { c1, c2 } = quadToCubic(cur, q, to);
+
+                activePath.segments.push({ kind: 'cubic', c1, c2, to });
+                cur = { ...to };
+                lastQuadraticControl = { ...q };
+                lastCubicControl = { ...c2 };
             }
         } else if (upper === 'Z') {
             if (!activePath || !subpathStart) return { ok: false, reason: 'MISSING_MOVETO' };
             activePath.closed = true;
             cur = { ...subpathStart };
+            resetSmoothControls();
         } else {
             return { ok: false, reason: 'UNSUPPORTED_PATH_COMMAND' };
         }

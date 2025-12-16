@@ -425,11 +425,51 @@ describe('EditableSvgImporter.importEditableShapesFromSanitizedSvg', () => {
                 expect(el.style?.fills?.[0]).toMatchObject({ type: 'solid', value: '#00ff00', color: '#00ff00' });
         });
 
+        it('imports <path> with Q/T as cubic segments (quadratic converted)', () => {
+                const svg = `
+                    <svg xmlns="http://www.w3.org/2000/svg">
+                        <path d="M0 0 Q 10 0 10 10 T 20 20" fill="#00ff00" />
+                    </svg>
+                `;
+
+                const res = importEditableShapesFromSanitizedSvg(svg, { centerX: 0, centerY: 0, idSeed: 't' });
+                expect(res.ok).toBe(true);
+                if (!res.ok) return;
+
+                expect(res.warnings || []).not.toContain('WARN_PATH_UNSUPPORTED');
+
+                const el = res.elements[0];
+                expect(el.shapeKind).toBe('vector');
+                expect(el.paths?.[0]?.segments?.length).toBe(2);
+                expect(el.paths?.[0]?.segments?.[0]?.kind).toBe('cubic');
+                expect(el.paths?.[0]?.segments?.[1]?.kind).toBe('cubic');
+        });
+
+        it('imports <path> with S as cubic segments (smooth cubic)', () => {
+                const svg = `
+                    <svg xmlns="http://www.w3.org/2000/svg">
+                        <path d="M0 0 C 10 0 10 10 20 10 S 30 10 40 0" fill="none" stroke="#000" stroke-width="1" />
+                    </svg>
+                `;
+
+                const res = importEditableShapesFromSanitizedSvg(svg, { centerX: 0, centerY: 0, idSeed: 't' });
+                expect(res.ok).toBe(true);
+                if (!res.ok) return;
+
+                expect(res.warnings || []).not.toContain('WARN_PATH_UNSUPPORTED');
+
+                const el = res.elements[0];
+                expect(el.shapeKind).toBe('vector');
+                expect(el.paths?.[0]?.segments?.length).toBe(2);
+                expect(el.paths?.[0]?.segments?.[0]?.kind).toBe('cubic');
+                expect(el.paths?.[0]?.segments?.[1]?.kind).toBe('cubic');
+        });
+
         it('warns on unsupported <path> commands but still imports supported primitives', () => {
                 const svg = `
                     <svg xmlns="http://www.w3.org/2000/svg">
                         <rect x="0" y="0" width="10" height="10" fill="#000" />
-                        <path d="M0 0 Q 10 10 20 0" fill="#f00" />
+                        <path d="M0 0 A 10 10 0 0 1 20 0" fill="#f00" />
                     </svg>
                 `;
 
