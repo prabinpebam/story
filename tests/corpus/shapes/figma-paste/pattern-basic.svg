@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg">
   <defs>
-    <pattern id="p" width="10" height="10" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+    <pattern id="p" width="10" height="10" patternUnits="userSpaceOnUse">
       <rect x="0" y="0" width="10" height="10" fill="#ff0000" />
     </pattern>
   </defs>

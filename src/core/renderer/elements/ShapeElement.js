@@ -490,9 +490,15 @@ export class ShapeElement extends VisualElement {
                         } else if (fill.type === 'image' && fill.value) {
                             // Legacy image fill using direct URL
                             layer.style.backgroundImage = `url(${fill.value})`;
-                            layer.style.backgroundSize = fill.scaleMode || 'cover';
-                            layer.style.backgroundPosition = 'center';
-                            layer.style.backgroundRepeat = 'no-repeat';
+                            if (fill.repeat === 'repeat' && Number.isFinite(fill.tileWidth) && Number.isFinite(fill.tileHeight) && fill.tileWidth > 0 && fill.tileHeight > 0) {
+                                layer.style.backgroundRepeat = 'repeat';
+                                layer.style.backgroundSize = `${fill.tileWidth}px ${fill.tileHeight}px`;
+                                layer.style.backgroundPosition = '0 0';
+                            } else {
+                                layer.style.backgroundSize = fill.scaleMode || 'cover';
+                                layer.style.backgroundPosition = 'center';
+                                layer.style.backgroundRepeat = 'no-repeat';
+                            }
                         }
                     }
                 });

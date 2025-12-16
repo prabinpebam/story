@@ -45,6 +45,9 @@ This status snapshot reflects what is implemented in the repo today (not “plan
   - [x] `objectBoundingBox` with explicit/parseable `cx/cy/r`
   - [x] Deterministic fallback for unsupported features (e.g. rotate `gradientTransform`, non-centered focal points)
 - [x] `<defs>` is treated as non-rendering (skipped during import traversal)
+- [x] Pattern paint import (`pattern`) for fills (conservative subset)
+  - [x] `patternUnits="userSpaceOnUse"` + parseable `width/height` + no `patternTransform`
+  - [x] Imported as repeating `image` fill (SVG tile data URI)
 - [x] `fill-rule` preserved (`evenodd`/`nonzero`) for vectors
 - [x] Stroke-aware bounds for line/vector/path (bbox expands by half stroke width)
 - [x] SVG root `viewBox` baked as scale+translate (scale/translate only; still conservative)
@@ -54,7 +57,7 @@ This status snapshot reflects what is implemented in the repo today (not “plan
 
 ### Phase 10 — Not Implemented Yet (Known Gaps)
 - [x] Corpus fixtures: `tests/corpus/shapes/figma-paste/` (directory + canonical hash + warnings)
-- [ ] Broader SVG paint support (e.g. patterns)
+- [ ] Broader SVG paint support (beyond the conservative pattern subset)
 - [ ] Broader transform support beyond axis-aligned scale/translate (e.g. rotate/skew; general matrices)
 - [ ] Clip-path/masking import for pasted SVG (if required by spec)
 

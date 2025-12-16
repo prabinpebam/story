@@ -569,11 +569,11 @@ describe('EditableSvgImporter.importEditableShapesFromSanitizedSvg', () => {
                 expect(el.style?.fills?.[0]).toMatchObject({ type: 'solid', value: '#808080', opacity: 100 });
         });
 
-        it('falls back deterministically for unsupported url(#...) paints like <pattern>', () => {
+        it('falls back deterministically for unsupported url(#...) paints like <pattern> (rotate)', () => {
                 const svg = `
                     <svg xmlns="http://www.w3.org/2000/svg">
                         <defs>
-                            <pattern id="p" width="10" height="10" patternUnits="userSpaceOnUse">
+                            <pattern id="p" width="10" height="10" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
                                 <rect x="0" y="0" width="10" height="10" fill="#ff0000" />
                             </pattern>
                         </defs>
@@ -589,6 +589,33 @@ describe('EditableSvgImporter.importEditableShapesFromSanitizedSvg', () => {
 
                 const el = res.elements.find((e) => e?.style?.fills?.[0]?.type === 'solid' && e?.style?.fills?.[0]?.value === '#808080');
                 expect(el).toBeTruthy();
+        });
+
+        it('imports a simple userSpaceOnUse <pattern> paint as an image fill (supported subset)', () => {
+                const svg = `
+                    <svg xmlns="http://www.w3.org/2000/svg">
+                        <defs>
+                            <pattern id="p" width="10" height="10" patternUnits="userSpaceOnUse">
+                                <rect x="0" y="0" width="10" height="10" fill="#ff0000" />
+                            </pattern>
+                        </defs>
+                        <rect x="0" y="0" width="10" height="10" fill="url(#p)" />
+                    </svg>
+                `;
+
+                const res = importEditableShapesFromSanitizedSvg(svg, { centerX: 0, centerY: 0, idSeed: 't' });
+                expect(res.ok).toBe(true);
+                if (!res.ok) return;
+
+                expect(res.warnings).not.toContain('WARN_GRADIENT_PAINT_UNSUPPORTED');
+
+                const el = res.elements[0];
+                expect(el.style?.fills?.[0]?.type).toBe('image');
+                expect(typeof el.style?.fills?.[0]?.value).toBe('string');
+                expect(el.style.fills[0].value).toMatch(/^data:image\/svg\+xml,/);
+                expect(el.style.fills[0].repeat).toBe('repeat');
+                expect(el.style.fills[0].tileWidth).toBe(10);
+                expect(el.style.fills[0].tileHeight).toBe(10);
         });
 
         it('warns and falls back when userSpaceOnUse gradient coords are missing', () => {

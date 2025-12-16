@@ -425,6 +425,81 @@ function resolveUrlPaintCss(doc, paintId, options) {
     return { ok: false, reason: 'UNSUPPORTED_PAINT_TYPE' };
 }
 
+function svgToDataUri(svgMarkup) {
+    const s = String(svgMarkup ?? '');
+    // Deterministic encode; keep compact and stable across platforms.
+    const encoded = encodeURIComponent(s)
+        .replace(/%0A/g, '')
+        .replace(/%0D/g, '')
+        .replace(/%09/g, '')
+        .replace(/%20/g, ' ');
+    return `data:image/svg+xml,${encoded}`;
+}
+
+function resolvePatternPaintFill(doc, patternId) {
+    const p = doc?.getElementById?.(patternId);
+    if (!p) return { ok: false, reason: 'MISSING_PATTERN' };
+    if (String(p.nodeName).toLowerCase() !== 'pattern') {
+        return { ok: false, reason: 'UNSUPPORTED_PATTERN_TYPE' };
+    }
+
+    const units = p.getAttribute('patternUnits');
+    const unitsTrimmed = typeof units === 'string' ? units.trim() : '';
+    // Conservative subset: require userSpaceOnUse (objectBoundingBox is more complex to map).
+    if (unitsTrimmed !== 'userSpaceOnUse') {
+        return { ok: false, reason: 'PATTERN_UNITS_UNSUPPORTED' };
+    }
+
+    const patternTransform = p.getAttribute('patternTransform');
+    if (typeof patternTransform === 'string' && patternTransform.trim().length > 0) {
+        // Conservative: do not attempt to map pattern transforms.
+        return { ok: false, reason: 'PATTERN_TRANSFORM_UNSUPPORTED' };
+    }
+
+    const x = parseUserSpaceCoord(p.getAttribute('x')) ?? 0;
+    const y = parseUserSpaceCoord(p.getAttribute('y')) ?? 0;
+    if (!Number.isFinite(x) || !Number.isFinite(y)) {
+        return { ok: false, reason: 'PATTERN_COORDS_UNSUPPORTED' };
+    }
+    // Conservative: only support default origin alignment.
+    if (Math.abs(x) > 1e-6 || Math.abs(y) > 1e-6) {
+        return { ok: false, reason: 'PATTERN_COORDS_UNSUPPORTED' };
+    }
+
+    const width = parseUserSpaceCoord(p.getAttribute('width'));
+    const height = parseUserSpaceCoord(p.getAttribute('height'));
+    if (!Number.isFinite(width) || !Number.isFinite(height) || width <= 0 || height <= 0) {
+        return { ok: false, reason: 'PATTERN_SIZE_UNSUPPORTED' };
+    }
+
+    // Serialize pattern children into a standalone tile SVG.
+    let serializedChildren = '';
+    try {
+        const serializer = new XMLSerializer();
+        const children = Array.from(p.children || []);
+        serializedChildren = children.map((c) => serializer.serializeToString(c)).join('');
+    } catch {
+        return { ok: false, reason: 'PATTERN_SERIALIZE_FAILED' };
+    }
+
+    const tileSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">${serializedChildren}</svg>`;
+    const dataUri = svgToDataUri(tileSvg);
+
+    return {
+        ok: true,
+        fill: {
+            type: 'image',
+            value: dataUri,
+            opacity: 100,
+            visible: true,
+            blendMode: 'normal',
+            repeat: 'repeat',
+            tileWidth: width,
+            tileHeight: height
+        }
+    };
+}
+
 function getPrimitiveLocalBBox(node) {
     const tag = String(node?.nodeName || '').toLowerCase();
     if (tag === 'rect') {
@@ -1407,19 +1482,35 @@ export function importEditableShapesFromSanitizedSvg(sanitizedSvg, options) {
             if (typeof paint.stroke.dashArray === 'string') paint.stroke.dashArray = scaleDashArrayString(paint.stroke.dashArray, strokeScale);
         }
 
-        let fillGradientCss = null;
+        let fillPaintFill = null;
         if (paint.unsupported?.fillUrlPaint) {
             const fillRaw = getInheritedPresentation(node, 'fill');
             const gradId = parseUrlPaintId(fillRaw);
             if (gradId) {
                 const primitiveBBox = getPrimitiveLocalBBox(node);
                 const bbox = bboxOverride ?? transformBBox(primitiveBBox, userSpaceTransform);
-                const resolved = resolveUrlPaintCss(doc, gradId, { elementBBox: bbox, userSpaceTransform });
-                if (resolved.ok) {
-                    fillGradientCss = resolved.css;
-                    if (Array.isArray(resolved.warnings)) warnings.push(...resolved.warnings);
+                const tag = String(doc?.getElementById?.(gradId)?.nodeName || '').toLowerCase();
+                if (tag === 'pattern') {
+                    const resolved = resolvePatternPaintFill(doc, gradId);
+                    if (resolved.ok) {
+                        fillPaintFill = resolved.fill;
+                    } else {
+                        warnings.push('WARN_GRADIENT_PAINT_UNSUPPORTED');
+                    }
                 } else {
-                    warnings.push('WARN_GRADIENT_PAINT_UNSUPPORTED');
+                    const resolved = resolveUrlPaintCss(doc, gradId, { elementBBox: bbox, userSpaceTransform });
+                    if (resolved.ok) {
+                        fillPaintFill = {
+                            type: 'gradient',
+                            value: resolved.css,
+                            opacity: 100,
+                            visible: true,
+                            blendMode: 'normal'
+                        };
+                        if (Array.isArray(resolved.warnings)) warnings.push(...resolved.warnings);
+                    } else {
+                        warnings.push('WARN_GRADIENT_PAINT_UNSUPPORTED');
+                    }
                 }
             } else {
                 warnings.push('WARN_GRADIENT_PAINT_UNSUPPORTED');
@@ -1446,13 +1537,13 @@ export function importEditableShapesFromSanitizedSvg(sanitizedSvg, options) {
         }
 
         let fills = [];
-        if (fillGradientCss) {
+        if (fillPaintFill) {
+            // Preserve element opacity multiplication.
+            const baseOpacity = clampOpacity100(paint.fill.opacity * 100);
+            const importedOpacity = clampOpacity100((fillPaintFill.opacity ?? 100) * (baseOpacity / 100));
             fills = [{
-                type: 'gradient',
-                value: fillGradientCss,
-                opacity: clampOpacity100(paint.fill.opacity * 100),
-                visible: true,
-                blendMode: 'normal'
+                ...fillPaintFill,
+                opacity: importedOpacity
             }];
         } else if (paint.unsupported?.fillUrlPaint) {
             // url(#...) fill paint but not importable (unsupported gradient type/coords/transform)
