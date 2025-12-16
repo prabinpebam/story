@@ -195,15 +195,18 @@ export class PresentationManager {
             if (this.appContainer.requestFullscreen) {
                 await this.appContainer.requestFullscreen();
             }
-            document.body.classList.add('mode-presentation');
-            this.updateScale();
-            
-            // Start Laser Pointer loop if needed
-            this.laserPointer.start();
-            this.laserPointer.resize(); // Ensure it fits screen
         } catch (err) {
+            // Fullscreen may be blocked (e.g. in automated tests or restrictive browsers).
+            // Presentation mode should still work without fullscreen.
             console.error(`Error attempting to enable fullscreen: ${err.message}`);
         }
+
+        document.body.classList.add('mode-presentation');
+        this.updateScale();
+
+        // Start Laser Pointer loop if needed
+        this.laserPointer.start();
+        this.laserPointer.resize(); // Ensure it fits screen
     }
 
     exitFullscreen() {
