@@ -465,11 +465,31 @@ describe('EditableSvgImporter.importEditableShapesFromSanitizedSvg', () => {
                 expect(el.paths?.[0]?.segments?.[1]?.kind).toBe('cubic');
         });
 
+            it('imports <path> with A as cubic segments (elliptical arc converted)', () => {
+                const svg = `
+                    <svg xmlns="http://www.w3.org/2000/svg">
+                    <path d="M0 0 A 10 10 0 0 1 10 10" fill="none" stroke="#000" stroke-width="1" />
+                    </svg>
+                `;
+
+                const res = importEditableShapesFromSanitizedSvg(svg, { centerX: 0, centerY: 0, idSeed: 't' });
+                expect(res.ok).toBe(true);
+                if (!res.ok) return;
+
+                expect(res.warnings || []).not.toContain('WARN_PATH_UNSUPPORTED');
+
+                const el = res.elements[0];
+                expect(el.shapeKind).toBe('vector');
+                expect(el.paths?.[0]?.segments?.length).toBeGreaterThan(0);
+                const kinds = (el.paths?.[0]?.segments || []).map(s => s.kind);
+                expect(kinds.every(k => k === 'cubic' || k === 'line')).toBe(true);
+            });
+
         it('warns on unsupported <path> commands but still imports supported primitives', () => {
                 const svg = `
                     <svg xmlns="http://www.w3.org/2000/svg">
                         <rect x="0" y="0" width="10" height="10" fill="#000" />
-                        <path d="M0 0 A 10 10 0 0 1 20 0" fill="#f00" />
+                        <path d="M0 0 R 10 10 20 0" fill="#f00" />
                     </svg>
                 `;
 

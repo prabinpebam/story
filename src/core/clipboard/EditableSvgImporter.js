@@ -329,7 +329,7 @@ function makeVectorPathFromPoints(points, { closed }) {
 }
 
 function parsePathDataToVectorPaths(d) {
-    // Conservative subset: M/m L/l H/h V/v C/c S/s Q/q T/t Z/z.
+    // Conservative subset: M/m L/l H/h V/v C/c S/s Q/q T/t A/a Z/z.
     // Returns { ok:true, paths:Path[] } or { ok:false, reason }.
     if (typeof d !== 'string') return { ok: false, reason: 'MISSING_D' };
     const input = d.trim();
@@ -384,6 +384,119 @@ function parsePathDataToVectorPaths(d) {
         const c1 = { x: curP.x + (2 / 3) * (q.x - curP.x), y: curP.y + (2 / 3) * (q.y - curP.y) };
         const c2 = { x: to.x + (2 / 3) * (q.x - to.x), y: to.y + (2 / 3) * (q.y - to.y) };
         return { c1, c2 };
+    }
+
+    function arcToCubicSegments(from, arc, to) {
+        // Convert SVG elliptical arc to one or more cubic Bezier segments.
+        // arc: { rx, ry, xAxisRotationDeg, largeArcFlag, sweepFlag }
+        // Returns { ok:true, segments:[{c1,c2,to}...] } or { ok:false }.
+        let rx = Math.abs(arc.rx);
+        let ry = Math.abs(arc.ry);
+        const phi = ((arc.xAxisRotationDeg || 0) * Math.PI) / 180;
+        const largeArc = !!arc.largeArcFlag;
+        const sweep = !!arc.sweepFlag;
+
+        // If radii are 0, the arc is treated as a straight line.
+        if (!(rx > 0) || !(ry > 0)) {
+            return { ok: true, segments: [{ kind: 'line', to }] };
+        }
+
+        const cosPhi = Math.cos(phi);
+        const sinPhi = Math.sin(phi);
+
+        // Step 1: Compute (x1', y1')
+        const dx2 = (from.x - to.x) / 2;
+        const dy2 = (from.y - to.y) / 2;
+        const x1p = cosPhi * dx2 + sinPhi * dy2;
+        const y1p = -sinPhi * dx2 + cosPhi * dy2;
+
+        const rx2 = rx * rx;
+        const ry2 = ry * ry;
+        const x1p2 = x1p * x1p;
+        const y1p2 = y1p * y1p;
+
+        // Step 2: Ensure radii are large enough
+        const lambda = x1p2 / rx2 + y1p2 / ry2;
+        if (lambda > 1) {
+            const s = Math.sqrt(lambda);
+            rx *= s;
+            ry *= s;
+        }
+
+        const rx2b = rx * rx;
+        const ry2b = ry * ry;
+
+        // Step 3: Compute (cx', cy')
+        const sign = largeArc === sweep ? -1 : 1;
+        const num = (rx2b * ry2b) - (rx2b * y1p2) - (ry2b * x1p2);
+        const den = (rx2b * y1p2) + (ry2b * x1p2);
+        if (!(den > 0)) {
+            return { ok: false };
+        }
+        const coef = sign * Math.sqrt(Math.max(0, num / den));
+        const cxp = coef * (rx * y1p) / ry;
+        const cyp = coef * (-ry * x1p) / rx;
+
+        // Step 4: Compute (cx, cy)
+        const cx = cosPhi * cxp - sinPhi * cyp + (from.x + to.x) / 2;
+        const cy = sinPhi * cxp + cosPhi * cyp + (from.y + to.y) / 2;
+
+        // Step 5: Compute angles
+        function angle(u, v) {
+            // Signed angle from u to v.
+            const dot = u.x * v.x + u.y * v.y;
+            const det = u.x * v.y - u.y * v.x;
+            return Math.atan2(det, dot);
+        }
+
+        const ux = (x1p - cxp) / rx;
+        const uy = (y1p - cyp) / ry;
+        const vx = (-x1p - cxp) / rx;
+        const vy = (-y1p - cyp) / ry;
+
+        const theta1 = Math.atan2(uy, ux);
+        let deltaTheta = angle({ x: ux, y: uy }, { x: vx, y: vy });
+        if (!sweep && deltaTheta > 0) deltaTheta -= 2 * Math.PI;
+        if (sweep && deltaTheta < 0) deltaTheta += 2 * Math.PI;
+
+        // Split into segments <= 90deg
+        const segCount = Math.max(1, Math.ceil(Math.abs(deltaTheta) / (Math.PI / 2)));
+        const segDelta = deltaTheta / segCount;
+
+        function mapUnitPoint(p) {
+            // p is on unit circle; scale to ellipse, rotate, translate.
+            const x = p.x * rx;
+            const y = p.y * ry;
+            const xr = cosPhi * x - sinPhi * y;
+            const yr = sinPhi * x + cosPhi * y;
+            return { x: xr + cx, y: yr + cy };
+        }
+
+        const segments = [];
+        for (let s = 0; s < segCount; s++) {
+            const t1 = theta1 + s * segDelta;
+            const t2 = t1 + segDelta;
+            const dt = t2 - t1;
+            const alpha = (4 / 3) * Math.tan(dt / 4);
+
+            const p1 = { x: Math.cos(t1), y: Math.sin(t1) };
+            const p2 = { x: Math.cos(t2), y: Math.sin(t2) };
+            const c1u = { x: p1.x - alpha * p1.y, y: p1.y + alpha * p1.x };
+            const c2u = { x: p2.x + alpha * p2.y, y: p2.y - alpha * p2.x };
+
+            const c1 = mapUnitPoint(c1u);
+            const c2 = mapUnitPoint(c2u);
+            const end = mapUnitPoint(p2);
+
+            segments.push({ kind: 'cubic', c1, c2, to: end });
+        }
+
+        // Force last endpoint to match requested endpoint exactly (deterministic).
+        if (segments.length > 0) {
+            segments[segments.length - 1] = { ...segments[segments.length - 1], to: { x: to.x, y: to.y } };
+        }
+
+        return { ok: true, segments };
     }
 
     function ensurePathStart(x, y) {
@@ -552,6 +665,53 @@ function parsePathDataToVectorPaths(d) {
                 cur = { ...to };
                 lastQuadraticControl = { ...q };
                 lastCubicControl = { ...c2 };
+            }
+        } else if (upper === 'A') {
+            if (!activePath) return { ok: false, reason: 'MISSING_MOVETO' };
+            while (true) {
+                const n1 = peek();
+                if (!n1 || n1.t !== 'num') break;
+
+                const rx = takeNumber();
+                const ry = takeNumber();
+                const xAxisRotation = takeNumber();
+                const largeArcFlagRaw = takeNumber();
+                const sweepFlagRaw = takeNumber();
+                const x = takeNumber();
+                const y = takeNumber();
+
+                if ([rx, ry, xAxisRotation, largeArcFlagRaw, sweepFlagRaw, x, y].some(v => v === null)) {
+                    return { ok: false, reason: 'PATH_PARSE_FAILED' };
+                }
+
+                const to = { x: isRel ? cur.x + x : x, y: isRel ? cur.y + y : y };
+                const largeArcFlag = largeArcFlagRaw ? 1 : 0;
+                const sweepFlag = sweepFlagRaw ? 1 : 0;
+
+                const converted = arcToCubicSegments(cur, {
+                    rx,
+                    ry,
+                    xAxisRotationDeg: xAxisRotation,
+                    largeArcFlag,
+                    sweepFlag
+                }, to);
+
+                if (!converted.ok) {
+                    return { ok: false, reason: 'UNSUPPORTED_PATH_COMMAND' };
+                }
+
+                for (const seg of converted.segments) {
+                    if (seg.kind === 'line') {
+                        activePath.segments.push({ kind: 'line', to: { ...seg.to } });
+                        cur = { ...seg.to };
+                        resetSmoothControls();
+                    } else if (seg.kind === 'cubic') {
+                        activePath.segments.push({ kind: 'cubic', c1: { ...seg.c1 }, c2: { ...seg.c2 }, to: { ...seg.to } });
+                        cur = { ...seg.to };
+                        lastCubicControl = { ...seg.c2 };
+                        lastQuadraticControl = null;
+                    }
+                }
             }
         } else if (upper === 'Z') {
             if (!activePath || !subpathStart) return { ok: false, reason: 'MISSING_MOVETO' };
