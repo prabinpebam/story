@@ -1731,7 +1731,11 @@ export function importEditableShapesFromSanitizedSvg(sanitizedSvg, options) {
                         };
                         if (Array.isArray(resolved.warnings)) warnings.push(...resolved.warnings);
                     } else {
-                        warnings.push('WARN_GRADIENT_PAINT_UNSUPPORTED');
+                        if (resolved.reason === 'GRADIENT_HREF_CYCLE' || resolved.reason === 'GRADIENT_HREF_UNSUPPORTED') {
+                            warnings.push('WARN_GRADIENT_HREF_UNSUPPORTED');
+                        } else {
+                            warnings.push('WARN_GRADIENT_PAINT_UNSUPPORTED');
+                        }
                     }
                 }
             } else {
@@ -1751,7 +1755,11 @@ export function importEditableShapesFromSanitizedSvg(sanitizedSvg, options) {
                     strokeGradientCss = resolved.css;
                     if (Array.isArray(resolved.warnings)) warnings.push(...resolved.warnings);
                 } else {
-                    warnings.push('WARN_GRADIENT_PAINT_UNSUPPORTED');
+                    if (resolved.reason === 'GRADIENT_HREF_CYCLE' || resolved.reason === 'GRADIENT_HREF_UNSUPPORTED') {
+                        warnings.push('WARN_GRADIENT_HREF_UNSUPPORTED');
+                    } else {
+                        warnings.push('WARN_GRADIENT_PAINT_UNSUPPORTED');
+                    }
                 }
             } else {
                 warnings.push('WARN_GRADIENT_PAINT_UNSUPPORTED');

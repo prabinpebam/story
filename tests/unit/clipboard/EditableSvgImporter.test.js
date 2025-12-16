@@ -321,6 +321,50 @@ describe('EditableSvgImporter.importEditableShapesFromSanitizedSvg', () => {
                 expect(String(el.style.fills[0].value)).toMatch(/#0000ff/i);
         });
 
+        it('warns deterministically when linearGradient href has a cycle (falls back to solid fill)', () => {
+                const svg = `
+                    <svg xmlns="http://www.w3.org/2000/svg">
+                        <defs>
+                            <linearGradient id="a" href="#b" />
+                            <linearGradient id="b" href="#a">
+                                <stop offset="0%" stop-color="#ff0000" />
+                                <stop offset="100%" stop-color="#0000ff" />
+                            </linearGradient>
+                        </defs>
+                        <rect x="0" y="0" width="10" height="10" fill="url(#a)" />
+                    </svg>
+                `;
+
+                const res = importEditableShapesFromSanitizedSvg(svg, { centerX: 0, centerY: 0, idSeed: 't' });
+                expect(res.ok).toBe(true);
+                if (!res.ok) return;
+
+                expect(res.warnings).toContain('WARN_GRADIENT_HREF_UNSUPPORTED');
+
+                const el = res.elements[0];
+                expect(el.style?.fills?.[0]).toMatchObject({ type: 'solid', value: '#808080', opacity: 100 });
+        });
+
+        it('warns deterministically when linearGradient href target is missing (falls back to solid fill)', () => {
+                const svg = `
+                    <svg xmlns="http://www.w3.org/2000/svg">
+                        <defs>
+                            <linearGradient id="ref" href="#missing" />
+                        </defs>
+                        <rect x="0" y="0" width="10" height="10" fill="url(#ref)" />
+                    </svg>
+                `;
+
+                const res = importEditableShapesFromSanitizedSvg(svg, { centerX: 0, centerY: 0, idSeed: 't' });
+                expect(res.ok).toBe(true);
+                if (!res.ok) return;
+
+                expect(res.warnings).toContain('WARN_GRADIENT_HREF_UNSUPPORTED');
+
+                const el = res.elements[0];
+                expect(el.style?.fills?.[0]).toMatchObject({ type: 'solid', value: '#808080', opacity: 100 });
+        });
+
         it('imports userSpaceOnUse linearGradient when coords are explicit', () => {
                 const svg = `
                     <svg xmlns="http://www.w3.org/2000/svg">
