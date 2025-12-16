@@ -267,6 +267,60 @@ describe('EditableSvgImporter.importEditableShapesFromSanitizedSvg', () => {
                 expect(el.style.fills[0].value).toMatch(/#0000ff/i);
         });
 
+        it('imports linearGradient that inherits from another gradient via href="#..." (stops + coords inherited)', () => {
+                const svg = `
+                    <svg xmlns="http://www.w3.org/2000/svg">
+                        <defs>
+                            <linearGradient id="base" x1="0%" y1="0%" x2="100%" y2="0%">
+                                <stop offset="0%" stop-color="#ff0000" stop-opacity="1" />
+                                <stop offset="100%" stop-color="#0000ff" stop-opacity="1" />
+                            </linearGradient>
+                            <linearGradient id="ref" href="#base" />
+                        </defs>
+                        <rect x="0" y="0" width="10" height="10" fill="url(#ref)" />
+                    </svg>
+                `;
+
+                const res = importEditableShapesFromSanitizedSvg(svg, { centerX: 0, centerY: 0, idSeed: 't' });
+                expect(res.ok).toBe(true);
+                if (!res.ok) return;
+
+                expect(res.warnings).not.toContain('WARN_GRADIENT_PAINT_UNSUPPORTED');
+
+                const el = res.elements[0];
+                expect(el.style?.fills?.[0]?.type).toBe('gradient');
+                expect(String(el.style.fills[0].value)).toMatch(/linear-gradient\(/i);
+                expect(String(el.style.fills[0].value)).toMatch(/#ff0000/i);
+                expect(String(el.style.fills[0].value)).toMatch(/#0000ff/i);
+        });
+
+        it('imports radialGradient that inherits from another gradient via xlink:href (stops inherited)', () => {
+                const svg = `
+                    <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+                        <defs>
+                            <radialGradient id="base" cx="50%" cy="50%" r="50%">
+                                <stop offset="0%" stop-color="#00ff00" stop-opacity="1" />
+                                <stop offset="100%" stop-color="#0000ff" stop-opacity="1" />
+                            </radialGradient>
+                            <radialGradient id="ref" xlink:href="#base" />
+                        </defs>
+                        <rect x="0" y="0" width="10" height="10" fill="url(#ref)" />
+                    </svg>
+                `;
+
+                const res = importEditableShapesFromSanitizedSvg(svg, { centerX: 0, centerY: 0, idSeed: 't' });
+                expect(res.ok).toBe(true);
+                if (!res.ok) return;
+
+                expect(res.warnings).not.toContain('WARN_GRADIENT_PAINT_UNSUPPORTED');
+
+                const el = res.elements[0];
+                expect(el.style?.fills?.[0]?.type).toBe('gradient');
+                expect(String(el.style.fills[0].value)).toMatch(/radial-gradient\(/i);
+                expect(String(el.style.fills[0].value)).toMatch(/#00ff00/i);
+                expect(String(el.style.fills[0].value)).toMatch(/#0000ff/i);
+        });
+
         it('imports userSpaceOnUse linearGradient when coords are explicit', () => {
                 const svg = `
                     <svg xmlns="http://www.w3.org/2000/svg">

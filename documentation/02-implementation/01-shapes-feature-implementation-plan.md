@@ -40,9 +40,11 @@ This status snapshot reflects what is implemented in the repo today (not “plan
 - [x] Linear gradient import (`linearGradient`) for fills + strokes
   - [x] `objectBoundingBox`
   - [x] `userSpaceOnUse` when explicit coords exist
+  - [x] `href` / `xlink:href` inheritance (conservative: depth-limited chain, first-defined attr wins, stops inherited if missing)
   - [x] Deterministic warning + directional import for axis-aligned `gradientTransform` (applies to direction only; warns)
 - [x] Radial gradient import (`radialGradient`) for fills + strokes (conservative subset)
   - [x] `objectBoundingBox` with explicit/parseable `cx/cy/r`
+  - [x] `href` / `xlink:href` inheritance (conservative: depth-limited chain, first-defined attr wins, stops inherited if missing)
   - [x] Deterministic fallback for unsupported features (e.g. rotate `gradientTransform`, non-centered focal points)
 - [x] `<defs>` is treated as non-rendering (skipped during import traversal)
 - [x] Pattern paint import (`pattern`) for fills (conservative subset)

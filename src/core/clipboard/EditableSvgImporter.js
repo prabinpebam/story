@@ -141,6 +141,55 @@ function parseUserSpaceCoord(raw) {
     return toLengthNumber(raw);
 }
 
+function getHrefIdFromGradient(gradientEl) {
+    if (!gradientEl?.getAttribute) return null;
+    const raw = gradientEl.getAttribute('href') ?? gradientEl.getAttribute('xlink:href');
+    if (typeof raw !== 'string') return null;
+    const s = raw.trim();
+    if (s.length === 0) return null;
+    // Common forms: "#id" or "id".
+    return s.startsWith('#') ? s.slice(1) : s;
+}
+
+function resolveGradientInheritanceChain(doc, gradientEl, expectedTagLower) {
+    // Conservative: follow a small href chain and inherit missing attrs/stops.
+    const chain = [];
+    const seen = new Set();
+    let current = gradientEl;
+    for (let depth = 0; depth < 8; depth++) {
+        if (!current) break;
+        chain.push(current);
+
+        const hrefId = getHrefIdFromGradient(current);
+        if (!hrefId) break;
+        if (seen.has(hrefId)) return { ok: false, reason: 'GRADIENT_HREF_CYCLE' };
+        seen.add(hrefId);
+
+        const next = doc?.getElementById?.(hrefId);
+        if (!next || String(next.nodeName).toLowerCase() !== expectedTagLower) {
+            return { ok: false, reason: 'GRADIENT_HREF_UNSUPPORTED' };
+        }
+        current = next;
+    }
+    return { ok: true, chain };
+}
+
+function inheritedGradientAttr(chain, name) {
+    for (const el of chain) {
+        const v = el?.getAttribute?.(name);
+        if (typeof v === 'string' && v.trim().length > 0) return v;
+    }
+    return null;
+}
+
+function inheritedGradientStops(chain) {
+    for (const el of chain) {
+        const stops = Array.from(el?.children || []).filter(c => String(c.nodeName).toLowerCase() === 'stop');
+        if (stops.length > 0) return stops;
+    }
+    return [];
+}
+
 function resolveLinearGradientCss(doc, gradientId, options) {
     const grad = doc?.getElementById?.(gradientId);
     if (!grad) return { ok: false, reason: 'MISSING_GRADIENT' };
@@ -148,12 +197,16 @@ function resolveLinearGradientCss(doc, gradientId, options) {
         return { ok: false, reason: 'UNSUPPORTED_GRADIENT_TYPE' };
     }
 
+    const inh = resolveGradientInheritanceChain(doc, grad, 'lineargradient');
+    if (!inh.ok) return { ok: false, reason: inh.reason };
+    const chain = inh.chain;
+
     const warnings = [];
 
-    const units = grad.getAttribute('gradientUnits');
+    const units = inheritedGradientAttr(chain, 'gradientUnits');
     const unitsTrimmed = typeof units === 'string' ? units.trim() : '';
 
-    const gradientTransform = grad.getAttribute('gradientTransform');
+    const gradientTransform = inheritedGradientAttr(chain, 'gradientTransform');
     let gradientAxisTransform = { sx: 1, sy: 1, tx: 0, ty: 0 };
     if (typeof gradientTransform === 'string' && gradientTransform.trim().length > 0) {
         const parsed = parseScaleTranslateOnlyTransform(gradientTransform);
@@ -175,10 +228,10 @@ function resolveLinearGradientCss(doc, gradientId, options) {
     let y2;
 
     if (!unitsTrimmed || unitsTrimmed === 'objectBoundingBox') {
-        x1 = parseObjectBoundingBoxCoord(grad.getAttribute('x1'), 0);
-        y1 = parseObjectBoundingBoxCoord(grad.getAttribute('y1'), 0);
-        x2 = parseObjectBoundingBoxCoord(grad.getAttribute('x2'), 1);
-        y2 = parseObjectBoundingBoxCoord(grad.getAttribute('y2'), 0);
+        x1 = parseObjectBoundingBoxCoord(inheritedGradientAttr(chain, 'x1'), 0);
+        y1 = parseObjectBoundingBoxCoord(inheritedGradientAttr(chain, 'y1'), 0);
+        x2 = parseObjectBoundingBoxCoord(inheritedGradientAttr(chain, 'x2'), 1);
+        y2 = parseObjectBoundingBoxCoord(inheritedGradientAttr(chain, 'y2'), 0);
         if (x1 === null || y1 === null || x2 === null || y2 === null) {
             return { ok: false, reason: 'GRADIENT_COORDS_UNSUPPORTED' };
         }
@@ -199,10 +252,10 @@ function resolveLinearGradientCss(doc, gradientId, options) {
             return { ok: false, reason: 'MISSING_ELEMENT_BBOX' };
         }
 
-        const ux1 = parseUserSpaceCoord(grad.getAttribute('x1'));
-        const uy1 = parseUserSpaceCoord(grad.getAttribute('y1'));
-        const ux2 = parseUserSpaceCoord(grad.getAttribute('x2'));
-        const uy2 = parseUserSpaceCoord(grad.getAttribute('y2'));
+        const ux1 = parseUserSpaceCoord(inheritedGradientAttr(chain, 'x1'));
+        const uy1 = parseUserSpaceCoord(inheritedGradientAttr(chain, 'y1'));
+        const ux2 = parseUserSpaceCoord(inheritedGradientAttr(chain, 'x2'));
+        const uy2 = parseUserSpaceCoord(inheritedGradientAttr(chain, 'y2'));
 
         // Conservative: require explicit coords for userSpaceOnUse.
         if (ux1 === null || uy1 === null || ux2 === null || uy2 === null) {
@@ -241,7 +294,7 @@ function resolveLinearGradientCss(doc, gradientId, options) {
     deg = ((deg % 360) + 360) % 360;
 
     const stops = [];
-    const stopEls = Array.from(grad.children || []).filter(c => String(c.nodeName).toLowerCase() === 'stop');
+    const stopEls = inheritedGradientStops(chain);
     for (const stopEl of stopEls) {
         const offset = parseStopOffset(stopEl.getAttribute('offset'));
         const stopColorRaw = stopEl.getAttribute('stop-color') ?? parseStyleAttribute(stopEl.getAttribute('style'))['stop-color'];
@@ -274,10 +327,14 @@ function resolveRadialGradientCss(doc, gradientId, options) {
         return { ok: false, reason: 'UNSUPPORTED_GRADIENT_TYPE' };
     }
 
-    const units = grad.getAttribute('gradientUnits');
+    const inh = resolveGradientInheritanceChain(doc, grad, 'radialgradient');
+    if (!inh.ok) return { ok: false, reason: inh.reason };
+    const chain = inh.chain;
+
+    const units = inheritedGradientAttr(chain, 'gradientUnits');
     const unitsTrimmed = typeof units === 'string' ? units.trim() : '';
 
-    const gradientTransform = grad.getAttribute('gradientTransform');
+    const gradientTransform = inheritedGradientAttr(chain, 'gradientTransform');
     let gradientAxisTransform = { sx: 1, sy: 1, tx: 0, ty: 0 };
     if (typeof gradientTransform === 'string' && gradientTransform.trim().length > 0) {
         const parsed = parseScaleTranslateOnlyTransform(gradientTransform);
@@ -293,15 +350,15 @@ function resolveRadialGradientCss(doc, gradientId, options) {
     let ry;
 
     if (!unitsTrimmed || unitsTrimmed === 'objectBoundingBox') {
-        const cx0 = parseObjectBoundingBoxCoord(grad.getAttribute('cx'), 0.5);
-        const cy0 = parseObjectBoundingBoxCoord(grad.getAttribute('cy'), 0.5);
-        const r0 = parseObjectBoundingBoxCoord(grad.getAttribute('r'), 0.5);
+        const cx0 = parseObjectBoundingBoxCoord(inheritedGradientAttr(chain, 'cx'), 0.5);
+        const cy0 = parseObjectBoundingBoxCoord(inheritedGradientAttr(chain, 'cy'), 0.5);
+        const r0 = parseObjectBoundingBoxCoord(inheritedGradientAttr(chain, 'r'), 0.5);
         if (cx0 === null || cy0 === null || r0 === null) {
             return { ok: false, reason: 'GRADIENT_COORDS_UNSUPPORTED' };
         }
 
-        const fxAttr = grad.getAttribute('fx');
-        const fyAttr = grad.getAttribute('fy');
+        const fxAttr = inheritedGradientAttr(chain, 'fx');
+        const fyAttr = inheritedGradientAttr(chain, 'fy');
         const fx0 = fxAttr == null ? cx0 : parseObjectBoundingBoxCoord(fxAttr, cx0);
         const fy0 = fyAttr == null ? cy0 : parseObjectBoundingBoxCoord(fyAttr, cy0);
         if (fx0 === null || fy0 === null) {
@@ -336,16 +393,16 @@ function resolveRadialGradientCss(doc, gradientId, options) {
             return { ok: false, reason: 'MISSING_ELEMENT_BBOX' };
         }
 
-        const ucx = parseUserSpaceCoord(grad.getAttribute('cx'));
-        const ucy = parseUserSpaceCoord(grad.getAttribute('cy'));
-        const ur = parseUserSpaceCoord(grad.getAttribute('r'));
+        const ucx = parseUserSpaceCoord(inheritedGradientAttr(chain, 'cx'));
+        const ucy = parseUserSpaceCoord(inheritedGradientAttr(chain, 'cy'));
+        const ur = parseUserSpaceCoord(inheritedGradientAttr(chain, 'r'));
         // Conservative: require explicit coords for userSpaceOnUse.
         if (ucx === null || ucy === null || ur === null) {
             return { ok: false, reason: 'GRADIENT_COORDS_UNSUPPORTED' };
         }
 
-        const fxAttr = grad.getAttribute('fx');
-        const fyAttr = grad.getAttribute('fy');
+        const fxAttr = inheritedGradientAttr(chain, 'fx');
+        const fyAttr = inheritedGradientAttr(chain, 'fy');
         const ufx = fxAttr == null ? ucx : parseUserSpaceCoord(fxAttr);
         const ufy = fyAttr == null ? ucy : parseUserSpaceCoord(fyAttr);
         if (ufx === null || ufy === null) {
@@ -379,7 +436,7 @@ function resolveRadialGradientCss(doc, gradientId, options) {
     }
 
     const stops = [];
-    const stopEls = Array.from(grad.children || []).filter(c => String(c.nodeName).toLowerCase() === 'stop');
+    const stopEls = inheritedGradientStops(chain);
     for (const stopEl of stopEls) {
         const offset = parseStopOffset(stopEl.getAttribute('offset'));
         const stopColorRaw = stopEl.getAttribute('stop-color') ?? parseStyleAttribute(stopEl.getAttribute('style'))['stop-color'];
