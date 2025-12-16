@@ -119,6 +119,65 @@ test.describe('Clipboard: paste SVG from text/html (editable shapes flag)', () =
     expect(anyGradientFill).toBe(true);
   });
 
+  test('pasting HTML containing an <svg> with <linearGradient gradientTransform="scale(...)"> applies transform to gradient direction', async ({ page, getState }) => {
+    const before = await getState();
+    const slideId = before.editor.activeSlideId;
+    expect(slideId).toBeTruthy();
+
+    const beforeElements = before.slides[slideId]?.elements || {};
+    const beforeIds = new Set(Object.keys(beforeElements));
+
+    const svg = `
+      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="10">
+        <defs>
+          <linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="100%" gradientTransform="scale(2 1)">
+            <stop offset="0%" stop-color="#ff0000" />
+            <stop offset="100%" stop-color="#0000ff" />
+          </linearGradient>
+        </defs>
+        <rect x="0" y="0" width="20" height="10" fill="url(#g)" />
+      </svg>
+    `;
+    const html = `<div data-from="test">${svg}</div>`;
+
+    await page.evaluate(async ({ html }) => {
+      const item = new ClipboardItem({
+        'text/html': new Blob([html], { type: 'text/html' })
+      });
+      await navigator.clipboard.write([item]);
+    }, { html });
+
+    await page.keyboard.down('Control');
+    await page.keyboard.press('v');
+    await page.keyboard.up('Control');
+
+    await expect.poll(async () => {
+      const after = await getState();
+      const count = Object.keys(after.slides[slideId]?.elements || {}).length;
+      return count;
+    }, { timeout: 4000 }).toBeGreaterThan(beforeIds.size);
+
+    const after = await getState();
+    const afterElements = after.slides[slideId]?.elements || {};
+
+    const newElements = Object.entries(afterElements)
+      .filter(([id]) => !beforeIds.has(id))
+      .map(([, el]: any) => el);
+
+    const newShapes = newElements.filter((el: any) => el && el.type === 'shape');
+    expect(newShapes.length).toBeGreaterThan(0);
+
+    const shapeWithGradient = newShapes.find((el: any) => el?.style?.fills?.[0]?.type === 'gradient');
+    expect(shapeWithGradient).toBeTruthy();
+
+    const css = String(shapeWithGradient.style.fills[0].value || '');
+    const m = css.match(/linear-gradient\(\s*([0-9.]+)deg/i);
+    expect(m).toBeTruthy();
+    const deg = m ? Number(m[1]) : NaN;
+    // scaleX=2, scaleY=1 transforms a diagonal (1,1) into (2,1) => CSS angle ~116.565deg.
+    expect(deg).toBeCloseTo(116.565, 3);
+  });
+
   test('pasting HTML containing an <svg><path/></svg> imports a vector shape (Q/T supported)', async ({ page, getState }) => {
     const before = await getState();
     const slideId = before.editor.activeSlideId;
