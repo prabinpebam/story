@@ -505,6 +505,64 @@ test.describe('Clipboard: paste SVG from text/html (editable shapes flag)', () =
     expect(f0?.tileOffsetY).toBe(20);
   });
 
+  test('pasting HTML containing an <svg> with supported objectBoundingBox <patternContentUnits="userSpaceOnUse"> imports a repeating image fill with derived tile metrics', async ({ page, getState }) => {
+    const before = await getState();
+    const slideId = before.editor.activeSlideId;
+    expect(slideId).toBeTruthy();
+
+    const beforeElements = before.slides[slideId]?.elements || {};
+    const beforeIds = new Set(Object.keys(beforeElements));
+
+    const svg = `
+      <svg xmlns="http://www.w3.org/2000/svg" width="220" height="120">
+        <defs>
+          <pattern id="p" patternUnits="objectBoundingBox" patternContentUnits="userSpaceOnUse" x="0.25" y="0.2" width="0.25" height="0.5">
+            <rect x="50" y="20" width="50" height="50" fill="#ff0000" />
+          </pattern>
+        </defs>
+        <rect x="0" y="0" width="200" height="100" fill="url(#p)" />
+      </svg>
+    `;
+    const html = `<div data-from="test">${svg}</div>`;
+
+    await page.evaluate(async ({ html }) => {
+      const item = new ClipboardItem({
+        'text/html': new Blob([html], { type: 'text/html' })
+      });
+      await navigator.clipboard.write([item]);
+    }, { html });
+
+    await page.keyboard.down('Control');
+    await page.keyboard.press('v');
+    await page.keyboard.up('Control');
+
+    await expect.poll(async () => {
+      const after = await getState();
+      const count = Object.keys(after.slides[slideId]?.elements || {}).length;
+      return count;
+    }, { timeout: 4000 }).toBeGreaterThan(beforeIds.size);
+
+    const after = await getState();
+    const afterElements = after.slides[slideId]?.elements || {};
+
+    const newElements = Object.entries(afterElements)
+      .filter(([id]) => !beforeIds.has(id))
+      .map(([, el]: any) => el);
+
+    const newShapes = newElements.filter((el: any) => el && el.type === 'shape');
+    expect(newShapes.length).toBeGreaterThan(0);
+
+    const found = newShapes.find((el: any) => {
+      const f0 = el?.style?.fills?.[0];
+      return f0?.type === 'image' && f0?.repeat === 'repeat' && f0?.tileWidth === 50 && f0?.tileHeight === 50;
+    });
+    expect(found).toBeTruthy();
+
+    const f0 = found?.style?.fills?.[0];
+    expect(f0?.tileOffsetX).toBe(50);
+    expect(f0?.tileOffsetY).toBe(20);
+  });
+
   test('pasting HTML containing an <svg> with <linearGradient gradientTransform="scale(...)"> applies transform to gradient direction', async ({ page, getState }) => {
     const before = await getState();
     const slideId = before.editor.activeSlideId;

@@ -50,6 +50,7 @@ This status snapshot reflects what is implemented in the repo today (not “plan
   - [x] Supports `x/y` offsets; imports phase via `tileOffsetX/tileOffsetY`
   - [x] Axis-aligned `patternTransform` (translate/scale/matrix; no rotate/skew)
   - [x] `patternUnits="objectBoundingBox"` when `patternContentUnits="objectBoundingBox"` and no `patternTransform`
+  - [x] `patternUnits="objectBoundingBox"` when `patternContentUnits="userSpaceOnUse"` and no `patternTransform` (conservative: normalizes user-space content into a `0..1` tile)
   - [x] Imported as repeating `image` fill (SVG tile data URI)
 - [x] `fill-rule` preserved (`evenodd`/`nonzero`) for vectors
 - [x] Stroke-aware bounds for line/vector/path (bbox expands by half stroke width)

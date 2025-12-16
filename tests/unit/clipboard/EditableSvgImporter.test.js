@@ -734,6 +734,42 @@ describe('EditableSvgImporter.importEditableShapesFromSanitizedSvg', () => {
                 expect(f0?.tileOffsetY).toBe(20);
         });
 
+        it('imports objectBoundingBox <pattern> with patternContentUnits="userSpaceOnUse" (conservative subset) by normalizing user-space content into a 0..1 tile', () => {
+                const svg = `
+                    <svg xmlns="http://www.w3.org/2000/svg" width="220" height="120">
+                        <defs>
+                            <pattern id="p" patternUnits="objectBoundingBox" patternContentUnits="userSpaceOnUse" x="0.25" y="0.2" width="0.25" height="0.5">
+                                <rect x="50" y="20" width="50" height="50" fill="#ff0000" />
+                            </pattern>
+                        </defs>
+                        <rect x="0" y="0" width="200" height="100" fill="url(#p)" />
+                    </svg>
+                `;
+
+                const res = importEditableShapesFromSanitizedSvg(svg, { centerX: 0, centerY: 0, idSeed: 't' });
+                expect(res.ok).toBe(true);
+                if (!res.ok) return;
+
+                expect(res.warnings).not.toContain('WARN_GRADIENT_PAINT_UNSUPPORTED');
+
+                const f0 = res.elements[0]?.style?.fills?.[0];
+                expect(f0?.type).toBe('image');
+                expect(f0?.repeat).toBe('repeat');
+                expect(typeof f0?.value).toBe('string');
+                expect(f0?.value).toMatch(/^data:image\/svg\+xml,/);
+                expect(f0?.tileWidth).toBe(50);
+                expect(f0?.tileHeight).toBe(50);
+                expect(f0?.tileOffsetX).toBe(50);
+                expect(f0?.tileOffsetY).toBe(20);
+
+                const decoded = decodeURIComponent(String(f0?.value || '').replace(/^data:image\/svg\+xml,/, ''));
+                expect(decoded).toMatch(/viewBox="0 0 1 1"/);
+                // For bbox 200x100 and tile rect (x,y,w,h) = (50,20,50,50):
+                // Normalize user-space into tile: x' = x/50 - 1; y' = y/50 - 0.4
+                expect(decoded).toMatch(/transform="matrix\(0\.02 0 0 0\.02 -1 -0\.4\)"/);
+                expect(decoded).toMatch(/<rect[^>]+x="50"[^>]+y="20"[^>]+width="50"[^>]+height="50"/);
+        });
+
         it('warns and falls back when userSpaceOnUse gradient coords are missing', () => {
                 const svg = `
                     <svg xmlns="http://www.w3.org/2000/svg">

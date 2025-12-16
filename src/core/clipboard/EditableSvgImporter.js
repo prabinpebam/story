@@ -533,7 +533,7 @@ function resolvePatternPaintFill(doc, patternId, options) {
         const contentUnits = p.getAttribute('patternContentUnits');
         const contentUnitsTrimmed = typeof contentUnits === 'string' ? contentUnits.trim() : '';
         const contentUnitsEffective = contentUnitsTrimmed || 'objectBoundingBox';
-        if (contentUnitsEffective !== 'objectBoundingBox') {
+        if (contentUnitsEffective !== 'objectBoundingBox' && contentUnitsEffective !== 'userSpaceOnUse') {
             return { ok: false, reason: 'PATTERN_CONTENT_UNITS_UNSUPPORTED' };
         }
 
@@ -570,7 +570,26 @@ function resolvePatternPaintFill(doc, patternId, options) {
         }
 
         // Use a normalized 0..1 tile; renderer scales to tileWidth/tileHeight.
-        tileSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="1" height="1" viewBox="0 0 1 1">${serializedChildren}</svg>`;
+        if (contentUnitsEffective === 'objectBoundingBox') {
+            tileSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="1" height="1" viewBox="0 0 1 1">${serializedChildren}</svg>`;
+        } else {
+            // patternContentUnits=userSpaceOnUse: children coordinates are in the referencing element's user space.
+            // Normalize user-space coordinates into the tile rectangle in baked geometry space.
+            const tileOriginX = bbox.x + tileOffsetX;
+            const tileOriginY = bbox.y + tileOffsetY;
+            const fmt = (v) => String(Math.round(v * 1e6) / 1e6);
+
+            const a = sx / tileWidth;
+            const d = sy / tileHeight;
+            const e = (tx - tileOriginX) / tileWidth;
+            const f = (ty - tileOriginY) / tileHeight;
+            if (![a, d, e, f].every(Number.isFinite)) {
+                return { ok: false, reason: 'PATTERN_COORDS_UNSUPPORTED' };
+            }
+
+            const matrix = `matrix(${fmt(a)} 0 0 ${fmt(d)} ${fmt(e)} ${fmt(f)})`;
+            tileSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="1" height="1" viewBox="0 0 1 1"><g transform="${matrix}">${serializedChildren}</g></svg>`;
+        }
     } else {
         return { ok: false, reason: 'PATTERN_UNITS_UNSUPPORTED' };
     }
