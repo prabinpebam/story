@@ -104,7 +104,7 @@ Update this section at least weekly so everyone sees the “north star”.
 
 ---
 
-## Current Status (Snapshot — 2025-12-16)
+## Current Status (Snapshot — 2025-12-17)
 
 This status snapshot reflects what is implemented in the repo today (not “planned”), with emphasis on the interop work we’ve been actively shipping.
 
@@ -462,7 +462,7 @@ Status values (use these exact words to keep search/filters simple):
 | `10-control-points-and-handles.md` | NOT REVIEWED | NOT STARTED | NONE | NONE |  |
 | `11-continuity-and-smoothness.md` | NOT REVIEWED | NOT STARTED | NONE | NONE |  |
 | `11-undo-redo-and-operations.md` | NOT REVIEWED | IN PROGRESS | NONE | NONE | Snapshot undo/redo exists: `src/core/HistoryManager.js` (Shapes op semantics spec parity TBD). |
-| `12-hit-testing.md` | NOT REVIEWED | IN PROGRESS | NONE | NONE | Element + handle hit-testing exists: `src/core/canvas/HitTesting.js`, `src/core/CanvasManager.js` (Shapes-specific hit rules TBD). |
+| `12-hit-testing.md` | NOT REVIEWED | IN PROGRESS | PLAYWRIGHT | NONE | Element + handle hit-testing exists: `src/core/canvas/HitTesting.js`, `src/core/CanvasManager.js`. Regression coverage: `tests/e2e/specs/functional/m3-selection-hit-testing.spec.ts` (click-to-select + shift-click multi-select toggling). |
 | `13-boolean-geometry-system.md` | NOT REVIEWED | NOT STARTED | NONE | NONE |  |
 | `14-style-and-paint-integration.md` | NOT REVIEWED | IN PROGRESS | PLAYWRIGHT | NONE | Paint stack present (fills/strokes/effects): `src/core/renderer/elements/ShapeElement.js`, UI panels: `src/ui/properties/FillSection.js`, `src/ui/properties/StrokeSection.js`, `src/ui/properties/EffectsSection.js`. Regression coverage: `tests/e2e/specs/functional/m2-rendering-mode-viewport-parity.spec.ts` asserts fill/stroke/effects DOM output in edit mode. |
 | `15-masking-and-clipping.md` | NOT REVIEWED | NOT STARTED | NONE | NONE |  |
@@ -477,7 +477,7 @@ Status values (use these exact words to keep search/filters simple):
 | `19a-figma-clipboard-import.md` | NOT REVIEWED | IN PROGRESS | VITEST+PLAYWRIGHT | CORPUS | Editable SVG paste subset + deterministic degrade ladder is shipping. |
 | `20-interaction-modes-and-state-machine.md` | NOT REVIEWED | IN PROGRESS | NONE | NONE | Canvas interaction state + tools exist: `src/core/CanvasManager.js` (Shapes-specific mode gating TBD). |
 | `21-vector-editing-operations.md` | NOT REVIEWED | NOT STARTED | NONE | NONE |  |
-| `22-selection-and-focus-ux.md` | NOT REVIEWED | IN PROGRESS | NONE | NONE | Selection + inspector wiring exists: `src/core/CanvasManager.js`, `src/ui/PropertyInspector.js` (Shapes UX spec parity TBD). |
+| `22-selection-and-focus-ux.md` | NOT REVIEWED | IN PROGRESS | PLAYWRIGHT | NONE | Selection + inspector wiring exists: `src/core/CanvasManager.js`, `src/ui/PropertyInspector.js`. Regression coverage: `tests/e2e/specs/functional/m3-selection-hit-testing.spec.ts`. |
 | `23-snapping-and-guides-shapes.md` | NOT REVIEWED | IN PROGRESS | NONE | NONE | Snapping system exists: `src/core/canvas/SnappingSystem.js`, `src/core/CanvasManager.js` (Shapes delta TBD). |
 | `25-product-level-requirements.md` | NOT REVIEWED | NOT STARTED | NONE | NONE |  |
 | `26-canvas-and-viewport-shapes.md` | NOT REVIEWED | IN PROGRESS | PLAYWRIGHT | NONE | Canvas/viewport orchestration exists: `src/core/CanvasManager.js`, presentation scaling: `src/core/PresentationManager.js`. Regression: `tests/e2e/specs/functional/m2-rendering-mode-viewport-parity.spec.ts` (edit vs presentation viewport behavior). |
