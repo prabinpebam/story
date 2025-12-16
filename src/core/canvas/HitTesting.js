@@ -9,6 +9,83 @@ export class HitTesting {
         this.cm = canvasManager;
     }
 
+    static chooseBestHitCandidate(candidates) {
+        if (!candidates || candidates.length === 0) return null;
+
+        let best = null;
+        for (const candidate of candidates) {
+            if (!best) {
+                best = candidate;
+                continue;
+            }
+
+            const priorityA = candidate.priorityRank ?? Number.POSITIVE_INFINITY;
+            const priorityB = best.priorityRank ?? Number.POSITIVE_INFINITY;
+            if (priorityA !== priorityB) {
+                if (priorityA < priorityB) best = candidate;
+                continue;
+            }
+
+            const distanceA = candidate.distance ?? Number.POSITIVE_INFINITY;
+            const distanceB = best.distance ?? Number.POSITIVE_INFINITY;
+            if (distanceA !== distanceB) {
+                if (distanceA < distanceB) best = candidate;
+                continue;
+            }
+
+            const zOrderA = candidate.zOrder ?? Number.NEGATIVE_INFINITY;
+            const zOrderB = best.zOrder ?? Number.NEGATIVE_INFINITY;
+            if (zOrderA !== zOrderB) {
+                if (zOrderA > zOrderB) best = candidate;
+                continue;
+            }
+
+            const hitKeyA = candidate.hitKey ?? '';
+            const hitKeyB = best.hitKey ?? '';
+            if (hitKeyA && hitKeyB && hitKeyA !== hitKeyB) {
+                if (hitKeyA.localeCompare(hitKeyB) < 0) best = candidate;
+            }
+        }
+
+        return best;
+    }
+
+    _getElementsWithZOrder(state, slide) {
+        let elements = [];
+
+        if (state.editor.mode === 'master') {
+            // Master mode: Check effective elements (includes inherited + local)
+            const effectiveSlide = this.cm.canvasManager?.currentRenderer?.getEffectiveSlideData?.(slide.id, 'master') || slide;
+            if (effectiveSlide.effectiveElements && effectiveSlide.effectiveOrder) {
+                elements = effectiveSlide.effectiveOrder
+                    .map((id, index) => ({ element: effectiveSlide.effectiveElements[id], zOrder: index }))
+                    .filter(e => e.element);
+            } else {
+                elements = (slide.elementOrder || [])
+                    .map((id, index) => ({ element: slide.elements[id], zOrder: index }))
+                    .filter(e => e.element);
+            }
+        } else if (state.editor.mode === 'edit') {
+            // Edit Mode: Check effective elements (including placeholders)
+            const effectiveSlide = store.getEffectiveSlide(slide.id);
+            if (effectiveSlide) {
+                elements = (effectiveSlide.effectiveOrder || [])
+                    .map((id, index) => ({ element: effectiveSlide.effectiveElements[id], zOrder: index }))
+                    .filter(e => e.element);
+            } else {
+                elements = (slide.elementOrder || [])
+                    .map((id, index) => ({ element: slide.elements[id], zOrder: index }))
+                    .filter(e => e.element);
+            }
+        } else {
+            elements = (slide.elementOrder || [])
+                .map((id, index) => ({ element: slide.elements[id], zOrder: index }))
+                .filter(e => e.element);
+        }
+
+        return elements;
+    }
+
     hitTest(x, y) {
         const state = store.getState();
         const { zoom, pan } = state.editor;
@@ -26,38 +103,27 @@ export class HitTesting {
         const slide = this.cm.getActiveContainer(state);
         if (!slide) return null;
 
-        // Reverse order (top to bottom)
-        let elementsToCheck = [];
-        if (state.editor.mode === 'master') {
-             // Master mode: Check effective elements (includes inherited + local)
-             const effectiveSlide = this.cm.canvasManager?.currentRenderer?.getEffectiveSlideData?.(slide.id, 'master') || slide;
-             if (effectiveSlide.effectiveElements && effectiveSlide.effectiveOrder) {
-                 elementsToCheck = effectiveSlide.effectiveOrder.map(id => effectiveSlide.effectiveElements[id]).filter(e => e);
-             } else {
-                 elementsToCheck = (slide.elementOrder || []).map(id => slide.elements[id]).filter(e => e);
-             }
-        } else if (state.editor.mode === 'edit') {
-             // Edit Mode: Check effective elements (including placeholders)
-             const effectiveSlide = store.getEffectiveSlide(slide.id);
-             if (effectiveSlide) {
-                 elementsToCheck = (effectiveSlide.effectiveOrder || []).map(id => effectiveSlide.effectiveElements[id]).filter(e => e);
-             } else {
-                 elementsToCheck = (slide.elementOrder || []).map(id => slide.elements[id]).filter(e => e);
-             }
-        } else {
-             elementsToCheck = (slide.elementOrder || []).map(id => slide.elements[id]).filter(e => e);
-        }
-        
-        for (let i = elementsToCheck.length - 1; i >= 0; i--) {
-            const el = elementsToCheck[i];
-            if (GeometryUtils.pointInElement(worldX, worldY, el)) {
-                // Check if it's inherited
-                const isInherited = !Object.prototype.hasOwnProperty.call(slide.elements, el.id);
-                return { type: 'element', id: el.id, isInherited, element: el };
-            }
+        const elementsWithZ = this._getElementsWithZOrder(state, slide);
+        const candidates = [];
+
+        for (const { element, zOrder } of elementsWithZ) {
+            if (!element) continue;
+            if (!GeometryUtils.pointInElement(worldX, worldY, element)) continue;
+
+            // Current object-mode baseline: treat as fill hit with distance 0.
+            // In the future, stroke/point/edge candidates can be added with real distance.
+            const isInherited = !Object.prototype.hasOwnProperty.call(slide.elements, element.id);
+            candidates.push({
+                priorityRank: 2,
+                distance: 0,
+                zOrder,
+                hitKey: `fill:layer:${element.id}:fill-0`,
+                result: { type: 'element', id: element.id, isInherited, element }
+            });
         }
 
-        return null;
+        const best = HitTesting.chooseBestHitCandidate(candidates);
+        return best ? best.result : null;
     }
 
     hitTestHandles(x, y) {
