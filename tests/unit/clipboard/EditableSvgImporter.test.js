@@ -204,6 +204,31 @@ describe('EditableSvgImporter.importEditableShapesFromSanitizedSvg', () => {
                 expect(el.style.fills[0].value).toMatch(/linear-gradient\(/i);
         });
 
+        it('imports userSpaceOnUse linearGradient for <path> when coords are explicit', () => {
+                const svg = `
+                    <svg xmlns="http://www.w3.org/2000/svg">
+                        <defs>
+                            <linearGradient id="g" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="10" y2="0">
+                                <stop offset="0%" stop-color="#ff0000" />
+                                <stop offset="100%" stop-color="#0000ff" />
+                            </linearGradient>
+                        </defs>
+                        <path d="M0 0 L10 0 L10 10 Z" fill="url(#g)" />
+                    </svg>
+                `;
+
+                const res = importEditableShapesFromSanitizedSvg(svg, { centerX: 0, centerY: 0, idSeed: 't' });
+                expect(res.ok).toBe(true);
+                if (!res.ok) return;
+
+                expect(res.warnings).not.toContain('WARN_GRADIENT_PAINT_UNSUPPORTED');
+
+                const el = res.elements[0];
+                expect(el.shapeKind).toBe('vector');
+                expect(el.style?.fills?.[0]?.type).toBe('gradient');
+                expect(el.style.fills[0].value).toMatch(/linear-gradient\(/i);
+        });
+
         it('imports linearGradient stroke as a gradient stroke (no WARN_GRADIENT_PAINT_UNSUPPORTED)', () => {
                 const svg = `
                     <svg xmlns="http://www.w3.org/2000/svg">

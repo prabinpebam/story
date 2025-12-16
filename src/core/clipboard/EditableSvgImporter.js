@@ -734,15 +734,17 @@ export function importEditableShapesFromSanitizedSvg(sanitizedSvg, options) {
 
     const warnings = [];
 
-    function styleForNode(node) {
+    function styleForNode(node, options) {
         const paint = resolvePaintForNode(node);
+
+        const bboxOverride = options?.bboxOverride ?? null;
 
         let fillGradientCss = null;
         if (paint.unsupported?.fillUrlPaint) {
             const fillRaw = getInheritedPresentation(node, 'fill');
             const gradId = parseUrlPaintId(fillRaw);
             if (gradId) {
-                const bbox = getPrimitiveLocalBBox(node);
+                const bbox = bboxOverride ?? getPrimitiveLocalBBox(node);
                 const resolved = resolveLinearGradientCss(doc, gradId, { elementBBox: bbox });
                 if (resolved.ok) {
                     fillGradientCss = resolved.css;
@@ -760,7 +762,7 @@ export function importEditableShapesFromSanitizedSvg(sanitizedSvg, options) {
             const strokeRaw = getInheritedPresentation(node, 'stroke');
             const gradId = parseUrlPaintId(strokeRaw);
             if (gradId) {
-                const bbox = getPrimitiveLocalBBox(node);
+                const bbox = bboxOverride ?? getPrimitiveLocalBBox(node);
                 const resolved = resolveLinearGradientCss(doc, gradId, { elementBBox: bbox });
                 if (resolved.ok) {
                     strokeGradientCss = resolved.css;
@@ -958,7 +960,8 @@ export function importEditableShapesFromSanitizedSvg(sanitizedSvg, options) {
             const height = (maxY - minY) + 2 * pad;
 
             if (width > 0 && height > 0) {
-                const { fills, strokes } = styleForNode(node);
+                const bboxOverride = { x, y, width, height };
+                const { fills, strokes } = styleForNode(node, { bboxOverride });
                 elements.push({
                     id: makeId(),
                     type: 'shape',
@@ -1002,7 +1005,8 @@ export function importEditableShapesFromSanitizedSvg(sanitizedSvg, options) {
                     const localPts = translated.map(p => ({ x: p.x - x, y: p.y - y }));
                     const path = makeVectorPathFromPoints(localPts, { closed: tag === 'polygon' });
                     if (path) {
-                        const { fills, strokes } = styleForNode(node);
+                        const bboxOverride = { x, y, width, height };
+                        const { fills, strokes } = styleForNode(node, { bboxOverride });
                         elements.push({
                             id: makeId(),
                             type: 'shape',
@@ -1081,7 +1085,8 @@ export function importEditableShapesFromSanitizedSvg(sanitizedSvg, options) {
                             })
                         }));
 
-                        const { fills, strokes } = styleForNode(node);
+                        const bboxOverride = { x, y, width, height };
+                        const { fills, strokes } = styleForNode(node, { bboxOverride });
                         elements.push({
                             id: makeId(),
                             type: 'shape',
