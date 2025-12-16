@@ -18,6 +18,40 @@ References (must stay in sync):
 
 ---
 
+## Current Status (Snapshot — 2025-12-16)
+
+This status snapshot reflects what is implemented in the repo today (not “planned”), with emphasis on the interop work we’ve been actively shipping.
+
+### Phase Status
+- Phase 0 (Tooling/Test harness): **PARTIAL** — Playwright + Vitest are in place and we have functional clipboard-paste coverage, but the Shapes corpus scaffolding directories are **not** present yet.
+- Phase 1–9 (Foundations → UX): **NOT TRACKED IN THIS PLAN FILE YET** — this document still needs a pass to mark what already exists in Story vs what remains for the new Shapes system.
+- Phase 10 (Interop: Figma paste → editable elements): **IN PROGRESS** — editable SVG paste pipeline implemented for a conservative subset, behind a feature flag, with unit + Playwright coverage.
+- Phase 11–12 (Perf/A11y/extensibility): **NOT STARTED (for Shapes program)**
+
+### Phase 10 — Implemented Scope (Editable SVG Paste)
+- [x] Feature-flagged editable SVG paste path (keeps default behavior safe)
+- [x] Deterministic element IDs for pasted SVG imports (seeded)
+- [x] Editable import for SVG primitives: `rect`, `circle`, `ellipse`, `line`, `polyline`, `polygon`
+- [x] Editable import for `path` as vector geometry with conservative path command support: `M/L/H/V/C/S/Q/T/A/Z` (abs+rel)
+- [x] Linear gradient import (`linearGradient`) for fills + strokes
+  - [x] `objectBoundingBox`
+  - [x] `userSpaceOnUse` when explicit coords exist
+  - [x] Deterministic warning + degrade for unsupported `gradientTransform` (translation-only transform is ignored with warning)
+- [x] `fill-rule` preserved (`evenodd`/`nonzero`) for vectors
+- [x] Stroke-aware bounds for line/vector/path (bbox expands by half stroke width)
+- [x] SVG root `viewBox` baked as scale+translate (scale/translate only; still conservative)
+- [x] Automated coverage:
+  - [x] Vitest: `tests/unit/clipboard/EditableSvgImporter.test.js`
+  - [x] Playwright: `tests/e2e/specs/functional/clipboard-html-svg-paste-editable.spec.ts`
+
+### Phase 10 — Not Implemented Yet (Known Gaps)
+- [ ] Corpus fixtures: `tests/corpus/shapes/figma-paste/` (directory + canonical hash + warnings)
+- [ ] Broader SVG paint support (e.g. radial gradients, patterns)
+- [ ] Broader transform support beyond translation and root viewBox (e.g. rotate/skew; non-translation matrices)
+- [ ] Clip-path/masking import for pasted SVG (if required by spec)
+
+---
+
 ## Definition of Done (Shapes “Complete”)
 Shapes is complete only when all are true:
 - Every spec file in `documentation/01-specs/shapes/` is implemented or explicitly marked “v1 non-goal” (and the spec updated accordingly).
@@ -45,9 +79,9 @@ Required deliverables:
 - Vitest:
   - Helpers for canonical JSON hashing, numeric bucketing, seeded randomness.
 - Corpus scaffolding (per shapes testing spec):
-  - `tests/corpus/shapes/booleans/`
-  - `tests/corpus/shapes/paths/`
-  - `tests/corpus/shapes/figma-paste/`
+  - `tests/corpus/shapes/booleans/` (NOT PRESENT YET)
+  - `tests/corpus/shapes/paths/` (NOT PRESENT YET)
+  - `tests/corpus/shapes/figma-paste/` (NOT PRESENT YET)
 
 Gate:
 - No feature work begins until at least one end-to-end shapes test can run locally and in CI.
@@ -233,6 +267,9 @@ Deliverables:
 - Internal serialization/export rules.
 - SVG mapping/export for supported subset.
 - Figma clipboard paste → editable elements conversion pipeline with deterministic degrade ladder.
+
+Status:
+- IN PROGRESS — editable SVG paste subset exists and is tested; corpus + broader interop remains.
 
 Primary spec drivers:
 - `19-serialization-and-interop.md`
