@@ -12,6 +12,7 @@ import { SUPPORTED_IMAGE_FORMATS, SUPPORTED_VIDEO_FORMATS } from './constants/Me
 import { contextMenuManager } from '../ui/components/ContextMenu/index.js';
 import { canvasMenuConfigs } from '../ui/components/ContextMenu/canvasMenuConfig.js';
 import { sanitizeSvg } from './svg/SvgSanitizer.js';
+import { extractFirstSvgFromHtml } from './clipboard/ClipboardSvgExtractor.js';
 
 /**
  * CanvasManager - Main orchestrator for canvas interactions
@@ -1905,6 +1906,32 @@ export class CanvasManager {
             const clipboardItems = await navigator.clipboard.read();
             
             for (const item of clipboardItems) {
+                // If the clipboard provides HTML, try to extract embedded SVG first.
+                // (Figma commonly provides SVG markup via text/html.)
+                if (item.types && item.types.includes('text/html')) {
+                    try {
+                        const htmlBlob = await item.getType('text/html');
+                        const html = await htmlBlob.text();
+                        const svgMarkup = extractFirstSvgFromHtml(html);
+                        if (svgMarkup) {
+                            e.preventDefault();
+
+                            const blob = new Blob([svgMarkup], { type: 'image/svg+xml' });
+                            const file = new File([blob], `pasted-svg-${Date.now()}.svg`, { type: 'image/svg+xml' });
+
+                            const { zoom, pan } = state.editor;
+                            const rect = this.container.getBoundingClientRect();
+                            const centerX = (rect.width / 2 - pan.x) / zoom;
+                            const centerY = (rect.height / 2 - pan.y) / zoom;
+
+                            await this.createSvgElement(file, centerX, centerY);
+                            return;
+                        }
+                    } catch {
+                        // ignore and fall through
+                    }
+                }
+
                 // Check for image types
                 const imageType = item.types.find(type => type.startsWith('image/'));
                 if (imageType) {
