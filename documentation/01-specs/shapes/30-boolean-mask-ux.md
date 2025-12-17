@@ -1,10 +1,10 @@
 # Boolean & Mask Interaction UX
 
-**Status**: Draft
+**Status**: Ready for implementation
 
 Defines user flows for creating, editing, and flattening booleans and masks.
 
-This spec is UI-facing: the goal is to make the shipped boolean/mask functionality **testable via the existing toolbar + property inspector**.
+This spec is UI-facing: the goal is to make boolean/mask functionality **testable via the existing toolbar + property inspector + sidebar header selection controls**.
 
 Related:
 - Tool UX + shortcuts: [39-toolbar-tools-and-creation-ux.md](./39-toolbar-tools-and-creation-ux.md)
@@ -15,36 +15,57 @@ Related:
 
 ## V1 scope note (what ships vs future)
 
-**Shipped in v1**:
-- Boolean + mask nodes exist and are non-destructive.
-- Node-level inspector sections exist for boolean operation and mask invert.
+**Shipped in v1 (required)**:
+- Boolean + mask nodes exist and are non-destructive (until the user explicitly flattens).
 - Robust failure-mode behavior is non-fatal (fallbacks keep operands/content intact and surface non-blocking warnings).
+- Sidebar header selection UI supports creating booleans from multi-selection via a dropdown (Union/Subtract/Intersect/Exclude) and explicit Flatten.
+- Node-level inspector sections exist for boolean operation and mask invert.
 
 **V1 NON-GOAL**:
-- Selection-level “Composition” UI section for creating booleans/masks from the current selection.
-- Keyboard shortcuts for boolean/mask commands.
-- Flatten (irreversible conversion) UI/action.
+- Keyboard shortcuts for boolean/mask commands (menu-driven UI is sufficient for v1).
+- Mask creation from selection UI (separate follow-up; this spec still documents the desired behavior).
 
 ---
 
 ## 1. Boolean creation
 
-### 1.1 Entry points (V1 NON-GOAL)
-When the user has **2+ boolean-capable** elements selected:
-- Eligible operands are shapes/vectors that are NOT composition nodes.
-	- v1 constraint: booleans and masks cannot be selected as operands.
+### 1.1 Entry points (V1)
 
-UI placement (future work):
-- The selection-level composition commands should be surfaced as a dedicated Property Inspector section rendered in the inspector body (not in the sidebar header).
-	- Rationale: the current sidebar header only exposes a title label; sections are the existing extensibility point.
+#### 1.1.1 Sidebar header: Selection summary + boolean dropdown
+When **more than 1** element is selected, the sidebar header MUST show the current selection summary (existing behavior).
 
-Dropdown items (future work):
-- Union
-- Subtract
-- Intersect
-- Exclude
-- Divider
-- Flatten
+If the current selection is **eligible for boolean composition** (see rules below), the sidebar header MUST also show a **Boolean operations** control:
+- A button/icon for boolean operations with a dropdown caret.
+- Clicking opens a dropdown menu anchored to the header control.
+
+Accessibility requirements:
+- The control MUST be keyboard focusable.
+- The button MUST have an accessible name (e.g. `Boolean operations`).
+- Menu items MUST be reachable by keyboard (Up/Down, Enter to activate, Escape to close).
+
+Menu structure (required):
+- `Union`
+- `Subtract`
+- `Intersect`
+- `Exclude`
+- (Divider: visual separator; not a command)
+- `Flatten`
+
+The divider is a UI separator between non-destructive boolean creation commands and destructive/baking commands.
+
+#### 1.1.2 Eligibility rules for showing/enabling the boolean dropdown
+The boolean dropdown is only shown when:
+- `selectedElementIds.length >= 2`, AND
+- After filtering, there are **2+ eligible operands**.
+
+Eligible operands (v1):
+- Shape/vector elements that can participate as boolean operands.
+- NOT composition nodes (i.e., NOT `shapeKind:'boolean'` and NOT `shapeKind:'mask'`).
+
+If the selection is 2+ but yields <2 eligible operands after filtering:
+- Do NOT show the boolean dropdown (avoid silent no-ops).
+
+If a future UX requires showing a disabled dropdown, it MUST include a reason text; however, v1 uses “hide when not eligible” for clarity.
 
 ### 1.2 Command behavior
 On choosing a boolean op (Union/Subtract/Intersect/Exclude):
@@ -54,10 +75,38 @@ On choosing a boolean op (Union/Subtract/Intersect/Exclude):
 	- `operands:[...selectedIds]` (ordering; see below)
 - The new boolean node becomes the only selected element.
 
+On choosing `Flatten` from the sidebar header dropdown:
+- Flatten MUST be treated as an explicit, irreversible baking action.
+- Flatten MUST operate on the **current selection** and produce a single baked vector result.
+
+Flatten semantics (v1):
+- Filter the current selection to eligible operands (same filtering rules as boolean creation).
+- If fewer than 2 eligible operands remain, Flatten MUST do nothing and MUST NOT change selection (this should be prevented by eligibility gating).
+- Create a derived boolean result using `operation:'union'` (union is the deterministic default for flattening a multi-selection).
+- Convert the derived result into a new baked element (`shapeKind:'vector'`) and place it into the document.
+- Remove the original operand elements from the document.
+- Select the baked result.
+
+Undo contract:
+- Flatten from selection MUST be **1 undo step**.
+
+Failure mode:
+- If the boolean engine cannot compute a derived path for flattening, the operation MUST be aborted safely:
+	- Keep operands intact.
+	- Keep selection intact.
+	- Surface a non-blocking warning (no modal).
+
 Implementation mapping (Store actions; used by tests/automation today):
 - Union/Subtract/Intersect/Exclude MUST dispatch:
 	- `store.dispatch('CREATE_BOOLEAN_FROM_SELECTION', { ids: state.editor.selectedElementIds, operation: <op> })`
 	- The store handler is responsible for filtering invalid operands and selecting the newly created boolean.
+
+Implementation mapping for Flatten (new requirement):
+- Sidebar header `Flatten` MUST dispatch a single action that is undo-coalesced into one history step, e.g.:
+	- `store.dispatch('FLATTEN_BOOLEAN_FROM_SELECTION', { ids: state.editor.selectedElementIds })`
+
+Notes:
+- If implementation prefers composing multiple lower-level actions, it MUST still present as **one undo step**.
 
 Operand ordering (v1):
 - Preserve the current selection ordering (`state.editor.selectedElementIds`) after filtering to valid operands.
@@ -72,13 +121,11 @@ Implementation note:
 - If the boolean engine is still computing/refining, show a non-blocking “Refining…” indicator (no modal).
 
 ### 1.4 Invalid selection behavior (must be explicit)
-The selection-level composition section MUST avoid silent no-ops.
+The boolean dropdown MUST avoid silent no-ops.
 
 Rules:
-- If selection is < 2 elements, the section is hidden.
-- If selection is 2+ but becomes ineligible after filtering (e.g. includes booleans/masks, or non-shape elements), then:
-	- Either hide the section, OR show it with all items disabled.
-	- If shown disabled, include a brief reason (e.g. “Select 2+ shapes or vectors (not masks/booleans)”).
+- If selection is < 2 elements, the boolean dropdown is hidden.
+- If selection is 2+ but becomes ineligible after filtering (e.g. includes booleans/masks, or non-shape elements), hide the dropdown.
 
 ## 2. Boolean editing
 - Select boolean node
@@ -93,12 +140,10 @@ When exactly one selected element has `shapeKind:'boolean'`, the inspector shows
 - `Operation` dropdown: Union/Subtract/Intersect/Exclude
 	- Changing it updates `el.operation` (non-destructive)
 
-Optional but recommended for testability:
+Optional (recommended, consistent with sidebar header behavior):
 - `Flatten` button (danger-styled) that converts the boolean to a `shapeKind:'vector'` result and removes operand linkage.
-
-v1 implementation constraint:
-- There is currently no store action for flattening booleans.
-- If “Flatten” is shown in UI (either selection-level dropdown or node-level controls), it MUST be disabled until the operation exists.
+	- Undo: 1 step.
+	- Failure: non-fatal; keep operands + boolean node intact; show non-blocking warning.
 
 ### 2.2 Shortcuts (V1 NON-GOAL)
 Selection-level boolean/mask shortcuts are not shipped in v1.
@@ -154,13 +199,16 @@ Acceptance for undo:
 - Creating a boolean/mask is 1 undo step.
 - Changing boolean operation is 1 undo step.
 
-Note: Flatten is V1 NON-GOAL.
+Flatten acceptance for undo:
+- Flatten from selection is 1 undo step.
+- Flatten a selected boolean node is 1 undo step.
 
 ## 5. Acceptance
 - Non-destructive behavior is obvious and controllable.
 
 Manual UI acceptance checklist:
-- Multi-select shapes → Boolean dropdown appears → choose Union/Subtract/Intersect/Exclude → boolean node created and selected.
+- Multi-select 2+ eligible shapes/vectors → sidebar header shows Boolean operations dropdown → choose Union/Subtract/Intersect/Exclude → boolean node created and selected.
+- Multi-select 2+ eligible shapes/vectors → choose Flatten → baked vector created; operands removed; result selected.
 - Boolean node selected → Boolean section appears → Operation dropdown changes operation.
 - Mask node selected → Mask section appears → Invert toggle works.
 
