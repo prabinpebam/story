@@ -175,6 +175,7 @@ Interaction/UX specs (scaffolded):
 - [36-perceived-performance.md](./36-perceived-performance.md)
 - [37-accessibility.md](./37-accessibility.md)
 - [38-customization-and-extensibility.md](./38-customization-and-extensibility.md)
+- [39-toolbar-tools-and-creation-ux.md](./39-toolbar-tools-and-creation-ux.md)
 
 The goal is: **nothing left unspecified**. Each document below is scoped, testable, and PR-friendly.
 

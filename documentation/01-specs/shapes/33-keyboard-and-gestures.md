@@ -7,8 +7,29 @@ Defines keyboard shortcuts and modifier semantics for shapes editing.
 ---
 
 ## 1. Tool switching
-- Existing: `R` selects shape tool.
-- Define vector edit toggle shortcut (must not conflict).
+
+Tool switching must be consistent with `documentation/02-specs/core/keyboard-shortcuts.md` and the Shapes toolbar spec: [39-toolbar-tools-and-creation-ux.md](./39-toolbar-tools-and-creation-ux.md).
+
+### 1.1 Primary tools
+- `V` → Select/Move
+- `H` → Hand/Pan
+- `T` → Text
+
+### 1.2 Shape creation tools (v1)
+These must work even when the toolbar is not focused, but must never fire while typing in inputs/textarea/contentEditable.
+
+| Tool | Shortcut | Notes |
+|---|---:|---|
+| Rectangle | `R` | Default shape tool |
+| Ellipse | `O` | Figma-aligned |
+| Line | `L` | Figma-aligned |
+| Arrow | `Shift+L` | Figma-aligned |
+| Polygon | `Shift+P` | Story-specific, enables rapid testing |
+| Star | `Shift+S` | Story-specific, enables rapid testing |
+
+### 1.3 Vector edit mode
+- `Enter` toggles deep-edit (vector edit) for vector-capable shapes.
+- `Escape` exits deep-edit modes without mutating geometry.
 
 Mode gating:
 - Shortcuts that mutate geometry are active only in `edit`/`master`.
@@ -19,9 +40,26 @@ Mode gating:
 - Alt: from center / alternate behavior
 - Ctrl/Cmd: additive selection
 
+Constrain rules are defined in [39-toolbar-tools-and-creation-ux.md](./39-toolbar-tools-and-creation-ux.md).
+
 ## 3. Gestures
 - Double click to enter edit
 - Escape to exit
+
+---
+
+## 3.2 Boolean/mask commands (selection-level)
+
+Boolean/mask commands are only active when selection is compatible (see [30-boolean-mask-ux.md](./30-boolean-mask-ux.md)).
+
+Suggested shortcuts (v1, Windows):
+- `Alt+Shift+U` → Union
+- `Alt+Shift+S` → Subtract
+- `Alt+Shift+I` → Intersect
+- `Alt+Shift+E` → Exclude
+- `Alt+Shift+F` → Flatten (irreversible)
+
+Mac equivalents use `Option+Shift+…`.
 
 ## 3.1 Paste (Ctrl/Cmd+V) — interop
 When not in text-editing focus, `Ctrl/Cmd+V` MUST attempt a shapes import paste.

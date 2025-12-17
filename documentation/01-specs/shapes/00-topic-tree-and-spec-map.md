@@ -177,6 +177,13 @@ Spec: [21-vector-editing-operations.md](./21-vector-editing-operations.md)
 Existing spec: `documentation/01-specs/canvas/canvas-interaction.md`
 Shapes delta spec: [23-snapping-and-guides-shapes.md](./23-snapping-and-guides-shapes.md)
 
+### 4.5 Tools & Toolbar UX (Shape creation)
+- Tool slots and dropdown menu for primitives (rectangle/ellipse/line/arrow/polygon/star)
+- Keyboard shortcuts aligned with design-tool muscle memory
+- Minimal inspector controls for parametric primitives (polygon/star)
+
+Spec: [39-toolbar-tools-and-creation-ux.md](./39-toolbar-tools-and-creation-ux.md)
+
 ---
 
 ## 5. Boolean Geometry System
