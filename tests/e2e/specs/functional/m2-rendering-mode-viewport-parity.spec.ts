@@ -161,7 +161,12 @@ test.describe('M2: Rendering mode + viewport parity', () => {
           width: 20,
           height: 10,
           rotation: 0,
-          style: { fills: [{ type: 'solid', value: '#00FF00', opacity: 100, visible: true }] }
+          style: {
+            fills: [{ type: 'solid', value: '#00FF00', color: '#00FF00', opacity: 100, visible: true }],
+            strokes: [{ type: 'solid', color: '#000000', width: 4, opacity: 100, position: 'center', visible: true }],
+            dropShadow: { x: 2, y: 3, blur: 4, spread: 0, color: 'rgba(0, 0, 0, 0.5)', visible: true },
+            blur: { radius: 1, visible: true }
+          }
         }
       ],
       elementOrder: [elId]
@@ -195,6 +200,31 @@ test.describe('M2: Rendering mode + viewport parity', () => {
 
     const el = viewport.locator(`[data-element-id="${elId}"]`).first();
     await expect(el).toBeVisible();
+
+    // Paint stack should remain intact in presentation mode (pixels are mode-invariant).
+    const fillBg = await el.evaluate((node) => {
+      const fillLayer = node.querySelector('.fill-layer') as HTMLElement | null;
+      if (!fillLayer) return null;
+      return getComputedStyle(fillLayer).backgroundColor;
+    });
+    expect(fillBg).toContain('rgb(0, 255, 0)');
+
+    const strokeAttrs = await el.evaluate((node) => {
+      const rect = node.querySelector('svg.stroke-layer rect');
+      if (!rect) return null;
+      return {
+        stroke: rect.getAttribute('stroke'),
+        strokeWidth: rect.getAttribute('stroke-width')
+      };
+    });
+    expect(strokeAttrs).toEqual({ stroke: '#000000', strokeWidth: '4' });
+
+    const effects = await el.evaluate((node) => {
+      const style = (node as HTMLElement).style;
+      return { boxShadow: style.boxShadow, filter: style.filter };
+    });
+    expect(effects.boxShadow).toContain('2px 3px 4px 0px');
+    expect(effects.filter).toBe('blur(1px)');
 
     const { dx, dy, expectedScale } = await page.evaluate(({ elId, slideWidth, slideHeight }) => {
       const vp = document.getElementById('viewport');

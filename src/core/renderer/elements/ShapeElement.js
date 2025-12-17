@@ -502,7 +502,7 @@ export class ShapeElement extends VisualElement {
                             }
                         } else if (fill.type === 'image' && fill.assetId) {
                             // New media fill system using assetId
-                            this.applyImageFill(layer, fill, el);
+                            this.applyImageFill(layer, fill, el, index);
                         } else if (fill.type === 'video' && fill.assetId) {
                             // New media fill system for video
                             this.applyVideoFill(layer, fill, el);
@@ -623,7 +623,7 @@ export class ShapeElement extends VisualElement {
      * @param {Object} fill - Image fill properties
      * @param {Object} el - Element data
      */
-    applyImageFill(layer, fill, el) {
+    applyImageFill(layer, fill, el, fillIndex = 0) {
         // Get renderable URL from asset manager
         const src = mediaAssetManager.getRenderableUrl(fill.assetId);
         
@@ -640,7 +640,7 @@ export class ShapeElement extends VisualElement {
         
         // Handle tile mode separately (uses CSS background)
         if (fill.scaleMode === 'tile') {
-            this.applyTiledImageFill(layer, fill, src);
+            this.applyTiledImageFill(layer, fill, src, el.id, fillIndex);
             return;
         }
         
@@ -743,7 +743,7 @@ export class ShapeElement extends VisualElement {
      * @param {Object} fill
      * @param {string} src
      */
-    applyTiledImageFill(layer, fill, src) {
+    applyTiledImageFill(layer, fill, src, elementId = 'unknown', fillIndex = 0) {
         // Clear any img/video elements
         this.clearMediaLayer(layer);
         
@@ -763,7 +763,7 @@ export class ShapeElement extends VisualElement {
         }
         
         // Apply filters to the layer itself
-        const { filterValue, svgFilter } = FilterEngine.getFilterStyle(fill.filters || {}, `tile-${Date.now()}`);
+        const { filterValue, svgFilter } = FilterEngine.getFilterStyle(fill.filters || {}, `tile-${elementId}-fill${fillIndex}`);
         layer.style.filter = filterValue;
         
         // Insert SVG filter if needed

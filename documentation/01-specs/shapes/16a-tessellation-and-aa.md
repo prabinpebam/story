@@ -4,6 +4,10 @@
 **Owner**: Engineering
 **Last Updated**: December 15, 2025
 
+**V1 decision**: deferred (V1 NON-GOAL). V1 uses DOM/SVG for on-canvas rendering and relies on existing export/preview mechanisms without a dedicated mesh tessellation backend.
+
+**V2+ requirement**: this document remains the canonical specification for implementing deterministic tessellation + AA.
+
 This spec defines the **canonical tessellation pipeline** for Story shapes: how resolved vector geometry becomes **triangle meshes** (fill + stroke) plus the associated **anti-aliasing (AA)** strategy.
 
 Even if the primary renderer remains DOM/SVG today, this spec is **not optional**:

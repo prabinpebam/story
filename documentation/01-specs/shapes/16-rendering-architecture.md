@@ -31,7 +31,9 @@ DOM-first requirement (v1):
 - For `shapeKind:'vector'`, DOM rendering should prefer a single SVG subtree per element (when feasible) so fill-rule, masking, and strokes behave consistently.
 
 ## 4. Tessellation + AA (required)
-Story must implement a deterministic tessellation pipeline that produces fill/stroke triangle meshes and defines anti-aliasing behavior.
+V1 decision: the editor remains DOM/SVG-first and does **not** ship a mesh-based tessellation backend.
+
+V2+ requirement (deferred): implement a deterministic tessellation pipeline that produces fill/stroke triangle meshes and defines anti-aliasing behavior.
 
 Canonical spec (required):
 - [16a-tessellation-and-aa.md](./16a-tessellation-and-aa.md)
