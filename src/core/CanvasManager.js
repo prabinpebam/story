@@ -1757,8 +1757,10 @@ export class CanvasManager {
     }
 
     _handleCreationComplete(e, state) {
+        if (state.editor.mode === 'presentation') return;
         const { zoom, pan } = state.editor;
         const activeTool = state.editor.activeTool;
+        const activeToolOptions = state.editor.activeToolOptions;
 
         const startX = (this.dragStart.x - pan.x) / zoom;
         const startY = (this.dragStart.y - pan.y) / zoom;
@@ -1918,12 +1920,180 @@ export class CanvasManager {
             return;
         }
 
-        // For non-text tools, require a minimum drag size
-        if (width > 5 && height > 5) {
+        // For non-text tools, require a minimum drag size.
+        // Spec 39: for line/arrow, minimum threshold is based on segment length.
+
+        const minPx = 5;
+
+        const makeDefaultShapeStyle = () => ({
+            fills: [{
+                type: 'solid',
+                color: '#F8FAFC',
+                themeSlot: 1,
+                visible: true,
+                opacity: 100
+            }],
+            borderWidth: 0
+        });
+
+        const makeDefaultLineStyle = () => {
+            const stroke = {
+                color: '#000000',
+                width: 2,
+                opacity: 100,
+                position: 'center',
+                visible: true
+            };
+            return {
+                strokes: [stroke],
+                borderWidth: stroke.width,
+                borderColor: stroke.color,
+                strokeAlign: stroke.position
+            };
+        };
+
+        const createShapeFromOptions = () => {
+            const optKind = (activeToolOptions && typeof activeToolOptions === 'object' && typeof activeToolOptions.shapeKind === 'string')
+                ? activeToolOptions.shapeKind
+                : 'rectangle';
+
+            // Use raw start/current for line kinds (so min threshold is length-based)
+            let endX = currentX;
+            let endY = currentY;
+
+            // Shift constrain
+            if (e.shiftKey && isDrag) {
+                if (optKind === 'line') {
+                    const ang = Math.atan2(dy, dx);
+                    const snap = Math.PI / 4; // 45°
+                    const snapped = Math.round(ang / snap) * snap;
+                    const len = Math.sqrt(dx * dx + dy * dy);
+                    endX = startX + Math.cos(snapped) * len;
+                    endY = startY + Math.sin(snapped) * len;
+                } else {
+                    // Square/circle for box-based shapes is already handled above.
+                }
+            }
+
+            if (optKind === 'line') {
+                const isArrow = activeToolOptions?.lineEndCap === 'arrow';
+
+                // Alt: draw from center, symmetric endpoints.
+                const a1 = e.altKey ? { x: startX - (endX - startX), y: startY - (endY - startY) } : { x: startX, y: startY };
+                const a2 = e.altKey ? { x: endX, y: endY } : { x: endX, y: endY };
+
+                const lx = a2.x - a1.x;
+                const ly = a2.y - a1.y;
+                const segLen = Math.sqrt(lx * lx + ly * ly);
+                if (segLen <= minPx) return null;
+
+                const bx = Math.min(a1.x, a2.x);
+                const by = Math.min(a1.y, a2.y);
+                const bw = Math.abs(a2.x - a1.x);
+                const bh = Math.abs(a2.y - a1.y);
+
+                const id = `shape-${Date.now()}`;
+                const element = {
+                    id,
+                    type: 'shape',
+                    shapeKind: 'line',
+                    x: bx,
+                    y: by,
+                    width: Math.max(1, bw),
+                    height: Math.max(1, bh),
+                    rotation: 0,
+                    params: {
+                        p1: { x: a1.x - bx, y: a1.y - by },
+                        p2: { x: a2.x - bx, y: a2.y - by },
+                        ...(isArrow ? { endCap: 'arrow' } : {})
+                    },
+                    style: makeDefaultLineStyle()
+                };
+                return element;
+            }
+
+            // Box-based shapes
+            if (!(width > minPx && height > minPx)) return null;
+
+            const id = `shape-${Date.now()}`;
+
+            if (optKind === 'rectangle') {
+                // Keep legacy rect output for v1 compatibility.
+                return {
+                    id,
+                    type: 'rect',
+                    x,
+                    y,
+                    width,
+                    height,
+                    rotation: 0,
+                    style: makeDefaultShapeStyle()
+                };
+            }
+
+            if (optKind === 'ellipse') {
+                return {
+                    id,
+                    type: 'shape',
+                    shapeKind: 'ellipse',
+                    x,
+                    y,
+                    width,
+                    height,
+                    rotation: 0,
+                    params: {},
+                    style: makeDefaultShapeStyle()
+                };
+            }
+
+            if (optKind === 'polygon') {
+                return {
+                    id,
+                    type: 'shape',
+                    shapeKind: 'polygon',
+                    x,
+                    y,
+                    width,
+                    height,
+                    rotation: 0,
+                    params: { sides: 6, rotation: 0 },
+                    style: makeDefaultShapeStyle()
+                };
+            }
+
+            if (optKind === 'star') {
+                return {
+                    id,
+                    type: 'shape',
+                    shapeKind: 'star',
+                    x,
+                    y,
+                    width,
+                    height,
+                    rotation: 0,
+                    params: { points: 5, innerRadiusRatio: 0.5, rotation: 0 },
+                    style: makeDefaultShapeStyle()
+                };
+            }
+
+            return null;
+        };
+
+        if (activeTool === 'shape') {
+            const element = createShapeFromOptions();
+            if (!element) return;
+            store.dispatch('ADD_ELEMENT', element);
+            store.dispatch('UPDATE_SELECTION', [element.id]);
+            store.dispatch('SET_ACTIVE_TOOL', 'select');
+            return;
+        }
+
+        // Legacy for other tools
+        if (width > minPx && height > minPx) {
             const id = `${activeTool}-${Date.now()}`;
             let element = {
                 id,
-                type: activeTool === 'shape' ? 'rect' : activeTool,
+                type: activeTool,
                 x,
                 y,
                 width,
@@ -1931,20 +2101,7 @@ export class CanvasManager {
                 rotation: 0
             };
 
-            if (activeTool === 'shape') {
-                element.type = 'rect';
-                element.style = {
-                    // Use multi-fill system with theme-linked color (slot 1 = background2)
-                    fills: [{
-                        type: 'solid',
-                        color: '#F8FAFC',
-                        themeSlot: 1,  // Links to theme background2 color
-                        visible: true,
-                        opacity: 100
-                    }],
-                    borderWidth: 0
-                };
-            } else if (activeTool === 'image') {
+            if (activeTool === 'image') {
                 element.src = 'https://placehold.co/600x400';
                 element.style = {};
             }
@@ -1952,7 +2109,6 @@ export class CanvasManager {
             store.dispatch('ADD_ELEMENT', element);
             store.dispatch('UPDATE_SELECTION', [id]);
             store.dispatch('SET_ACTIVE_TOOL', 'select');
-            store.dispatch('TOGGLE_CONSTRAIN_PROPORTIONS', e.shiftKey);
         }
     }
 

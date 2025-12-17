@@ -136,7 +136,13 @@ export class EditorPage {
             image: this.imageTool,
             resources: this.resourcesTool,
         };
-        
+
+        if (tool === 'shape') {
+            // The shape tool contains a caret that opens a menu; click the icon area to activate the tool.
+            await this.page.locator('[data-testid="tool-shape-icon"]').click();
+            return;
+        }
+
         await toolMap[tool].click();
     }
     

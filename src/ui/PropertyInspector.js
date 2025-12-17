@@ -18,6 +18,8 @@ import { PlaceholderSection } from './properties/PlaceholderSection.js';
 import { SvgSection } from './properties/SvgSection.js';
 import { MaskSection } from './properties/MaskSection.js';
 import { BooleanSection } from './properties/BooleanSection.js';
+import { ShapeSection } from './properties/ShapeSection.js';
+import { getShapeKind } from '../core/shapes/ShapeElementAdapter.js';
 
 export class PropertyInspector {
     constructor(containerId) {
@@ -40,6 +42,7 @@ export class PropertyInspector {
         this.svgSection = new SvgSection();
         this.maskSection = new MaskSection();
         this.booleanSection = new BooleanSection();
+        this.shapeSection = new ShapeSection();
         this.slideSection = new SlideSection();
         this.placeholderSection = new PlaceholderSection();
         
@@ -99,6 +102,10 @@ export class PropertyInspector {
             this.booleanSection.update(selection);
             this.container.appendChild(this.booleanSection.section.element);
 
+            // 4.8 Shape params (polygon/star only)
+            this.shapeSection.update(selection);
+            this.container.appendChild(this.shapeSection.section.element);
+
             // 5. Fill Section (Hide for Text as it has its own control)
             const isText = selection.length === 1 && this.getElement(state, selection[0])?.type === 'text';
             if (!isText) {
@@ -151,7 +158,7 @@ export class PropertyInspector {
                 const element = this.getElement(state, selection[0]);
                 if (element) {
                     // Use element name if available, otherwise use type
-                    const name = element.name || this.getTypeName(element.type);
+                    const name = element.name || this.getElementDisplayName(element);
                     this.headerTitle.textContent = name;
                 } else {
                     this.headerTitle.textContent = 'Properties';
@@ -172,10 +179,25 @@ export class PropertyInspector {
         }
     }
     
+    getElementDisplayName(element) {
+        if (!element) return 'Object';
+
+        // For shapes, prefer the normalized kind so we show Polygon/Star/etc.
+        const kind = getShapeKind(element);
+        if (kind && kind !== element.type) {
+            return this.getTypeName(kind);
+        }
+        return this.getTypeName(element.type);
+    }
+
     getTypeName(type) {
         const typeNames = {
+            'rect': 'Rectangle',
+            'circle': 'Ellipse',
             'rectangle': 'Rectangle',
             'ellipse': 'Ellipse',
+            'polygon': 'Polygon',
+            'star': 'Star',
             'text': 'Text',
             'image': 'Image',
             'svg': 'SVG',

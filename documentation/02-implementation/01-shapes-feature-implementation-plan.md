@@ -14,8 +14,8 @@ References (must stay in sync):
 
 ## Current Status (as of December 17, 2025)
 
-- Completed gates: **G0**, **G1**, **G2**, **G3**, **G4**.
-- Next gate in strict order: **G5** (UI surfaces closure).
+- Completed gates: **G0**, **G1**, **G2**, **G3**, **G4**, **G5**, **G6**.
+- Next gate in strict order: **G7** (Interop closure).
 
 ---
 
@@ -259,4 +259,4 @@ Ledger is maintained in this file because the plan and the traceability system m
 | `36-perceived-performance.md` | READY | NOT STARTED | NONE | NONE |  |
 | `37-accessibility.md` | READY | NOT STARTED | NONE | NONE |  |
 | `38-customization-and-extensibility.md` | READY | NOT STARTED | NONE | NONE |  |
-| `39-toolbar-tools-and-creation-ux.md` | READY | NOT STARTED | NONE | NONE | Spec added to surface shape creation in existing floating toolbar + shortcuts. Implementation requires toolbar dropdown + `SET_ACTIVE_TOOL({tool:'shape',shapeKind})` wiring and Canvas creation branching on `activeToolOptions.shapeKind` (current `activeTool==='shape'` creates legacy rect only). |
+| `39-toolbar-tools-and-creation-ux.md` | READY | DONE | PLAYWRIGHT | NONE | Implemented: toolbar shape-kind menu (caret + long-press) + shortcuts (R/O/L/Shift+L/Shift+P/Shift+S) in `src/ui/Toolbar.js`. Creation branches on `activeToolOptions.shapeKind` with length-based min threshold for line/arrow and no global constrain mutation in `src/core/CanvasManager.js`. Rendering for ellipse/polygon/star and arrow marker added in `src/core/renderer/elements/ShapeElement.js`. Coverage: `tests/e2e/specs/functional/m6-creation-ux.spec.ts`. |

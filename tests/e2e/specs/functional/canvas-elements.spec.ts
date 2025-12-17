@@ -92,6 +92,7 @@ test.describe('Canvas Element Creation', () => {
         await editor.page.waitForTimeout(300);
         
         // Create second shape
+        await editor.setActiveTool('shape');
         await canvas.drawRectangle(0.5, 0.2, 0.2, 0.15);
         await editor.page.waitForTimeout(300);
         
@@ -169,6 +170,7 @@ test.describe('Canvas Element Creation', () => {
         await editor.page.waitForTimeout(200);
         
         // Create element on second slide
+        await editor.setActiveTool('shape');
         await canvas.drawRectangle(0.5, 0.5, 0.2, 0.15);
         await editor.page.waitForTimeout(300);
         

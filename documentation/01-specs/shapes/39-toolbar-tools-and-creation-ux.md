@@ -1,8 +1,11 @@
 # Shapes Toolbar, Tools & Creation UX
 
-**Status**: Draft
+**Status**: Implemented (v1)
 **Owner**: Engineering
 **Last Updated**: December 17, 2025
+
+Evidence:
+- Playwright: `tests/e2e/specs/functional/m6-creation-ux.spec.ts`
 
 Defines the **UI surface** for creating Shapes in the existing Story app UI, including:
 - Toolbar affordances (Figma-like shape tool menu)

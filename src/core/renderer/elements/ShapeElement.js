@@ -8,6 +8,7 @@ import { computeElementWorldCenter, computeElementWorldRotation } from '../../sh
 import { elementToWorldPolygons, worldPolygonsToElementLocal } from '../../shapes/booleans/ShapeToPolygons.js';
 import { computeBooleanPaths } from '../../shapes/booleans/BooleanEngine.js';
 import { applyUnifiedMaskingToElementDom } from '../../shapes/masking/MaskEngine.js';
+import { parametricShapeToVectorPaths } from '../../shapes/paths/ParametricToPaths.js';
 
 export class ShapeElement extends VisualElement {
     constructor(data) {
@@ -94,7 +95,19 @@ export class ShapeElement extends VisualElement {
             this.applyVectorGeometry(div, el, shapeKind);
             this.applyEffects(div, el);
             return;
-        } else {
+        }
+
+        // Parametric shapes (ellipse/polygon/star) render as generated vector geometry.
+        // This keeps DOM output consistent for fill/stroke and enables creation of these kinds.
+        if (shapeKind === 'ellipse' || shapeKind === 'polygon' || shapeKind === 'star') {
+            const paths = parametricShapeToVectorPaths(el);
+            const renderEl = { ...el, paths };
+            this.applyVectorGeometry(div, renderEl, 'vector');
+            this.applyEffects(div, el);
+            return;
+        }
+
+        {
             const existingGeometry = div.querySelector('svg.geometry-layer');
             if (existingGeometry) existingGeometry.remove();
         }
@@ -280,7 +293,47 @@ export class ShapeElement extends VisualElement {
             const x2 = Number(p2?.x) || 0;
             const y2 = Number(p2?.y) || 0;
 
-            strokes.forEach((stroke, idx) => appendStrokeShape(stroke, idx, { x1, y1, x2, y2 }));
+            const wantsArrow = el.params?.endCap === 'arrow';
+            if (wantsArrow) {
+                // Marker definition (kept minimal; inherits stroke color).
+                const markerId = `arrowhead-${el.id}`;
+                const existing = defs.querySelector(`#${markerId}`);
+                if (!existing) {
+                    const marker = document.createElementNS('http://www.w3.org/2000/svg', 'marker');
+                    marker.setAttribute('id', markerId);
+                    marker.setAttribute('viewBox', '0 0 10 10');
+                    marker.setAttribute('refX', '10');
+                    marker.setAttribute('refY', '5');
+                    marker.setAttribute('markerWidth', '8');
+                    marker.setAttribute('markerHeight', '8');
+                    marker.setAttribute('orient', 'auto');
+                    marker.setAttribute('markerUnits', 'strokeWidth');
+
+                    const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                    path.setAttribute('d', 'M 0 0 L 10 5 L 0 10 z');
+                    path.setAttribute('fill', 'currentColor');
+                    marker.appendChild(path);
+                    defs.appendChild(marker);
+                }
+
+                // Ensure the SVG has a color so marker can use currentColor.
+                const stroke0 = strokes.find((s) => s && s.visible !== false);
+                const strokeColor = stroke0?.themeSlot ? `var(--theme-${stroke0.themeSlot})` : (stroke0?.color || 'currentColor');
+                svg.style.color = strokeColor;
+            }
+
+            strokes.forEach((stroke, idx) => {
+                // Reuse stroke renderer, then attach marker to the resulting <line>.
+                appendStrokeShape(stroke, idx, { x1, y1, x2, y2 });
+            });
+
+            if (wantsArrow) {
+                const markerId = `arrowhead-${el.id}`;
+                const lines = Array.from(svg.querySelectorAll('line'));
+                lines.forEach((ln) => {
+                    ln.setAttribute('marker-end', `url(#${markerId})`);
+                });
+            }
             return;
         }
 
