@@ -26,6 +26,8 @@ References (must stay in sync):
 
 Shapes is “done” only when **all** are true:
 
+Important: completing a **gate** (e.g., G0) is **not** the same as declaring the Shapes feature “done”. Gates are checkpoints; the items below are the only criteria for final completion.
+
 1) **Every Shapes spec file** in `documentation/01-specs/shapes/` is in one of these end states:
    - **Implemented**: Ledger shows `Readiness=READY` and `Implementation=DONE`, with required tests/artifacts present.
    - **Explicit v1 non‑goal**: Ledger still shows `Readiness=READY`, but the spec itself is updated to clearly mark the v1 non‑goal scope and the ledger `Notes` explicitly says `V1 NON-GOAL` (and why).
@@ -51,6 +53,9 @@ Exit criteria:
 - For **every** Shapes spec file, ledger `Readiness` is set to one of: `READY` or `BLOCKED` (no `NOT REVIEWED`).
 - For any `BLOCKED` spec, the `Notes` include: the exact open decision(s) and the owner.
 - Any spec that will be a **v1 non‑goal** is explicitly marked as such in the spec text and referenced in the ledger notes.
+
+Note:
+- It is expected that some rows may remain `BLOCKED` after G0; they must be resolved (and flipped to `READY`) before final feature completion.
 
 Required tests/artifacts:
 - None (documentation-only), but must not contradict existing tests.
