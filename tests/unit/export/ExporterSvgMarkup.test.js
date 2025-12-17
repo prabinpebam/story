@@ -68,6 +68,55 @@ describe('Exporter SVG markup', () => {
         expect(svg).toContain('<rect');
     });
 
+    it('exports gradient fills via <linearGradient> in <defs>', () => {
+        const rect = {
+            id: 'grad-rect-1',
+            type: 'shape',
+            shapeKind: 'rectangle',
+            x: 0,
+            y: 0,
+            width: 100,
+            height: 50,
+            rotation: 0,
+            style: {
+                fills: [{ visible: true, type: 'gradient', value: 'linear-gradient(90deg, #000000 0%, #FFFFFF 100%)', opacity: 100 }]
+            }
+        };
+
+        const bounds = { x: 0, y: 0, width: 100, height: 50 };
+        const svg = normalize(buildSvgMarkup([rect], { width: 100, height: 50, bounds, slideData: { elements: { 'grad-rect-1': rect } } }));
+
+        expect(svg).toContain('<defs>');
+        expect(svg).toMatch(/<linearGradient id="fill-grad-grad-rect-1-0-[-\d]+"/);
+        expect(svg).toMatch(/fill="url\(#fill-grad-grad-rect-1-0-[-\d]+\)"/);
+        expect(svg).toContain('<stop');
+    });
+
+    it('exports image fills via <pattern> + <image> in <defs>', () => {
+        const rect = {
+            id: 'img-rect-1',
+            type: 'shape',
+            shapeKind: 'rectangle',
+            x: 0,
+            y: 0,
+            width: 120,
+            height: 80,
+            rotation: 0,
+            style: {
+                fills: [{ visible: true, type: 'image', value: 'data:image/png;base64,AAAA', opacity: 100 }]
+            }
+        };
+
+        const bounds = { x: 0, y: 0, width: 120, height: 80 };
+        const svg = normalize(buildSvgMarkup([rect], { width: 120, height: 80, bounds, slideData: { elements: { 'img-rect-1': rect } } }));
+
+        expect(svg).toContain('<defs>');
+        expect(svg).toMatch(/<pattern id="fill-img-img-rect-1-0-[-\d]+"/);
+        expect(svg).toMatch(/fill="url\(#fill-img-img-rect-1-0-[-\d]+\)"/);
+        expect(svg).toContain('<image');
+        expect(svg).toContain('href="data:image/png;base64,AAAA"');
+    });
+
     it('exports boolean shapes as flattened <path d=...> deterministically', () => {
         const a = {
             id: 'a',

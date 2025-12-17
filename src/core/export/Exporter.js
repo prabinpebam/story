@@ -68,6 +68,72 @@ function extractSvgPathDFromCssClipPath(clipPath) {
     return null;
 }
 
+function stableHash(value) {
+    const s = typeof value === 'string' ? value : JSON.stringify(value);
+    return s.split('').reduce((a, b) => {
+        a = ((a << 5) - a) + b.charCodeAt(0);
+        return a & a;
+    }, 0);
+}
+
+function makePaintId(prefix, elementId, index, value) {
+    return `${prefix}-${String(elementId || '')}-${index}-${stableHash(value)}`;
+}
+
+function parseLinearGradientStops(value) {
+    if (!value || typeof value !== 'string') return null;
+    const match = value.match(/linear-gradient\(([^,]+),(.+)\)/i);
+    if (!match) return null;
+
+    let angle = 90;
+    const angleStr = match[1].trim();
+    if (angleStr.toLowerCase().includes('deg')) {
+        const v = Number.parseFloat(angleStr);
+        if (Number.isFinite(v)) angle = v;
+    }
+
+    const stopsStr = match[2];
+    const stops = stopsStr.split(',').map((s) => {
+        const parts = s.trim().split(/\s+/);
+        return {
+            color: parts[0],
+            position: Number.parseFloat(parts[1] || '0')
+        };
+    }).filter((s) => typeof s.color === 'string' && s.color.length > 0 && Number.isFinite(s.position));
+
+    return { angle, stops };
+}
+
+function buildLinearGradientMarkup(id, gradientValue) {
+    const parsed = typeof gradientValue === 'object' && gradientValue?.type
+        ? { angle: gradientValue.angle || 90, stops: Array.isArray(gradientValue.stops) ? gradientValue.stops : [] }
+        : parseLinearGradientStops(gradientValue);
+    if (!parsed || !Array.isArray(parsed.stops) || parsed.stops.length === 0) return null;
+
+    const angle = Number(parsed.angle) || 90;
+    const rad = (angle - 90) * Math.PI / 180;
+    const x1 = 50 + 50 * Math.cos(rad);
+    const y1 = 50 + 50 * Math.sin(rad);
+    const x2 = 50 + 50 * Math.cos(rad + Math.PI);
+    const y2 = 50 + 50 * Math.sin(rad + Math.PI);
+
+    const stopsMarkup = parsed.stops.map((s) => {
+        const pos = Number(s.position);
+        const color = s.color || s.value || '#000000';
+        return `<stop offset="${pos}%" stop-color="${escapeXml(color)}" />`;
+    }).join('');
+
+    return `<linearGradient id="${escapeXml(id)}" x1="${x1}%" y1="${y1}%" x2="${x2}%" y2="${y2}%">${stopsMarkup}</linearGradient>`;
+}
+
+function buildImagePatternMarkup(id, href, width, height) {
+    const w = Number(width) || 0;
+    const h = Number(height) || 0;
+    return `<pattern id="${escapeXml(id)}" patternUnits="userSpaceOnUse" x="0" y="0" width="${w}" height="${h}">` +
+        `<image href="${escapeXml(href)}" x="0" y="0" width="${w}" height="${h}" preserveAspectRatio="xMidYMid slice" />` +
+        `</pattern>`;
+}
+
 function resolveBooleanDerivedPaths(booleanEl, slideData) {
     const operation = booleanEl?.operation || 'union';
     const operandIds = Array.isArray(booleanEl?.operands) ? booleanEl.operands : [];
@@ -157,13 +223,61 @@ export function buildSvgMarkup(elements, { width, height, bounds, slideData } = 
             : `<g transform="${transform}">`;
         const groupClose = `</g>`;
 
+        const getFillPaint = () => {
+            const fillLayer = (element.style?.fills || []).find((f) => f && f.visible !== false);
+            if (!fillLayer) return { fill: 'none', fillOpacity: 1 };
+            const fillOpacity = (fillLayer.opacity ?? 100) / 100;
+
+            if (fillLayer.type === 'gradient' && fillLayer.value) {
+                const id = makePaintId('fill-grad', element.id, 0, fillLayer.value);
+                const markup = buildLinearGradientMarkup(id, fillLayer.value);
+                if (markup) defsParts.push(markup);
+                return { fill: markup ? `url(#${id})` : '#808080', fillOpacity };
+            }
+
+            if (fillLayer.type === 'image' && fillLayer.value) {
+                const id = makePaintId('fill-img', element.id, 0, fillLayer.value);
+                defsParts.push(buildImagePatternMarkup(id, fillLayer.value, element.width, element.height));
+                return { fill: `url(#${id})`, fillOpacity };
+            }
+
+            if (fillLayer.type === 'code' || fillLayer.type === 'video') {
+                // Deterministic fallback; portable SVG has no native code/video fills.
+                return { fill: '#808080', fillOpacity };
+            }
+
+            const color = fillLayer.color || fillLayer.value || (fillLayer ? '#000000' : 'none');
+            return { fill: String(color), fillOpacity };
+        };
+
+        const getStrokePaint = () => {
+            const strokeLayer = (element.style?.strokes || []).find((s) => s && s.visible !== false);
+            if (!strokeLayer) return { stroke: 'none', strokeOpacity: 1, strokeWidth: 0 };
+            const strokeOpacity = (strokeLayer.opacity ?? 100) / 100;
+            const strokeWidth = Number(strokeLayer.width ?? 0) || 0;
+            if (strokeWidth <= 0) return { stroke: 'none', strokeOpacity, strokeWidth: 0 };
+
+            if (strokeLayer.type === 'gradient' && strokeLayer.value) {
+                const id = makePaintId('stroke-grad', element.id, 0, strokeLayer.value);
+                const markup = buildLinearGradientMarkup(id, strokeLayer.value);
+                if (markup) defsParts.push(markup);
+                return { stroke: markup ? `url(#${id})` : '#000000', strokeOpacity, strokeWidth };
+            }
+
+            const stroke = strokeLayer.color || strokeLayer.value || '#000000';
+            return { stroke: String(stroke), strokeOpacity, strokeWidth };
+        };
+
         if (shapeKind === 'rectangle') {
-            const fill = element.style?.fills?.[0]?.value || element.style?.fills?.[0]?.color || element.fill || '#000000';
-            const opacity = (element.style?.fills?.[0]?.opacity ?? 100) / 100;
+            const { fill, fillOpacity } = getFillPaint();
+            const { stroke, strokeOpacity, strokeWidth } = getStrokePaint();
             const borderRadius = element.borderRadius || 0;
 
             let rect = `<rect x="0" y="0" width="${element.width}" height="${element.height}" `;
-            rect += `fill="${fill}" fill-opacity="${opacity}"`;
+            rect += `fill="${escapeXml(fill)}" fill-opacity="${fillOpacity}"`;
+            if (strokeWidth > 0 && stroke !== 'none') {
+                rect += ` stroke="${escapeXml(stroke)}" stroke-opacity="${strokeOpacity}" stroke-width="${strokeWidth}"`;
+            }
             if (borderRadius > 0) {
                 rect += ` rx="${borderRadius}" ry="${borderRadius}"`;
             }
@@ -174,14 +288,18 @@ export function buildSvgMarkup(elements, { width, height, bounds, slideData } = 
         }
 
         if (shapeKind === 'ellipse') {
-            const fill = element.style?.fills?.[0]?.value || element.style?.fills?.[0]?.color || element.fill || '#000000';
-            const opacity = (element.style?.fills?.[0]?.opacity ?? 100) / 100;
+            const { fill, fillOpacity } = getFillPaint();
+            const { stroke, strokeOpacity, strokeWidth } = getStrokePaint();
             const cx = (Number(element.width) || 0) / 2;
             const cy = (Number(element.height) || 0) / 2;
             const rx = (Number(element.width) || 0) / 2;
             const ry = (Number(element.height) || 0) / 2;
 
-            const ellipse = `<ellipse cx="${cx}" cy="${cy}" rx="${rx}" ry="${ry}" fill="${fill}" fill-opacity="${opacity}" />`;
+            let ellipse = `<ellipse cx="${cx}" cy="${cy}" rx="${rx}" ry="${ry}" fill="${escapeXml(fill)}" fill-opacity="${fillOpacity}"`;
+            if (strokeWidth > 0 && stroke !== 'none') {
+                ellipse += ` stroke="${escapeXml(stroke)}" stroke-opacity="${strokeOpacity}" stroke-width="${strokeWidth}"`;
+            }
+            ellipse += ` />`;
             bodyParts.push(`${groupOpen}${ellipse}${groupClose}`);
             continue;
         }
@@ -210,13 +328,8 @@ export function buildSvgMarkup(elements, { width, height, bounds, slideData } = 
             const d = buildVectorPathD(paths);
             if (!d) continue;
 
-            const fillLayer = (element.style?.fills || []).find((f) => f && f.visible !== false);
-            const strokeLayer = (element.style?.strokes || []).find((s) => s && s.visible !== false);
-            const fill = fillLayer?.color || fillLayer?.value || (fillLayer ? '#000000' : 'none');
-            const fillOpacity = (fillLayer?.opacity ?? 100) / 100;
-            const stroke = strokeLayer?.color || strokeLayer?.value || 'none';
-            const strokeOpacity = (strokeLayer?.opacity ?? 100) / 100;
-            const strokeWidth = Number(strokeLayer?.width ?? 0) || 0;
+            const { fill, fillOpacity } = getFillPaint();
+            const { stroke, strokeOpacity, strokeWidth } = getStrokePaint();
 
             const fillRule = (() => {
                 const fr = paths.find((p) => p && typeof p.fillRule === 'string')?.fillRule;
@@ -224,9 +337,9 @@ export function buildSvgMarkup(elements, { width, height, bounds, slideData } = 
                 return v === 'evenodd' ? 'evenodd' : 'nonzero';
             })();
 
-            let path = `<path d="${d}" fill="${fill}" fill-opacity="${fillOpacity}" fill-rule="${fillRule}"`;
+            let path = `<path d="${d}" fill="${escapeXml(fill)}" fill-opacity="${fillOpacity}" fill-rule="${fillRule}"`;
             if (strokeWidth > 0 && stroke !== 'none') {
-                path += ` stroke="${stroke}" stroke-opacity="${strokeOpacity}" stroke-width="${strokeWidth}"`;
+                path += ` stroke="${escapeXml(stroke)}" stroke-opacity="${strokeOpacity}" stroke-width="${strokeWidth}"`;
             }
             path += ` />`;
 
