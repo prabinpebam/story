@@ -1,6 +1,7 @@
 # Tooling & Testing (Shapes)
 
-**Status**: Draft
+**Status**: Implemented (v1)
+**Last Updated**: December 17, 2025
 
 Defines developer tooling and test strategy needed to ship robust shapes.
 

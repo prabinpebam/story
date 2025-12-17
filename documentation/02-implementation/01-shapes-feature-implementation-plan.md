@@ -12,6 +12,13 @@ References (must stay in sync):
 
 ---
 
+## Current Status (as of December 17, 2025)
+
+- Completed gates: **G0**, **G1**, **G2**, **G3**.
+- Next gate in strict order: **G4** (interaction + UX closure).
+
+---
+
 ## Non‑Negotiable Rules (How work is allowed to ship)
 
 - **Red → Green → Refactor** for every increment.
@@ -213,7 +220,7 @@ Ledger is maintained in this file because the plan and the traceability system m
 | `04-precision-and-numerics.md` | READY | IN PROGRESS | VITEST | NONE | Central epsilon + numeric helpers: `src/core/shapes/Epsilon.js`; tests: `tests/unit/shapes/Epsilon.test.js`. |
 | `05-scene-graph-and-node-types.md` | READY | IN PROGRESS | VITEST+PLAYWRIGHT | NONE | Parent-chain world transforms for DOM rendering: `src/core/shapes/SceneGraphTransforms.js`, renderer integration: `src/core/renderer/elements/VisualElement.js`, `src/core/renderer/elements/ShapeElement.js`; tests: `tests/unit/shapes/SceneGraphTransforms.test.js`, `tests/e2e/specs/functional/nested-parent-rotation-render.spec.ts`. |
 | `06-transform-system.md` | READY | DONE | VITEST | NONE | Affine transform utilities + element box transforms: `src/core/shapes/Transform2D.js`; tests: `tests/unit/shapes/Transform2D.test.js`. (Runtime alignment with `GeometryUtils` still TBD.) |
-| `07-parametric-geometry.md` | READY | IN PROGRESS | VITEST | NONE | Deterministic parametric→paths helper: `src/core/shapes/paths/ParametricToPaths.js`; unit tests: `tests/unit/shapes/ParametricToPaths.test.js`. V1 supports uniform-radius rounded rectangles; per-corner radii + smoothing deferred (documented in spec). |
+| `07-parametric-geometry.md` | READY | DONE | VITEST | NONE | Implemented (v1, partial): deterministic parametric→paths helper: `src/core/shapes/paths/ParametricToPaths.js`; unit tests: `tests/unit/shapes/ParametricToPaths.test.js`. V1 supports uniform-radius rounded rectangles; per-corner radii + smoothing deferred (documented in spec). |
 | `08-path-representation.md` | READY | DONE | VITEST | CORPUS | Canonicalization + determinism: `src/core/shapes/paths/VectorPathOps.js`; corpus gate: `tests/unit/shapes/PathsCorpus.test.js` with fixtures under `tests/corpus/shapes/paths/`. |
 | `08a-vector-networks.md` | READY | DONE | NONE | NONE | V1 NON-GOAL (deferred to v2+): graph-based vector networks are not shipped in v1; spec updated to record decision. |
 | `09-segments-and-beziers.md` | READY | DONE | VITEST | NONE | Split/flatten/bounds primitives: `src/core/shapes/paths/VectorPathOps.js`; unit tests: `tests/unit/shapes/VectorPathOps.test.js`. |
@@ -237,7 +244,7 @@ Ledger is maintained in this file because the plan and the traceability system m
 | `21-vector-editing-operations.md` | READY | IN PROGRESS | PLAYWRIGHT | NONE | Implemented v1 ops in deep edit: dblclick edge insert node, delete node, delete edge, arrow-key nudge, cubic handle drag, dblclick node corner↔smooth; coverage: `tests/e2e/specs/functional/m4-editing-ux.spec.ts`. |
 | `22-selection-and-focus-ux.md` | READY | DONE | PLAYWRIGHT | NONE | Selection wiring exists: `src/core/CanvasManager.js`, `src/ui/PropertyInspector.js`. Functional coverage: `tests/e2e/specs/functional/m3-selection-hit-testing.spec.ts` (multi-select toggling, sticky selection during drag, click-empty clears selection). (Hover hysteresis + vector-mode focus UX remain spec TODOs.) |
 | `23-snapping-and-guides-shapes.md` | READY | IN PROGRESS | NONE | NONE | Snapping system exists: `src/core/canvas/SnappingSystem.js`, `src/core/CanvasManager.js` (Shapes delta TBD). |
-| `24-tooling-and-testing.md` | READY | IN PROGRESS | VITEST+PLAYWRIGHT | MIXED | Corpus scaffolding exists: `tests/corpus/shapes/booleans/`, `tests/corpus/shapes/figma-paste/`, and `tests/corpus/shapes/paths/` (paths corpus is CI-gated via `tests/unit/shapes/PathsCorpus.test.js`). Perf smoke gates exist for clipboard import/export (`tests/unit/perf/ClipboardImportExportPerf.test.js`) and paste+undo cycles (`tests/e2e/specs/performance/clipboard-paste-editable-perf.spec.ts`). |
+| `24-tooling-and-testing.md` | READY | DONE | VITEST+PLAYWRIGHT | MIXED | Corpus folders exist and are CI-gated: `tests/corpus/shapes/booleans/` (`tests/unit/shapes/BooleanCorpus.test.js`), `tests/corpus/shapes/figma-paste/` (`tests/unit/clipboard/FigmaPasteCorpus.test.js`), `tests/corpus/shapes/paths/` (`tests/unit/shapes/PathsCorpus.test.js`). File-backed stress fixture: `tests/fixtures/shapes/stress/editable-svg-grid.svg` used by perf smokes. Perf smoke gates: import/export (`tests/unit/perf/ClipboardImportExportPerf.test.js`), paste+undo cycles (`tests/e2e/specs/performance/clipboard-paste-editable-perf.spec.ts`). Seeded boolean fuzz smoke: `tests/unit/shapes/BooleanFuzz.test.js` (set `WRITE_SHAPES_FUZZ_CORPUS=1` to promote failures to corpus). |
 | `25-product-level-requirements.md` | READY | NOT STARTED | NONE | NONE |  |
 | `26-canvas-and-viewport-shapes.md` | READY | IN PROGRESS | PLAYWRIGHT | NONE | Canvas/viewport orchestration exists: `src/core/CanvasManager.js`, presentation scaling: `src/core/PresentationManager.js`. Regression: `tests/e2e/specs/functional/m2-rendering-mode-viewport-parity.spec.ts` (edit vs presentation viewport behavior). |
 | `27-object-editing-ux.md` | READY | IN PROGRESS | PLAYWRIGHT | NONE | Object drag move + resize interactions exist in `src/core/CanvasManager.js` and are bracketed for undo coalescing via `START_INTERACTION`/`END_INTERACTION`. Rotation hit zone tightened to avoid accidental rotate triggers when inside bounds (`src/core/canvas/HitTesting.js`). Playwright coverage: `tests/e2e/specs/functional/m4-editing-ux.spec.ts` (move + resize undo). |

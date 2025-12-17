@@ -1,8 +1,23 @@
 import { describe, expect, it } from 'vitest';
 import { performance } from 'node:perf_hooks';
+import fs from 'node:fs';
+import path from 'node:path';
 
 import { importEditableShapesFromSanitizedSvg } from '../../../src/core/clipboard/EditableSvgImporter.js';
 import { buildSvgMarkup } from '../../../src/core/export/Exporter.js';
+
+const STRESS_SVG_PATH = path.resolve(process.cwd(), 'tests/fixtures/shapes/stress/editable-svg-grid.svg');
+
+function loadStressSvg() {
+    try {
+        if (fs.existsSync(STRESS_SVG_PATH)) {
+            return fs.readFileSync(STRESS_SVG_PATH, 'utf8');
+        }
+    } catch {
+        // Fall back to generated SVG if the fixture is unavailable.
+    }
+    return buildLargeSvg();
+}
 
 function buildLargeSvg({ cols = 25, rows = 20, cell = 20 } = {}) {
     const width = cols * cell;
@@ -47,7 +62,7 @@ function maybeGc() {
 
 describe('PERF (smoke): clipboard import/export', () => {
     it('imports a large SVG without timeouts/crashes and stays within wide time/memory bounds', () => {
-        const svg = buildLargeSvg();
+        const svg = loadStressSvg();
 
         maybeGc();
         const memBefore = process.memoryUsage().heapUsed;
@@ -70,7 +85,7 @@ describe('PERF (smoke): clipboard import/export', () => {
     }, 30000);
 
     it('exports imported elements back to SVG without timeouts/crashes (wide threshold)', () => {
-        const svg = buildLargeSvg();
+        const svg = loadStressSvg();
         const res = importEditableShapesFromSanitizedSvg(svg, { centerX: 0, centerY: 0, idSeed: 'perf' });
         expect(res.ok).toBe(true);
         if (!res.ok) return;
@@ -87,7 +102,7 @@ describe('PERF (smoke): clipboard import/export', () => {
     }, 30000);
 
     it('repeated imports do not grow memory unbounded (best-effort)', () => {
-        const svg = buildLargeSvg({ cols: 20, rows: 16 });
+        const svg = loadStressSvg();
 
         maybeGc();
         const baseline = process.memoryUsage().heapUsed;

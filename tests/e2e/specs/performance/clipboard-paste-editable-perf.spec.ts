@@ -1,34 +1,12 @@
 import { test, expect } from '../../fixtures/base-test';
 import { EditorPage } from '../../pages/EditorPage';
+import fs from 'node:fs';
+import path from 'node:path';
 
-function buildLargeSvg({ cols = 20, rows = 14, cell = 18 } = {}) {
-  const width = cols * cell;
-  const height = rows * cell;
+const STRESS_SVG_PATH = path.resolve(process.cwd(), 'tests/fixtures/shapes/stress/editable-svg-grid.svg');
 
-  const parts: string[] = [];
-  parts.push(`<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}">`);
-
-  for (let y = 0; y < rows; y++) {
-    for (let x = 0; x < cols; x++) {
-      const rx = x * cell;
-      const ry = y * cell;
-      const idx = y * cols + x;
-      const color = (idx % 2 === 0) ? '#ff0000' : '#00aaff';
-
-      if (idx % 13 === 0) {
-        const cx = rx + cell / 2;
-        const cy = ry + cell / 2;
-        parts.push(`  <g transform="rotate(12 ${cx} ${cy})"><rect x="${rx}" y="${ry}" width="${cell}" height="${cell}" fill="${color}" /></g>`);
-      } else if (idx % 19 === 0) {
-        parts.push(`  <g transform="matrix(1 0.15 0 1 ${rx} ${ry})"><rect x="0" y="0" width="${cell}" height="${cell}" fill="${color}" /></g>`);
-      } else {
-        parts.push(`  <rect x="${rx}" y="${ry}" width="${cell}" height="${cell}" fill="${color}" />`);
-      }
-    }
-  }
-
-  parts.push(`</svg>`);
-  return parts.join('\n');
+function loadStressSvg() {
+  return fs.readFileSync(STRESS_SVG_PATH, 'utf8');
 }
 
 test.describe('Frontend Performance: editable SVG paste (smoke)', () => {
@@ -51,7 +29,7 @@ test.describe('Frontend Performance: editable SVG paste (smoke)', () => {
   });
 
   test('PERF06: Repeated paste/undo cycles do not hang or grow unbounded', async ({ page, getState, dispatchAction }) => {
-    const svg = buildLargeSvg();
+    const svg = loadStressSvg();
     const html = `<div data-from="perf">${svg}</div>`;
 
     const before = await getState();
