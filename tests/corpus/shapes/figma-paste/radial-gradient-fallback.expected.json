@@ -1,6 +1,8 @@
 {
   "name": "radial-gradient-fallback",
-  "warnings": ["WARN_GRADIENT_PAINT_UNSUPPORTED"],
+  "warnings": [
+    "WARN_GRADIENT_NORMALIZED"
+  ],
   "elementsCount": 1,
-  "sha256": "0dc25a9dbc79166cf555f15be2f3ad1a8a5d495552960119f3ee7870e90219e3"
+  "sha256": "0af0ed8586fdb2f5a77080b58499357fb2143c2efd9c35f9402ff990fddbba40"
 }

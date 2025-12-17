@@ -2839,11 +2839,26 @@ export class CanvasManager {
         return Boolean(window?.__FEATURE_FLAGS__?.ENABLE_EDITABLE_SVG_PASTE);
     }
 
-    async tryCreateEditableShapesFromSvgMarkup(svgMarkup, worldX, worldY) {
+    async tryCreateEditableShapesFromSvgMarkup(svgMarkup, worldX, worldY, options = {}) {
         if (!this.isEditableSvgPasteEnabled()) return false;
+
+        const uniqueInOrder = (arr) => {
+            const out = [];
+            const seen = new Set();
+            for (const v of arr) {
+                if (!v || typeof v !== 'string') continue;
+                if (seen.has(v)) continue;
+                seen.add(v);
+                out.push(v);
+            }
+            return out;
+        };
 
         const sanitized = sanitizeSvg(svgMarkup);
         if (!sanitized.ok) {
+            if (Array.isArray(sanitized.warnings) && sanitized.warnings.length > 0) {
+                console.warn('Editable SVG sanitize warnings:', sanitized.warnings);
+            }
             return false;
         }
 
@@ -2867,8 +2882,14 @@ export class CanvasManager {
             return false;
         }
 
-        if (Array.isArray(imported.warnings) && imported.warnings.length > 0) {
-            console.warn('Editable SVG import warnings:', imported.warnings);
+        const mergedWarnings = uniqueInOrder([
+            ...(Array.isArray(options?.extraWarnings) ? options.extraWarnings : []),
+            ...(Array.isArray(sanitized.warnings) ? sanitized.warnings : []),
+            ...(Array.isArray(imported.warnings) ? imported.warnings : [])
+        ]);
+
+        if (mergedWarnings.length > 0) {
+            console.warn('Editable SVG paste warnings:', mergedWarnings);
         }
 
         store.dispatch('START_INTERACTION');
@@ -2931,9 +2952,34 @@ export class CanvasManager {
             const clipboardItems = await navigator.clipboard.read();
             
             for (const item of clipboardItems) {
-                // If the clipboard provides HTML, try to extract embedded SVG first.
-                // (Figma commonly provides SVG markup via text/html.)
-                if (item.types && item.types.includes('text/html')) {
+                const types = Array.isArray(item.types) ? item.types : [];
+
+                // Spec 19a priority: image/svg+xml > text/html > text/plain > raster image/*
+                if (types.includes('image/svg+xml')) {
+                    e.preventDefault();
+
+                    const blob = await item.getType('image/svg+xml');
+                    const file = new File([blob], `pasted-svg-${Date.now()}.svg`, { type: 'image/svg+xml' });
+
+                    const { zoom, pan } = state.editor;
+                    const rect = this.container.getBoundingClientRect();
+                    const centerX = (rect.width / 2 - pan.x) / zoom;
+                    const centerY = (rect.height / 2 - pan.y) / zoom;
+
+                    try {
+                        const svgMarkup = await blob.text();
+                        if (await this.tryCreateEditableShapesFromSvgMarkup(svgMarkup, centerX, centerY)) {
+                            return;
+                        }
+                    } catch {
+                        // ignore and fall through
+                    }
+
+                    await this.createSvgElement(file, centerX, centerY);
+                    return;
+                }
+
+                if (types.includes('text/html')) {
                     try {
                         const htmlBlob = await item.getType('text/html');
                         const html = await htmlBlob.text();
@@ -2949,7 +2995,7 @@ export class CanvasManager {
                             const centerX = (rect.width / 2 - pan.x) / zoom;
                             const centerY = (rect.height / 2 - pan.y) / zoom;
 
-                            if (await this.tryCreateEditableShapesFromSvgMarkup(svgMarkup, centerX, centerY)) {
+                            if (await this.tryCreateEditableShapesFromSvgMarkup(svgMarkup, centerX, centerY, { extraWarnings: ['WARN_HTML_SVG_EXTRACTED'] })) {
                                 return;
                             }
 
@@ -2961,34 +3007,38 @@ export class CanvasManager {
                     }
                 }
 
-                // Check for image types
-                const imageType = item.types.find(type => type.startsWith('image/'));
-                if (imageType) {
-                    e.preventDefault();
-                    
-                    const blob = await item.getType(imageType);
+                if (types.includes('text/plain')) {
+                    try {
+                        const textBlob = await item.getType('text/plain');
+                        const text = await textBlob.text();
+                        if (typeof text === 'string' && /<svg\b[^>]*>/i.test(text)) {
+                            e.preventDefault();
 
-                    if (imageType === 'image/svg+xml') {
-                        const file = new File([blob], `pasted-svg-${Date.now()}.svg`, { type: imageType });
+                            const blob = new Blob([text], { type: 'image/svg+xml' });
+                            const file = new File([blob], `pasted-svg-${Date.now()}.svg`, { type: 'image/svg+xml' });
 
-                        const { zoom, pan } = state.editor;
-                        const rect = this.container.getBoundingClientRect();
-                        const centerX = (rect.width / 2 - pan.x) / zoom;
-                        const centerY = (rect.height / 2 - pan.y) / zoom;
+                            const { zoom, pan } = state.editor;
+                            const rect = this.container.getBoundingClientRect();
+                            const centerX = (rect.width / 2 - pan.x) / zoom;
+                            const centerY = (rect.height / 2 - pan.y) / zoom;
 
-                        try {
-                            const svgMarkup = await blob.text();
-                            if (await this.tryCreateEditableShapesFromSvgMarkup(svgMarkup, centerX, centerY)) {
+                            if (await this.tryCreateEditableShapesFromSvgMarkup(text, centerX, centerY)) {
                                 return;
                             }
-                        } catch {
-                            // ignore and fall through
+
+                            await this.createSvgElement(file, centerX, centerY);
+                            return;
                         }
-
-                        await this.createSvgElement(file, centerX, centerY);
-                        return;
+                    } catch {
+                        // ignore and fall through
                     }
+                }
 
+                const imageType = types.find(type => type.startsWith('image/'));
+                if (imageType) {
+                    e.preventDefault();
+
+                    const blob = await item.getType(imageType);
                     const file = new File([blob], `pasted-image-${Date.now()}.png`, { type: imageType });
                     
                     // Check if we should apply as fill to selected shape

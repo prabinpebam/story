@@ -3,6 +3,8 @@ export const SVG_SANITIZE_DEFAULTS = {
 	maxNodes: 5_000
 };
 
+const DEFAULT_WARNING_LIMIT = 50;
+
 const FORBIDDEN_TAGS = new Set([
 	'script',
 	'foreignobject',
@@ -205,11 +207,13 @@ function isExternalReference(value) {
 	);
 }
 
-function sanitizeElement(element) {
+function sanitizeElement(element, ctx) {
 	const tag = element.tagName;
 	const tagLower = tag.toLowerCase();
 
 	if (FORBIDDEN_TAGS.has(tagLower) || !ALLOWED_TAGS.has(tag)) {
+		ctx.removedNodes++;
+		ctx.changed = true;
 		element.remove();
 		return;
 	}
@@ -222,6 +226,8 @@ function sanitizeElement(element) {
 
 		// Strip event handlers.
 		if (nameLower.startsWith('on')) {
+			ctx.removedAttrs++;
+			ctx.changed = true;
 			element.removeAttribute(name);
 			continue;
 		}
@@ -230,8 +236,14 @@ function sanitizeElement(element) {
 		if (nameLower === 'style') {
 			const sanitizedStyle = sanitizeInlineStyle(value);
 			if (sanitizedStyle) {
+				if (sanitizedStyle !== value) {
+					ctx.sanitizedStyles++;
+					ctx.changed = true;
+				}
 				element.setAttribute(name, sanitizedStyle);
 			} else {
+				ctx.removedAttrs++;
+				ctx.changed = true;
 				element.removeAttribute(name);
 			}
 			continue;
@@ -240,6 +252,9 @@ function sanitizeElement(element) {
 		// Strip external references.
 		if (nameLower === 'href' || nameLower === 'xlink:href') {
 			if (isExternalReference(value)) {
+				ctx.externalRefsStripped++;
+				ctx.removedAttrs++;
+				ctx.changed = true;
 				element.removeAttribute(name);
 			}
 			continue;
@@ -248,6 +263,9 @@ function sanitizeElement(element) {
 		// Strip external resource references for url(...) presentation attributes.
 		if (nameLower === 'filter' || nameLower === 'clip-path' || nameLower === 'mask' || nameLower === 'fill' || nameLower === 'stroke') {
 			if (isExternalReference(value)) {
+				ctx.externalRefsStripped++;
+				ctx.removedAttrs++;
+				ctx.changed = true;
 				element.removeAttribute(name);
 			}
 			continue;
@@ -255,12 +273,14 @@ function sanitizeElement(element) {
 
 		// Conservative allowlist.
 		if (!ALLOWED_ATTRS.has(name)) {
+			ctx.removedAttrs++;
+			ctx.changed = true;
 			element.removeAttribute(name);
 		}
 	}
 
 	for (const child of Array.from(element.children)) {
-		sanitizeElement(child);
+		sanitizeElement(child, ctx);
 	}
 }
 
@@ -269,34 +289,45 @@ function sanitizeElement(element) {
  *
  * @param {string} input
  * @param {{maxBytes?: number, maxNodes?: number}} [options]
- * @returns {{ok: true, svg: string} | {ok: false, reason: string}}
+ * @returns {{ok: true, svg: string, warnings: string[]} | {ok: false, reason: string, warnings: string[]}}
  */
 export function sanitizeSvg(input, options = {}) {
 	const merged = { ...SVG_SANITIZE_DEFAULTS, ...(options || {}) };
+	const warnings = [];
+
+	function pushWarning(code) {
+		if (typeof code !== 'string' || code.length === 0) return;
+		if (warnings.length >= DEFAULT_WARNING_LIMIT) return;
+		warnings.push(code);
+	}
 
 	if (typeof input !== 'string' || input.trim().length === 0) {
-		return { ok: false, reason: 'not_svg' };
+		pushWarning('WARN_NO_SVG_FOUND');
+		return { ok: false, reason: 'not_svg', warnings };
 	}
 
 	const byteLen = estimateUtf8Bytes(input);
 	if (byteLen > merged.maxBytes) {
-		return { ok: false, reason: 'too_large' };
+		pushWarning('WARN_IMPORT_TOO_LARGE');
+		return { ok: false, reason: 'too_large', warnings };
 	}
 
 	const parser = new DOMParser();
 	const doc = parser.parseFromString(input, 'image/svg+xml');
 	if (doc.querySelector('parsererror')) {
-		return { ok: false, reason: 'parse_error' };
+		return { ok: false, reason: 'parse_error', warnings };
 	}
 
 	const root = doc.documentElement;
 	if (!root || root.tagName.toLowerCase() !== 'svg') {
-		return { ok: false, reason: 'not_svg' };
+		pushWarning('WARN_NO_SVG_FOUND');
+		return { ok: false, reason: 'not_svg', warnings };
 	}
 
 	const nodeCount = root.getElementsByTagName('*').length + 1;
 	if (nodeCount > merged.maxNodes) {
-		return { ok: false, reason: 'too_many_nodes' };
+		pushWarning('WARN_IMPORT_TOO_COMPLEX');
+		return { ok: false, reason: 'too_many_nodes', warnings };
 	}
 
 	// Root hardening.
@@ -310,9 +341,24 @@ export function sanitizeSvg(input, options = {}) {
 		root.setAttribute('preserveAspectRatio', 'xMidYMid meet');
 	}
 
-	sanitizeElement(root);
+	const ctx = {
+		changed: false,
+		externalRefsStripped: 0,
+		removedNodes: 0,
+		removedAttrs: 0,
+		sanitizedStyles: 0
+	};
+
+	sanitizeElement(root, ctx);
+
+	if (ctx.externalRefsStripped > 0) {
+		pushWarning('WARN_EXTERNAL_REFERENCE_STRIPPED');
+	}
+	if (ctx.changed) {
+		pushWarning('WARN_SVG_SANITIZED');
+	}
 
 	const serialized = new XMLSerializer().serializeToString(root);
-	return { ok: true, svg: serialized };
+	return { ok: true, svg: serialized, warnings };
 }
 

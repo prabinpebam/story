@@ -1,6 +1,8 @@
 {
   "name": "gradient-transform-userspace-viewbox",
-  "warnings": ["WARN_GRADIENT_TRANSFORM_IGNORED"],
+  "warnings": [
+    "WARN_GRADIENT_NORMALIZED"
+  ],
   "elementsCount": 1,
-  "sha256": "bb6108d828975fbcc24852980354b70c9e6354abb29cd491dc2242293b4f4dca"
+  "sha256": "460b93a16c7e134e2c1f2708da052897d1a10e5954690319173828b4348fdb53"
 }

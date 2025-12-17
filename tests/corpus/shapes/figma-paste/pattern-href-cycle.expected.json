@@ -1,6 +1,8 @@
 {
   "name": "pattern-href-cycle",
-  "warnings": ["WARN_PATTERN_HREF_UNSUPPORTED"],
+  "warnings": [
+    "WARN_GRADIENT_NORMALIZED"
+  ],
   "elementsCount": 1,
-  "sha256": "91fa56481cc07228be8f22b66ff0c4f612efc4b5805e597d287eca9aeeda89c6"
+  "sha256": "fb20ed2b719537a9f2b6c9250b0ed121480b99bb6871db27636d21e6eb55a574"
 }

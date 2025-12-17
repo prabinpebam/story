@@ -1953,6 +1953,36 @@ export function importEditableShapesFromSanitizedSvg(sanitizedSvg, options) {
         return { ok: false, reason: 'EMPTY_INPUT', warnings: [] };
     }
 
+    const LIMITS = {
+        maxBytes: 500_000,
+        maxNodes: 5_000,
+        maxElements: 2_000
+    };
+
+    const CLAMPS = {
+        coordMin: -1_000_000,
+        coordMax: 1_000_000,
+        sizeMin: 0,
+        sizeMax: 100_000,
+        opacityMin: 0,
+        opacityMax: 1
+    };
+
+    function estimateUtf8Bytes(text) {
+        try {
+            return new TextEncoder().encode(text).length;
+        } catch {
+            // Conservative fallback.
+            return (text || '').length * 2;
+        }
+    }
+
+    // Hard limits (Spec 19a).
+    const byteLen = estimateUtf8Bytes(sanitizedSvg);
+    if (byteLen > LIMITS.maxBytes) {
+        return { ok: false, reason: 'IMPORT_TOO_LARGE', warnings: ['WARN_IMPORT_TOO_LARGE'] };
+    }
+
     const centerX = toNumber(options?.centerX);
     const centerY = toNumber(options?.centerY);
     if (centerX === null || centerY === null) {
@@ -1968,6 +1998,19 @@ export function importEditableShapesFromSanitizedSvg(sanitizedSvg, options) {
         return { ok: false, reason: 'PARSE_FAILED', warnings: [] };
     }
 
+    // Complexity guardrails (Spec 19a).
+    try {
+        const root = doc?.documentElement;
+        const nodeCount = root?.getElementsByTagName?.('*')?.length ?? 0;
+        // +1 for the root element.
+        const total = nodeCount + 1;
+        if (total > LIMITS.maxNodes) {
+            return { ok: false, reason: 'IMPORT_TOO_COMPLEX', warnings: ['WARN_IMPORT_TOO_COMPLEX'] };
+        }
+    } catch {
+        // Ignore and proceed; parse-level issues are handled below.
+    }
+
     const svg = doc?.documentElement;
     if (!svg || String(svg.nodeName).toLowerCase() !== 'svg') {
         return { ok: false, reason: 'NO_SVG_ROOT', warnings: [] };
@@ -1976,6 +2019,82 @@ export function importEditableShapesFromSanitizedSvg(sanitizedSvg, options) {
     const elements = [];
 
     const warnings = [];
+
+    let numericClamped = false;
+    let transformBaked = false;
+    let pathNormalized = false;
+    let tooComplex = false;
+
+    function clampNumber(n, min, max) {
+        if (!Number.isFinite(n)) return n;
+        if (n < min) {
+            numericClamped = true;
+            return min;
+        }
+        if (n > max) {
+            numericClamped = true;
+            return max;
+        }
+        return n;
+    }
+
+    function clampCoord(n) {
+        return clampNumber(n, CLAMPS.coordMin, CLAMPS.coordMax);
+    }
+
+    function clampSize(n) {
+        return clampNumber(n, CLAMPS.sizeMin, CLAMPS.sizeMax);
+    }
+
+    function clampOpacity01(n) {
+        return clampNumber(n, CLAMPS.opacityMin, CLAMPS.opacityMax);
+    }
+
+    function addElement(el) {
+        if (tooComplex) return;
+        if (elements.length >= LIMITS.maxElements) {
+            tooComplex = true;
+            return;
+        }
+        elements.push(el);
+    }
+
+    function uniqueInOrder(list) {
+        const out = [];
+        const seen = new Set();
+        for (const item of list) {
+            if (typeof item !== 'string' || item.length === 0) continue;
+            if (seen.has(item)) continue;
+            seen.add(item);
+            out.push(item);
+        }
+        return out;
+    }
+
+    function normalizeWarningCode(code) {
+        switch (code) {
+            // Consolidate pre-existing granular warnings into the canonical spec codes.
+            case 'WARN_GRADIENT_SPREADMETHOD_UNSUPPORTED':
+            case 'WARN_GRADIENT_TRANSFORM_IGNORED':
+            case 'WARN_GRADIENT_PAINT_UNSUPPORTED':
+            case 'WARN_GRADIENT_HREF_UNSUPPORTED':
+            case 'WARN_PATTERN_HREF_UNSUPPORTED':
+                return 'WARN_GRADIENT_NORMALIZED';
+
+            case 'WARN_VECTOR_EFFECT_UNSUPPORTED':
+            case 'WARN_PAINT_ORDER_UNSUPPORTED':
+            case 'WARN_CLIP_PATH_UNSUPPORTED':
+            case 'WARN_MASK_UNSUPPORTED':
+            case 'WARN_PATH_UNSUPPORTED':
+            case 'WARN_PATH_BBOX_FAILED':
+            case 'WARN_TRANSFORM_UNSUPPORTED':
+            case 'WARN_UNSUPPORTED_COLOR':
+                return 'WARN_SVG_UNSUPPORTED_FEATURE';
+
+            default:
+                return code;
+        }
+    }
 
     function resolveEffectsForNode(node) {
         const raw = getInheritedPresentation(node, 'filter');
@@ -2366,7 +2485,7 @@ export function importEditableShapesFromSanitizedSvg(sanitizedSvg, options) {
             style
         };
         const opacity = getNodeOpacity01(node);
-        if (opacity !== null) el.opacity = opacity;
+        if (opacity !== null) el.opacity = clampOpacity01(opacity);
         return el;
     }
 
@@ -2374,13 +2493,13 @@ export function importEditableShapesFromSanitizedSvg(sanitizedSvg, options) {
         const tag = String(defNode?.nodeName || '').toLowerCase();
 
         if (tag === 'rect') {
-            const x = toNumber(defNode.getAttribute('x')) ?? 0;
-            const y = toNumber(defNode.getAttribute('y')) ?? 0;
-            const w = toNumber(defNode.getAttribute('width')) ?? 0;
-            const h = toNumber(defNode.getAttribute('height')) ?? 0;
+            const x = clampCoord(toNumber(defNode.getAttribute('x')) ?? 0);
+            const y = clampCoord(toNumber(defNode.getAttribute('y')) ?? 0);
+            const w = clampSize(toNumber(defNode.getAttribute('width')) ?? 0);
+            const h = clampSize(toNumber(defNode.getAttribute('height')) ?? 0);
             if (!(w > 0 && h > 0)) return [];
-            const rx = toNumber(defNode.getAttribute('rx')) ?? null;
-            const ry = toNumber(defNode.getAttribute('ry')) ?? null;
+            const rx = clampSize(toNumber(defNode.getAttribute('rx')) ?? null);
+            const ry = clampSize(toNumber(defNode.getAttribute('ry')) ?? null);
             const rrX = rx ?? 0;
             const rrY = (ry ?? rx ?? 0);
             const d = rectToRoundedPathD(x, y, w, h, rrX, rrY);
@@ -2389,9 +2508,9 @@ export function importEditableShapesFromSanitizedSvg(sanitizedSvg, options) {
         }
 
         if (tag === 'circle') {
-            const cx = toNumber(defNode.getAttribute('cx')) ?? 0;
-            const cy = toNumber(defNode.getAttribute('cy')) ?? 0;
-            const r = toNumber(defNode.getAttribute('r')) ?? 0;
+            const cx = clampCoord(toNumber(defNode.getAttribute('cx')) ?? 0);
+            const cy = clampCoord(toNumber(defNode.getAttribute('cy')) ?? 0);
+            const r = clampSize(toNumber(defNode.getAttribute('r')) ?? 0);
             if (!(r > 0)) return [];
             const d = ellipseToPathD(cx, cy, r, r);
             const parsed = parsePathDataToVectorPaths(d, { fillRule: 'nonzero' });
@@ -2399,10 +2518,10 @@ export function importEditableShapesFromSanitizedSvg(sanitizedSvg, options) {
         }
 
         if (tag === 'ellipse') {
-            const cx = toNumber(defNode.getAttribute('cx')) ?? 0;
-            const cy = toNumber(defNode.getAttribute('cy')) ?? 0;
-            const rx = toNumber(defNode.getAttribute('rx')) ?? 0;
-            const ry = toNumber(defNode.getAttribute('ry')) ?? 0;
+            const cx = clampCoord(toNumber(defNode.getAttribute('cx')) ?? 0);
+            const cy = clampCoord(toNumber(defNode.getAttribute('cy')) ?? 0);
+            const rx = clampSize(toNumber(defNode.getAttribute('rx')) ?? 0);
+            const ry = clampSize(toNumber(defNode.getAttribute('ry')) ?? 0);
             if (!(rx > 0 && ry > 0)) return [];
             const d = ellipseToPathD(cx, cy, rx, ry);
             const parsed = parsePathDataToVectorPaths(d, { fillRule: 'nonzero' });
@@ -2488,12 +2607,12 @@ export function importEditableShapesFromSanitizedSvg(sanitizedSvg, options) {
         const maskId = getMaskRefId(node);
 
         if (!clipId && !maskId) {
-            elements.push(contentEl);
+            addElement(contentEl);
             return;
         }
 
         // Always import the content element.
-        elements.push(contentEl);
+        addElement(contentEl);
 
         const createdMaskNodes = [];
 
@@ -2503,7 +2622,7 @@ export function importEditableShapesFromSanitizedSvg(sanitizedSvg, options) {
                 const maskShapeEl = buildMaskShapeFromRef(clipEl, 'clipPath', contentEl, contentTransform);
                 if (maskShapeEl) {
                     maskShapeEl.id = makeId();
-                    elements.push(maskShapeEl);
+                    addElement(maskShapeEl);
                     const maskNodeId = makeId();
                     createdMaskNodes.push({
                         id: maskNodeId,
@@ -2533,7 +2652,7 @@ export function importEditableShapesFromSanitizedSvg(sanitizedSvg, options) {
                 const maskShapeEl = buildMaskShapeFromRef(maskEl, 'mask', contentEl, contentTransform);
                 if (maskShapeEl) {
                     maskShapeEl.id = makeId();
-                    elements.push(maskShapeEl);
+                    addElement(maskShapeEl);
                     const maskNodeId = makeId();
                     createdMaskNodes.push({
                         id: maskNodeId,
@@ -2559,7 +2678,7 @@ export function importEditableShapesFromSanitizedSvg(sanitizedSvg, options) {
 
         // Add mask nodes last (relationship nodes; should sit above content in element order).
         for (const m of createdMaskNodes) {
-            elements.push(m);
+            addElement(m);
         }
     }
 
@@ -2583,14 +2702,14 @@ export function importEditableShapesFromSanitizedSvg(sanitizedSvg, options) {
         }
 
         if (tag === 'rect') {
-            const rawX = toNumber(node.getAttribute('x')) ?? 0;
-            const rawY = toNumber(node.getAttribute('y')) ?? 0;
-            const rawW = toNumber(node.getAttribute('width')) ?? 0;
-            const rawH = toNumber(node.getAttribute('height')) ?? 0;
+            const rawX = clampCoord(toNumber(node.getAttribute('x')) ?? 0);
+            const rawY = clampCoord(toNumber(node.getAttribute('y')) ?? 0);
+            const rawW = clampSize(toNumber(node.getAttribute('width')) ?? 0);
+            const rawH = clampSize(toNumber(node.getAttribute('height')) ?? 0);
             if (rawW > 0 && rawH > 0) {
                 const t = asTransform2D(nextAccumulated);
-                const rx = toNumber(node.getAttribute('rx')) ?? null;
-                const ry = toNumber(node.getAttribute('ry')) ?? null;
+                const rx = clampSize(toNumber(node.getAttribute('rx')) ?? null);
+                const ry = clampSize(toNumber(node.getAttribute('ry')) ?? null);
 
                 if (isAxisAlignedTransform(t)) {
                     const bbox = transformBBox({ x: rawX, y: rawY, width: rawW, height: rawH }, t);
@@ -2617,10 +2736,11 @@ export function importEditableShapesFromSanitizedSvg(sanitizedSvg, options) {
                             style: { fills, strokes, ...(stylePatch || {}) }
                         };
                         const opacity = getNodeOpacity01(node);
-                        if (opacity !== null) el.opacity = opacity;
+                        if (opacity !== null) el.opacity = clampOpacity01(opacity);
                         pushImportedElementWithMasking(node, el, t);
                     }
                 } else {
+                    transformBaked = true;
                     const rrX = rx ?? 0;
                     const rrY = (ry ?? rx ?? 0);
                     const d = rectToRoundedPathD(rawX, rawY, rawW, rawH, rrX, rrY);
@@ -2635,9 +2755,9 @@ export function importEditableShapesFromSanitizedSvg(sanitizedSvg, options) {
                 }
             }
         } else if (tag === 'circle') {
-            const rawCx = toNumber(node.getAttribute('cx')) ?? 0;
-            const rawCy = toNumber(node.getAttribute('cy')) ?? 0;
-            const rawR = toNumber(node.getAttribute('r')) ?? 0;
+            const rawCx = clampCoord(toNumber(node.getAttribute('cx')) ?? 0);
+            const rawCy = clampCoord(toNumber(node.getAttribute('cy')) ?? 0);
+            const rawR = clampSize(toNumber(node.getAttribute('r')) ?? 0);
             if (rawR > 0) {
                 const t = asTransform2D(nextAccumulated);
                 if (isAxisAlignedTransform(t)) {
@@ -2661,10 +2781,11 @@ export function importEditableShapesFromSanitizedSvg(sanitizedSvg, options) {
                             style: { fills, strokes, ...(stylePatch || {}) }
                         };
                         const opacity = getNodeOpacity01(node);
-                        if (opacity !== null) el.opacity = opacity;
+                        if (opacity !== null) el.opacity = clampOpacity01(opacity);
                         pushImportedElementWithMasking(node, el, t);
                     }
                 } else {
+                    transformBaked = true;
                     const d = ellipseToPathD(rawCx, rawCy, rawR, rawR);
                     const fillRule = getFillRuleForNode(node);
                     const parsed = parsePathDataToVectorPaths(d, { fillRule });
@@ -2677,10 +2798,10 @@ export function importEditableShapesFromSanitizedSvg(sanitizedSvg, options) {
                 }
             }
         } else if (tag === 'ellipse') {
-            const rawCx = toNumber(node.getAttribute('cx')) ?? 0;
-            const rawCy = toNumber(node.getAttribute('cy')) ?? 0;
-            const rawRx = toNumber(node.getAttribute('rx')) ?? 0;
-            const rawRy = toNumber(node.getAttribute('ry')) ?? 0;
+            const rawCx = clampCoord(toNumber(node.getAttribute('cx')) ?? 0);
+            const rawCy = clampCoord(toNumber(node.getAttribute('cy')) ?? 0);
+            const rawRx = clampSize(toNumber(node.getAttribute('rx')) ?? 0);
+            const rawRy = clampSize(toNumber(node.getAttribute('ry')) ?? 0);
             if (rawRx > 0 && rawRy > 0) {
                 const t = asTransform2D(nextAccumulated);
                 if (isAxisAlignedTransform(t)) {
@@ -2704,10 +2825,11 @@ export function importEditableShapesFromSanitizedSvg(sanitizedSvg, options) {
                             style: { fills, strokes, ...(stylePatch || {}) }
                         };
                         const opacity = getNodeOpacity01(node);
-                        if (opacity !== null) el.opacity = opacity;
+                        if (opacity !== null) el.opacity = clampOpacity01(opacity);
                         pushImportedElementWithMasking(node, el, t);
                     }
                 } else {
+                    transformBaked = true;
                     const d = ellipseToPathD(rawCx, rawCy, rawRx, rawRy);
                     const fillRule = getFillRuleForNode(node);
                     const parsed = parsePathDataToVectorPaths(d, { fillRule });
@@ -2720,10 +2842,10 @@ export function importEditableShapesFromSanitizedSvg(sanitizedSvg, options) {
                 }
             }
         } else if (tag === 'line') {
-            const rawX1 = toNumber(node.getAttribute('x1')) ?? 0;
-            const rawY1 = toNumber(node.getAttribute('y1')) ?? 0;
-            const rawX2 = toNumber(node.getAttribute('x2')) ?? 0;
-            const rawY2 = toNumber(node.getAttribute('y2')) ?? 0;
+            const rawX1 = clampCoord(toNumber(node.getAttribute('x1')) ?? 0);
+            const rawY1 = clampCoord(toNumber(node.getAttribute('y1')) ?? 0);
+            const rawX2 = clampCoord(toNumber(node.getAttribute('x2')) ?? 0);
+            const rawY2 = clampCoord(toNumber(node.getAttribute('y2')) ?? 0);
 
             const t = asTransform2D(nextAccumulated);
             const p1 = transformPoint({ x: rawX1, y: rawY1 }, t);
@@ -2770,7 +2892,7 @@ export function importEditableShapesFromSanitizedSvg(sanitizedSvg, options) {
                     style: { fills, strokes, ...(stylePatch || {}) }
                 };
                 const opacity = getNodeOpacity01(node);
-                if (opacity !== null) el.opacity = opacity;
+                if (opacity !== null) el.opacity = clampOpacity01(opacity);
                 pushImportedElementWithMasking(node, el, t);
             }
         } else if (tag === 'polyline' || tag === 'polygon') {
@@ -2826,16 +2948,24 @@ export function importEditableShapesFromSanitizedSvg(sanitizedSvg, options) {
                             style: { fills, strokes, ...(stylePatch || {}) }
                         };
                         const opacity = getNodeOpacity01(node);
-                        if (opacity !== null) el.opacity = opacity;
+                        if (opacity !== null) el.opacity = clampOpacity01(opacity);
                         pushImportedElementWithMasking(node, el, asTransform2D(nextAccumulated));
                     }
                 }
             }
         } else if (tag === 'path') {
             const d = node.getAttribute('d') ?? '';
+            if (/[QTAHS]/i.test(d)) {
+                pathNormalized = true;
+            }
             const fillRule = getFillRuleForNode(node);
             const parsed = parsePathDataToVectorPaths(d, { fillRule });
             if (parsed.ok) {
+                // We always bake SVG transforms into vector geometry (rotation stays 0).
+                const tTest = asTransform2D(nextAccumulated);
+                if (!(Math.abs(tTest.a - 1) < 1e-9 && Math.abs(tTest.b) < 1e-9 && Math.abs(tTest.c) < 1e-9 && Math.abs(tTest.d - 1) < 1e-9 && Math.abs(tTest.e) < 1e-9 && Math.abs(tTest.f) < 1e-9)) {
+                    transformBaked = true;
+                }
                 // Compute a bbox from the parsed geometry (line/cubic) using cubic extrema for tighter bounds.
                 let minX = Infinity;
                 let minY = Infinity;
@@ -2944,7 +3074,7 @@ export function importEditableShapesFromSanitizedSvg(sanitizedSvg, options) {
                             style: { fills, strokes, ...(stylePatch || {}) }
                         };
                         const opacity = getNodeOpacity01(node);
-                        if (opacity !== null) el.opacity = opacity;
+                        if (opacity !== null) el.opacity = clampOpacity01(opacity);
                         pushImportedElementWithMasking(node, el, asTransform2D(nextAccumulated));
                     }
                 } else {
@@ -2968,6 +3098,14 @@ export function importEditableShapesFromSanitizedSvg(sanitizedSvg, options) {
         return { ok: false, reason: 'IMPORT_FAILED', warnings: [] };
     }
 
+    if (tooComplex) {
+        const outWarnings = uniqueInOrder([
+            ...warnings,
+            'WARN_IMPORT_TOO_COMPLEX'
+        ]).map(normalizeWarningCode);
+        return { ok: false, reason: 'IMPORT_TOO_COMPLEX', warnings: uniqueInOrder(outWarnings) };
+    }
+
     if (elements.length === 0) {
         return { ok: false, reason: 'NO_SUPPORTED_PRIMITIVES', warnings: [] };
     }
@@ -2988,6 +3126,10 @@ export function importEditableShapesFromSanitizedSvg(sanitizedSvg, options) {
         y: el.y + dy
     }));
 
-    const uniqueWarnings = Array.from(new Set(warnings));
-    return { ok: true, elements: moved, warnings: uniqueWarnings };
+    if (numericClamped) warnings.push('WARN_NUMERIC_CLAMPED');
+    if (transformBaked) warnings.push('WARN_TRANSFORM_BAKED');
+    if (pathNormalized) warnings.push('WARN_PATH_NORMALIZED');
+
+    const normalizedWarnings = uniqueInOrder(warnings.map(normalizeWarningCode));
+    return { ok: true, elements: moved, warnings: normalizedWarnings };
 }

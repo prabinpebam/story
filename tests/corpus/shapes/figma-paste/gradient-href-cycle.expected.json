@@ -1,6 +1,8 @@
 {
   "name": "gradient-href-cycle",
-  "warnings": ["WARN_GRADIENT_HREF_UNSUPPORTED"],
+  "warnings": [
+    "WARN_GRADIENT_NORMALIZED"
+  ],
   "elementsCount": 1,
-  "sha256": "978d84fa09cb3299c9d343d58b316021593a0a10ec44458ce047d6c0e8596ba6"
+  "sha256": "fb20ed2b719537a9f2b6c9250b0ed121480b99bb6871db27636d21e6eb55a574"
 }

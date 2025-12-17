@@ -1,6 +1,8 @@
 {
   "name": "paint-order-stroke-fill",
-  "warnings": ["WARN_PAINT_ORDER_UNSUPPORTED"],
+  "warnings": [
+    "WARN_SVG_UNSUPPORTED_FEATURE"
+  ],
   "elementsCount": 1,
-  "sha256": "072aaa3859d640f179acf0f8850979ecf271a53c76fbcf8841b90a628a1de918"
+  "sha256": "32302067783f86ca9575353dfbfdf1670a9630ed96d272e5d8553d46e2400899"
 }

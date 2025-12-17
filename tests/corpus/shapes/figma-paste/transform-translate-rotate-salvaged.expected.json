@@ -1,6 +1,8 @@
 {
   "name": "transform-translate-rotate-salvaged",
-  "warnings": [],
+  "warnings": [
+    "WARN_TRANSFORM_BAKED"
+  ],
   "elementsCount": 2,
-  "sha256": "2ae38c4a8c8bd0d263bbbe12e08c0ac0482759ed86110d33562c66438461aca2"
+  "sha256": "5af7590a9ebfbc9f8ad33613f91a514d1f1c4dba0023d780c2bb8469dfe68d8a"
 }
