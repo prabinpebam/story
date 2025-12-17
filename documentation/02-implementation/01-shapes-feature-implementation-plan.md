@@ -1,6 +1,9 @@
-# Shapes Feature — Comprehensive Implementation Plan (Strict TDD)
+# Shapes Feature — Singular Completion Plan (Spec-Led, Strict TDD)
 
-**Goal**: implement the Shapes + Vector Editing feature set with **100% spec alignment** and **rigorous automated functional coverage**, using strict TDD.
+**Goal**: complete the Shapes + Vector Editing feature set with **nothing left out**.
+
+This file is the **only active plan** for Shapes execution. The prior plan has been archived at:
+- `documentation/archive/plans/shapes/01-shapes-feature-implementation-plan.v1.md`
 
 References (must stay in sync):
 - Strict TDD rules: `documentation/02-implementation/00-strict-tdd-and-dom-validation.md`
@@ -9,454 +12,179 @@ References (must stay in sync):
 
 ---
 
-## Operating Rules (Non-Negotiable)
+## Non‑Negotiable Rules (How work is allowed to ship)
+
 - **Red → Green → Refactor** for every increment.
 - **Every increment adds/updates Playwright functional tests with DOM/UI assertions**.
 - Add **Vitest tests** whenever the increment introduces logic (geometry, transforms, canonicalization, hit testing, import/export, determinism).
 - Every bug fix requires a **regression test first** (corpus fixture or test).
-- “Done” means: **no known defects**, all tests green, and the full plan checklist below is checked.
+- Each PR must advance **exactly one gate** below and update the **Spec Coverage Ledger** row(s).
 
 ---
 
-## How This Plan Controls Execution (No Drift)
+## What “Done” means (No loopholes)
 
-This file is not just a “plan”; it is the **source of truth for execution**.
+Shapes is “done” only when **all** are true:
 
-Rules:
-- Every Shapes PR must map to **exactly one** phase/milestone goal *and* update the **Spec Coverage Ledger** below.
-- If work cannot be tied to a ledger row (spec → tests → implementation), it is a **rabbit hole** and should be parked.
-- The **Topic Tree & Spec Map** remains the authoritative scope: `documentation/01-specs/shapes/00-topic-tree-and-spec-map.md`.
+1) **Every Shapes spec file** in `documentation/01-specs/shapes/` is in one of these end states:
+   - **Implemented**: Ledger shows `Readiness=READY` and `Implementation=DONE`, with required tests/artifacts present.
+   - **Explicit v1 non‑goal**: Ledger still shows `Readiness=READY`, but the spec itself is updated to clearly mark the v1 non‑goal scope and the ledger `Notes` explicitly says `V1 NON-GOAL` (and why).
 
-Minimum PR bookkeeping (required):
-- Add/extend the failing test first (per `documentation/02-implementation/00-strict-tdd-and-dom-validation.md`).
-- Update:
-  - `Current Status (Snapshot)` (when materially changed),
-  - the ledger row(s) touched (Readiness/Implementation/Tests/Artifacts),
-  - and the phase “exit criteria” checklist item(s) you advanced.
+2) **No ledger rows remain in `NOT REVIEWED` or `BLOCKED`**.
+
+3) **Regression artifacts exist where the spec requires them** (corpus/goldens/perf), and are CI-gated.
+
+4) **Perf smoke gates exist** for representative stress scenes and clipboard paste/undo cycles.
+
+If any spec is “not started” but still in scope, Shapes is not done.
 
 ---
 
-## Milestones & Gates (Bigger Picture)
+## Execution Gates (The only roadmap)
 
-Phases below are the long-form roadmap. To keep day-to-day work aligned, we use milestone gates.
+These gates are intentionally spec-led. When Gate G9 is complete, Shapes is complete.
 
-Milestone gate definitions (prescriptive):
+### G0 — Scope lock + ledger normalization (paper cuts first)
+**Purpose**: remove ambiguity so “done” is mechanically provable.
 
-### M0 — Inventory & Baseline Test Harness
 Exit criteria:
-- We can run at least one end-to-end Shapes flow deterministically in CI.
-- We have a reliable place to store regression fixtures (corpus/goldens/perf) and a stable canonical hashing policy.
+- For **every** Shapes spec file, ledger `Readiness` is set to one of: `READY` or `BLOCKED` (no `NOT REVIEWED`).
+- For any `BLOCKED` spec, the `Notes` include: the exact open decision(s) and the owner.
+- Any spec that will be a **v1 non‑goal** is explicitly marked as such in the spec text and referenced in the ledger notes.
 
-### M1 — Authoritative Model + Transforms (Non-UI)
+Required tests/artifacts:
+- None (documentation-only), but must not contradict existing tests.
+
+---
+
+### G1 — Geometry Core closure (paths + vector networks)
+**Specs targeted**: `07`, `08`, `08a`, `09`, `10`, `11`.
+
 Exit criteria:
-- Data model is versioned/migratable and validated.
-- Transform + coordinate system contracts are implemented and unit-tested.
+- Path representation + segment operations exist per spec (or marked v1 non‑goal with rationale).
+- Vector network requirements are either implemented or explicitly scoped out.
+- A **paths corpus** exists and is CI-gated: `tests/corpus/shapes/paths/`.
 
-### M2 — Rendering Contract + Style/Paint Parity
+Required tests/artifacts:
+- Vitest: canonicalization/determinism + operation semantics.
+- Corpus: minimal repro fixtures for degenerate cases.
+
+---
+
+### G2 — Rendering parity closure (architecture + tessellation/AA + paint parity)
+**Specs targeted**: `14`, `16`, `16a`.
+
 Exit criteria:
-- Shapes render through the existing Story paint stack (fills/strokes/effects) with deterministic output.
-- Mode gating is correct (edit/master/presentation behavior).
+- Rendering architecture decisions are implemented (or v1 non‑goal).
+- Any tessellation/AA requirements are implemented (or explicitly scoped out).
+- Paint/style parity gaps are closed, including deterministic output.
 
-### M3 — Selection + Hit Testing
+Required tests/artifacts:
+- Playwright: DOM output assertions for fills/strokes/effects across modes.
+- Vitest: any derived-geometry determinism used for rendering.
+
+---
+
+### G3 — Tooling & test infrastructure closure (corpus/perf/stress fixtures)
+**Specs targeted**: `24`.
+
 Exit criteria:
-- Hit testing + selection rules match spec and are covered by Playwright.
+- All corpus folders required by spec exist and have at least one CI-gated seed fixture:
+  - `tests/corpus/shapes/booleans/` (already exists)
+  - `tests/corpus/shapes/figma-paste/` (already exists)
+  - `tests/corpus/shapes/paths/` (must exist after G1)
+- Stress/perf fixtures strategy is implemented (file-backed where required by spec).
 
-### M4 — Editing UX (Object + Vector)
+Required tests/artifacts:
+- Vitest perf smoke where appropriate.
+- Playwright perf smoke for paste/undo cycles.
+
+---
+
+### G4 — Interaction + UX closure (modes/ops/selection/viewport)
+**Specs targeted**: `20`, `21`, `22`, `23`, `26`, `27`, `28`, `29`.
+
 Exit criteria:
-- Object mode and vector mode edits are implemented with correct undo/redo coalescing.
+- All interaction modes and transitions match spec.
+- Vector editing operations set matches spec (or v1 non‑goal explicitly).
+- Snapping/guides (Shapes delta) is implemented or explicitly scoped.
 
-### M5 — Booleans + Masks (Non-destructive)
+Required tests/artifacts:
+- Playwright: gestures + mode transitions + modifier semantics.
+- Vitest: deterministic operation semantics for any new logic.
+
+---
+
+### G5 — UI surfaces closure (styling UI, layer panel, feedback/status, design alignment)
+**Specs targeted**: `16-design-system-alignment`, `31`, `32`, `34`.
+
 Exit criteria:
-- Boolean + mask nodes exist with deterministic failure policy and regression fixtures.
+- All required UI surfaces exist and match spec behaviors.
+- Feedback/status for warnings and invalid ops is surfaced per spec.
 
-### M6 — Interop + Export Hardening
+Required tests/artifacts:
+- Playwright: inspector and layer panel assertions, and status/warning UI.
+
+---
+
+### G6 — Creation UX closure (toolbar + creation wiring)
+**Specs targeted**: `39`.
+
 Exit criteria:
-- Interop/export flows are stable, deterministic, and covered (including degrade ladder + warnings).
+- Toolbar creation flows are implemented for Shapes as specified.
+- Creation yields the correct shape kinds and initial properties.
 
-Gate policy (prevents rabbit holes):
-- Prefer work that advances the **earliest incomplete milestone**.
-- Phase 10 (interop) work is allowed, but should be explicitly justified as either:
-  - unblocking a milestone gate (e.g., export contract), or
-  - required product acceptance for paste/import.
+Required tests/artifacts:
+- Playwright: create each supported shape kind + verify DOM/model state.
 
 ---
 
-## Work-in-Progress Limits (Prevents Getting Lost)
+### G7 — Interop closure (serialization/export + Figma paste)
+**Specs targeted**: `19`, `19a`.
 
-To keep progress visible and avoid deep wandering:
-- Maximum **2 active tracks** at once (e.g., “model+transforms” and “rendering contract”).
-- Maximum **1 exploratory spike** at a time; spikes must end with:
-  - a spec update (decision recorded), *or*
-  - a testable plan item created in this file.
-- If an increment takes longer than a single PR, split it into smaller PRs with intermediate, testable acceptance.
+Exit criteria:
+- Export and clipboard import specs are fully met, including deterministic degrade ladders.
+- Corpus fixtures cover every supported feature + every bug fix.
 
----
-
-## Progress Dashboard (Update Weekly)
-
-Update this section at least weekly so everyone sees the “north star”.
-
-- Current milestone gate: M6 — Interop + Export Hardening
-- Next milestone gate: Phase 10 — Interop (Figma paste → editable elements)
-- Active tracks (max 2): Phase 10 interop hardening
-- Blockers / open decisions: Spec readiness pass still needed for Phase 10 + interop coverage ledger.
-- Last shipped (commit 9385edc): M5 booleans + unified masking (non-destructive) with Playwright gates + Vitest boolean corpus.
-
-### Execution path (when immediate UI is NOT the priority)
-
-Goal: maximize correctness + determinism + interop surface area first, then layer UI later.
-
-Recommended order (smallest-to-largest risk):
-1) Close Phase 10 “Known Gaps” with strict determinism:
-  - Broader transform support (rotate/skew/general matrices) via baked transforms.
-  - True clip-path + masking import (or an explicit deterministic degrade ladder with warnings + tests if full support is deferred).
-  - Broader SVG paint support (incremental, backed by corpus fixtures).
-2) Expand interop regression artifacts:
-  - Add/extend corpus fixtures under `tests/corpus/shapes/figma-paste/` for every newly supported SVG feature and every bug.
-  - Keep warning emission deterministic and asserted.
-3) Raise Spec Coverage Ledger readiness on interop-related specs:
-  - Mark readiness for `19a-figma-clipboard-import.md` once TBDs are eliminated or explicitly scoped as v1 non-goals.
-  - Update related specs (19/19a/24) when the degrade ladder or acceptance changes.
-4) Add lightweight performance smoke gates (wide thresholds):
-  - Import/export large-but-representative fixtures without timeouts or crashes.
-  - Ensure memory usage doesn’t grow unbounded across repeated paste/undo cycles.
+Required tests/artifacts:
+- Vitest: canonical import/export logic and determinism.
+- Playwright: end-to-end paste flows.
+- Corpus: fixtures + canonical hashes + deterministic warnings.
 
 ---
 
-## Current Status (Snapshot — 2025-12-17)
+### G8 — Performance + perceived performance + caching closure
+**Specs targeted**: `17`, `36`.
 
-This status snapshot reflects what is implemented in the repo today (not “planned”), with emphasis on the interop work we’ve been actively shipping.
+Exit criteria:
+- Caching layers and invalidation rules are implemented (or explicitly scoped).
+- Perceived performance behaviors are implemented (or explicitly scoped).
+- Perf smoke gates exist for representative stress scenes.
 
-### Phase Status
-- Phase 0 (Tooling/Test harness): **PARTIAL** — Playwright + Vitest are in place and we have functional clipboard-paste coverage; initial Shapes corpus scaffolding + deterministic hashing is now present, but broader corpus coverage is still sparse.
-- Phase 1–9 (Foundations → UX): **NOT TRACKED IN THIS PLAN FILE YET** — this document still needs a pass to mark what already exists in Story vs what remains for the new Shapes system.
-- Milestone M1 (Authoritative Model + Transforms): **DONE** — canonical shape schema/migration/validation + transforms + coordinate spaces are implemented and covered by Vitest.
-- Milestone M2 (Rendering Contract): **DONE** — renderer parity increments shipped (nested parent rotation + viewport/mode parity) with Playwright regressions; presentation now degrades gracefully when fullscreen is blocked.
-- Milestone M3 (Selection + Hit Testing): **DONE** — deterministic hit tie-break implemented (priority → distance → z-order → hitKey) with Vitest unit coverage; Playwright regressions cover click selection, multi-select toggling, overlap z-order selection, sticky selection during drag, and click-empty clears selection.
-- Milestone M4 (Editing UX: Object + Vector): **DONE** — object move/resize/rotate undo coalescing covered by Playwright; vector deep edit supports node/edge/handle hit + editing (box select with Shift/Ctrl, dblclick edge insert, dblclick node corner↔smooth, delete node/edge, nudge, handle drag), all coalesced into single undo steps and covered by Playwright.
-- Milestone M5 (Booleans + Masks: Non-destructive): **DONE** — boolean nodes render derived vector geometry (non-destructive) with deterministic fallback policy and a CI-gated Vitest corpus; mask nodes apply unified DOM clip-path masking across element types (incl. text) with invert support and Playwright gates.
-- Milestone M6 (Interop + Export Hardening): **DONE** — deterministic SVG export hardening shipped (vectors, flattened booleans, best-effort `<clipPath>` masks, rotation, gradients, image fills) plus theme-slot fill resolution and code/video fill rasterization to `<image>` when possible; exporter emits deterministic warnings metadata; Vitest: `tests/unit/export/ExporterSvgMarkup.test.js`.
-- Phase 10 (Interop: Figma paste → editable elements): **IN PROGRESS** — editable SVG paste pipeline implemented for a conservative subset, behind a feature flag, with unit + Playwright coverage.
-- Phase 11–12 (Perf/A11y/extensibility): **NOT STARTED (for Shapes program)**
-
-### Phase 10 — Implemented Scope (Editable SVG Paste)
-  - [x] `translate(...)`, `scale(...)`
-  - [x] Multi-part `translate/scale` lists (SVG right-to-left ordering)
-  - [x] Full SVG affine `transform` support (translate/scale/rotate/skew/matrix) via baked geometry when needed (deterministic)
-  - [x] `objectBoundingBox`
-  - [x] `userSpaceOnUse` when explicit coords exist
-  - [x] `href` / `xlink:href` inheritance (conservative: depth-limited chain, first-defined attr wins, stops inherited if missing)
-  - [x] Deterministic fallback + warning for broken `href` chains (cycle/missing target)
-  - [x] Deterministic warning + directional import for axis-aligned `gradientTransform` (applies to direction only; warns)
-  - [x] `objectBoundingBox` with explicit/parseable `cx/cy/r`
-  - [x] `href` / `xlink:href` inheritance (conservative: depth-limited chain, first-defined attr wins, stops inherited if missing)
-  - [x] Deterministic fallback + warning for broken `href` chains (cycle/missing target)
-  - [x] Deterministic fallback for unsupported features (e.g. rotate `gradientTransform`, non-centered focal points)
-  - [x] Imports `spreadMethod="repeat"` as CSS `repeating-*` gradients (linear + radial)
-  - [x] `patternUnits="userSpaceOnUse"` + parseable `width/height`
-  - [x] Supports `x/y` offsets; imports phase via `tileOffsetX/tileOffsetY`
-  - [x] Axis-aligned `patternTransform` (translate/scale/matrix; no rotate/skew)
-  - [x] `href` / `xlink:href` inheritance for patterns (conservative: depth-limited chain, first-defined attr wins, children inherited if missing)
-  - [x] Deterministic fallback + warning for broken `href` chains (cycle/missing target)
-  - [x] `patternUnits="objectBoundingBox"` when `patternContentUnits="objectBoundingBox"` and no `patternTransform`
-  - [x] `patternUnits="objectBoundingBox"` when `patternContentUnits="userSpaceOnUse"` and no `patternTransform` (conservative: normalizes user-space content into a `0..1` tile)
-  - [x] Imported as repeating `image` fill (SVG tile data URI)
-  - [x] Imports `clip-path` and `mask` as Story mask relationship nodes (plus imported mask shapes) (deterministic)
-  - [x] Imports supported SVG `filter` effects when deterministically recoverable:
-    - `feGaussianBlur` → `style.blur`
-    - `feDropShadow` → `style.dropShadow`
-    - Other filter graphs degrade deterministically with `WARN_EFFECT_DROPPED`
-  - [x] Imports `mix-blend-mode` into paint `blendMode` when supported; deterministic warning + degrade-to-normal when unsupported
-  - [x] Imports SVG `opacity` into Story element `opacity` (0..1)
-  - [x] Vitest: `tests/unit/clipboard/EditableSvgImporter.test.js`
-  - [x] Playwright: `tests/e2e/specs/functional/clipboard-html-svg-paste-editable.spec.ts`
-
-### Phase 10 — Not Implemented Yet (Known Gaps)
-- [x] Corpus fixtures: `tests/corpus/shapes/figma-paste/` (directory + canonical hash + warnings)
-- [x] Broader SVG paint support (beyond the conservative pattern subset)
-- [x] Supported SVG effects import (blur + drop shadow) beyond drop-on-import
-- [x] Broader blend-mode support beyond degrade-to-normal
+Required tests/artifacts:
+- Perf smoke tests with wide thresholds; fixtures must be deterministic.
 
 ---
 
-## Definition of Done (Shapes “Complete”)
-Shapes is complete only when all are true:
-- Every spec file in `documentation/01-specs/shapes/` is implemented or explicitly marked “v1 non-goal” (and the spec updated accordingly).
-- Functional tests cover:
-  - create primitives, select/multi-select, move/resize/rotate, style edits, undo/redo,
-  - vector edit mode (points/handles + ops),
-  - boolean and mask flows (non-destructive),
-  - keyboard/gesture behaviors, feedback/status, and accessibility requirements,
-  - Figma clipboard paste → editable elements (fixtures + deterministic hashing).
-- Determinism guarantees are enforced by tests:
-  - canonical hashing for geometry/exports/import results,
-  - seeded fuzzing + on-disk corpuses.
-- Performance smoke checks exist for representative “stress scenes”.
+### G9 — Product requirements + accessibility + extensibility closure (finish line)
+**Specs targeted**: `25`, `37`, `38`, plus final “spec readiness sweep” across *all* specs.
+
+Exit criteria:
+- Product-level requirements are met.
+- Accessibility requirements are implemented and tested.
+- Customization/extensibility constraints are implemented and tested.
+- Final ledger sweep: every spec row is either **Implemented** or **V1 NON-GOAL**, and all tests are green.
+
+Required tests/artifacts:
+- Playwright: role/name and keyboard-only flows where required.
 
 ---
 
-## Phase 0 — Test Harness, Tooling, and Enforcement (gates all work)
-This phase exists so TDD can be followed without friction.
+## Work sequencing (one-liner)
 
-Required deliverables:
-- Playwright:
-  - A stable test entry path (launch app, create/open doc, focus canvas).
-  - Stable selectors strategy (prefer role/name; use `data-testid` where needed).
-  - Utilities for pointer drags (with deterministic coordinates), keyboard shortcuts, clipboard stubs.
-- Vitest:
-  - Helpers for canonical JSON hashing, numeric bucketing, seeded randomness.
-- Corpus scaffolding (per shapes testing spec):
-  - `tests/corpus/shapes/booleans/` (PRESENT)
-  - `tests/corpus/shapes/paths/` (NOT PRESENT YET)
-  - `tests/corpus/shapes/figma-paste/` (PRESENT)
+Complete gates in strict order: **G0 → G1 → G2 → G3 → G4 → G5 → G6 → G7 → G8 → G9**.
 
-Gate:
-- No feature work begins until at least one end-to-end shapes test can run locally and in CI.
-
-Primary spec driver:
-- `documentation/01-specs/shapes/24-tooling-and-testing.md`
-
----
-
-## Phase 1 — Foundations (Math + Model contracts)
-Implement the non-UI core contracts first so UX work has stable primitives.
-
-Deliverables (high level):
-- Coordinate conversion utilities (local/parent/world/viewport/screen).
-- Deterministic numeric policy (epsilon/clamping/degenerate handling).
-- Scene graph node identity + traversal rules.
-- Transform system (composition, pivot, bounds behavior).
-
-Primary spec drivers:
-- `01-system-architecture.md`
-- `03-coordinate-systems.md`
-- `04-precision-and-numerics.md`
-- `05-scene-graph-and-node-types.md`
-- `06-transform-system.md`
-
-Tests required:
-- Vitest for all pure math + determinism.
-- Playwright minimal smoke: create a shape and see stable DOM output.
-
----
-
-## Phase 2 — Data Model + Serialization (Authoritative, diffable, migratable)
-Deliverables:
-- Canonical Shapes element/node schemas (including versioning/migrations).
-- Document persistence that round-trips without loss for supported features.
-- Operation-friendly data layout (for undo/redo + future collaboration model).
-
-Primary spec drivers:
-- `02-data-model-and-serialization.md`
-- `11-undo-redo-and-operations.md`
-- `18-operation-model-collaboration-readiness.md`
-- `18-operation-model-future-collab.md` (compatibility shim, if still required)
-
-Tests required:
-- Vitest: serialize → deserialize → canonical-equal.
-- Playwright: create/edit → reload → visually/DOM equivalent.
-
----
-
-## Phase 3 — Geometry Core (Parametric + Paths + Vector Networks)
-Deliverables:
-- Parametric shapes produce canonical path outputs.
-- Path representation supports open/closed, fill rules, winding, and segments.
-- Segment ops and control point semantics.
-- Continuity constraints enforcement.
-- Vector Networks (branching topology) support (Figma-class requirements).
-
-Primary spec drivers:
-- `07-parametric-geometry.md`
-- `08-path-representation.md`
-- `08a-vector-networks.md`
-- `09-segments-and-beziers.md`
-- `10-control-points-and-handles.md`
-- `11-continuity-and-smoothness.md`
-
-Tests required:
-- Vitest: canonicalization, splitting/joining, handle behaviors, continuity enforcement.
-- Corpus entries under `tests/corpus/shapes/paths/` for any degenerate bug found.
-
----
-
-## Phase 4 — Rendering Integration (DOM-first, overlays second)
-Deliverables:
-- Render contract from resolved node → DOM paint stack + overlay.
-- Tessellation/AA strategy implemented as required by spec (even if used initially for a subset).
-- Style/paint integration parity with the existing Story style system.
-
-Primary spec drivers:
-- `16-rendering-architecture.md`
-- `16a-tessellation-and-aa.md`
-- `14-style-and-paint-integration.md`
-- `16-design-system-alignment.md`
-
-Tests required:
-- Playwright: DOM output correctness for fills/strokes/effects and mode gating.
-- Vitest: tessellation determinism and canonical hashing for derived geometry.
-
----
-
-## Phase 5 — Hit Testing + Selection Engine
-Deliverables:
-- Hit testing for fills/strokes; escalation rules for points/segments in vector mode.
-- Selection model (single/multi, lasso where specified).
-- Focus rules and z-order/hierarchy selection behavior.
-
-Primary spec drivers:
-- `12-hit-testing.md`
-- `22-selection-and-focus-ux.md`
-- `05-scene-graph-and-node-types.md`
-
-Tests required:
-- Vitest: hit test math in multiple coordinate spaces.
-- Playwright: click selection, multi-select modifiers, selection visuals/DOM state.
-
----
-
-## Phase 6 — Interaction State Machine + Editing UX
-Deliverables:
-- Modes: object/vector/boolean/mask with explicit transitions.
-- Object editing: move/resize/rotate; parametric handles.
-- Vector editing: point/handle selection + editing operations.
-- Snapping/guides integration (shapes delta to existing canvas spec).
-
-Primary spec drivers:
-- `20-interaction-modes-and-state-machine.md`
-- `27-object-editing-ux.md`
-- `28-vector-editing-ux.md`
-- `21-vector-editing-operations.md`
-- `23-snapping-and-guides-shapes.md`
-- `26-canvas-and-viewport-shapes.md`
-- `29-continuity-curve-ux.md`
-
-Tests required:
-- Playwright: drag gestures, keyboard modifiers, mode switching, snapping assertions.
-- Vitest: operation semantics (the same action sequence yields identical canonical output).
-
----
-
-## Phase 7 — Booleans and Masks (Non-destructive)
-Deliverables:
-- Boolean nodes (union/subtract/intersect/exclude) with deterministic outputs.
-- Masking/clipping model that works for shapes/text/image/video.
-- UX for boolean/mask editing and operand drill-in.
-- Failure policy: never crash; degrade deterministically.
-
-Primary spec drivers:
-- `13-boolean-geometry-system.md`
-- `15-masking-and-clipping.md`
-- `30-boolean-mask-ux.md`
-
-Tests required:
-- Vitest: canonical boolean outputs + seeded fuzzing.
-- Corpus: minimal repros checked into `tests/corpus/shapes/booleans/`.
-- Playwright: create boolean/mask, edit operands, undo/redo, verify DOM state.
-
----
-
-## Phase 8 — UI Surfaces (Styling UI, Layer Panel, Feedback)
-Deliverables:
-- Styling UI for shapes consistent with existing system.
-- Layer panel + hierarchy interactions for shapes/groups/booleans/masks.
-- Feedback and status messaging (warnings, invalid operations, import degradations).
-
-Primary spec drivers:
-- `31-styling-ui.md`
-- `32-layer-panel-ux.md`
-- `34-feedback-and-status.md`
-- `16-design-system-alignment.md`
-
-Tests required:
-- Playwright: inspector changes reflect on-canvas; layer panel selection and ordering.
-
----
-
-## Phase 9 — Keyboard/Gestures + Undo/Redo UX
-Deliverables:
-- Keyboard shortcuts and gesture behaviors for all editing modes.
-- Undo/redo correctness, coalescing, and UX parity with spec.
-
-Primary spec drivers:
-- `33-keyboard-and-gestures.md`
-- `35-undo-redo-ux.md`
-- `11-undo-redo-and-operations.md`
-
-Tests required:
-- Playwright: hotkeys for mode switching and editing; undo/redo across drags and multi-step ops.
-- Vitest: operation coalescing and determinism.
-
----
-
-## Phase 10 — Interop: Serialization/Export + Figma Paste Import
-Deliverables:
-- Internal serialization/export rules.
-- SVG mapping/export for supported subset.
-- Figma clipboard paste → editable elements conversion pipeline with deterministic degrade ladder.
-
-Status:
-- IN PROGRESS — editable SVG paste subset exists and is tested; corpus + broader interop remains.
-
-Primary spec drivers:
-- `19-serialization-and-interop.md`
-- `19a-figma-clipboard-import.md`
-
-Tests required:
-- Corpus: `tests/corpus/shapes/figma-paste/` fixtures with canonical hash + warnings.
-- Playwright: paste flows (mock clipboard), placement, selection after paste.
-
----
-
-## Phase 11 — Performance, Perceived Performance, and Caching
-Deliverables:
-- Cache layers + invalidation rules.
-- Performance smoke gates with “stress scenes”.
-- UI responsiveness heuristics and perceived performance behaviors.
-
-Primary spec drivers:
-- `17-caching-and-performance.md`
-- `36-perceived-performance.md`
-- `25-product-level-requirements.md`
-
-Tests required:
-- Perf smoke checks (wide thresholds) against deterministic fixtures.
-
----
-
-## Phase 12 — Accessibility, Customization, Extensibility
-Deliverables:
-- Accessible selection/focus states; keyboard-only editing paths where required.
-- Extensibility hooks and customization constraints.
-
-Primary spec drivers:
-- `37-accessibility.md`
-- `38-customization-and-extensibility.md`
-
-Tests required:
-- Playwright: role/name queries, focus order, keyboard-only flows.
-
----
-
-# Spec-by-Spec Coverage Checklist (Nothing Missed)
-This section is the **traceability system** that prevents gaps.
-
-Use the ledger table below to track progress. Every Shapes PR must update at least one row.
-
-Legend:
-- **Spec readiness**: the spec has no v1-critical “TBD”/open decisions.
-- **Implementation**: the behavior exists in the product.
-- **Tests**: Playwright functional coverage + Vitest logic coverage where applicable.
-- **Regression artifacts**: corpus/goldens/perf fixtures as required.
-
-For every spec file below, check:
-- [ ] Spec readiness confirmed
-- [ ] Failing test(s) added first (RED)
-- [ ] Minimal implementation (GREEN)
-- [ ] Refactor while green
-- [ ] Playwright DOM/UI assertions cover the behavior
-- [ ] Vitest coverage exists for logic/determinism
-- [ ] Corpus/goldens added if relevant
+If a new issue is discovered mid-gate, fix it, add regression coverage, and keep the PR within the current gate.
 
 ---
 
@@ -467,6 +195,8 @@ Status values (use these exact words to keep search/filters simple):
 - **Implementation**: `NOT STARTED` | `IN PROGRESS` | `DONE`
 - **Tests**: `NONE` | `VITEST` | `PLAYWRIGHT` | `VITEST+PLAYWRIGHT`
 - **Artifacts**: `NONE` | `CORPUS` | `GOLDENS` | `PERF` | `MIXED`
+
+Ledger is maintained in this file because the plan and the traceability system must never drift.
 
 | Spec file | Readiness | Implementation | Tests | Artifacts | Notes (owner, links, gaps) |
 |---|---|---|---|---|---|
@@ -518,84 +248,3 @@ Status values (use these exact words to keep search/filters simple):
 | `37-accessibility.md` | NOT REVIEWED | NOT STARTED | NONE | NONE |  |
 | `38-customization-and-extensibility.md` | NOT REVIEWED | NOT STARTED | NONE | NONE |  |
 | `39-toolbar-tools-and-creation-ux.md` | READY | NOT STARTED | NONE | NONE | Spec added to surface shape creation in existing floating toolbar + shortcuts. Implementation requires toolbar dropdown + `SET_ACTIVE_TOOL({tool:'shape',shapeKind})` wiring and Canvas creation branching on `activeToolOptions.shapeKind` (current `activeTool==='shape'` creates legacy rect only). |
-
----
-
-## Spec Inventory (Reference List)
-Keep this list as the stable, human-friendly grouping. Use the ledger above for status.
-
-## Index and map
-- `00-index.md` — Shapes & Vector Editing Specification (Index)
-- `00-topic-tree-and-spec-map.md` — Topic Tree & Spec Map
-
-## Foundations
-- `01-system-architecture.md` — System Architecture
-- `03-coordinate-systems.md` — Coordinate Systems
-- `04-precision-and-numerics.md` — Precision & Numerics
-
-## Model, graph, transforms
-- `02-data-model-and-serialization.md` — Data Model & Serialization
-- `05-scene-graph-and-node-types.md` — Scene Graph & Node Types
-- `06-transform-system.md` — Transform System
-
-## Geometry core
-- `07-parametric-geometry.md` — Parametric Geometry
-- `08-path-representation.md` — Path Representation
-- `08a-vector-networks.md` — Vector Networks
-- `09-segments-and-beziers.md` — Segments & Bézier Curves
-- `10-control-points-and-handles.md` — Control Points & Handles
-- `11-continuity-and-smoothness.md` — Continuity & Smoothness
-
-## Undo/redo semantics and operation model
-- `11-undo-redo-and-operations.md` — Undo/Redo & Operation Semantics
-- `18-operation-model-collaboration-readiness.md` — Operation Model (Collab readiness)
-- `18-operation-model-future-collab.md` — Operation Model compatibility shim
-
-## Hit testing and constraints
-- `12-hit-testing.md` — Hit Testing
-- `23-snapping-and-guides-shapes.md` — Snapping & Guides (Shapes delta)
-
-## Boolean + masking
-- `13-boolean-geometry-system.md` — Boolean Geometry System
-- `15-masking-and-clipping.md` — Masking & Clipping
-- `30-boolean-mask-ux.md` — Boolean & Mask Interaction UX
-
-## Styling and design system
-- `14-style-and-paint-integration.md` — Style & Paint Integration
-- `16-design-system-alignment.md` — Design System Alignment
-- `31-styling-ui.md` — Styling UI
-
-## Rendering and performance
-- `16-rendering-architecture.md` — Rendering Architecture
-- `16a-tessellation-and-aa.md` — Tessellation & AA
-- `17-caching-and-performance.md` — Caching & Performance
-- `36-perceived-performance.md` — Perceived Performance
-
-## Interop
-- `19-serialization-and-interop.md` — Serialization & Interop
-- `19a-figma-clipboard-import.md` — Figma Clipboard Paste → Editable Elements
-
-## Interaction + UX
-- `20-interaction-modes-and-state-machine.md` — Interaction Modes & State Machine
-- `21-vector-editing-operations.md` — Vector Editing Operations
-- `22-selection-and-focus-ux.md` — Selection & Focus UX
-- `26-canvas-and-viewport-shapes.md` — Canvas & Viewport UX (Shapes delta)
-- `27-object-editing-ux.md` — Object Editing UX
-- `28-vector-editing-ux.md` — Vector Editing UX
-- `29-continuity-curve-ux.md` — Continuity & Curve UX
-- `32-layer-panel-ux.md` — Layer Panel UX
-- `33-keyboard-and-gestures.md` — Keyboard & Gestures
-- `34-feedback-and-status.md` — Feedback & Status
-- `35-undo-redo-ux.md` — Undo/Redo UX
-
-## Product-level requirements
-- `25-product-level-requirements.md` — Product-Level Requirements
-
-## Accessibility and extensibility
-- `37-accessibility.md` — Accessibility
-- `38-customization-and-extensibility.md` — Customization & Extensibility
-
-## Alignment and notes (still must be read/kept consistent)
-- `15-current-implementation-alignment.md` — Implementation alignment inventory (must remain accurate during build)
-- `README.md` — Specs quick start (update if entry points change)
-- `rough-notes.md` — Research direction (ensure no contradictions with v1)
