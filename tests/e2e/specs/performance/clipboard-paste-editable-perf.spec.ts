@@ -50,7 +50,7 @@ test.describe('Frontend Performance: editable SVG paste (smoke)', () => {
     });
   });
 
-  test('PERF06: Repeated paste/undo cycles do not hang or grow unbounded', async ({ page, getState }) => {
+  test('PERF06: Repeated paste/undo cycles do not hang or grow unbounded', async ({ page, getState, dispatchAction }) => {
     const svg = buildLargeSvg();
     const html = `<div data-from="perf">${svg}</div>`;
 
@@ -112,9 +112,7 @@ test.describe('Frontend Performance: editable SVG paste (smoke)', () => {
       }, { timeout: 8000 }).toBeGreaterThan(baseCount);
 
       // Undo
-      await page.keyboard.down('Control');
-      await page.keyboard.press('z');
-      await page.keyboard.up('Control');
+      await dispatchAction('UNDO');
 
       await expect.poll(async () => {
         const s = await getState();
