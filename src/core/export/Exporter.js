@@ -15,8 +15,7 @@
 
 import { store } from '../Store.js';
 import { getShapeKind } from '../shapes/ShapeElementAdapter.js';
-import { elementToWorldPolygons, worldPolygonsToElementLocal } from '../shapes/booleans/ShapeToPolygons.js';
-import { computeBooleanPaths } from '../shapes/booleans/BooleanEngine.js';
+import { resolveBooleanDerivedPaths as resolveBooleanDerivedPathsCached } from '../shapes/booleans/BooleanDerivedPaths.js';
 import { computeUnifiedClipPathCss } from '../shapes/masking/MaskEngine.js';
 
 function escapeXml(text) {
@@ -189,22 +188,7 @@ function buildImagePatternMarkup(id, href, width, height) {
 }
 
 function resolveBooleanDerivedPaths(booleanEl, slideData) {
-    const operation = booleanEl?.operation || 'union';
-    const operandIds = Array.isArray(booleanEl?.operands) ? booleanEl.operands : [];
-    const elements = slideData?.effectiveElements || slideData?.elements || {};
-
-    const operandPolysLocal = [];
-    for (const id of operandIds) {
-        const opEl = elements[id];
-        if (!opEl) continue;
-
-        const world = elementToWorldPolygons(slideData, opEl);
-        const local = worldPolygonsToElementLocal(slideData, booleanEl, world);
-        operandPolysLocal.push(local);
-    }
-
-    const res = computeBooleanPaths({ operation, operands: operandPolysLocal });
-    return { status: res.status, paths: Array.isArray(res.paths) ? res.paths : [] };
+    return resolveBooleanDerivedPathsCached(booleanEl, slideData, { interactive: false });
 }
 
 /**
