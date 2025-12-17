@@ -125,4 +125,27 @@ describe('BooleanDerivedPaths (cache + invalidation + interaction preview)', () 
         // Calls: base compute, after compute. "during" should not compute.
         expect(spy).toHaveBeenCalledTimes(2);
     });
+    it('keeps last-known-good derived paths when operands go missing', () => {
+        const slideData = {
+            elements: {
+                a: { id: 'a', type: 'shape', shapeKind: 'rectangle', x: 0, y: 0, width: 100, height: 100 },
+                b: { id: 'b', type: 'shape', shapeKind: 'rectangle', x: 50, y: 50, width: 100, height: 100 },
+                bool: { id: 'bool', type: 'shape', shapeKind: 'boolean', x: 0, y: 0, width: 200, height: 200, operation: 'union', operands: ['a', 'b'] }
+            },
+            effectiveElements: null
+        };
+
+        const first = resolveBooleanDerivedPaths(slideData.elements.bool, slideData, { interactive: false });
+        expect(first.status).toBe('ok');
+        expect(Array.isArray(first.paths)).toBe(true);
+        expect(first.paths.length).toBeGreaterThan(0);
+
+        // Simulate a corrupt/partial document: operand missing on load.
+        delete slideData.elements.b;
+
+        const second = resolveBooleanDerivedPaths(slideData.elements.bool, slideData, { interactive: false });
+        expect(second.status).toBe('fallback');
+        // Should preserve prior usable preview instead of dropping to empty fallback.
+        expect(second.paths).toEqual(first.paths);
+    });
 });

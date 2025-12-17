@@ -226,14 +226,14 @@
 
             <!-- Floating Toolbar (Bottom Center) -->
             <div id="floating-toolbar">
-                <button class="tool-btn active" data-tool="select" title="Move (V)" data-testid="tool-select">
+                <button class="tool-btn active" data-tool="select" title="Move (V)" aria-label="Select tool" data-testid="tool-select">
                     <i class="fa-solid fa-arrow-pointer"></i>
                 </button>
-                <button class="tool-btn" data-tool="hand" title="Hand Tool (H)" data-testid="tool-hand">
+                <button class="tool-btn" data-tool="hand" title="Hand Tool (H)" aria-label="Hand tool" data-testid="tool-hand">
                     <i class="fa-solid fa-hand"></i>
                 </button>
                 <div class="divider"></div>
-                    <button class="tool-btn btn-split" data-tool="shape" title="Rectangle (R)" data-testid="tool-shape">
+                    <button class="tool-btn btn-split" data-tool="shape" title="Rectangle (R)" aria-label="Shape tool" data-testid="tool-shape">
                         <span class="btn-split__main">
                             <i class="fa-regular fa-square" data-testid="tool-shape-icon"></i>
                         </span>
@@ -241,14 +241,14 @@
                             <i class="fa-solid fa-chevron-down"></i>
                         </span>
                     </button>
-                <button class="tool-btn" data-tool="text" title="Text (T)" data-testid="tool-text">
+                <button class="tool-btn" data-tool="text" title="Text (T)" aria-label="Text tool" data-testid="tool-text">
                     <i class="fa-solid fa-font"></i>
                 </button>
-                <button class="tool-btn" data-tool="image" title="Image (Shift+K)" data-testid="tool-image">
+                <button class="tool-btn" data-tool="image" title="Image (Shift+K)" aria-label="Image tool" data-testid="tool-image">
                     <i class="fa-regular fa-image"></i>
                 </button>
                 <div class="divider"></div>
-                <button class="tool-btn" data-tool="resources" title="Resources (Shift+I)" data-testid="tool-resources">
+                <button class="tool-btn" data-tool="resources" title="Resources (Shift+I)" aria-label="Resources" data-testid="tool-resources">
                     <i class="fa-solid fa-shapes"></i>
                 </button>
             </div>
@@ -258,7 +258,7 @@
                 <div id="icon-library" class="floating-panel hidden">
                     <div class="panel-header">
                         <span>Icons</span>
-                        <button class="close-btn" data-testid="icon-library-close-btn"><i class="fa-solid fa-xmark"></i></button>
+                        <button class="close-btn" aria-label="Close" data-testid="icon-library-close-btn"><i class="fa-solid fa-xmark"></i></button>
                     </div>
                     <div id="icon-library-content" class="panel-content">
                         <!-- Dynamic Content -->

@@ -2,8 +2,7 @@ import { BaseSection } from './BaseSection.js';
 import { store } from '../../core/Store.js';
 import { Dropdown } from '../components/Dropdown.js';
 import { getShapeKind } from '../../core/shapes/ShapeElementAdapter.js';
-import { elementToWorldPolygons, worldPolygonsToElementLocal } from '../../core/shapes/booleans/ShapeToPolygons.js';
-import { computeBooleanPaths } from '../../core/shapes/booleans/BooleanEngine.js';
+import { resolveBooleanDerivedPaths } from '../../core/shapes/booleans/BooleanDerivedPaths.js';
 
 export class BooleanSection extends BaseSection {
     constructor() {
@@ -96,23 +95,8 @@ export class BooleanSection extends BaseSection {
             : store.getEffectiveSlide(state.editor.activeSlideId);
         if (!slideData) return 'Boolean data unavailable';
 
-        const elements = slideData?.effectiveElements || slideData?.elements || {};
-        const operandIds = Array.isArray(booleanEl?.operands) ? booleanEl.operands : [];
-        const operation = booleanEl?.operation || 'union';
-
-        const operandPolysLocal = [];
-        for (const id of operandIds) {
-            const opEl = elements[id];
-            if (!opEl) continue;
-            const world = elementToWorldPolygons(slideData, opEl);
-            const local = worldPolygonsToElementLocal(slideData, booleanEl, world);
-            operandPolysLocal.push(local);
-        }
-
-        const res = computeBooleanPaths({ operation, operands: operandPolysLocal });
-        if (!res.ok || res.status !== 'ok') {
-            return 'Operands missing/invalid; showing fallback result';
-        }
+        const derived = resolveBooleanDerivedPaths(booleanEl, slideData, { interactive: false });
+        if (derived.status !== 'ok') return 'Operands missing/invalid; showing fallback result';
         return null;
     }
 }

@@ -285,7 +285,9 @@ export class Toolbar {
             polygon: 'Polygon (Shift+P)',
             star: 'Star (Shift+S)'
         };
-        btn.title = titleByKind[kind] || 'Shape (R)';
+        const title = titleByKind[kind] || 'Shape (R)';
+        btn.title = title;
+        btn.setAttribute('aria-label', `Shape tool (${title})`);
 
         if (!iconEl) return;
 

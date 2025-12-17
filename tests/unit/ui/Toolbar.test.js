@@ -101,7 +101,10 @@ describe('Toolbar', () => {
             const shapeBtn = mockButtons.find(b => b.dataset.tool === 'shape');
             shapeBtn.click();
 
-            expect(store.dispatch).toHaveBeenCalledWith('SET_ACTIVE_TOOL', 'shape');
+            expect(store.dispatch).toHaveBeenCalledWith(
+                'SET_ACTIVE_TOOL',
+                expect.objectContaining({ tool: 'shape', shapeKind: 'rectangle' })
+            );
         });
 
         it('should dispatch SET_ACTIVE_TOOL for text tool', () => {
@@ -155,7 +158,10 @@ describe('Toolbar', () => {
             const event = new KeyboardEvent('keydown', { key: 'r' });
             document.dispatchEvent(event);
 
-            expect(store.dispatch).toHaveBeenCalledWith('SET_ACTIVE_TOOL', 'shape');
+            expect(store.dispatch).toHaveBeenCalledWith(
+                'SET_ACTIVE_TOOL',
+                expect.objectContaining({ tool: 'shape', shapeKind: 'rectangle' })
+            );
         });
 
         it('should activate text tool on T key', () => {

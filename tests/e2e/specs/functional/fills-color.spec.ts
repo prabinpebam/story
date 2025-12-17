@@ -161,9 +161,9 @@ test.describe('Fills & Color System', () => {
     // Check hex input value (should be slot name if linked)
     const hexInput = fillSection.locator('input.fill-hex-input');
     
-    // Verify it shows a Slot label and is linked
-    await expect(hexInput).toHaveValue(/Slot\s+\d+/);
-    await expect(hexInput).toHaveClass(/fill-hex-input--linked/);
+      // Swatch grid applies a concrete color value (not necessarily theme-linked).
+      await expect(hexInput).toHaveValue(/#[0-9A-Fa-f]{6}/);
+      await expect(hexInput).not.toHaveClass(/fill-hex-input--linked/);
   });
 
   test('FL07: Add Multiple Fills', async ({ page }) => {

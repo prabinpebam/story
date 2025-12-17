@@ -46,5 +46,46 @@ export class MaskSection extends BaseSection {
         this.invertSwitch.element.setAttribute('data-testid', 'mask-invert-toggle');
 
         this.container.appendChild(this.invertSwitch.element);
+
+        const warning = this.getMaskWarning(el);
+        if (warning) {
+            const warnRow = document.createElement('div');
+            warnRow.className = 'pi-row';
+            warnRow.setAttribute('data-testid', 'mask-status-warning');
+
+            const label = document.createElement('div');
+            label.className = 'pi-label';
+            label.textContent = 'Status';
+
+            const value = document.createElement('div');
+            value.className = 'pi-value';
+            value.textContent = warning;
+
+            warnRow.appendChild(label);
+            warnRow.appendChild(value);
+            this.container.appendChild(warnRow);
+        }
+    }
+
+    getMaskWarning(maskEl) {
+        const state = store.getState();
+        if (!state?.editor || state.editor.mode === 'presentation') return null;
+
+        const slideData = state.editor.mode === 'master'
+            ? state.slideMasterPresets?.[state.editor.activeMasterId]
+            : store.getEffectiveSlide(state.editor.activeSlideId);
+        if (!slideData) return 'Mask data unavailable';
+
+        const elements = slideData?.effectiveElements || slideData?.elements || {};
+        const maskShapeId = maskEl?.maskShapeId;
+        const contentIds = Array.isArray(maskEl?.contentIds) ? maskEl.contentIds : [];
+
+        if (typeof maskShapeId !== 'string' || !elements[maskShapeId]) {
+            return 'Mask shape missing; masking disabled';
+        }
+        if (contentIds.length === 0) {
+            return 'No masked content; masking disabled';
+        }
+        return null;
     }
 }

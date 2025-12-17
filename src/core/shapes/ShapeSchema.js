@@ -41,8 +41,8 @@ export function validateShapeElementV1(element) {
         errors.push(`type must be 'shape'`);
     }
 
-    if (!SHAPE_KINDS.has(element.shapeKind)) {
-        errors.push(`shapeKind must be one of: ${Array.from(SHAPE_KINDS).join(', ')}`);
+    if (typeof element.shapeKind !== 'string' || !element.shapeKind) {
+        errors.push('shapeKind must be a non-empty string');
     }
 
     for (const key of ['x', 'y', 'width', 'height']) {
@@ -161,8 +161,11 @@ export function validateShapeElementV1(element) {
             break;
         }
         case 'ellipse':
-        default:
             // No additional persisted params required for ellipse in v1.
+            break;
+        default:
+            // Extensibility: unknown kinds are schema-compatible and must not crash load.
+            // We intentionally skip kind-specific validation for forward-compat.
             break;
     }
 

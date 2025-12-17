@@ -13,18 +13,32 @@ Related:
 
 ---
 
+## V1 scope note (what ships vs future)
+
+**Shipped in v1**:
+- Boolean + mask nodes exist and are non-destructive.
+- Node-level inspector sections exist for boolean operation and mask invert.
+- Robust failure-mode behavior is non-fatal (fallbacks keep operands/content intact and surface non-blocking warnings).
+
+**V1 NON-GOAL**:
+- Selection-level “Composition” UI section for creating booleans/masks from the current selection.
+- Keyboard shortcuts for boolean/mask commands.
+- Flatten (irreversible conversion) UI/action.
+
+---
+
 ## 1. Boolean creation
 
-### 1.1 Entry points (must exist)
+### 1.1 Entry points (V1 NON-GOAL)
 When the user has **2+ boolean-capable** elements selected:
 - Eligible operands are shapes/vectors that are NOT composition nodes.
 	- v1 constraint: booleans and masks cannot be selected as operands.
 
-UI placement (must match current inspector architecture):
-- The selection-level composition commands MUST be surfaced as a dedicated Property Inspector section rendered in the inspector body (not in the sidebar header).
+UI placement (future work):
+- The selection-level composition commands should be surfaced as a dedicated Property Inspector section rendered in the inspector body (not in the sidebar header).
 	- Rationale: the current sidebar header only exposes a title label; sections are the existing extensibility point.
 
-Dropdown items:
+Dropdown items (future work):
 - Union
 - Subtract
 - Intersect
@@ -40,7 +54,7 @@ On choosing a boolean op (Union/Subtract/Intersect/Exclude):
 	- `operands:[...selectedIds]` (ordering; see below)
 - The new boolean node becomes the only selected element.
 
-Implementation mapping (Store actions):
+Implementation mapping (Store actions; used by tests/automation today):
 - Union/Subtract/Intersect/Exclude MUST dispatch:
 	- `store.dispatch('CREATE_BOOLEAN_FROM_SELECTION', { ids: state.editor.selectedElementIds, operation: <op> })`
 	- The store handler is responsible for filtering invalid operands and selecting the newly created boolean.
@@ -86,15 +100,8 @@ v1 implementation constraint:
 - There is currently no store action for flattening booleans.
 - If “Flatten” is shown in UI (either selection-level dropdown or node-level controls), it MUST be disabled until the operation exists.
 
-### 2.2 Shortcuts (Windows)
-These shortcuts invoke the same commands as the Boolean operations dropdown when selection is compatible:
-- `Alt+Shift+U` → Union
-- `Alt+Shift+S` → Subtract
-- `Alt+Shift+I` → Intersect
-- `Alt+Shift+E` → Exclude
-- `Alt+Shift+F` → Flatten
-
-Mac equivalents use `Option+Shift+…`.
+### 2.2 Shortcuts (V1 NON-GOAL)
+Selection-level boolean/mask shortcuts are not shipped in v1.
 
 Required UX details:
 
@@ -110,7 +117,7 @@ Progressive refinement feedback:
 - “Use as mask”
 - Edit mask vs content
 
-### 3.1 Entry points
+### 3.1 Entry points (V1 NON-GOAL)
 When selection contains:
 - Exactly 2+ elements, with one intended to be the mask shape and the rest content:
 	- Provide a selection-level command **Use as mask** in the same selection-level composition section in the Property Inspector, OR expose it via the right-click canvas context menu.
@@ -126,7 +133,7 @@ Creation behavior:
 	- default `invert:false`
 - The new mask node becomes selected.
 
-Implementation mapping (Store actions):
+Implementation mapping (Store actions; used by tests/automation today):
 - “Use as mask” MUST dispatch:
 	- `store.dispatch('CREATE_MASK_FROM_SELECTION', { ids: state.editor.selectedElementIds })`
 - Explicit choice of `maskShapeId` / `contentIds` is optional future UX. v1 uses handler defaults.
@@ -146,7 +153,8 @@ When exactly one selected element has `shapeKind:'mask'`, show a **Mask** sectio
 Acceptance for undo:
 - Creating a boolean/mask is 1 undo step.
 - Changing boolean operation is 1 undo step.
-- Flatten is 1 undo step.
+
+Note: Flatten is V1 NON-GOAL.
 
 ## 5. Acceptance
 - Non-destructive behavior is obvious and controllable.

@@ -14,11 +14,45 @@ describe('Selection Hiding During Property Changes', () => {
     let gizmoRenderer;
     let drawSelectionBoxSpy;
     let drawHoverOutlineSpy;
+    let activeContainer;
 
     beforeEach(() => {
         // Reset store to initial state
         store.dispatch('RESET');
         
+        // Use a stable container object so tests can mutate elements.
+        activeContainer = {
+            elements: {
+                'rect-1': {
+                    id: 'rect-1',
+                    type: 'rect',
+                    x: 100,
+                    y: 100,
+                    width: 200,
+                    height: 100,
+                    rotation: 0
+                },
+                'text-1': {
+                    id: 'text-1',
+                    type: 'text',
+                    x: 200,
+                    y: 200,
+                    width: 300,
+                    height: 50,
+                    rotation: 0
+                },
+                'circle-1': {
+                    id: 'circle-1',
+                    type: 'circle',
+                    x: 300,
+                    y: 300,
+                    width: 150,
+                    height: 150,
+                    rotation: 0
+                }
+            }
+        };
+
         // Setup mock canvas manager
         mockCanvasManager = {
             canvas: document.createElement('canvas'),
@@ -27,37 +61,7 @@ describe('Selection Hiding During Property Changes', () => {
             hoveredElementId: null,
             liveResizeData: null,
             isRendering: false,
-            getActiveContainer: vi.fn(() => ({
-                elements: {
-                    'rect-1': {
-                        id: 'rect-1',
-                        type: 'rect',
-                        x: 100,
-                        y: 100,
-                        width: 200,
-                        height: 100,
-                        rotation: 0
-                    },
-                    'text-1': {
-                        id: 'text-1',
-                        type: 'text',
-                        x: 200,
-                        y: 200,
-                        width: 300,
-                        height: 50,
-                        rotation: 0
-                    },
-                    'circle-1': {
-                        id: 'circle-1',
-                        type: 'circle',
-                        x: 300,
-                        y: 300,
-                        width: 150,
-                        height: 150,
-                        rotation: 0
-                    }
-                }
-            }))
+            getActiveContainer: vi.fn(() => activeContainer)
         };
 
         // Create gizmo renderer instance
@@ -87,9 +91,9 @@ describe('Selection Hiding During Property Changes', () => {
 
     describe('Single Rectangle Selection', () => {
         beforeEach(() => {
-            // Select rectangle
-            store.dispatch('UPDATE_SELECTION', ['rect-1']);
             store.dispatch('SET_MODE', 'edit');
+            // Select rectangle (SET_MODE clears selection)
+            store.dispatch('UPDATE_SELECTION', ['rect-1']);
         });
 
         it('should show selection when not interacting', () => {
@@ -131,9 +135,9 @@ describe('Selection Hiding During Property Changes', () => {
 
     describe('Single Text Selection', () => {
         beforeEach(() => {
-            // Select text
-            store.dispatch('UPDATE_SELECTION', ['text-1']);
             store.dispatch('SET_MODE', 'edit');
+            // Select text (SET_MODE clears selection)
+            store.dispatch('UPDATE_SELECTION', ['text-1']);
         });
 
         it('should show selection when not interacting', () => {
@@ -160,9 +164,9 @@ describe('Selection Hiding During Property Changes', () => {
 
     describe('Multi-Selection with Rectangles', () => {
         beforeEach(() => {
-            // Select multiple non-text elements
-            store.dispatch('UPDATE_SELECTION', ['rect-1', 'circle-1']);
             store.dispatch('SET_MODE', 'edit');
+            // Select multiple non-text elements (SET_MODE clears selection)
+            store.dispatch('UPDATE_SELECTION', ['rect-1', 'circle-1']);
         });
 
         it('should show selection when not interacting', () => {
@@ -188,9 +192,9 @@ describe('Selection Hiding During Property Changes', () => {
 
     describe('Multi-Selection with Text Element', () => {
         beforeEach(() => {
-            // Select text + rectangle
-            store.dispatch('UPDATE_SELECTION', ['text-1', 'rect-1']);
             store.dispatch('SET_MODE', 'edit');
+            // Select text + rectangle (SET_MODE clears selection)
+            store.dispatch('UPDATE_SELECTION', ['text-1', 'rect-1']);
         });
 
         it('should show selection when not interacting', () => {
@@ -217,9 +221,9 @@ describe('Selection Hiding During Property Changes', () => {
 
     describe('Performance - Rapid Property Changes', () => {
         beforeEach(() => {
-            // Select rectangle
-            store.dispatch('UPDATE_SELECTION', ['rect-1']);
             store.dispatch('SET_MODE', 'edit');
+            // Select rectangle (SET_MODE clears selection)
+            store.dispatch('UPDATE_SELECTION', ['rect-1']);
         });
 
         it('should handle rapid interaction toggles without issues', () => {
@@ -265,8 +269,8 @@ describe('Selection Hiding During Property Changes', () => {
 
     describe('Edge Cases', () => {
         it('should handle missing state.ui gracefully', () => {
-            store.dispatch('UPDATE_SELECTION', ['rect-1']);
             store.dispatch('SET_MODE', 'edit');
+            store.dispatch('UPDATE_SELECTION', ['rect-1']);
             
             // Simulate missing ui without mutating (potentially frozen) store state
             const stateWithoutUi = JSON.parse(JSON.stringify(store.getState()));
@@ -294,8 +298,8 @@ describe('Selection Hiding During Property Changes', () => {
                 // missing type
             };
             
-            store.dispatch('UPDATE_SELECTION', ['broken-1']);
             store.dispatch('SET_MODE', 'edit');
+            store.dispatch('UPDATE_SELECTION', ['broken-1']);
             store.dispatch('UI_INTERACTION_START');
             
             drawSelectionBoxSpy.mockClear();

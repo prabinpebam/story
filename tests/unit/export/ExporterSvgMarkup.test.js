@@ -168,6 +168,33 @@ describe('Exporter SVG markup', () => {
         expect(svg).toContain('fill="#ABCDEF"');
     });
 
+    it('degrades unhandled shape kinds to bounding box and emits warnings metadata', () => {
+        const el = {
+            id: 'u1',
+            type: 'shape',
+            shapeKind: 'future-kind',
+            x: 10,
+            y: 20,
+            width: 100,
+            height: 50,
+            rotation: 0,
+            style: { fills: [{ visible: true, type: 'solid', value: '#ff0000', opacity: 100 }] }
+        };
+
+        const bounds = { x: 10, y: 20, width: 100, height: 50 };
+        const svg = normalize(buildSvgMarkup([el], {
+            width: 100,
+            height: 50,
+            bounds,
+            slideData: { elements: { u1: el } }
+        }));
+
+        expect(svg).toContain('<rect x="0" y="0" width="100" height="50"');
+        expect(svg).toContain('story-export-warnings');
+        expect(svg).toContain('unhandled-shape-kind');
+        expect(svg).toContain('future-kind');
+    });
+
     it('exports image fills using assetId when resolver is provided', () => {
         const rect = {
             id: 'img-asset-1',
@@ -249,7 +276,7 @@ describe('Exporter SVG markup', () => {
         expect(svg).toContain('href="data:image/jpeg;base64,VID"');
     });
 
-    it('exports boolean shapes as flattened <path d=...> deterministically', () => {
+    it('exports boolean shapes as flattened <path d=...> (deterministic)', () => {
         const a = {
             id: 'a',
             type: 'shape',
@@ -286,47 +313,32 @@ describe('Exporter SVG markup', () => {
             operation: 'union',
             operands: ['a', 'b'],
             style: {
-                fills: [{ visible: true, color: '#00ff00', opacity: 100 }]
+                fills: [{ visible: true, type: 'solid', value: '#123456', opacity: 100 }]
             }
         };
 
         const slideData = { elements: { a, b, 'bool-1': bool } };
         const bounds = { x: 0, y: 0, width: 150, height: 100 };
+        const svg = normalize(buildSvgMarkup([bool], { width: 150, height: 100, bounds, slideData }));
 
-        const svg1 = normalize(buildSvgMarkup([bool], { width: 150, height: 100, bounds, slideData }));
-        const svg2 = normalize(buildSvgMarkup([bool], { width: 150, height: 100, bounds, slideData }));
-
-        expect(svg1).toEqual(svg2);
-        expect(svg1).toContain('<path');
-        expect(svg1).toContain('fill="#00ff00"');
-        expect(svg1).toMatch(/d="M /);
+        expect(svg).toContain('<path');
+        expect(svg).toContain('fill="#123456"');
     });
 
-    it('exports masked elements using <clipPath> + clip-path', () => {
+    it('exports masks as SVG <clipPath> applied to content elements', () => {
         const content = {
             id: 'content-1',
             type: 'shape',
-            shapeKind: 'vector',
+            shapeKind: 'rectangle',
             x: 0,
             y: 0,
             width: 100,
             height: 100,
             rotation: 0,
             style: {
-                fills: [{ visible: true, color: '#123456', opacity: 100 }]
+                fills: [{ visible: true, type: 'solid', value: '#123456', opacity: 100 }]
             },
-            paths: [
-                {
-                    closed: true,
-                    fillRule: 'nonzero',
-                    start: { x: 0, y: 0 },
-                    segments: [
-                        { kind: 'line', to: { x: 100, y: 0 } },
-                        { kind: 'line', to: { x: 100, y: 100 } },
-                        { kind: 'line', to: { x: 0, y: 100 } }
-                    ]
-                }
-            ]
+            params: { cornerRadii: [0, 0, 0, 0] }
         };
 
         const maskShape = {

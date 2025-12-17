@@ -31,6 +31,15 @@
     transition: var(--transition-normal);
 }
 
+#floating-toolbar .tool-btn:focus {
+    outline: none;
+}
+
+#floating-toolbar .tool-btn:focus-visible {
+    outline: 2px solid var(--color-border-focus);
+    outline-offset: 2px;
+}
+
 /* Allow any tool button to become a split button (icon square + caret width). */
 #floating-toolbar .tool-btn.btn-split {
     width: auto;

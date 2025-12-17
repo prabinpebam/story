@@ -174,9 +174,20 @@ test.describe('Text Editing Scenarios', () => {
     await expect(textElement).toHaveCSS('font-weight', '700');
 
     // T16: Color
-    const colorInput = pi.locator('input.fill-hex-input');
-    await colorInput.fill('#00FF00');
-    await colorInput.dispatchEvent('change');
-    await expect(textElement).toHaveCSS('color', 'rgb(0, 255, 0)');
+    const elementId = await textElement.getAttribute('data-element-id');
+    if (!elementId) throw new Error('Typography test: text element missing data-element-id');
+
+    await expect(editor.textColorHex).toBeVisible();
+    await editor.textColorHex.fill('#00FF00');
+    await editor.textColorHex.press('Enter');
+
+    await expect
+      .poll(async () => {
+        const state = await editor.getState();
+        const slide = state.slides[state.editor.activeSlideId];
+        const el = slide.elements?.[elementId];
+        return el?.textFill?.value;
+      })
+      .toBe('#00FF00');
   });
 });

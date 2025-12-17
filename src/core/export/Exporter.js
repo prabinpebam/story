@@ -417,6 +417,29 @@ export function buildSvgMarkup(elements, { width, height, bounds, slideData, res
             bodyParts.push(`${groupOpen}${path}${groupClose}`);
             continue;
         }
+
+        // Extensibility / forward-compat: unknown or currently-unhandled shape kinds
+        // must not crash export. Degrade deterministically to a bounding box.
+        if (element.type === 'shape') {
+            warnings.push({ kind: 'shape', elementId: element.id, type: 'unhandled-shape-kind', shapeKind });
+
+            const { fill, fillOpacity } = getFillPaint();
+            const { stroke, strokeOpacity, strokeWidth } = getStrokePaint();
+            const borderRadius = element.borderRadius || 0;
+
+            let rect = `<rect x="0" y="0" width="${element.width}" height="${element.height}" `;
+            rect += `fill="${escapeXml(fill)}" fill-opacity="${fillOpacity}"`;
+            if (strokeWidth > 0 && stroke !== 'none') {
+                rect += ` stroke="${escapeXml(stroke)}" stroke-opacity="${strokeOpacity}" stroke-width="${strokeWidth}"`;
+            }
+            if (borderRadius > 0) {
+                rect += ` rx="${borderRadius}" ry="${borderRadius}"`;
+            }
+            rect += ` />`;
+
+            bodyParts.push(`${groupOpen}${rect}${groupClose}`);
+            continue;
+        }
     }
 
     let svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${outW}" height="${outH}" viewBox="0 0 ${vbW} ${vbH}">`;

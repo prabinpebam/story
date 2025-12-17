@@ -181,10 +181,10 @@ export function resolveBooleanDerivedPaths(booleanEl, slideData, { interactive =
 
     // If we are interacting and this boolean was previously identified as heavy,
     // return last-known-good result as a preview.
-    if (interactive && cached && cached.isHeavy && cached.lastResult) {
+    if (interactive && cached && cached.isHeavy && (cached.lastGoodResult || cached.lastResult)) {
         // Keep LRU ordering fresh.
         lruSet(_booleanResultCache, booleanId, cached, MAX_BOOLEAN_CACHE);
-        return cached.lastResult;
+        return cached.lastGoodResult || cached.lastResult;
     }
 
     const operation = booleanEl?.operation || 'union';
@@ -194,9 +194,15 @@ export function resolveBooleanDerivedPaths(booleanEl, slideData, { interactive =
     const operandPolysLocal = [];
     let totalPoints = 0;
 
+    const missingOperandIds = [];
+    const selfRef = booleanId && operandIds.includes(booleanId);
+
     for (const id of operandIds) {
         const opEl = elementsById[id];
-        if (!opEl) continue;
+        if (!opEl) {
+            missingOperandIds.push(String(id));
+            continue;
+        }
 
         const local = getOperandLocalCached(slideData, booleanEl, opEl, elementsById);
         operandPolysLocal.push(local.polys);
@@ -207,17 +213,31 @@ export function resolveBooleanDerivedPaths(booleanEl, slideData, { interactive =
     const res = computeBooleanPaths({ operation, operands: operandPolysLocal });
     const computeMs = nowMs() - t0;
 
+    const hadMissingOperands = missingOperandIds.length > 0 || selfRef;
+    const shouldUseLastGood = (!res.ok || res.status !== 'ok' || hadMissingOperands) && cached && cached.lastGoodResult;
+
     const result = {
-        status: res.status,
+        status: (!res.ok || hadMissingOperands) ? 'fallback' : res.status,
         paths: Array.isArray(res.paths) ? res.paths : [],
+        meta: {
+            missingOperandIds,
+            selfRef,
+        }
     };
+
+    if (shouldUseLastGood) {
+        result.paths = cached.lastGoodResult.paths;
+    }
 
     if (booleanId) {
         const isHeavy = totalPoints >= 1500 || computeMs >= 8;
+        const isOk = result.status === 'ok';
+        const lastGoodResult = isOk ? result : (cached?.lastGoodResult || null);
         const record = {
             key: cacheKey,
             result,
             lastResult: result,
+            lastGoodResult,
             isHeavy,
             lastComputeMs: computeMs,
         };

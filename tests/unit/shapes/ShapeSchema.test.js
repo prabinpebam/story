@@ -70,4 +70,21 @@ describe('ShapeSchema v1', () => {
         };
         expect(validateShapeElementV1(el).ok).toBe(true);
     });
+
+    it('accepts unknown shapeKind for forward-compat (extensibility)', () => {
+        const el = {
+            id: 'u1',
+            type: 'shape',
+            shapeKind: 'future-kind',
+            shapeSchemaVersion: SHAPES_SCHEMA_VERSION,
+            x: 0,
+            y: 0,
+            width: 10,
+            height: 10,
+            rotation: 0,
+            futureField: { keep: true }
+        };
+        const res = validateShapeElementV1(el);
+        expect(res.ok).toBe(true);
+    });
 });

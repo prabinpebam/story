@@ -143,6 +143,17 @@ test.describe('Layout Guide Snapping', () => {
     await ensureEditorFlag(getState, dispatchAction, 'snapToSlide', false);
     await ensureEditorFlag(getState, dispatchAction, 'snapToColumns', true);
 
+    // Ensure the active slide uses a multi-column layout so a 2nd column exists.
+    const state0 = await getState();
+    const activeSlideId0 = state0.editor.activeSlideId;
+    await dispatchAction('UPDATE_SLIDE', { id: activeSlideId0, layoutId: 'layout-two-column' });
+    await expect
+      .poll(async () => {
+        const s = await getState();
+        return s.slides?.[activeSlideId0]?.layoutId;
+      })
+      .toBe('layout-two-column');
+
     await editor.setActiveTool('shape');
     await canvas.drawRectangle(0.45, 0.35, 0.10, 0.10);
 

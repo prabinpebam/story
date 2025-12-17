@@ -324,8 +324,9 @@ describe('TextSection', () => {
             expect(textSection.fontFamilyInput.element.style.pointerEvents).toBe('none');
             expect(textSection.fontWeightInput.element.style.pointerEvents).toBe('none');
             expect(textSection.fontSizeInput.element.style.pointerEvents).toBe('none');
-            expect(textSection.fillHexInput.disabled).toBe(true);
-            expect(textSection.fillSwatch.style.pointerEvents).toBe('none');
+            // Text color remains editable even when linked to a typography style.
+            expect(textSection.fillHexInput.disabled).toBe(false);
+            expect(textSection.fillSwatch.style.pointerEvents).toBe('auto');
             expect(textSection.overrideIndicator.classList.contains('hidden')).toBe(true);
 
             // Alignment buttons should be disabled via IconButton.setDisabled
@@ -511,7 +512,12 @@ describe('TextSection', () => {
             store.dispatch.mockClear();
 
             textSection.updateProperty('textFill', { type: 'solid', value: '#ff0000' });
-            expect(store.dispatch).not.toHaveBeenCalled();
+            // textFill is intentionally NOT locked while linked.
+            expect(store.dispatch).toHaveBeenCalledWith(
+                'UPDATE_ELEMENT',
+                expect.objectContaining({ id: 'el-1', textFill: { type: 'solid', value: '#ff0000' } }),
+                expect.anything()
+            );
         });
 
         it('should block verticalAlign updates while linked (strict linking)', () => {

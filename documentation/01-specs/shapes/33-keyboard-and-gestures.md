@@ -54,7 +54,9 @@ Constrain rules are defined in [39-toolbar-tools-and-creation-ux.md](./39-toolba
 
 Boolean/mask commands are only active when selection is compatible (see [30-boolean-mask-ux.md](./30-boolean-mask-ux.md)).
 
-Suggested shortcuts (v1, Windows):
+**V1 NON-GOAL**: Selection-level boolean/mask keyboard shortcuts are not shipped in v1.
+
+Suggested shortcuts (future work, Windows):
 - `Alt+Shift+U` → Union
 - `Alt+Shift+S` → Subtract
 - `Alt+Shift+I` → Intersect

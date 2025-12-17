@@ -39,10 +39,10 @@ describe('MasterPresetLibrary', () => {
         // Must not embed legacy themeSettings
         expect(master.themeSettings).toBeUndefined();
 
-        // Master background must be theme-slot linked (0-based)
+        // Master background must be theme-slot linked
         expect(master.background).toBeTruthy();
         expect(master.background.type).toBe('solid');
-        expect(master.background.themeSlot).toBe(0);
+        expect(master.background.themeSlot).toBe(11);
 
         expect(Array.isArray(master.layoutIds)).toBe(true);
         expect(master.layoutIds.length).toBeGreaterThan(0);

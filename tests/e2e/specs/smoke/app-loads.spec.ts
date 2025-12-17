@@ -41,9 +41,10 @@ test.describe('Application Load', () => {
     
     expect(firstSlide.colorThemeId).toBeDefined();
     expect(firstSlide.typographyStyleId).toBeDefined();
-    // Phase 1+ uses styleAssignments as the canonical reference container (no embedded preset data).
-    expect(firstSlide.styleAssignments).toBeDefined();
-    expect(firstSlide.styleAssignments).toHaveProperty('colorTheme');
+    // Slides may omit styleAssignments when fully inherited; if present, it must only contain references.
+    if (firstSlide.styleAssignments) {
+      expect(firstSlide.styleAssignments).toHaveProperty('colorTheme');
+    }
   });
 
   test('should render the main editor interface', async ({ page }) => {

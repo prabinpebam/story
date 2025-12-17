@@ -1,6 +1,18 @@
 import { describe, it, expect } from 'vitest';
 import { extractFirstSvgFromHtml } from '../../../src/core/clipboard/ClipboardSvgExtractor.js';
 
+function normalizeSvgMarkup(svgMarkup) {
+    if (typeof svgMarkup !== 'string') return null;
+    const doc = new DOMParser().parseFromString(svgMarkup, 'image/svg+xml');
+    const svg = doc.querySelector('svg');
+    if (!svg) return null;
+    return new XMLSerializer()
+        .serializeToString(svg)
+        .replace(/\s+xmlns="http:\/\/www\.w3\.org\/2000\/svg"/i, '')
+        .replace(/>\s+</g, '><')
+        .trim();
+}
+
 describe('ClipboardSvgExtractor.extractFirstSvgFromHtml', () => {
     it('returns null for non-string input', () => {
         expect(extractFirstSvgFromHtml(null)).toBe(null);
@@ -14,16 +26,19 @@ describe('ClipboardSvgExtractor.extractFirstSvgFromHtml', () => {
 
     it('extracts the first svg block from html', () => {
         const html = '<div>before</div><svg width="10" height="10"><rect width="10" height="10" /></svg><div>after</div>';
-        expect(extractFirstSvgFromHtml(html)).toBe('<svg width="10" height="10"><rect width="10" height="10" /></svg>');
+        const extracted = extractFirstSvgFromHtml(html);
+        expect(normalizeSvgMarkup(extracted)).toBe(normalizeSvgMarkup('<svg width="10" height="10"><rect width="10" height="10" /></svg>'));
     });
 
     it('is case-insensitive for tag matching', () => {
         const html = '<DIV><SVG><RECT /></SVG></DIV>';
-        expect(extractFirstSvgFromHtml(html)).toBe('<SVG><RECT /></SVG>');
+        const extracted = extractFirstSvgFromHtml(html);
+        expect(normalizeSvgMarkup(extracted)).toBe(normalizeSvgMarkup('<svg><rect /></svg>'));
     });
 
     it('extracts only the first svg when multiple exist', () => {
         const html = '<svg id="a"></svg>xx<svg id="b"></svg>';
-        expect(extractFirstSvgFromHtml(html)).toBe('<svg id="a"></svg>');
+        const extracted = extractFirstSvgFromHtml(html);
+        expect(normalizeSvgMarkup(extracted)).toBe(normalizeSvgMarkup('<svg id="a"></svg>'));
     });
 });

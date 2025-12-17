@@ -183,8 +183,8 @@ describe('Property Inspector Typography Display', () => {
             expect(props.textFill.type).toBe('solid');
             expect(props.textFill.value).toMatch(/^#[0-9A-Fa-f]{6}$/); // Valid hex color
             expect(props.textFill.value).not.toContain('var(');
-            // Light mode uses slot 0 for text-primary
-            expect(props.textFill.value).toBe('#0A0A0A');
+            // Light mode maps text-primary to theme slot 1 (resolvedColors[1])
+            expect(props.textFill.value).toBe('#1A1A1A');
         });
 
         it('should resolve all properties when textStyleId is set', () => {
@@ -201,7 +201,7 @@ describe('Property Inspector Typography Display', () => {
             expect(props.fontFamily).toBe('Inter');
             expect(props.fontSize).toBe(16);
             expect(props.fontWeight).toBe('400');
-            expect(props.textFill.value).toBe('#0A0A0A');
+            expect(props.textFill.value).toBe('#1A1A1A');
             expect(props.lineHeight).toBe(1.5);
         });
     });
@@ -220,7 +220,8 @@ describe('Property Inspector Typography Display', () => {
 
             expect(props.fontFamily).toBe('Roboto');
             expect(props.fontSize).toBe(24);
-            expect(props.textFill.value).toBe('#000000'); // Default
+            // Default fill falls back to theme text-primary in current resolver
+            expect(props.textFill.value).toBe('#1A1A1A');
         });
 
         it('should resolve CSS variables even without textStyleId', () => {
@@ -235,7 +236,7 @@ describe('Property Inspector Typography Display', () => {
             const props = StyleResolver.getEffectiveTextProperties(element, {}, mockSlideId);
 
             expect(props.fontFamily).toBe('Inter');
-            expect(props.textFill.value).toBe('#0A0A0A');
+            expect(props.textFill.value).toBe('#1A1A1A');
         });
     });
 
@@ -253,8 +254,8 @@ describe('Property Inspector Typography Display', () => {
 
             const props = StyleResolver.getEffectiveTextProperties(element, {}, mockSlideId);
 
-            // Dark mode uses slot 11 for text-primary (lightest)
-            expect(props.textFill.value).toBe('#F7F7F7');
+            // Dark mode inverts theme slots: text-primary slot 1 -> effective slot 10
+            expect(props.textFill.value).toBe('#E6E6E6');
         });
 
         it('should use dark text colors for light theme', () => {
@@ -270,8 +271,8 @@ describe('Property Inspector Typography Display', () => {
 
             const props = StyleResolver.getEffectiveTextProperties(element, {}, mockSlideId);
 
-            // Light mode uses slot 0 for text-primary (darkest)
-            expect(props.textFill.value).toBe('#0A0A0A');
+            // Light mode uses slot 1 for text-primary
+            expect(props.textFill.value).toBe('#1A1A1A');
         });
 
         it('should resolve text-secondary differently based on color mode', () => {
@@ -285,12 +286,14 @@ describe('Property Inspector Typography Display', () => {
             // Light mode - should use slot 2
             mockState.colorThemePresets['color-theme-default'].lumaTheme.colorMode = 'light';
             let props = StyleResolver.getEffectiveTextProperties(element, {}, mockSlideId);
-            expect(props.textFill.value).toBe('#2E2E2E'); // slot 2
+            // text-secondary maps to slot 3 (resolvedColors[3])
+            expect(props.textFill.value).toBe('#424242');
 
             // Dark mode - should use slot 9
             mockState.colorThemePresets['color-theme-default'].lumaTheme.colorMode = 'dark';
             props = StyleResolver.getEffectiveTextProperties(element, {}, mockSlideId);
-            expect(props.textFill.value).toBe('#CCCCCC'); // slot 9
+            // Dark mode inversion: slot 3 -> effective slot 8
+            expect(props.textFill.value).toBe('#B4B4B4');
         });
     });
 

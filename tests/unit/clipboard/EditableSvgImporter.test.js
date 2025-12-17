@@ -205,7 +205,7 @@ describe('EditableSvgImporter.importEditableShapesFromSanitizedSvg', () => {
                 expect(res.ok).toBe(true);
                 if (!res.ok) return;
 
-                expect(res.warnings).toContain('WARN_GRADIENT_PAINT_UNSUPPORTED');
+                expect(res.warnings).toContain('WARN_GRADIENT_NORMALIZED');
                 const el = res.elements[0];
 
                 // We can't import gradients yet; ensure result is still visible (fallback fill).
@@ -417,7 +417,7 @@ describe('EditableSvgImporter.importEditableShapesFromSanitizedSvg', () => {
                 expect(res.ok).toBe(true);
                 if (!res.ok) return;
 
-                expect(res.warnings).not.toContain('WARN_GRADIENT_PAINT_UNSUPPORTED');
+                expect(res.warnings).not.toContain('WARN_GRADIENT_NORMALIZED');
 
                 const el = res.elements[0];
                 expect(el.style?.fills?.[0]?.type).toBe('gradient');
@@ -444,7 +444,7 @@ describe('EditableSvgImporter.importEditableShapesFromSanitizedSvg', () => {
                 expect(res.ok).toBe(true);
                 if (!res.ok) return;
 
-                expect(res.warnings).not.toContain('WARN_GRADIENT_PAINT_UNSUPPORTED');
+                expect(res.warnings).not.toContain('WARN_GRADIENT_NORMALIZED');
 
                 const el = res.elements[0];
                 expect(el.style?.fills?.[0]?.type).toBe('gradient');
@@ -471,8 +471,7 @@ describe('EditableSvgImporter.importEditableShapesFromSanitizedSvg', () => {
                 expect(res.ok).toBe(true);
                 if (!res.ok) return;
 
-                expect(res.warnings).not.toContain('WARN_GRADIENT_PAINT_UNSUPPORTED');
-                expect(res.warnings).not.toContain('WARN_GRADIENT_SPREADMETHOD_UNSUPPORTED');
+                expect(res.warnings).not.toContain('WARN_GRADIENT_NORMALIZED');
                 const el = res.elements[0];
                 expect(el.style?.fills?.[0]?.type).toBe('gradient');
                 expect(String(el.style?.fills?.[0]?.value)).toMatch(/repeating-linear-gradient\(/i);
@@ -496,7 +495,7 @@ describe('EditableSvgImporter.importEditableShapesFromSanitizedSvg', () => {
                 expect(res.ok).toBe(true);
                 if (!res.ok) return;
 
-                expect(res.warnings).not.toContain('WARN_GRADIENT_PAINT_UNSUPPORTED');
+                expect(res.warnings).not.toContain('WARN_GRADIENT_NORMALIZED');
 
                 const el = res.elements[0];
                 expect(el.style?.fills?.[0]?.type).toBe('gradient');
@@ -523,7 +522,7 @@ describe('EditableSvgImporter.importEditableShapesFromSanitizedSvg', () => {
                 expect(res.ok).toBe(true);
                 if (!res.ok) return;
 
-                expect(res.warnings).not.toContain('WARN_GRADIENT_PAINT_UNSUPPORTED');
+                expect(res.warnings).not.toContain('WARN_GRADIENT_NORMALIZED');
 
                 const el = res.elements[0];
                 expect(el.style?.fills?.[0]?.type).toBe('gradient');
@@ -550,7 +549,7 @@ describe('EditableSvgImporter.importEditableShapesFromSanitizedSvg', () => {
                 expect(res.ok).toBe(true);
                 if (!res.ok) return;
 
-                expect(res.warnings).toContain('WARN_GRADIENT_HREF_UNSUPPORTED');
+                expect(res.warnings).toContain('WARN_GRADIENT_NORMALIZED');
 
                 const el = res.elements[0];
                 expect(el.style?.fills?.[0]).toMatchObject({ type: 'solid', value: '#808080', opacity: 100 });
@@ -570,7 +569,7 @@ describe('EditableSvgImporter.importEditableShapesFromSanitizedSvg', () => {
                 expect(res.ok).toBe(true);
                 if (!res.ok) return;
 
-                expect(res.warnings).toContain('WARN_GRADIENT_HREF_UNSUPPORTED');
+                expect(res.warnings).toContain('WARN_GRADIENT_NORMALIZED');
 
                 const el = res.elements[0];
                 expect(el.style?.fills?.[0]).toMatchObject({ type: 'solid', value: '#808080', opacity: 100 });
@@ -593,7 +592,7 @@ describe('EditableSvgImporter.importEditableShapesFromSanitizedSvg', () => {
                 expect(res.ok).toBe(true);
                 if (!res.ok) return;
 
-                expect(res.warnings).not.toContain('WARN_GRADIENT_PAINT_UNSUPPORTED');
+                expect(res.warnings).not.toContain('WARN_GRADIENT_NORMALIZED');
                 const el = res.elements[0];
                 expect(el.style?.fills?.[0]?.type).toBe('gradient');
                 expect(el.style.fills[0].value).toMatch(/linear-gradient\(/i);
@@ -616,7 +615,7 @@ describe('EditableSvgImporter.importEditableShapesFromSanitizedSvg', () => {
                 expect(res.ok).toBe(true);
                 if (!res.ok) return;
 
-                expect(res.warnings).not.toContain('WARN_GRADIENT_PAINT_UNSUPPORTED');
+                expect(res.warnings).not.toContain('WARN_GRADIENT_NORMALIZED');
 
                 const el = res.elements[0];
                 expect(el.shapeKind).toBe('vector');
@@ -643,7 +642,7 @@ describe('EditableSvgImporter.importEditableShapesFromSanitizedSvg', () => {
                 expect(res.ok).toBe(true);
                 if (!res.ok) return;
 
-                expect(res.warnings).not.toContain('WARN_GRADIENT_PAINT_UNSUPPORTED');
+                expect(res.warnings).not.toContain('WARN_GRADIENT_NORMALIZED');
 
                 const el = res.elements[0];
                 expect(el.shapeKind).toBe('rectangle');
@@ -719,7 +718,7 @@ describe('EditableSvgImporter.importEditableShapesFromSanitizedSvg', () => {
                 expect(deg).toBeCloseTo(135, 3);
         });
 
-        it('imports linearGradient stroke as a gradient stroke (no WARN_GRADIENT_PAINT_UNSUPPORTED)', () => {
+        it('imports linearGradient stroke as a gradient stroke (no WARN_GRADIENT_NORMALIZED)', () => {
                 const svg = `
                     <svg xmlns="http://www.w3.org/2000/svg">
                         <defs>
@@ -736,7 +735,7 @@ describe('EditableSvgImporter.importEditableShapesFromSanitizedSvg', () => {
                 expect(res.ok).toBe(true);
                 if (!res.ok) return;
 
-                expect(res.warnings).not.toContain('WARN_GRADIENT_PAINT_UNSUPPORTED');
+                expect(res.warnings).not.toContain('WARN_GRADIENT_NORMALIZED');
 
                 const el = res.elements[0];
                 expect(el.style?.fills?.length || 0).toBe(0);
@@ -746,7 +745,7 @@ describe('EditableSvgImporter.importEditableShapesFromSanitizedSvg', () => {
                 expect(el.style.strokes[0].width).toBe(2);
         });
 
-        it('ignores translation-only gradientTransform and imports with WARN_GRADIENT_TRANSFORM_IGNORED', () => {
+        it('ignores translation-only gradientTransform and imports with WARN_GRADIENT_NORMALIZED', () => {
                 const svg = `
                     <svg xmlns="http://www.w3.org/2000/svg">
                         <defs>
@@ -763,14 +762,13 @@ describe('EditableSvgImporter.importEditableShapesFromSanitizedSvg', () => {
                 expect(res.ok).toBe(true);
                 if (!res.ok) return;
 
-                expect(res.warnings).toContain('WARN_GRADIENT_TRANSFORM_IGNORED');
-                expect(res.warnings).not.toContain('WARN_GRADIENT_PAINT_UNSUPPORTED');
+                expect(res.warnings).toContain('WARN_GRADIENT_NORMALIZED');
 
                 const el = res.elements[0];
                 expect(el.style?.fills?.[0]?.type).toBe('gradient');
         });
 
-        it('applies axis-aligned scale gradientTransform to gradient direction (with WARN_GRADIENT_TRANSFORM_IGNORED)', () => {
+        it('applies axis-aligned scale gradientTransform to gradient direction (with WARN_GRADIENT_NORMALIZED)', () => {
                 // Without transform: (0,0)->(1,1) => 45deg vector => CSS 135deg.
                 // With scaleX=2, scaleY=1: (0,0)->(2,1) => atan2(1,2) => CSS ~116.565deg.
                 const svg = `
@@ -789,7 +787,7 @@ describe('EditableSvgImporter.importEditableShapesFromSanitizedSvg', () => {
                 expect(res.ok).toBe(true);
                 if (!res.ok) return;
 
-                expect(res.warnings).toContain('WARN_GRADIENT_TRANSFORM_IGNORED');
+                expect(res.warnings).toContain('WARN_GRADIENT_NORMALIZED');
 
                 const el = res.elements[0];
                 expect(el.style?.fills?.[0]?.type).toBe('gradient');
@@ -843,7 +841,7 @@ describe('EditableSvgImporter.importEditableShapesFromSanitizedSvg', () => {
                 expect(res.ok).toBe(true);
                 if (!res.ok) return;
 
-                expect(res.warnings).toContain('WARN_GRADIENT_TRANSFORM_IGNORED');
+                expect(res.warnings).toContain('WARN_GRADIENT_NORMALIZED');
 
                 const el = res.elements[0];
                 expect(el.style?.fills?.[0]?.type).toBe('gradient');
@@ -871,7 +869,7 @@ describe('EditableSvgImporter.importEditableShapesFromSanitizedSvg', () => {
                 expect(res.ok).toBe(true);
                 if (!res.ok) return;
 
-                expect(res.warnings).toContain('WARN_GRADIENT_PAINT_UNSUPPORTED');
+                expect(res.warnings).toContain('WARN_GRADIENT_NORMALIZED');
                 expect(res.warnings).not.toContain('WARN_GRADIENT_TRANSFORM_IGNORED');
 
                 const el = res.elements[0];
@@ -894,7 +892,7 @@ describe('EditableSvgImporter.importEditableShapesFromSanitizedSvg', () => {
                 expect(res.ok).toBe(true);
                 if (!res.ok) return;
 
-                expect(res.warnings).toContain('WARN_GRADIENT_PAINT_UNSUPPORTED');
+                expect(res.warnings).toContain('WARN_GRADIENT_NORMALIZED');
 
                 const el = res.elements.find((e) => e?.style?.fills?.[0]?.type === 'solid' && e?.style?.fills?.[0]?.value === '#808080');
                 expect(el).toBeTruthy();
@@ -916,7 +914,7 @@ describe('EditableSvgImporter.importEditableShapesFromSanitizedSvg', () => {
                 expect(res.ok).toBe(true);
                 if (!res.ok) return;
 
-                expect(res.warnings).not.toContain('WARN_GRADIENT_PAINT_UNSUPPORTED');
+                expect(res.warnings).not.toContain('WARN_GRADIENT_NORMALIZED');
 
                 const el = res.elements[0];
                 expect(el.style?.fills?.[0]?.type).toBe('image');
@@ -943,7 +941,7 @@ describe('EditableSvgImporter.importEditableShapesFromSanitizedSvg', () => {
                 expect(res.ok).toBe(true);
                 if (!res.ok) return;
 
-                expect(res.warnings).not.toContain('WARN_GRADIENT_PAINT_UNSUPPORTED');
+                expect(res.warnings).not.toContain('WARN_GRADIENT_NORMALIZED');
 
                 const el = res.elements[0];
                 const f0 = el.style?.fills?.[0];
@@ -973,7 +971,7 @@ describe('EditableSvgImporter.importEditableShapesFromSanitizedSvg', () => {
                 expect(res.ok).toBe(true);
                 if (!res.ok) return;
 
-                expect(res.warnings).not.toContain('WARN_GRADIENT_PAINT_UNSUPPORTED');
+                expect(res.warnings).not.toContain('WARN_GRADIENT_NORMALIZED');
                 const f0 = res.elements[0]?.style?.fills?.[0];
                 expect(f0?.type).toBe('image');
                 expect(f0?.repeat).toBe('repeat');
@@ -1001,7 +999,7 @@ describe('EditableSvgImporter.importEditableShapesFromSanitizedSvg', () => {
                 expect(res.ok).toBe(true);
                 if (!res.ok) return;
 
-                expect(res.warnings).not.toContain('WARN_GRADIENT_PAINT_UNSUPPORTED');
+                expect(res.warnings).not.toContain('WARN_GRADIENT_NORMALIZED');
                 const f0 = res.elements[0]?.style?.fills?.[0];
                 expect(f0?.type).toBe('image');
                 expect(f0?.repeat).toBe('repeat');
@@ -1029,7 +1027,7 @@ describe('EditableSvgImporter.importEditableShapesFromSanitizedSvg', () => {
                 expect(res.ok).toBe(true);
                 if (!res.ok) return;
 
-                expect(res.warnings).not.toContain('WARN_GRADIENT_PAINT_UNSUPPORTED');
+                expect(res.warnings).not.toContain('WARN_GRADIENT_NORMALIZED');
 
                 const f0 = res.elements[0]?.style?.fills?.[0];
                 expect(f0?.type).toBe('image');
@@ -1058,7 +1056,7 @@ describe('EditableSvgImporter.importEditableShapesFromSanitizedSvg', () => {
                 expect(res.ok).toBe(true);
                 if (!res.ok) return;
 
-                expect(res.warnings).not.toContain('WARN_GRADIENT_PAINT_UNSUPPORTED');
+                expect(res.warnings).not.toContain('WARN_GRADIENT_NORMALIZED');
 
                 const f0 = res.elements[0]?.style?.fills?.[0];
                 expect(f0?.type).toBe('image');
@@ -1086,7 +1084,7 @@ describe('EditableSvgImporter.importEditableShapesFromSanitizedSvg', () => {
                 expect(res.ok).toBe(true);
                 if (!res.ok) return;
 
-                expect(res.warnings).not.toContain('WARN_GRADIENT_PAINT_UNSUPPORTED');
+                expect(res.warnings).not.toContain('WARN_GRADIENT_NORMALIZED');
 
                 const f0 = res.elements[0]?.style?.fills?.[0];
                 expect(f0?.type).toBe('image');
@@ -1117,7 +1115,7 @@ describe('EditableSvgImporter.importEditableShapesFromSanitizedSvg', () => {
                 expect(res.ok).toBe(true);
                 if (!res.ok) return;
 
-                expect(res.warnings).not.toContain('WARN_GRADIENT_PAINT_UNSUPPORTED');
+                expect(res.warnings).not.toContain('WARN_GRADIENT_NORMALIZED');
 
                 const f0 = res.elements[0]?.style?.fills?.[0];
                 expect(f0?.type).toBe('image');
@@ -1149,7 +1147,7 @@ describe('EditableSvgImporter.importEditableShapesFromSanitizedSvg', () => {
                 expect(res.ok).toBe(true);
                 if (!res.ok) return;
 
-                expect(res.warnings).not.toContain('WARN_GRADIENT_PAINT_UNSUPPORTED');
+                expect(res.warnings).not.toContain('WARN_GRADIENT_NORMALIZED');
 
                 const f0 = res.elements[0]?.style?.fills?.[0];
                 expect(f0?.type).toBe('image');
@@ -1186,7 +1184,7 @@ describe('EditableSvgImporter.importEditableShapesFromSanitizedSvg', () => {
                 expect(res.ok).toBe(true);
                 if (!res.ok) return;
 
-                expect(res.warnings).toContain('WARN_PATTERN_HREF_UNSUPPORTED');
+                expect(res.warnings).toContain('WARN_GRADIENT_NORMALIZED');
 
                 const el = res.elements[0];
                 expect(el.style?.fills?.[0]).toMatchObject({ type: 'solid', value: '#808080', opacity: 100 });
@@ -1206,7 +1204,7 @@ describe('EditableSvgImporter.importEditableShapesFromSanitizedSvg', () => {
                 expect(res.ok).toBe(true);
                 if (!res.ok) return;
 
-                expect(res.warnings).toContain('WARN_PATTERN_HREF_UNSUPPORTED');
+                expect(res.warnings).toContain('WARN_GRADIENT_NORMALIZED');
 
                 const el = res.elements[0];
                 expect(el.style?.fills?.[0]).toMatchObject({ type: 'solid', value: '#808080', opacity: 100 });
@@ -1229,7 +1227,7 @@ describe('EditableSvgImporter.importEditableShapesFromSanitizedSvg', () => {
                 expect(res.ok).toBe(true);
                 if (!res.ok) return;
 
-                expect(res.warnings).toContain('WARN_GRADIENT_PAINT_UNSUPPORTED');
+                expect(res.warnings).toContain('WARN_GRADIENT_NORMALIZED');
                 const el = res.elements[0];
                 expect(el.style?.fills?.[0]).toMatchObject({ type: 'solid', value: '#808080' });
         });
@@ -1273,7 +1271,7 @@ describe('EditableSvgImporter.importEditableShapesFromSanitizedSvg', () => {
             expect(res.ok).toBe(true);
             if (!res.ok) return;
 
-            expect(res.warnings).not.toContain('WARN_TRANSFORM_UNSUPPORTED');
+            expect(res.warnings).not.toContain('WARN_SVG_UNSUPPORTED_FEATURE');
             expect(res.elements).toHaveLength(1);
             expect(res.elements[0]?.shapeKind).toBe('vector');
             expect(res.elements[0]?.width).toBeGreaterThan(10);
@@ -1295,7 +1293,7 @@ describe('EditableSvgImporter.importEditableShapesFromSanitizedSvg', () => {
                 expect(res.ok).toBe(true);
                 if (!res.ok) return;
 
-                expect(res.warnings).not.toContain('WARN_TRANSFORM_UNSUPPORTED');
+                expect(res.warnings).not.toContain('WARN_SVG_UNSUPPORTED_FEATURE');
                 expect(res.elements).toHaveLength(2);
 
                 const untransformed = res.elements.find(e => e?.style?.fills?.[0]?.value === '#00ff00');
@@ -1324,7 +1322,7 @@ describe('EditableSvgImporter.importEditableShapesFromSanitizedSvg', () => {
                 expect(res.ok).toBe(true);
                 if (!res.ok) return;
 
-                expect(res.warnings).not.toContain('WARN_TRANSFORM_UNSUPPORTED');
+                expect(res.warnings).not.toContain('WARN_SVG_UNSUPPORTED_FEATURE');
                 expect(res.elements).toHaveLength(2);
 
                 const untransformed = res.elements.find(e => e?.style?.fills?.[0]?.value === '#00ff00');
@@ -1352,7 +1350,7 @@ describe('EditableSvgImporter.importEditableShapesFromSanitizedSvg', () => {
                 expect(res.ok).toBe(true);
                 if (!res.ok) return;
 
-                expect(res.warnings || []).not.toContain('WARN_VECTOR_EFFECT_UNSUPPORTED');
+                expect(res.warnings || []).not.toContain('WARN_SVG_UNSUPPORTED_FEATURE');
                 expect(res.elements).toHaveLength(1);
 
                 const el = res.elements[0];
@@ -1374,7 +1372,7 @@ describe('EditableSvgImporter.importEditableShapesFromSanitizedSvg', () => {
                 expect(res.ok).toBe(true);
                 if (!res.ok) return;
 
-                expect(res.warnings).toContain('WARN_PAINT_ORDER_UNSUPPORTED');
+                expect(res.warnings).toContain('WARN_SVG_UNSUPPORTED_FEATURE');
                 expect(res.elements).toHaveLength(1);
 
                 const el = res.elements[0];
@@ -1451,7 +1449,7 @@ describe('EditableSvgImporter.importEditableShapesFromSanitizedSvg', () => {
                 expect(res.ok).toBe(true);
                 if (!res.ok) return;
 
-                expect(res.warnings || []).not.toContain('WARN_PATH_UNSUPPORTED');
+                expect(res.warnings || []).not.toContain('WARN_SVG_UNSUPPORTED_FEATURE');
 
                 const el = res.elements[0];
                 expect(el.shapeKind).toBe('vector');
@@ -1471,7 +1469,7 @@ describe('EditableSvgImporter.importEditableShapesFromSanitizedSvg', () => {
                 expect(res.ok).toBe(true);
                 if (!res.ok) return;
 
-                expect(res.warnings || []).not.toContain('WARN_PATH_UNSUPPORTED');
+                expect(res.warnings || []).not.toContain('WARN_SVG_UNSUPPORTED_FEATURE');
 
                 const el = res.elements[0];
                 expect(el.shapeKind).toBe('vector');
@@ -1491,7 +1489,7 @@ describe('EditableSvgImporter.importEditableShapesFromSanitizedSvg', () => {
                 expect(res.ok).toBe(true);
                 if (!res.ok) return;
 
-                expect(res.warnings || []).not.toContain('WARN_PATH_UNSUPPORTED');
+                expect(res.warnings || []).not.toContain('WARN_SVG_UNSUPPORTED_FEATURE');
 
                 const el = res.elements[0];
                 expect(el.shapeKind).toBe('vector');
@@ -1529,7 +1527,7 @@ describe('EditableSvgImporter.importEditableShapesFromSanitizedSvg', () => {
                 if (!res.ok) return;
 
                 expect(res.elements.length).toBeGreaterThan(0);
-                expect(res.warnings).toContain('WARN_PATH_UNSUPPORTED');
+                expect(res.warnings).toContain('WARN_SVG_UNSUPPORTED_FEATURE');
         });
 
         it('computes a tighter bbox for cubic paths using extrema (not control points)', () => {
