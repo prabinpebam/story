@@ -213,7 +213,7 @@ describe('EditableSvgImporter.importEditableShapesFromSanitizedSvg', () => {
                 expect(el.style.fills[0]).toMatchObject({ type: 'solid', value: '#808080', opacity: 100 });
         });
 
-        it('warns deterministically when clip-path is present (clip ignored; shape still imports)', () => {
+        it('imports clip-path as a mask node (no warning)', () => {
                 const svg = `
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="10">
                         <defs>
@@ -229,14 +229,21 @@ describe('EditableSvgImporter.importEditableShapesFromSanitizedSvg', () => {
                 expect(res.ok).toBe(true);
                 if (!res.ok) return;
 
-                expect(res.warnings).toContain('WARN_CLIP_PATH_UNSUPPORTED');
+                expect(res.warnings).not.toContain('WARN_CLIP_PATH_UNSUPPORTED');
+                const maskNode = res.elements.find(e => e?.shapeKind === 'mask');
+                expect(maskNode).toBeTruthy();
+                expect(maskNode.mode).toBe('clip');
+                expect(Array.isArray(maskNode.contentIds)).toBe(true);
+                expect(maskNode.contentIds).toHaveLength(1);
+                expect(typeof maskNode.maskShapeId).toBe('string');
 
-                const el = res.elements[0];
-                expect(el.type).toBe('shape');
-                expect(el.style?.fills?.[0]).toMatchObject({ type: 'solid', value: '#ff0000', opacity: 100 });
+                const contentEl = res.elements.find(e => e?.id === maskNode.contentIds[0]);
+                expect(contentEl).toBeTruthy();
+                expect(contentEl.type).toBe('shape');
+                expect(contentEl.style?.fills?.[0]).toMatchObject({ type: 'solid', value: '#ff0000', opacity: 100 });
         });
 
-        it('warns deterministically when mask is present (mask ignored; shape still imports)', () => {
+        it('imports mask as a mask node (no warning)', () => {
                 const svg = `
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="10">
                         <defs>
@@ -252,11 +259,18 @@ describe('EditableSvgImporter.importEditableShapesFromSanitizedSvg', () => {
                 expect(res.ok).toBe(true);
                 if (!res.ok) return;
 
-                expect(res.warnings).toContain('WARN_MASK_UNSUPPORTED');
+                expect(res.warnings).not.toContain('WARN_MASK_UNSUPPORTED');
+                const maskNode = res.elements.find(e => e?.shapeKind === 'mask');
+                expect(maskNode).toBeTruthy();
+                expect(maskNode.mode).toBe('clip');
+                expect(Array.isArray(maskNode.contentIds)).toBe(true);
+                expect(maskNode.contentIds).toHaveLength(1);
+                expect(typeof maskNode.maskShapeId).toBe('string');
 
-                const el = res.elements[0];
-                expect(el.type).toBe('shape');
-                expect(el.style?.fills?.[0]).toMatchObject({ type: 'solid', value: '#ff0000', opacity: 100 });
+                const contentEl = res.elements.find(e => e?.id === maskNode.contentIds[0]);
+                expect(contentEl).toBeTruthy();
+                expect(contentEl.type).toBe('shape');
+                expect(contentEl.style?.fills?.[0]).toMatchObject({ type: 'solid', value: '#ff0000', opacity: 100 });
         });
 
         it('warns deterministically when filter is present (filter ignored; shape still imports)', () => {
@@ -1143,18 +1157,21 @@ describe('EditableSvgImporter.importEditableShapesFromSanitizedSvg', () => {
                 expect(res.ok).toBe(true);
         });
 
-        it('warns and ignores unsupported transforms (e.g. rotate) but still imports shapes', () => {
+        it('supports rotate transforms by baking geometry (no warning)', () => {
             const svg = '<svg xmlns="http://www.w3.org/2000/svg"><g transform="rotate(10)"><rect width="10" height="10" fill="#ff0000" /></g></svg>';
             const res = importEditableShapesFromSanitizedSvg(svg, { centerX: 0, centerY: 0, idSeed: 't' });
             expect(res.ok).toBe(true);
             if (!res.ok) return;
 
-            expect(res.warnings).toContain('WARN_TRANSFORM_UNSUPPORTED');
+            expect(res.warnings).not.toContain('WARN_TRANSFORM_UNSUPPORTED');
             expect(res.elements).toHaveLength(1);
+            expect(res.elements[0]?.shapeKind).toBe('vector');
+            expect(res.elements[0]?.width).toBeGreaterThan(10);
+            expect(res.elements[0]?.height).toBeGreaterThan(10);
             expect(res.elements[0]?.style?.fills?.[0]).toMatchObject({ type: 'solid', value: '#ff0000', opacity: 100 });
         });
 
-        it('salvages axis-aligned translate in a mixed transform list (translate + rotate) and preserves relative positions', () => {
+        it('supports mixed transform lists (translate + rotate) by baking geometry', () => {
                 const svg = `
                     <svg xmlns="http://www.w3.org/2000/svg">
                         <rect x="0" y="0" width="10" height="10" fill="#00ff00" />
@@ -1168,15 +1185,22 @@ describe('EditableSvgImporter.importEditableShapesFromSanitizedSvg', () => {
                 expect(res.ok).toBe(true);
                 if (!res.ok) return;
 
-                expect(res.warnings).toContain('WARN_TRANSFORM_UNSUPPORTED');
+                expect(res.warnings).not.toContain('WARN_TRANSFORM_UNSUPPORTED');
                 expect(res.elements).toHaveLength(2);
 
-                const [a, b] = res.elements;
-                // With translate(10,0) salvaged, the second rect remains 10 units to the right.
-                expect(b.x - a.x).toBeCloseTo(10, 6);
+                const untransformed = res.elements.find(e => e?.style?.fills?.[0]?.value === '#00ff00');
+                const transformed = res.elements.find(e => e?.style?.fills?.[0]?.value === '#ff0000');
+                expect(untransformed).toBeTruthy();
+                expect(transformed).toBeTruthy();
+                expect(transformed.shapeKind).toBe('vector');
+                // Rotation expands bounds beyond the original 10x10.
+                expect(transformed.width).toBeGreaterThan(10);
+                expect(transformed.height).toBeGreaterThan(10);
+                // The translate(...) moves it to the right in world space.
+                expect(transformed.x).toBeGreaterThan(untransformed.x);
         });
 
-        it('salvages translation from a general matrix with shear/rotation terms (deterministic warning)', () => {
+        it('supports general matrix(...) transforms (shear/rotation) by baking geometry', () => {
                 const svg = `
                     <svg xmlns="http://www.w3.org/2000/svg">
                         <rect x="0" y="0" width="10" height="10" fill="#00ff00" />
@@ -1190,12 +1214,19 @@ describe('EditableSvgImporter.importEditableShapesFromSanitizedSvg', () => {
                 expect(res.ok).toBe(true);
                 if (!res.ok) return;
 
-                expect(res.warnings).toContain('WARN_TRANSFORM_UNSUPPORTED');
+                expect(res.warnings).not.toContain('WARN_TRANSFORM_UNSUPPORTED');
                 expect(res.elements).toHaveLength(2);
 
-                const [a, b] = res.elements;
-                // Even though the matrix contains shear, we salvage the e/f translation (10,0).
-                expect(b.x - a.x).toBeCloseTo(10, 6);
+                const untransformed = res.elements.find(e => e?.style?.fills?.[0]?.value === '#00ff00');
+                const transformed = res.elements.find(e => e?.style?.fills?.[0]?.value === '#ff0000');
+                expect(untransformed).toBeTruthy();
+                expect(transformed).toBeTruthy();
+                expect(transformed.shapeKind).toBe('vector');
+                // Shear expands bounds beyond original 10x10.
+                expect(transformed.width).toBeGreaterThan(10);
+                expect(transformed.height).toBeGreaterThan(10);
+                // The matrix e/f translation moves it to the right.
+                expect(transformed.x).toBeGreaterThan(untransformed.x);
         });
 
         it('respects vector-effect="non-scaling-stroke" by not scaling stroke width/dashes when baking scale transforms', () => {

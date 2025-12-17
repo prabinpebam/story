@@ -1,6 +1,6 @@
 {
   "name": "transform-rotate-ignored",
-  "warnings": ["WARN_TRANSFORM_UNSUPPORTED"],
+  "warnings": [],
   "elementsCount": 1,
-  "sha256": "ee12e0acf834c0059ebbe242b39ffc578036f185fa8f1588e611fa3164c20f9e"
+  "sha256": "6d5426c598f6b76cfa3544f37a5d753754ff390e54337724b576493cdeb4a809"
 }

@@ -44,13 +44,22 @@ Related:
 ### 3.2 Shape tool slot
 The Shape tool occupies **one** toolbar button, but supports multiple shape kinds.
 
+**Implementation constraint (current app)**
+- The store already supports `SET_ACTIVE_TOOL` payloads that are either:
+  - a string tool name (e.g. `'shape'`), or
+  - an object `{ tool: string, ...options }` stored as `state.editor.activeToolOptions`.
+- For v1 of this UX, the Shape menu MUST be represented as:
+  - `activeTool: 'shape'`
+  - `activeToolOptions.shapeKind: 'rectangle' | 'ellipse' | 'line' | 'polygon' | 'star'`
+- This avoids introducing new tool IDs and matches the existing editor handler behavior.
+
 **Interaction**
 - Click the Shape tool button:
-  - Activates the last-used shape kind (initial default: Rectangle).
+  - Activates the last-used shape kind (initial default: Rectangle) by setting `activeTool='shape'`.
 - Click the Shape tool **caret** (or long-press on the button):
   - Opens a dropdown menu listing available shape kinds.
 - Choosing an item from the menu:
-  - Sets the active creation tool to that shape kind.
+  - Sets `activeTool='shape'` with `activeToolOptions.shapeKind=<chosen>`.
   - Updates the toolbar button icon/tooltip to match the selected shape kind.
 
 **Menu items (v1)**
@@ -61,6 +70,10 @@ The Shape tool occupies **one** toolbar button, but supports multiple shape kind
 - Polygon
 - Star
 
+**Note on Arrow**
+- The canonical shapes schema does not include `shapeKind:'arrow'`.
+- Arrow MUST be represented as a Line shape with arrowhead styling (stroke end cap) for v1.
+
 **Discoverability**
 - Each menu item shows its shortcut (where defined).
 - The toolbar button tooltip reflects the current shape kind (e.g. "Polygon (Shift+P)").
@@ -68,6 +81,10 @@ The Shape tool occupies **one** toolbar button, but supports multiple shape kind
 ---
 
 ## 4. Keyboard shortcuts (tools)
+
+**Implementation constraint (current app)**
+- Tool shortcuts are currently handled globally in the floating toolbar controller (`src/ui/Toolbar.js`) via a `document.addEventListener('keydown', ...)` listener.
+- For v1, add/extend shortcuts there (do not introduce a second competing shortcut registry).
 
 ### 4.1 Required (Figma-aligned)
 These are the primary “shape creation” shortcuts.
@@ -102,6 +119,31 @@ Constraint: these shortcuts must not fire while typing in inputs/textarea/conten
   - If width/height are below a small threshold (e.g. < 5px), creation cancels (no element created).
   - Otherwise, create the shape element and select it.
 
+**Implementation constraint (current app)**
+- The canvas creation path currently creates a legacy rectangle element when `activeTool==='shape'`.
+- To support multiple shape kinds without new tool IDs, the creation logic MUST branch on `state.editor.activeToolOptions?.shapeKind`.
+- Until legacy element types are fully migrated, it is acceptable for creation to output either:
+  - legacy element types (e.g. `type:'rect'`) when that is what the renderer/inspector already supports, OR
+  - canonical `type:'shape'` elements when the rendering path supports them.
+- The inspector title/type label SHOULD use `shapeKind` when `type:'shape'` to avoid showing a generic “Object”.
+
+Known issue to avoid (current behavior mismatch):
+- Current creation code uses a minimum size check that requires BOTH `width > 5` AND `height > 5`.
+  - This will block horizontal/vertical Line and Arrow creation.
+  - When implementing Line/Arrow creation, the minimum threshold MUST be based on segment length (e.g. $\sqrt{w^2+h^2} > 5$), not both dimensions.
+
+Known issue to avoid (global state leakage):
+- Current creation code toggles a global “constrain proportions” editor setting on mouse-up.
+  - Creation-time Shift constraints MUST be handled per-gesture and MUST NOT mutate global constrain settings.
+  - Otherwise a single constrained creation can unexpectedly change later resize behavior.
+
+Selection behavior (matches current tool model):
+- Switching to a non-select tool clears the current selection.
+- Implementations MUST not rely on selection remaining present after switching into a creation tool.
+
+Mode gating:
+- Shape creation shortcuts and creation gestures MUST not mutate document state in `presentation` mode.
+
 ### 5.2 Modifiers (during drag)
 - `Shift`: constrain
   - Rectangle → Square
@@ -118,6 +160,9 @@ Note: no other modifiers are added in v1.
 #### Rectangle
 - Creates `shapeKind: 'rectangle'`.
 - Border radius defaults to 0.
+
+Implementation note:
+- In current code, Rectangle creation may be represented as `type:'rect'` (legacy) during transition.
 
 #### Ellipse
 - Creates `shapeKind: 'ellipse'`.

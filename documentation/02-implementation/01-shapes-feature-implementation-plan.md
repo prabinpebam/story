@@ -102,6 +102,25 @@ Update this section at least weekly so everyone sees the “north star”.
 - Blockers / open decisions: Spec readiness pass still needed for Phase 10 + interop coverage ledger.
 - Last shipped (commit 9385edc): M5 booleans + unified masking (non-destructive) with Playwright gates + Vitest boolean corpus.
 
+### Execution path (when immediate UI is NOT the priority)
+
+Goal: maximize correctness + determinism + interop surface area first, then layer UI later.
+
+Recommended order (smallest-to-largest risk):
+1) Close Phase 10 “Known Gaps” with strict determinism:
+  - Broader transform support (rotate/skew/general matrices) via baked transforms.
+  - True clip-path + masking import (or an explicit deterministic degrade ladder with warnings + tests if full support is deferred).
+  - Broader SVG paint support (incremental, backed by corpus fixtures).
+2) Expand interop regression artifacts:
+  - Add/extend corpus fixtures under `tests/corpus/shapes/figma-paste/` for every newly supported SVG feature and every bug.
+  - Keep warning emission deterministic and asserted.
+3) Raise Spec Coverage Ledger readiness on interop-related specs:
+  - Mark readiness for `19a-figma-clipboard-import.md` once TBDs are eliminated or explicitly scoped as v1 non-goals.
+  - Update related specs (19/19a/24) when the degrade ladder or acceptance changes.
+4) Add lightweight performance smoke gates (wide thresholds):
+  - Import/export large-but-representative fixtures without timeouts or crashes.
+  - Ensure memory usage doesn’t grow unbounded across repeated paste/undo cycles.
+
 ---
 
 ## Current Status (Snapshot — 2025-12-17)
@@ -123,10 +142,7 @@ This status snapshot reflects what is implemented in the repo today (not “plan
 ### Phase 10 — Implemented Scope (Editable SVG Paste)
   - [x] `translate(...)`, `scale(...)`
   - [x] Multi-part `translate/scale` lists (SVG right-to-left ordering)
-  - [x] `matrix(a 0 0 d e f)` only (scale + translate; no rotate/shear)
-  - [x] Unsupported transforms (rotate/skew/general matrices) are ignored (import continues; deterministic warning)
-  - [x] Mixed transform lists salvage any translate/scale/matrix axis-aligned parts and ignore the rest (deterministic warning)
-  - [x] General `matrix(a b c d e f)` with rotate/shear salvage translation `e/f` (deterministic warning)
+  - [x] Full SVG affine `transform` support (translate/scale/rotate/skew/matrix) via baked geometry when needed (deterministic)
   - [x] `objectBoundingBox`
   - [x] `userSpaceOnUse` when explicit coords exist
   - [x] `href` / `xlink:href` inheritance (conservative: depth-limited chain, first-defined attr wins, stops inherited if missing)
@@ -144,8 +160,7 @@ This status snapshot reflects what is implemented in the repo today (not “plan
   - [x] `patternUnits="objectBoundingBox"` when `patternContentUnits="objectBoundingBox"` and no `patternTransform`
   - [x] `patternUnits="objectBoundingBox"` when `patternContentUnits="userSpaceOnUse"` and no `patternTransform` (conservative: normalizes user-space content into a `0..1` tile)
   - [x] Imported as repeating `image` fill (SVG tile data URI)
-  - [x] Detects `clip-path` usage and imports the shape anyway (clip is ignored; deterministic warning)
-  - [x] Detects `mask` usage and imports the shape anyway (mask is ignored; deterministic warning)
+  - [x] Imports `clip-path` and `mask` as Story mask relationship nodes (plus imported mask shapes) (deterministic)
   - [x] Detects `filter` usage and imports the shape anyway (filter is ignored; deterministic warning)
   - [x] Detects `mix-blend-mode` usage and imports the shape anyway (blend is ignored; deterministic warning)
   - [x] Vitest: `tests/unit/clipboard/EditableSvgImporter.test.js`
@@ -154,9 +169,8 @@ This status snapshot reflects what is implemented in the repo today (not “plan
 ### Phase 10 — Not Implemented Yet (Known Gaps)
 - [x] Corpus fixtures: `tests/corpus/shapes/figma-paste/` (directory + canonical hash + warnings)
 - [ ] Broader SVG paint support (beyond the conservative pattern subset)
-- [ ] Broader transform support beyond axis-aligned scale/translate (e.g. rotate/skew; general matrices)
-- [ ] True rotate/skew/general matrix support (baked transforms); current behavior warns+ignores (with limited salvage for translate/scale)
-- [ ] True clip-path + masking rendering/import for pasted SVG (current behavior ignores and warns)
+- [ ] Broader SVG effects support (filters) beyond drop-on-import
+- [ ] Broader blend-mode support beyond degrade-to-normal
 
 ---
 
@@ -478,7 +492,7 @@ Status values (use these exact words to keep search/filters simple):
 | `18-operation-model-collaboration-readiness.md` | NOT REVIEWED | IN PROGRESS | NONE | NONE | Operation + inverse ops plumbing exists: `src/core/collaboration/sync/StateSyncEngine.js` (Shapes op model alignment TBD). |
 | `18-operation-model-future-collab.md` | NOT REVIEWED | NOT STARTED | NONE | NONE |  |
 | `19-serialization-and-interop.md` | READY | DONE | VITEST | NONE | Export + clipboard integration exists: `src/core/export/Exporter.js`, editable SVG importer in `src/core/clipboard/EditableSvgImporter.js` (spec parity TBD). SVG export hardening: `buildSvgMarkup()` supports `shapeKind:'vector'`, flattens `shapeKind:'boolean'` to `<path d=...>`, maps unified masks to SVG `<clipPath>` (best-effort), exports element rotation via `rotate(...)` in the wrapper `<g transform=...>`, and exports paint defs for fills (linear gradients via `<linearGradient>`, radial gradients via `<radialGradient>`, and image fills via `<pattern>` + `<image>`) using deterministic IDs. Adds theme-slot solid fill resolution (exports resolved colors, not theme-slot references) and a deterministic policy for code/video fills (rasterize to `<image>` when possible, otherwise fallback + warning metadata). Vitest: `tests/unit/export/ExporterSvgMarkup.test.js`. |
-| `19a-figma-clipboard-import.md` | NOT REVIEWED | IN PROGRESS | VITEST+PLAYWRIGHT | CORPUS | Editable SVG paste subset + deterministic degrade ladder is shipping. |
+| `19a-figma-clipboard-import.md` | READY | IN PROGRESS | VITEST+PLAYWRIGHT | MIXED | Editable SVG paste subset is shipping with deterministic transforms (baked) + clip-path/mask import; corpus fixtures + perf smoke gates present. |
 | `20-interaction-modes-and-state-machine.md` | NOT REVIEWED | IN PROGRESS | PLAYWRIGHT | NONE | Canvas interaction state + tools exist: `src/core/CanvasManager.js`. Deep edit state added (`editor.deepEdit`) with Escape exit; vector node drag interaction added with bracketing; vector-mode marquee selection routes to deepEdit node selection. Coverage: `tests/e2e/specs/functional/m4-editing-ux.spec.ts`. |
 | `21-vector-editing-operations.md` | NOT REVIEWED | IN PROGRESS | PLAYWRIGHT | NONE | Implemented v1 ops in deep edit: dblclick edge insert node, delete node, delete edge, arrow-key nudge, cubic handle drag, dblclick node corner↔smooth; coverage: `tests/e2e/specs/functional/m4-editing-ux.spec.ts`. |
 | `22-selection-and-focus-ux.md` | NOT REVIEWED | DONE | PLAYWRIGHT | NONE | Selection wiring exists: `src/core/CanvasManager.js`, `src/ui/PropertyInspector.js`. Functional coverage: `tests/e2e/specs/functional/m3-selection-hit-testing.spec.ts` (multi-select toggling, sticky selection during drag, click-empty clears selection). (Hover hysteresis + vector-mode focus UX remain spec TODOs.) |
@@ -488,7 +502,7 @@ Status values (use these exact words to keep search/filters simple):
 | `27-object-editing-ux.md` | NOT REVIEWED | IN PROGRESS | PLAYWRIGHT | NONE | Object drag move + resize interactions exist in `src/core/CanvasManager.js` and are bracketed for undo coalescing via `START_INTERACTION`/`END_INTERACTION`. Rotation hit zone tightened to avoid accidental rotate triggers when inside bounds (`src/core/canvas/HitTesting.js`). Playwright coverage: `tests/e2e/specs/functional/m4-editing-ux.spec.ts` (move + resize undo). |
 | `28-vector-editing-ux.md` | NOT REVIEWED | IN PROGRESS | PLAYWRIGHT | NONE | Minimal vector deep edit implemented: `editor.deepEdit` state (`src/core/store/InitialState.js`, `src/core/Store.js`, `src/core/store/handlers/EditorHandlers.js`), enter on dblclick for vector elements and exit on Escape (`src/core/CanvasManager.js`). Node hit-testing + node drag (single undo step) implemented (`src/core/canvas/HitTesting.js`, `src/core/CanvasManager.js`). Vector-mode node marquee/box selection + modifier semantics update `editor.deepEdit.selection.nodes` (deterministic ordering). Playwright coverage: `tests/e2e/specs/functional/m4-editing-ux.spec.ts`. |
 | `29-continuity-curve-ux.md` | NOT REVIEWED | NOT STARTED | NONE | NONE |  |
-| `30-boolean-mask-ux.md` | NOT REVIEWED | DONE | PLAYWRIGHT | NONE | Inspector controls shipped for boolean op + mask invert: `src/ui/properties/BooleanSection.js`, `src/ui/properties/MaskSection.js`, wired in `src/ui/PropertyInspector.js`. Functional coverage: `tests/e2e/specs/functional/m5-booleans-masks.spec.ts`. |
+| `30-boolean-mask-ux.md` | READY | IN PROGRESS | PLAYWRIGHT | NONE | Core boolean/mask nodes + node-level inspector controls exist (`src/core/store/handlers/ElementHandlers.js`, `src/ui/properties/BooleanSection.js`, `src/ui/properties/MaskSection.js`). NEW in spec: selection-level composition UI section + explicit invalid-selection UX + flatten disablement (UI surface not implemented yet). Existing functional coverage targets core composition (`tests/e2e/specs/functional/m5-booleans-masks.spec.ts`). |
 | `31-styling-ui.md` | NOT REVIEWED | IN PROGRESS | NONE | NONE | Styling UI sections exist: `src/ui/PropertyInspector.js`, `src/ui/properties/FillSection.js`, `src/ui/properties/StrokeSection.js`, `src/ui/properties/EffectsSection.js` (Shapes spec parity TBD). |
 | `32-layer-panel-ux.md` | NOT REVIEWED | IN PROGRESS | NONE | NONE | Layer tree exists: `src/ui/LayerTree.js`, container wiring: `src/ui/LeftPanel.js` (Shapes UX delta TBD). |
 | `33-keyboard-and-gestures.md` | NOT REVIEWED | IN PROGRESS | NONE | NONE | Global shortcuts + input-blocking exist: `src/main.js`, `src/core/InputManager.js`; canvas gestures (pan/zoom/drag) exist: `src/core/CanvasManager.js` (Shapes-specific bindings TBD). |
@@ -497,6 +511,7 @@ Status values (use these exact words to keep search/filters simple):
 | `36-perceived-performance.md` | NOT REVIEWED | NOT STARTED | NONE | NONE |  |
 | `37-accessibility.md` | NOT REVIEWED | NOT STARTED | NONE | NONE |  |
 | `38-customization-and-extensibility.md` | NOT REVIEWED | NOT STARTED | NONE | NONE |  |
+| `39-toolbar-tools-and-creation-ux.md` | READY | NOT STARTED | NONE | NONE | Spec added to surface shape creation in existing floating toolbar + shortcuts. Implementation requires toolbar dropdown + `SET_ACTIVE_TOOL({tool:'shape',shapeKind})` wiring and Canvas creation branching on `activeToolOptions.shapeKind` (current `activeTool==='shape'` creates legacy rect only). |
 
 ---
 

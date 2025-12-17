@@ -67,7 +67,7 @@ test.describe('Clipboard: paste SVG from text/html (editable shapes flag)', () =
     expect(rects.length).toBeGreaterThan(0);
   });
 
-  test('pasting HTML containing an <svg> with unsupported transform (rotate) still imports the shape (transform ignored; deterministic)', async ({ page, getState }) => {
+  test('pasting HTML containing an <svg> with rotate transform imports a baked vector shape (deterministic)', async ({ page, getState }) => {
     const before = await getState();
     const slideId = before.editor.activeSlideId;
     expect(slideId).toBeTruthy();
@@ -113,9 +113,10 @@ test.describe('Clipboard: paste SVG from text/html (editable shapes flag)', () =
     const shape = newShapes[0];
     expect(shape?.style?.fills?.[0]?.type).toBe('solid');
     expect(shape?.style?.fills?.[0]?.value).toBe('#ff0000');
+    expect(shape?.shapeKind).toBe('vector');
   });
 
-  test('pasting HTML containing an <svg> with mixed transform list (translate + rotate) salvages translate (deterministic)', async ({ page, getState }) => {
+  test('pasting HTML containing an <svg> with mixed transform list (translate + rotate) applies full affine (deterministic)', async ({ page, getState }) => {
     const before = await getState();
     const slideId = before.editor.activeSlideId;
     expect(slideId).toBeTruthy();
@@ -160,14 +161,18 @@ test.describe('Clipboard: paste SVG from text/html (editable shapes flag)', () =
     const newShapes = newElements.filter((el: any) => el && el.type === 'shape');
     expect(newShapes.length).toBe(2);
 
-    // Ensure relative x-offset reflects translate(10,0) salvage even though rotate is unsupported.
-    const xs = newShapes.map((el: any) => el?.x).filter((x: any) => typeof x === 'number');
-    expect(xs.length).toBe(2);
-    xs.sort((a: number, b: number) => a - b);
-    expect(xs[1] - xs[0]).toBeCloseTo(10, 2);
+    const green = newShapes.find((el: any) => el?.style?.fills?.[0]?.value === '#00ff00');
+    const red = newShapes.find((el: any) => el?.style?.fills?.[0]?.value === '#ff0000');
+    expect(green).toBeTruthy();
+    expect(red).toBeTruthy();
+    expect(red.shapeKind).toBe('vector');
+    expect(red.x).toBeGreaterThan(green.x);
+    // Translate(10,0) is applied, but rotation changes the bbox anchor.
+    expect(red.x - green.x).toBeGreaterThan(5);
+    expect(red.x - green.x).toBeLessThan(10);
   });
 
-  test('pasting HTML containing an <svg> with general matrix shear salvages translation (deterministic)', async ({ page, getState }) => {
+  test('pasting HTML containing an <svg> with general matrix shear applies full affine (deterministic)', async ({ page, getState }) => {
     const before = await getState();
     const slideId = before.editor.activeSlideId;
     expect(slideId).toBeTruthy();
@@ -212,10 +217,14 @@ test.describe('Clipboard: paste SVG from text/html (editable shapes flag)', () =
     const newShapes = newElements.filter((el: any) => el && el.type === 'shape');
     expect(newShapes.length).toBe(2);
 
-    const xs = newShapes.map((el: any) => el?.x).filter((x: any) => typeof x === 'number');
-    expect(xs.length).toBe(2);
-    xs.sort((a: number, b: number) => a - b);
-    expect(xs[1] - xs[0]).toBeCloseTo(10, 2);
+    const green = newShapes.find((el: any) => el?.style?.fills?.[0]?.value === '#00ff00');
+    const red = newShapes.find((el: any) => el?.style?.fills?.[0]?.value === '#ff0000');
+    expect(green).toBeTruthy();
+    expect(red).toBeTruthy();
+    expect(red.shapeKind).toBe('vector');
+    expect(red.x).toBeGreaterThan(green.x);
+    expect(red.x - green.x).toBeGreaterThan(5);
+    expect(red.x - green.x).toBeLessThan(10);
   });
 
   test('pasting HTML containing an <svg> with vector-effect="non-scaling-stroke" keeps stroke width unscaled under scale transforms', async ({ page, getState }) => {
@@ -407,7 +416,7 @@ test.describe('Clipboard: paste SVG from text/html (editable shapes flag)', () =
     expect(shape?.style?.fills?.[0]?.value).toBe('#ff0000');
   });
 
-  test('pasting HTML containing an <svg> with clip-path imports the shape (clip ignored; deterministic)', async ({ page, getState }) => {
+  test('pasting HTML containing an <svg> with clip-path imports a mask node (deterministic)', async ({ page, getState }) => {
     const before = await getState();
     const slideId = before.editor.activeSlideId;
     expect(slideId).toBeTruthy();
@@ -453,12 +462,19 @@ test.describe('Clipboard: paste SVG from text/html (editable shapes flag)', () =
     const newShapes = newElements.filter((el: any) => el && el.type === 'shape');
     expect(newShapes.length).toBeGreaterThan(0);
 
-    const shape = newShapes[0];
-    expect(shape?.style?.fills?.[0]?.type).toBe('solid');
-    expect(shape?.style?.fills?.[0]?.value).toBe('#ff0000');
+    const maskNode = newShapes.find((el: any) => el?.shapeKind === 'mask');
+    expect(maskNode).toBeTruthy();
+    expect(Array.isArray(maskNode.contentIds)).toBe(true);
+    expect(maskNode.contentIds.length).toBe(1);
+    expect(typeof maskNode.maskShapeId).toBe('string');
+
+    const content = newShapes.find((el: any) => el?.id === maskNode.contentIds[0]);
+    expect(content).toBeTruthy();
+    expect(content?.style?.fills?.[0]?.type).toBe('solid');
+    expect(content?.style?.fills?.[0]?.value).toBe('#ff0000');
   });
 
-  test('pasting HTML containing an <svg> with mask imports the shape (mask ignored; deterministic)', async ({ page, getState }) => {
+  test('pasting HTML containing an <svg> with mask imports a mask node (deterministic)', async ({ page, getState }) => {
     const before = await getState();
     const slideId = before.editor.activeSlideId;
     expect(slideId).toBeTruthy();
@@ -504,9 +520,16 @@ test.describe('Clipboard: paste SVG from text/html (editable shapes flag)', () =
     const newShapes = newElements.filter((el: any) => el && el.type === 'shape');
     expect(newShapes.length).toBeGreaterThan(0);
 
-    const shape = newShapes[0];
-    expect(shape?.style?.fills?.[0]?.type).toBe('solid');
-    expect(shape?.style?.fills?.[0]?.value).toBe('#ff0000');
+    const maskNode = newShapes.find((el: any) => el?.shapeKind === 'mask');
+    expect(maskNode).toBeTruthy();
+    expect(Array.isArray(maskNode.contentIds)).toBe(true);
+    expect(maskNode.contentIds.length).toBe(1);
+    expect(typeof maskNode.maskShapeId).toBe('string');
+
+    const content = newShapes.find((el: any) => el?.id === maskNode.contentIds[0]);
+    expect(content).toBeTruthy();
+    expect(content?.style?.fills?.[0]?.type).toBe('solid');
+    expect(content?.style?.fills?.[0]?.value).toBe('#ff0000');
   });
 
   test('pasting HTML containing an <svg> with <linearGradient> imports a gradient fill on the shape', async ({ page, getState }) => {

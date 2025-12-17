@@ -10,6 +10,8 @@
  * - Falls back to non-editable SVG element import when unsupported
  */
 
+import { Transform2D } from '../shapes/Transform2D.js';
+
 function toNumber(value) {
     if (value === null || value === undefined) return null;
     const n = Number(String(value).trim());
@@ -98,6 +100,15 @@ function rgbaString(hex, alpha) {
 }
 
 function parseUrlPaintId(value) {
+    if (typeof value !== 'string') return null;
+    const v = value.trim();
+    const m = v.match(/^url\(\s*#?([^\)\s]+)\s*\)$/i);
+    if (!m) return null;
+    return m[1];
+}
+
+function parseUrlRefId(value) {
+    // Accept url(#id) and url(id) forms.
     if (typeof value !== 'string') return null;
     const v = value.trim();
     const m = v.match(/^url\(\s*#?([^\)\s]+)\s*\)$/i);
@@ -244,10 +255,7 @@ function resolveLinearGradientCss(doc, gradientId, options) {
     } else if (unitsTrimmed === 'userSpaceOnUse') {
         const bbox = options?.elementBBox;
         const userSpaceTransform = options?.userSpaceTransform;
-        const sx = Number.isFinite(userSpaceTransform?.sx) ? userSpaceTransform.sx : 1;
-        const sy = Number.isFinite(userSpaceTransform?.sy) ? userSpaceTransform.sy : 1;
-        const tx = Number.isFinite(userSpaceTransform?.tx) ? userSpaceTransform.tx : 0;
-        const ty = Number.isFinite(userSpaceTransform?.ty) ? userSpaceTransform.ty : 0;
+        const t = asTransform2D(userSpaceTransform);
         if (!bbox || !Number.isFinite(bbox.x) || !Number.isFinite(bbox.y) || !Number.isFinite(bbox.width) || !Number.isFinite(bbox.height) || bbox.width <= 0 || bbox.height <= 0) {
             return { ok: false, reason: 'MISSING_ELEMENT_BBOX' };
         }
@@ -268,19 +276,13 @@ function resolveLinearGradientCss(doc, gradientId, options) {
         const ux2g = ux2 * gradientAxisTransform.sx + gradientAxisTransform.tx;
         const uy2g = uy2 * gradientAxisTransform.sy + gradientAxisTransform.ty;
 
-        // Normalize userSpaceOnUse coordinates into the element's bbox.
-        // The bbox we pass around is expressed in the same coordinate system as the baked geometry.
-        // When the SVG root uses a viewBox (or when we bake translations), apply the same
-        // scale/translation to the gradient coords so they remain comparable.
-        const ux1t = ux1g * sx + tx;
-        const uy1t = uy1g * sy + ty;
-        const ux2t = ux2g * sx + tx;
-        const uy2t = uy2g * sy + ty;
+        const p1 = t.applyToPoint({ x: ux1g, y: uy1g });
+        const p2 = t.applyToPoint({ x: ux2g, y: uy2g });
 
-        x1 = (ux1t - bbox.x) / bbox.width;
-        y1 = (uy1t - bbox.y) / bbox.height;
-        x2 = (ux2t - bbox.x) / bbox.width;
-        y2 = (uy2t - bbox.y) / bbox.height;
+        x1 = (p1.x - bbox.x) / bbox.width;
+        y1 = (p1.y - bbox.y) / bbox.height;
+        x2 = (p2.x - bbox.x) / bbox.width;
+        y2 = (p2.y - bbox.y) / bbox.height;
     } else {
         return { ok: false, reason: 'GRADIENT_UNITS_UNSUPPORTED' };
     }
@@ -385,10 +387,7 @@ function resolveRadialGradientCss(doc, gradientId, options) {
     } else if (unitsTrimmed === 'userSpaceOnUse') {
         const bbox = options?.elementBBox;
         const userSpaceTransform = options?.userSpaceTransform;
-        const sx = Number.isFinite(userSpaceTransform?.sx) ? userSpaceTransform.sx : 1;
-        const sy = Number.isFinite(userSpaceTransform?.sy) ? userSpaceTransform.sy : 1;
-        const tx = Number.isFinite(userSpaceTransform?.tx) ? userSpaceTransform.tx : 0;
-        const ty = Number.isFinite(userSpaceTransform?.ty) ? userSpaceTransform.ty : 0;
+        const t = asTransform2D(userSpaceTransform);
         if (!bbox || !Number.isFinite(bbox.x) || !Number.isFinite(bbox.y) || !Number.isFinite(bbox.width) || !Number.isFinite(bbox.height) || bbox.width <= 0 || bbox.height <= 0) {
             return { ok: false, reason: 'MISSING_ELEMENT_BBOX' };
         }
@@ -421,16 +420,16 @@ function resolveRadialGradientCss(doc, gradientId, options) {
             return { ok: false, reason: 'GRADIENT_COORDS_UNSUPPORTED' };
         }
 
-        // Apply the same root transform bake as geometry.
-        const tcx = gcx * sx + tx;
-        const tcy = gcy * sy + ty;
-        const trx = grx * Math.abs(sx);
-        const tryy = gry * Math.abs(sy);
+        const pc = t.applyToPoint({ x: gcx, y: gcy });
+        const px = t.applyToPoint({ x: gcx + grx, y: gcy });
+        const py = t.applyToPoint({ x: gcx, y: gcy + gry });
+        const vx = { x: px.x - pc.x, y: px.y - pc.y };
+        const vy = { x: py.x - pc.x, y: py.y - pc.y };
 
-        cx = (tcx - bbox.x) / bbox.width;
-        cy = (tcy - bbox.y) / bbox.height;
-        rx = trx / bbox.width;
-        ry = tryy / bbox.height;
+        cx = (pc.x - bbox.x) / bbox.width;
+        cy = (pc.y - bbox.y) / bbox.height;
+        rx = Math.hypot(vx.x, vx.y) / bbox.width;
+        ry = Math.hypot(vy.x, vy.y) / bbox.height;
     } else {
         return { ok: false, reason: 'GRADIENT_UNITS_UNSUPPORTED' };
     }
@@ -579,10 +578,9 @@ function resolvePatternPaintFill(doc, patternId, options) {
 
     const bbox = options?.elementBBox;
     const userSpaceTransform = options?.userSpaceTransform;
-    const sx = Number.isFinite(userSpaceTransform?.sx) ? userSpaceTransform.sx : 1;
-    const sy = Number.isFinite(userSpaceTransform?.sy) ? userSpaceTransform.sy : 1;
-    const tx = Number.isFinite(userSpaceTransform?.tx) ? userSpaceTransform.tx : 0;
-    const ty = Number.isFinite(userSpaceTransform?.ty) ? userSpaceTransform.ty : 0;
+    const t = asTransform2D(userSpaceTransform);
+    const basisXLen = Math.hypot(t.a, t.b);
+    const basisYLen = Math.hypot(t.c, t.d);
 
     if (!bbox || !Number.isFinite(bbox.x) || !Number.isFinite(bbox.y) || !Number.isFinite(bbox.width) || !Number.isFinite(bbox.height) || bbox.width <= 0 || bbox.height <= 0) {
         return { ok: false, reason: 'MISSING_ELEMENT_BBOX' };
@@ -605,9 +603,10 @@ function resolvePatternPaintFill(doc, patternId, options) {
         const xpt = x * patternAxisTransform.sx + patternAxisTransform.tx;
         const ypt = y * patternAxisTransform.sy + patternAxisTransform.ty;
 
-        // Apply root bake (e.g. viewBox scaling/translation) so pattern coords remain comparable to baked geometry.
-        const xt = xpt * sx + tx;
-        const yt = ypt * sy + ty;
+        // Apply the same user-space bake as geometry so pattern coords remain comparable.
+        const p0t = t.applyToPoint({ x: xpt, y: ypt });
+        const xt = p0t.x;
+        const yt = p0t.y;
         if (!Number.isFinite(xt) || !Number.isFinite(yt)) {
             return { ok: false, reason: 'PATTERN_COORDS_UNSUPPORTED' };
         }
@@ -623,8 +622,8 @@ function resolvePatternPaintFill(doc, patternId, options) {
         const hpt = height * Math.abs(patternAxisTransform.sy);
 
         // Scale tile dimensions along with baked geometry. Translation does not affect size.
-        tileWidth = wpt * Math.abs(sx);
-        tileHeight = hpt * Math.abs(sy);
+        tileWidth = wpt * basisXLen;
+        tileHeight = hpt * basisYLen;
         if (!Number.isFinite(tileWidth) || !Number.isFinite(tileHeight) || tileWidth <= 0 || tileHeight <= 0) {
             return { ok: false, reason: 'PATTERN_SIZE_UNSUPPORTED' };
         }
@@ -703,10 +702,14 @@ function resolvePatternPaintFill(doc, patternId, options) {
             const tileOriginY = bbox.y + tileOffsetY;
             const fmt = (v) => String(Math.round(v * 1e6) / 1e6);
 
-            const a = sx / tileWidth;
-            const d = sy / tileHeight;
-            const e = (tx - tileOriginX) / tileWidth;
-            const f = (ty - tileOriginY) / tileHeight;
+            if (!isAxisAlignedTransform(t)) {
+                return { ok: false, reason: 'PATTERN_COORDS_UNSUPPORTED' };
+            }
+
+            const a = t.a / tileWidth;
+            const d = t.d / tileHeight;
+            const e = (t.e - tileOriginX) / tileWidth;
+            const f = (t.f - tileOriginY) / tileHeight;
             if (![a, d, e, f].every(Number.isFinite)) {
                 return { ok: false, reason: 'PATTERN_COORDS_UNSUPPORTED' };
             }
@@ -788,22 +791,53 @@ function getPrimitiveLocalBBox(node) {
     return null;
 }
 
+function asTransform2D(t) {
+    if (t instanceof Transform2D) return t;
+    if (t && typeof t === 'object') {
+        // Legacy axis-aligned transform (sx/sy/tx/ty).
+        if ('sx' in t || 'sy' in t || 'tx' in t || 'ty' in t) {
+            const sx = Number.isFinite(t.sx) ? t.sx : 1;
+            const sy = Number.isFinite(t.sy) ? t.sy : 1;
+            const tx = Number.isFinite(t.tx) ? t.tx : 0;
+            const ty = Number.isFinite(t.ty) ? t.ty : 0;
+            return new Transform2D(sx, 0, 0, sy, tx, ty);
+        }
+        if (['a', 'b', 'c', 'd', 'e', 'f'].every((k) => Number.isFinite(t[k]))) {
+            return new Transform2D(t.a, t.b, t.c, t.d, t.e, t.f);
+        }
+    }
+    return Transform2D.identity();
+}
+
+function isAxisAlignedTransform(t) {
+    const tt = asTransform2D(t);
+    return Math.abs(tt.b) < 1e-12 && Math.abs(tt.c) < 1e-12;
+}
+
 function transformPoint(p, t) {
-    const sx = Number.isFinite(t?.sx) ? t.sx : 1;
-    const sy = Number.isFinite(t?.sy) ? t.sy : 1;
-    const tx = Number.isFinite(t?.tx) ? t.tx : 0;
-    const ty = Number.isFinite(t?.ty) ? t.ty : 0;
-    return { x: p.x * sx + tx, y: p.y * sy + ty };
+    return asTransform2D(t).applyToPoint(p);
 }
 
 function transformBBox(bbox, t) {
     if (!bbox) return null;
-    const p0 = transformPoint({ x: bbox.x, y: bbox.y }, t);
-    const p1 = transformPoint({ x: bbox.x + bbox.width, y: bbox.y + bbox.height }, t);
-    const minX = Math.min(p0.x, p1.x);
-    const minY = Math.min(p0.y, p1.y);
-    const maxX = Math.max(p0.x, p1.x);
-    const maxY = Math.max(p0.y, p1.y);
+    const tt = asTransform2D(t);
+    const corners = [
+        { x: bbox.x, y: bbox.y },
+        { x: bbox.x + bbox.width, y: bbox.y },
+        { x: bbox.x + bbox.width, y: bbox.y + bbox.height },
+        { x: bbox.x, y: bbox.y + bbox.height }
+    ].map((p) => tt.applyToPoint(p));
+
+    let minX = Infinity;
+    let minY = Infinity;
+    let maxX = -Infinity;
+    let maxY = -Infinity;
+    for (const p of corners) {
+        minX = Math.min(minX, p.x);
+        minY = Math.min(minY, p.y);
+        maxX = Math.max(maxX, p.x);
+        maxY = Math.max(maxY, p.y);
+    }
     return { x: minX, y: minY, width: maxX - minX, height: maxY - minY };
 }
 
@@ -824,21 +858,59 @@ function getSvgRootTransform(svg) {
     // Map SVG viewBox user units into viewport (width/height) user units.
     // We keep this conservative: scale + translate only.
     const vb = parseViewBox(svg?.getAttribute?.('viewBox'));
-    if (!vb) return { sx: 1, sy: 1, tx: 0, ty: 0 };
+    if (!vb) return Transform2D.identity();
 
     const widthAttr = svg.getAttribute?.('width');
     const heightAttr = svg.getAttribute?.('height');
     const viewportW = toLengthNumber(widthAttr) ?? vb.width;
     const viewportH = toLengthNumber(heightAttr) ?? vb.height;
     if (!Number.isFinite(viewportW) || !Number.isFinite(viewportH) || viewportW <= 0 || viewportH <= 0) {
-        return { sx: 1, sy: 1, tx: 0, ty: 0 };
+        return Transform2D.identity();
     }
 
     const sx = viewportW / vb.width;
     const sy = viewportH / vb.height;
     const tx = -vb.minX * sx;
     const ty = -vb.minY * sy;
-    return { sx, sy, tx, ty };
+    return new Transform2D(sx, 0, 0, sy, tx, ty);
+}
+
+function rectToRoundedPathD(x, y, w, h, rx, ry) {
+    const rrx = Math.max(0, Math.min(Number.isFinite(rx) ? rx : 0, w / 2));
+    const rry = Math.max(0, Math.min(Number.isFinite(ry) ? ry : 0, h / 2));
+    const r = Math.min(rrx, rry);
+    const x0 = x;
+    const y0 = y;
+    const x1 = x + w;
+    const y1 = y + h;
+    if (!(r > 0)) {
+        return `M ${x0} ${y0} H ${x1} V ${y1} H ${x0} Z`;
+    }
+
+    // Use the same radius for x/y for simplicity/determinism.
+    const rr = r;
+
+    return [
+        `M ${x0 + rr} ${y0}`,
+        `H ${x1 - rr}`,
+        `A ${rr} ${rr} 0 0 1 ${x1} ${y0 + rr}`,
+        `V ${y1 - rr}`,
+        `A ${rr} ${rr} 0 0 1 ${x1 - rr} ${y1}`,
+        `H ${x0 + rr}`,
+        `A ${rr} ${rr} 0 0 1 ${x0} ${y1 - rr}`,
+        `V ${y0 + rr}`,
+        `A ${rr} ${rr} 0 0 1 ${x0 + rr} ${y0}`,
+        'Z'
+    ].join(' ');
+}
+
+function ellipseToPathD(cx, cy, rx, ry) {
+    return [
+        `M ${cx + rx} ${cy}`,
+        `A ${rx} ${ry} 0 1 0 ${cx - rx} ${cy}`,
+        `A ${rx} ${ry} 0 1 0 ${cx + rx} ${cy}`,
+        'Z'
+    ].join(' ');
 }
 
 function parsePointsAttribute(pointsAttr) {
@@ -1398,22 +1470,20 @@ function getInheritedPresentation(node, name) {
     return null;
 }
 
-function hasUnsupportedClipPath(node) {
+function getClipPathRefId(node) {
     const raw = getInheritedPresentation(node, 'clip-path');
-    if (typeof raw !== 'string') return false;
-    const v = raw.trim().toLowerCase();
-    if (!v || v === 'none') return false;
-    // Conservative: any clip-path usage is currently ignored.
-    return true;
+    if (typeof raw !== 'string') return null;
+    const v = raw.trim();
+    if (!v || v.toLowerCase() === 'none') return null;
+    return parseUrlRefId(v);
 }
 
-function hasUnsupportedMask(node) {
+function getMaskRefId(node) {
     const raw = getInheritedPresentation(node, 'mask');
-    if (typeof raw !== 'string') return false;
-    const v = raw.trim().toLowerCase();
-    if (!v || v === 'none') return false;
-    // Conservative: any mask usage is currently ignored.
-    return true;
+    if (typeof raw !== 'string') return null;
+    const v = raw.trim();
+    if (!v || v.toLowerCase() === 'none') return null;
+    return parseUrlRefId(v);
 }
 
 function hasUnsupportedFilter(node) {
@@ -1667,124 +1737,112 @@ function parseScaleTranslateOnlyTransform(transform) {
     return { ok: false };
 }
 
-function parseTransformSalvageAxisAligned(transform) {
-    // Tolerant transform parsing: keep axis-aligned translate/scale/matrix parts,
-    // ignore unsupported parts (rotate/skew/general matrices), and report that we did so.
-    // SVG applies transform lists right-to-left.
-    if (typeof transform !== 'string') return { ok: true, sx: 1, sy: 1, tx: 0, ty: 0, hadUnsupported: false };
-    const t = transform.trim();
-    if (t.length === 0) return { ok: true, sx: 1, sy: 1, tx: 0, ty: 0, hadUnsupported: false };
-
-    function composeAxisAligned(a, b) {
-        // Return a ∘ b (apply b first, then a):
-        // p' = a(b(p))
-        const sx = b.sx * a.sx;
-        const sy = b.sy * a.sy;
-        const tx = b.tx * a.sx + a.tx;
-        const ty = b.ty * a.sy + a.ty;
-        return { sx, sy, tx, ty };
-    }
+function parseTransformSalvageFull(transform) {
+    // Parse SVG transform lists into a full affine Transform2D.
+    // If parsing fails, return identity and mark hadUnsupported.
+    if (typeof transform !== 'string') return { ok: true, t: Transform2D.identity(), hadUnsupported: false };
+    const raw = transform.trim();
+    if (raw.length === 0) return { ok: true, t: Transform2D.identity(), hadUnsupported: false };
 
     const fnRe = /([a-zA-Z]+)\s*\(([^)]*)\)/g;
     const matches = [];
-    for (const m of t.matchAll(fnRe)) {
+    for (const m of raw.matchAll(fnRe)) {
         matches.push({ name: m[1].toLowerCase(), args: m[2] });
     }
     if (matches.length === 0) {
-        return { ok: true, sx: 1, sy: 1, tx: 0, ty: 0, hadUnsupported: true };
+        return { ok: true, t: Transform2D.identity(), hadUnsupported: true };
     }
 
-    const leftover = t.replace(fnRe, '').replace(/[\s,]/g, '');
-    const hadTrailingGarbage = leftover.length !== 0;
+    const leftover = raw.replace(fnRe, '').replace(/[\s,]/g, '');
+    let hadUnsupported = leftover.length !== 0;
 
     const parts = [];
-    let hadUnsupported = hadTrailingGarbage;
     for (const m of matches) {
-        const rawParts = String(m.args)
+        const args = String(m.args)
             .trim()
             .replace(/,/g, ' ')
             .split(/\s+/)
-            .filter(Boolean);
+            .filter(Boolean)
+            .map(toNumber);
 
         if (m.name === 'translate') {
-            if (rawParts.length < 1 || rawParts.length > 2) {
+            if (args.length < 1 || args.length > 2 || args.some((v) => v === null)) {
                 hadUnsupported = true;
                 continue;
             }
-            const tx = toNumber(rawParts[0]);
-            const ty = rawParts.length === 2 ? toNumber(rawParts[1]) : 0;
-            if (tx === null || ty === null) {
-                hadUnsupported = true;
-                continue;
-            }
-            parts.push({ sx: 1, sy: 1, tx, ty });
+            const tx = args[0] ?? 0;
+            const ty = args.length === 2 ? (args[1] ?? 0) : 0;
+            parts.push(Transform2D.translation(tx, ty));
         } else if (m.name === 'scale') {
-            if (rawParts.length < 1 || rawParts.length > 2) {
+            if (args.length < 1 || args.length > 2 || args.some((v) => v === null)) {
                 hadUnsupported = true;
                 continue;
             }
-            const sx = toNumber(rawParts[0]);
-            const sy = rawParts.length === 2 ? toNumber(rawParts[1]) : sx;
-            if (sx === null || sy === null) {
+            const sx = args[0];
+            const sy = args.length === 2 ? args[1] : sx;
+            parts.push(Transform2D.scale(sx, sy));
+        } else if (m.name === 'rotate') {
+            if ((args.length !== 1 && args.length !== 3) || args.some((v) => v === null)) {
                 hadUnsupported = true;
                 continue;
             }
-            if (sx <= 0 || sy <= 0) {
+            const deg = args[0];
+            const rad = (deg * Math.PI) / 180;
+            if (args.length === 3) {
+                parts.push(Transform2D.rotationRadiansAbout(rad, args[1], args[2]));
+            } else {
+                parts.push(Transform2D.rotationRadians(rad));
+            }
+        } else if (m.name === 'skewx') {
+            if (args.length !== 1 || args[0] === null) {
                 hadUnsupported = true;
                 continue;
             }
-            parts.push({ sx, sy, tx: 0, ty: 0 });
+            const rad = (args[0] * Math.PI) / 180;
+            parts.push(new Transform2D(1, 0, Math.tan(rad), 1, 0, 0));
+        } else if (m.name === 'skewy') {
+            if (args.length !== 1 || args[0] === null) {
+                hadUnsupported = true;
+                continue;
+            }
+            const rad = (args[0] * Math.PI) / 180;
+            parts.push(new Transform2D(1, Math.tan(rad), 0, 1, 0, 0));
         } else if (m.name === 'matrix') {
-            // SVG matrix(a b c d e f)
-            if (rawParts.length !== 6) {
+            if (args.length !== 6 || args.some((v) => v === null)) {
                 hadUnsupported = true;
                 continue;
             }
-            const a = toNumber(rawParts[0]);
-            const b = toNumber(rawParts[1]);
-            const c = toNumber(rawParts[2]);
-            const d = toNumber(rawParts[3]);
-            const e = toNumber(rawParts[4]);
-            const f = toNumber(rawParts[5]);
-            if (a === null || b === null || c === null || d === null || e === null || f === null) {
-                hadUnsupported = true;
-                continue;
-            }
-            if (b !== 0 || c !== 0) {
-                // Conservative: matrix includes rotation/shear. Salvage translation only.
-                hadUnsupported = true;
-                parts.push({ sx: 1, sy: 1, tx: e, ty: f });
-                continue;
-            }
-            if (a <= 0 || d <= 0) {
-                // Non-positive scale is not supported; still salvage translation.
-                hadUnsupported = true;
-                parts.push({ sx: 1, sy: 1, tx: e, ty: f });
-                continue;
-            }
-            parts.push({ sx: a, sy: d, tx: e, ty: f });
+            parts.push(new Transform2D(args[0], args[1], args[2], args[3], args[4], args[5]));
         } else {
-            // rotate/skewX/skewY/etc
             hadUnsupported = true;
         }
     }
 
     // SVG applies transform lists right-to-left.
-    let combined = { sx: 1, sy: 1, tx: 0, ty: 0 };
+    let combined = Transform2D.identity();
     for (let i = parts.length - 1; i >= 0; i--) {
-        combined = composeAxisAligned(parts[i], combined);
+        combined = parts[i].compose(combined);
     }
 
-    if (!Number.isFinite(combined.sx) || !Number.isFinite(combined.sy) || !Number.isFinite(combined.tx) || !Number.isFinite(combined.ty)) {
-        return { ok: true, sx: 1, sy: 1, tx: 0, ty: 0, hadUnsupported: true };
+    if (![combined.a, combined.b, combined.c, combined.d, combined.e, combined.f].every(Number.isFinite)) {
+        return { ok: true, t: Transform2D.identity(), hadUnsupported: true };
     }
 
-    return { ok: true, ...combined, hadUnsupported };
+    return { ok: true, t: combined, hadUnsupported };
 }
 
-function readNodeTranslation(node) {
+function readNodeTransform(node) {
     const t = node?.getAttribute?.('transform');
-    return parseTransformSalvageAxisAligned(t);
+    return parseTransformSalvageFull(t);
+}
+
+function strokeScaleForTransform(t) {
+    const tt = asTransform2D(t);
+    // Approximate scale magnitude by transformed basis vectors.
+    const sx = Math.hypot(tt.a, tt.b);
+    const sy = Math.hypot(tt.c, tt.d);
+    const s = Math.max(Math.abs(sx), Math.abs(sy));
+    return Number.isFinite(s) && s > 0 ? s : 1;
 }
 
 function scaleDashArrayString(dashArray, scale) {
@@ -1868,14 +1926,6 @@ export function importEditableShapesFromSanitizedSvg(sanitizedSvg, options) {
     const warnings = [];
 
     function styleForNode(node, options) {
-        if (hasUnsupportedClipPath(node)) {
-            warnings.push('WARN_CLIP_PATH_UNSUPPORTED');
-        }
-
-        if (hasUnsupportedMask(node)) {
-            warnings.push('WARN_MASK_UNSUPPORTED');
-        }
-
         if (hasUnsupportedFilter(node)) {
             warnings.push('WARN_FILTER_UNSUPPORTED');
         }
@@ -1906,9 +1956,7 @@ export function importEditableShapesFromSanitizedSvg(sanitizedSvg, options) {
 
         // When we bake a scale transform into geometry, we must also scale stroke widths/dashes
         // for reasonable visual fidelity and correct stroke-aware bounds.
-        const sx = Number.isFinite(userSpaceTransform?.sx) ? userSpaceTransform.sx : 1;
-        const sy = Number.isFinite(userSpaceTransform?.sy) ? userSpaceTransform.sy : 1;
-        const strokeScale = Math.max(Math.abs(sx), Math.abs(sy));
+        const strokeScale = strokeScaleForTransform(userSpaceTransform);
         if (!hasNonScalingStroke && strokeScale !== 1 && paint?.stroke) {
             if (Number.isFinite(paint.stroke.width)) paint.stroke.width = paint.stroke.width * strokeScale;
             if (Number.isFinite(paint.stroke.dashOffset)) paint.stroke.dashOffset = paint.stroke.dashOffset * strokeScale;
@@ -2068,21 +2116,332 @@ export function importEditableShapesFromSanitizedSvg(sanitizedSvg, options) {
         return { fills, strokes };
     }
 
+    function vectorElementFromParsedPaths(node, parsedPaths, userSpaceTransform, options) {
+        const t = asTransform2D(userSpaceTransform);
+        const id = options?.id || makeId();
+        const styleOverride = options?.styleOverride;
+
+        // Compute bounds from transformed geometry using cubic extrema.
+        let minX = Infinity;
+        let minY = Infinity;
+        let maxX = -Infinity;
+        let maxY = -Infinity;
+
+        function includePoint(p) {
+            minX = Math.min(minX, p.x);
+            minY = Math.min(minY, p.y);
+            maxX = Math.max(maxX, p.x);
+            maxY = Math.max(maxY, p.y);
+        }
+
+        for (const path of parsedPaths || []) {
+            if (!path?.start) continue;
+            const startT = t.applyToPoint(path.start);
+            includePoint(startT);
+            let curT = { ...startT };
+            for (const seg of path.segments || []) {
+                if (seg.kind === 'line') {
+                    const toT = t.applyToPoint(seg.to);
+                    includePoint(toT);
+                    curT = { ...toT };
+                } else if (seg.kind === 'cubic') {
+                    const toT = t.applyToPoint(seg.to);
+                    includePoint(toT);
+
+                    const c1T = t.applyToPoint(seg.c1);
+                    const c2T = t.applyToPoint(seg.c2);
+
+                    const tsX = cubicExtremaTs(curT.x, c1T.x, c2T.x, toT.x);
+                    const tsY = cubicExtremaTs(curT.y, c1T.y, c2T.y, toT.y);
+                    const ts = Array.from(new Set([...tsX, ...tsY]));
+                    for (const tt0 of ts) {
+                        const x = cubicAt(curT.x, c1T.x, c2T.x, toT.x, tt0);
+                        const y = cubicAt(curT.y, c1T.y, c2T.y, toT.y, tt0);
+                        if (Number.isFinite(x) && Number.isFinite(y)) includePoint({ x, y });
+                    }
+
+                    curT = { ...toT };
+                }
+            }
+            if (path.closed) includePoint(startT);
+        }
+
+        if (!Number.isFinite(minX) || !Number.isFinite(minY) || !Number.isFinite(maxX) || !Number.isFinite(maxY)) {
+            warnings.push('WARN_PATH_BBOX_FAILED');
+            return null;
+        }
+
+        // Stroke-aware padding.
+        const paint = resolvePaintForNode(node);
+        const vectorEffect = getVectorEffect(node);
+        const hasNonScalingStroke = vectorEffect === 'non-scaling-stroke';
+        const strokeScale = hasNonScalingStroke ? 1 : strokeScaleForTransform(t);
+        const strokePad = (!paint.stroke?.none && Number.isFinite(paint.stroke?.width)) ? (Math.max(0, paint.stroke.width * strokeScale) / 2) : 0;
+        const basePad = 0.5;
+        const geomPad = basePad;
+        const visualPad = basePad + strokePad;
+
+        const xGeom = minX - geomPad;
+        const yGeom = minY - geomPad;
+        const widthGeom = (maxX - minX) + 2 * geomPad;
+        const heightGeom = (maxY - minY) + 2 * geomPad;
+
+        const x = minX - visualPad;
+        const y = minY - visualPad;
+        const width = (maxX - minX) + 2 * visualPad;
+        const height = (maxY - minY) + 2 * visualPad;
+
+        if (!(width > 0 && height > 0)) return null;
+
+        const localPaths = (parsedPaths || []).map((p) => ({
+            ...p,
+            start: (() => {
+                const pt = t.applyToPoint(p.start);
+                return { x: pt.x - x, y: pt.y - y };
+            })(),
+            segments: (p.segments || []).map((seg) => {
+                if (seg.kind === 'line') {
+                    const pt = t.applyToPoint(seg.to);
+                    return { kind: 'line', to: { x: pt.x - x, y: pt.y - y } };
+                }
+                if (seg.kind === 'cubic') {
+                    const c1 = t.applyToPoint(seg.c1);
+                    const c2 = t.applyToPoint(seg.c2);
+                    const to = t.applyToPoint(seg.to);
+                    return {
+                        kind: 'cubic',
+                        c1: { x: c1.x - x, y: c1.y - y },
+                        c2: { x: c2.x - x, y: c2.y - y },
+                        to: { x: to.x - x, y: to.y - y }
+                    };
+                }
+                return seg;
+            })
+        }));
+
+        const style = styleOverride || (() => {
+            const bboxOverride = { x: xGeom, y: yGeom, width: widthGeom, height: heightGeom };
+            return styleForNode(node, { bboxOverride, userSpaceTransform: t });
+        })();
+
+        return {
+            id,
+            type: 'shape',
+            shape: 'vector',
+            shapeKind: 'vector',
+            x,
+            y,
+            width,
+            height,
+            rotation: 0,
+            paths: localPaths,
+            style
+        };
+    }
+
+    function collectParsedPathsForDefNode(defNode) {
+        const tag = String(defNode?.nodeName || '').toLowerCase();
+
+        if (tag === 'rect') {
+            const x = toNumber(defNode.getAttribute('x')) ?? 0;
+            const y = toNumber(defNode.getAttribute('y')) ?? 0;
+            const w = toNumber(defNode.getAttribute('width')) ?? 0;
+            const h = toNumber(defNode.getAttribute('height')) ?? 0;
+            if (!(w > 0 && h > 0)) return [];
+            const rx = toNumber(defNode.getAttribute('rx')) ?? null;
+            const ry = toNumber(defNode.getAttribute('ry')) ?? null;
+            const rrX = rx ?? 0;
+            const rrY = (ry ?? rx ?? 0);
+            const d = rectToRoundedPathD(x, y, w, h, rrX, rrY);
+            const parsed = parsePathDataToVectorPaths(d, { fillRule: 'nonzero' });
+            return parsed.ok ? parsed.paths : [];
+        }
+
+        if (tag === 'circle') {
+            const cx = toNumber(defNode.getAttribute('cx')) ?? 0;
+            const cy = toNumber(defNode.getAttribute('cy')) ?? 0;
+            const r = toNumber(defNode.getAttribute('r')) ?? 0;
+            if (!(r > 0)) return [];
+            const d = ellipseToPathD(cx, cy, r, r);
+            const parsed = parsePathDataToVectorPaths(d, { fillRule: 'nonzero' });
+            return parsed.ok ? parsed.paths : [];
+        }
+
+        if (tag === 'ellipse') {
+            const cx = toNumber(defNode.getAttribute('cx')) ?? 0;
+            const cy = toNumber(defNode.getAttribute('cy')) ?? 0;
+            const rx = toNumber(defNode.getAttribute('rx')) ?? 0;
+            const ry = toNumber(defNode.getAttribute('ry')) ?? 0;
+            if (!(rx > 0 && ry > 0)) return [];
+            const d = ellipseToPathD(cx, cy, rx, ry);
+            const parsed = parsePathDataToVectorPaths(d, { fillRule: 'nonzero' });
+            return parsed.ok ? parsed.paths : [];
+        }
+
+        if (tag === 'polygon' || tag === 'polyline') {
+            const pts = parsePointsAttribute(defNode.getAttribute('points'));
+            if (!pts || pts.length < 2) return [];
+            const path = makeVectorPathFromPoints(pts, { closed: tag === 'polygon', fillRule: 'nonzero' });
+            return path ? [path] : [];
+        }
+
+        if (tag === 'path') {
+            const d = defNode.getAttribute('d') ?? '';
+            const parsed = parsePathDataToVectorPaths(d, { fillRule: getFillRuleForNode(defNode) });
+            return parsed.ok ? parsed.paths : [];
+        }
+
+        return [];
+    }
+
+    function transformParsedPathsToWorld(parsedPaths, t) {
+        const tt = asTransform2D(t);
+        return (parsedPaths || []).map((p) => ({
+            ...p,
+            start: tt.applyToPoint(p.start),
+            segments: (p.segments || []).map((seg) => {
+                if (seg.kind === 'line') {
+                    return { kind: 'line', to: tt.applyToPoint(seg.to) };
+                }
+                if (seg.kind === 'cubic') {
+                    return {
+                        kind: 'cubic',
+                        c1: tt.applyToPoint(seg.c1),
+                        c2: tt.applyToPoint(seg.c2),
+                        to: tt.applyToPoint(seg.to)
+                    };
+                }
+                return seg;
+            })
+        }));
+    }
+
+    function buildMaskShapeFromRef(refEl, refKind, contentEl, contentTransform) {
+        // refKind: 'clipPath' | 'mask'
+        if (!refEl) return null;
+
+        const unitsAttr = refKind === 'clipPath' ? 'clipPathUnits' : 'maskUnits';
+        const unitsRaw = String(refEl.getAttribute?.(unitsAttr) || '').trim();
+        const units = unitsRaw ? unitsRaw.toLowerCase() : 'userspaceonuse';
+
+        // Determine transform mapping for defs.
+        let baseT = asTransform2D(contentTransform);
+
+        if (units === 'objectboundingbox') {
+            const w = Number(contentEl?.width) || 0;
+            const h = Number(contentEl?.height) || 0;
+            if (!(w > 0 && h > 0)) return null;
+            baseT = Transform2D.translation(Number(contentEl.x) || 0, Number(contentEl.y) || 0)
+                .compose(Transform2D.scale(w, h));
+        }
+
+        const worldPaths = [];
+        for (const child of Array.from(refEl.children || [])) {
+            const childT = readNodeTransform(child);
+            const effectiveT = baseT.compose(childT.t);
+            const parsedPaths = collectParsedPathsForDefNode(child);
+            if (parsedPaths.length === 0) continue;
+            worldPaths.push(...transformParsedPathsToWorld(parsedPaths, effectiveT));
+        }
+
+        if (worldPaths.length === 0) return null;
+
+        // Paths are already in world coordinates; localize into a single vector element.
+        return vectorElementFromParsedPaths(refEl, worldPaths, Transform2D.identity(), {
+            styleOverride: { fills: [], strokes: [] }
+        });
+    }
+
+    function pushImportedElementWithMasking(node, contentEl, contentTransform) {
+        const clipId = getClipPathRefId(node);
+        const maskId = getMaskRefId(node);
+
+        if (!clipId && !maskId) {
+            elements.push(contentEl);
+            return;
+        }
+
+        // Always import the content element.
+        elements.push(contentEl);
+
+        const createdMaskNodes = [];
+
+        if (clipId) {
+            const clipEl = doc?.getElementById?.(clipId);
+            if (clipEl && String(clipEl.nodeName).toLowerCase() === 'clippath') {
+                const maskShapeEl = buildMaskShapeFromRef(clipEl, 'clipPath', contentEl, contentTransform);
+                if (maskShapeEl) {
+                    maskShapeEl.id = makeId();
+                    elements.push(maskShapeEl);
+                    const maskNodeId = makeId();
+                    createdMaskNodes.push({
+                        id: maskNodeId,
+                        type: 'shape',
+                        shapeKind: 'mask',
+                        x: Number(maskShapeEl.x) || 0,
+                        y: Number(maskShapeEl.y) || 0,
+                        width: Number(maskShapeEl.width) || 0,
+                        height: Number(maskShapeEl.height) || 0,
+                        rotation: 0,
+                        maskShapeId: maskShapeEl.id,
+                        contentIds: [contentEl.id],
+                        mode: 'clip',
+                        invert: false
+                    });
+                } else {
+                    warnings.push('WARN_CLIP_PATH_UNSUPPORTED');
+                }
+            } else {
+                warnings.push('WARN_CLIP_PATH_UNSUPPORTED');
+            }
+        }
+
+        if (maskId) {
+            const maskEl = doc?.getElementById?.(maskId);
+            if (maskEl && String(maskEl.nodeName).toLowerCase() === 'mask') {
+                const maskShapeEl = buildMaskShapeFromRef(maskEl, 'mask', contentEl, contentTransform);
+                if (maskShapeEl) {
+                    maskShapeEl.id = makeId();
+                    elements.push(maskShapeEl);
+                    const maskNodeId = makeId();
+                    createdMaskNodes.push({
+                        id: maskNodeId,
+                        type: 'shape',
+                        shapeKind: 'mask',
+                        x: Number(maskShapeEl.x) || 0,
+                        y: Number(maskShapeEl.y) || 0,
+                        width: Number(maskShapeEl.width) || 0,
+                        height: Number(maskShapeEl.height) || 0,
+                        rotation: 0,
+                        maskShapeId: maskShapeEl.id,
+                        contentIds: [contentEl.id],
+                        mode: 'clip',
+                        invert: false
+                    });
+                } else {
+                    warnings.push('WARN_MASK_UNSUPPORTED');
+                }
+            } else {
+                warnings.push('WARN_MASK_UNSUPPORTED');
+            }
+        }
+
+        // Add mask nodes last (relationship nodes; should sit above content in element order).
+        for (const m of createdMaskNodes) {
+            elements.push(m);
+        }
+    }
+
     function walk(node, accumulated) {
         if (!node) return;
         if (node.nodeType !== 1) return;
 
-        const local = readNodeTranslation(node);
+        const local = readNodeTransform(node);
         if (local?.hadUnsupported) {
             warnings.push('WARN_TRANSFORM_UNSUPPORTED');
         }
 
-        const nextAccumulated = {
-            sx: accumulated.sx * local.sx,
-            sy: accumulated.sy * local.sy,
-            tx: accumulated.tx + local.tx * accumulated.sx,
-            ty: accumulated.ty + local.ty * accumulated.sy
-        };
+        const nextAccumulated = asTransform2D(accumulated).compose(local.t);
 
         const tag = String(node.nodeName).toLowerCase();
 
@@ -2097,96 +2456,147 @@ export function importEditableShapesFromSanitizedSvg(sanitizedSvg, options) {
             const rawY = toNumber(node.getAttribute('y')) ?? 0;
             const rawW = toNumber(node.getAttribute('width')) ?? 0;
             const rawH = toNumber(node.getAttribute('height')) ?? 0;
-            const x = rawX * nextAccumulated.sx + nextAccumulated.tx;
-            const y = rawY * nextAccumulated.sy + nextAccumulated.ty;
-            const width = rawW * nextAccumulated.sx;
-            const height = rawH * nextAccumulated.sy;
-            if (width > 0 && height > 0) {
-                const bboxOverride = { x, y, width, height };
-                const { fills, strokes } = styleForNode(node, { bboxOverride, userSpaceTransform: nextAccumulated });
+            if (rawW > 0 && rawH > 0) {
+                const t = asTransform2D(nextAccumulated);
                 const rx = toNumber(node.getAttribute('rx')) ?? null;
                 const ry = toNumber(node.getAttribute('ry')) ?? null;
-                const rxScaled = rx !== null ? Math.max(0, rx * nextAccumulated.sx) : null;
-                const ryScaled = ry !== null ? Math.max(0, ry * nextAccumulated.sy) : null;
-                const borderRadius = rxScaled !== null || ryScaled !== null ? Math.max(0, Math.min(rxScaled ?? ryScaled ?? 0, ryScaled ?? rxScaled ?? 0)) : 0;
 
-                elements.push({
-                    id: makeId(),
-                    type: 'shape',
-                    shape: 'rectangle',
-                    shapeKind: 'rectangle',
-                    x,
-                    y,
-                    width,
-                    height,
-                    rotation: 0,
-                    borderRadius,
-                    style: { fills, strokes }
-                });
+                if (isAxisAlignedTransform(t)) {
+                    const bbox = transformBBox({ x: rawX, y: rawY, width: rawW, height: rawH }, t);
+                    if (bbox && bbox.width > 0 && bbox.height > 0) {
+                        const rxScaled = rx !== null ? Math.max(0, rx * Math.abs(t.a)) : null;
+                        const ryScaled = ry !== null ? Math.max(0, ry * Math.abs(t.d)) : null;
+                        const borderRadius = (rxScaled !== null || ryScaled !== null)
+                            ? Math.max(0, Math.min(rxScaled ?? ryScaled ?? 0, ryScaled ?? rxScaled ?? 0))
+                            : 0;
+
+                        const bboxOverride = { x: bbox.x, y: bbox.y, width: bbox.width, height: bbox.height };
+                        const { fills, strokes } = styleForNode(node, { bboxOverride, userSpaceTransform: t });
+
+                        const el = {
+                            id: makeId(),
+                            type: 'shape',
+                            shape: 'rectangle',
+                            shapeKind: 'rectangle',
+                            x: bbox.x,
+                            y: bbox.y,
+                            width: bbox.width,
+                            height: bbox.height,
+                            rotation: 0,
+                            borderRadius,
+                            style: { fills, strokes }
+                        };
+                        pushImportedElementWithMasking(node, el, t);
+                    }
+                } else {
+                    const rrX = rx ?? 0;
+                    const rrY = (ry ?? rx ?? 0);
+                    const d = rectToRoundedPathD(rawX, rawY, rawW, rawH, rrX, rrY);
+                    const fillRule = getFillRuleForNode(node);
+                    const parsed = parsePathDataToVectorPaths(d, { fillRule });
+                    if (parsed.ok) {
+                        const el = vectorElementFromParsedPaths(node, parsed.paths, t, { id: makeId() });
+                        if (el) pushImportedElementWithMasking(node, el, t);
+                    } else {
+                        warnings.push('WARN_PATH_UNSUPPORTED');
+                    }
+                }
             }
         } else if (tag === 'circle') {
             const rawCx = toNumber(node.getAttribute('cx')) ?? 0;
             const rawCy = toNumber(node.getAttribute('cy')) ?? 0;
-            const r = toNumber(node.getAttribute('r')) ?? 0;
-            if (r > 0) {
-                const cx = rawCx * nextAccumulated.sx + nextAccumulated.tx;
-                const cy = rawCy * nextAccumulated.sy + nextAccumulated.ty;
-                const rx = r * nextAccumulated.sx;
-                const ry = r * nextAccumulated.sy;
-                const bboxOverride = { x: cx - rx, y: cy - ry, width: 2 * rx, height: 2 * ry };
-                const { fills, strokes } = styleForNode(node, { bboxOverride, userSpaceTransform: nextAccumulated });
-                elements.push({
-                    id: makeId(),
-                    type: 'shape',
-                    shape: 'ellipse',
-                    shapeKind: 'ellipse',
-                    x: cx - rx,
-                    y: cy - ry,
-                    width: 2 * rx,
-                    height: 2 * ry,
-                    rotation: 0,
-                    style: { fills, strokes }
-                });
+            const rawR = toNumber(node.getAttribute('r')) ?? 0;
+            if (rawR > 0) {
+                const t = asTransform2D(nextAccumulated);
+                if (isAxisAlignedTransform(t)) {
+                    const bbox = transformBBox(
+                        { x: rawCx - rawR, y: rawCy - rawR, width: rawR * 2, height: rawR * 2 },
+                        t
+                    );
+                    if (bbox && bbox.width > 0 && bbox.height > 0) {
+                        const bboxOverride = { x: bbox.x, y: bbox.y, width: bbox.width, height: bbox.height };
+                        const { fills, strokes } = styleForNode(node, { bboxOverride, userSpaceTransform: t });
+                        const el = {
+                            id: makeId(),
+                            type: 'shape',
+                            shape: 'ellipse',
+                            shapeKind: 'ellipse',
+                            x: bbox.x,
+                            y: bbox.y,
+                            width: bbox.width,
+                            height: bbox.height,
+                            rotation: 0,
+                            style: { fills, strokes }
+                        };
+                        pushImportedElementWithMasking(node, el, t);
+                    }
+                } else {
+                    const d = ellipseToPathD(rawCx, rawCy, rawR, rawR);
+                    const fillRule = getFillRuleForNode(node);
+                    const parsed = parsePathDataToVectorPaths(d, { fillRule });
+                    if (parsed.ok) {
+                        const el = vectorElementFromParsedPaths(node, parsed.paths, t, { id: makeId() });
+                        if (el) pushImportedElementWithMasking(node, el, t);
+                    } else {
+                        warnings.push('WARN_PATH_UNSUPPORTED');
+                    }
+                }
             }
         } else if (tag === 'ellipse') {
             const rawCx = toNumber(node.getAttribute('cx')) ?? 0;
             const rawCy = toNumber(node.getAttribute('cy')) ?? 0;
             const rawRx = toNumber(node.getAttribute('rx')) ?? 0;
             const rawRy = toNumber(node.getAttribute('ry')) ?? 0;
-            const cx = rawCx * nextAccumulated.sx + nextAccumulated.tx;
-            const cy = rawCy * nextAccumulated.sy + nextAccumulated.ty;
-            const rx = rawRx * nextAccumulated.sx;
-            const ry = rawRy * nextAccumulated.sy;
-            if (rx > 0 && ry > 0) {
-                const bboxOverride = { x: cx - rx, y: cy - ry, width: 2 * rx, height: 2 * ry };
-                const { fills, strokes } = styleForNode(node, { bboxOverride, userSpaceTransform: nextAccumulated });
-                elements.push({
-                    id: makeId(),
-                    type: 'shape',
-                    shape: 'ellipse',
-                    shapeKind: 'ellipse',
-                    x: cx - rx,
-                    y: cy - ry,
-                    width: 2 * rx,
-                    height: 2 * ry,
-                    rotation: 0,
-                    style: { fills, strokes }
-                });
+            if (rawRx > 0 && rawRy > 0) {
+                const t = asTransform2D(nextAccumulated);
+                if (isAxisAlignedTransform(t)) {
+                    const bbox = transformBBox(
+                        { x: rawCx - rawRx, y: rawCy - rawRy, width: rawRx * 2, height: rawRy * 2 },
+                        t
+                    );
+                    if (bbox && bbox.width > 0 && bbox.height > 0) {
+                        const bboxOverride = { x: bbox.x, y: bbox.y, width: bbox.width, height: bbox.height };
+                        const { fills, strokes } = styleForNode(node, { bboxOverride, userSpaceTransform: t });
+                        const el = {
+                            id: makeId(),
+                            type: 'shape',
+                            shape: 'ellipse',
+                            shapeKind: 'ellipse',
+                            x: bbox.x,
+                            y: bbox.y,
+                            width: bbox.width,
+                            height: bbox.height,
+                            rotation: 0,
+                            style: { fills, strokes }
+                        };
+                        pushImportedElementWithMasking(node, el, t);
+                    }
+                } else {
+                    const d = ellipseToPathD(rawCx, rawCy, rawRx, rawRy);
+                    const fillRule = getFillRuleForNode(node);
+                    const parsed = parsePathDataToVectorPaths(d, { fillRule });
+                    if (parsed.ok) {
+                        const el = vectorElementFromParsedPaths(node, parsed.paths, t, { id: makeId() });
+                        if (el) pushImportedElementWithMasking(node, el, t);
+                    } else {
+                        warnings.push('WARN_PATH_UNSUPPORTED');
+                    }
+                }
             }
         } else if (tag === 'line') {
             const rawX1 = toNumber(node.getAttribute('x1')) ?? 0;
             const rawY1 = toNumber(node.getAttribute('y1')) ?? 0;
             const rawX2 = toNumber(node.getAttribute('x2')) ?? 0;
             const rawY2 = toNumber(node.getAttribute('y2')) ?? 0;
-            const x1 = rawX1 * nextAccumulated.sx + nextAccumulated.tx;
-            const y1 = rawY1 * nextAccumulated.sy + nextAccumulated.ty;
-            const x2 = rawX2 * nextAccumulated.sx + nextAccumulated.tx;
-            const y2 = rawY2 * nextAccumulated.sy + nextAccumulated.ty;
 
-            const minX = Math.min(x1, x2);
-            const minY = Math.min(y1, y2);
-            const maxX = Math.max(x1, x2);
-            const maxY = Math.max(y1, y2);
+            const t = asTransform2D(nextAccumulated);
+            const p1 = transformPoint({ x: rawX1, y: rawY1 }, t);
+            const p2 = transformPoint({ x: rawX2, y: rawY2 }, t);
+
+            const minX = Math.min(p1.x, p2.x);
+            const minY = Math.min(p1.y, p2.y);
+            const maxX = Math.max(p1.x, p2.x);
+            const maxY = Math.max(p1.y, p2.y);
 
             const paint = resolvePaintForNode(node);
             const strokePad = (!paint.stroke?.none && Number.isFinite(paint.stroke?.width)) ? (Math.max(0, paint.stroke.width) / 2) : 0;
@@ -2206,8 +2616,8 @@ export function importEditableShapesFromSanitizedSvg(sanitizedSvg, options) {
 
             if (width > 0 && height > 0) {
                 const bboxOverride = { x: xGeom, y: yGeom, width: widthGeom, height: heightGeom };
-                const { fills, strokes } = styleForNode(node, { bboxOverride, userSpaceTransform: nextAccumulated });
-                elements.push({
+                const { fills, strokes } = styleForNode(node, { bboxOverride, userSpaceTransform: t });
+                const el = {
                     id: makeId(),
                     type: 'shape',
                     shape: 'line',
@@ -2218,11 +2628,12 @@ export function importEditableShapesFromSanitizedSvg(sanitizedSvg, options) {
                     height,
                     rotation: 0,
                     params: {
-                        p1: { x: x1 - x, y: y1 - y },
-                        p2: { x: x2 - x, y: y2 - y }
+                        p1: { x: p1.x - x, y: p1.y - y },
+                        p2: { x: p2.x - x, y: p2.y - y }
                     },
                     style: { fills, strokes }
-                });
+                };
+                pushImportedElementWithMasking(node, el, t);
             }
         } else if (tag === 'polyline' || tag === 'polygon') {
             const pts = parsePointsAttribute(node.getAttribute('points'));
@@ -2263,7 +2674,7 @@ export function importEditableShapesFromSanitizedSvg(sanitizedSvg, options) {
                     if (path) {
                         const bboxOverride = { x: xGeom, y: yGeom, width: widthGeom, height: heightGeom };
                         const { fills, strokes } = styleForNode(node, { bboxOverride, userSpaceTransform: nextAccumulated });
-                        elements.push({
+                        const el = {
                             id: makeId(),
                             type: 'shape',
                             shape: 'vector',
@@ -2275,7 +2686,8 @@ export function importEditableShapesFromSanitizedSvg(sanitizedSvg, options) {
                             rotation: 0,
                             paths: [path],
                             style: { fills, strokes }
-                        });
+                        };
+                        pushImportedElementWithMasking(node, el, asTransform2D(nextAccumulated));
                     }
                 }
             }
@@ -2378,7 +2790,7 @@ export function importEditableShapesFromSanitizedSvg(sanitizedSvg, options) {
 
                         const bboxOverride = { x: xGeom, y: yGeom, width: widthGeom, height: heightGeom };
                         const { fills, strokes } = styleForNode(node, { bboxOverride, userSpaceTransform: nextAccumulated });
-                        elements.push({
+                        const el = {
                             id: makeId(),
                             type: 'shape',
                             shape: 'vector',
@@ -2390,7 +2802,8 @@ export function importEditableShapesFromSanitizedSvg(sanitizedSvg, options) {
                             rotation: 0,
                             paths: localPaths,
                             style: { fills, strokes }
-                        });
+                        };
+                        pushImportedElementWithMasking(node, el, asTransform2D(nextAccumulated));
                     }
                 } else {
                     warnings.push('WARN_PATH_BBOX_FAILED');

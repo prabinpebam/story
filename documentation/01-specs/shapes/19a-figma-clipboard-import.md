@@ -1,7 +1,7 @@
 # Figma Clipboard Paste → Editable Story Elements
 
 **Status**: Draft
-**Last Updated**: December 16, 2025
+**Last Updated**: December 17, 2025
 
 This spec defines how Story MUST support pasting from Figma such that the result becomes **fully editable Story elements** (shapes, vector networks/paths, masks, groups, and text where representable).
 
@@ -246,8 +246,9 @@ Explicitly unsupported (must warn + degrade):
 Story elements use `x/y/width/height/rotation` plus element-local geometry.
 
 Rules:
-- If an SVG node uses only translate/scale/rotate (no skew), importer MUST map it directly to Story transform fields.
-- If an SVG node includes skew or general affine transforms that Story cannot represent without distortion, importer MUST **bake the transform into geometry** and import as `shapeKind:'vector'`.
+- Importer MUST correctly handle general SVG affine transforms (`translate/scale/rotate/skew/matrix`) deterministically.
+- Importer MAY map simple transforms to Story transform fields (e.g. `x/y/rotation`) when it can do so without losing editability.
+- Importer MAY instead **bake transforms into geometry** and import as `shapeKind:'vector'` (this is acceptable for v1 and is the preferred fallback for non-axis-aligned transforms).
 
 Concrete transform detection:
 - Decompose the 2×2 matrix part; if it contains shear above numeric epsilon or non-uniform rotation+scale that cannot be represented by Story’s rotation+axis-aligned bounds model, treat as “general affine” and bake.
@@ -272,13 +273,15 @@ Corner radii rules:
 - Fill rule MUST be mapped to `fillRule`.
 
 ### 4.5 Groups and hierarchy
-- `<g>` imports as `type:'group'`.
-- Group opacity/blend mode MUST be applied deterministically.
+- `<g>` MAY be imported as `type:'group'`, or MAY be flattened into leaf elements as long as paint/geometry results are deterministic.
+- Group opacity/blend mode MUST be applied deterministically (either via group nodes or by pushing properties down during flattening).
 
 ### 4.6 Masks and clips
 SVG clipping/masking MUST map into Story’s mask node model:
-- `<clipPath>` → `shapeKind:'mask'` with `mode:'clip'`
-- `<mask>` → `shapeKind:'mask'` with `mode:'alpha'`
+- Importer MUST create a `shapeKind:'mask'` relationship node that references:
+  - `maskShapeId` (the imported mask shape element), and
+  - `contentIds` (the element(s) being masked).
+- Importer SHOULD set `mode:'clip'|'alpha'` when known, but `mode` is optional in v1.
 
 Nested masks MUST be supported.
 
