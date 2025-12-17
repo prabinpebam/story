@@ -31,6 +31,12 @@
     transition: var(--transition-normal);
 }
 
+/* Allow any tool button to become a split button (icon square + caret width). */
+#floating-toolbar .tool-btn.btn-split {
+    width: auto;
+    justify-content: flex-start;
+}
+
 #floating-toolbar .tool-btn:hover {
     background-color: var(--color-bg-hover);
 }

@@ -593,36 +593,215 @@ export class GizmoRenderer {
     }
 
     renderCreationGhost() {
+        const state = store.getState();
+        const activeTool = state?.editor?.activeTool;
+        const activeToolOptions = state?.editor?.activeToolOptions;
+
         const { x: startX, y: startY } = this.cm.dragStart;
         const { x: currX, y: currY } = this.cm.dragCurrent;
         const colors = this.getColors();
 
-        let x = Math.min(startX, currX);
-        let y = Math.min(startY, currY);
-        let width = Math.abs(currX - startX);
-        let height = Math.abs(currY - startY);
+        const isAlt = !!this.cm.isAltPressed;
+        const isShift = !!this.cm.isShiftPressed;
 
-        // Constrain proportions if Shift is held
-        if (this.cm.isShiftPressed) {
+        const resolveShapeKind = () => {
+            if (activeTool !== 'shape') return null;
+            const kind = (activeToolOptions && typeof activeToolOptions === 'object' && typeof activeToolOptions.shapeKind === 'string')
+                ? activeToolOptions.shapeKind
+                : 'rectangle';
+            return kind;
+        };
+
+        const shapeKind = resolveShapeKind();
+
+        // Compute box in screen space.
+        const dx = currX - startX;
+        const dy = currY - startY;
+
+        let x;
+        let y;
+        let width;
+        let height;
+
+        if (isAlt) {
+            width = Math.abs(dx) * 2;
+            height = Math.abs(dy) * 2;
+            x = startX - width / 2;
+            y = startY - height / 2;
+        } else {
+            x = Math.min(startX, currX);
+            y = Math.min(startY, currY);
+            width = Math.abs(dx);
+            height = Math.abs(dy);
+        }
+
+        // Constrain proportions if Shift is held (for box-based kinds).
+        if (isShift && shapeKind !== 'line') {
             const size = Math.max(width, height);
             width = size;
             height = size;
-            
-            // Adjust x/y based on drag direction to keep start point fixed
-            if (currX < startX) x = startX - size;
-            if (currY < startY) y = startY - size;
+
+            if (isAlt) {
+                x = startX - size / 2;
+                y = startY - size / 2;
+            } else {
+                if (currX < startX) x = startX - size;
+                if (currY < startY) y = startY - size;
+            }
         }
 
+        // For a better UX, draw a line preview for line/arrow kinds (instead of a thin bbox).
+        const drawLinePreview = (withArrow) => {
+            // Apply shift snapping (45°) like creation logic.
+            let endX = currX;
+            let endY = currY;
+            if (isShift) {
+                const ang = Math.atan2(dy, dx);
+                const snap = Math.PI / 4;
+                const snapped = Math.round(ang / snap) * snap;
+                const len = Math.hypot(dx, dy);
+                endX = startX + Math.cos(snapped) * len;
+                endY = startY + Math.sin(snapped) * len;
+            }
+
+            const p1 = isAlt ? { x: startX - (endX - startX), y: startY - (endY - startY) } : { x: startX, y: startY };
+            const p2 = { x: endX, y: endY };
+
+            this.cm.ctx.save();
+            this.cm.ctx.strokeStyle = colors.accent;
+            this.cm.ctx.lineWidth = 2;
+            this.cm.ctx.setLineDash([5, 5]);
+            this.cm.ctx.beginPath();
+            this.cm.ctx.moveTo(p1.x, p1.y);
+            this.cm.ctx.lineTo(p2.x, p2.y);
+            this.cm.ctx.stroke();
+
+            if (withArrow) {
+                const vx = p2.x - p1.x;
+                const vy = p2.y - p1.y;
+                const len = Math.hypot(vx, vy);
+                if (len > 0.001) {
+                    const ux = vx / len;
+                    const uy = vy / len;
+                    const size = 10;
+                    const backX = p2.x - ux * size;
+                    const backY = p2.y - uy * size;
+                    const perpX = -uy;
+                    const perpY = ux;
+                    const wing = size * 0.6;
+
+                    this.cm.ctx.fillStyle = colors.accent;
+                    this.cm.ctx.setLineDash([]);
+                    this.cm.ctx.beginPath();
+                    this.cm.ctx.moveTo(p2.x, p2.y);
+                    this.cm.ctx.lineTo(backX + perpX * wing, backY + perpY * wing);
+                    this.cm.ctx.lineTo(backX - perpX * wing, backY - perpY * wing);
+                    this.cm.ctx.closePath();
+                    this.cm.ctx.fill();
+                }
+            }
+
+            this.cm.ctx.restore();
+        };
+
+        const drawPolygonPath = (points) => {
+            if (!Array.isArray(points) || points.length < 2) return;
+            this.cm.ctx.beginPath();
+            this.cm.ctx.moveTo(points[0].x, points[0].y);
+            for (let i = 1; i < points.length; i++) {
+                this.cm.ctx.lineTo(points[i].x, points[i].y);
+            }
+            this.cm.ctx.closePath();
+        };
+
+        const drawRegularPolygon = (sides, rotationDeg) => {
+            const cx = x + width / 2;
+            const cy = y + height / 2;
+            // Match ParametricToPaths: polygons are built on a circle with r = min(w,h)/2
+            const r = Math.min(width, height) / 2;
+            const rot = (Number(rotationDeg) || 0) * Math.PI / 180;
+
+            const pts = [];
+            const n = Math.max(3, Math.min(64, Math.round(Number(sides) || 6)));
+            for (let i = 0; i < n; i++) {
+                const a = rot + (i * 2 * Math.PI) / n;
+                pts.push({ x: cx + Math.cos(a) * r, y: cy + Math.sin(a) * r });
+            }
+            drawPolygonPath(pts);
+        };
+
+        const drawStar = (points, innerRatio, rotationDeg) => {
+            const cx = x + width / 2;
+            const cy = y + height / 2;
+            // Match ParametricToPaths: stars use circular outer radius rOuter = min(w,h)/2
+            const rOuter = Math.min(width, height) / 2;
+            const rot = (Number(rotationDeg) || 0) * Math.PI / 180;
+
+            const p = Math.max(3, Math.min(64, Math.round(Number(points) || 5)));
+            const r = Math.max(0.01, Math.min(0.99, Number(innerRatio) || 0.5));
+            const rInner = rOuter * r;
+
+            const pts = [];
+            const total = p * 2;
+            for (let i = 0; i < total; i++) {
+                const rr = (i % 2 === 0) ? rOuter : rInner;
+                const a = rot + (i / total) * Math.PI * 2;
+                pts.push({ x: cx + Math.cos(a) * rr, y: cy + Math.sin(a) * rr });
+            }
+            drawPolygonPath(pts);
+        };
+
+        // Draw preview
         this.cm.ctx.save();
         this.cm.ctx.strokeStyle = colors.accent;
         this.cm.ctx.lineWidth = 1;
         this.cm.ctx.setLineDash([5, 5]);
-        this.cm.ctx.strokeRect(x, y, width, height);
-        
-        // Optional: Fill with transparent accent
         this.cm.ctx.fillStyle = colors.accentRgba10;
+
+        if (shapeKind === 'line') {
+            const isArrow = activeToolOptions?.lineEndCap === 'arrow';
+            this.cm.ctx.restore();
+            drawLinePreview(isArrow);
+            return;
+        }
+
+        if (shapeKind === 'ellipse') {
+            const cx = x + width / 2;
+            const cy = y + height / 2;
+            const rx = width / 2;
+            const ry = height / 2;
+            this.cm.ctx.beginPath();
+            this.cm.ctx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2);
+            this.cm.ctx.fill();
+            this.cm.ctx.stroke();
+            this.cm.ctx.restore();
+            return;
+        }
+
+        if (shapeKind === 'polygon') {
+            const sides = 6;
+            const rotation = 0;
+            drawRegularPolygon(sides, rotation);
+            this.cm.ctx.fill();
+            this.cm.ctx.stroke();
+            this.cm.ctx.restore();
+            return;
+        }
+
+        if (shapeKind === 'star') {
+            const points = 5;
+            const innerRadiusRatio = 0.5;
+            const rotation = 0;
+            drawStar(points, innerRadiusRatio, rotation);
+            this.cm.ctx.fill();
+            this.cm.ctx.stroke();
+            this.cm.ctx.restore();
+            return;
+        }
+
+        // Default: rectangle box preview
         this.cm.ctx.fillRect(x, y, width, height);
-        
+        this.cm.ctx.strokeRect(x, y, width, height);
         this.cm.ctx.restore();
     }
 }

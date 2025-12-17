@@ -120,6 +120,25 @@ test.describe('G6: Creation UX (toolbar + creation wiring)', () => {
       const fillPath = host.locator('svg.geometry-layer path').first();
       await expect(fillPath).toHaveCount(1);
       await expect(fillPath).toHaveAttribute('fill');
+
+      // DOM geometry validation: rotation convention must match ParametricToPaths.
+      // For rotation=0, the path starts at the rightmost point on the circle: (cx + r, cy).
+      const d = await fillPath.getAttribute('d');
+      expect(d).toBeTruthy();
+      const move = await page.evaluate((pathD) => {
+        const m = String(pathD || '').match(/^[\s]*M\s*([-+]?\d*\.?\d+(?:e[-+]?\d+)?)\s*,?\s*([-+]?\d*\.?\d+(?:e[-+]?\d+)?)/i);
+        if (!m) return null;
+        return { x: Number(m[1]), y: Number(m[2]) };
+      }, d);
+      expect(move).toBeTruthy();
+
+      const w = Number(el.width);
+      const h = Number(el.height);
+      const r = Math.min(w, h) / 2;
+      const expectedX = w / 2 + r;
+      const expectedY = h / 2;
+      expect(Math.abs((move as any).x - expectedX)).toBeLessThanOrEqual(1);
+      expect(Math.abs((move as any).y - expectedY)).toBeLessThanOrEqual(1);
     }
 
     // Star (Shift+S)
@@ -135,8 +154,76 @@ test.describe('G6: Creation UX (toolbar + creation wiring)', () => {
       const fillPath = host.locator('svg.geometry-layer path').first();
       await expect(fillPath).toHaveCount(1);
       await expect(fillPath).toHaveAttribute('fill');
+
+      // DOM geometry validation (same rotation convention): start at rightmost outer point.
+      const d = await fillPath.getAttribute('d');
+      expect(d).toBeTruthy();
+      const move = await page.evaluate((pathD) => {
+        const m = String(pathD || '').match(/^[\s]*M\s*([-+]?\d*\.?\d+(?:e[-+]?\d+)?)\s*,?\s*([-+]?\d*\.?\d+(?:e[-+]?\d+)?)/i);
+        if (!m) return null;
+        return { x: Number(m[1]), y: Number(m[2]) };
+      }, d);
+      expect(move).toBeTruthy();
+
+      const w = Number(el.width);
+      const h = Number(el.height);
+      const r = Math.min(w, h) / 2;
+      const expectedX = w / 2 + r;
+      const expectedY = h / 2;
+      expect(Math.abs((move as any).x - expectedX)).toBeLessThanOrEqual(1);
+      expect(Math.abs((move as any).y - expectedY)).toBeLessThanOrEqual(1);
     }
 
     await expect.poll(async () => await editor.getActiveTool()).toBe('select');
+  });
+
+  test('creation preview: draws on interaction canvas during drag (before mouseup)', async ({ page }) => {
+    await editor.setActiveTool('shape');
+
+    const start = await canvas.normalizedToAbsolute(0.2, 0.2);
+    const mid = await canvas.normalizedToAbsolute(0.28, 0.26);
+    const end = await canvas.normalizedToAbsolute(0.35, 0.3);
+
+    const sample = async () => {
+      return await page.evaluate(({ x, y }) => {
+        const c = document.querySelector('#interaction-canvas');
+        if (!(c instanceof HTMLCanvasElement)) throw new Error('interaction canvas not found');
+        const ctx = c.getContext('2d', { willReadFrequently: true });
+        if (!ctx) throw new Error('2d context not available');
+
+        const rect = c.getBoundingClientRect();
+        const localX = x - rect.left;
+        const localY = y - rect.top;
+
+        const w = 40;
+        const h = 40;
+        const sx = Math.max(0, Math.min(c.width - w, Math.floor(localX - w / 2)));
+        const sy = Math.max(0, Math.min(c.height - h, Math.floor(localY - h / 2)));
+        const img = ctx.getImageData(sx, sy, w, h);
+
+        let nonZero = 0;
+        for (let i = 3; i < img.data.length; i += 4) {
+          if (img.data[i] !== 0) {
+            nonZero++;
+          }
+        }
+        return nonZero;
+      }, { x: mid.x, y: mid.y });
+    };
+
+    // Ensure the overlay is initially empty at the sample location.
+    const before = await sample();
+    expect(before).toBe(0);
+
+    // Drag and assert the creation ghost is rendered before mouse-up.
+    await page.mouse.move(start.x, start.y);
+    await page.mouse.down();
+    await page.mouse.move(end.x, end.y);
+    await page.waitForTimeout(50);
+
+    const during = await sample();
+    expect(during).toBeGreaterThan(0);
+
+    await page.mouse.up();
   });
 });

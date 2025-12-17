@@ -526,6 +526,49 @@
 }
 
 /*
+ * Design system component: split button
+ * Use when a control has a primary square action + a caret/secondary affordance.
+ * The primary area stays square; the caret takes only the width it needs.
+ *
+ * Markup:
+ *   <button class="... btn-split">
+ *     <span class="btn-split__main">...</span>
+ *     <span class="btn-split__caret">...</span>
+ *   </button>
+ */
+.btn-split {
+    display: inline-flex;
+    align-items: center;
+    justify-content: flex-start;
+    padding: 0;
+    gap: 0;
+}
+
+.btn-split__main {
+    width: var(--control-size-xl);
+    height: var(--control-size-xl);
+    flex: 0 0 var(--control-size-xl);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.btn-split__caret {
+    height: var(--control-size-xl);
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 var(--spacing-1-5);
+}
+
+.btn-split__caret svg {
+    width: var(--icon-size-sm);
+    height: var(--icon-size-sm);
+    fill: currentColor;
+}
+
+/*
  * Old pattern: reset-btn (from TextSection.js, TypeSettingsFlyout.js)
  * Maps to: .btn .btn--text .btn--xs
  */
