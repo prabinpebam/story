@@ -15,6 +15,234 @@
 
 import { store } from '../Store.js';
 import { getShapeKind } from '../shapes/ShapeElementAdapter.js';
+import { elementToWorldPolygons, worldPolygonsToElementLocal } from '../shapes/booleans/ShapeToPolygons.js';
+import { computeBooleanPaths } from '../shapes/booleans/BooleanEngine.js';
+import { computeUnifiedClipPathCss } from '../shapes/masking/MaskEngine.js';
+
+function escapeXml(text) {
+    return String(text)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+        .replace(/'/g, '&apos;');
+}
+
+function buildVectorPathD(paths) {
+    if (!Array.isArray(paths) || paths.length === 0) return '';
+    const parts = [];
+    for (const path of paths) {
+        if (!path || !path.start) continue;
+        const sx = Number(path.start.x);
+        const sy = Number(path.start.y);
+        if (!Number.isFinite(sx) || !Number.isFinite(sy)) continue;
+        parts.push(`M ${sx} ${sy}`);
+        for (const seg of path.segments || []) {
+            if (!seg || typeof seg.kind !== 'string') continue;
+            if (seg.kind === 'line') {
+                const x = Number(seg.to?.x);
+                const y = Number(seg.to?.y);
+                if (!Number.isFinite(x) || !Number.isFinite(y)) continue;
+                parts.push(`L ${x} ${y}`);
+            } else if (seg.kind === 'cubic') {
+                const x1 = Number(seg.c1?.x);
+                const y1 = Number(seg.c1?.y);
+                const x2 = Number(seg.c2?.x);
+                const y2 = Number(seg.c2?.y);
+                const x = Number(seg.to?.x);
+                const y = Number(seg.to?.y);
+                if (![x1, y1, x2, y2, x, y].every(Number.isFinite)) continue;
+                parts.push(`C ${x1} ${y1} ${x2} ${y2} ${x} ${y}`);
+            }
+        }
+        if (path.closed) parts.push('Z');
+    }
+    return parts.join(' ');
+}
+
+function extractSvgPathDFromCssClipPath(clipPath) {
+    if (typeof clipPath !== 'string') return null;
+    const trimmed = clipPath.trim();
+    const m = trimmed.match(/^path\((['"])([\s\S]*)\1\)$/);
+    if (m) return m[2];
+    return null;
+}
+
+function resolveBooleanDerivedPaths(booleanEl, slideData) {
+    const operation = booleanEl?.operation || 'union';
+    const operandIds = Array.isArray(booleanEl?.operands) ? booleanEl.operands : [];
+    const elements = slideData?.effectiveElements || slideData?.elements || {};
+
+    const operandPolysLocal = [];
+    for (const id of operandIds) {
+        const opEl = elements[id];
+        if (!opEl) continue;
+
+        const world = elementToWorldPolygons(slideData, opEl);
+        const local = worldPolygonsToElementLocal(slideData, booleanEl, world);
+        operandPolysLocal.push(local);
+    }
+
+    const res = computeBooleanPaths({ operation, operands: operandPolysLocal });
+    return { status: res.status, paths: Array.isArray(res.paths) ? res.paths : [] };
+}
+
+/**
+ * Pure SVG markup builder (no DOM).
+ *
+ * Note: This is intentionally conservative; it exports a best-effort portable SVG subset.
+ *
+ * @param {Array<Object>} elements
+ * @param {{width:number,height:number,bounds:{x:number,y:number,width:number,height:number},slideData?:any}} options
+ */
+export function buildSvgMarkup(elements, { width, height, bounds, slideData } = {}) {
+    const safeBounds = bounds || calculateBounds(elements || []);
+    const vbW = Number(safeBounds.width) || 0;
+    const vbH = Number(safeBounds.height) || 0;
+    const outW = Number(width) || vbW;
+    const outH = Number(height) || vbH;
+
+    const defsParts = [];
+    const bodyParts = [];
+
+    const ordered = Array.isArray(elements) ? [...elements] : [];
+    ordered.sort((a, b) => {
+        const ai = (a && typeof a.id === 'string') ? a.id : '';
+        const bi = (b && typeof b.id === 'string') ? b.id : '';
+        return ai.localeCompare(bi);
+    });
+
+    for (const element of ordered) {
+        if (!element) continue;
+
+        const x = (Number(element.x) || 0) - (Number(safeBounds.x) || 0);
+        const y = (Number(element.y) || 0) - (Number(safeBounds.y) || 0);
+
+        const shapeKind = getShapeKind(element);
+
+        if (shapeKind === 'mask') continue;
+
+        const clipId = (() => {
+            if (!slideData) return null;
+            const { clipPath } = computeUnifiedClipPathCss(element, slideData);
+            if (!clipPath) return null;
+
+            if (clipPath.trim() === 'inset(100%)') {
+                const id = `clip-${String(element.id || '') || 'el'}`;
+                defsParts.push(`<clipPath id="${escapeXml(id)}"><rect x="0" y="0" width="0" height="0" /></clipPath>`);
+                return id;
+            }
+
+            const d = extractSvgPathDFromCssClipPath(clipPath);
+            if (!d) return null;
+
+            const id = `clip-${String(element.id || '') || 'el'}`;
+            defsParts.push(`<clipPath id="${escapeXml(id)}"><path d="${d}" /></clipPath>`);
+            return id;
+        })();
+
+        const transform = (() => {
+            let t = `translate(${x} ${y})`;
+            const rot = Number(element.rotation) || 0;
+            if (rot) {
+                const cx = (Number(element.width) || 0) / 2;
+                const cy = (Number(element.height) || 0) / 2;
+                t += ` rotate(${rot} ${cx} ${cy})`;
+            }
+            return t;
+        })();
+
+        const groupOpen = clipId
+            ? `<g transform="${transform}" clip-path="url(#${escapeXml(clipId)})">`
+            : `<g transform="${transform}">`;
+        const groupClose = `</g>`;
+
+        if (shapeKind === 'rectangle') {
+            const fill = element.style?.fills?.[0]?.value || element.style?.fills?.[0]?.color || element.fill || '#000000';
+            const opacity = (element.style?.fills?.[0]?.opacity ?? 100) / 100;
+            const borderRadius = element.borderRadius || 0;
+
+            let rect = `<rect x="0" y="0" width="${element.width}" height="${element.height}" `;
+            rect += `fill="${fill}" fill-opacity="${opacity}"`;
+            if (borderRadius > 0) {
+                rect += ` rx="${borderRadius}" ry="${borderRadius}"`;
+            }
+            rect += ` />`;
+
+            bodyParts.push(`${groupOpen}${rect}${groupClose}`);
+            continue;
+        }
+
+        if (shapeKind === 'ellipse') {
+            const fill = element.style?.fills?.[0]?.value || element.style?.fills?.[0]?.color || element.fill || '#000000';
+            const opacity = (element.style?.fills?.[0]?.opacity ?? 100) / 100;
+            const cx = (Number(element.width) || 0) / 2;
+            const cy = (Number(element.height) || 0) / 2;
+            const rx = (Number(element.width) || 0) / 2;
+            const ry = (Number(element.height) || 0) / 2;
+
+            const ellipse = `<ellipse cx="${cx}" cy="${cy}" rx="${rx}" ry="${ry}" fill="${fill}" fill-opacity="${opacity}" />`;
+            bodyParts.push(`${groupOpen}${ellipse}${groupClose}`);
+            continue;
+        }
+
+        if (element.type === 'text') {
+            const color = element.style?.color || '#000000';
+            const fontSize = element.style?.fontSize || 16;
+            const fontFamily = element.style?.fontFamily || 'sans-serif';
+            const fontWeight = element.style?.fontWeight || 'normal';
+            const textContent = (element.content?.replace(/<[^>]*>/g, '') || '').trim();
+
+            let text = `<text x="0" y="${fontSize}" `;
+            text += `font-family="${escapeXml(fontFamily)}" font-size="${fontSize}" `;
+            text += `font-weight="${escapeXml(fontWeight)}" fill="${color}">`;
+            text += escapeXml(textContent);
+            text += `</text>`;
+            bodyParts.push(`${groupOpen}${text}${groupClose}`);
+            continue;
+        }
+
+        if (shapeKind === 'vector' || shapeKind === 'boolean') {
+            const paths = shapeKind === 'boolean'
+                ? resolveBooleanDerivedPaths(element, slideData).paths
+                : (Array.isArray(element.paths) ? element.paths : []);
+
+            const d = buildVectorPathD(paths);
+            if (!d) continue;
+
+            const fillLayer = (element.style?.fills || []).find((f) => f && f.visible !== false);
+            const strokeLayer = (element.style?.strokes || []).find((s) => s && s.visible !== false);
+            const fill = fillLayer?.color || fillLayer?.value || (fillLayer ? '#000000' : 'none');
+            const fillOpacity = (fillLayer?.opacity ?? 100) / 100;
+            const stroke = strokeLayer?.color || strokeLayer?.value || 'none';
+            const strokeOpacity = (strokeLayer?.opacity ?? 100) / 100;
+            const strokeWidth = Number(strokeLayer?.width ?? 0) || 0;
+
+            const fillRule = (() => {
+                const fr = paths.find((p) => p && typeof p.fillRule === 'string')?.fillRule;
+                const v = typeof fr === 'string' ? fr.trim().toLowerCase() : '';
+                return v === 'evenodd' ? 'evenodd' : 'nonzero';
+            })();
+
+            let path = `<path d="${d}" fill="${fill}" fill-opacity="${fillOpacity}" fill-rule="${fillRule}"`;
+            if (strokeWidth > 0 && stroke !== 'none') {
+                path += ` stroke="${stroke}" stroke-opacity="${strokeOpacity}" stroke-width="${strokeWidth}"`;
+            }
+            path += ` />`;
+
+            bodyParts.push(`${groupOpen}${path}${groupClose}`);
+            continue;
+        }
+    }
+
+    let svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${outW}" height="${outH}" viewBox="0 0 ${vbW} ${vbH}">`;
+    if (defsParts.length > 0) {
+        svg += `<defs>${defsParts.join('')}</defs>`;
+    }
+    svg += bodyParts.join('');
+    svg += `</svg>`;
+    return svg;
+}
 
 /**
  * Export elements with given presets
@@ -319,58 +547,12 @@ async function exportRaster(elements, filename, format, { width, height, bounds 
  * @returns {Promise<void>}
  */
 async function exportSVG(elements, filename, { width, height, bounds }) {
-    // Create SVG string
-    let svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${bounds.width} ${bounds.height}">`;
-    
-    // Add elements
-    for (const element of elements) {
-        const x = element.x - bounds.x;
-        const y = element.y - bounds.y;
+    const state = store.getState();
+    const slideData = state.editor.mode === 'master'
+        ? state.slideMasterPresets[state.editor.activeMasterId]
+        : state.slides[state.editor.activeSlideId];
 
-        const shapeKind = getShapeKind(element);
-
-        if (shapeKind === 'rectangle') {
-            const fill = element.style?.fills?.[0]?.value || element.fill || '#000000';
-            const opacity = (element.style?.fills?.[0]?.opacity ?? 100) / 100;
-            const borderRadius = element.borderRadius || 0;
-            
-            svg += `<rect x="${x}" y="${y}" width="${element.width}" height="${element.height}" `;
-            svg += `fill="${fill}" fill-opacity="${opacity}" `;
-            if (borderRadius > 0) {
-                svg += `rx="${borderRadius}" ry="${borderRadius}" `;
-            }
-            svg += `/>\n`;
-            
-        } else if (shapeKind === 'ellipse') {
-            const fill = element.style?.fills?.[0]?.value || element.fill || '#000000';
-            const opacity = (element.style?.fills?.[0]?.opacity ?? 100) / 100;
-            const cx = x + element.width / 2;
-            const cy = y + element.height / 2;
-            const rx = element.width / 2;
-            const ry = element.height / 2;
-            
-            svg += `<ellipse cx="${cx}" cy="${cy}" rx="${rx}" ry="${ry}" `;
-            svg += `fill="${fill}" fill-opacity="${opacity}" />\n`;
-            
-        } else if (element.type === 'text') {
-            const color = element.style?.color || '#000000';
-            const fontSize = element.style?.fontSize || 16;
-            const fontFamily = element.style?.fontFamily || 'sans-serif';
-            const fontWeight = element.style?.fontWeight || 'normal';
-            
-            // Extract text content (remove HTML tags)
-            const textContent = element.content?.replace(/<[^>]*>/g, '') || '';
-            
-            svg += `<text x="${x}" y="${y + fontSize}" `;
-            svg += `font-family="${fontFamily}" font-size="${fontSize}" `;
-            svg += `font-weight="${fontWeight}" fill="${color}">`;
-            svg += textContent;
-            svg += `</text>\n`;
-        }
-        // Add more element types as needed
-    }
-    
-    svg += `</svg>`;
+    const svg = buildSvgMarkup(elements, { width, height, bounds, slideData });
     
     // Create blob and download
     const blob = new Blob([svg], { type: 'image/svg+xml;charset=utf-8' });
