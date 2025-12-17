@@ -215,7 +215,7 @@ function resolveBooleanDerivedPaths(booleanEl, slideData) {
  * @param {Array<Object>} elements
  * @param {{width:number,height:number,bounds:{x:number,y:number,width:number,height:number},slideData?:any}} options
  */
-export function buildSvgMarkup(elements, { width, height, bounds, slideData } = {}) {
+export function buildSvgMarkup(elements, { width, height, bounds, slideData, resolveThemeSlot, resolveAssetUrl } = {}) {
     const safeBounds = bounds || calculateBounds(elements || []);
     const vbW = Number(safeBounds.width) || 0;
     const vbH = Number(safeBounds.height) || 0;
@@ -224,6 +224,7 @@ export function buildSvgMarkup(elements, { width, height, bounds, slideData } = 
 
     const defsParts = [];
     const bodyParts = [];
+    const warnings = [];
 
     const ordered = Array.isArray(elements) ? [...elements] : [];
     ordered.sort((a, b) => {
@@ -289,15 +290,47 @@ export function buildSvgMarkup(elements, { width, height, bounds, slideData } = 
                 return { fill: markup ? `url(#${id})` : '#808080', fillOpacity };
             }
 
-            if (fillLayer.type === 'image' && fillLayer.value) {
-                const id = makePaintId('fill-img', element.id, 0, fillLayer.value);
-                defsParts.push(buildImagePatternMarkup(id, fillLayer.value, element.width, element.height));
+            if (fillLayer.type === 'image') {
+                const href = fillLayer.value
+                    || fillLayer.href
+                    || fillLayer.src
+                    || (fillLayer.assetId && typeof resolveAssetUrl === 'function' ? resolveAssetUrl(fillLayer.assetId, { slideData, element, fill: fillLayer }) : null);
+                if (!href) {
+                    warnings.push({ kind: 'fill', elementId: element.id, type: 'image', reason: 'missing-href' });
+                    return { fill: '#808080', fillOpacity };
+                }
+                const id = makePaintId('fill-img', element.id, 0, href);
+                defsParts.push(buildImagePatternMarkup(id, href, element.width, element.height));
                 return { fill: `url(#${id})`, fillOpacity };
             }
 
-            if (fillLayer.type === 'code' || fillLayer.type === 'video') {
-                // Deterministic fallback; portable SVG has no native code/video fills.
+            if (fillLayer.type === 'code') {
+                if (fillLayer.value) {
+                    const id = makePaintId('fill-code', element.id, 0, fillLayer.value);
+                    defsParts.push(buildImagePatternMarkup(id, fillLayer.value, element.width, element.height));
+                    return { fill: `url(#${id})`, fillOpacity };
+                }
+                warnings.push({ kind: 'fill', elementId: element.id, type: 'code', reason: 'not-rasterized' });
                 return { fill: '#808080', fillOpacity };
+            }
+
+            if (fillLayer.type === 'video') {
+                const href = fillLayer.value
+                    || fillLayer.posterDataUrl
+                    || (fillLayer.posterAssetId && typeof resolveAssetUrl === 'function' ? resolveAssetUrl(fillLayer.posterAssetId, { slideData, element, fill: fillLayer }) : null);
+                if (!href) {
+                    warnings.push({ kind: 'fill', elementId: element.id, type: 'video', reason: 'missing-poster' });
+                    return { fill: '#808080', fillOpacity };
+                }
+                const id = makePaintId('fill-vid', element.id, 0, href);
+                defsParts.push(buildImagePatternMarkup(id, href, element.width, element.height));
+                return { fill: `url(#${id})`, fillOpacity };
+            }
+
+            if (fillLayer.type === 'solid' && fillLayer.themeSlot !== undefined && fillLayer.themeSlot !== null && typeof resolveThemeSlot === 'function') {
+                const fallback = fillLayer.color || fillLayer.value || '#000000';
+                const resolved = resolveThemeSlot(fillLayer.themeSlot, fallback, { slideData, element, fill: fillLayer });
+                return { fill: String(resolved || fallback), fillOpacity };
             }
 
             const color = fillLayer.color || fillLayer.value || (fillLayer ? '#000000' : 'none');
@@ -406,9 +439,65 @@ export function buildSvgMarkup(elements, { width, height, bounds, slideData } = 
     if (defsParts.length > 0) {
         svg += `<defs>${defsParts.join('')}</defs>`;
     }
+    if (warnings.length > 0) {
+        svg += `<metadata id="story-export-warnings">${escapeXml(JSON.stringify({ warnings }))}</metadata>`;
+    }
     svg += bodyParts.join('');
     svg += `</svg>`;
     return svg;
+}
+
+export async function prepareSvgExportElements(elements, {
+    resolveAssetUrl,
+    rasterizeCodeFill,
+    rasterizeVideoFill
+} = {}) {
+    if (!Array.isArray(elements) || elements.length === 0) return Array.isArray(elements) ? [...elements] : [];
+
+    const out = [];
+    for (const el of elements) {
+        if (!el || typeof el !== 'object') {
+            out.push(el);
+            continue;
+        }
+
+        const fills = el?.style?.fills;
+        if (!Array.isArray(fills) || fills.length === 0) {
+            out.push(el);
+            continue;
+        }
+
+        const nextEl = { ...el, style: { ...el.style, fills: fills.map((f) => (f ? { ...f } : f)) } };
+        const first = nextEl.style.fills.find((f) => f && f.visible !== false);
+        if (!first) {
+            out.push(nextEl);
+            continue;
+        }
+
+        if (first.type === 'image' && !first.value && first.assetId && typeof resolveAssetUrl === 'function') {
+            const url = await resolveAssetUrl(first.assetId, { element: nextEl, fill: first });
+            if (url) first.value = url;
+        }
+
+        if (first.type === 'code' && typeof rasterizeCodeFill === 'function') {
+            const url = await rasterizeCodeFill({ element: nextEl, fill: first, width: nextEl.width, height: nextEl.height });
+            if (url) {
+                first.type = 'image';
+                first.value = url;
+                delete first.code;
+            }
+        }
+
+        if (first.type === 'video' && typeof rasterizeVideoFill === 'function') {
+            const url = await rasterizeVideoFill({ element: nextEl, fill: first, width: nextEl.width, height: nextEl.height });
+            if (url) {
+                first.value = url;
+            }
+        }
+
+        out.push(nextEl);
+    }
+    return out;
 }
 
 /**
@@ -719,7 +808,88 @@ async function exportSVG(elements, filename, { width, height, bounds }) {
         ? state.slideMasterPresets[state.editor.activeMasterId]
         : state.slides[state.editor.activeSlideId];
 
-    const svg = buildSvgMarkup(elements, { width, height, bounds, slideData });
+    const contextId = state.editor.mode === 'master'
+        ? state.editor.activeMasterId
+        : state.editor.activeSlideId;
+
+    let resolveThemeSlot = null;
+    try {
+        const mod = await import('../../utils/StyleResolver.js');
+        resolveThemeSlot = (slotIndex, fallback) => {
+            try {
+                return mod?.StyleResolver?.resolveThemeSlot(slotIndex, fallback, contextId) || fallback;
+            } catch {
+                return fallback;
+            }
+        };
+    } catch {
+        resolveThemeSlot = null;
+    }
+
+    let resolveAssetUrl = null;
+    let rasterizeCodeFill = null;
+    let rasterizeVideoFill = null;
+
+    let mediaAssetManager = null;
+    try {
+        const mod = await import('../media/MediaAssetManager.js');
+        mediaAssetManager = mod?.mediaAssetManager || null;
+        if (mediaAssetManager) {
+            resolveAssetUrl = (assetId) => mediaAssetManager.getRenderableUrl(assetId);
+        }
+    } catch {
+        mediaAssetManager = null;
+    }
+
+    try {
+        const mod = await import('../effects/CodeRunner.js');
+        if (mod?.CodeRunner) {
+            rasterizeCodeFill = async ({ fill, width: w, height: h }) => {
+                if (!fill?.code) return null;
+                const canvas = await mod.CodeRunner.captureFrame(fill.code, w, h, 0);
+                if (!canvas || typeof canvas.toDataURL !== 'function') return null;
+                return canvas.toDataURL('image/png');
+            };
+        }
+    } catch {
+        rasterizeCodeFill = null;
+    }
+
+    try {
+        const mod = await import('../media/VideoProcessor.js');
+        const videoProcessor = mod?.videoProcessor;
+        if (videoProcessor && mediaAssetManager) {
+            rasterizeVideoFill = async ({ fill, width: w, height: h }) => {
+                if (!fill) return null;
+                if (fill.posterDataUrl) return fill.posterDataUrl;
+                if (fill.posterAssetId && resolveAssetUrl) {
+                    return resolveAssetUrl(fill.posterAssetId);
+                }
+
+                const assetId = fill.assetId;
+                if (!assetId) return null;
+
+                const entry = mediaAssetManager.getEntry(assetId);
+                const posterFromMeta = entry?.metadata?.posterDataUrl;
+                if (posterFromMeta) return posterFromMeta;
+
+                const src = mediaAssetManager.getRenderableUrl(assetId);
+                if (!src) return null;
+                const t = Number(fill.posterFrame) || 0;
+                return videoProcessor.extractFrame(src, t, w, h);
+            };
+        }
+    } catch {
+        rasterizeVideoFill = null;
+    }
+
+    const prepared = await prepareSvgExportElements(elements, {
+        resolveAssetUrl,
+        rasterizeCodeFill,
+        rasterizeVideoFill
+    });
+
+    const svg = buildSvgMarkup(prepared, { width, height, bounds, slideData, resolveThemeSlot, resolveAssetUrl });
     
     // Create blob and download
     const blob = new Blob([svg], { type: 'image/svg+xml;charset=utf-8' });

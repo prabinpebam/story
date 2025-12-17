@@ -97,9 +97,9 @@ To keep progress visible and avoid deep wandering:
 Update this section at least weekly so everyone sees the “north star”.
 
 - Current milestone gate: M6 — Interop + Export Hardening
-- Next milestone gate: M6 — Interop + Export Hardening
-- Active tracks (max 2): M6 export hardening; Phase 10 interop hardening
-- Blockers / open decisions: M6 scope + acceptance criteria still needs a readiness pass.
+- Next milestone gate: Phase 10 — Interop (Figma paste → editable elements)
+- Active tracks (max 2): Phase 10 interop hardening
+- Blockers / open decisions: Spec readiness pass still needed for Phase 10 + interop coverage ledger.
 - Last shipped (commit 9385edc): M5 booleans + unified masking (non-destructive) with Playwright gates + Vitest boolean corpus.
 
 ---
@@ -116,6 +116,7 @@ This status snapshot reflects what is implemented in the repo today (not “plan
 - Milestone M3 (Selection + Hit Testing): **DONE** — deterministic hit tie-break implemented (priority → distance → z-order → hitKey) with Vitest unit coverage; Playwright regressions cover click selection, multi-select toggling, overlap z-order selection, sticky selection during drag, and click-empty clears selection.
 - Milestone M4 (Editing UX: Object + Vector): **DONE** — object move/resize/rotate undo coalescing covered by Playwright; vector deep edit supports node/edge/handle hit + editing (box select with Shift/Ctrl, dblclick edge insert, dblclick node corner↔smooth, delete node/edge, nudge, handle drag), all coalesced into single undo steps and covered by Playwright.
 - Milestone M5 (Booleans + Masks: Non-destructive): **DONE** — boolean nodes render derived vector geometry (non-destructive) with deterministic fallback policy and a CI-gated Vitest corpus; mask nodes apply unified DOM clip-path masking across element types (incl. text) with invert support and Playwright gates.
+- Milestone M6 (Interop + Export Hardening): **DONE** — deterministic SVG export hardening shipped (vectors, flattened booleans, best-effort `<clipPath>` masks, rotation, gradients, image fills) plus theme-slot fill resolution and code/video fill rasterization to `<image>` when possible; exporter emits deterministic warnings metadata; Vitest: `tests/unit/export/ExporterSvgMarkup.test.js`.
 - Phase 10 (Interop: Figma paste → editable elements): **IN PROGRESS** — editable SVG paste pipeline implemented for a conservative subset, behind a feature flag, with unit + Playwright coverage.
 - Phase 11–12 (Perf/A11y/extensibility): **NOT STARTED (for Shapes program)**
 
@@ -476,7 +477,7 @@ Status values (use these exact words to keep search/filters simple):
 | `17-caching-and-performance.md` | NOT REVIEWED | NOT STARTED | NONE | NONE |  |
 | `18-operation-model-collaboration-readiness.md` | NOT REVIEWED | IN PROGRESS | NONE | NONE | Operation + inverse ops plumbing exists: `src/core/collaboration/sync/StateSyncEngine.js` (Shapes op model alignment TBD). |
 | `18-operation-model-future-collab.md` | NOT REVIEWED | NOT STARTED | NONE | NONE |  |
-| `19-serialization-and-interop.md` | NOT REVIEWED | IN PROGRESS | VITEST | NONE | Export + clipboard integration exists: `src/core/export/Exporter.js`, editable SVG importer in `src/core/clipboard/EditableSvgImporter.js` (spec parity TBD). SVG export hardening: `buildSvgMarkup()` supports `shapeKind:'vector'`, flattens `shapeKind:'boolean'` to `<path d=...>`, maps unified masks to SVG `<clipPath>` (best-effort), exports element rotation via `rotate(...)` in the wrapper `<g transform=...>`, and exports paint defs for fills (linear gradients via `<linearGradient>`, radial gradients via `<radialGradient>`, and image fills via `<pattern>` + `<image>`) using deterministic IDs. Vitest: `tests/unit/export/ExporterSvgMarkup.test.js`. |
+| `19-serialization-and-interop.md` | NOT REVIEWED | DONE | VITEST | NONE | Export + clipboard integration exists: `src/core/export/Exporter.js`, editable SVG importer in `src/core/clipboard/EditableSvgImporter.js` (spec parity TBD). SVG export hardening: `buildSvgMarkup()` supports `shapeKind:'vector'`, flattens `shapeKind:'boolean'` to `<path d=...>`, maps unified masks to SVG `<clipPath>` (best-effort), exports element rotation via `rotate(...)` in the wrapper `<g transform=...>`, and exports paint defs for fills (linear gradients via `<linearGradient>`, radial gradients via `<radialGradient>`, and image fills via `<pattern>` + `<image>`) using deterministic IDs. Adds theme-slot solid fill resolution (exports resolved colors, not theme-slot references) and a deterministic policy for code/video fills (rasterize to `<image>` when possible, otherwise fallback + warning metadata). Vitest: `tests/unit/export/ExporterSvgMarkup.test.js`. |
 | `19a-figma-clipboard-import.md` | NOT REVIEWED | IN PROGRESS | VITEST+PLAYWRIGHT | CORPUS | Editable SVG paste subset + deterministic degrade ladder is shipping. |
 | `20-interaction-modes-and-state-machine.md` | NOT REVIEWED | IN PROGRESS | PLAYWRIGHT | NONE | Canvas interaction state + tools exist: `src/core/CanvasManager.js`. Deep edit state added (`editor.deepEdit`) with Escape exit; vector node drag interaction added with bracketing; vector-mode marquee selection routes to deepEdit node selection. Coverage: `tests/e2e/specs/functional/m4-editing-ux.spec.ts`. |
 | `21-vector-editing-operations.md` | NOT REVIEWED | IN PROGRESS | PLAYWRIGHT | NONE | Implemented v1 ops in deep edit: dblclick edge insert node, delete node, delete edge, arrow-key nudge, cubic handle drag, dblclick node corner↔smooth; coverage: `tests/e2e/specs/functional/m4-editing-ux.spec.ts`. |

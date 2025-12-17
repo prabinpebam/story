@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { buildSvgMarkup } from '../../../src/core/export/Exporter.js';
+import { buildSvgMarkup, prepareSvgExportElements } from '../../../src/core/export/Exporter.js';
 
 function normalize(svg) {
     return String(svg).replace(/\s+/g, ' ').trim();
@@ -139,6 +139,114 @@ describe('Exporter SVG markup', () => {
         expect(svg).toMatch(/fill="url\(#fill-img-img-rect-1-0-[-\d]+\)"/);
         expect(svg).toContain('<image');
         expect(svg).toContain('href="data:image/png;base64,AAAA"');
+    });
+
+    it('exports theme-slot solid fills as resolved colors', () => {
+        const rect = {
+            id: 'theme-rect-1',
+            type: 'shape',
+            shapeKind: 'rectangle',
+            x: 0,
+            y: 0,
+            width: 100,
+            height: 50,
+            rotation: 0,
+            style: {
+                fills: [{ visible: true, type: 'solid', themeSlot: 11, value: '#ffffff', opacity: 100 }]
+            }
+        };
+
+        const bounds = { x: 0, y: 0, width: 100, height: 50 };
+        const svg = normalize(buildSvgMarkup([rect], {
+            width: 100,
+            height: 50,
+            bounds,
+            slideData: { elements: { 'theme-rect-1': rect } },
+            resolveThemeSlot: (slot, fallback) => (slot === 11 ? '#ABCDEF' : fallback)
+        }));
+
+        expect(svg).toContain('fill="#ABCDEF"');
+    });
+
+    it('exports image fills using assetId when resolver is provided', () => {
+        const rect = {
+            id: 'img-asset-1',
+            type: 'shape',
+            shapeKind: 'rectangle',
+            x: 0,
+            y: 0,
+            width: 120,
+            height: 80,
+            rotation: 0,
+            style: {
+                fills: [{ visible: true, type: 'image', assetId: 'img_123', opacity: 100 }]
+            }
+        };
+
+        const bounds = { x: 0, y: 0, width: 120, height: 80 };
+        const svg = normalize(buildSvgMarkup([rect], {
+            width: 120,
+            height: 80,
+            bounds,
+            slideData: { elements: { 'img-asset-1': rect } },
+            resolveAssetUrl: (assetId) => (assetId === 'img_123' ? 'data:image/png;base64,ASSET' : null)
+        }));
+
+        expect(svg).toContain('<defs>');
+        expect(svg).toContain('href="data:image/png;base64,ASSET"');
+        expect(svg).toMatch(/fill="url\(#fill-img-img-asset-1-0-[-\d]+\)"/);
+    });
+
+    it('rasterizes code fills into image patterns for SVG export (policy)', async () => {
+        const rect = {
+            id: 'code-rect-1',
+            type: 'shape',
+            shapeKind: 'rectangle',
+            x: 0,
+            y: 0,
+            width: 64,
+            height: 32,
+            rotation: 0,
+            style: {
+                fills: [{ visible: true, type: 'code', code: '({ draw(t){ /* noop */ } })', opacity: 100 }]
+            }
+        };
+
+        const prepared = await prepareSvgExportElements([rect], {
+            rasterizeCodeFill: async () => 'data:image/png;base64,CODE'
+        });
+
+        const bounds = { x: 0, y: 0, width: 64, height: 32 };
+        const svg = normalize(buildSvgMarkup(prepared, { width: 64, height: 32, bounds, slideData: { elements: { 'code-rect-1': prepared[0] } } }));
+
+        expect(svg).toContain('<pattern');
+        expect(svg).toContain('href="data:image/png;base64,CODE"');
+    });
+
+    it('rasterizes video fills into image patterns for SVG export (policy)', async () => {
+        const rect = {
+            id: 'video-rect-1',
+            type: 'shape',
+            shapeKind: 'rectangle',
+            x: 0,
+            y: 0,
+            width: 64,
+            height: 32,
+            rotation: 0,
+            style: {
+                fills: [{ visible: true, type: 'video', assetId: 'vid_123', posterFrame: 0, opacity: 100 }]
+            }
+        };
+
+        const prepared = await prepareSvgExportElements([rect], {
+            rasterizeVideoFill: async () => 'data:image/jpeg;base64,VID'
+        });
+
+        const bounds = { x: 0, y: 0, width: 64, height: 32 };
+        const svg = normalize(buildSvgMarkup(prepared, { width: 64, height: 32, bounds, slideData: { elements: { 'video-rect-1': prepared[0] } } }));
+
+        expect(svg).toContain('<pattern');
+        expect(svg).toContain('href="data:image/jpeg;base64,VID"');
     });
 
     it('exports boolean shapes as flattened <path d=...> deterministically', () => {
