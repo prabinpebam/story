@@ -1,6 +1,6 @@
 # Segments & Bézier Curves
 
-**Status**: Draft
+**Status**: Implemented (v1 core)
 
 Defines segment types and required operations for editing.
 
@@ -12,9 +12,10 @@ Defines segment types and required operations for editing.
 
 ## 2. Operations
 - Split segment at t
-- Join segments
 - Compute bounds for segments
 - Flatten/subdivide for hit testing/export
+
+**V1 decision**: segment-join (merge) is deferred. V1 provides deterministic split/bounds/flattening primitives.
 
 Operation requirements (v1):
 - Split must preserve geometry within tolerance and must not introduce micro-segments.
@@ -27,6 +28,11 @@ Operation requirements (v1):
 
 ## 4. Tests / acceptance
 - Splitting and joining preserves geometry within tolerance.
+
+V1 acceptance:
+- Splitting preserves geometry within tolerance.
+- Bounds are conservative and deterministic.
+- Flattening is deterministic and does not depend on frame timing.
 
 ## 5. Quality critique (gaps + risks)
 - Segment operations are a primary source of drift and “path corruption”; tests must include adversarial cases (very short segments, near-tangents).

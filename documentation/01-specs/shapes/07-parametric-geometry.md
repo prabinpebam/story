@@ -1,6 +1,6 @@
 # Parametric Geometry (Shapes)
 
-**Status**: Draft
+**Status**: Implemented (v1, partial)
 
 This spec defines each primitive shape as a **parametric** model and how/when it converts to paths.
 
@@ -27,6 +27,11 @@ This spec defines each primitive shape as a **parametric** model and how/when it
 Additional conversion requirements:
 - Conversion must be idempotent within tolerance: repeated conversions should not change the path output.
 - Conversion must respect fill rule defaults and winding conventions defined in the path representation spec.
+
+V1 implementation notes:
+- Deterministic conversion helpers live in `src/core/shapes/paths/ParametricToPaths.js`.
+- V1 supports deterministic conversion for: rectangle (uniform corner radius only), ellipse, line, polygon, star.
+- Per-corner radii and corner smoothing are deferred; v1 treats any per-corner radii as an approximation (uniform radius).
 
 ## 4. Corner radii & smoothing
 - Must define:

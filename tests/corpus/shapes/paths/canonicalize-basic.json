@@ -1,0 +1,17 @@
+{
+  "paths": [
+    {
+      "closed": true,
+      "fillRule": "nonzero",
+      "start": { "x": 0, "y": 0 },
+      "segments": [
+        { "kind": "line", "to": { "x": 0, "y": 0 } },
+        { "kind": "line", "to": { "x": 100, "y": 0 } },
+        { "kind": "line", "to": { "x": 100, "y": 0.0000004 } },
+        { "kind": "line", "to": { "x": 100, "y": 50 } },
+        { "kind": "line", "to": { "x": 0, "y": 50 } },
+        { "kind": "line", "to": { "x": 0, "y": 0 } }
+      ]
+    }
+  ]
+}

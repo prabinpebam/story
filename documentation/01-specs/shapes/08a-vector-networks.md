@@ -1,8 +1,14 @@
 # Vector Networks (Figma-class) — Data Model + Resolution
 
-**Status**: Draft
+**Status**: V1 NON-GOAL (deferred)
 **Owner**: Engineering
 **Last Updated**: December 15, 2025
+
+**V1 decision**: The v1 editor ships a segment-based path model (`vector.paths[]`) with non-branching topology. A full vector-network graph model (nodes/edges/face extraction + deterministic repair) is explicitly deferred to v2+ because it is a large surface area with significant correctness risks.
+
+V1 still requires deterministic path canonicalization and segment operations; see:
+- Path representation: [08-path-representation.md](./08-path-representation.md)
+- Segments: [09-segments-and-beziers.md](./09-segments-and-beziers.md)
 
 This spec defines **Vector Networks**: a graph-based vector representation that supports **branching topology** (T-junctions, forks) and region fills derived from the graph. This is required for **Figma-parity vector editing**.
 

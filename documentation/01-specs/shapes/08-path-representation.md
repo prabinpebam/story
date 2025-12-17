@@ -1,6 +1,6 @@
 # Path Representation (SVG-first)
 
-**Status**: Draft
+**Status**: Implemented (v1 core)
 
 Defines the canonical internal path model and SVG mapping rules.
 
@@ -32,6 +32,10 @@ Minimum canonicalization steps (v1):
 - Normalize fill-rule metadata and ensure derived outputs use a stable winding convention.
 - Ensure stable ordering of subpaths and segments (deterministic traversal, no iteration over object keys).
 - For derived boolean outputs: prune micro-loops below epsilon and merge nearly collinear segments where safe.
+
+V1 implementation notes:
+- Canonicalization is implemented in `src/core/shapes/paths/VectorPathOps.js` and is CI-gated via `tests/unit/shapes/PathsCorpus.test.js` with fixtures under `tests/corpus/shapes/paths/`.
+- Winding normalization uses deterministic flattening + signed area; advanced self-intersection handling and micro-loop pruning are deferred.
 
 ## 4. Self-intersection rules
 - Define how self-intersecting paths behave under fill rules.
