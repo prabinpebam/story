@@ -92,6 +92,30 @@ describe('Exporter SVG markup', () => {
         expect(svg).toContain('<stop');
     });
 
+    it('exports radial gradient fills via <radialGradient> in <defs>', () => {
+        const rect = {
+            id: 'rad-grad-rect-1',
+            type: 'shape',
+            shapeKind: 'rectangle',
+            x: 0,
+            y: 0,
+            width: 100,
+            height: 50,
+            rotation: 0,
+            style: {
+                fills: [{ visible: true, type: 'gradient', value: 'radial-gradient(circle, #000000 0%, #FFFFFF 100%)', opacity: 100 }]
+            }
+        };
+
+        const bounds = { x: 0, y: 0, width: 100, height: 50 };
+        const svg = normalize(buildSvgMarkup([rect], { width: 100, height: 50, bounds, slideData: { elements: { 'rad-grad-rect-1': rect } } }));
+
+        expect(svg).toContain('<defs>');
+        expect(svg).toMatch(/<radialGradient id="fill-grad-rad-grad-rect-1-0-[-\d]+"/);
+        expect(svg).toMatch(/fill="url\(#fill-grad-rad-grad-rect-1-0-[-\d]+\)"/);
+        expect(svg).toContain('<stop');
+    });
+
     it('exports image fills via <pattern> + <image> in <defs>', () => {
         const rect = {
             id: 'img-rect-1',

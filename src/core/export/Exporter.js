@@ -104,6 +104,31 @@ function parseLinearGradientStops(value) {
     return { angle, stops };
 }
 
+function parseRadialGradientStops(value) {
+    if (!value || typeof value !== 'string') return null;
+    const match = value.match(/radial-gradient\((.+)\)/i);
+    if (!match) return null;
+
+    const inner = match[1];
+    const parts = inner.split(',').map((p) => p.trim()).filter(Boolean);
+    if (parts.length < 2) return null;
+
+    // Common CSS form: radial-gradient(circle, <stop>, <stop>, ...)
+    // If the first part looks like a color stop, treat all parts as stops.
+    const firstLooksLikeStop = /^(#|rgb\(|hsl\(|var\(|[a-zA-Z]+)/.test(parts[0]) && /\d+%/.test(parts[0]);
+    const stopParts = firstLooksLikeStop ? parts : parts.slice(1);
+
+    const stops = stopParts.map((s) => {
+        const segs = s.trim().split(/\s+/);
+        return {
+            color: segs[0],
+            position: Number.parseFloat(segs[1] || '0')
+        };
+    }).filter((s) => typeof s.color === 'string' && s.color.length > 0 && Number.isFinite(s.position));
+
+    return { stops };
+}
+
 function buildLinearGradientMarkup(id, gradientValue) {
     const parsed = typeof gradientValue === 'object' && gradientValue?.type
         ? { angle: gradientValue.angle || 90, stops: Array.isArray(gradientValue.stops) ? gradientValue.stops : [] }
@@ -124,6 +149,35 @@ function buildLinearGradientMarkup(id, gradientValue) {
     }).join('');
 
     return `<linearGradient id="${escapeXml(id)}" x1="${x1}%" y1="${y1}%" x2="${x2}%" y2="${y2}%">${stopsMarkup}</linearGradient>`;
+}
+
+function buildRadialGradientMarkup(id, gradientValue) {
+    const parsed = typeof gradientValue === 'object' && gradientValue?.type
+        ? { stops: Array.isArray(gradientValue.stops) ? gradientValue.stops : [] }
+        : parseRadialGradientStops(gradientValue);
+    if (!parsed || !Array.isArray(parsed.stops) || parsed.stops.length === 0) return null;
+
+    const stopsMarkup = parsed.stops.map((s) => {
+        const pos = Number(s.position);
+        const color = s.color || s.value || '#000000';
+        return `<stop offset="${pos}%" stop-color="${escapeXml(color)}" />`;
+    }).join('');
+
+    return `<radialGradient id="${escapeXml(id)}" cx="50%" cy="50%" r="50%">${stopsMarkup}</radialGradient>`;
+}
+
+function buildGradientMarkup(id, gradientValue) {
+    if (typeof gradientValue === 'string') {
+        const v = gradientValue.trim().toLowerCase();
+        if (v.startsWith('radial-gradient(')) return buildRadialGradientMarkup(id, gradientValue);
+        return buildLinearGradientMarkup(id, gradientValue);
+    }
+    if (typeof gradientValue === 'object' && gradientValue?.type) {
+        const t = String(gradientValue.type).toLowerCase();
+        if (t.includes('radial')) return buildRadialGradientMarkup(id, gradientValue);
+        return buildLinearGradientMarkup(id, gradientValue);
+    }
+    return null;
 }
 
 function buildImagePatternMarkup(id, href, width, height) {
@@ -230,7 +284,7 @@ export function buildSvgMarkup(elements, { width, height, bounds, slideData } = 
 
             if (fillLayer.type === 'gradient' && fillLayer.value) {
                 const id = makePaintId('fill-grad', element.id, 0, fillLayer.value);
-                const markup = buildLinearGradientMarkup(id, fillLayer.value);
+                const markup = buildGradientMarkup(id, fillLayer.value);
                 if (markup) defsParts.push(markup);
                 return { fill: markup ? `url(#${id})` : '#808080', fillOpacity };
             }
@@ -259,7 +313,7 @@ export function buildSvgMarkup(elements, { width, height, bounds, slideData } = 
 
             if (strokeLayer.type === 'gradient' && strokeLayer.value) {
                 const id = makePaintId('stroke-grad', element.id, 0, strokeLayer.value);
-                const markup = buildLinearGradientMarkup(id, strokeLayer.value);
+                const markup = buildGradientMarkup(id, strokeLayer.value);
                 if (markup) defsParts.push(markup);
                 return { stroke: markup ? `url(#${id})` : '#000000', strokeOpacity, strokeWidth };
             }
