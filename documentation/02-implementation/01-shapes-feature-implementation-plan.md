@@ -14,8 +14,8 @@ References (must stay in sync):
 
 ## Current Status (as of December 17, 2025)
 
-- Completed gates: **G0**, **G1**, **G2**, **G3**.
-- Next gate in strict order: **G4** (interaction + UX closure).
+- Completed gates: **G0**, **G1**, **G2**, **G3**, **G4**.
+- Next gate in strict order: **G5** (UI surfaces closure).
 
 ---
 
@@ -232,7 +232,7 @@ Ledger is maintained in this file because the plan and the traceability system m
 | `14-style-and-paint-integration.md` | READY | DONE | PLAYWRIGHT | NONE | Paint stack present (fills/strokes/effects): `src/core/renderer/elements/ShapeElement.js`, UI panels: `src/ui/properties/FillSection.js`, `src/ui/properties/StrokeSection.js`, `src/ui/properties/EffectsSection.js`. Regression coverage: `tests/e2e/specs/functional/m2-rendering-mode-viewport-parity.spec.ts` asserts fill/stroke/effects DOM output in edit + presentation modes. |
 | `15-masking-and-clipping.md` | READY | DONE | PLAYWRIGHT | NONE | Unified DOM masking via computed CSS `clip-path` for any element type (incl. text) with invert support: `src/core/shapes/masking/MaskEngine.js`, renderer hook: `src/core/renderer/elements/VisualElement.js`. Playwright gate: `tests/e2e/specs/functional/m5-booleans-masks.spec.ts`. |
 | `15-current-implementation-alignment.md` | READY | NOT STARTED | NONE | NONE |  |
-| `16-design-system-alignment.md` | READY | NOT STARTED | NONE | NONE |  |
+| `16-design-system-alignment.md` | READY | DONE | PLAYWRIGHT | NONE | Implemented (v1, partial): Shapes UI stays within existing inspector + layer tree; token-based styling for new indicators. Evidence: `tests/e2e/specs/functional/m5-ui-surfaces.spec.ts`. |
 | `16-rendering-architecture.md` | READY | DONE | PLAYWRIGHT | NONE | Renderer exists with shape-specific element renderer: `src/core/renderer/elements/ShapeElement.js`, `src/core/renderer/`. Regressions: nested transform parity (`tests/e2e/specs/functional/nested-parent-rotation-render.spec.ts`) and mode/viewport parity (`tests/e2e/specs/functional/m2-rendering-mode-viewport-parity.spec.ts`). V1 decision recorded in spec: DOM/SVG-first; mesh tessellation backend deferred. |
 | `16a-tessellation-and-aa.md` | READY | NOT STARTED | NONE | NONE | V1 NON-GOAL (deferred): no dedicated mesh tessellation backend in v1; see spec header for explicit v1 decision and v2+ requirement. |
 | `17-caching-and-performance.md` | READY | NOT STARTED | NONE | NONE |  |
@@ -251,10 +251,10 @@ Ledger is maintained in this file because the plan and the traceability system m
 | `28-vector-editing-ux.md` | READY | DONE | PLAYWRIGHT | NONE | Path-based vector deep edit: enter dblclick, exit Escape, node/edge/handle selection with modifier semantics + box selection, deterministic ordering (`src/core/CanvasManager.js`, `src/core/canvas/HitTesting.js`). Coverage: `tests/e2e/specs/functional/m4-editing-ux.spec.ts`. Faces/vector networks are V1 NON-GOAL (see specs 08a/28). |
 | `29-continuity-curve-ux.md` | READY | DONE | PLAYWRIGHT | NONE | V1 continuity UX is dblclick node corner↔smooth + handle drag for cubics (`src/core/CanvasManager.js`, `src/core/canvas/HitTesting.js`). Coverage: `tests/e2e/specs/functional/m4-editing-ux.spec.ts`. Symmetric/break gestures are V1 NON-GOAL (documented in spec 29). |
 | `30-boolean-mask-ux.md` | READY | IN PROGRESS | PLAYWRIGHT | NONE | Core boolean/mask nodes + node-level inspector controls exist (`src/core/store/handlers/ElementHandlers.js`, `src/ui/properties/BooleanSection.js`, `src/ui/properties/MaskSection.js`). NEW in spec: selection-level composition UI section + explicit invalid-selection UX + flatten disablement (UI surface not implemented yet). Existing functional coverage targets core composition (`tests/e2e/specs/functional/m5-booleans-masks.spec.ts`). |
-| `31-styling-ui.md` | READY | IN PROGRESS | NONE | NONE | Styling UI sections exist: `src/ui/PropertyInspector.js`, `src/ui/properties/FillSection.js`, `src/ui/properties/StrokeSection.js`, `src/ui/properties/EffectsSection.js` (Shapes spec parity TBD). |
-| `32-layer-panel-ux.md` | READY | IN PROGRESS | NONE | NONE | Layer tree exists: `src/ui/LayerTree.js`, container wiring: `src/ui/LeftPanel.js` (Shapes UX delta TBD). |
+| `31-styling-ui.md` | READY | DONE | PLAYWRIGHT | NONE | Implemented (v1, partial): Styling uses shared inspector sections (fill/stroke/effects) for shape selections; boolean fallback warning row included for degraded results. Evidence: `tests/e2e/specs/functional/m5-ui-surfaces.spec.ts`. |
+| `32-layer-panel-ux.md` | READY | DONE | PLAYWRIGHT | NONE | Implemented (v1, partial): Layer tree renders boolean/mask composition nodes with nested operands/content; supports drag reorder + undo for boolean operands and mask content. Evidence: `tests/e2e/specs/functional/m5-ui-surfaces.spec.ts`. |
 | `33-keyboard-and-gestures.md` | READY | IN PROGRESS | NONE | NONE | Global shortcuts + input-blocking exist: `src/main.js`, `src/core/InputManager.js`; canvas gestures (pan/zoom/drag) exist: `src/core/CanvasManager.js` (Shapes-specific bindings TBD). |
-| `34-feedback-and-status.md` | READY | NOT STARTED | NONE | NONE |  |
+| `34-feedback-and-status.md` | READY | DONE | PLAYWRIGHT | NONE | Implemented (v1, partial): non-blocking boolean fallback warning surfaced in the inspector (mode-aware). Evidence: `tests/e2e/specs/functional/m5-ui-surfaces.spec.ts`. |
 | `35-undo-redo-ux.md` | READY | IN PROGRESS | NONE | NONE | Undo/redo UX wiring exists via shortcuts + menu actions: `src/main.js`, `src/ui/components/AppMenu/menuConfig.js`, `src/ui/services/MenuActionHandler.js`, store dispatch: `src/core/Store.js`; text edit bridging: `src/core/text/HistoryBridge.js`, `src/core/text/TextEditManager.js`. |
 | `36-perceived-performance.md` | READY | NOT STARTED | NONE | NONE |  |
 | `37-accessibility.md` | READY | NOT STARTED | NONE | NONE |  |

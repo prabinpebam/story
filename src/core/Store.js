@@ -236,6 +236,8 @@ export class Store extends EventEmitter {
             case 'CREATE_MASK_FROM_SELECTION':
             case 'SET_BOOLEAN_OPERATION':
             case 'SET_MASK_INVERT':
+            case 'REORDER_BOOLEAN_OPERANDS':
+            case 'REORDER_MASK_CONTENT':
                 this.snapshot(type);
                 this.state = produce(this.state, draft => {
                     switch (type) {
@@ -243,6 +245,8 @@ export class Store extends EventEmitter {
                         case 'CREATE_MASK_FROM_SELECTION': ElementHandlers.handleCreateMaskFromSelection(draft, payload); break;
                         case 'SET_BOOLEAN_OPERATION': ElementHandlers.handleSetBooleanOperation(draft, payload); break;
                         case 'SET_MASK_INVERT': ElementHandlers.handleSetMaskInvert(draft, payload); break;
+                        case 'REORDER_BOOLEAN_OPERANDS': ElementHandlers.handleReorderBooleanOperands(draft, payload); break;
+                        case 'REORDER_MASK_CONTENT': ElementHandlers.handleReorderMaskContent(draft, payload); break;
                     }
                 });
                 this.emit('state-changed', this.state);

@@ -1,6 +1,7 @@
 # Layer Panel & Hierarchy UX (Shapes)
 
-**Status**: Draft
+**Status**: Implemented (v1, partial)
+**Last Updated**: December 17, 2025
 
 Defines how shapes/booleans/masks appear and behave in the layer tree.
 
@@ -23,6 +24,12 @@ Required representations:
 	- mask shape
 	- masked content list
 
+V1 implementation notes:
+- The layer tree is rendered by `src/ui/LayerTree.js`.
+- Boolean nodes render their `operands[]` as nested child items.
+- Mask nodes render `maskShapeId` and `contentIds[]` as nested child items.
+- Operands/content are hidden from the top-level layer list and shown under their composition node to keep the tree readable.
+
 The tree must remain stable under reorder/undo and must reflect the actual serialization order.
 
 ## 2. Drag/drop
@@ -30,8 +37,15 @@ The tree must remain stable under reorder/undo and must reflect the actual seria
 - Z-order
 - Boolean operand reorder (required)
 
+V1 implementation notes:
+- Boolean operand reorder is supported via drag/drop within the nested operand list (updates `operands[]`).
+- Mask content reorder is supported via drag/drop within the nested content list (updates `contentIds[]`).
+
 ## 3. Breadcrumb/drill-in
 - Show current edit context (mask/boolean depth)
+
+V1 non-goal:
+- Breadcrumb/drill-in UI for composition depth is not shipped in v1.
 
 ## 4. Integration points
 - `src/ui/LayerTree.js`

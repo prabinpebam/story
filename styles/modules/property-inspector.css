@@ -210,6 +210,12 @@
     user-select: none;
 }
 
+.pi-value {
+    color: var(--color-warning);
+    font-size: var(--font-size-sm);
+    user-select: none;
+}
+
 .pi-input {
     width: 100%;
     background: transparent;

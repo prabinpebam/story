@@ -1,8 +1,8 @@
 # Shapes UI: Design System Alignment
 
-**Status**: Draft
+**Status**: Implemented (v1, partial)
 **Owner**: Engineering
-**Last Updated**: December 15, 2025
+**Last Updated**: December 17, 2025
 
 This document defines **how the Shapes UI must be built** so it remains one coherent Story app.
 
@@ -24,6 +24,11 @@ Additional hard constraints:
 - Do not introduce new panels, drawers, or modal flows for Shapes by default; Shapes controls must live in existing inspector sections and existing context menus.
 - Do not introduce new iconography sets; use existing icon assets and icon button variants.
 - Do not introduce new bespoke pointer cursors beyond what the editor already uses (selection, move, resize, rotate) unless the base editor cursor system is extended globally.
+
+V1 implementation notes:
+- Shapes UI work in G5 stays inside existing surfaces: Property Inspector sections and the existing layer tree.
+- No new color tokens or bespoke styles are introduced for Shapes UI; new indicators use existing tokens.
+- Layer indentation is token-driven (no new hard-coded spacing introduced in G5 changes).
 
 ---
 

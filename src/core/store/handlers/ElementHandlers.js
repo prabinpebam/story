@@ -180,6 +180,58 @@ export function handleSetMaskInvert(draft, payload) {
     el.invert = invert;
 }
 
+export function handleReorderBooleanOperands(draft, payload) {
+    const container = getActiveContainer(draft);
+    if (!container) return;
+
+    const booleanId = payload?.booleanId;
+    const operandId = payload?.operandId;
+    const targetIndexRaw = payload?.targetIndex;
+
+    if (typeof booleanId !== 'string' || !container.elements[booleanId]) return;
+    if (typeof operandId !== 'string') return;
+    if (!Number.isInteger(targetIndexRaw)) return;
+
+    const el = container.elements[booleanId];
+    const k = getShapeKindSafe(el);
+    if (k !== 'boolean') return;
+
+    const operands = Array.isArray(el.operands) ? [...el.operands] : [];
+    const from = operands.indexOf(operandId);
+    if (from === -1) return;
+
+    operands.splice(from, 1);
+    const targetIndex = Math.max(0, Math.min(operands.length, targetIndexRaw));
+    operands.splice(targetIndex, 0, operandId);
+    el.operands = operands;
+}
+
+export function handleReorderMaskContent(draft, payload) {
+    const container = getActiveContainer(draft);
+    if (!container) return;
+
+    const maskId = payload?.maskId;
+    const contentId = payload?.contentId;
+    const targetIndexRaw = payload?.targetIndex;
+
+    if (typeof maskId !== 'string' || !container.elements[maskId]) return;
+    if (typeof contentId !== 'string') return;
+    if (!Number.isInteger(targetIndexRaw)) return;
+
+    const el = container.elements[maskId];
+    const k = getShapeKindSafe(el);
+    if (k !== 'mask') return;
+
+    const contentIds = Array.isArray(el.contentIds) ? [...el.contentIds] : [];
+    const from = contentIds.indexOf(contentId);
+    if (from === -1) return;
+
+    contentIds.splice(from, 1);
+    const targetIndex = Math.max(0, Math.min(contentIds.length, targetIndexRaw));
+    contentIds.splice(targetIndex, 0, contentId);
+    el.contentIds = contentIds;
+}
+
 export function handleAddElement(draft, payload) {
     const addContainer = getActiveContainer(draft);
 

@@ -1,6 +1,7 @@
 # Styling UI (Shapes)
 
-**Status**: Draft
+**Status**: Implemented (v1, partial)
+**Last Updated**: December 17, 2025
 
 Defines how fills/strokes/effects UI applies to shapes and vector geometry.
 
@@ -12,6 +13,9 @@ Reuse existing inspector sections:
 
 ## 2. Shape-specific additions
 - Any geometry controls must not create new styling surfaces.
+
+V1 non-goal:
+- Operand-level drill-in styling for boolean/mask operands (style the result vs style the operands) is not shipped in v1. V1 styling applies to the selected element node (including boolean/mask nodes) via the shared sections.
 
 ## 3. Task flows
 - Add/reorder fills
@@ -31,6 +35,9 @@ Current-implementation paint parity (must match):
 
 ## 4. Acceptance
 - No new hardcoded styles; dark/light works; accent-driven interactions.
+
+V1 implementation notes:
+- Shapes styling uses the existing inspector sections (`FillSection`, `StrokeSection`, `EffectsSection`) surfaced by `src/ui/PropertyInspector.js`.
 
 Quality critique (gaps + risks)
 - This spec was previously too minimal and didn’t define behavior for boolean/mask nodes, which is where styling ambiguity causes the most UX confusion.

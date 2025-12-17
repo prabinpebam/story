@@ -6,6 +6,7 @@ export class LayerTree {
     constructor(containerId) {
         this.container = document.getElementById(containerId);
         this.draggedId = null;
+        this.dragContext = null;
         this.dragOverItem = null;
         this.dropPosition = null; // 'before', 'after', 'inside'
         this.showInheritedElements = true; // Toggle to show/hide inherited elements
@@ -30,6 +31,7 @@ export class LayerTree {
 
     clearDragState() {
         this.draggedId = null;
+        this.dragContext = null;
         this.dragOverItem = null;
         this.dropPosition = null;
         const items = this.container.querySelectorAll('.layer-item');
@@ -92,6 +94,23 @@ export class LayerTree {
         const elementsToRender = effectiveSlide?.effectiveElements || currentContainer?.elements || {};
         const orderToRender = effectiveSlide?.effectiveOrder || currentContainer?.elementOrder || [];
 
+        // Hide composition children at top-level so they appear only under their boolean/mask node.
+        const hiddenIds = new Set();
+        orderToRender.forEach((id) => {
+            const el = elementsToRender[id];
+            if (!el) return;
+            const kind = getShapeKind(el);
+            if (kind === 'boolean') {
+                const ops = Array.isArray(el.operands) ? el.operands : [];
+                ops.forEach((opId) => hiddenIds.add(opId));
+            }
+            if (kind === 'mask') {
+                if (typeof el.maskShapeId === 'string') hiddenIds.add(el.maskShapeId);
+                const ids = Array.isArray(el.contentIds) ? el.contentIds : [];
+                ids.forEach((cid) => hiddenIds.add(cid));
+            }
+        });
+
         if (!orderToRender.length) {
             const empty = document.createElement('div');
             empty.className = 'layer-tree-empty';
@@ -109,6 +128,7 @@ export class LayerTree {
         const themeElements = [];
         
         orderToRender.forEach(id => {
+            if (hiddenIds.has(id)) return;
             const el = elementsToRender[id];
             if (!el) return;
             
@@ -171,7 +191,7 @@ export class LayerTree {
         return section;
     }
 
-    createLayerItem(el, depth, slide, state, effectiveSlide = null, isInherited = false) {
+    createLayerItem(el, depth, slide, state, effectiveSlide = null, isInherited = false, composite = null) {
         const container = document.createElement('div');
         container.className = 'layer-item-container';
         
@@ -181,6 +201,13 @@ export class LayerTree {
         item.dataset.parentId = el.parentId || '';
         item.dataset.source = el.source || 'slide';
         item.dataset.isPlaceholder = el.isPlaceholder ? 'true' : 'false';
+        item.dataset.depth = String(depth);
+
+        if (composite && composite.parentId) {
+            item.dataset.compositeParentId = composite.parentId;
+            item.dataset.compositeType = composite.type;
+            if (composite.role) item.dataset.compositeRole = composite.role;
+        }
         
         const isSelected = state.editor.selectedElementIds.includes(el.id);
         const source = el.source || 'slide';
@@ -190,8 +217,8 @@ export class LayerTree {
         if (isSelected) item.classList.add('selected');
         if (isInherited) item.classList.add('inherited');
         
-        // Dynamic padding based on depth (must stay inline)
-        item.style.paddingLeft = `${8 + depth * 16}px`;
+        // Dynamic padding based on depth (tokens only)
+        item.style.paddingLeft = `calc(var(--spacing-2) + ${depth} * var(--spacing-4))`;
         
         // Dynamic color based on selection (if not using CSS classes)
         if (!isSelected && !isInherited) {
@@ -205,6 +232,8 @@ export class LayerTree {
         // Main icon
         const icon = document.createElement('i');
         icon.className = 'layer-item-icon';
+
+        const kind = getShapeKind(el);
         
         // Determine icon based on type and placeholder status
         if (el.isPlaceholder) {
@@ -219,8 +248,10 @@ export class LayerTree {
                 default: icon.className = 'fa-regular fa-square-dashed'; break;
             }
         } else if (el.type === 'text') icon.className = 'fa-solid fa-font';
-        else if (getShapeKind(el) === 'rectangle') icon.className = 'fa-regular fa-square';
-        else if (getShapeKind(el) === 'ellipse') icon.className = 'fa-regular fa-circle';
+        else if (kind === 'rectangle') icon.className = 'fa-regular fa-square';
+        else if (kind === 'ellipse') icon.className = 'fa-regular fa-circle';
+        else if (kind === 'boolean') icon.className = 'fa-solid fa-object-group';
+        else if (kind === 'mask') icon.className = 'fa-solid fa-mask';
         else if (el.type === 'image') icon.className = 'fa-regular fa-image';
         else if (el.type === 'group') icon.className = 'fa-solid fa-layer-group';
         
@@ -239,6 +270,18 @@ export class LayerTree {
             const linkIcon = document.createElement('i');
             linkIcon.className = 'fa-solid fa-link layer-item-link-icon';
             iconContainer.appendChild(linkIcon);
+        }
+
+        // Boolean status indicator (non-blocking): show warning when renderer falls back.
+        if (!isInherited && kind === 'boolean') {
+            const dom = document.querySelector(`[data-element-id="${el.id}"]`);
+            const status = dom?.getAttribute('data-boolean-status');
+            if (status && status !== 'ok') {
+                const warn = document.createElement('i');
+                warn.className = 'fa-solid fa-triangle-exclamation layer-item-warning-icon';
+                warn.title = 'Boolean degraded (fallback result)';
+                iconContainer.appendChild(warn);
+            }
         }
         
         item.appendChild(iconContainer);
@@ -264,6 +307,10 @@ export class LayerTree {
                 const temp = document.createElement('div');
                 temp.innerHTML = el.content;
                 displayName = temp.textContent || 'Text';
+            } else if (kind === 'boolean') {
+                displayName = 'Boolean';
+            } else if (kind === 'mask') {
+                displayName = 'Mask';
             } else if (el.type) {
                 displayName = el.type.charAt(0).toUpperCase() + el.type.slice(1);
             } else {
@@ -351,11 +398,18 @@ export class LayerTree {
         };
 
         // Drag & Drop (only for slide elements, not inherited)
-        item.draggable = !isInherited;
+        const compositeRole = item.dataset.compositeRole || '';
+        item.draggable = !isInherited && compositeRole !== 'mask-shape';
         
         if (!isInherited) {
             item.addEventListener('dragstart', (e) => {
                 this.draggedId = el.id;
+                this.dragContext = {
+                    id: el.id,
+                    compositeParentId: item.dataset.compositeParentId || null,
+                    compositeType: item.dataset.compositeType || null,
+                    compositeRole: item.dataset.compositeRole || null
+                };
             e.dataTransfer.effectAllowed = 'move';
             item.style.opacity = '0.5';
         });
@@ -407,6 +461,61 @@ export class LayerTree {
             e.stopPropagation();
             
             if (this.draggedId === el.id) return;
+
+            // Composition reorder (boolean operands / mask content).
+            const dragged = this.dragContext;
+            const targetCompositeParentId = item.dataset.compositeParentId || null;
+            const targetCompositeType = item.dataset.compositeType || null;
+            const targetCompositeRole = item.dataset.compositeRole || null;
+
+            if (
+                dragged?.compositeParentId &&
+                dragged.compositeParentId === targetCompositeParentId &&
+                dragged.compositeType === targetCompositeType &&
+                targetCompositeParentId
+            ) {
+                if (targetCompositeType === 'boolean') {
+                    const parent = slide.elements?.[targetCompositeParentId];
+                    const list = Array.isArray(parent?.operands) ? parent.operands : [];
+                    const from = list.indexOf(dragged.id);
+                    const toBase = list.indexOf(el.id);
+                    if (from !== -1 && toBase !== -1) {
+                        let to = this.dropPosition === 'before' ? toBase : toBase + 1;
+                        if (from < to) to -= 1;
+                        store.dispatch('REORDER_BOOLEAN_OPERANDS', {
+                            booleanId: targetCompositeParentId,
+                            operandId: dragged.id,
+                            targetIndex: to
+                        });
+                        this.clearDragState();
+                        return;
+                    }
+                }
+
+                if (targetCompositeType === 'mask') {
+                    // Only reorder contentIds (mask shape stays fixed).
+                    if (dragged.compositeRole === 'mask-shape' || targetCompositeRole === 'mask-shape') {
+                        this.clearDragState();
+                        return;
+                    }
+
+                    const parent = slide.elements?.[targetCompositeParentId];
+                    const list = Array.isArray(parent?.contentIds) ? parent.contentIds : [];
+                    const from = list.indexOf(dragged.id);
+                    const toBase = list.indexOf(el.id);
+                    if (from !== -1 && toBase !== -1) {
+                        let to = this.dropPosition === 'before' ? toBase : toBase + 1;
+                        if (from < to) to -= 1;
+                        store.dispatch('REORDER_MASK_CONTENT', {
+                            maskId: targetCompositeParentId,
+                            contentId: dragged.id,
+                            targetIndex: to
+                        });
+                        this.clearDragState();
+                        return;
+                    }
+                }
+            }
             
             const draggedEl = slide.elements[this.draggedId];
             if (!draggedEl) return;
@@ -482,6 +591,44 @@ export class LayerTree {
                 if (child) {
                     container.appendChild(this.createLayerItem(child, depth + 1, slide, state, effectiveSlide, isInherited));
                 }
+            });
+        }
+
+        // Composition Children (boolean operands / mask shape+content)
+        if (!isInherited && kind === 'boolean') {
+            const operandIds = Array.isArray(el.operands) ? el.operands : [];
+            operandIds.forEach((childId) => {
+                const child = slide.elements?.[childId];
+                if (!child) return;
+                container.appendChild(this.createLayerItem(child, depth + 1, slide, state, effectiveSlide, isInherited, {
+                    parentId: el.id,
+                    type: 'boolean',
+                    role: 'operand'
+                }));
+            });
+        }
+
+        if (!isInherited && kind === 'mask') {
+            const maskShapeId = typeof el.maskShapeId === 'string' ? el.maskShapeId : null;
+            if (maskShapeId) {
+                const maskShape = slide.elements?.[maskShapeId];
+                if (maskShape) {
+                    container.appendChild(this.createLayerItem(maskShape, depth + 1, slide, state, effectiveSlide, isInherited, {
+                        parentId: el.id,
+                        type: 'mask',
+                        role: 'mask-shape'
+                    }));
+                }
+            }
+            const contentIds = Array.isArray(el.contentIds) ? el.contentIds : [];
+            contentIds.forEach((childId) => {
+                const child = slide.elements?.[childId];
+                if (!child) return;
+                container.appendChild(this.createLayerItem(child, depth + 1, slide, state, effectiveSlide, isInherited, {
+                    parentId: el.id,
+                    type: 'mask',
+                    role: 'content'
+                }));
             });
         }
 
