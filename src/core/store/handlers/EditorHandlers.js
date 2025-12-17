@@ -19,12 +19,20 @@ export function handleDeselectSlides(draft) {
 export function handleSetActiveSlide(draft, payload) {
     if (draft.slides[payload]) {
         draft.editor.activeSlideId = payload;
+        // Switching slides must not keep stale selection/deep-edit targets.
+        draft.editor.selectedElementIds = [];
+        draft.editor.editingElementId = null;
+        draft.editor.deepEdit = null;
     }
 }
 
 export function handleSetActiveMaster(draft, payload) {
     if (draft.slideMasterPresets[payload]) {
         draft.editor.activeMasterId = payload;
+        // Switching masters must not keep stale selection/deep-edit targets.
+        draft.editor.selectedElementIds = [];
+        draft.editor.editingElementId = null;
+        draft.editor.deepEdit = null;
     }
 }
 
@@ -43,6 +51,7 @@ export function handleSetActiveTool(draft, payload) {
     if (draft.editor.activeTool !== 'select') {
         draft.editor.selectedElementIds = [];
         draft.editor.editingElementId = null;
+        draft.editor.deepEdit = null;
     }
 }
 
@@ -52,6 +61,11 @@ export function handleSetDragPlaceholder(draft, payload) {
 
 export function handleSetMode(draft, payload) {
     draft.editor.mode = payload;
+
+    // Mode switches must clear any in-progress edit context.
+    draft.editor.selectedElementIds = [];
+    draft.editor.editingElementId = null;
+    draft.editor.deepEdit = null;
     
     if (payload === 'master' && !draft.editor.activeMasterId) {
         const firstMaster = Object.keys(draft.slideMasterPresets)[0];

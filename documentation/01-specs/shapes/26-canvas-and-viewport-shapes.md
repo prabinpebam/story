@@ -1,6 +1,7 @@
 # Canvas & Viewport UX (Shapes delta)
 
-**Status**: Draft
+**Status**: Implemented (v1, partial)
+**Last Updated**: December 17, 2025
 
 This spec documents shapes-specific canvas UX beyond the existing canvas spec.
 
@@ -14,10 +15,16 @@ Existing baseline: `documentation/01-specs/canvas/canvas-interaction.md`.
   - angles
   - size deltas
 
+V1 non-goal:
+- Dedicated coordinate feedback UI (angles/deltas readouts) is not shipped in v1.
+
 ## 2. Creation UX
 - Drag to create shapes
 - Shift to constrain
 - Alt/Option to draw from center (required)
+
+V1 note:
+- Alt/Option draw-from-center is implemented for drag-based creation.
 
 ## 3. Viewport behaviors
 - Zoom-to-cursor consistency during edit.

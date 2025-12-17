@@ -1765,10 +1765,26 @@ export class CanvasManager {
         const currentX = (this.dragCurrent.x - pan.x) / zoom;
         const currentY = (this.dragCurrent.y - pan.y) / zoom;
 
-        let x = Math.min(startX, currentX);
-        let y = Math.min(startY, currentY);
-        let width = Math.abs(currentX - startX);
-        let height = Math.abs(currentY - startY);
+        const dx = currentX - startX;
+        const dy = currentY - startY;
+
+        let x;
+        let y;
+        let width;
+        let height;
+
+        // Alt/Option: draw from center (start point is center).
+        if (e.altKey) {
+            width = Math.abs(dx) * 2;
+            height = Math.abs(dy) * 2;
+            x = startX - width / 2;
+            y = startY - height / 2;
+        } else {
+            x = Math.min(startX, currentX);
+            y = Math.min(startY, currentY);
+            width = Math.abs(dx);
+            height = Math.abs(dy);
+        }
 
         // Check if this is a drag (box drawn) vs click (no box)
         const isDrag = width > 5 || height > 5;
@@ -1777,8 +1793,15 @@ export class CanvasManager {
             const size = Math.max(width, height);
             width = size;
             height = size;
-            if (currentX < startX) x = startX - size;
-            if (currentY < startY) y = startY - size;
+
+            if (e.altKey) {
+                // Keep centered on start point.
+                x = startX - size / 2;
+                y = startY - size / 2;
+            } else {
+                if (currentX < startX) x = startX - size;
+                if (currentY < startY) y = startY - size;
+            }
         }
 
         // Handle text tool specially - click creates auto-size, drag creates fixed

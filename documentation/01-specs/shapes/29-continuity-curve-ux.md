@@ -1,6 +1,7 @@
 # Continuity & Curve UX
 
-**Status**: Draft
+**Status**: Implemented (v1, partial)
+**Last Updated**: December 17, 2025
 
 Defines UX for corner/smooth/symmetric and handle locking/breaking.
 
@@ -15,6 +16,15 @@ Defines UX for corner/smooth/symmetric and handle locking/breaking.
 - Toolbar toggles OR inspector control (must align to existing IA)
 - Context menu actions
 - Modifier-key gestures
+
+V1 decision (explicit):
+- Continuity is controlled via **double-click on a node** to toggle **corner ↔ smooth**.
+- Handle endpoints are draggable for cubic segments.
+
+V1 non-goals:
+- Symmetric continuity mode.
+- Explicit handle break/link gesture (e.g. Alt-drag to break).
+- Dedicated toolbar/inspector controls for continuity.
 
 ## 3. Handle constraint UX
 - Linked movement for smooth/symmetric

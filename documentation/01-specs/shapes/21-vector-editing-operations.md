@@ -1,15 +1,13 @@
 # Vector Editing Operations (Semantics)
 
-**Status**: Draft
+**Status**: Implemented (v1, partial)
+**Last Updated**: December 17, 2025
 
 Defines the canonical set of vector edit operations and their semantics.
 
-This document applies to both:
-- classic single-path shapes, and
-- Vector Networks (see [08a-vector-networks.md](./08a-vector-networks.md)).
-
-Rule: all editable vector geometry MUST be representable as a Vector Network at the editing layer.
-If an element stores a simple path, the editor MUST provide a lossless editing view of that path as a Vector Network (a single chain/cycle in the network) so the UX and operations are consistent.
+V1 scope note:
+- V1 edits vector elements as **paths/segments**.
+- Graph-based Vector Networks and derived face topology are a **V1 NON-GOAL** per [08a-vector-networks.md](./08a-vector-networks.md).
 
 ---
 
@@ -18,19 +16,25 @@ Vector edit targets (canonical):
 - Node (anchor)
 - Node handles (in/out handles on a node)
 - Edge (segment between nodes; may be line/cubic)
-- Face (filled region extracted from the network, when applicable)
 
-Required operations (v1, non-negotiable):
-- Select node(s) / edge(s) / face(s)
+V1 does not support face selection.
+
+Required operations (v1, implemented):
+- Select node(s) / edge(s) / handle(s)
 - Move node(s)
-- Move handle(s)
-- Insert node on edge
-- Delete node
-- Split edge at parameter $t$ (usually via “insert node on edge”)
-- Connect nodes (create edge)
-- Break connection (delete selected edge)
-- Convert node type (corner / smooth / symmetric)
-- Convert edge type (line ↔ curve)
+- Move handle(s) (for cubic segments)
+- Insert node on **line** edge (via double-click)
+- Delete node (via Backspace/Delete)
+- Delete edge (via Backspace/Delete)
+- Convert node type corner ↔ smooth (via double-click)
+- Arrow-key nudge for selected node(s)
+
+V1 non-goals (explicit):
+- Connect nodes (create new edge)
+- Convert edge type (line ↔ cubic)
+- Symmetric handle constraints + explicit break gestures
+- Face extraction/selection
+- Stable network-level IDs across topology edits (v1 uses deterministic path-index-based IDs)
 
 Derived/path interoperability operations (required):
 - Convert selection to closed path subgraph (when the operation requires a simple path)

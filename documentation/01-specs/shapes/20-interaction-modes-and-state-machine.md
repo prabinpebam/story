@@ -1,6 +1,7 @@
 # Interaction Modes & State Machine (Shapes)
 
-**Status**: Draft
+**Status**: Implemented (v1, partial)
+**Last Updated**: December 17, 2025
 
 Defines the editor interaction state machine for shapes, aligned to Story’s current `CanvasManager` interaction states.
 
@@ -13,8 +14,12 @@ Defines the editor interaction state machine for shapes, aligned to Story’s cu
 - Mask edit mode
 
 Vector edit mode semantics (required):
-- Vector edit mode edits the active element’s Vector Network representation (see [08a-vector-networks.md](./08a-vector-networks.md)).
-- Vector edit mode MUST support edit targets: node, handle, edge, face (see [21-vector-editing-operations.md](./21-vector-editing-operations.md)).
+- V1 edits the active element’s **path/segment representation** (not a graph-based Vector Network).
+- V1 deep edit supports edit targets: **node**, **handle**, **edge**. **Face selection** is a v1 non-goal.
+
+V1 non-goals (explicit):
+- Vector Networks / derived faces per [08a-vector-networks.md](./08a-vector-networks.md) are **V1 NON-GOAL**.
+- Boolean and mask “deep edit modes” are defined conceptually here but are implemented/specified elsewhere and are not part of v1 mode routing.
 
 Editor-level mode constraints (must match current behavior):
 - `editor.mode: 'edit' | 'master' | 'presentation'` gates what interactions are allowed.
@@ -71,7 +76,6 @@ Vector edit mode:
 - Click node: select node
 - Click handle: select handle (and its owning node)
 - Click edge: select edge
-- Click face: select face
 - Drag node: move node(s)
 - Drag handle: move handle
 - Double-click edge: insert node on edge

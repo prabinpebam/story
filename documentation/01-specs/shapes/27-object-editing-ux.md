@@ -1,6 +1,7 @@
 # Object-Level Editing UX (Shapes)
 
-**Status**: Draft
+**Status**: Implemented (v1, partial)
+**Last Updated**: December 17, 2025
 
 Defines bbox handle behavior, rotation, constraints, and feedback.
 
@@ -15,6 +16,10 @@ Defines bbox handle behavior, rotation, constraints, and feedback.
 - Shift: constrain aspect/angle
 - Alt: resize from center
 - Ctrl/Cmd: multi-select additive
+
+V1 notes:
+- Shift snaps rotation to a fixed increment and constrains proportional resizing.
+- Alt/Option enables resize-from-center.
 
 ## 3. Task flows
 - Resize

@@ -162,9 +162,15 @@ export class SnappingSystem {
         // Get all other elements absolute
         const others = [];
         
-        // 1. Current Container Elements
-        Object.values(slide.elements).forEach(rawEl => {
-            if (rawEl.id === id) return;
+        // 1. Current Container Elements (deterministic ordering)
+        const elementIds = Array.isArray(slide.elementOrder) && slide.elementOrder.length > 0
+            ? slide.elementOrder
+            : Object.keys(slide.elements || {});
+
+        elementIds.forEach(elId => {
+            if (elId === id) return;
+            const rawEl = slide.elements?.[elId];
+            if (!rawEl) return;
             others.push(GeometryUtils.getAbsoluteElement(rawEl, slide));
         });
 
@@ -374,17 +380,23 @@ export class SnappingSystem {
         // Add other elements
         const addSnapTargets = (container) => {
             if (!container || !container.elements) return;
-            
-            Object.values(container.elements).forEach(rawEl => {
-                if (rawEl.id === id) return;
-                
+
+            const ids = Array.isArray(container.elementOrder) && container.elementOrder.length > 0
+                ? container.elementOrder
+                : Object.keys(container.elements);
+
+            ids.forEach(elId => {
+                if (elId === id) return;
+                const rawEl = container.elements?.[elId];
+                if (!rawEl) return;
+
                 // Use absolute coordinates for snapping targets
                 const el = GeometryUtils.getAbsoluteElement(rawEl, container);
-                
+
                 targets.x.push({ value: el.x, type: 'left' });
                 targets.x.push({ value: el.x + el.width / 2, type: 'center' });
                 targets.x.push({ value: el.x + el.width, type: 'right' });
-                
+
                 targets.y.push({ value: el.y, type: 'top' });
                 targets.y.push({ value: el.y + el.height / 2, type: 'middle' });
                 targets.y.push({ value: el.y + el.height, type: 'bottom' });
@@ -521,8 +533,14 @@ export class SnappingSystem {
         }
 
         if (snapToObject) {
-            Object.values(slide.elements).forEach(rawEl => {
-                if (rawEl.id === id) return;
+            const ids = Array.isArray(slide.elementOrder) && slide.elementOrder.length > 0
+                ? slide.elementOrder
+                : Object.keys(slide.elements || {});
+
+            ids.forEach(elId => {
+                if (elId === id) return;
+                const rawEl = slide.elements?.[elId];
+                if (!rawEl) return;
                 const el = GeometryUtils.getAbsoluteElement(rawEl, slide);
                 targets.x.push({ value: el.x, type: 'left' });
                 targets.x.push({ value: el.x + el.width / 2, type: 'center' });

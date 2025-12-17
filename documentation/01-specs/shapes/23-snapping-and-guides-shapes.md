@@ -1,6 +1,7 @@
 # Snapping & Guides (Shapes delta)
 
-**Status**: Draft
+**Status**: Implemented (v1, partial)
+**Last Updated**: December 17, 2025
 
 This spec defines snapping behavior specific to shapes/vector editing, building on the existing snapping system.
 
@@ -12,7 +13,10 @@ Existing baseline: `src/core/canvas/SnappingSystem.js` and `documentation/01-spe
 - Slide edges/center
 - Other element edges/centers
 - Grid
-- (Vector mode) anchor points, handles (optional), and segment midpoints
+
+V1 non-goals (explicit):
+- Vector-mode snapping (anchors/handles/segment midpoints) is **V1 NON-GOAL**.
+- Hysteresis/sticky snapping capture is **V1 NON-GOAL** (baseline snapping only).
 
 Vector-mode snap rules (required):
 - Snap candidates are derived from authoritative geometry (points/segments), not from tessellation meshes.
@@ -41,6 +45,9 @@ Determinism requirement:
 	- sticky capture + hysteresis
 	- deterministic tie-break
 	- stable `targetKey` strings for candidates
+
+V1 note:
+- Candidate enumeration is deterministic (slide/columns first, then elements in `elementOrder`).
 
 Figma-class learnings (anti-jitter):
 - Snapping must use hysteresis:

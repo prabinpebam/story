@@ -1,6 +1,7 @@
 # Selection & Focus UX (Shapes)
 
-**Status**: Draft
+**Status**: Implemented (v1, partial)
+**Last Updated**: December 17, 2025
 
 Defines selection states, visuals, and user expectations.
 
@@ -36,7 +37,8 @@ Figma-class learnings (selection stability):
 - Multi-selection bbox behaves consistently.
 
 Additional acceptance:
-- Deep-edit focus is explicit (vector/boolean/mask) and visible (breadcrumb or equivalent).
+- Deep-edit focus is explicit in state (`editor.deepEdit`) and gating (vector edit routing).
+- Breadcrumb/explicit UI focus indicator is a v1 non-goal.
 - Selection does not change mid-drag (sticky capture).
 
 ## 6. Quality critique (gaps + risks)

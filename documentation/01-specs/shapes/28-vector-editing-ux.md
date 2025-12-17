@@ -1,10 +1,13 @@
 # Vector Editing UX (Vector Networks)
 
-**Status**: Draft
+**Status**: Implemented (v1, partial)
+**Last Updated**: December 17, 2025
 
 Defines how Vector Network edit targets (nodes/handles/edges/faces) are visualized and manipulated.
 
-This UX MUST be backed by the Vector Network model described in [08a-vector-networks.md](./08a-vector-networks.md) and the operations defined in [21-vector-editing-operations.md](./21-vector-editing-operations.md).
+V1 scope note:
+- V1 vector editing is **path/segment-based** and does not ship Vector Networks.
+- Vector Networks and derived faces are **V1 NON-GOAL** per [08a-vector-networks.md](./08a-vector-networks.md).
 
 ---
 
@@ -13,7 +16,9 @@ Required edit target visuals:
 - Nodes (anchors)
 - Handle lines + handle endpoints (when node has handles)
 - Edges (highlight on hover/selection)
-- Faces (selectable filled regions when derived faces exist)
+
+V1 non-goal:
+- Face visualization/selection is not shipped in v1.
 
 Selection styling:
 - Selected vs unselected styling MUST be accent-token driven.
@@ -30,7 +35,6 @@ Face visualization rule:
 Required interactions (v1):
 - Click node → select node
 - Click edge → select edge
-- Click face (when faces exist) → select face
 - Drag selected node(s) → move nodes (sticky capture)
 - Drag handle endpoint → move handle (sticky capture)
 
