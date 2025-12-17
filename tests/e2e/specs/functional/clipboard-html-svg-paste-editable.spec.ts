@@ -323,7 +323,7 @@ test.describe('Clipboard: paste SVG from text/html (editable shapes flag)', () =
     expect(shape?.style?.strokes?.[0]?.width).toBe(2);
   });
 
-  test('pasting HTML containing an <svg> with filter still imports the shape (filter ignored; deterministic)', async ({ page, getState }) => {
+  test('pasting HTML containing an <svg> with supported filter imports as shape with effects (deterministic)', async ({ page, getState }) => {
     const before = await getState();
     const slideId = before.editor.activeSlideId;
     expect(slideId).toBeTruthy();
@@ -372,9 +372,63 @@ test.describe('Clipboard: paste SVG from text/html (editable shapes flag)', () =
     const shape = newShapes[0];
     expect(shape?.style?.fills?.[0]?.type).toBe('solid');
     expect(shape?.style?.fills?.[0]?.value).toBe('#ff0000');
+    expect(shape?.style?.blur).toEqual({ radius: 2, visible: true });
   });
 
-  test('pasting HTML containing an <svg> with mix-blend-mode still imports the shape (blend ignored; deterministic)', async ({ page, getState }) => {
+  test('pasting HTML containing an <svg> with feDropShadow imports dropShadow effect (deterministic)', async ({ page, getState }) => {
+    const before = await getState();
+    const slideId = before.editor.activeSlideId;
+    expect(slideId).toBeTruthy();
+
+    const beforeElements = before.slides[slideId]?.elements || {};
+    const beforeIds = new Set(Object.keys(beforeElements));
+
+    const svg = `
+      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="10">
+        <defs>
+          <filter id="f">
+            <feDropShadow dx="3" dy="4" stdDeviation="2" flood-color="#00ff00" flood-opacity="0.5" />
+          </filter>
+        </defs>
+        <rect x="0" y="0" width="20" height="10" filter="url(#f)" fill="#ff0000" />
+      </svg>
+    `;
+    const html = `<div data-from="test">${svg}</div>`;
+
+    await page.evaluate(async ({ html }) => {
+      const item = new ClipboardItem({
+        'text/html': new Blob([html], { type: 'text/html' })
+      });
+      await navigator.clipboard.write([item]);
+    }, { html });
+
+    await page.keyboard.down('Control');
+    await page.keyboard.press('v');
+    await page.keyboard.up('Control');
+
+    await expect.poll(async () => {
+      const after = await getState();
+      const count = Object.keys(after.slides[slideId]?.elements || {}).length;
+      return count;
+    }, { timeout: 4000 }).toBeGreaterThan(beforeIds.size);
+
+    const after = await getState();
+    const afterElements = after.slides[slideId]?.elements || {};
+    const newElements = Object.entries(afterElements)
+      .filter(([id]) => !beforeIds.has(id))
+      .map(([, el]: any) => el);
+
+    const newShapes = newElements.filter((el: any) => el && el.type === 'shape');
+    expect(newShapes.length).toBe(1);
+
+    const shape = newShapes[0];
+    expect(shape?.style?.fills?.[0]?.type).toBe('solid');
+    expect(shape?.style?.fills?.[0]?.value).toBe('#ff0000');
+    expect(shape?.style?.dropShadow).toMatchObject({ x: 3, y: 4, blur: 2, spread: 0, blendMode: 'normal', visible: true });
+    expect(typeof shape?.style?.dropShadow?.color).toBe('string');
+  });
+
+  test('pasting HTML containing an <svg> with mix-blend-mode imports paint blendMode (deterministic)', async ({ page, getState }) => {
     const before = await getState();
     const slideId = before.editor.activeSlideId;
     expect(slideId).toBeTruthy();
@@ -414,6 +468,7 @@ test.describe('Clipboard: paste SVG from text/html (editable shapes flag)', () =
     const shape = newShapes[0];
     expect(shape?.style?.fills?.[0]?.type).toBe('solid');
     expect(shape?.style?.fills?.[0]?.value).toBe('#ff0000');
+    expect(shape?.style?.fills?.[0]?.blendMode).toBe('multiply');
   });
 
   test('pasting HTML containing an <svg> with clip-path imports a mask node (deterministic)', async ({ page, getState }) => {
@@ -582,6 +637,61 @@ test.describe('Clipboard: paste SVG from text/html (editable shapes flag)', () =
 
     const anyGradientFill = newShapes.some((el: any) => el?.style?.fills?.[0]?.type === 'gradient');
     expect(anyGradientFill).toBe(true);
+  });
+
+  test('pasting HTML containing an <svg> with <linearGradient spreadMethod="repeat"> imports a repeating gradient fill on the shape', async ({ page, getState }) => {
+    const before = await getState();
+    const slideId = before.editor.activeSlideId;
+    expect(slideId).toBeTruthy();
+
+    const beforeElements = before.slides[slideId]?.elements || {};
+    const beforeIds = new Set(Object.keys(beforeElements));
+
+    const svg = `
+      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="10">
+        <defs>
+          <linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="0%" spreadMethod="repeat">
+            <stop offset="0%" stop-color="#ff0000" />
+            <stop offset="100%" stop-color="#0000ff" />
+          </linearGradient>
+        </defs>
+        <rect x="0" y="0" width="20" height="10" fill="url(#g)" />
+      </svg>
+    `;
+    const html = `<div data-from="test">${svg}</div>`;
+
+    await page.evaluate(async ({ html }) => {
+      const item = new ClipboardItem({
+        'text/html': new Blob([html], { type: 'text/html' })
+      });
+      await navigator.clipboard.write([item]);
+    }, { html });
+
+    await page.keyboard.down('Control');
+    await page.keyboard.press('v');
+    await page.keyboard.up('Control');
+
+    await expect.poll(async () => {
+      const after = await getState();
+      const count = Object.keys(after.slides[slideId]?.elements || {}).length;
+      return count;
+    }, { timeout: 4000 }).toBeGreaterThan(beforeIds.size);
+
+    const after = await getState();
+    const afterElements = after.slides[slideId]?.elements || {};
+
+    const newElements = Object.entries(afterElements)
+      .filter(([id]) => !beforeIds.has(id))
+      .map(([, el]: any) => el);
+
+    const newShapes = newElements.filter((el: any) => el && el.type === 'shape');
+    expect(newShapes.length).toBeGreaterThan(0);
+
+    const anyRepeatingGradientFill = newShapes.some((el: any) => {
+      const fill = el?.style?.fills?.[0];
+      return fill?.type === 'gradient' && /repeating-linear-gradient\(/i.test(String(fill?.value));
+    });
+    expect(anyRepeatingGradientFill).toBe(true);
   });
 
   test('pasting HTML containing an <svg> with <linearGradient href="#..."> imports a gradient fill on the shape', async ({ page, getState }) => {

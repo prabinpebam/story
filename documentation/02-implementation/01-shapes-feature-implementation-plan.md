@@ -152,6 +152,7 @@ This status snapshot reflects what is implemented in the repo today (not “plan
   - [x] `href` / `xlink:href` inheritance (conservative: depth-limited chain, first-defined attr wins, stops inherited if missing)
   - [x] Deterministic fallback + warning for broken `href` chains (cycle/missing target)
   - [x] Deterministic fallback for unsupported features (e.g. rotate `gradientTransform`, non-centered focal points)
+  - [x] Imports `spreadMethod="repeat"` as CSS `repeating-*` gradients (linear + radial)
   - [x] `patternUnits="userSpaceOnUse"` + parseable `width/height`
   - [x] Supports `x/y` offsets; imports phase via `tileOffsetX/tileOffsetY`
   - [x] Axis-aligned `patternTransform` (translate/scale/matrix; no rotate/skew)
@@ -161,16 +162,20 @@ This status snapshot reflects what is implemented in the repo today (not “plan
   - [x] `patternUnits="objectBoundingBox"` when `patternContentUnits="userSpaceOnUse"` and no `patternTransform` (conservative: normalizes user-space content into a `0..1` tile)
   - [x] Imported as repeating `image` fill (SVG tile data URI)
   - [x] Imports `clip-path` and `mask` as Story mask relationship nodes (plus imported mask shapes) (deterministic)
-  - [x] Detects `filter` usage and imports the shape anyway (filter is ignored; deterministic warning)
-  - [x] Detects `mix-blend-mode` usage and imports the shape anyway (blend is ignored; deterministic warning)
+  - [x] Imports supported SVG `filter` effects when deterministically recoverable:
+    - `feGaussianBlur` → `style.blur`
+    - `feDropShadow` → `style.dropShadow`
+    - Other filter graphs degrade deterministically with `WARN_EFFECT_DROPPED`
+  - [x] Imports `mix-blend-mode` into paint `blendMode` when supported; deterministic warning + degrade-to-normal when unsupported
+  - [x] Imports SVG `opacity` into Story element `opacity` (0..1)
   - [x] Vitest: `tests/unit/clipboard/EditableSvgImporter.test.js`
   - [x] Playwright: `tests/e2e/specs/functional/clipboard-html-svg-paste-editable.spec.ts`
 
 ### Phase 10 — Not Implemented Yet (Known Gaps)
 - [x] Corpus fixtures: `tests/corpus/shapes/figma-paste/` (directory + canonical hash + warnings)
-- [ ] Broader SVG paint support (beyond the conservative pattern subset)
-- [ ] Broader SVG effects support (filters) beyond drop-on-import
-- [ ] Broader blend-mode support beyond degrade-to-normal
+- [x] Broader SVG paint support (beyond the conservative pattern subset)
+- [x] Supported SVG effects import (blur + drop shadow) beyond drop-on-import
+- [x] Broader blend-mode support beyond degrade-to-normal
 
 ---
 
@@ -492,7 +497,7 @@ Status values (use these exact words to keep search/filters simple):
 | `18-operation-model-collaboration-readiness.md` | NOT REVIEWED | IN PROGRESS | NONE | NONE | Operation + inverse ops plumbing exists: `src/core/collaboration/sync/StateSyncEngine.js` (Shapes op model alignment TBD). |
 | `18-operation-model-future-collab.md` | NOT REVIEWED | NOT STARTED | NONE | NONE |  |
 | `19-serialization-and-interop.md` | READY | DONE | VITEST | NONE | Export + clipboard integration exists: `src/core/export/Exporter.js`, editable SVG importer in `src/core/clipboard/EditableSvgImporter.js` (spec parity TBD). SVG export hardening: `buildSvgMarkup()` supports `shapeKind:'vector'`, flattens `shapeKind:'boolean'` to `<path d=...>`, maps unified masks to SVG `<clipPath>` (best-effort), exports element rotation via `rotate(...)` in the wrapper `<g transform=...>`, and exports paint defs for fills (linear gradients via `<linearGradient>`, radial gradients via `<radialGradient>`, and image fills via `<pattern>` + `<image>`) using deterministic IDs. Adds theme-slot solid fill resolution (exports resolved colors, not theme-slot references) and a deterministic policy for code/video fills (rasterize to `<image>` when possible, otherwise fallback + warning metadata). Vitest: `tests/unit/export/ExporterSvgMarkup.test.js`. |
-| `19a-figma-clipboard-import.md` | READY | IN PROGRESS | VITEST+PLAYWRIGHT | MIXED | Editable SVG paste subset is shipping with deterministic transforms (baked) + clip-path/mask import; corpus fixtures + perf smoke gates present. |
+| `19a-figma-clipboard-import.md` | READY | IN PROGRESS | VITEST+PLAYWRIGHT | MIXED | Editable SVG paste subset is shipping with deterministic transforms (baked) + clip-path/mask import + supported `mix-blend-mode` → paint `blendMode` mapping (end-to-end via safe inline-style allowlist). Supported SVG effects subset: `feGaussianBlur` → `style.blur`, `feDropShadow` → `style.dropShadow`, otherwise drop with `WARN_EFFECT_DROPPED`. SVG `opacity` imports as element opacity (0..1) and defaults are omitted for deterministic output. Warning code used for blend-mode degrade: `WARN_BLENDMODE_DEGRADED`. Artifacts: corpus fixtures under `tests/corpus/shapes/figma-paste/` (incl. `filter-basic`, `drop-shadow-basic`) + corpus gate `tests/unit/clipboard/FigmaPasteCorpus.test.js`; e2e coverage in `tests/e2e/specs/functional/clipboard-html-svg-paste-editable.spec.ts`. |
 | `20-interaction-modes-and-state-machine.md` | NOT REVIEWED | IN PROGRESS | PLAYWRIGHT | NONE | Canvas interaction state + tools exist: `src/core/CanvasManager.js`. Deep edit state added (`editor.deepEdit`) with Escape exit; vector node drag interaction added with bracketing; vector-mode marquee selection routes to deepEdit node selection. Coverage: `tests/e2e/specs/functional/m4-editing-ux.spec.ts`. |
 | `21-vector-editing-operations.md` | NOT REVIEWED | IN PROGRESS | PLAYWRIGHT | NONE | Implemented v1 ops in deep edit: dblclick edge insert node, delete node, delete edge, arrow-key nudge, cubic handle drag, dblclick node corner↔smooth; coverage: `tests/e2e/specs/functional/m4-editing-ux.spec.ts`. |
 | `22-selection-and-focus-ux.md` | NOT REVIEWED | DONE | PLAYWRIGHT | NONE | Selection wiring exists: `src/core/CanvasManager.js`, `src/ui/PropertyInspector.js`. Functional coverage: `tests/e2e/specs/functional/m3-selection-hit-testing.spec.ts` (multi-select toggling, sticky selection during drag, click-empty clears selection). (Hover hysteresis + vector-mode focus UX remain spec TODOs.) |

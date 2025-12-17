@@ -50,12 +50,12 @@ describe('EditableSvgImporter.importEditableShapesFromSanitizedSvg', () => {
 
                 const el = res.elements[0];
                 expect(el.style?.fills?.[0]).toMatchObject({ type: 'solid', value: '#ff0000', color: '#ff0000' });
-                // 0.5 (fill-opacity) * 0.5 (opacity) = 0.25 -> 25
-                expect(el.style.fills[0].opacity).toBe(25);
+                // fill-opacity is stored on the fill layer; element opacity is stored on the element.
+                expect(el.style.fills[0].opacity).toBe(50);
+                expect(el.opacity).toBe(0.5);
 
                 expect(el.style?.strokes?.[0]).toMatchObject({ type: 'solid', color: '#00ff00', width: 2, position: 'center' });
-                // 0.5 (stroke-opacity) * 0.5 (opacity) = 0.25 -> 25
-                expect(el.style.strokes[0].opacity).toBe(25);
+                expect(el.style.strokes[0].opacity).toBe(50);
         });
 
         it('inherits fill from parent <g> style', () => {
@@ -273,7 +273,7 @@ describe('EditableSvgImporter.importEditableShapesFromSanitizedSvg', () => {
                 expect(contentEl.style?.fills?.[0]).toMatchObject({ type: 'solid', value: '#ff0000', opacity: 100 });
         });
 
-        it('warns deterministically when filter is present (filter ignored; shape still imports)', () => {
+        it('imports supported filter graphs into effects (no warning)', () => {
                 const svg = `
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="10">
                         <defs>
@@ -289,14 +289,66 @@ describe('EditableSvgImporter.importEditableShapesFromSanitizedSvg', () => {
                 expect(res.ok).toBe(true);
                 if (!res.ok) return;
 
-                expect(res.warnings).toContain('WARN_FILTER_UNSUPPORTED');
+                expect(res.warnings).not.toContain('WARN_EFFECT_DROPPED');
 
                 const el = res.elements[0];
                 expect(el.type).toBe('shape');
                 expect(el.style?.fills?.[0]).toMatchObject({ type: 'solid', value: '#ff0000', opacity: 100 });
+                expect(el.style?.blur).toMatchObject({ radius: 2, visible: true });
         });
 
-        it('warns deterministically when mix-blend-mode is present (blend ignored; shape still imports)', () => {
+        it('imports feDropShadow into style.dropShadow (no warning)', () => {
+                const svg = `
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="10">
+                        <defs>
+                            <filter id="f">
+                                <feDropShadow dx="3" dy="4" stdDeviation="2" flood-color="#00ff00" flood-opacity="0.5" />
+                            </filter>
+                        </defs>
+                        <rect x="0" y="0" width="20" height="10" filter="url(#f)" fill="#ff0000" />
+                    </svg>
+                `;
+
+                const res = importEditableShapesFromSanitizedSvg(svg, { centerX: 0, centerY: 0, idSeed: 't' });
+                expect(res.ok).toBe(true);
+                if (!res.ok) return;
+
+                expect(res.warnings).not.toContain('WARN_EFFECT_DROPPED');
+
+                const el = res.elements[0];
+                expect(el.type).toBe('shape');
+                expect(el.style?.fills?.[0]).toMatchObject({ type: 'solid', value: '#ff0000', opacity: 100 });
+                expect(el.style?.dropShadow).toMatchObject({ x: 3, y: 4, blur: 2, spread: 0, blendMode: 'normal', visible: true });
+                expect(typeof el.style?.dropShadow?.color).toBe('string');
+                expect(el.style.dropShadow.color).toMatch(/rgba\(|#/i);
+        });
+
+        it('warns deterministically when filter cannot be parsed (effect dropped; shape still imports)', () => {
+                const svg = `
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="10">
+                        <defs>
+                            <filter id="f">
+                                <feGaussianBlur stdDeviation="abc" />
+                            </filter>
+                        </defs>
+                        <rect x="0" y="0" width="20" height="10" filter="url(#f)" fill="#ff0000" />
+                    </svg>
+                `;
+
+                const res = importEditableShapesFromSanitizedSvg(svg, { centerX: 0, centerY: 0, idSeed: 't' });
+                expect(res.ok).toBe(true);
+                if (!res.ok) return;
+
+                expect(res.warnings).toContain('WARN_EFFECT_DROPPED');
+
+                const el = res.elements[0];
+                expect(el.type).toBe('shape');
+                expect(el.style?.fills?.[0]).toMatchObject({ type: 'solid', value: '#ff0000', opacity: 100 });
+                expect(el.style?.blur).toBeUndefined();
+                expect(el.style?.dropShadow).toBeUndefined();
+        });
+
+        it('imports mix-blend-mode into paint blendMode when supported (no warning)', () => {
                 const svg = `
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="10">
                         <rect x="0" y="0" width="20" height="10" style="mix-blend-mode:multiply" fill="#ff0000" />
@@ -307,11 +359,45 @@ describe('EditableSvgImporter.importEditableShapesFromSanitizedSvg', () => {
                 expect(res.ok).toBe(true);
                 if (!res.ok) return;
 
-                expect(res.warnings).toContain('WARN_BLEND_MODE_UNSUPPORTED');
+                expect(res.warnings).not.toContain('WARN_BLENDMODE_DEGRADED');
 
                 const el = res.elements[0];
                 expect(el.type).toBe('shape');
-                expect(el.style?.fills?.[0]).toMatchObject({ type: 'solid', value: '#ff0000', opacity: 100 });
+                expect(el.style?.fills?.[0]).toMatchObject({ type: 'solid', value: '#ff0000', opacity: 100, blendMode: 'multiply' });
+        });
+
+            it('warns deterministically when mix-blend-mode token is unknown (imports with normal blend)', () => {
+                const svg = `
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="10">
+                    <rect x="0" y="0" width="20" height="10" style="mix-blend-mode:weirdmode" fill="#ff0000" />
+                    </svg>
+                `;
+
+                const res = importEditableShapesFromSanitizedSvg(svg, { centerX: 0, centerY: 0, idSeed: 't' });
+                expect(res.ok).toBe(true);
+                if (!res.ok) return;
+
+                expect(res.warnings).toContain('WARN_BLENDMODE_DEGRADED');
+
+                const el = res.elements[0];
+                expect(el.type).toBe('shape');
+                expect(el.style?.fills?.[0]).toMatchObject({ type: 'solid', value: '#ff0000', opacity: 100, blendMode: 'normal' });
+            });
+
+        it('imports element opacity onto the shape node', () => {
+                const svg = `
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="10">
+                        <rect x="0" y="0" width="20" height="10" opacity="0.25" fill="#ff0000" />
+                    </svg>
+                `;
+
+                const res = importEditableShapesFromSanitizedSvg(svg, { centerX: 0, centerY: 0, idSeed: 't' });
+                expect(res.ok).toBe(true);
+                if (!res.ok) return;
+
+                const el = res.elements[0];
+                expect(el.type).toBe('shape');
+                expect(el.opacity).toBe(0.25);
         });
 
         it('imports objectBoundingBox radialGradient fill as a gradient fill (no warning)', () => {
@@ -366,6 +452,30 @@ describe('EditableSvgImporter.importEditableShapesFromSanitizedSvg', () => {
                 expect(el.style.fills[0].value).toMatch(/linear-gradient\(/i);
                 expect(el.style.fills[0].value).toMatch(/#ff0000/i);
                 expect(el.style.fills[0].value).toMatch(/#0000ff/i);
+        });
+
+        it('maps gradient spreadMethod="repeat" to repeating-linear-gradient', () => {
+                const svg = `
+                    <svg xmlns="http://www.w3.org/2000/svg">
+                        <defs>
+                            <linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="0%" spreadMethod="repeat">
+                                <stop offset="0%" stop-color="#ff0000" />
+                                <stop offset="100%" stop-color="#0000ff" />
+                            </linearGradient>
+                        </defs>
+                        <rect x="0" y="0" width="10" height="10" fill="url(#g)" />
+                    </svg>
+                `;
+
+                const res = importEditableShapesFromSanitizedSvg(svg, { centerX: 0, centerY: 0, idSeed: 't' });
+                expect(res.ok).toBe(true);
+                if (!res.ok) return;
+
+                expect(res.warnings).not.toContain('WARN_GRADIENT_PAINT_UNSUPPORTED');
+                expect(res.warnings).not.toContain('WARN_GRADIENT_SPREADMETHOD_UNSUPPORTED');
+                const el = res.elements[0];
+                expect(el.style?.fills?.[0]?.type).toBe('gradient');
+                expect(String(el.style?.fills?.[0]?.value)).toMatch(/repeating-linear-gradient\(/i);
         });
 
         it('imports linearGradient that inherits from another gradient via href="#..." (stops + coords inherited)', () => {

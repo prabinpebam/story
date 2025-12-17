@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="20" height="10">
+  <defs>
+    <filter id="f">
+      <feDropShadow dx="3" dy="4" stdDeviation="2" flood-color="#00ff00" flood-opacity="0.5" />
+    </filter>
+  </defs>
+  <rect x="0" y="0" width="20" height="10" filter="url(#f)" fill="#ff0000" />
+</svg>

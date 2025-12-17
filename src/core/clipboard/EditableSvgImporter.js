@@ -11,6 +11,9 @@
  */
 
 import { Transform2D } from '../shapes/Transform2D.js';
+import { BlendModes } from '../constants/BlendModes.js';
+
+const SUPPORTED_BLEND_MODE_IDS = new Set((BlendModes || []).map((m) => m?.id).filter(Boolean));
 
 function toNumber(value) {
     if (value === null || value === undefined) return null;
@@ -214,6 +217,16 @@ function resolveLinearGradientCss(doc, gradientId, options) {
 
     const warnings = [];
 
+    const spreadMethodRaw = inheritedGradientAttr(chain, 'spreadMethod');
+    const spreadMethod = typeof spreadMethodRaw === 'string' ? spreadMethodRaw.trim().toLowerCase() : '';
+    let cssFunction = 'linear-gradient';
+    if (spreadMethod === 'repeat') {
+        cssFunction = 'repeating-linear-gradient';
+    } else if (spreadMethod && spreadMethod !== 'pad') {
+        // CSS doesn't support SVG's reflect spread method.
+        warnings.push('WARN_GRADIENT_SPREADMETHOD_UNSUPPORTED');
+    }
+
     const units = inheritedGradientAttr(chain, 'gradientUnits');
     const unitsTrimmed = typeof units === 'string' ? units.trim() : '';
 
@@ -319,7 +332,7 @@ function resolveLinearGradientCss(doc, gradientId, options) {
     const sorted = [...stops].sort((a, b) => a.offset - b.offset);
     const stopsStr = sorted.map(s => `${s.cssColor} ${s.offset}%`).join(', ');
 
-    return { ok: true, css: `linear-gradient(${deg}deg, ${stopsStr})`, warnings };
+    return { ok: true, css: `${cssFunction}(${deg}deg, ${stopsStr})`, warnings };
 }
 
 function resolveRadialGradientCss(doc, gradientId, options) {
@@ -332,6 +345,17 @@ function resolveRadialGradientCss(doc, gradientId, options) {
     const inh = resolveGradientInheritanceChain(doc, grad, 'radialgradient');
     if (!inh.ok) return { ok: false, reason: inh.reason };
     const chain = inh.chain;
+
+    const warnings = [];
+
+    const spreadMethodRaw = inheritedGradientAttr(chain, 'spreadMethod');
+    const spreadMethod = typeof spreadMethodRaw === 'string' ? spreadMethodRaw.trim().toLowerCase() : '';
+    let cssFunction = 'radial-gradient';
+    if (spreadMethod === 'repeat') {
+        cssFunction = 'repeating-radial-gradient';
+    } else if (spreadMethod && spreadMethod !== 'pad') {
+        warnings.push('WARN_GRADIENT_SPREADMETHOD_UNSUPPORTED');
+    }
 
     const units = inheritedGradientAttr(chain, 'gradientUnits');
     const unitsTrimmed = typeof units === 'string' ? units.trim() : '';
@@ -468,7 +492,8 @@ function resolveRadialGradientCss(doc, gradientId, options) {
 
     return {
         ok: true,
-        css: `radial-gradient(ellipse ${rxPct}% ${ryPct}% at ${cxPct}% ${cyPct}%, ${stopsStr})`
+        css: `${cssFunction}(ellipse ${rxPct}% ${ryPct}% at ${cxPct}% ${cyPct}%, ${stopsStr})`,
+        warnings
     };
 }
 
@@ -1470,6 +1495,35 @@ function getInheritedPresentation(node, name) {
     return null;
 }
 
+function parseOpacity01(raw, fallback = 1) {
+    const n = toNumber(raw);
+    if (n === null) return fallback;
+    return clamp01(n);
+}
+
+function getNodeOpacity01(node) {
+    const raw = getInheritedPresentation(node, 'opacity');
+    if (raw === null || raw === undefined) return null;
+    const v = parseOpacity01(raw, null);
+    if (v === null) return null;
+    // Avoid emitting default opacity in serialized elements for corpus stability.
+    if (v === 1) return null;
+    return v;
+}
+
+function parseStdDeviation(raw) {
+    if (raw === null || raw === undefined) return null;
+    const s = String(raw).trim();
+    if (!s) return null;
+    const parts = s.split(/\s+|,/).map(p => p.trim()).filter(Boolean);
+    if (parts.length === 0) return null;
+    const a = toNumber(parts[0]);
+    const b = parts.length > 1 ? toNumber(parts[1]) : null;
+    if (a === null) return null;
+    const v = (b === null) ? a : ((a + b) / 2);
+    return Number.isFinite(v) ? Math.max(0, v) : null;
+}
+
 function getClipPathRefId(node) {
     const raw = getInheritedPresentation(node, 'clip-path');
     if (typeof raw !== 'string') return null;
@@ -1532,7 +1586,6 @@ function resolvePaintForNode(node) {
     const fillOpacityRaw = getInheritedPresentation(node, 'fill-opacity');
     const strokeRaw = getInheritedPresentation(node, 'stroke');
     const strokeOpacityRaw = getInheritedPresentation(node, 'stroke-opacity');
-    const opacityRaw = getInheritedPresentation(node, 'opacity');
     const strokeWidthRaw = getInheritedPresentation(node, 'stroke-width');
     const strokeLinecapRaw = getInheritedPresentation(node, 'stroke-linecap');
     const strokeLinejoinRaw = getInheritedPresentation(node, 'stroke-linejoin');
@@ -1543,9 +1596,8 @@ function resolvePaintForNode(node) {
     const fillIsUrlPaint = typeof fillRaw === 'string' && /^url\(\s*#?/i.test(fillRaw.trim());
     const strokeIsUrlPaint = typeof strokeRaw === 'string' && /^url\(\s*#?/i.test(strokeRaw.trim());
 
-    const overallOpacity = clamp01(toNumber(opacityRaw) ?? 1);
-    const fillOpacity = clamp01(toNumber(fillOpacityRaw) ?? 1) * overallOpacity;
-    const strokeOpacity = clamp01(toNumber(strokeOpacityRaw) ?? 1) * overallOpacity;
+    const fillOpacity = clamp01(toNumber(fillOpacityRaw) ?? 1);
+    const strokeOpacity = clamp01(toNumber(strokeOpacityRaw) ?? 1);
 
     const fillParsed = fillIsUrlPaint ? null : parseColorToHexAndAlpha(fillRaw ?? '');
     const strokeParsed = strokeIsUrlPaint ? null : parseColorToHexAndAlpha(strokeRaw ?? '');
@@ -1925,15 +1977,82 @@ export function importEditableShapesFromSanitizedSvg(sanitizedSvg, options) {
 
     const warnings = [];
 
-    function styleForNode(node, options) {
-        if (hasUnsupportedFilter(node)) {
-            warnings.push('WARN_FILTER_UNSUPPORTED');
+    function resolveEffectsForNode(node) {
+        const raw = getInheritedPresentation(node, 'filter');
+        if (typeof raw !== 'string') return { stylePatch: null, effectWarnings: [] };
+        const v = raw.trim().toLowerCase();
+        if (!v || v === 'none') return { stylePatch: null, effectWarnings: [] };
+
+        const filterId = parseUrlRefId(raw);
+        if (!filterId) {
+            return { stylePatch: null, effectWarnings: ['WARN_EFFECT_DROPPED'] };
         }
 
+        const filterEl = doc?.getElementById?.(filterId);
+        if (!filterEl || String(filterEl.nodeName).toLowerCase() !== 'filter') {
+            return { stylePatch: null, effectWarnings: ['WARN_EFFECT_DROPPED'] };
+        }
+
+        const kids = Array.from(filterEl.children || []);
+        const stylePatch = {};
+
+        for (const k of kids) {
+            const tag = String(k?.nodeName || '').toLowerCase();
+            if (tag === 'fegaussianblur') {
+                const std = parseStdDeviation(k.getAttribute?.('stdDeviation'));
+                if (!Number.isFinite(std) || std <= 0) {
+                    return { stylePatch: null, effectWarnings: ['WARN_EFFECT_DROPPED'] };
+                }
+                stylePatch.blur = { radius: std, visible: true };
+                continue;
+            }
+            if (tag === 'fedropshadow') {
+                const dx = toNumber(k.getAttribute?.('dx')) ?? 0;
+                const dy = toNumber(k.getAttribute?.('dy')) ?? 0;
+                const std = parseStdDeviation(k.getAttribute?.('stdDeviation')) ?? 0;
+
+                const floodColorRaw = k.getAttribute?.('flood-color') ?? '#000000';
+                const floodOpacityRaw = k.getAttribute?.('flood-opacity');
+                const floodOpacity = (floodOpacityRaw !== null && floodOpacityRaw !== undefined)
+                    ? parseOpacity01(floodOpacityRaw, 1)
+                    : 1;
+
+                const parsed = parseColorToHexAndAlpha(floodColorRaw);
+                const baseHex = (parsed && !parsed.none && parsed.hex) ? parsed.hex : '#000000';
+                const baseAlpha = (parsed && !parsed.none && Number.isFinite(parsed.alpha)) ? parsed.alpha : 1;
+                const alpha = clamp01(baseAlpha * floodOpacity);
+                const cssColor = alpha < 1 ? (rgbaString(baseHex, alpha) ?? baseHex) : baseHex;
+
+                stylePatch.dropShadow = {
+                    x: dx,
+                    y: dy,
+                    blur: std,
+                    spread: 0,
+                    color: cssColor,
+                    blendMode: 'normal',
+                    visible: true
+                };
+                continue;
+            }
+
+            // Any other filter primitives are currently unsupported.
+            return { stylePatch: null, effectWarnings: ['WARN_EFFECT_DROPPED'] };
+        }
+
+        const hasAny = Object.keys(stylePatch).length > 0;
+        if (!hasAny) return { stylePatch: null, effectWarnings: ['WARN_EFFECT_DROPPED'] };
+        return { stylePatch, effectWarnings: [] };
+    }
+
+    function styleForNode(node, options) {
+        const { stylePatch, effectWarnings } = resolveEffectsForNode(node);
+        if (Array.isArray(effectWarnings)) warnings.push(...effectWarnings);
+
         const mixBlendMode = getMixBlendMode(node);
-        if (mixBlendMode) {
-            // Conservative: Story shape paints currently import with normal blend.
-            warnings.push('WARN_BLEND_MODE_UNSUPPORTED');
+        const importedBlendMode = (mixBlendMode && SUPPORTED_BLEND_MODE_IDS.has(mixBlendMode)) ? mixBlendMode : 'normal';
+        if (mixBlendMode && importedBlendMode === 'normal') {
+            // Deterministic warning for unknown blend mode tokens.
+            warnings.push('WARN_BLENDMODE_DEGRADED');
         }
 
         const paint = resolvePaintForNode(node);
@@ -1990,7 +2109,7 @@ export function importEditableShapesFromSanitizedSvg(sanitizedSvg, options) {
                             value: resolved.css,
                             opacity: 100,
                             visible: true,
-                            blendMode: 'normal'
+                            blendMode: importedBlendMode
                         };
                         if (Array.isArray(resolved.warnings)) warnings.push(...resolved.warnings);
                     } else {
@@ -2066,7 +2185,7 @@ export function importEditableShapesFromSanitizedSvg(sanitizedSvg, options) {
                     color,
                     opacity: clampOpacity100(paint.fill.opacity * 100),
                     visible: true,
-                    blendMode: 'normal'
+                    blendMode: importedBlendMode
                 }];
             }
         }
@@ -2084,7 +2203,7 @@ export function importEditableShapesFromSanitizedSvg(sanitizedSvg, options) {
                 position: 'center',
                 opacity: clampOpacity100(paint.stroke.opacity * 100),
                 visible: true,
-                blendMode: 'normal',
+                blendMode: importedBlendMode,
                 style: isDashed ? 'custom' : undefined,
                 dashArray: isDashed ? dashArrayNormalized : undefined,
                 dashOffset: Number.isFinite(paint.stroke.dashOffset) ? paint.stroke.dashOffset : undefined,
@@ -2113,7 +2232,15 @@ export function importEditableShapesFromSanitizedSvg(sanitizedSvg, options) {
             fills = [{ type: 'solid', value: '#808080', color: '#808080', opacity: 100, visible: true, blendMode: 'normal' }];
         }
 
-        return { fills, strokes };
+        // Apply imported blend mode consistently across paints.
+        for (const f of fills) {
+            if (f && typeof f === 'object') f.blendMode = importedBlendMode;
+        }
+        for (const s of strokes) {
+            if (s && typeof s === 'object') s.blendMode = importedBlendMode;
+        }
+
+        return { fills, strokes, stylePatch };
     }
 
     function vectorElementFromParsedPaths(node, parsedPaths, userSpaceTransform, options) {
@@ -2221,10 +2348,11 @@ export function importEditableShapesFromSanitizedSvg(sanitizedSvg, options) {
 
         const style = styleOverride || (() => {
             const bboxOverride = { x: xGeom, y: yGeom, width: widthGeom, height: heightGeom };
-            return styleForNode(node, { bboxOverride, userSpaceTransform: t });
+            const { fills, strokes, stylePatch } = styleForNode(node, { bboxOverride, userSpaceTransform: t });
+            return { fills, strokes, ...(stylePatch || {}) };
         })();
 
-        return {
+        const el = {
             id,
             type: 'shape',
             shape: 'vector',
@@ -2237,6 +2365,9 @@ export function importEditableShapesFromSanitizedSvg(sanitizedSvg, options) {
             paths: localPaths,
             style
         };
+        const opacity = getNodeOpacity01(node);
+        if (opacity !== null) el.opacity = opacity;
+        return el;
     }
 
     function collectParsedPathsForDefNode(defNode) {
@@ -2471,8 +2602,7 @@ export function importEditableShapesFromSanitizedSvg(sanitizedSvg, options) {
                             : 0;
 
                         const bboxOverride = { x: bbox.x, y: bbox.y, width: bbox.width, height: bbox.height };
-                        const { fills, strokes } = styleForNode(node, { bboxOverride, userSpaceTransform: t });
-
+                        const { fills, strokes, stylePatch } = styleForNode(node, { bboxOverride, userSpaceTransform: t });
                         const el = {
                             id: makeId(),
                             type: 'shape',
@@ -2484,8 +2614,10 @@ export function importEditableShapesFromSanitizedSvg(sanitizedSvg, options) {
                             height: bbox.height,
                             rotation: 0,
                             borderRadius,
-                            style: { fills, strokes }
+                            style: { fills, strokes, ...(stylePatch || {}) }
                         };
+                        const opacity = getNodeOpacity01(node);
+                        if (opacity !== null) el.opacity = opacity;
                         pushImportedElementWithMasking(node, el, t);
                     }
                 } else {
@@ -2515,7 +2647,7 @@ export function importEditableShapesFromSanitizedSvg(sanitizedSvg, options) {
                     );
                     if (bbox && bbox.width > 0 && bbox.height > 0) {
                         const bboxOverride = { x: bbox.x, y: bbox.y, width: bbox.width, height: bbox.height };
-                        const { fills, strokes } = styleForNode(node, { bboxOverride, userSpaceTransform: t });
+                        const { fills, strokes, stylePatch } = styleForNode(node, { bboxOverride, userSpaceTransform: t });
                         const el = {
                             id: makeId(),
                             type: 'shape',
@@ -2526,8 +2658,10 @@ export function importEditableShapesFromSanitizedSvg(sanitizedSvg, options) {
                             width: bbox.width,
                             height: bbox.height,
                             rotation: 0,
-                            style: { fills, strokes }
+                            style: { fills, strokes, ...(stylePatch || {}) }
                         };
+                        const opacity = getNodeOpacity01(node);
+                        if (opacity !== null) el.opacity = opacity;
                         pushImportedElementWithMasking(node, el, t);
                     }
                 } else {
@@ -2556,7 +2690,7 @@ export function importEditableShapesFromSanitizedSvg(sanitizedSvg, options) {
                     );
                     if (bbox && bbox.width > 0 && bbox.height > 0) {
                         const bboxOverride = { x: bbox.x, y: bbox.y, width: bbox.width, height: bbox.height };
-                        const { fills, strokes } = styleForNode(node, { bboxOverride, userSpaceTransform: t });
+                        const { fills, strokes, stylePatch } = styleForNode(node, { bboxOverride, userSpaceTransform: t });
                         const el = {
                             id: makeId(),
                             type: 'shape',
@@ -2567,8 +2701,10 @@ export function importEditableShapesFromSanitizedSvg(sanitizedSvg, options) {
                             width: bbox.width,
                             height: bbox.height,
                             rotation: 0,
-                            style: { fills, strokes }
+                            style: { fills, strokes, ...(stylePatch || {}) }
                         };
+                        const opacity = getNodeOpacity01(node);
+                        if (opacity !== null) el.opacity = opacity;
                         pushImportedElementWithMasking(node, el, t);
                     }
                 } else {
@@ -2616,7 +2752,7 @@ export function importEditableShapesFromSanitizedSvg(sanitizedSvg, options) {
 
             if (width > 0 && height > 0) {
                 const bboxOverride = { x: xGeom, y: yGeom, width: widthGeom, height: heightGeom };
-                const { fills, strokes } = styleForNode(node, { bboxOverride, userSpaceTransform: t });
+                const { fills, strokes, stylePatch } = styleForNode(node, { bboxOverride, userSpaceTransform: t });
                 const el = {
                     id: makeId(),
                     type: 'shape',
@@ -2631,8 +2767,10 @@ export function importEditableShapesFromSanitizedSvg(sanitizedSvg, options) {
                         p1: { x: p1.x - x, y: p1.y - y },
                         p2: { x: p2.x - x, y: p2.y - y }
                     },
-                    style: { fills, strokes }
+                    style: { fills, strokes, ...(stylePatch || {}) }
                 };
+                const opacity = getNodeOpacity01(node);
+                if (opacity !== null) el.opacity = opacity;
                 pushImportedElementWithMasking(node, el, t);
             }
         } else if (tag === 'polyline' || tag === 'polygon') {
@@ -2673,7 +2811,7 @@ export function importEditableShapesFromSanitizedSvg(sanitizedSvg, options) {
                     const path = makeVectorPathFromPoints(localPts, { closed: tag === 'polygon', fillRule });
                     if (path) {
                         const bboxOverride = { x: xGeom, y: yGeom, width: widthGeom, height: heightGeom };
-                        const { fills, strokes } = styleForNode(node, { bboxOverride, userSpaceTransform: nextAccumulated });
+                        const { fills, strokes, stylePatch } = styleForNode(node, { bboxOverride, userSpaceTransform: nextAccumulated });
                         const el = {
                             id: makeId(),
                             type: 'shape',
@@ -2685,8 +2823,10 @@ export function importEditableShapesFromSanitizedSvg(sanitizedSvg, options) {
                             height,
                             rotation: 0,
                             paths: [path],
-                            style: { fills, strokes }
+                            style: { fills, strokes, ...(stylePatch || {}) }
                         };
+                        const opacity = getNodeOpacity01(node);
+                        if (opacity !== null) el.opacity = opacity;
                         pushImportedElementWithMasking(node, el, asTransform2D(nextAccumulated));
                     }
                 }
@@ -2789,7 +2929,7 @@ export function importEditableShapesFromSanitizedSvg(sanitizedSvg, options) {
                         }));
 
                         const bboxOverride = { x: xGeom, y: yGeom, width: widthGeom, height: heightGeom };
-                        const { fills, strokes } = styleForNode(node, { bboxOverride, userSpaceTransform: nextAccumulated });
+                        const { fills, strokes, stylePatch } = styleForNode(node, { bboxOverride, userSpaceTransform: nextAccumulated });
                         const el = {
                             id: makeId(),
                             type: 'shape',
@@ -2801,8 +2941,10 @@ export function importEditableShapesFromSanitizedSvg(sanitizedSvg, options) {
                             height,
                             rotation: 0,
                             paths: localPaths,
-                            style: { fills, strokes }
+                            style: { fills, strokes, ...(stylePatch || {}) }
                         };
+                        const opacity = getNodeOpacity01(node);
+                        if (opacity !== null) el.opacity = opacity;
                         pushImportedElementWithMasking(node, el, asTransform2D(nextAccumulated));
                     }
                 } else {

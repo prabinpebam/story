@@ -1,6 +1,6 @@
 {
   "name": "filter-basic",
-  "warnings": ["WARN_FILTER_UNSUPPORTED"],
+  "warnings": [],
   "elementsCount": 1,
-  "sha256": "ada37225b375fe570b4c5decd569794f5c7b211ce72bfb1e621152ac5e774898"
+  "sha256": "b5e626389ee3b35bd48fd967da5ba495144bf784a5318eb91cc167d03be3bfc9"
 }

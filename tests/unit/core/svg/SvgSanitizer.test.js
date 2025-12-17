@@ -10,6 +10,22 @@ describe('SvgSanitizer', () => {
         expect(result.svg).toMatch(/<path/i);
     });
 
+    it('preserves safe inline mix-blend-mode style and strips other CSS', () => {
+        const input = `<svg xmlns="http://www.w3.org/2000/svg"><rect width="10" height="10" style="mix-blend-mode: multiply; fill: red; filter: url(https://example.com/x)" fill="#f00"/></svg>`;
+        const result = sanitizeSvg(input);
+        expect(result.ok).toBe(true);
+        expect(result.svg).toMatch(/style="mix-blend-mode:multiply"/);
+        expect(result.svg).not.toMatch(/fill:\s*red/i);
+        expect(result.svg).not.toMatch(/filter:/i);
+    });
+
+    it('removes style attribute if it contains no allowlisted declarations', () => {
+        const input = `<svg xmlns="http://www.w3.org/2000/svg"><rect width="10" height="10" style="fill: red; stroke: blue"/></svg>`;
+        const result = sanitizeSvg(input);
+        expect(result.ok).toBe(true);
+        expect(result.svg).not.toMatch(/style=/i);
+    });
+
     it('removes event handler attributes', () => {
         const input = `<svg xmlns="http://www.w3.org/2000/svg" onload="alert(1)"><path d="M0 0" onclick="alert(2)"/></svg>`;
         const result = sanitizeSvg(input);

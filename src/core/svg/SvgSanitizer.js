@@ -18,6 +18,9 @@ const ALLOWED_TAGS = new Set([
 	'svg',
 	'g',
 	'defs',
+	'filter',
+	'feGaussianBlur',
+	'feDropShadow',
 	'path',
 	'rect',
 	'circle',
@@ -80,8 +83,13 @@ const ALLOWED_ATTRS = new Set([
 	'stroke-linecap',
 	'stroke-linejoin',
 	'stroke-miterlimit',
+	'stroke-dasharray',
+	'stroke-dashoffset',
 	'opacity',
 	'vector-effect',
+	'fill-rule',
+	'clip-rule',
+	'filter',
 
 	// Transforms
 	'transform',
@@ -119,7 +127,51 @@ const ALLOWED_ATTRS = new Set([
 	'refX',
 	'refY',
 	'orient'
+	,
+	// Filters (conservative subset)
+	'filterUnits',
+	'primitiveUnits',
+	'stdDeviation',
+	'dx',
+	'dy',
+	'flood-color',
+	'flood-opacity',
+	'in',
+	'result'
 ]);
+
+function sanitizeInlineStyle(styleText) {
+	if (!styleText) return '';
+
+	const declarations = String(styleText)
+		.split(';')
+		.map((d) => d.trim())
+		.filter(Boolean);
+
+	const sanitized = [];
+	for (const decl of declarations) {
+		const idx = decl.indexOf(':');
+		if (idx === -1) continue;
+
+		const prop = decl.slice(0, idx).trim().toLowerCase();
+		let value = decl.slice(idx + 1).trim();
+		if (!value) continue;
+
+		// Keep this extremely conservative: allow only a tiny subset of CSS.
+		if (prop !== 'mix-blend-mode') continue;
+
+		// Strip '!important' and normalize.
+		value = value.replace(/!important\b/gi, '').trim().toLowerCase();
+		const token = value.split(/\s+/)[0];
+
+		// CSS keywords only. (No functions, urls, strings, etc.)
+		if (!/^[a-z-]+$/.test(token)) continue;
+
+		sanitized.push(`mix-blend-mode:${token}`);
+	}
+
+	return sanitized.join(';');
+}
 
 function estimateUtf8Bytes(text) {
 	try {
@@ -132,7 +184,15 @@ function estimateUtf8Bytes(text) {
 
 function isExternalReference(value) {
 	if (!value) return false;
-	const v = String(value).trim();
+	let v = String(value).trim();
+
+	// Unwrap url(...) values.
+	const urlMatch = v.match(/^url\(\s*(.*?)\s*\)$/i);
+	if (urlMatch) {
+		v = urlMatch[1] || '';
+		// Strip optional quotes.
+		v = v.trim().replace(/^['"]|['"]$/g, '');
+	}
 
 	// Allow internal references and local fragment URLs.
 	if (v.startsWith('#')) return false;
@@ -166,14 +226,27 @@ function sanitizeElement(element) {
 			continue;
 		}
 
-		// Strip inline styles (CSS can reference external resources).
+		// Inline styles are dangerous in general; keep a tiny safe subset.
 		if (nameLower === 'style') {
-			element.removeAttribute(name);
+			const sanitizedStyle = sanitizeInlineStyle(value);
+			if (sanitizedStyle) {
+				element.setAttribute(name, sanitizedStyle);
+			} else {
+				element.removeAttribute(name);
+			}
 			continue;
 		}
 
 		// Strip external references.
 		if (nameLower === 'href' || nameLower === 'xlink:href') {
+			if (isExternalReference(value)) {
+				element.removeAttribute(name);
+			}
+			continue;
+		}
+
+		// Strip external resource references for url(...) presentation attributes.
+		if (nameLower === 'filter' || nameLower === 'clip-path' || nameLower === 'mask' || nameLower === 'fill' || nameLower === 'stroke') {
 			if (isExternalReference(value)) {
 				element.removeAttribute(name);
 			}
