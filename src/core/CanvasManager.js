@@ -1928,8 +1928,9 @@ export class CanvasManager {
         const makeDefaultShapeStyle = () => ({
             fills: [{
                 type: 'solid',
-                color: '#F8FAFC',
-                themeSlot: 1,
+                // Use the existing legacy default so new shapes are visible immediately.
+                value: '#D9D9D9',
+                color: '#D9D9D9',
                 visible: true,
                 opacity: 100
             }],

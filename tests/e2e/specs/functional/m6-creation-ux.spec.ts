@@ -71,7 +71,12 @@ test.describe('G6: Creation UX (toolbar + creation wiring)', () => {
     {
       const { selectedId, el } = await getSelectedElement(getState);
       expect(kindOf(el)).toBe('ellipse');
-      await expect(page.locator('#viewport').locator(`[data-element-id="${selectedId}"]`)).toHaveAttribute('data-shape-kind', 'ellipse');
+      const host = page.locator('#viewport').locator(`[data-element-id="${selectedId}"]`);
+      await expect(host).toHaveAttribute('data-shape-kind', 'ellipse');
+
+      const fillPath = host.locator('svg.geometry-layer path').first();
+      await expect(fillPath).toHaveCount(1);
+      await expect(fillPath).toHaveAttribute('fill');
     }
 
     // Line (L)
@@ -82,7 +87,11 @@ test.describe('G6: Creation UX (toolbar + creation wiring)', () => {
       expect(kindOf(el)).toBe('line');
       expect(el.params?.p1).toBeTruthy();
       expect(el.params?.p2).toBeTruthy();
-      await expect(page.locator('#viewport').locator(`[data-element-id="${selectedId}"]`)).toHaveAttribute('data-shape-kind', 'line');
+      const host = page.locator('#viewport').locator(`[data-element-id="${selectedId}"]`);
+      await expect(host).toHaveAttribute('data-shape-kind', 'line');
+      const line = host.locator('svg.geometry-layer line').first();
+      await expect(line).toHaveCount(1);
+      await expect(line).toHaveAttribute('stroke');
     }
 
     // Arrow (Shift+L)
@@ -92,7 +101,11 @@ test.describe('G6: Creation UX (toolbar + creation wiring)', () => {
       const { selectedId, el } = await getSelectedElement(getState);
       expect(kindOf(el)).toBe('line');
       expect(el.params?.endCap).toBe('arrow');
-      await expect(page.locator('#viewport').locator(`[data-element-id="${selectedId}"]`)).toHaveAttribute('data-shape-kind', 'line');
+      const host = page.locator('#viewport').locator(`[data-element-id="${selectedId}"]`);
+      await expect(host).toHaveAttribute('data-shape-kind', 'line');
+      const line = host.locator('svg.geometry-layer line').first();
+      await expect(line).toHaveCount(1);
+      await expect(line).toHaveAttribute('marker-end');
     }
 
     // Polygon (Shift+P)
@@ -102,7 +115,11 @@ test.describe('G6: Creation UX (toolbar + creation wiring)', () => {
       const { selectedId, el } = await getSelectedElement(getState);
       expect(kindOf(el)).toBe('polygon');
       expect(el.params?.sides).toBe(6);
-      await expect(page.locator('#viewport').locator(`[data-element-id="${selectedId}"]`)).toHaveAttribute('data-shape-kind', 'polygon');
+      const host = page.locator('#viewport').locator(`[data-element-id="${selectedId}"]`);
+      await expect(host).toHaveAttribute('data-shape-kind', 'polygon');
+      const fillPath = host.locator('svg.geometry-layer path').first();
+      await expect(fillPath).toHaveCount(1);
+      await expect(fillPath).toHaveAttribute('fill');
     }
 
     // Star (Shift+S)
@@ -113,7 +130,11 @@ test.describe('G6: Creation UX (toolbar + creation wiring)', () => {
       expect(kindOf(el)).toBe('star');
       expect(el.params?.points).toBe(5);
       expect(el.params?.innerRadiusRatio).toBe(0.5);
-      await expect(page.locator('#viewport').locator(`[data-element-id="${selectedId}"]`)).toHaveAttribute('data-shape-kind', 'star');
+      const host = page.locator('#viewport').locator(`[data-element-id="${selectedId}"]`);
+      await expect(host).toHaveAttribute('data-shape-kind', 'star');
+      const fillPath = host.locator('svg.geometry-layer path').first();
+      await expect(fillPath).toHaveCount(1);
+      await expect(fillPath).toHaveAttribute('fill');
     }
 
     await expect.poll(async () => await editor.getActiveTool()).toBe('select');
