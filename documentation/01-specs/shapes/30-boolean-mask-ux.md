@@ -195,25 +195,28 @@ V1 required behavior:
 - The boolean element is appended to `elementOrder` (top of stacking in the active container).
 
 Viewport visibility implications (v1 required; explicit):
-- The original operand shapes remain visible and continue to render as independent elements in the viewport.
-	- Their visibility is governed by their own `hidden` flag and paint styles.
-	- They remain individually selectable if the user clicks them (standard hit testing).
+- The original operand shapes MUST become invisible in the viewport immediately after the boolean is created.
+	- This is the core point of non-destructive booleans: the user sees the *resultant shape* without destroying the underlying operands.
+	- Operands remain preserved in state (for future drill-in/edit/release workflows and for deterministic recomputation).
+	- In v1, operands are treated as non-interactive while “owned” by the boolean (cannot be directly clicked/selected on the canvas).
 - The newly created boolean node is also visible by default.
 	- Its visibility is governed by its own `hidden` flag.
 	- It renders derived vector geometry (the boolean result) and can be selected/moved like a normal element.
 
 Layering implications (v1 required):
 - The boolean node is added last to `elementOrder`, so it initially appears visually above its operands.
-- Because operands remain visible, the user may see “duplicate” silhouettes (operand shapes underneath and the boolean result above) depending on opacity/overlap.
-	- This is expected in v1 and is the key tradeoff of non-destructive booleans.
-	- V1 does NOT auto-hide operands.
 
-Visual implications:
-- The boolean result will appear on top of its operands.
-- Because operands are not removed in v1, users may still see operand geometry in areas not covered by the boolean result (depending on z-order and transparency).
+Result-first UX (Figma-style; v1 required):
+- The boolean object is defined by the resultant shape.
+	- The boolean’s visible silhouette, hover outline, selection outline, and selection bounds MUST reflect the derived result.
+- Operands are hidden specifically to prevent “double-rendering” (seeing both operands and result).
 
 UX note (not required for v1):
 - “Hide operands automatically” is a common pro UX pattern, but v1 keeps operands intact and visible; drill-in/breadcrumb UX is a future improvement.
+
+UX note (updated):
+- V1 DOES hide operands automatically (to match the expected point of booleans).
+- Drill-in/breadcrumb UX to reveal/edit operands is still future work; until then, operands are preserved but not directly editable.
 
 #### 1.3.4.1 Boolean node visibility + color/style logic (implementation-ready)
 This section defines how the boolean node looks and why.
@@ -241,8 +244,10 @@ DOM/rendering contract (v1 required; enables DOM/UI validation):
 To avoid boolean results disappearing unexpectedly:
 - The boolean node MUST render derived geometry even when it extends outside the boolean’s current bounds.
 	- The vector SVG geometry layer MUST allow overflow (no clipping of derived paths to the element’s box).
-- If the boolean’s bounds become stale relative to its operands (e.g., operands move), the boolean geometry may extend beyond the selection box; this is acceptable in v1.
-	- Recommended follow-up: recompute boolean bounds from operands after edits.
+- The boolean’s bounds (x/y/width/height) MUST be kept in sync with the derived result.
+	- Selection box MUST bound the derived result (not merely the union of operand bounds).
+	- If derived geometry changes (operation change, operand geometry change, operand transform change), the boolean bounds MUST update on the next update pass.
+	- If bounds update lags during interaction for performance, overlays must still trace the true derived path so the user sees the correct resultant silhouette.
 
 #### 1.3.5 When and how visible states update
 This defines the update timing for derived geometry and what signals exist for validation.
@@ -296,9 +301,7 @@ Required:
 
 Interaction detail (v1 required):
 - Selecting a boolean does NOT automatically select or highlight its operand shapes (no operand “ghost highlight” in v1).
-- Because operands remain visible, the viewport may show both:
-	- the boolean overlay (on the boolean result), and
-	- underlying operand geometry (unselected) with no overlay.
+- Operands are invisible, so overlays always apply only to the resultant boolean shape.
 
 Validation note:
 - Canvas overlay drawing can be validated by instrumenting the `#interaction-canvas` 2D context calls (e.g. path commands vs `strokeRect`).
@@ -313,6 +316,11 @@ After `CREATE_BOOLEAN_FROM_SELECTION`:
 	- `operands: <filtered selection order>`
 	- `style`: deep clone of operand[0].style (or default black fill if missing)
 - New boolean is appended to `elementOrder` (topmost).
+
+Operand visibility contract (v1 required):
+- Each operand referenced by `operands` MUST become invisible in the viewport after creation.
+	- Recommended implementation: set `hidden:true` on operand elements as part of the same undo step.
+	- Undo MUST restore prior operand visibility.
 
 ### 1.4 Invalid selection behavior (must be explicit)
 The boolean dropdown MUST avoid silent no-ops.
@@ -379,7 +387,7 @@ V1 required behavior:
 - Dragging the boolean node MUST move the *composed result* in the viewport.
 - Because the boolean is non-destructive and still references live operands, the drag MUST translate the boolean node AND all operand elements by the same $(\Delta x, \Delta y)$.
 	- This preserves the visual relationship: the boolean result remains exactly the composition of its operands.
-	- Operands remain visible and move with the boolean.
+	- Operands remain preserved (but invisible) and move with the boolean.
 
 State update contract (v1 required):
 - During drag, positions update continuously via `UPDATE_ELEMENT` for:
