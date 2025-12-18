@@ -144,6 +144,14 @@ export class VisualElement {
             forceVisible = operands.includes(el.id);
         }
 
+        // Deep edit override (composition drill-in): reveal mask shape while editing.
+        if (!forceVisible && deepEdit?.kind === 'mask' && deepEdit?.mode === 'shape' && deepEdit?.elementId && this.slideData) {
+            const elements = this.slideData.effectiveElements || this.slideData.elements || {};
+            const maskEl = elements[deepEdit.elementId];
+            const maskShapeId = maskEl?.maskShapeId;
+            forceVisible = typeof maskShapeId === 'string' && maskShapeId === el.id;
+        }
+
         div.style.display = (el.hidden && !forceVisible) ? 'none' : 'block';
         div.style.mixBlendMode = el.blendMode || 'normal';
         

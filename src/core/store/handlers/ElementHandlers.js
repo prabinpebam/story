@@ -270,6 +270,12 @@ export function handleCreateMaskFromSelection(draft, payload) {
     container.elements[id] = maskEl;
     container.elementOrder.push(id);
     draft.editor.selectedElementIds = [id];
+
+    // Result-first masks: hide the mask shape in the viewport by default.
+    // Mask shapes remain preserved in state for deterministic masking and drill-in editing.
+    if (container.elements[maskShapeId]) {
+        container.elements[maskShapeId].hidden = true;
+    }
 }
 
 export function handleSetMaskInvert(draft, payload) {

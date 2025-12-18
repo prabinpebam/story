@@ -20,6 +20,7 @@ import {
     handleToggleElementVisibility,
     handleInstantiatePlaceholder,
     handleCreateBooleanFromSelection,
+    handleCreateMaskFromSelection,
     handleFlattenBooleanFromSelection
 } from '../../../../src/core/store/handlers/ElementHandlers.js';
 import { createInitialState } from '../../../../src/core/store/InitialState.js';
@@ -131,6 +132,47 @@ describe('ElementHandlers', () => {
 
             expect(slide.elements['rect-a'].hidden).toBe(true);
             expect(slide.elements['rect-b'].hidden).toBe(true);
+        });
+    });
+
+    describe('handleCreateMaskFromSelection()', () => {
+        it('creates a mask and hides the mask shape by default', () => {
+            let state = produce(initialState, draft => {
+                handleAddElement(draft, {
+                    id: 'content',
+                    type: 'rect',
+                    x: 10,
+                    y: 10,
+                    width: 200,
+                    height: 140
+                });
+                // Mask-shape must be topmost by stacking order.
+                handleAddElement(draft, {
+                    id: 'mask-shape',
+                    type: 'rect',
+                    x: 0,
+                    y: 0,
+                    width: 120,
+                    height: 80
+                });
+                draft.editor.selectedElementIds = ['mask-shape', 'content'];
+            });
+
+            state = produce(state, draft => {
+                handleCreateMaskFromSelection(draft, { ids: ['mask-shape', 'content'] });
+            });
+
+            const slideId = state.editor.activeSlideId;
+            const slide = state.slides[slideId];
+
+            // Selected element should be the new mask node.
+            expect(state.editor.selectedElementIds).toHaveLength(1);
+            const maskId = state.editor.selectedElementIds[0];
+            expect(slide.elements[maskId]).toBeDefined();
+            expect(slide.elements[maskId].shapeKind).toBe('mask');
+
+            // Mask shape is hidden in the viewport by default.
+            expect(slide.elements['mask-shape'].hidden).toBe(true);
         });
     });
 

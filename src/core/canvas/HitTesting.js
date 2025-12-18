@@ -321,6 +321,17 @@ export class HitTesting {
             allowHiddenIds = new Set(operands);
         }
 
+        // In composition drill-in, allow hit testing hidden mask shape.
+        if (!allowHiddenIds && deepEdit?.kind === 'mask' && deepEdit?.mode === 'shape' && deepEdit?.elementId) {
+            const effectiveSlide = store.getEffectiveSlide(slide.id) || slide;
+            const elements = effectiveSlide.effectiveElements || effectiveSlide.elements || {};
+            const maskEl = elements[deepEdit.elementId];
+            const maskShapeId = maskEl?.maskShapeId;
+            if (typeof maskShapeId === 'string') {
+                allowHiddenIds = new Set([maskShapeId]);
+            }
+        }
+
         // Deep edit hit testing takes priority.
         const deepHandleHit = this._hitTestVectorHandles(state, slide, worldX, worldY);
         if (deepHandleHit) return deepHandleHit;

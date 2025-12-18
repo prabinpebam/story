@@ -1,6 +1,7 @@
 import { BaseSection } from './BaseSection.js';
 import { store } from '../../core/Store.js';
 import { Switch } from '../components/Switch.js';
+import { Button } from '../components/Button.js';
 import { getShapeKind } from '../../core/shapes/ShapeElementAdapter.js';
 
 export class MaskSection extends BaseSection {
@@ -46,6 +47,31 @@ export class MaskSection extends BaseSection {
         this.invertSwitch.element.setAttribute('data-testid', 'mask-invert-toggle');
 
         this.container.appendChild(this.invertSwitch.element);
+
+        // Drill-in: reveal/edit mask shape.
+        const state = store.getState();
+        const deepEdit = state?.editor?.deepEdit;
+        const isEditingMaskShape = deepEdit?.kind === 'mask' && deepEdit?.elementId === el.id && deepEdit?.mode === 'shape';
+
+        const editRow = document.createElement('div');
+        editRow.className = 'pi-row';
+
+        const editBtn = new Button({
+            label: isEditingMaskShape ? 'Done' : 'Edit mask shape',
+            size: 'sm',
+            variant: isEditingMaskShape ? 'primary' : 'secondary',
+            dataTestId: 'mask-edit-shape',
+            onClick: () => {
+                if (isEditingMaskShape) {
+                    store.dispatch('SET_DEEP_EDIT', null);
+                } else {
+                    store.dispatch('SET_DEEP_EDIT', { kind: 'mask', elementId: el.id, mode: 'shape' });
+                }
+            }
+        });
+
+        editRow.appendChild(editBtn.element);
+        this.container.appendChild(editRow);
 
         const warning = this.getMaskWarning(el);
         if (warning) {
