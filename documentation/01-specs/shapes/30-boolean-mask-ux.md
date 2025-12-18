@@ -194,12 +194,55 @@ V1 required behavior:
 - A new boolean element is created and becomes the only selected element.
 - The boolean element is appended to `elementOrder` (top of stacking in the active container).
 
+Viewport visibility implications (v1 required; explicit):
+- The original operand shapes remain visible and continue to render as independent elements in the viewport.
+	- Their visibility is governed by their own `hidden` flag and paint styles.
+	- They remain individually selectable if the user clicks them (standard hit testing).
+- The newly created boolean node is also visible by default.
+	- Its visibility is governed by its own `hidden` flag.
+	- It renders derived vector geometry (the boolean result) and can be selected/moved like a normal element.
+
+Layering implications (v1 required):
+- The boolean node is added last to `elementOrder`, so it initially appears visually above its operands.
+- Because operands remain visible, the user may see “duplicate” silhouettes (operand shapes underneath and the boolean result above) depending on opacity/overlap.
+	- This is expected in v1 and is the key tradeoff of non-destructive booleans.
+	- V1 does NOT auto-hide operands.
+
 Visual implications:
 - The boolean result will appear on top of its operands.
 - Because operands are not removed in v1, users may still see operand geometry in areas not covered by the boolean result (depending on z-order and transparency).
 
 UX note (not required for v1):
 - “Hide operands automatically” is a common pro UX pattern, but v1 keeps operands intact and visible; drill-in/breadcrumb UX is a future improvement.
+
+#### 1.3.4.1 Boolean node visibility + color/style logic (implementation-ready)
+This section defines how the boolean node looks and why.
+
+V1 required behavior (current implementation contract):
+- The boolean node’s paint style (fills/strokes) is a deep clone of the first eligible operand’s `style` at creation time.
+	- The boolean does not blend or combine operand styles.
+	- If operand[0] has no style, boolean uses a default solid black fill.
+- The boolean node renders its derived result using its own style.
+	- Fill color comes from `booleanEl.style.fills[*].color` or `.value` (depending on fill schema).
+	- Stroke color comes from `booleanEl.style.strokes[*].color` or theme slot.
+
+Visibility rules (v1 required):
+- If the boolean operation results in empty geometry (e.g., Intersect with no overlap), the boolean node still exists and remains selectable, but it renders no visible fill/stroke geometry.
+- If operands are missing/invalid, the boolean node still exists and remains selectable; it may render a fallback result.
+	- `data-boolean-status` MUST reflect `fallback`.
+
+DOM/rendering contract (v1 required; enables DOM/UI validation):
+- Boolean nodes are rendered as `.slide-element[data-shape-kind="boolean"]`.
+- They MUST set `data-boolean-status` to `ok|repaired|fallback`.
+- Derived geometry is rendered via an `svg.geometry-layer` within the element (vector renderer).
+	- The SVG is sized to the element’s box via `viewBox="0 0 width height"` and is permitted to render overflow (for stability when bounds lag geometry).
+
+#### 1.3.4.2 “Rendered in viewport properly” guarantees (v1 required)
+To avoid boolean results disappearing unexpectedly:
+- The boolean node MUST render derived geometry even when it extends outside the boolean’s current bounds.
+	- The vector SVG geometry layer MUST allow overflow (no clipping of derived paths to the element’s box).
+- If the boolean’s bounds become stale relative to its operands (e.g., operands move), the boolean geometry may extend beyond the selection box; this is acceptable in v1.
+	- Recommended follow-up: recompute boolean bounds from operands after edits.
 
 #### 1.3.5 When and how visible states update
 This defines the update timing for derived geometry and what signals exist for validation.
@@ -250,6 +293,12 @@ Required:
 - Hover (when not selected): highlight the **shape path outline** (not the bounding box).
 - Selection: keep the normal selection overlay AND also highlight the **shape path outline**.
 - Colors MUST come from the design system accent tokens (e.g. `--color-accent`).
+
+Interaction detail (v1 required):
+- Selecting a boolean does NOT automatically select or highlight its operand shapes (no operand “ghost highlight” in v1).
+- Because operands remain visible, the viewport may show both:
+	- the boolean overlay (on the boolean result), and
+	- underlying operand geometry (unselected) with no overlay.
 
 Validation note:
 - Canvas overlay drawing can be validated by instrumenting the `#interaction-canvas` 2D context calls (e.g. path commands vs `strokeRect`).
@@ -322,6 +371,29 @@ Future UX (not required for v1):
 
 Progressive refinement feedback:
 - If boolean is in preview/refining state, show a non-blocking indicator (no modal).
+
+### 2.3 Moving a boolean node (translate) (implementation-ready)
+This section defines exactly what happens when the user drags a selected boolean on the canvas.
+
+V1 required behavior:
+- Dragging the boolean node MUST move the *composed result* in the viewport.
+- Because the boolean is non-destructive and still references live operands, the drag MUST translate the boolean node AND all operand elements by the same $(\Delta x, \Delta y)$.
+	- This preserves the visual relationship: the boolean result remains exactly the composition of its operands.
+	- Operands remain visible and move with the boolean.
+
+State update contract (v1 required):
+- During drag, positions update continuously via `UPDATE_ELEMENT` for:
+	- the boolean element, and
+	- each operand element listed in `booleanEl.operands`.
+- Undo: one drag gesture MUST be a single undo step (standard drag behavior).
+
+Failure/edge cases (v1 required):
+- If an operand listed in `booleanEl.operands` is missing at drag time, it is skipped.
+- The boolean element still moves; `data-boolean-status` will become `fallback` if operands are missing.
+
+Non-goals (v1):
+- Dragging a boolean does not change the operation or operand ordering.
+- Resizing/rotating booleans has no special semantics in this spec (separate follow-up).
 
 ## 3. Mask flows
 - “Use as mask”
