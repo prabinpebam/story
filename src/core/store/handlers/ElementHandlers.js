@@ -106,6 +106,14 @@ export function handleCreateBooleanFromSelection(draft, payload) {
     container.elements[id] = booleanEl;
     container.elementOrder.push(id);
     draft.editor.selectedElementIds = [id];
+
+    // Result-first booleans: hide operands in the viewport by default.
+    // Operands remain preserved in state for deterministic recomputation and drill-in editing.
+    operandEls.forEach((operand) => {
+        if (operand && operand.id && container.elements[operand.id]) {
+            container.elements[operand.id].hidden = true;
+        }
+    });
 }
 
 export function handleSetBooleanOperation(draft, payload) {

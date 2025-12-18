@@ -19,6 +19,7 @@ import {
     handleToggleElementLock,
     handleToggleElementVisibility,
     handleInstantiatePlaceholder,
+    handleCreateBooleanFromSelection,
     handleFlattenBooleanFromSelection
 } from '../../../../src/core/store/handlers/ElementHandlers.js';
 import { createInitialState } from '../../../../src/core/store/InitialState.js';
@@ -88,6 +89,48 @@ describe('ElementHandlers', () => {
             });
 
             expect(state.slideMasterPresets['layout-blank'].elements['placeholder-1']).toBeDefined();
+        });
+    });
+
+    describe('handleCreateBooleanFromSelection()', () => {
+        it('creates a boolean and hides operand elements by default', () => {
+            let state = produce(initialState, draft => {
+                handleAddElement(draft, {
+                    id: 'rect-a',
+                    type: 'rect',
+                    x: 0,
+                    y: 0,
+                    width: 100,
+                    height: 100,
+                    style: { fills: [{ type: 'solid', value: '#ff0000', opacity: 100, visible: true }] }
+                });
+                handleAddElement(draft, {
+                    id: 'rect-b',
+                    type: 'rect',
+                    x: 50,
+                    y: 50,
+                    width: 100,
+                    height: 100,
+                    style: { fills: [{ type: 'solid', value: '#00ff00', opacity: 100, visible: true }] }
+                });
+                draft.editor.selectedElementIds = ['rect-a', 'rect-b'];
+            });
+
+            state = produce(state, draft => {
+                handleCreateBooleanFromSelection(draft, { ids: ['rect-a', 'rect-b'], operation: 'union' });
+            });
+
+            const slideId = state.editor.activeSlideId;
+            const slide = state.slides[slideId];
+            const selected = state.editor.selectedElementIds;
+            expect(selected).toHaveLength(1);
+            const booleanId = selected[0];
+
+            expect(slide.elements[booleanId]).toBeDefined();
+            expect(slide.elements[booleanId].shapeKind).toBe('boolean');
+
+            expect(slide.elements['rect-a'].hidden).toBe(true);
+            expect(slide.elements['rect-b'].hidden).toBe(true);
         });
     });
 

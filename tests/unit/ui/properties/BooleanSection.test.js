@@ -7,6 +7,7 @@ const shared = vi.hoisted(() => ({
         getEffectiveSlide: vi.fn()
     },
     dropdownOptions: null,
+    buttonOptions: null,
     getShapeKind: vi.fn(),
     resolveBooleanDerivedPaths: vi.fn()
 }));
@@ -43,6 +44,18 @@ vi.mock('../../../../src/ui/components/Dropdown.js', () => ({
     })
 }));
 
+vi.mock('../../../../src/ui/components/Button.js', () => ({
+    Button: vi.fn((opts) => {
+        shared.buttonOptions = opts;
+        const btn = document.createElement('button');
+        btn.className = 'btn-mock';
+        if (opts?.dataTestId) btn.setAttribute('data-testid', opts.dataTestId);
+        if (opts?.label) btn.textContent = opts.label;
+        btn.addEventListener('click', () => opts?.onClick?.());
+        return { element: btn };
+    })
+}));
+
 vi.mock('../../../../src/core/shapes/ShapeElementAdapter.js', () => ({
     getShapeKind: shared.getShapeKind
 }));
@@ -60,7 +73,8 @@ function makeState({ mode = 'edit', selection = [], elementsById = {}, slideId =
         editor: {
             mode,
             activeSlideId: slideId,
-            selectedElementIds: selection
+            selectedElementIds: selection,
+            deepEdit: null
         },
         slides: {
             [slideId]: {
@@ -79,6 +93,7 @@ describe('BooleanSection', () => {
     beforeEach(() => {
         vi.clearAllMocks();
         shared.dropdownOptions = null;
+        shared.buttonOptions = null;
 
         shared.getShapeKind.mockReturnValue(null);
         shared.resolveBooleanDerivedPaths.mockReturnValue({ status: 'ok', paths: [] });
@@ -144,6 +159,51 @@ describe('BooleanSection', () => {
 
         // dropdown is pre-populated from el.operation
         expect(shared.dropdownOptions?.value).toBe('subtract');
+
+        const editBtn = section.container.querySelector('[data-testid="boolean-edit-operands"]');
+        expect(editBtn).toBeTruthy();
+    });
+
+    it('dispatches SET_DEEP_EDIT when Edit operands is clicked', () => {
+        store.getState.mockReturnValue(
+            makeState({
+                selection: ['bool-1'],
+                elementsById: {
+                    'bool-1': { id: 'bool-1', type: 'shape', shapeKind: 'boolean', operation: 'union', operands: ['a', 'b'] }
+                }
+            })
+        );
+        shared.getShapeKind.mockReturnValue('boolean');
+
+        section.update(['bool-1']);
+
+        const btn = section.container.querySelector('[data-testid="boolean-edit-operands"]');
+        expect(btn).toBeTruthy();
+        btn.click();
+
+        expect(store.dispatch).toHaveBeenCalledWith('SET_DEEP_EDIT', { kind: 'boolean', elementId: 'bool-1', mode: 'operands' });
+    });
+
+    it('dispatches SET_DEEP_EDIT null when already deep editing this boolean', () => {
+        const state = makeState({
+            selection: ['bool-1'],
+            elementsById: {
+                'bool-1': { id: 'bool-1', type: 'shape', shapeKind: 'boolean', operation: 'union', operands: ['a', 'b'] }
+            }
+        });
+        state.editor.deepEdit = { kind: 'boolean', elementId: 'bool-1', mode: 'operands' };
+
+        store.getState.mockReturnValue(state);
+        shared.getShapeKind.mockReturnValue('boolean');
+
+        section.update(['bool-1']);
+
+        const btn = section.container.querySelector('[data-testid="boolean-edit-operands"]');
+        expect(btn).toBeTruthy();
+        expect(btn.textContent).toContain('Done');
+        btn.click();
+
+        expect(store.dispatch).toHaveBeenCalledWith('SET_DEEP_EDIT', null);
     });
 
     it('defaults dropdown value to union when operation is missing', () => {

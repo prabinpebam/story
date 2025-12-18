@@ -1,6 +1,7 @@
 import { BaseSection } from './BaseSection.js';
 import { store } from '../../core/Store.js';
 import { Dropdown } from '../components/Dropdown.js';
+import { Button } from '../components/Button.js';
 import { getShapeKind } from '../../core/shapes/ShapeElementAdapter.js';
 import { resolveBooleanDerivedPaths } from '../../core/shapes/booleans/BooleanDerivedPaths.js';
 
@@ -65,6 +66,31 @@ export class BooleanSection extends BaseSection {
         row.appendChild(this.operationDropdown.element);
 
         this.container.appendChild(row);
+
+        // Drill-in: reveal/edit operands.
+        const state = store.getState();
+        const deepEdit = state?.editor?.deepEdit;
+        const isEditingOperands = deepEdit?.kind === 'boolean' && deepEdit?.elementId === el.id && deepEdit?.mode === 'operands';
+
+        const editRow = document.createElement('div');
+        editRow.className = 'pi-row';
+
+        const editBtn = new Button({
+            label: isEditingOperands ? 'Done' : 'Edit operands',
+            size: 'sm',
+            variant: isEditingOperands ? 'primary' : 'secondary',
+            dataTestId: 'boolean-edit-operands',
+            onClick: () => {
+                if (isEditingOperands) {
+                    store.dispatch('SET_DEEP_EDIT', null);
+                } else {
+                    store.dispatch('SET_DEEP_EDIT', { kind: 'boolean', elementId: el.id, mode: 'operands' });
+                }
+            }
+        });
+
+        editRow.appendChild(editBtn.element);
+        this.container.appendChild(editRow);
 
         const warning = this.getBooleanWarning(el);
         if (warning) {

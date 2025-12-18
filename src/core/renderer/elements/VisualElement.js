@@ -133,7 +133,18 @@ export class VisualElement {
         }
         
         div.style.zIndex = el.zIndex || 'auto';
-        div.style.display = el.hidden ? 'none' : 'block';
+
+        // Deep edit override (composition drill-in): reveal boolean operands while editing.
+        const deepEdit = state?.editor?.deepEdit;
+        let forceVisible = false;
+        if (deepEdit?.kind === 'boolean' && deepEdit?.mode === 'operands' && deepEdit?.elementId && this.slideData) {
+            const elements = this.slideData.effectiveElements || this.slideData.elements || {};
+            const booleanEl = elements[deepEdit.elementId];
+            const operands = Array.isArray(booleanEl?.operands) ? booleanEl.operands : [];
+            forceVisible = operands.includes(el.id);
+        }
+
+        div.style.display = (el.hidden && !forceVisible) ? 'none' : 'block';
         div.style.mixBlendMode = el.blendMode || 'normal';
         
         // Border Radius is common enough to be here

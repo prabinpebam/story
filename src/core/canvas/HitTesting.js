@@ -310,6 +310,17 @@ export class HitTesting {
         const slide = this.cm.getActiveContainer(state);
         if (!slide) return null;
 
+        // In composition drill-in, allow hit testing hidden boolean operands.
+        const deepEdit = state?.editor?.deepEdit;
+        let allowHiddenIds = null;
+        if (deepEdit?.kind === 'boolean' && deepEdit?.mode === 'operands' && deepEdit?.elementId) {
+            const effectiveSlide = store.getEffectiveSlide(slide.id) || slide;
+            const elements = effectiveSlide.effectiveElements || effectiveSlide.elements || {};
+            const booleanEl = elements[deepEdit.elementId];
+            const operands = Array.isArray(booleanEl?.operands) ? booleanEl.operands : [];
+            allowHiddenIds = new Set(operands);
+        }
+
         // Deep edit hit testing takes priority.
         const deepHandleHit = this._hitTestVectorHandles(state, slide, worldX, worldY);
         if (deepHandleHit) return deepHandleHit;
@@ -331,6 +342,9 @@ export class HitTesting {
 
         for (const { element, zOrder } of elementsWithZ) {
             if (!element) continue;
+
+            // Hidden elements are not selectable unless explicitly revealed via deep edit.
+            if (element.hidden && !(allowHiddenIds && allowHiddenIds.has(element.id))) continue;
             if (!GeometryUtils.pointInElement(worldX, worldY, element)) continue;
 
             // Current object-mode baseline: treat as fill hit with distance 0.
