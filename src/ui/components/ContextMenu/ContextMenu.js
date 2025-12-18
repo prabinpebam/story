@@ -176,6 +176,11 @@ export class ContextMenu {
         if (!this.element) {
             this.render();
         }
+
+        // Ensure menu is visible to the accessibility tree when shown.
+        this.element.removeAttribute('aria-hidden');
+        this.element.style.visibility = 'visible';
+        this.element.style.pointerEvents = '';
         
         document.body.appendChild(this.element);
         
@@ -189,6 +194,15 @@ export class ContextMenu {
                 this.element.classList.add('visible');
             }
         });
+
+        // Move focus into the menu so subsequent key presses (Enter/Arrow keys)
+        // are handled by the menu keyboard handler instead of the trigger.
+        try {
+            this.element.focus({ preventScroll: true });
+        } catch {
+            // Older browsers / test environments may not support focus options.
+            this.element.focus();
+        }
         
         // Focus first item
         this.focusFirstItem();
@@ -255,6 +269,12 @@ export class ContextMenu {
         this.closeSubmenu();
         
         this.element.classList.remove('visible');
+
+        // Remove from the accessibility tree immediately. The element is
+        // removed from the DOM after the close animation finishes.
+        this.element.setAttribute('aria-hidden', 'true');
+        this.element.style.visibility = 'hidden';
+        this.element.style.pointerEvents = 'none';
         
         // Remove after animation
         setTimeout(() => {

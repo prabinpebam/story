@@ -20,6 +20,7 @@ import { MaskSection } from './properties/MaskSection.js';
 import { BooleanSection } from './properties/BooleanSection.js';
 import { ShapeSection } from './properties/ShapeSection.js';
 import { getShapeKind } from '../core/shapes/ShapeElementAdapter.js';
+import { BooleanOpsHeaderControl } from './BooleanOpsHeaderControl.js';
 
 export class PropertyInspector {
     constructor(containerId) {
@@ -29,6 +30,7 @@ export class PropertyInspector {
         // Get the sidebar header for title updates
         this.sidebar = this.container.closest('.sidebar');
         this.headerTitle = this.sidebar?.querySelector('.sidebar-header .header-title');
+        this.sidebarHeader = this.sidebar?.querySelector('.sidebar-header');
         
         // Initialize Sections
         this.positionSection = new PositionSection();
@@ -45,6 +47,11 @@ export class PropertyInspector {
         this.shapeSection = new ShapeSection();
         this.slideSection = new SlideSection();
         this.placeholderSection = new PlaceholderSection();
+
+        // Sidebar header controls (selection-level actions)
+        this.booleanOpsHeaderControl = this.sidebarHeader
+            ? new BooleanOpsHeaderControl(this.sidebarHeader)
+            : null;
         
         this.init();
     }

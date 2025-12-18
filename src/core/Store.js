@@ -233,15 +233,22 @@ export class Store extends EventEmitter {
 
             // Shape composition (booleans + masks)
             case 'CREATE_BOOLEAN_FROM_SELECTION':
+            case 'FLATTEN_BOOLEAN_FROM_SELECTION':
             case 'CREATE_MASK_FROM_SELECTION':
             case 'SET_BOOLEAN_OPERATION':
             case 'SET_MASK_INVERT':
             case 'REORDER_BOOLEAN_OPERANDS':
             case 'REORDER_MASK_CONTENT':
                 this.snapshot(type);
+                let shapeCompositionNotificationToEmit = null;
                 this.state = produce(this.state, draft => {
                     switch (type) {
                         case 'CREATE_BOOLEAN_FROM_SELECTION': ElementHandlers.handleCreateBooleanFromSelection(draft, payload); break;
+                        case 'FLATTEN_BOOLEAN_FROM_SELECTION': {
+                            const res = ElementHandlers.handleFlattenBooleanFromSelection(draft, payload);
+                            if (res?.notification) shapeCompositionNotificationToEmit = res.notification;
+                            break;
+                        }
                         case 'CREATE_MASK_FROM_SELECTION': ElementHandlers.handleCreateMaskFromSelection(draft, payload); break;
                         case 'SET_BOOLEAN_OPERATION': ElementHandlers.handleSetBooleanOperation(draft, payload); break;
                         case 'SET_MASK_INVERT': ElementHandlers.handleSetMaskInvert(draft, payload); break;
@@ -250,6 +257,10 @@ export class Store extends EventEmitter {
                     }
                 });
                 this.emit('state-changed', this.state);
+
+                if (shapeCompositionNotificationToEmit) {
+                    this.emit('notification', shapeCompositionNotificationToEmit);
+                }
                 break;
 
             // Element Handlers

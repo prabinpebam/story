@@ -18,7 +18,8 @@ import {
     handleDistributeElements,
     handleToggleElementLock,
     handleToggleElementVisibility,
-    handleInstantiatePlaceholder
+    handleInstantiatePlaceholder,
+    handleFlattenBooleanFromSelection
 } from '../../../../src/core/store/handlers/ElementHandlers.js';
 import { createInitialState } from '../../../../src/core/store/InitialState.js';
 
@@ -289,6 +290,87 @@ describe('ElementHandlers', () => {
             // Selection should now be the duplicate(s)
             expect(state.editor.selectedElementIds).not.toContain('original');
             expect(state.editor.selectedElementIds.length).toBe(1);
+        });
+    });
+
+    describe('handleFlattenBooleanFromSelection()', () => {
+        it('should bake a union vector, delete operands, and select result', () => {
+            let state = produce(initialState, (draft) => {
+                handleAddElement(draft, {
+                    id: 'rect-a',
+                    type: 'rect',
+                    x: 10,
+                    y: 10,
+                    width: 50,
+                    height: 40,
+                    style: { fills: [{ type: 'solid', value: '#FF0000', opacity: 100, visible: true }] }
+                });
+                handleAddElement(draft, {
+                    id: 'rect-b',
+                    type: 'rect',
+                    x: 30,
+                    y: 20,
+                    width: 60,
+                    height: 40,
+                    style: { fills: [{ type: 'solid', value: '#00FF00', opacity: 100, visible: true }] }
+                });
+                draft.editor.selectedElementIds = ['rect-a', 'rect-b'];
+            });
+
+            state = produce(state, (draft) => {
+                const res = handleFlattenBooleanFromSelection(draft, { ids: ['rect-a', 'rect-b'] });
+                expect(res).toBeUndefined();
+            });
+
+            const slideId = state.editor.activeSlideId;
+            const slide = state.slides[slideId];
+
+            expect(slide.elements['rect-a']).toBeUndefined();
+            expect(slide.elements['rect-b']).toBeUndefined();
+
+            const selectedId = state.editor.selectedElementIds[0];
+            expect(typeof selectedId).toBe('string');
+            const baked = slide.elements[selectedId];
+            expect(baked).toBeDefined();
+            expect(baked.type).toBe('shape');
+            expect(baked.shapeKind).toBe('vector');
+            expect(Array.isArray(baked.paths)).toBe(true);
+            expect(baked.paths.length).toBeGreaterThan(0);
+        });
+
+        it('should safely abort and return a warning notification when geometry is invalid', () => {
+            let state = produce(initialState, (draft) => {
+                handleAddElement(draft, {
+                    id: 'bad-a',
+                    type: 'rect',
+                    x: 0,
+                    y: 0,
+                    width: 0,
+                    height: 0
+                });
+                handleAddElement(draft, {
+                    id: 'bad-b',
+                    type: 'rect',
+                    x: 0,
+                    y: 0,
+                    width: 0,
+                    height: 0
+                });
+                draft.editor.selectedElementIds = ['bad-a', 'bad-b'];
+            });
+
+            state = produce(state, (draft) => {
+                const res = handleFlattenBooleanFromSelection(draft, { ids: ['bad-a', 'bad-b'] });
+                expect(res?.notification?.type).toBe('warning');
+            });
+
+            const slideId = state.editor.activeSlideId;
+            const slide = state.slides[slideId];
+
+            // Operands kept, selection preserved.
+            expect(slide.elements['bad-a']).toBeDefined();
+            expect(slide.elements['bad-b']).toBeDefined();
+            expect(state.editor.selectedElementIds).toEqual(['bad-a', 'bad-b']);
         });
     });
 

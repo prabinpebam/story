@@ -1,3 +1,4 @@
+import { resolveBooleanDerivedPaths } from '../../shapes/booleans/BooleanDerivedPaths.js';
 
 function getActiveContainer(draft) {
     if (draft.editor.mode === 'master') {
@@ -118,6 +119,102 @@ export function handleSetBooleanOperation(draft, payload) {
     const k = getShapeKindSafe(el);
     if (k !== 'boolean') return;
     el.operation = operation;
+}
+
+export function handleFlattenBooleanFromSelection(draft, payload) {
+    const container = getActiveContainer(draft);
+    if (!container) return;
+
+    const selection = Array.isArray(payload?.ids) ? payload.ids : draft.editor.selectedElementIds;
+    if (!Array.isArray(selection) || selection.length < 2) return;
+
+    const operandIds = selection
+        .filter((id) => typeof id === 'string' && container.elements[id])
+        .filter((id) => {
+            const el = container.elements[id];
+            const k = getShapeKindSafe(el);
+            return !!k && k !== 'boolean' && k !== 'mask';
+        });
+    if (operandIds.length < 2) return;
+
+    const operandEls = operandIds.map((id) => container.elements[id]).filter(Boolean);
+    const bounds = computeUnionBounds(operandEls);
+
+    if (!(bounds.w > 0 && bounds.h > 0)) {
+        return {
+            notification: {
+                type: 'warning',
+                title: 'Flatten failed',
+                body: 'Could not compute flattened geometry. Selection preserved.',
+                dismissible: false,
+                autoDismissMs: 3000
+            }
+        };
+    }
+
+    // Compute a deterministic union result in the bounds-local space.
+    const tempBooleanEl = {
+        id: `__flatten-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+        type: 'shape',
+        shapeKind: 'boolean',
+        x: bounds.x,
+        y: bounds.y,
+        width: bounds.w,
+        height: bounds.h,
+        rotation: 0,
+        operation: 'union',
+        operands: operandIds
+    };
+
+    let derived;
+    try {
+        derived = resolveBooleanDerivedPaths(tempBooleanEl, { elements: container.elements }, { interactive: false });
+    } catch (e) {
+        derived = null;
+    }
+
+    const paths = Array.isArray(derived?.paths) ? derived.paths : [];
+    const ok = derived?.status === 'ok' && paths.length > 0;
+
+    if (!ok) {
+        return {
+            notification: {
+                type: 'warning',
+                title: 'Flatten failed',
+                body: 'Could not compute flattened geometry. Operands kept.',
+                dismissible: false,
+                autoDismissMs: 3000
+            }
+        };
+    }
+
+    const first = operandEls[0];
+    const id = payload?.id || generateElementId(container, 'shape-vector');
+
+    const vectorEl = {
+        id,
+        type: 'shape',
+        shape: 'vector',
+        shapeKind: 'vector',
+        x: bounds.x,
+        y: bounds.y,
+        width: bounds.w,
+        height: bounds.h,
+        rotation: 0,
+        paths,
+        style: isPlainObject(first?.style)
+            ? JSON.parse(JSON.stringify(first.style))
+            : { fills: [{ type: 'solid', value: '#000000', opacity: 100, visible: true }] }
+    };
+
+    container.elements[id] = vectorEl;
+    container.elementOrder.push(id);
+
+    // Remove original operands as part of the same undo step.
+    handleRemoveElement(draft, operandIds);
+
+    // Ensure the baked result is selected.
+    draft.editor.selectedElementIds = [id];
 }
 
 export function handleCreateMaskFromSelection(draft, payload) {
