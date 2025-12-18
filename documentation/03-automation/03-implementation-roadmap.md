@@ -1,56 +1,53 @@
 # Implementation Roadmap: Frontend Automation
 
-This roadmap breaks down the implementation into manageable phases.
+This roadmap breaks automation work into manageable phases. Phases are ordered by dependency (foundation first), not by calendar time.
 
-## Phase 1: Foundation & Setup (Week 1)
-**Goal:** Get Playwright installed and running a simple "Smoke Test".
+## Phase 1: Foundation & Setup
 
-1.  **Install Playwright:**
-    ```bash
-    npm init playwright@latest
-    ```
-2.  **Configure Project:**
-    *   Set up `playwright.config.ts` according to the Architecture Spec.
-    *   Create directory structure (`tests/e2e/pages`, `tests/e2e/specs`).
-3.  **Create Base Page Object:**
-    *   Implement `tests/e2e/pages/base.page.ts`.
-4.  **Write Smoke Test:**
-    *   Create `tests/e2e/specs/smoke.spec.ts`.
-    *   Scenario: App loads, title is correct, main editor canvas is visible.
-5.  **Add NPM Scripts:**
-    *   Add `"test:e2e": "playwright test"` to `package.json`.
+**Goal:** The suite runs locally and in CI with good diagnostics.
 
-## Phase 2: Critical Path Automation (Week 2-3)
-**Goal:** Automate the most important user flows.
+1. **Confirm baseline runs**
+   - `npm run test:e2e -- --list` works
+   - `npm run test:e2e` produces a report (even if only a few tests exist)
+2. **Align structure with the architecture**
+   - Keep `playwright.config.ts` and folder structure consistent with `01-architecture-spec.md`
+3. **Create/standardize a smoke test**
+   - App loads
+   - Editor/canvas surface is visible
+   - Core UI shell renders without errors
 
-1.  **Identify Critical Flows:** (See `04-test-scenarios.md` - *To be created*).
-    *   Example: Create Slide, Add Text, Change Background Color.
-2.  **Implement Page Objects:**
-    *   `EditorPage`, `ToolbarPage`, `SidebarPage`.
-3.  **Add `data-testid`:**
-    *   Go through the source code (`src/ui/...`) and add `data-testid` to key interactive elements.
-4.  **Write Functional Tests:**
-    *   Implement tests for the identified flows.
+## Phase 2: Critical Path Automation
 
-## Phase 3: Visual Regression (Week 4)
-**Goal:** Catch styling regressions.
+**Goal:** Automate the highest-value user flows first.
 
-1.  **Baseline Creation:**
-    *   Create a suite `tests/e2e/specs/visual/theme.spec.ts`.
-    *   Capture snapshots of the editor with different themes applied.
-2.  **CI Integration:**
-    *   Ensure visual tests run in a consistent environment (CI container).
+1. **Choose flows from the scenario catalog**
+   - Use `04-test-scenarios.md` and pick the smallest set that protects core functionality
+2. **Add stable selectors**
+   - Add `data-testid` to key UI elements as needed
+3. **Write functional tests**
+   - Implement tests for the selected flows, keeping them deterministic and fast
 
-## Phase 4: CI/CD Integration (Week 5)
-**Goal:** Run tests automatically on every Pull Request.
+## Phase 3: Visual Regression (Optional)
 
-1.  **GitHub Actions Workflow:**
-    *   Create `.github/workflows/playwright.yml`.
-    *   Configure it to install dependencies, run tests, and upload the HTML report as an artifact.
-2.  **Branch Protection:**
-    *   Require E2E tests to pass before merging to `main`.
+**Goal:** Catch styling regressions with stable snapshots.
 
-## Phase 5: Maintenance & Scaling (Ongoing)
-*   Regularly review flaky tests.
-*   Expand coverage to edge cases.
-*   Refactor Page Objects as the UI evolves.
+1. **Define the minimum snapshot surface area**
+2. **Run visual tests in a consistent environment**
+   - Prefer Docker in CI for deterministic fonts/rendering
+
+## Phase 4: CI/CD Integration
+
+**Goal:** Run E2E automatically on every pull request.
+
+1. **Add a GitHub Actions workflow**
+   - Install dependencies
+   - Install Playwright browsers
+   - Run `npm run test:e2e`
+   - Upload artifacts (HTML report, traces/videos on failure)
+2. **Require the workflow for merge**
+
+## Phase 5: Maintenance & Scaling
+
+- Triage flakes (root-cause; don’t just add timeouts)
+- Keep selectors stable and resilient
+- Refactor page objects/helpers when patterns repeat

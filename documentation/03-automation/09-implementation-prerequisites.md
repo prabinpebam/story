@@ -11,7 +11,7 @@ Before starting Phase 1 of the Playwright implementation roadmap, the following 
 **Priority:** Critical  
 **Effort:** ~2-3 days
 
-Add `data-testid` attributes to all interactive elements in the React components.
+Add `data-testid` attributes to all interactive UI elements.
 
 **Pattern:**
 ```jsx
@@ -46,11 +46,11 @@ Add `data-testid` attributes to all interactive elements in the React components
 **Priority:** Critical  
 **Effort:** ~1 hour
 
-Expose the Redux store on the window object for state seeding and inspection.
+Expose the app state store on the window object for state seeding and inspection.
 
 **Implementation:**
 ```javascript
-// src/main.js or src/store/Store.js
+// src/main.js (or wherever the store is created)
 if (import.meta.env.MODE === 'development' || import.meta.env.MODE === 'test') {
     window.__TEST_STORE__ = store;
     console.log('[TEST MODE] Store exposed on window.__TEST_STORE__');
@@ -264,7 +264,7 @@ See `06-state-seeding-guide.md` for examples:
 **Priority:** High (after Phase 1-2 tests written)  
 **Effort:** ~2 hours
 
-Create `.github/workflows/playwright.yml` based on `00-master-plan.md`.
+Create or update `.github/workflows/playwright.yml` based on the repo’s current Playwright setup and the official Playwright CI guidance.
 
 **Tasks:**
 - [ ] Copy workflow template
@@ -278,10 +278,10 @@ Create `.github/workflows/playwright.yml` based on `00-master-plan.md`.
 **Priority:** Medium (Phase 3)  
 **Effort:** ~3 hours
 
-Visual regression tests MUST run in Docker for consistency.
+Visual regression tests should run in Docker for consistency.
 
 **Tasks:**
-- [ ] Create `Dockerfile.playwright` (use `mcr.microsoft.com/playwright:v1.40.0`)
+- [ ] Create `Dockerfile.playwright` using a Playwright image that matches your installed `@playwright/test` version (example: `mcr.microsoft.com/playwright:v<version>-jammy`)
 - [ ] Update CI workflow to use Docker container
 - [ ] Test visual tests produce consistent screenshots locally vs CI
 
@@ -297,7 +297,7 @@ Visual regression tests MUST run in Docker for consistency.
 Ensure team is familiar with the documentation.
 
 **Tasks:**
-- [ ] Schedule team walkthrough of `00-master-plan.md`
+- [ ] Team walkthrough of `documentation/03-automation/00-index.md` (15–30 min)
 - [ ] Assign ownership of each guide to team members
 - [ ] Create "Getting Started with Playwright" quick-start doc (5 min read)
 
@@ -357,9 +357,9 @@ Before proceeding to Phase 1, verify ALL of the following:
 ## 10. Next Steps
 
 Once this checklist is complete:
-1. ✅ Verify with `npm run test:e2e -- --list` (should show 0 tests)
+1. ✅ Verify with `npm run test:e2e -- --list`
 2. ✅ Proceed to Phase 1 (Foundation) in `03-implementation-roadmap.md`
-3. ✅ Create first test: `tests/e2e/specs/smoke/app-loads.spec.ts`
+3. ✅ Create/confirm the smoke test (and keep it fast and deterministic)
 
 ---
 

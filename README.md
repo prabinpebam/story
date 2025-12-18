@@ -29,6 +29,10 @@ Story is a modern, web-based presentation tool built with vanilla JavaScript. It
 
 ## Getting Started
 
+Prereqs:
+- Node.js 22.x (see `.nvmrc` / `package.json#engines`)
+- Node.js 18+ is the minimum supported by Vite 5
+
 1. **Clone the repository**
    ```bash
    git clone https://github.com/prabinpebam/story.git
@@ -37,8 +41,10 @@ Story is a modern, web-based presentation tool built with vanilla JavaScript. It
 
 2. **Install dependencies**
    ```bash
-   npm install
+   npm ci
    ```
+
+   (If you don't have a lockfile or are modifying dependencies, use `npm install` instead.)
 
 3. **Configure OAuth (optional)**
    

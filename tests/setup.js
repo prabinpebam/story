@@ -83,11 +83,11 @@ if (typeof globalThis.HTMLCanvasElement !== 'undefined') {
         return ctx;
     };
 
-    if (!globalThis.HTMLCanvasElement.prototype.toDataURL) {
-        globalThis.HTMLCanvasElement.prototype.toDataURL = function() {
-            return 'data:image/png;base64,';
-        };
-    }
+    // jsdom defines toDataURL but throws unless node-canvas is installed.
+    // We always override to keep tests portable (Windows x64/ARM64, Linux, etc.).
+    globalThis.HTMLCanvasElement.prototype.toDataURL = function() {
+        return 'data:image/png;base64,';
+    };
 }
 
 // Some drag/drop code calls dataTransfer.setDragImage.
