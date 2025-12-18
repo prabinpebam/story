@@ -49,6 +49,8 @@ const createMock2dContext = () => {
         closePath: vi.fn(),
         moveTo: vi.fn(),
         lineTo: vi.fn(),
+        bezierCurveTo: vi.fn(),
+        quadraticCurveTo: vi.fn(),
         rect: vi.fn(),
         arc: vi.fn(),
         stroke: vi.fn(),

@@ -1,5 +1,7 @@
 import { store } from '../Store.js';
 import { GeometryUtils } from './GeometryUtils.js';
+import { getShapeKind } from '../shapes/ShapeElementAdapter.js';
+import { parametricShapeToVectorPaths } from '../shapes/paths/ParametricToPaths.js';
 
 /**
  * GizmoRenderer - Handles rendering of selection boxes, guides, and overlays
@@ -199,6 +201,11 @@ export class GizmoRenderer {
 
                 if (!hideSelection) {
                     this.drawSelectionBox(absEl, zoom, !hideHandles);
+
+                    // Shapes: also highlight the actual outline path (in addition to selection box)
+                    if (this._isShapeElement(el)) {
+                        this.drawShapePathOutline(absEl, zoom, { mode: 'selection' });
+                    }
                 }
             }
         } else {
@@ -226,7 +233,11 @@ export class GizmoRenderer {
                     const el = slide.elements[id];
                     if (el) {
                         const absEl = GeometryUtils.getAbsoluteElement(el, slide);
-                        this.drawHoverOutline(absEl, zoom);
+                        if (this._isShapeElement(el)) {
+                            this.drawShapePathOutline(absEl, zoom, { mode: 'selection' });
+                        } else {
+                            this.drawHoverOutline(absEl, zoom);
+                        }
                     }
                 });
 
@@ -245,9 +256,88 @@ export class GizmoRenderer {
         this.cm.ctx.restore();
     }
 
+    _isShapeElement(el) {
+        return getShapeKind(el) !== null;
+    }
+
+    _getShapeOutlinePaths(el) {
+        // Prefer explicit vector paths if present (vector/line/boolean-derived, etc.).
+        if (Array.isArray(el?.paths) && el.paths.length > 0) return el.paths;
+        return parametricShapeToVectorPaths(el);
+    }
+
+    _traceVectorPathsToCanvas(ctx, paths) {
+        if (!Array.isArray(paths) || paths.length === 0) return false;
+
+        ctx.beginPath();
+        for (const path of paths) {
+            const start = path?.start;
+            if (!start) continue;
+            ctx.moveTo(start.x, start.y);
+
+            const segments = Array.isArray(path?.segments) ? path.segments : [];
+            for (const seg of segments) {
+                if (!seg || typeof seg.kind !== 'string' || !seg.to) continue;
+                if (seg.kind === 'line') {
+                    ctx.lineTo(seg.to.x, seg.to.y);
+                } else if (seg.kind === 'cubic') {
+                    if (seg.c1 && seg.c2) {
+                        ctx.bezierCurveTo(seg.c1.x, seg.c1.y, seg.c2.x, seg.c2.y, seg.to.x, seg.to.y);
+                    } else {
+                        ctx.lineTo(seg.to.x, seg.to.y);
+                    }
+                } else if (seg.kind === 'quadratic' || seg.kind === 'quad') {
+                    if (seg.c1) {
+                        ctx.quadraticCurveTo(seg.c1.x, seg.c1.y, seg.to.x, seg.to.y);
+                    } else {
+                        ctx.lineTo(seg.to.x, seg.to.y);
+                    }
+                } else {
+                    // Unknown segment kind; fall back to straight line.
+                    ctx.lineTo(seg.to.x, seg.to.y);
+                }
+            }
+
+            if (path?.closed) ctx.closePath();
+        }
+
+        return true;
+    }
+
+    drawShapePathOutline(el, zoom, opts = {}) {
+        const { x, y, width, height, rotation } = el;
+        const { mode = 'hover' } = opts;
+        const colors = this.getColors();
+
+        if (!width || !height) return;
+
+        const paths = this._getShapeOutlinePaths(el);
+        if (!paths || paths.length === 0) return;
+
+        this.cm.ctx.save();
+        this.cm.ctx.translate(x + width / 2, y + height / 2);
+        this.cm.ctx.rotate((rotation || 0) * Math.PI / 180);
+        this.cm.ctx.translate(-width / 2, -height / 2);
+
+        this.cm.ctx.strokeStyle = mode === 'selection' ? colors.accentRgba80 : colors.accent;
+        this.cm.ctx.lineWidth = (mode === 'selection' ? 1.5 : 1) / zoom;
+        this.cm.ctx.setLineDash([]);
+
+        const ok = this._traceVectorPathsToCanvas(this.cm.ctx, paths);
+        if (ok) this.cm.ctx.stroke();
+
+        this.cm.ctx.restore();
+    }
+
     drawHoverOutline(el, zoom) {
         const { x, y, width, height, rotation } = el;
         const colors = this.getColors();
+
+        // Shapes: highlight the actual outline path (not the bounding box)
+        if (this._isShapeElement(el)) {
+            this.drawShapePathOutline(el, zoom, { mode: 'hover' });
+            return;
+        }
         
         this.cm.ctx.save();
         this.cm.ctx.translate(x + width / 2, y + height / 2);
