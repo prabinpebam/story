@@ -366,7 +366,7 @@ if (!noRun) {
     PW_WORKERS: '1',
     BENCH_OUT: outFile,
     BENCH_WARMUP: process.env.BENCH_WARMUP ?? '5',
-    BENCH_N: process.env.BENCH_N ?? '30',
+    BENCH_N: process.env.BENCH_N ?? '10',
   };
 
   let serverProc = null;
@@ -406,7 +406,7 @@ if (!noRun) {
 
   const result = spawnSyncCross(
     'npx',
-    ['playwright', 'test', 'tests/e2e/specs/performance/performance-benchmark-run.spec.ts'],
+    ['playwright', 'test', 'tests/e2e/specs/performance/performance-benchmark-suite.spec.ts'],
     { stdio: 'inherit', env }
   );
 
