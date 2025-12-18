@@ -10,6 +10,31 @@ export class SnappingSystem {
         this.cm = canvasManager;
     }
 
+    _getAllowHiddenIdsForDeepEdit(state, slide) {
+        const deepEdit = state?.editor?.deepEdit;
+        if (!deepEdit || !slide?.id) return null;
+
+        // In composition drill-in, allow snapping against hidden boolean operands.
+        if (deepEdit?.kind === 'boolean' && deepEdit?.mode === 'operands' && deepEdit?.elementId) {
+            const effectiveSlide = store.getEffectiveSlide(slide.id) || slide;
+            const elements = effectiveSlide.effectiveElements || effectiveSlide.elements || {};
+            const booleanEl = elements[deepEdit.elementId];
+            const operands = Array.isArray(booleanEl?.operands) ? booleanEl.operands : [];
+            return new Set(operands);
+        }
+
+        // In composition drill-in, allow snapping against the hidden mask shape.
+        if (deepEdit?.kind === 'mask' && deepEdit?.mode === 'shape' && deepEdit?.elementId) {
+            const effectiveSlide = store.getEffectiveSlide(slide.id) || slide;
+            const elements = effectiveSlide.effectiveElements || effectiveSlide.elements || {};
+            const maskEl = elements[deepEdit.elementId];
+            const maskShapeId = maskEl?.maskShapeId;
+            if (typeof maskShapeId === 'string') return new Set([maskShapeId]);
+        }
+
+        return null;
+    }
+
     getActiveSlideDimensions(state, activeContainer) {
         // In master mode, the active container can be a master/layout record without width/height.
         // Use the active slide dimensions as the canonical coordinate space.
@@ -153,7 +178,18 @@ export class SnappingSystem {
             return { x, y, guides: [] };
         }
         const slide = this.cm.getActiveContainer(state);
+        const allowHiddenIds = this._getAllowHiddenIdsForDeepEdit(state, slide);
         const SNAP_THRESHOLD = 5 / zoom;
+
+        const compoundParentIds = new Set();
+        if (slide?.elements) {
+            Object.values(slide.elements).forEach(el => {
+                if (!el || typeof el !== 'object') return;
+                if (el.type === 'shape' && (el.shapeKind === 'mask' || el.shapeKind === 'boolean')) {
+                    compoundParentIds.add(el.id);
+                }
+            });
+        }
         
         let snappedX = x;
         let snappedY = y;
@@ -171,6 +207,10 @@ export class SnappingSystem {
             if (elId === id) return;
             const rawEl = slide.elements?.[elId];
             if (!rawEl) return;
+            const isAllowed = !!(allowHiddenIds && allowHiddenIds.has(rawEl.id));
+            const isCompoundChild = !!(rawEl.parentId && compoundParentIds.has(rawEl.parentId));
+            if (isCompoundChild && !isAllowed) return;
+            if (rawEl.hidden && !isAllowed) return;
             others.push(GeometryUtils.getAbsoluteElement(rawEl, slide));
         });
 
@@ -178,7 +218,19 @@ export class SnappingSystem {
         if (state.editor.mode === 'master' && slide.type === 'layoutMaster' && slide.parentMasterId) {
             const master = state.slideMasterPresets[slide.parentMasterId];
             if (master && master.elements) {
+                const masterCompoundParentIds = new Set();
+                Object.values(master.elements).forEach(el => {
+                    if (!el || typeof el !== 'object') return;
+                    if (el.type === 'shape' && (el.shapeKind === 'mask' || el.shapeKind === 'boolean')) {
+                        masterCompoundParentIds.add(el.id);
+                    }
+                });
                 Object.values(master.elements).forEach(rawEl => {
+                    if (!rawEl) return;
+                    const isAllowed = !!(allowHiddenIds && allowHiddenIds.has(rawEl.id));
+                    const isCompoundChild = !!(rawEl.parentId && masterCompoundParentIds.has(rawEl.parentId));
+                    if (isCompoundChild && !isAllowed) return;
+                    if (rawEl.hidden && !isAllowed) return;
                     others.push(GeometryUtils.getAbsoluteElement(rawEl, master));
                 });
             }
@@ -325,6 +377,8 @@ export class SnappingSystem {
         const snapToSlide = state?.editor?.snapToSlide !== false;
         const snapToColumns = state?.editor?.snapToColumns !== false;
 
+        const allowHiddenIds = this._getAllowHiddenIdsForDeepEdit(state, slide);
+
         const { width: slideWidth, height: slideHeight } = this.getActiveSlideDimensions(state, slide);
         const SNAP_THRESHOLD = 5 / zoom;
         
@@ -381,6 +435,14 @@ export class SnappingSystem {
         const addSnapTargets = (container) => {
             if (!container || !container.elements) return;
 
+            const compoundParentIds = new Set();
+            Object.values(container.elements).forEach(el => {
+                if (!el || typeof el !== 'object') return;
+                if (el.type === 'shape' && (el.shapeKind === 'mask' || el.shapeKind === 'boolean')) {
+                    compoundParentIds.add(el.id);
+                }
+            });
+
             const ids = Array.isArray(container.elementOrder) && container.elementOrder.length > 0
                 ? container.elementOrder
                 : Object.keys(container.elements);
@@ -389,6 +451,10 @@ export class SnappingSystem {
                 if (elId === id) return;
                 const rawEl = container.elements?.[elId];
                 if (!rawEl) return;
+                const isAllowed = !!(allowHiddenIds && allowHiddenIds.has(rawEl.id));
+                const isCompoundChild = !!(rawEl.parentId && compoundParentIds.has(rawEl.parentId));
+                if (isCompoundChild && !isAllowed) return;
+                if (rawEl.hidden && !isAllowed) return;
 
                 // Use absolute coordinates for snapping targets
                 const el = GeometryUtils.getAbsoluteElement(rawEl, container);
