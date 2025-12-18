@@ -116,6 +116,9 @@ export class Store extends EventEmitter {
             case 'SET_MODE': 
             case 'SET_EDITING_ELEMENT': 
             case 'SET_DEEP_EDIT':
+            case 'SET_DEEP_EDIT_STACK':
+            case 'PUSH_DEEP_EDIT':
+            case 'POP_DEEP_EDIT':
             case 'UPDATE_VIEWPORT': 
             case 'UPDATE_SELECTION': 
             case 'TOGGLE_THEME': 
@@ -149,6 +152,9 @@ export class Store extends EventEmitter {
                         case 'SET_MODE': EditorHandlers.handleSetMode(draft, payload); break;
                         case 'SET_EDITING_ELEMENT': EditorHandlers.handleSetEditingElement(draft, payload); break;
                         case 'SET_DEEP_EDIT': EditorHandlers.handleSetDeepEdit(draft, payload); break;
+                        case 'SET_DEEP_EDIT_STACK': EditorHandlers.handleSetDeepEditStack(draft, payload); break;
+                        case 'PUSH_DEEP_EDIT': EditorHandlers.handlePushDeepEdit(draft, payload); break;
+                        case 'POP_DEEP_EDIT': EditorHandlers.handlePopDeepEdit(draft); break;
                         case 'UPDATE_VIEWPORT': EditorHandlers.handleUpdateViewport(draft, payload); break;
                         case 'UPDATE_SELECTION': EditorHandlers.handleUpdateSelection(draft, payload); break;
                         case 'TOGGLE_THEME': EditorHandlers.handleToggleTheme(draft); break;
@@ -501,6 +507,7 @@ export class Store extends EventEmitter {
                         }
                         draft.editor.selectedElementIds = [];
                         draft.editor.deepEdit = null;
+                        draft.editor.deepEditStack = [];
                         draft.editor.mode = 'edit';
                     });
                     historyManager.clear();

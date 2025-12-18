@@ -98,6 +98,22 @@ describe('BooleanOpsHeaderControl', () => {
     expect(control.trigger.style.display).not.toBe('none');
   });
 
+  it('treats booleans as eligible operands (nested booleans)', () => {
+    store.getState.mockReturnValue(
+      makeState({
+        selection: ['bool-1', 'rect-c'],
+        elementsById: {
+          'bool-1': { id: 'bool-1', type: 'shape', shapeKind: 'boolean', x: 0, y: 0, width: 10, height: 10, operation: 'union', operands: ['a', 'b'] },
+          'rect-c': { id: 'rect-c', type: 'rect', x: 5, y: 5, width: 10, height: 10 }
+        }
+      })
+    );
+
+    const control = new BooleanOpsHeaderControl(header);
+    expect(control.trigger).toBeTruthy();
+    expect(control.trigger.style.display).not.toBe('none');
+  });
+
   it('opens a menu with Union/Subtract/Intersect/Exclude, a separator, and Flatten', () => {
     store.getState.mockReturnValue(
       makeState({

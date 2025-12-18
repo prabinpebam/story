@@ -2157,6 +2157,23 @@ export class CanvasManager {
             let element = container?.elements?.[hit.id] || hit.element;
 
             if (element) {
+                // Boolean/mask drill-in via double-click (result-first, nested-safe).
+                // Vectors keep their own deep-edit behavior above.
+                if (element.type === 'shape' && (element.shapeKind === 'boolean' || element.shapeKind === 'mask')) {
+                    store.dispatch('UPDATE_SELECTION', [hit.id]);
+
+                    const ctx = element.shapeKind === 'boolean'
+                        ? { kind: 'boolean', elementId: hit.id, mode: 'operands' }
+                        : { kind: 'mask', elementId: hit.id, mode: 'shape' };
+
+                    const current = state.editor.deepEdit;
+                    const stackLen = Array.isArray(state.editor.deepEditStack) ? state.editor.deepEditStack.length : 0;
+                    const canPush = !!current && stackLen > 0 && current.elementId !== hit.id;
+
+                    store.dispatch(canPush ? 'PUSH_DEEP_EDIT' : 'SET_DEEP_EDIT', ctx);
+                    return;
+                }
+
                 if (element.type === 'text') {
                     // For inherited elements, instantiate first then enter edit mode
                     if (hit.isInherited && element.isPlaceholder) {
@@ -3122,7 +3139,12 @@ export class CanvasManager {
 
         if (e.key === 'Escape') {
             if (state.editor.deepEdit) {
-                store.dispatch('SET_DEEP_EDIT', null);
+                const stackLen = Array.isArray(state.editor.deepEditStack) ? state.editor.deepEditStack.length : 0;
+                if (stackLen > 1) {
+                    store.dispatch('POP_DEEP_EDIT');
+                } else {
+                    store.dispatch('SET_DEEP_EDIT', null);
+                }
                 e.preventDefault();
                 return;
             }

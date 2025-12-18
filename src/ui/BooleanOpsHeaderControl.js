@@ -23,7 +23,7 @@ function getEligibleOperandIds(state, selectedIds) {
         const el = container.elements[id];
         const kind = getShapeKind(el);
         if (!kind) return false;
-        return kind !== 'boolean' && kind !== 'mask';
+        return kind !== 'mask';
     });
 
     return eligible.length >= 2 ? eligible : [];

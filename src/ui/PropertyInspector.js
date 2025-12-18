@@ -31,6 +31,10 @@ export class PropertyInspector {
         this.sidebar = this.container.closest('.sidebar');
         this.headerTitle = this.sidebar?.querySelector('.sidebar-header .header-title');
         this.sidebarHeader = this.sidebar?.querySelector('.sidebar-header');
+
+        this.deepEditBar = null;
+        this.deepEditCrumbs = null;
+        this.deepEditDoneBtn = null;
         
         // Initialize Sections
         this.positionSection = new PositionSection();
@@ -73,6 +77,8 @@ export class PropertyInspector {
         
         const state = store.getState();
         const selection = state.editor.selectedElementIds;
+
+        this.updateDeepEditHeader(state);
         
         // Update header title
         this.updateHeaderTitle(state, selection);
@@ -143,6 +149,78 @@ export class PropertyInspector {
             this.placeholderSection.update(selection);
             this.container.appendChild(this.placeholderSection.section.element);
         }
+    }
+
+    updateDeepEditHeader(state) {
+        if (!this.sidebarHeader) return;
+
+        const stack = Array.isArray(state?.editor?.deepEditStack) ? state.editor.deepEditStack : [];
+
+        if (!this.deepEditBar) {
+            const bar = document.createElement('div');
+            bar.className = 'deep-edit-bar hidden';
+            bar.setAttribute('data-testid', 'deep-edit-bar');
+
+            const crumbs = document.createElement('div');
+            crumbs.className = 'deep-edit-breadcrumb';
+            crumbs.setAttribute('data-testid', 'deep-edit-breadcrumb');
+
+            const done = document.createElement('button');
+            done.className = 'btn btn--text btn--xs';
+            done.type = 'button';
+            done.textContent = 'Done';
+            done.setAttribute('data-testid', 'deep-edit-done');
+            done.addEventListener('click', () => store.dispatch('POP_DEEP_EDIT'));
+
+            bar.appendChild(crumbs);
+            bar.appendChild(done);
+
+            this.sidebarHeader.appendChild(bar);
+            this.deepEditBar = bar;
+            this.deepEditCrumbs = crumbs;
+            this.deepEditDoneBtn = done;
+        }
+
+        if (!this.deepEditBar || !this.deepEditCrumbs) return;
+
+        const visible = stack.length > 0;
+        this.deepEditBar.classList.toggle('hidden', !visible);
+        if (!visible) return;
+
+        // Rebuild crumbs (small, low-frequency DOM).
+        this.deepEditCrumbs.innerHTML = '';
+        stack.forEach((ctx, idx) => {
+            const isLast = idx === stack.length - 1;
+
+            const label = (() => {
+                if (!ctx) return 'Edit';
+                if (ctx.kind === 'boolean') return 'Boolean';
+                if (ctx.kind === 'mask') return 'Mask';
+                if (ctx.kind === 'vector') return 'Vector';
+                return 'Edit';
+            })();
+
+            const btn = document.createElement('button');
+            btn.className = `btn btn--text btn--xs deep-edit-crumb${isLast ? ' deep-edit-crumb--current' : ''}`;
+            btn.type = 'button';
+            btn.textContent = label;
+            btn.setAttribute('data-testid', `deep-edit-crumb-${idx}`);
+            btn.disabled = isLast;
+            btn.addEventListener('click', () => {
+                if (isLast) return;
+                const next = stack.slice(0, idx + 1);
+                store.dispatch('SET_DEEP_EDIT_STACK', next);
+            });
+
+            this.deepEditCrumbs.appendChild(btn);
+
+            if (!isLast) {
+                const sep = document.createElement('span');
+                sep.className = 'deep-edit-sep';
+                sep.textContent = '›';
+                this.deepEditCrumbs.appendChild(sep);
+            }
+        });
     }
 
     getElement(state, id) {

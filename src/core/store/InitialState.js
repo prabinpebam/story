@@ -1803,6 +1803,7 @@ export function createInitialState() {
             selectedElementIds: [],
             editingElementId: null,
             deepEdit: null,
+            deepEditStack: [],
             editModeSelectionType: null,
             textEditClickPosition: null,
             activeTool: "select",

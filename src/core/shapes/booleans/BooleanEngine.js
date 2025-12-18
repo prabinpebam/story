@@ -193,15 +193,37 @@ function normalizePolys(polys) {
  * @returns {{ok:true,paths:any[],status:'ok'|'repaired'} | {ok:false,paths:any[],status:'fallback'}}
  */
 export function computeBooleanPaths(input) {
+    const res = computeBooleanPolygons(input);
+    if (!res.ok) {
+        return { ok: false, status: 'fallback', paths: toVectorPathsFromPolygons(res.polys) };
+    }
+
+    try {
+        return { ok: true, status: res.status, paths: toVectorPathsFromPolygons(res.polys) };
+    } catch {
+        return { ok: false, status: 'fallback', paths: [] };
+    }
+}
+
+/**
+ * Compute boolean composition and return canonicalized polygons.
+ *
+ * This is the preferred output for nested booleans because it preserves
+ * holes/interiors (whereas converting to separate vector rings loses semantics).
+ *
+ * @param {{operation:'union'|'subtract'|'intersect'|'exclude', operands:any[]}} input
+ * @returns {{ok:true,polys:any[],status:'ok'|'repaired'} | {ok:false,polys:any[],status:'fallback'}}
+ */
+export function computeBooleanPolygons(input) {
     const operation = input?.operation;
     const operands = Array.isArray(input?.operands) ? input.operands : [];
 
     const safeFallback = () => {
         if (operation === 'union' || operation === 'exclude') {
             const first = normalizePolys(operands[0] || []);
-            return { ok: false, status: 'fallback', paths: toVectorPathsFromPolygons(first) };
+            return { ok: false, status: 'fallback', polys: canonicalizePolygonSet(first) };
         }
-        return { ok: false, status: 'fallback', paths: [] };
+        return { ok: false, status: 'fallback', polys: [] };
     };
 
     if (!operation || operands.length === 0) {
@@ -210,7 +232,6 @@ export function computeBooleanPaths(input) {
 
     // Fold left with deterministic ordering (operand order preserved).
     let acc = normalizePolys(operands[0] || []);
-
     for (let i = 1; i < operands.length; i++) {
         const next = normalizePolys(operands[i] || []);
         const res = safeBooleanOp(operation, acc, next);
@@ -218,10 +239,8 @@ export function computeBooleanPaths(input) {
         acc = normalizePolys(res);
     }
 
-    // Final canonicalization.
     try {
-        const paths = toVectorPathsFromPolygons(acc);
-        return { ok: true, status: 'ok', paths };
+        return { ok: true, status: 'ok', polys: canonicalizePolygonSet(acc) };
     } catch {
         return safeFallback();
     }

@@ -62,6 +62,113 @@ function generateElementId(container, prefix) {
     return `${prefix}-${i}`;
 }
 
+function computeMultiPolyLocalBounds(polys) {
+    let minX = Infinity;
+    let minY = Infinity;
+    let maxX = -Infinity;
+    let maxY = -Infinity;
+
+    for (const poly of Array.isArray(polys) ? polys : []) {
+        if (!Array.isArray(poly)) continue;
+        for (const ring of poly) {
+            if (!Array.isArray(ring)) continue;
+            for (const pt of ring) {
+                if (!Array.isArray(pt) || pt.length < 2) continue;
+                const x = Number(pt[0]);
+                const y = Number(pt[1]);
+                if (!Number.isFinite(x) || !Number.isFinite(y)) continue;
+                minX = Math.min(minX, x);
+                minY = Math.min(minY, y);
+                maxX = Math.max(maxX, x);
+                maxY = Math.max(maxY, y);
+            }
+        }
+    }
+
+    if (!Number.isFinite(minX) || !Number.isFinite(minY) || !Number.isFinite(maxX) || !Number.isFinite(maxY)) {
+        return null;
+    }
+
+    return { x: minX, y: minY, w: Math.max(0, maxX - minX), h: Math.max(0, maxY - minY) };
+}
+
+function syncBooleanBoundsToDerivedResult(container, booleanId) {
+    if (!container?.elements?.[booleanId]) return;
+
+    const el = container.elements[booleanId];
+    const k = getShapeKindSafe(el);
+    if (k !== 'boolean') return;
+    if ((Number(el.rotation) || 0) !== 0) return;
+
+    let derived;
+    try {
+        derived = resolveBooleanDerivedPaths(el, { elements: container.elements }, { interactive: false });
+    } catch {
+        derived = null;
+    }
+
+    if (!derived || derived.status !== 'ok' || !Array.isArray(derived.polys) || derived.polys.length === 0) return;
+    const b = computeMultiPolyLocalBounds(derived.polys);
+    if (!b || !(b.w > 0 && b.h > 0)) return;
+
+    const dx = b.x;
+    const dy = b.y;
+
+    // Move boolean's local origin to the result bounds top-left, and compensate children so world geometry stays fixed.
+    if (dx !== 0 || dy !== 0) {
+        el.x = (Number(el.x) || 0) + dx;
+        el.y = (Number(el.y) || 0) + dy;
+
+        const operandIds = Array.isArray(el.operands) ? el.operands : [];
+        operandIds.forEach((oid) => {
+            const child = container.elements[oid];
+            if (!child) return;
+            if (child.parentId !== booleanId) return;
+            child.x = (Number(child.x) || 0) - dx;
+            child.y = (Number(child.y) || 0) - dy;
+        });
+    }
+
+    el.width = b.w;
+    el.height = b.h;
+}
+
+function syncMaskBoundsToMaskShape(container, maskId) {
+    if (!container?.elements?.[maskId]) return;
+    const maskEl = container.elements[maskId];
+    const k = getShapeKindSafe(maskEl);
+    if (k !== 'mask') return;
+    if ((Number(maskEl.rotation) || 0) !== 0) return;
+
+    const shapeId = maskEl.maskShapeId;
+    if (typeof shapeId !== 'string' || !container.elements[shapeId]) return;
+    const shape = container.elements[shapeId];
+    if (shape.parentId !== maskId) return;
+
+    const dx = Number(shape.x) || 0;
+    const dy = Number(shape.y) || 0;
+    const w = Math.max(0, Number(shape.width) || 0);
+    const h = Math.max(0, Number(shape.height) || 0);
+
+    if (dx !== 0 || dy !== 0) {
+        maskEl.x = (Number(maskEl.x) || 0) + dx;
+        maskEl.y = (Number(maskEl.y) || 0) + dy;
+
+        // Keep children world-stable.
+        const ids = [shapeId, ...(Array.isArray(maskEl.contentIds) ? maskEl.contentIds : [])];
+        ids.forEach((cid) => {
+            const child = container.elements[cid];
+            if (!child) return;
+            if (child.parentId !== maskId) return;
+            child.x = (Number(child.x) || 0) - dx;
+            child.y = (Number(child.y) || 0) - dy;
+        });
+    }
+
+    maskEl.width = w;
+    maskEl.height = h;
+}
+
 export function handleCreateBooleanFromSelection(draft, payload) {
     const container = getActiveContainer(draft);
     if (!container) return;
@@ -75,18 +182,24 @@ export function handleCreateBooleanFromSelection(draft, payload) {
     const operandIds = selection.filter((id) => typeof id === 'string' && container.elements[id]);
     if (operandIds.length < 2) return;
 
-    // Disallow selecting other composition nodes as operands for v1.
+    // Eligible operands: any shape that contributes filled geometry, including booleans.
+    // Masks are relationship nodes and do not paint geometry.
     const operandEls = operandIds
         .map((id) => container.elements[id])
         .filter(Boolean)
         .filter((el) => {
             const k = getShapeKindSafe(el);
-            return !!k && k !== 'boolean' && k !== 'mask';
+            return !!k && k !== 'mask';
         });
     if (operandEls.length < 2) return;
 
     const bounds = computeUnionBounds(operandEls);
     const first = operandEls[0];
+
+    // Only re-parent when operands share the same parent coordinate space.
+    const parent0 = operandEls[0]?.parentId || null;
+    const hasCommonParent = operandEls.every((o) => (o?.parentId || null) === parent0);
+    const commonParentId = hasCommonParent ? parent0 : null;
 
     const id = payload?.id || generateElementId(container, 'shape-boolean');
     const booleanEl = {
@@ -100,20 +213,30 @@ export function handleCreateBooleanFromSelection(draft, payload) {
         rotation: 0,
         operation,
         operands: operandEls.map((el) => el.id),
-        style: isPlainObject(first?.style) ? JSON.parse(JSON.stringify(first.style)) : { fills: [{ type: 'solid', value: '#000000', opacity: 100, visible: true }] }
+        style: isPlainObject(first?.style) ? JSON.parse(JSON.stringify(first.style)) : { fills: [{ type: 'solid', value: '#000000', opacity: 100, visible: true }] },
+        ...(commonParentId ? { parentId: commonParentId } : {})
     };
 
     container.elements[id] = booleanEl;
     container.elementOrder.push(id);
     draft.editor.selectedElementIds = [id];
 
-    // Result-first booleans: hide operands in the viewport by default.
-    // Operands remain preserved in state for deterministic recomputation and drill-in editing.
+    // Result-first booleans: move operands under the boolean so the boolean behaves like a base shape
+    // (moving the boolean moves its operands), and hide operands in the viewport by default.
     operandEls.forEach((operand) => {
-        if (operand && operand.id && container.elements[operand.id]) {
-            container.elements[operand.id].hidden = true;
+        if (!operand || !operand.id || !container.elements[operand.id]) return;
+
+        if (hasCommonParent && (operand.parentId || null) === commonParentId) {
+            operand.parentId = id;
+            operand.x = (Number(operand.x) || 0) - bounds.x;
+            operand.y = (Number(operand.y) || 0) - bounds.y;
         }
+
+        operand.hidden = true;
     });
+
+    // Shrink boolean bounds to derived result so selection/handles match the result.
+    syncBooleanBoundsToDerivedResult(container, id);
 }
 
 export function handleSetBooleanOperation(draft, payload) {
@@ -127,6 +250,8 @@ export function handleSetBooleanOperation(draft, payload) {
     const k = getShapeKindSafe(el);
     if (k !== 'boolean') return;
     el.operation = operation;
+
+    syncBooleanBoundsToDerivedResult(container, id);
 }
 
 export function handleFlattenBooleanFromSelection(draft, payload) {
@@ -141,7 +266,7 @@ export function handleFlattenBooleanFromSelection(draft, payload) {
         .filter((id) => {
             const el = container.elements[id];
             const k = getShapeKindSafe(el);
-            return !!k && k !== 'boolean' && k !== 'mask';
+            return !!k && k !== 'mask';
         });
     if (operandIds.length < 2) return;
 
@@ -250,6 +375,11 @@ export function handleCreateMaskFromSelection(draft, payload) {
         : selectionIds.filter((id) => id !== maskShapeId);
     if (contentIds.length === 0) return;
 
+    // Only re-parent when all selected elements share the same parent coordinate space.
+    const parent0 = (container.elements[maskShapeId]?.parentId || null);
+    const hasCommonParent = [maskShapeId, ...contentIds].every((sid) => (container.elements[sid]?.parentId || null) === parent0);
+    const commonParentId = hasCommonParent ? parent0 : null;
+
     const id = payload?.id || generateElementId(container, 'shape-mask');
     const maskEl = {
         id,
@@ -264,18 +394,37 @@ export function handleCreateMaskFromSelection(draft, payload) {
         maskShapeId,
         contentIds,
         mode: payload?.mode === 'alpha' ? 'alpha' : 'clip',
-        invert: payload?.invert === true
+        invert: payload?.invert === true,
+        ...(commonParentId ? { parentId: commonParentId } : {})
     };
 
     container.elements[id] = maskEl;
     container.elementOrder.push(id);
     draft.editor.selectedElementIds = [id];
 
-    // Result-first masks: hide the mask shape in the viewport by default.
-    // Mask shapes remain preserved in state for deterministic masking and drill-in editing.
+    // Result-first masks: parent mask shape + content under the mask so the mask behaves like a base shape.
+    if (hasCommonParent) {
+        const baseX = Number(maskEl.x) || 0;
+        const baseY = Number(maskEl.y) || 0;
+
+        const childIds = [maskShapeId, ...contentIds];
+        childIds.forEach((cid) => {
+            const child = container.elements[cid];
+            if (!child) return;
+            if ((child.parentId || null) !== commonParentId) return;
+            child.parentId = id;
+            child.x = (Number(child.x) || 0) - baseX;
+            child.y = (Number(child.y) || 0) - baseY;
+        });
+    }
+
+    // Hide the mask shape in the viewport by default (Figma-like). Content remains visible through the mask.
     if (container.elements[maskShapeId]) {
         container.elements[maskShapeId].hidden = true;
     }
+
+    // Align mask bounds to the mask shape box (in case the shape was offset during parenting).
+    syncMaskBoundsToMaskShape(container, id);
 }
 
 export function handleSetMaskInvert(draft, payload) {
@@ -315,6 +464,8 @@ export function handleReorderBooleanOperands(draft, payload) {
     const targetIndex = Math.max(0, Math.min(operands.length, targetIndexRaw));
     operands.splice(targetIndex, 0, operandId);
     el.operands = operands;
+
+    syncBooleanBoundsToDerivedResult(container, booleanId);
 }
 
 export function handleReorderMaskContent(draft, payload) {

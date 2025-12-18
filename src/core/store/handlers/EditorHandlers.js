@@ -23,6 +23,7 @@ export function handleSetActiveSlide(draft, payload) {
         draft.editor.selectedElementIds = [];
         draft.editor.editingElementId = null;
         draft.editor.deepEdit = null;
+        draft.editor.deepEditStack = [];
     }
 }
 
@@ -33,6 +34,7 @@ export function handleSetActiveMaster(draft, payload) {
         draft.editor.selectedElementIds = [];
         draft.editor.editingElementId = null;
         draft.editor.deepEdit = null;
+        draft.editor.deepEditStack = [];
     }
 }
 
@@ -52,6 +54,7 @@ export function handleSetActiveTool(draft, payload) {
         draft.editor.selectedElementIds = [];
         draft.editor.editingElementId = null;
         draft.editor.deepEdit = null;
+        draft.editor.deepEditStack = [];
     }
 }
 
@@ -66,6 +69,7 @@ export function handleSetMode(draft, payload) {
     draft.editor.selectedElementIds = [];
     draft.editor.editingElementId = null;
     draft.editor.deepEdit = null;
+    draft.editor.deepEditStack = [];
     
     if (payload === 'master' && !draft.editor.activeMasterId) {
         const firstMaster = Object.keys(draft.slideMasterPresets)[0];
@@ -110,6 +114,28 @@ export function handleSetDeepEdit(draft, payload) {
     // Payload is either null (exit deep edit) or an object describing deep edit mode.
     // Example: { kind: 'vector', elementId: '...', selection: {...} }
     draft.editor.deepEdit = payload || null;
+    draft.editor.deepEditStack = payload ? [payload] : [];
+}
+
+export function handleSetDeepEditStack(draft, payload) {
+    const stack = Array.isArray(payload) ? payload.filter(Boolean) : [];
+    draft.editor.deepEditStack = stack;
+    draft.editor.deepEdit = stack.length > 0 ? stack[stack.length - 1] : null;
+}
+
+export function handlePushDeepEdit(draft, payload) {
+    if (!payload) return;
+    const stack = Array.isArray(draft.editor.deepEditStack) ? [...draft.editor.deepEditStack] : [];
+    stack.push(payload);
+    draft.editor.deepEditStack = stack;
+    draft.editor.deepEdit = payload;
+}
+
+export function handlePopDeepEdit(draft) {
+    const stack = Array.isArray(draft.editor.deepEditStack) ? [...draft.editor.deepEditStack] : [];
+    stack.pop();
+    draft.editor.deepEditStack = stack;
+    draft.editor.deepEdit = stack.length > 0 ? stack[stack.length - 1] : null;
 }
 
 export function handleUpdateViewport(draft, payload) {

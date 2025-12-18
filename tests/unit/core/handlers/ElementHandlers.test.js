@@ -133,6 +133,62 @@ describe('ElementHandlers', () => {
             expect(slide.elements['rect-a'].hidden).toBe(true);
             expect(slide.elements['rect-b'].hidden).toBe(true);
         });
+
+        it('allows using an existing boolean as an operand (nested booleans)', () => {
+            let state = produce(initialState, draft => {
+                handleAddElement(draft, {
+                    id: 'rect-a',
+                    type: 'rect',
+                    x: 0,
+                    y: 0,
+                    width: 100,
+                    height: 100,
+                    style: { fills: [{ type: 'solid', value: '#ff0000', opacity: 100, visible: true }] }
+                });
+                handleAddElement(draft, {
+                    id: 'rect-b',
+                    type: 'rect',
+                    x: 50,
+                    y: 0,
+                    width: 100,
+                    height: 100,
+                    style: { fills: [{ type: 'solid', value: '#00ff00', opacity: 100, visible: true }] }
+                });
+                handleAddElement(draft, {
+                    id: 'rect-c',
+                    type: 'rect',
+                    x: 25,
+                    y: 50,
+                    width: 100,
+                    height: 100,
+                    style: { fills: [{ type: 'solid', value: '#0000ff', opacity: 100, visible: true }] }
+                });
+
+                // Create inner boolean explicitly.
+                draft.editor.selectedElementIds = ['rect-a', 'rect-b'];
+            });
+
+            state = produce(state, draft => {
+                handleCreateBooleanFromSelection(draft, { id: 'bool-inner', ids: ['rect-a', 'rect-b'], operation: 'union' });
+            });
+
+            state = produce(state, draft => {
+                // Create outer boolean from (inner boolean + rect-c)
+                draft.editor.selectedElementIds = ['bool-inner', 'rect-c'];
+                handleCreateBooleanFromSelection(draft, { id: 'bool-outer', ids: ['bool-inner', 'rect-c'], operation: 'subtract' });
+            });
+
+            const slideId = state.editor.activeSlideId;
+            const slide = state.slides[slideId];
+
+            expect(slide.elements['bool-outer']).toBeDefined();
+            expect(slide.elements['bool-outer'].shapeKind).toBe('boolean');
+            expect(slide.elements['bool-outer'].operands).toEqual(['bool-inner', 'rect-c']);
+
+            // Outer ownership hides its operands (including boolean operands).
+            expect(slide.elements['bool-inner'].hidden).toBe(true);
+            expect(slide.elements['rect-c'].hidden).toBe(true);
+        });
     });
 
     describe('handleCreateMaskFromSelection()', () => {
@@ -456,6 +512,59 @@ describe('ElementHandlers', () => {
             expect(slide.elements['bad-a']).toBeDefined();
             expect(slide.elements['bad-b']).toBeDefined();
             expect(state.editor.selectedElementIds).toEqual(['bad-a', 'bad-b']);
+        });
+
+        it('allows flattening a selection that includes a boolean (nested booleans)', () => {
+            let state = produce(initialState, (draft) => {
+                handleAddElement(draft, {
+                    id: 'rect-a',
+                    type: 'rect',
+                    x: 10,
+                    y: 10,
+                    width: 50,
+                    height: 40,
+                    style: { fills: [{ type: 'solid', value: '#FF0000', opacity: 100, visible: true }] }
+                });
+                handleAddElement(draft, {
+                    id: 'rect-b',
+                    type: 'rect',
+                    x: 30,
+                    y: 10,
+                    width: 50,
+                    height: 40,
+                    style: { fills: [{ type: 'solid', value: '#00FF00', opacity: 100, visible: true }] }
+                });
+                handleAddElement(draft, {
+                    id: 'rect-c',
+                    type: 'rect',
+                    x: 25,
+                    y: 35,
+                    width: 60,
+                    height: 40,
+                    style: { fills: [{ type: 'solid', value: '#0000FF', opacity: 100, visible: true }] }
+                });
+                draft.editor.selectedElementIds = ['rect-a', 'rect-b'];
+            });
+
+            state = produce(state, (draft) => {
+                handleCreateBooleanFromSelection(draft, { id: 'bool-inner', ids: ['rect-a', 'rect-b'], operation: 'union' });
+            });
+
+            state = produce(state, (draft) => {
+                // Flatten selection including a boolean and a shape.
+                draft.editor.selectedElementIds = ['bool-inner', 'rect-c'];
+                handleFlattenBooleanFromSelection(draft, { id: 'vec-flat', ids: ['bool-inner', 'rect-c'] });
+            });
+
+            const slideId = state.editor.activeSlideId;
+            const slide = state.slides[slideId];
+
+            // Should create baked vector and remove operands.
+            expect(slide.elements['vec-flat']).toBeDefined();
+            expect(slide.elements['vec-flat'].shapeKind).toBe('vector');
+            expect(slide.elements['bool-inner']).toBeUndefined();
+            expect(slide.elements['rect-c']).toBeUndefined();
+            expect(state.editor.selectedElementIds).toEqual(['vec-flat']);
         });
     });
 
