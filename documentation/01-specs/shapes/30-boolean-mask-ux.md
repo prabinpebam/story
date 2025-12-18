@@ -1,10 +1,8 @@
-# Boolean & Mask Interaction UX
+# Boolean & Mask Interaction UX (Figma-parity+)
 
 **Status**: Ready for implementation
 
-Defines user flows for creating, editing, and flattening booleans and masks.
-
-This spec is UI-facing: the goal is to make boolean/mask functionality **testable via the existing toolbar + property inspector + sidebar header selection controls**.
+Defines the end-state UX and UI contracts for creating, editing, and flattening booleans and masks with **Figma-parity (and beyond)**. This document is written to be **automation-friendly** (DOM hooks + deterministic state contracts).
 
 Related:
 - Tool UX + shortcuts: [39-toolbar-tools-and-creation-ux.md](./39-toolbar-tools-and-creation-ux.md)
@@ -13,29 +11,24 @@ Related:
 
 ---
 
-## V1 scope note (what ships vs future)
+## 0. Principles (non-negotiable)
 
-**Shipped in v1 (required)**:
-- Boolean + mask nodes exist and are non-destructive (until the user explicitly flattens).
-- Robust failure-mode behavior is non-fatal (fallbacks keep operands/content intact and surface non-blocking warnings).
-- Sidebar header selection UI supports creating booleans from multi-selection via a dropdown (Union/Subtract/Intersect/Exclude) and explicit Flatten.
-- Node-level inspector sections exist for boolean operation and mask invert.
-
-**V1 NON-GOAL**:
-- Keyboard shortcuts for boolean/mask commands (menu-driven UI is sufficient for v1).
-- Mask creation from selection UI (separate follow-up; this spec still documents the desired behavior).
+- **Result-first**: the boolean object is defined by the derived result (visible silhouette, hover outline, selection outline, and bounds).
+- **Non-destructive**: operands/content are preserved in state until the user explicitly bakes/flattens.
+- **No double-rendering**: operands (and mask shapes) are hidden in the viewport by default after composition, so the user sees the resultant composition, not the ingredients.
+- **Editable ingredients**: hidden operands/mask shapes remain discoverable and editable via a drill-in/breadcrumb workflow (no “mystery objects”).
+- **Deterministic**: operation semantics and operand ordering are stable and testable.
+- **Non-fatal failures**: boolean/mask resolution problems never crash and never silently delete user content; they surface non-blocking warnings and preserve data.
 
 ---
 
 ## 1. Boolean creation
 
-### 1.1 Entry points (V1)
-
-#### 1.1.1 Sidebar header: Selection summary + boolean dropdown
+### 1.1 Entry point: sidebar header (multi-selection)
 When **more than 1** element is selected, the sidebar header MUST show the current selection summary (existing behavior).
 
 If the current selection is **eligible for boolean composition** (see rules below), the sidebar header MUST also show a **Boolean operations** control:
-- A button/icon for boolean operations with a dropdown caret.
+- A button/icon with dropdown caret.
 - Clicking opens a dropdown menu anchored to the header control.
 
 Accessibility requirements:
@@ -48,38 +41,38 @@ Menu structure (required):
 - `Subtract`
 - `Intersect`
 - `Exclude`
-- (Divider: visual separator; not a command)
+- (Divider)
 - `Flatten`
 
-The divider is a UI separator between non-destructive boolean creation commands and destructive/baking commands.
+The divider is a UI separator between non-destructive boolean creation commands and destructive baking commands.
 
-#### 1.1.2 Eligibility rules for showing/enabling the boolean dropdown
-The boolean dropdown is only shown when:
+### 1.2 Eligibility rules (avoid silent no-ops)
+The boolean dropdown is shown only when:
 - `selectedElementIds.length >= 2`, AND
 - After filtering, there are **2+ eligible operands**.
 
-Eligible operands (v1):
+Eligible operands:
 - Shape/vector elements that can participate as boolean operands.
-- NOT composition nodes (i.e., NOT `shapeKind:'boolean'` and NOT `shapeKind:'mask'`).
+- NOT composition nodes (i.e. NOT `shapeKind:'boolean'` and NOT `shapeKind:'mask'`).
 
-If the selection is 2+ but yields <2 eligible operands after filtering:
-- Do NOT show the boolean dropdown (avoid silent no-ops).
+If selection is 2+ but yields <2 eligible operands after filtering:
+- Do NOT show the boolean dropdown.
 
-If a future UX requires showing a disabled dropdown, it MUST include a reason text; however, v1 uses “hide when not eligible” for clarity.
+### 1.3 Command behavior
 
-### 1.2 Command behavior
 On choosing a boolean op (Union/Subtract/Intersect/Exclude):
 - Create a new boolean node with:
 	- `shapeKind:'boolean'`
 	- `operation:<chosen>`
-	- `operands:[...selectedIds]` (ordering; see below)
+	- `operands:[...filteredSelectedIds]` (ordering; see §1.5)
 - The new boolean node becomes the only selected element.
+- Operands MUST become hidden in the viewport immediately (see §1.7).
 
 On choosing `Flatten` from the sidebar header dropdown:
 - Flatten MUST be treated as an explicit, irreversible baking action.
 - Flatten MUST operate on the **current selection** and produce a single baked vector result.
 
-Flatten semantics (v1):
+Flatten semantics:
 - Filter the current selection to eligible operands (same filtering rules as boolean creation).
 - If fewer than 2 eligible operands remain, Flatten MUST do nothing and MUST NOT change selection (this should be prevented by eligibility gating).
 - Create a derived boolean result using `operation:'union'` (union is the deterministic default for flattening a multi-selection).
@@ -88,37 +81,261 @@ Flatten semantics (v1):
 - Select the baked result.
 
 Undo contract:
-- Flatten from selection MUST be **1 undo step**.
+- Boolean creation is **1 undo step**.
+- Flatten from selection is **1 undo step**.
 
 Failure mode:
-- If the boolean engine cannot compute a derived path for flattening, the operation MUST be aborted safely:
+- If the boolean engine cannot compute a derived path for creation or flattening:
 	- Keep operands intact.
-	- Keep selection intact.
+	- Keep selection intact (for flatten) or keep the created boolean node present (for creation).
 	- Surface a non-blocking warning (no modal).
 
 Implementation mapping (Store actions; used by tests/automation today):
 - Union/Subtract/Intersect/Exclude MUST dispatch:
 	- `store.dispatch('CREATE_BOOLEAN_FROM_SELECTION', { ids: state.editor.selectedElementIds, operation: <op> })`
-	- The store handler is responsible for filtering invalid operands and selecting the newly created boolean.
-
-Implementation mapping for Flatten (new requirement):
-- Sidebar header `Flatten` MUST dispatch a single action that is undo-coalesced into one history step, e.g.:
+- Flatten MUST dispatch a single undo-coalesced action:
 	- `store.dispatch('FLATTEN_BOOLEAN_FROM_SELECTION', { ids: state.editor.selectedElementIds })`
 
-Notes:
-- If implementation prefers composing multiple lower-level actions, it MUST still present as **one undo step**.
+### 1.4 Operation semantics (visible geometry)
+All operations are computed in a deterministic fold over the operand list.
 
-Operand ordering (v1):
-- Preserve the current selection ordering (`state.editor.selectedElementIds`) after filtering to valid operands.
-- Never re-order operands implicitly later.
+Terminology:
+- Let operands be an ordered list $[A, B, C, ...]$.
+- Each operand contributes a filled region (its closed path area) in world space.
+- The boolean node renders the derived result as its own vector geometry.
 
-Implementation note:
-- The current store handler follows the selection array order rather than sorting by z-order.
-- If selection order is found to be unstable, the recommended stabilization is sorting by `elementOrder` back→front.
+Operation semantics:
+- **Union**: $(((A \cup B) \cup C) \cup ...)$
+- **Subtract**: $(((A \setminus B) \setminus C) \setminus ...)$ (order-dependent)
+- **Intersect**: $(((A \cap B) \cap C) \cap ...)$
+- **Exclude** (XOR): $(((A \oplus B) \oplus C) \oplus ...)$
 
-### 1.3 Preview/result
-- The boolean node renders the derived result immediately.
-- If the boolean engine is still computing/refining, show a non-blocking “Refining…” indicator (no modal).
+Edge cases:
+- Degenerate operands (0 width/height or empty paths) contribute nothing.
+- If the result is empty (no derived paths), the boolean node renders no fill/stroke geometry (but still exists and is selectable).
+
+### 1.5 Operand ordering (selection order)
+Operand ordering is a first-class, testable contract.
+
+Rules:
+- The boolean node’s `operands` array MUST preserve the filtered selection ordering.
+- No implicit reordering (z-order sorting, ID sorting, etc.) is allowed.
+
+### 1.6 Fill/stroke/effects when operands have different styles
+This section is intentionally explicit so validation is unambiguous.
+
+Style rule:
+- The boolean node inherits *all paint style* from the **first operand in the filtered operand list**.
+	- Concretely: `booleanEl.style` is a deep clone of `firstOperand.style` at creation time.
+
+Paint expectations:
+- Fills: render using the boolean node’s `style.fills` list.
+- Strokes: render using the boolean node’s `style.strokes` list.
+- Opacity and `visible:false` rules are honored per entry.
+
+### 1.7 What remains visible (operand ownership + drill-in requirement)
+
+After boolean creation:
+- Creating a boolean does NOT delete or mutate operands.
+- A new boolean element is created and becomes the only selected element.
+- The boolean element is appended to `elementOrder` (top of stacking in the active container).
+
+Viewport visibility:
+- The original operand shapes MUST become invisible in the viewport immediately after the boolean is created.
+	- Operands remain preserved in state for deterministic recomputation and editing.
+	- Operands MUST not be directly selectable on-canvas while “owned” by the boolean.
+- The newly created boolean node is visible by default (governed by its own `hidden` flag) and renders derived vector geometry.
+
+Discoverability/editability (required):
+- The UI MUST provide a drill-in/breadcrumb workflow to reveal and edit boolean operands.
+- Entering “edit operands” mode MUST make operands visible and selectable.
+- Exiting “edit operands” mode MUST restore the default result-first view (operands hidden).
+
+### 1.8 Result-defined bounds + overlays
+
+Result-first UX:
+- The boolean object is defined by the resultant shape.
+	- The boolean’s visible silhouette, hover outline, selection outline, and selection bounds MUST reflect the derived result.
+	- Operands are hidden specifically to prevent double-rendering.
+
+Selection + hover overlays (required):
+- Hover (when not selected): highlight the **shape path outline** (not the bounding box).
+- Selection: keep the normal selection overlay AND also highlight the **shape path outline**.
+- Colors MUST come from design system accent tokens (e.g. `--color-accent`).
+
+### 1.9 Update timing + progressive refinement
+
+Derived geometry recompute triggers:
+- Any change that affects operand geometry or transforms MUST eventually update the boolean’s rendered geometry, including operand move/resize/rotate/path edit and boolean operation change.
+
+Timing:
+- In steady-state, derived geometry updates on the next render/update pass after the underlying state change.
+
+Progressive refinement:
+- During UI interactions (`state.ui.isInteracting === true`), a “heavy” boolean MAY temporarily show its last-known-good derived result instead of recomputing on every frame.
+- After interaction ends, the derived result MUST be recomputed and the display updated.
+
+### 1.10 DOM/rendering contract (enables DOM/UI validation)
+
+- Boolean nodes are rendered as `.slide-element[data-shape-kind="boolean"]`.
+- They MUST set `data-boolean-status` to `ok|repaired|fallback`.
+- Derived geometry is rendered via an `svg.geometry-layer` within the element (vector renderer).
+- The SVG MUST be permitted to render overflow (no clipping of derived paths to the element’s box).
+
+---
+
+## 2. Boolean editing
+
+### 2.1 Property Inspector: Boolean section (boolean node selected)
+When exactly one selected element is a boolean node (`shapeKind:'boolean'`), the Property Inspector MUST surface the current boolean settings so the user can revisit/edit them.
+
+Visibility:
+- The Boolean section is shown only when `selectedElementIds.length === 1` AND the selected element kind is `boolean`.
+
+Operation control:
+- The section includes an `Operation` dropdown with options: Union/Subtract/Intersect/Exclude.
+- The dropdown MUST be pre-populated to the selected boolean’s current operation (`el.operation`, default `union`).
+- The dropdown MUST be addressable via `data-testid="boolean-operation"`.
+- Changing the dropdown MUST be non-destructive and update the boolean operation immediately by dispatching:
+	- `store.dispatch('SET_BOOLEAN_OPERATION', { id: <booleanId>, operation: <op> })`
+
+Status warning:
+- If the boolean cannot be resolved (missing/invalid operands, compute failure), show a non-blocking status row (no modal).
+- The warning row MUST be addressable via `data-testid="boolean-status-warning"`.
+- In `presentation` mode, the warning row is not shown.
+
+Operand editing:
+- The section MUST provide an affordance to drill into operands (enter/exit operand-edit mode).
+- The entry control MUST be addressable via `data-testid="boolean-edit-operands"`.
+
+Flatten:
+- The section MUST provide a `Flatten` action (danger-styled) that converts the boolean to a baked `shapeKind:'vector'` result and removes operand linkage.
+- Undo: 1 step.
+- Failure: non-fatal; keep operands + boolean node intact; show non-blocking warning.
+
+### 2.2 Moving a boolean node (translate)
+Dragging the boolean node MUST move the *composed result* in the viewport.
+
+Rules:
+- Drag MUST translate the boolean node AND all operand elements by the same $(\Delta x, \Delta y)$.
+- If an operand listed in `booleanEl.operands` is missing at drag time, it is skipped.
+- The boolean element still moves; `data-boolean-status` becomes `fallback` if operands are missing.
+
+---
+
+## 3. Mask flows
+
+### 3.1 Entry points (selection-level)
+When selection contains one intended mask shape and 1+ intended content elements:
+- Provide a selection-level command **Use as mask** in the same selection-level composition section in the Property Inspector, OR expose it via the right-click canvas context menu.
+
+Implementation mapping (Store actions; used by tests/automation today):
+- “Use as mask” MUST dispatch:
+	- `store.dispatch('CREATE_MASK_FROM_SELECTION', { ids: state.editor.selectedElementIds })`
+
+### 3.2 Creation + visibility
+Creation behavior:
+- Create `shapeKind:'mask'` node with:
+	- `maskShapeId:<chosen mask id>`
+	- `contentIds:[...chosen content ids]`
+	- default `mode:'clip'`
+	- default `invert:false`
+- The new mask node becomes selected.
+
+Viewport visibility (no double-rendering):
+- The mask node is a relationship node and does not paint its own geometry.
+- The mask shape referenced by `maskShapeId` MUST become invisible in the viewport while owned by the mask.
+- Content elements in `contentIds` remain visible but clipped.
+
+Discoverability/editability (required):
+- The UI MUST provide a drill-in/breadcrumb workflow to reveal and edit the mask shape and masked content.
+
+### 3.3 What masks look like (clip behavior)
+- Content elements listed in `maskNode.contentIds` are clipped via a computed CSS `clip-path`.
+
+Determinism:
+- If multiple mask nodes affect the same element, their clip regions are intersected.
+- Multiple masks are applied in a deterministic order (by mask node id).
+
+Invert:
+- If `invert:true`, the effective clip region is (element bounds) minus (mask shape region).
+- If invert computation fails, invert falls back deterministically to a no-op (treat as full rect).
+
+DOM validation hook:
+- Masked content elements MUST set `data-mask-count` to the number of masks applied.
+
+### 3.4 Property Inspector: Mask section (mask node selected)
+When exactly one selected element has `shapeKind:'mask'`, show a **Mask** section with:
+- `Invert` toggle
+- (Optional) `Mode` dropdown: Clip/Alpha (if alpha masking is implemented)
+
+---
+
+## 4. Undo (required)
+
+- Each boolean/mask action is undoable.
+- Creating a boolean/mask is 1 undo step.
+- Changing boolean operation is 1 undo step.
+- Flatten from selection is 1 undo step.
+- Flatten a selected boolean node is 1 undo step.
+
+---
+
+## 5. Acceptance (end-state)
+
+Boolean operations control (sidebar header)
+- With <2 selected elements: boolean control is hidden.
+- With 2+ selected, but fewer than 2 eligible operands after filtering: boolean control is hidden.
+- With 2+ eligible operands: control is visible, keyboard accessible, and menu items appear in this exact order: Union, Subtract, Intersect, Exclude, separator, Flatten.
+- Selecting an operation dispatches `CREATE_BOOLEAN_FROM_SELECTION`.
+- Selecting Flatten dispatches `FLATTEN_BOOLEAN_FROM_SELECTION`.
+
+Boolean creation
+- Creates a new element with `shapeKind:'boolean'` and chosen `operation`.
+- `operands` equals the filtered selection order (no reordering).
+- New boolean is added to `elementOrder` (topmost) and becomes the only selection.
+- Operands become hidden in the viewport and are not directly selectable on-canvas.
+- The boolean silhouette/bounds/overlays reflect the derived result (not operand bounds).
+
+Boolean editing
+- Selecting a boolean shows the Boolean inspector section.
+- `data-testid="boolean-operation"` reflects the current operation (defaults to `union`).
+- Changing operation dispatches `SET_BOOLEAN_OPERATION` and updates rendered geometry.
+- If resolution fails, `data-testid="boolean-status-warning"` appears (not in presentation mode).
+- Drill-in editing exists: entering operand-edit mode reveals operands; exiting restores result-first view.
+
+Flatten
+- Flatten from selection bakes a `shapeKind:'vector'` union, removes operands, selects baked result.
+- Flatten selected boolean bakes the boolean’s current result and removes linkage.
+- Failure mode is non-fatal and preserves user data.
+
+Mask
+- Creating a mask creates a `shapeKind:'mask'` node with `maskShapeId` and `contentIds`.
+- Mask node does not paint geometry.
+- Mask shape becomes hidden in the viewport while owned by the mask.
+- Content in `contentIds` is clipped.
+- Masked content elements set `data-mask-count`.
+- Invert toggle updates clipping; invert failures fall back deterministically.
+
+---
+
+## 6. Phased delivery plan (does not change the target UX)
+
+This section sequences implementation work; it does not relax any requirements above.
+
+Phase 1 (foundation)
+- Sidebar header boolean dropdown (Union/Subtract/Intersect/Exclude/Flatten) with eligibility gating.
+- Result-first booleans: operands hidden, boolean defined by derived result (bounds + overlays).
+- Boolean inspector: operation dropdown + non-blocking warning row.
+- Non-fatal failure handling + deterministic `data-boolean-status`.
+
+Phase 2 (editability)
+- Drill-in/breadcrumb for booleans: enter/exit operand-edit mode, reveal operands, restore result-first view.
+- Drill-in/breadcrumb for masks: edit mask shape vs masked content.
+
+Phase 3 (authoring power)
+- Operand management UI: reorder operands, add/remove operands, and clear ownership/release flows where applicable.
+- Flatten selected boolean in inspector (if not already shipped).
 
 #### 1.3.1 What changes visually for each boolean operation
 This section defines the *visible geometry* for each operation. All operations are computed in a deterministic fold over the operand list.
