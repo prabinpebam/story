@@ -25,6 +25,7 @@ Design goal: keep this documentation “timeless”. Prefer stable workflows and
 | `08-debugging-and-maintenance.md` | Ongoing maintenance practices (flake triage, trace usage).
 | `09-implementation-prerequisites.md` | Checklist before scaling the suite/CI.
 | `10-comprehensive-performance-audit-plan.md` | Deep performance audit plan and CI gating approach.
+| `11-performance-benchmark-report.md` | Single source of truth registry for performance metrics, scenarios, thresholds, and run cadence.
 
 ## Running Tests
 
