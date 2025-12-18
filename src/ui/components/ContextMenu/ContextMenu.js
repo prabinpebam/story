@@ -275,13 +275,13 @@ export class ContextMenu {
         this.element.setAttribute('aria-hidden', 'true');
         this.element.style.visibility = 'hidden';
         this.element.style.pointerEvents = 'none';
-        
-        // Remove after animation
-        setTimeout(() => {
-            if (this.element && this.element.parentNode) {
-                this.element.parentNode.removeChild(this.element);
-            }
-        }, 100); // Match --duration-fast
+
+        // Remove immediately to avoid leaving stale menus in the DOM.
+        // This prevents Playwright strict-mode locators from matching
+        // multiple menu items across overlapping close/open frames.
+        if (this.element.parentNode) {
+            this.element.parentNode.removeChild(this.element);
+        }
         
         // Remove global listeners
         document.removeEventListener('keydown', this.handleKeyDown);
