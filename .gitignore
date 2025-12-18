@@ -53,3 +53,6 @@ test-results-pw-temp*/
 
 # Playwright HTML report
 playwright-report/
+
+# Performance benchmark artifacts (generated)
+documentation/03-automation/perf-runs/

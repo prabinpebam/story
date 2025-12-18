@@ -208,10 +208,9 @@ export class EditorPage {
     async getState(): Promise<any> {
         return await this.page.evaluate(() => {
             const win = window as any;
-            if (!win.__TEST_STORE__) {
-                throw new Error('Test store not exposed');
-            }
-            return win.__TEST_STORE__.getState();
+            const store = win.__TEST_STORE__ || win._storyAppStore;
+            if (!store) throw new Error('Test store not exposed');
+            return store.getState();
         });
     }
     
@@ -221,10 +220,9 @@ export class EditorPage {
     async dispatchAction(actionType: string, payload?: any): Promise<void> {
         await this.page.evaluate(({ type, data }) => {
             const win = window as any;
-            if (!win.__TEST_STORE__) {
-                throw new Error('Test store not exposed');
-            }
-            win.__TEST_STORE__.dispatch(type, data);
+            const store = win.__TEST_STORE__ || win._storyAppStore;
+            if (!store) throw new Error('Test store not exposed');
+            store.dispatch(type, data);
         }, { type: actionType, data: payload });
     }
     

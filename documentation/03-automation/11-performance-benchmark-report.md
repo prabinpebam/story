@@ -235,13 +235,47 @@ Recommended rule:
 <!-- BEGIN AUTO:LAST_RUN -->
 ## 10) Latest Benchmark Run (Auto-Generated)
 
-- Run timestamp: (run `npm run perf:bench`)
-- Environment class: unspecified
-- Output file: `documentation/03-automation/perf-runs/<timestamp>.jsonl`
+- Run timestamp: 2025-12-18_13-04-37
+- Environment class: runner.local
+- Output file: `documentation/03-automation/perf-runs/2025-12-18_13-04-37.jsonl`
+
+### 10.0 Run Metadata
+
+- Scenario: `selection.simple_rect`
+- Warmup: 5
+- Iterations: 30
+- Browser: 143.0.7499.4
+- Viewport: 1280x720 @ dpr 1
+- User agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.7499.4 Safari/537.36
+- Host OS (node): win32 10.0.26436
+- CPU (node): snapdragon (tm) 8cx gen 3 @ 3.40 GHz
+
+### 10.1 Results (distribution vs Target/Gate)
+
+| Metric ID | Scenario ID | n | p50 | p95 | p99 | Target | Gate | Status |
+|---|---|---:|---:|---:|---:|---:|---:|---|
+| `selection.highlight.latency_ms` | `selection.simple_rect` | 0 | — | — | — | 50ms | 80ms | NO DATA |
+| `selection.pi_ready.latency_ms` | `selection.simple_rect` | 30 | 0.7 | 1.3 | 1.6 | 80ms | 120ms | PASS |
+| `tool_switch.latency_ms` | `tool_switch.text` | 0 | — | — | — | 50ms | 80ms | NO DATA |
+| `drag.start.latency_ms` | `drag.simple_shape` | 0 | — | — | — | 16ms | 32ms | NO DATA |
+| `typing.latency_ms` | `typing.simple_text` | 0 | — | — | — | 16ms | 30ms | NO DATA |
+| `slide_switch.latency_ms` | `slide_switch.typical_deck` | 0 | — | — | — | 100ms | 180ms | NO DATA |
+| `theme_switch.latency_ms` | `theme_switch.typical_deck` | 0 | — | — | — | 120ms | 200ms | NO DATA |
+| `frame.steady.p95_ms` | `idle.typical` | 0 | — | — | — | 16.7ms | 18.2ms | NO DATA |
+| `frame.interaction.p95_ms` | `selection.simple_rect` | 0 | — | — | — | 24ms | 33ms | NO DATA |
+| `longtask.count` | `selection.simple_rect` | 0 | — | — | — | 0 | 0 | NO DATA |
+| `render.simple_slide.p95_ms` | `render.simple_slide` | 0 | — | — | — | 16ms | 33ms | NO DATA |
+| `render.complex_slide.p95_ms` | `render.complex_slide` | 0 | — | — | — | 50ms | 100ms | NO DATA |
+| `hittest.pointer.p95_ms` | `selection.simple_rect` | 0 | — | — | — | 2ms | 5ms | NO DATA |
+| `startup.tti_ms` | `startup.warm` | 0 | — | — | — | 2000ms | — | NO DATA |
+| `startup.first_frame_ms` | `startup.warm` | 0 | — | — | — | 1000ms | — | NO DATA |
+| `memory.heap_delta_mb` | `soak.60min` | 0 | — | — | — | — | — | NO DATA |
+| `memory.detached_nodes` | `soak.60min` | 0 | — | — | — | — | — | NO DATA |
+
 
 ## 11) Findings and Improvement Plans (Auto-Generated)
 
-- Run `npm run perf:bench` to populate results.
+- All measured metrics are at or above targets (p95).
 <!-- END AUTO:LAST_RUN -->
 
 ---

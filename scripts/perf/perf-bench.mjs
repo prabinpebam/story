@@ -5,6 +5,26 @@ import http from 'node:http';
 import { spawn, spawnSync } from 'node:child_process';
 import { lintCoverage } from './perf-coverage-lint.mjs';
 
+const isWin = process.platform === 'win32';
+
+function spawnSyncCross(command, args, options = {}) {
+  const result = spawnSync(command, args, { ...options, shell: isWin });
+  if (result?.error) {
+    console.error(`[perf:bench] Failed to start: ${command} ${args.join(' ')}`);
+    console.error(result.error);
+  }
+  return result;
+}
+
+function spawnCross(command, args, options = {}) {
+  const child = spawn(command, args, { ...options, shell: isWin });
+  child.on('error', (err) => {
+    console.error(`[perf:bench] Failed to start: ${command} ${args.join(' ')}`);
+    console.error(err);
+  });
+  return child;
+}
+
 const repoRoot = process.cwd();
 const reportPath = path.join(repoRoot, 'documentation', '03-automation', '11-performance-benchmark-report.md');
 const runsDir = path.join(repoRoot, 'documentation', '03-automation', 'perf-runs');
@@ -352,11 +372,10 @@ if (!noRun) {
   let serverProc = null;
   if (!useDevServer) {
     // Production-like server per audit plan: build + preview.
-    const build = spawnSync(process.platform === 'win32' ? 'npm.cmd' : 'npm', ['run', 'build'], { stdio: 'inherit' });
+    const build = spawnSyncCross('npm', ['run', 'build'], { stdio: 'inherit' });
     if (build.status !== 0) process.exit(build.status ?? 1);
 
-    const npmCmd = process.platform === 'win32' ? 'npm.cmd' : 'npm';
-    serverProc = spawn(npmCmd, ['run', 'preview', '--', '--host', '127.0.0.1', '--port', '5173', '--strictPort'], {
+    serverProc = spawnCross('npm', ['run', 'preview', '--', '--host', '127.0.0.1', '--port', '5173', '--strictPort'], {
       stdio: 'inherit',
       env: { ...process.env },
     });
@@ -385,9 +404,8 @@ if (!noRun) {
     env.BASE_URL = 'http://127.0.0.1:5173';
   }
 
-  const cmd = process.platform === 'win32' ? 'npx.cmd' : 'npx';
-  const result = spawnSync(
-    cmd,
+  const result = spawnSyncCross(
+    'npx',
     ['playwright', 'test', 'tests/e2e/specs/performance/performance-benchmark-run.spec.ts'],
     { stdio: 'inherit', env }
   );
