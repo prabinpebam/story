@@ -10,7 +10,7 @@ Defines bbox handle behavior, rotation, constraints, and feedback.
 ## 1. Handles
 - 8 resize handles
 - Rotation handle
-- Corner radius handles (existing)
+- Corner radius handles (rectangles only)
 
 ## 2. Modifier semantics
 - Shift: constrain aspect/angle

@@ -1,5 +1,6 @@
 import { store } from '../Store.js';
 import { GeometryUtils } from './GeometryUtils.js';
+import { isRectangleElement } from '../shapes/ShapeElementAdapter.js';
 
 /**
  * HitTesting - Handles hit detection for elements and handles
@@ -455,7 +456,7 @@ export class HitTesting {
         }
 
         // 2. Check Corner Radius Handles (Inner)
-        if (width > radiusHandleOffset * 3 && height > radiusHandleOffset * 3) {
+        if (isRectangleElement(el) && width > radiusHandleOffset * 3 && height > radiusHandleOffset * 3) {
              const rHandles = [
                 { x: radiusHandleOffset, y: radiusHandleOffset, id: 'nw' },
                 { x: width - radiusHandleOffset, y: radiusHandleOffset, id: 'ne' },

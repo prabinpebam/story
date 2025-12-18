@@ -11,6 +11,7 @@ test.describe('UI: Shape outline overlays (canvas path vs bounding box)', () => 
     await page.addInitScript(() => {
       const trace: Record<string, number> = {
         strokeRect: 0,
+        arc: 0,
         bezierCurveTo: 0,
         quadraticCurveTo: 0,
         lineTo: 0,
@@ -34,6 +35,7 @@ test.describe('UI: Shape outline overlays (canvas path vs bounding box)', () => 
             ctx.__overlayTracePatched = true;
             const methods = [
               'strokeRect',
+              'arc',
               'bezierCurveTo',
               'quadraticCurveTo',
               'lineTo',
@@ -124,5 +126,91 @@ test.describe('UI: Shape outline overlays (canvas path vs bounding box)', () => 
     // Shapes also get a path outline highlight.
     expect(t.bezierCurveTo).toBeGreaterThan(0);
     expect(t.stroke).toBeGreaterThan(0);
+  });
+
+  test('selection overlay shows corner-radius handles only for rectangles', async ({ page }) => {
+    // Ellipse selection should NOT show corner-radius handles.
+    await page.keyboard.press('o');
+    await canvas.drag(0.25, 0.55, 0.45, 0.75);
+
+    await page.evaluate(() => (window as any).__overlayTraceReset());
+    await page.waitForTimeout(250);
+    let t = await page.evaluate(() => (window as any).__overlayTrace);
+    expect(t.arc).toBe(0);
+
+    // Rectangle selection SHOULD show corner-radius handles.
+    await page.keyboard.press('r');
+    await canvas.drag(0.55, 0.55, 0.8, 0.8);
+
+    await page.evaluate(() => (window as any).__overlayTraceReset());
+    await page.waitForTimeout(250);
+    t = await page.evaluate(() => (window as any).__overlayTrace);
+    expect(t.arc).toBeGreaterThan(0);
+  });
+
+  test('hover on a boolean strokes derived path outline (no bounding-box strokeRect)', async ({ page, dispatchAction, getState }) => {
+    // Two overlapping rectangles, then intersect boolean.
+    await dispatchAction('ADD_ELEMENT', {
+      id: 'rect-a',
+      type: 'rect',
+      x: 200,
+      y: 200,
+      width: 220,
+      height: 160,
+      rotation: 0,
+      style: { fills: [{ type: 'solid', value: '#ff0000', opacity: 100, visible: true }] }
+    });
+
+    await dispatchAction('ADD_ELEMENT', {
+      id: 'rect-b',
+      type: 'rect',
+      x: 300,
+      y: 260,
+      width: 220,
+      height: 160,
+      rotation: 0,
+      style: { fills: [{ type: 'solid', value: '#00ff00', opacity: 100, visible: true }] }
+    });
+
+    await dispatchAction('UPDATE_SELECTION', ['rect-a', 'rect-b']);
+    await dispatchAction('CREATE_BOOLEAN_FROM_SELECTION', { ids: ['rect-a', 'rect-b'], operation: 'intersect' });
+
+    const state = await getState();
+    const booleanId = state?.editor?.selectedElementIds?.[0];
+    expect(booleanId).toBeTruthy();
+
+    const slide = state?.slides?.[state?.editor?.activeSlideId];
+    const booleanEl = slide?.elements?.[booleanId as string];
+    expect(booleanEl).toBeTruthy();
+
+    // Hover only draws when not selected.
+    await dispatchAction('UPDATE_SELECTION', []);
+
+    const canvasBounds = await page.locator('#interaction-canvas').boundingBox();
+    expect(canvasBounds).toBeTruthy();
+
+    // Move away to ensure we're not hovering the boolean.
+    await page.mouse.move((canvasBounds as any).x + 10, (canvasBounds as any).y + 10);
+    await page.waitForTimeout(100);
+
+    await page.evaluate(() => (window as any).__overlayTraceReset());
+
+    const zoom = state?.editor?.zoom ?? 1;
+    const pan = state?.editor?.pan ?? { x: 0, y: 0 };
+
+    // Hover the boolean center in canvas coordinates.
+    const wx = booleanEl.x + booleanEl.width / 2;
+    const wy = booleanEl.y + booleanEl.height / 2;
+    const cx = (canvasBounds as any).x + (pan.x + wx * zoom);
+    const cy = (canvasBounds as any).y + (pan.y + wy * zoom);
+    await page.mouse.move(cx, cy);
+    await page.waitForTimeout(250);
+
+    const t = await page.evaluate(() => (window as any).__overlayTrace);
+
+    // Boolean hover should outline the derived path, not just strokeRect.
+    expect(t.stroke).toBeGreaterThan(0);
+    expect(t.lineTo + t.bezierCurveTo + t.quadraticCurveTo).toBeGreaterThan(0);
+    expect(t.strokeRect).toBe(0);
   });
 });

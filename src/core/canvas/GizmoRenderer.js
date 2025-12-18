@@ -1,7 +1,8 @@
 import { store } from '../Store.js';
 import { GeometryUtils } from './GeometryUtils.js';
-import { getShapeKind } from '../shapes/ShapeElementAdapter.js';
+import { getShapeKind, isRectangleElement } from '../shapes/ShapeElementAdapter.js';
 import { parametricShapeToVectorPaths } from '../shapes/paths/ParametricToPaths.js';
+import { resolveBooleanDerivedPaths } from '../shapes/booleans/BooleanDerivedPaths.js';
 
 /**
  * GizmoRenderer - Handles rendering of selection boxes, guides, and overlays
@@ -263,6 +264,20 @@ export class GizmoRenderer {
     _getShapeOutlinePaths(el) {
         // Prefer explicit vector paths if present (vector/line/boolean-derived, etc.).
         if (Array.isArray(el?.paths) && el.paths.length > 0) return el.paths;
+
+        // Booleans: outline should trace derived result silhouette.
+        if (getShapeKind(el) === 'boolean' && el?.id) {
+            try {
+                const state = store.getState();
+                const container = this.cm.getActiveContainer(state);
+                const elementsById = container?.elements;
+                const booleanEl = elementsById?.[el.id] || el;
+                const derived = resolveBooleanDerivedPaths(booleanEl, { elements: elementsById || {} }, { interactive: false });
+                if (Array.isArray(derived?.paths) && derived.paths.length > 0) return derived.paths;
+            } catch {
+                // Fall back to parametric conversion.
+            }
+        }
         return parametricShapeToVectorPaths(el);
     }
 
@@ -470,7 +485,7 @@ export class GizmoRenderer {
 
             // 3. Draw Corner Radius Handles (Inner Circles)
             // Only draw if enough space
-            if (width > radiusHandleOffset * 3 && height > radiusHandleOffset * 3) {
+            if (isRectangleElement(el) && width > radiusHandleOffset * 3 && height > radiusHandleOffset * 3) {
                 const radiusHandles = [
                     { x: radiusHandleOffset, y: radiusHandleOffset }, // NW
                     { x: width - radiusHandleOffset, y: radiusHandleOffset }, // NE
