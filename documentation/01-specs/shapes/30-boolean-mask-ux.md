@@ -120,6 +120,151 @@ Implementation note:
 - The boolean node renders the derived result immediately.
 - If the boolean engine is still computing/refining, show a non-blocking “Refining…” indicator (no modal).
 
+#### 1.3.1 What changes visually for each boolean operation
+This section defines the *visible geometry* for each operation. All operations are computed in a deterministic fold over the operand list.
+
+Terminology:
+- Let operands be an ordered list $[A, B, C, ...]$.
+- Each operand contributes a filled region (its closed path area) in world space.
+- The boolean node renders the derived result as its own vector geometry.
+
+Operation semantics (v1 required):
+- **Union**: the combined area of all operands.
+	- Equivalent to: $(((A \cup B) \cup C) \cup ...)$
+- **Subtract**: removes later operands from earlier ones.
+	- Equivalent to: $(((A \setminus B) \setminus C) \setminus ...)$
+	- Ordering matters. Subtract is NOT commutative.
+- **Intersect**: keeps only the overlapping area across operands.
+	- Equivalent to: $(((A \cap B) \cap C) \cap ...)$
+- **Exclude** (XOR): keeps areas that are in an odd number of operands.
+	- Equivalent to: $(((A \oplus B) \oplus C) \oplus ...)$
+
+Visual expectations per operation (2 operands):
+- Union: merged silhouette (no “holes” except those implied by operand shapes).
+- Subtract: A with B cut out. If B does not overlap A, result looks like A.
+- Intersect: only the overlap region. If no overlap, result is empty (no visible geometry).
+- Exclude: union minus intersection. Overlapping region becomes empty.
+
+Edge cases (v1 required):
+- Degenerate operands (0 width/height or empty paths) contribute nothing.
+- If the result is empty (no derived paths), the boolean node renders no fill/stroke geometry.
+
+#### 1.3.2 Operand ordering (selection order) and why it matters
+Operand ordering is a first-class, testable contract.
+
+Rules (v1 required):
+- The boolean node’s `operands` array MUST preserve the filtered selection ordering.
+- No implicit reordering (z-order sorting, ID sorting, etc.) is allowed.
+
+Why it matters:
+- Subtract depends on order: `A - B` is different from `B - A`.
+- For Union/Intersect/Exclude, ordering should not change the final region, but ordering still matters for determinism (test repeatability and multi-operand folds).
+
+#### 1.3.3 Fill/stroke/effects when combining differently-styled shapes
+This section is intentionally explicit so QA can validate style behavior without ambiguity.
+
+V1 required style rule (current implementation contract):
+- The boolean node inherits *all paint style* from the **first operand in the filtered operand list**.
+	- Concretely: `booleanEl.style` is a deep clone of `firstOperand.style` at creation time.
+
+Implications:
+- If you combine two shapes of different fill colors:
+	- The boolean result uses the first operand’s fill(s) and stroke(s).
+	- It does NOT blend or average colors.
+	- The second operand’s style has no effect on the boolean node’s paint.
+- If the user wants the other color:
+	- They can change the boolean node’s fill in the Property Inspector after creation, OR
+	- They can create the boolean again with the desired “style source” selected first.
+
+Specific paint expectations (v1 required):
+- Fills: render using the boolean node’s `style.fills` list.
+- Strokes: render using the boolean node’s `style.strokes` list.
+- Opacity: per-fill/per-stroke opacity is honored.
+- If a fill/stroke entry is `visible:false`, it does not render.
+
+Notes / non-goals (v1):
+- There is no multi-operand “style union” or per-operand material preservation.
+- If a fill type is unsupported by the vector renderer, it may not appear even if it exists in `style`.
+
+#### 1.3.4 What remains visible after boolean creation
+This section defines what the user sees immediately after creating a boolean.
+
+V1 required behavior:
+- Creating a boolean does NOT delete or mutate operands.
+- A new boolean element is created and becomes the only selected element.
+- The boolean element is appended to `elementOrder` (top of stacking in the active container).
+
+Visual implications:
+- The boolean result will appear on top of its operands.
+- Because operands are not removed in v1, users may still see operand geometry in areas not covered by the boolean result (depending on z-order and transparency).
+
+UX note (not required for v1):
+- “Hide operands automatically” is a common pro UX pattern, but v1 keeps operands intact and visible; drill-in/breadcrumb UX is a future improvement.
+
+#### 1.3.5 When and how visible states update
+This defines the update timing for derived geometry and what signals exist for validation.
+
+Derived geometry recompute triggers (v1 required):
+- Any change that affects the operand polygons or transforms MUST eventually update the boolean’s rendered geometry, including:
+	- operand move/resize/rotate
+	- operand path edit (vector points/paths)
+	- operand parent transform changes (group transform)
+	- boolean operation change
+
+Update timing (v1 required):
+- In steady-state, derived geometry updates on the next render/update pass after the underlying state change.
+
+Progressive refinement / interaction behavior (v1 required):
+- During UI interactions (`state.ui.isInteracting === true`), a “heavy” boolean MAY temporarily show its last-known-good derived result instead of recomputing on every frame.
+- After interaction ends, the derived result MUST be recomputed and the display updated.
+
+DOM validation hooks (v1 required):
+- The boolean host element MUST set `data-boolean-status` to one of:
+	- `ok` (computed successfully)
+	- `repaired` (computed with canonicalization)
+	- `fallback` (missing operands, self-reference, or compute failure)
+
+Recommended (optional) UI indicator:
+- If `data-boolean-status !== 'ok'` or the boolean is in a “stale preview” state, show a non-blocking “Refining…” affordance (no modal).
+
+#### 1.3.6 Failure modes (non-fatal) and what the user sees
+Boolean creation/editing failure MUST be non-fatal.
+
+Rules (v1 required):
+- If the boolean engine cannot compute paths:
+	- The boolean node must remain in the document.
+	- The app must not crash.
+	- The boolean node may render empty geometry.
+	- `data-boolean-status` MUST reflect `fallback`.
+
+Flatten failure MUST be non-fatal (v1 required):
+- If flatten cannot produce a valid path result:
+	- Operands MUST remain intact.
+	- Selection MUST remain unchanged.
+	- A non-blocking warning is shown (no modal).
+
+#### 1.3.7 Selection + hover overlays for booleans
+This defines the expected selection/hover visuals for boolean nodes.
+
+Required:
+- Hover (when not selected): highlight the **shape path outline** (not the bounding box).
+- Selection: keep the normal selection overlay AND also highlight the **shape path outline**.
+- Colors MUST come from the design system accent tokens (e.g. `--color-accent`).
+
+Validation note:
+- Canvas overlay drawing can be validated by instrumenting the `#interaction-canvas` 2D context calls (e.g. path commands vs `strokeRect`).
+
+#### 1.3.8 Concrete, testable creation contract (state + ordering + style)
+After `CREATE_BOOLEAN_FROM_SELECTION`:
+- `selectedElementIds` becomes `[<newBooleanId>]`.
+- New element exists in the active container:
+	- `type: 'shape'`
+	- `shapeKind: 'boolean'`
+	- `operation: <chosen>`
+	- `operands: <filtered selection order>`
+	- `style`: deep clone of operand[0].style (or default black fill if missing)
+- New boolean is appended to `elementOrder` (topmost).
+
 ### 1.4 Invalid selection behavior (must be explicit)
 The boolean dropdown MUST avoid silent no-ops.
 
@@ -136,9 +281,29 @@ v1 constraint:
 - Operand reordering and drill-in/breadcrumb UX are future work; v1 supports operation changes only.
 
 ### 2.1 Property Inspector: Boolean section (node selected)
-When exactly one selected element has `shapeKind:'boolean'`, the inspector shows a **Boolean** section with:
-- `Operation` dropdown: Union/Subtract/Intersect/Exclude
-	- Changing it updates `el.operation` (non-destructive)
+When exactly one selected element is a boolean node (`shapeKind:'boolean'`), the Property Inspector MUST surface the current boolean settings so the user can revisit/edit them.
+
+Visibility rules (v1 required; matches current implementation):
+- The Boolean section is shown only when `selectedElementIds.length === 1` AND the selected element kind is `boolean`.
+- Otherwise, the Boolean section is hidden.
+
+Operation control (v1 required; matches current implementation):
+- The section includes an `Operation` dropdown with these options:
+	- Union (`union`)
+	- Subtract (`subtract`)
+	- Intersect (`intersect`)
+	- Exclude (`exclude`)
+- The dropdown MUST be pre-populated to the selected boolean’s current operation:
+	- Value is `el.operation`.
+	- If missing/invalid, it defaults to `union`.
+- The dropdown element MUST be addressable for automation via `data-testid="boolean-operation"`.
+- Changing the dropdown MUST be non-destructive and update the boolean operation immediately by dispatching:
+	- `store.dispatch('SET_BOOLEAN_OPERATION', { id: <booleanId>, operation: <op> })`
+
+Status warning (v1 required; matches current implementation):
+- If the boolean cannot be resolved (missing/invalid operands, etc.), the section shows a non-blocking status row (no modal).
+- The warning row MUST be addressable via `data-testid="boolean-status-warning"`.
+- In `presentation` mode, the warning row is not shown.
 
 Optional (recommended, consistent with sidebar header behavior):
 - `Flatten` button (danger-styled) that converts the boolean to a `shapeKind:'vector'` result and removes operand linkage.
@@ -161,6 +326,39 @@ Progressive refinement feedback:
 ## 3. Mask flows
 - “Use as mask”
 - Edit mask vs content
+
+### 3.3 What masks look like (clip behavior)
+V1 required behavior:
+- A mask node (`shapeKind:'mask'`) is a relationship node and does not paint its own geometry.
+- Content elements listed in `maskNode.contentIds` are clipped via a computed CSS `clip-path`.
+
+What is visible:
+- The **content** remains visible but clipped to the mask region.
+- The **mask node** itself is not visible as a painted shape.
+- The **mask shape element** referenced by `maskShapeId` remains a normal element unless the user changes its style.
+
+Determinism (v1 required):
+- If multiple mask nodes affect the same element, their clip regions are intersected.
+- Multiple masks are applied in a deterministic order (by mask node id) even though intersection is commutative.
+
+Invert behavior (v1 required):
+- If `invert:true`, the effective clip region is (element bounds) minus (mask shape region).
+- If invert computation fails, invert falls back deterministically to a no-op (treat as full rect).
+
+DOM validation hook (v1 required):
+- Masked content elements MUST set `data-mask-count` to the number of masks applied.
+
+### 3.4 When mask visuals update
+Mask updates MUST be reactive.
+
+Changes that must update the visible clip:
+- Mask shape geometry/transform changes.
+- Content element geometry/transform changes.
+- Mask invert toggles.
+- Adding/removing mask nodes or content membership.
+
+Expected timing:
+- Clip-path updates on the next render/update pass.
 
 ### 3.1 Entry points (V1 NON-GOAL)
 When selection contains:
@@ -211,6 +409,69 @@ Manual UI acceptance checklist:
 - Multi-select 2+ eligible shapes/vectors → choose Flatten → baked vector created; operands removed; result selected.
 - Boolean node selected → Boolean section appears → Operation dropdown changes operation.
 - Mask node selected → Mask section appears → Invert toggle works.
+
+### 5.1 Comprehensive validation checklist (UI + state + DOM)
+Use this list to validate “correctness” with high confidence.
+
+Boolean operations control (sidebar header)
+- With <2 selected elements: boolean control is hidden.
+- With 2+ selected, but fewer than 2 eligible operands after filtering: boolean control is hidden.
+- With 2+ eligible operands:
+	- The control is visible.
+	- It is keyboard focusable.
+	- It has accessible name `Boolean operations`.
+	- Menu items appear in this exact order: Union, Subtract, Intersect, Exclude, separator, Flatten.
+- Selecting an operation dispatches:
+	- `CREATE_BOOLEAN_FROM_SELECTION` with `{ ids: selectedElementIds, operation: <op> }`.
+- Selecting Flatten dispatches:
+	- `FLATTEN_BOOLEAN_FROM_SELECTION` with `{ ids: selectedElementIds }`.
+
+Boolean creation: state contract
+- Creates a new element with `shapeKind:'boolean'` and chosen `operation`.
+- `operands` equals the filtered selection order (no reordering).
+- New boolean is added to `elementOrder` (topmost).
+- Selection becomes exactly the new boolean.
+- Style is inherited from operand[0] (first selected eligible operand):
+	- If operand[0] fill is red and operand[1] fill is blue, result is red.
+
+Boolean creation: visual contract
+- Union/Subtract/Intersect/Exclude change the visible silhouette according to §1.3.1.
+- Subtract is order-dependent and must match §1.3.1 fold semantics.
+- The boolean node renders as vector geometry (fills/strokes follow boolean node style).
+- Operands remain in the document in v1 (non-destructive).
+
+Boolean editing
+- Selecting a boolean shows a Boolean inspector section.
+- The `Operation` dropdown shows the current `el.operation` value (defaults to `union`).
+- Changing operation dispatches `SET_BOOLEAN_OPERATION` and updates the rendered geometry.
+- If resolution fails, a non-blocking warning appears via `data-testid="boolean-status-warning"` (not in presentation mode).
+
+Boolean editing: automation hooks (v1 required)
+- The Operation dropdown is queryable via `data-testid="boolean-operation"`.
+- The warning row is queryable via `data-testid="boolean-status-warning"`.
+- When a boolean is selected, `data-testid="boolean-operation"` MUST reflect the current operation value.
+
+Boolean update + performance signals
+- Boolean host DOM element has `data-boolean-status` and updates when:
+	- operation changes
+	- operands change geometry/transform
+- During heavy interactions, geometry may remain temporarily stale, but must refresh after interaction ends.
+
+Flatten
+- When eligible (2+ operands), Flatten creates a new `shapeKind:'vector'` element with union result.
+- New vector style inherits from operand[0] (first eligible operand).
+- Operands are removed.
+- Selection becomes the new vector.
+- Failure mode:
+	- Operands and selection remain unchanged.
+	- A non-blocking warning is shown.
+
+Mask
+- Creating a mask creates a `shapeKind:'mask'` node with `maskShapeId` and `contentIds`.
+- Mask node itself does not paint geometry.
+- Content in `contentIds` is clipped.
+- Masked content elements set `data-mask-count`.
+- Invert toggle updates clipping; invert failures fall back deterministically.
 
 Figma-class learnings (UX guardrails):
 - Always keep operands editable and visually discoverable (drill-in/breadcrumb), or booleans/masks become “mystery objects”.
