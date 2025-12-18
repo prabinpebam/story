@@ -19,6 +19,7 @@
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:report": "playwright show-report",
     "perf:bench": "node scripts/perf/perf-bench.mjs",
+    "perf:soak": "node scripts/perf/perf-soak.mjs",
     "perf:coverage": "node scripts/perf/perf-coverage-lint.mjs",
     "lint": "eslint src/**/*.js",
     "lint:fix": "eslint src/**/*.js --fix"
