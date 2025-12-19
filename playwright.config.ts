@@ -1,5 +1,10 @@
 import { defineConfig, devices } from '@playwright/test';
 
+const requestedProjects = (process.env.PW_PROJECTS || 'chromium')
+  .split(',')
+  .map((s) => s.trim())
+  .filter(Boolean);
+
 /**
  * Playwright configuration for Story E2E tests
  * See https://playwright.dev/docs/test-configuration
@@ -53,21 +58,25 @@ export default defineConfig({
 
   /* Configure projects for major browsers */
   projects: [
-    {
-      name: 'chromium',
-      use: { ...devices['Desktop Chrome'] },
-    },
-    
-    // Uncomment to test on Firefox and WebKit
-    // {
-    //   name: 'firefox',
-    //   use: { ...devices['Desktop Firefox'] },
-    // },
-    // {
-    //   name: 'webkit',
-    //   use: { ...devices['Desktop Safari'] },
-    // },
-  ],
+    requestedProjects.includes('chromium')
+      ? {
+          name: 'chromium',
+          use: { ...devices['Desktop Chrome'] },
+        }
+      : null,
+    requestedProjects.includes('firefox')
+      ? {
+          name: 'firefox',
+          use: { ...devices['Desktop Firefox'] },
+        }
+      : null,
+    requestedProjects.includes('webkit')
+      ? {
+          name: 'webkit',
+          use: { ...devices['Desktop Safari'] },
+        }
+      : null,
+  ].filter(Boolean),
 
   /* Run your local dev server before starting the tests */
   webServer: {

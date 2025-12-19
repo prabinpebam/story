@@ -276,11 +276,16 @@ export class Store extends EventEmitter {
             case 'DUPLICATE_ELEMENTS': 
             case 'PASTE_ELEMENTS': 
             case 'REORDER_ELEMENTS': 
+            case 'BRING_TO_FRONT':
+            case 'BRING_FORWARD':
+            case 'SEND_BACKWARD':
+            case 'SEND_TO_BACK':
             case 'ALIGN_ELEMENTS': 
             case 'DISTRIBUTE_ELEMENTS': 
             case 'TOGGLE_ELEMENT_LOCK': 
             case 'TOGGLE_ELEMENT_VISIBILITY': 
             case 'GROUP_ELEMENTS': 
+            case 'UNGROUP_ELEMENTS':
             case 'INSTANTIATE_PLACEHOLDER': 
                 this.snapshot(type);
                 this.state = produce(this.state, draft => {
@@ -291,11 +296,16 @@ export class Store extends EventEmitter {
                         case 'DUPLICATE_ELEMENTS': ElementHandlers.handleDuplicateElements(draft, payload); break;
                         case 'PASTE_ELEMENTS': ElementHandlers.handlePasteElements(draft, payload); break;
                         case 'REORDER_ELEMENTS': ElementHandlers.handleReorderElements(draft, payload); break;
+                        case 'BRING_TO_FRONT': ElementHandlers.handleBringToFront(draft); break;
+                        case 'BRING_FORWARD': ElementHandlers.handleBringForward(draft); break;
+                        case 'SEND_BACKWARD': ElementHandlers.handleSendBackward(draft); break;
+                        case 'SEND_TO_BACK': ElementHandlers.handleSendToBack(draft); break;
                         case 'ALIGN_ELEMENTS': ElementHandlers.handleAlignElements(draft, payload); break;
                         case 'DISTRIBUTE_ELEMENTS': ElementHandlers.handleDistributeElements(draft, payload); break;
                         case 'TOGGLE_ELEMENT_LOCK': ElementHandlers.handleToggleElementLock(draft, payload); break;
                         case 'TOGGLE_ELEMENT_VISIBILITY': ElementHandlers.handleToggleElementVisibility(draft, payload); break;
                         case 'GROUP_ELEMENTS': ElementHandlers.handleGroupElements(draft); break;
+                        case 'UNGROUP_ELEMENTS': ElementHandlers.handleUngroupElements(draft); break;
                         case 'INSTANTIATE_PLACEHOLDER': ElementHandlers.handleInstantiatePlaceholder(draft, payload); break;
                     }
                 });
@@ -597,9 +607,14 @@ export class Store extends EventEmitter {
         const effectiveElements = {};
         const effectiveOrder = [];
 
+        // If a slide provides an element with the same ID as a theme/layout element,
+        // the slide version should control both data and ordering.
+        const hasSlideOverride = (id) => !!(slide.elements && slide.elements[id]);
+
         // Theme Elements (Bottom)
         if (theme && !layout.hideBackgroundGraphics && !slide.hideBackgroundGraphics) {
             theme.elementOrder.forEach(id => {
+                if (hasSlideOverride(id)) return;
                 effectiveElements[id] = { ...theme.elements[id], isLocked: true, source: 'theme' };
                 effectiveOrder.push(id);
             });
@@ -608,6 +623,7 @@ export class Store extends EventEmitter {
         // Layout Elements (Middle)
         if (layout && !slide.hideBackgroundGraphics) {
             layout.elementOrder.forEach(id => {
+                if (hasSlideOverride(id)) return;
                 effectiveElements[id] = { ...layout.elements[id], isLocked: true, source: 'layout' };
                 effectiveOrder.push(id);
             });

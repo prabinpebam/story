@@ -50,6 +50,130 @@ function computeUnionBounds(elements) {
     return { x: minX, y: minY, w: Math.max(0, maxX - minX), h: Math.max(0, maxY - minY) };
 }
 
+function getParentChain(container, parentId) {
+    const chain = [];
+    let pid = parentId;
+    while (pid) {
+        const p = container.elements?.[pid];
+        if (!p) break;
+        chain.push(p);
+        pid = p.parentId || null;
+    }
+    return chain;
+}
+
+function hasRotationInChain(chain) {
+    return chain.some((p) => (Number(p?.rotation) || 0) !== 0);
+}
+
+function getWorldOffset(container, parentId) {
+    let x = 0;
+    let y = 0;
+    let pid = parentId;
+    while (pid) {
+        const p = container.elements?.[pid];
+        if (!p) break;
+        x += Number(p.x) || 0;
+        y += Number(p.y) || 0;
+        pid = p.parentId || null;
+    }
+    return { x, y };
+}
+
+function recomputeGroupBounds(container, groupId) {
+    const group = container?.elements?.[groupId];
+    if (!group || group.type !== 'group') return;
+
+    const childIds = Array.isArray(group.children) ? group.children : [];
+    if (childIds.length === 0) {
+        group.width = group.width || 100;
+        group.height = group.height || 100;
+        return;
+    }
+
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    childIds.forEach((childId) => {
+        const child = container.elements[childId];
+        if (!child) return;
+        minX = Math.min(minX, Number(child.x) || 0);
+        minY = Math.min(minY, Number(child.y) || 0);
+        maxX = Math.max(maxX, (Number(child.x) || 0) + (Number(child.width) || 0));
+        maxY = Math.max(maxY, (Number(child.y) || 0) + (Number(child.height) || 0));
+    });
+
+    if (!Number.isFinite(minX) || !Number.isFinite(minY) || !Number.isFinite(maxX) || !Number.isFinite(maxY)) return;
+
+    const newGroupX = (Number(group.x) || 0) + minX;
+    const newGroupY = (Number(group.y) || 0) + minY;
+    const newGroupW = maxX - minX;
+    const newGroupH = maxY - minY;
+
+    group.x = newGroupX;
+    group.y = newGroupY;
+    group.width = newGroupW;
+    group.height = newGroupH;
+
+    if (minX !== 0 || minY !== 0) {
+        childIds.forEach((childId) => {
+            const child = container.elements[childId];
+            if (!child) return;
+            child.x = (Number(child.x) || 0) - minX;
+            child.y = (Number(child.y) || 0) - minY;
+        });
+    }
+}
+
+function recomputeGroupBoundsUpChain(container, startingParentId) {
+    let pid = startingParentId;
+    while (pid) {
+        const p = container.elements?.[pid];
+        if (!p || p.type !== 'group') break;
+        recomputeGroupBounds(container, pid);
+        pid = p.parentId || null;
+    }
+}
+
+function reorderSiblingListInPlace(list, selectedSet, mode) {
+    if (!Array.isArray(list) || list.length < 2) return;
+    const selected = list.filter((id) => selectedSet.has(id));
+    if (selected.length === 0) return;
+
+    if (mode === 'bring-to-front') {
+        const rest = list.filter((id) => !selectedSet.has(id));
+        list.splice(0, list.length, ...rest, ...selected);
+        return;
+    }
+
+    if (mode === 'send-to-back') {
+        const rest = list.filter((id) => !selectedSet.has(id));
+        list.splice(0, list.length, ...selected, ...rest);
+        return;
+    }
+
+    if (mode === 'bring-forward') {
+        for (let i = list.length - 2; i >= 0; i--) {
+            const id = list[i];
+            if (!selectedSet.has(id)) continue;
+            if (selectedSet.has(list[i + 1])) continue;
+            const tmp = list[i + 1];
+            list[i + 1] = id;
+            list[i] = tmp;
+        }
+        return;
+    }
+
+    if (mode === 'send-backward') {
+        for (let i = 1; i < list.length; i++) {
+            const id = list[i];
+            if (!selectedSet.has(id)) continue;
+            if (selectedSet.has(list[i - 1])) continue;
+            const tmp = list[i - 1];
+            list[i - 1] = id;
+            list[i] = tmp;
+        }
+    }
+}
+
 function generateElementId(container, prefix) {
     if (!container || !container.elements) {
         return `${prefix}-1`;
@@ -708,6 +832,25 @@ export function handleReorderElements(draft, payload) {
     const element = slide.elements[elementId];
     if (!element) return;
 
+    const oldParentId = element.parentId || null;
+    const newParentId = targetParentId || null;
+
+    // Keep world position stable when reparenting (translation-only; skip if rotated parents exist).
+    if (oldParentId !== newParentId) {
+        const oldChain = getParentChain(slide, oldParentId);
+        const newChain = getParentChain(slide, newParentId);
+        const elementRotation = Number(element.rotation) || 0;
+        const canTranslate = elementRotation === 0 && !hasRotationInChain(oldChain) && !hasRotationInChain(newChain);
+        if (canTranslate) {
+            const oldOff = getWorldOffset(slide, oldParentId);
+            const newOff = getWorldOffset(slide, newParentId);
+            const worldX = (Number(element.x) || 0) + oldOff.x;
+            const worldY = (Number(element.y) || 0) + oldOff.y;
+            element.x = worldX - newOff.x;
+            element.y = worldY - newOff.y;
+        }
+    }
+
     if (element.parentId) {
         const oldParent = slide.elements[element.parentId];
         if (oldParent && oldParent.children) {
@@ -731,6 +874,97 @@ export function handleReorderElements(draft, payload) {
         const safeIndex = Math.max(0, Math.min(targetIndex, slide.elementOrder.length));
         slide.elementOrder.splice(safeIndex, 0, elementId);
         element.parentId = null;
+    }
+
+    if (oldParentId) recomputeGroupBoundsUpChain(slide, oldParentId);
+    if (newParentId) recomputeGroupBoundsUpChain(slide, newParentId);
+}
+
+export function handleBringToFront(draft) {
+    const container = getActiveContainer(draft);
+    if (!container) return;
+    const selectedIds = Array.isArray(draft.editor.selectedElementIds) ? draft.editor.selectedElementIds : [];
+    if (selectedIds.length === 0) return;
+    const selectedSet = new Set(selectedIds);
+
+    const byParent = new Map();
+    selectedIds.forEach((id) => {
+        const el = container.elements?.[id];
+        if (!el) return;
+        const pid = el.parentId || null;
+        if (!byParent.has(pid)) byParent.set(pid, []);
+        byParent.get(pid).push(id);
+    });
+
+    for (const [pid] of byParent) {
+        const list = pid ? container.elements?.[pid]?.children : container.elementOrder;
+        reorderSiblingListInPlace(list, selectedSet, 'bring-to-front');
+    }
+}
+
+export function handleSendToBack(draft) {
+    const container = getActiveContainer(draft);
+    if (!container) return;
+    const selectedIds = Array.isArray(draft.editor.selectedElementIds) ? draft.editor.selectedElementIds : [];
+    if (selectedIds.length === 0) return;
+    const selectedSet = new Set(selectedIds);
+
+    const byParent = new Map();
+    selectedIds.forEach((id) => {
+        const el = container.elements?.[id];
+        if (!el) return;
+        const pid = el.parentId || null;
+        if (!byParent.has(pid)) byParent.set(pid, []);
+        byParent.get(pid).push(id);
+    });
+
+    for (const [pid] of byParent) {
+        const list = pid ? container.elements?.[pid]?.children : container.elementOrder;
+        reorderSiblingListInPlace(list, selectedSet, 'send-to-back');
+    }
+}
+
+export function handleBringForward(draft) {
+    const container = getActiveContainer(draft);
+    if (!container) return;
+    const selectedIds = Array.isArray(draft.editor.selectedElementIds) ? draft.editor.selectedElementIds : [];
+    if (selectedIds.length === 0) return;
+    const selectedSet = new Set(selectedIds);
+
+    const byParent = new Map();
+    selectedIds.forEach((id) => {
+        const el = container.elements?.[id];
+        if (!el) return;
+        const pid = el.parentId || null;
+        if (!byParent.has(pid)) byParent.set(pid, []);
+        byParent.get(pid).push(id);
+    });
+
+    for (const [pid] of byParent) {
+        const list = pid ? container.elements?.[pid]?.children : container.elementOrder;
+        reorderSiblingListInPlace(list, selectedSet, 'bring-forward');
+    }
+}
+
+export function handleSendBackward(draft) {
+    const container = getActiveContainer(draft);
+    if (!container) return;
+    const selectedIds = Array.isArray(draft.editor.selectedElementIds) ? draft.editor.selectedElementIds : [];
+    if (selectedIds.length === 0) return;
+    const selectedSet = new Set(selectedIds);
+
+    const byParent = new Map();
+    selectedIds.forEach((id) => {
+        const el = container.elements?.[id];
+        if (!el) return;
+        const pid = el.parentId || null;
+        if (!byParent.has(pid)) byParent.set(pid, []);
+        byParent.get(pid).push(id);
+    });
+
+    for (const [pid] of byParent) {
+        const list = pid ? container.elements?.[pid]?.children : container.elementOrder;
+        reorderSiblingListInPlace(list, selectedSet, 'send-backward');
     }
 }
 
@@ -860,7 +1094,111 @@ export function handleToggleElementVisibility(draft, payload) {
 }
 
 export function handleGroupElements(draft) {
-    // TODO: Implement grouping
+    const container = getActiveContainer(draft);
+    if (!container) return;
+
+    const selectedIds = Array.isArray(draft.editor.selectedElementIds) ? draft.editor.selectedElementIds : [];
+    const ids = selectedIds.filter((id) => typeof id === 'string' && container.elements?.[id]);
+    if (ids.length < 2) return;
+
+    const parent0 = container.elements[ids[0]]?.parentId || null;
+    const hasCommonParent = ids.every((id) => (container.elements[id]?.parentId || null) === parent0);
+    if (!hasCommonParent) return;
+
+    const siblingList = parent0 ? (container.elements[parent0]?.children || []) : (container.elementOrder || []);
+    const orderedIds = siblingList.filter((id) => ids.includes(id));
+    if (orderedIds.length < 2) return;
+
+    const bounds = computeUnionBounds(orderedIds.map((id) => container.elements[id]).filter(Boolean));
+    const groupId = generateElementId(container, 'group');
+    const groupEl = {
+        id: groupId,
+        type: 'group',
+        x: bounds.x,
+        y: bounds.y,
+        width: bounds.w,
+        height: bounds.h,
+        rotation: 0,
+        children: [...orderedIds],
+        ...(parent0 ? { parentId: parent0 } : {})
+    };
+
+    container.elements[groupId] = groupEl;
+
+    // Replace selected in siblings list with group (placed at the highest selected index).
+    let insertAt = -1;
+    siblingList.forEach((sid, idx) => {
+        if (orderedIds.includes(sid)) insertAt = Math.max(insertAt, idx);
+    });
+    const filtered = siblingList.filter((sid) => !orderedIds.includes(sid));
+    const safeInsert = Math.max(0, Math.min(insertAt === -1 ? filtered.length : insertAt - (orderedIds.length - 1), filtered.length));
+    filtered.splice(safeInsert, 0, groupId);
+
+    if (parent0) {
+        container.elements[parent0].children = filtered;
+    } else {
+        container.elementOrder = filtered;
+    }
+
+    // Reparent children under group and convert to group-local coords.
+    orderedIds.forEach((cid) => {
+        const child = container.elements[cid];
+        if (!child) return;
+        child.parentId = groupId;
+        child.x = (Number(child.x) || 0) - (Number(groupEl.x) || 0);
+        child.y = (Number(child.y) || 0) - (Number(groupEl.y) || 0);
+    });
+
+    // Tighten group bounds and normalize children to start at (0,0).
+    recomputeGroupBounds(container, groupId);
+
+    draft.editor.selectedElementIds = [groupId];
+}
+
+export function handleUngroupElements(draft) {
+    const container = getActiveContainer(draft);
+    if (!container) return;
+
+    const selectedIds = Array.isArray(draft.editor.selectedElementIds) ? draft.editor.selectedElementIds : [];
+    const groupIds = selectedIds
+        .filter((id) => typeof id === 'string')
+        .filter((id) => container.elements?.[id]?.type === 'group');
+    if (groupIds.length === 0) return;
+
+    const newSelection = [];
+
+    groupIds.forEach((gid) => {
+        const group = container.elements[gid];
+        if (!group || group.type !== 'group') return;
+        const parentId = group.parentId || null;
+        const siblings = parentId ? (container.elements[parentId]?.children || []) : (container.elementOrder || []);
+        const groupIndex = siblings.indexOf(gid);
+
+        const childIds = Array.isArray(group.children) ? [...group.children] : [];
+        const groupX = Number(group.x) || 0;
+        const groupY = Number(group.y) || 0;
+
+        childIds.forEach((cid) => {
+            const child = container.elements[cid];
+            if (!child) return;
+            child.parentId = parentId;
+            child.x = (Number(child.x) || 0) + groupX;
+            child.y = (Number(child.y) || 0) + groupY;
+            newSelection.push(cid);
+        });
+
+        // Replace group node with its children (preserve internal order).
+        if (groupIndex !== -1) {
+            const withoutGroup = siblings.filter((id) => id !== gid);
+            withoutGroup.splice(groupIndex, 0, ...childIds);
+            if (parentId) container.elements[parentId].children = withoutGroup;
+            else container.elementOrder = withoutGroup;
+        }
+
+        delete container.elements[gid];
+    });
+
+    draft.editor.selectedElementIds = newSelection.length ? newSelection : selectedIds.filter((id) => !groupIds.includes(id));
 }
 
 export function handleInstantiatePlaceholder(draft, payload) {

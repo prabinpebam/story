@@ -410,7 +410,16 @@ export class LayerTree {
                     compositeType: item.dataset.compositeType || null,
                     compositeRole: item.dataset.compositeRole || null
                 };
-            e.dataTransfer.effectAllowed = 'move';
+            // Required for consistent HTML5 DnD across browsers (notably Firefox).
+            // Playwright's dragTo can mask this requirement, so keep it explicit.
+            if (e.dataTransfer) {
+                try {
+                    e.dataTransfer.setData('text/plain', el.id);
+                } catch {
+                    // Ignore; some environments may restrict dataTransfer.
+                }
+                e.dataTransfer.effectAllowed = 'move';
+            }
             item.style.opacity = '0.5';
         });
 
@@ -520,6 +529,8 @@ export class LayerTree {
             const draggedEl = slide.elements[this.draggedId];
             if (!draggedEl) return;
 
+            const draggedParentId = draggedEl.parentId || null;
+
             // Calculate Target
             let targetParentId = el.parentId;
             let targetIndex = 0;
@@ -567,6 +578,14 @@ export class LayerTree {
                 // Add to top of group (end of children array)
                 const group = slide.elements[el.id];
                 targetIndex = group.children ? group.children.length : 0;
+            }
+
+            // When reordering within the same sibling list, adjust targetIndex for the removal of the dragged item.
+            if ((targetParentId || null) === draggedParentId) {
+                const fromIndex = getIndexInParent(this.draggedId, draggedParentId);
+                if (fromIndex !== -1 && fromIndex < targetIndex) {
+                    targetIndex -= 1;
+                }
             }
 
             store.dispatch('REORDER_ELEMENTS', {

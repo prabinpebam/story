@@ -3382,8 +3382,10 @@ export class CanvasManager {
             }
         }
 
-        // Layer Ordering ([ and ])
-        if (e.key === '[' || e.key === ']') {
+        // Layer Ordering (Figma-like)
+        // Ctrl+[ / Ctrl+] = send backward / bring forward (one step)
+        // Ctrl+Shift+[ / Ctrl+Shift+] = send to back / bring to front
+        if ((e.ctrlKey || e.metaKey) && (e.code === 'BracketLeft' || e.code === 'BracketRight')) {
             if (state.editor.editingElementId) return;
             
             const selectedIds = state.editor.selectedElementIds;
@@ -3414,12 +3416,11 @@ export class CanvasManager {
 
                 let newIndex = currentIndex;
                 
-                if (e.ctrlKey || e.metaKey) {
-                    if (e.key === '[') newIndex = 0;
-                    else newIndex = list.length - 1;
+                const toEdge = !!e.shiftKey;
+                if (e.code === 'BracketLeft') {
+                    newIndex = toEdge ? 0 : Math.max(0, currentIndex - 1);
                 } else {
-                    if (e.key === '[') newIndex = Math.max(0, currentIndex - 1);
-                    else newIndex = Math.min(list.length - 1, currentIndex + 1);
+                    newIndex = toEdge ? (list.length - 1) : Math.min(list.length - 1, currentIndex + 1);
                 }
 
                 if (newIndex !== currentIndex) {
