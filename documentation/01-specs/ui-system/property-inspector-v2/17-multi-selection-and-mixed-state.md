@@ -30,6 +30,35 @@ This spec includes a “Test Scenarios” section; implementers MUST keep it in 
 
 If Story intentionally diverges from Figma for an overlapping feature, the divergence MUST be documented as a **Story-specific exception** in the owning section spec and tracked in [13-gaps-and-roadmap.md](./13-gaps-and-roadmap.md) (as a deliberate divergence, not an untracked gap).
 
+### 0.2 Implementation compatibility (non-breaking)
+
+This document describes a **target model** for multi-selection + mixed-state behavior.
+
+To avoid breaking existing implementations, we define two compliance levels:
+
+- **Baseline (Current Story):** what the app may do today without being considered “incorrect” in this spec. Baseline behavior MUST be internally consistent and MUST NOT silently apply partial edits.
+- **Target (Figma-referenced parity):** the recommended behavior for overlapping interactions, as defined in the canonical model below.
+
+If a section/control is not yet Target-compliant, it MUST:
+- be listed as a **parity gap** in [18-control-inventory-and-coverage-matrix.md](./18-control-inventory-and-coverage-matrix.md), and
+- specify its current multi-select behavior in the owning section spec.
+
+#### 0.2.1 Baseline rules (Current Story)
+
+Baseline allows the following patterns (they are common in the current PI codebase):
+- **Single-source display:** in multi-selection, a section may render values derived from the first selected element or a computed aggregate (e.g., bounding box) rather than a mixed indicator.
+- **Absolute-set on multi-selection:** typing/picking values may set the same value onto all selected elements (even if it collapses differences).
+- **List editors:** list-style controls (fills/strokes/effects) may display the first selected element’s list, and edits may overwrite the entire list onto all selected elements.
+- **Partial application is forbidden unless explicit:** if an edit applies to only a subset of the selection, UI MUST clearly communicate “partial” and MUST NOT do it silently.
+
+Baseline does NOT allow:
+- “Accidental partial edits” (only first element changes) unless explicitly presented as “applies to first/active only.”
+- Controls claiming “mixed-safe” behavior when they actually mirror the first element.
+
+#### 0.2.2 Target rules (Figma-referenced parity)
+
+All requirements in Sections 3–9 describe the Target model unless explicitly labeled as Baseline.
+
 ---
 
 ## 1. Scope
@@ -362,22 +391,24 @@ This is already aligned with Story’s typography-linking UX.
 
 ## 8. Acceptance Criteria
 
-### 8.1 Display
+This spec uses two acceptance tiers to avoid breaking existing implementations.
+
+### 8.1 Baseline acceptance (Current Story, non-breaking)
+- Multi-selection edits MUST be internally consistent (no “sometimes first, sometimes all”).
+- A control MUST NOT silently apply an edit to only the first/active element unless the UI explicitly communicates that scope.
+- If a section uses first-element or aggregate display in multi-select, it MUST NOT claim mixed indicators that it does not actually compute.
+- List editors MAY mirror the first selected element’s list, but this MUST be documented in the owning section spec and listed as a parity gap in 18.
+
+### 8.2 Target acceptance (Figma-referenced parity for overlapping interactions)
 - Numeric fields show `—` when mixed; empty when unset.
-- Dropdowns show “Mixed” when mixed.
+- Dropdowns show “Mixed” when mixed and do not highlight a stale selected option.
 - Segmented controls show no active option when mixed.
 - Toggles show indeterminate when mixed.
 - List editors provide truthful mixed-list presentation (no fake “first item only” display).
-
-### 8.2 Editing
 - Absolute-set operations overwrite all applicable elements.
 - Relative delta operations preserve per-element differences in mixed state.
-- Mixed dropdown menu has no selected highlight.
-- Mixed toggle click sets all to true.
-
-### 8.3 Undo/redo
-- A single gesture across multi-selection produces a single undo step.
-- No per-element undo spam.
+- Mixed toggle click follows the toggle rule defined in Section 5.4.
+- A single gesture across multi-selection produces a single undo step (no per-element undo spam).
 
 ---
 
@@ -405,6 +436,37 @@ This is already aligned with Story’s typography-linking UX.
 - Select 2 shapes with different fill stack counts → list-level mixed state.
 - “Add fill” → adds a fill to both.
 - Reorder is disabled unless fill list shapes match.
+
+### 9.6 Figma benchmark protocol (how to verify)
+
+This repository cannot directly observe or automate Figma’s UI, so this spec defines a repeatable **benchmark protocol** to validate the Target behaviors for overlapping interactions.
+
+**Benchmark setup (recommended):**
+- Figma desktop or web (record exact version/date)
+- Same OS as Story testing where possible
+- Create a small benchmark file with:
+  - 3 rectangles (different fills, opacity, blend modes)
+  - 2 text nodes (different font sizes, alignment, styles)
+  - 2 frames/groups (to observe applicability differences)
+
+**How to record results:**
+- For each scenario below: capture a short screen recording or 2 screenshots (before/after)
+- Record: selection contents, displayed UI state, interaction performed, resulting values, and undo stack behavior
+
+**Benchmark matrix (fill in during manual run):**
+
+| Control type | Property | Selection | Display in Figma | Edit in Figma | Undo in Figma | Notes |
+|---|---|---|---|---|---|---|
+| NumberInput | Opacity | 2 rects, different | TBD | ArrowUp / scrub / type commit | TBD | |
+| Dropdown | Blend mode | 2 rects, different | TBD | pick option | TBD | |
+| Segmented | Text align | 2 texts, different | TBD | click Center | TBD | |
+| Toggle | Visibility | mixed | TBD | click | TBD | |
+| List editor | Fills | same stack | TBD | change row opacity | TBD | |
+| List editor | Fills | different stack | TBD | add fill | TBD | |
+
+**How this maps to Story:**
+- If Figma behavior matches the Target model in this doc, mark Story as a **parity gap** until implemented.
+- If Figma behavior differs or is ambiguous, record it as a **Story-specific exception** (owning section spec + 13 roadmap).
 
 ---
 

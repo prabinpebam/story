@@ -263,17 +263,20 @@ The constrain toggle state is stored in `state.editor.constrainProportions`:
 
 ## 7. Multi-Selection Behavior
 
+Canonical mixed-state display + edit semantics are defined in:
+- [17-multi-selection-and-mixed-state.md](./17-multi-selection-and-mixed-state.md)
+
 ### 7.1 Same Dimensions
 - Display shared W/H values
 - Changes apply to all selected elements
 
 ### 7.2 Different Dimensions
-- Display first element's values (or "Mixed")
-- Changes set all elements to the same absolute value
+- **Baseline:** Display first element's values; changes set all elements to the same absolute value
+- **Target:** Display `—` (mixed) when values differ; typing sets absolute values; arrows/scrub apply relative delta
 
 ### 7.3 Constrain Proportions
-- When constrained, each element maintains its own aspect ratio
-- **Alternative:** Could apply same ratio to all (design decision)
+- **Baseline:** Uses first element’s aspect ratio as the constrain reference.
+- **Target:** Each element maintains its own aspect ratio.
 
 ---
 

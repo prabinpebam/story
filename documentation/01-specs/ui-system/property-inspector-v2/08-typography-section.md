@@ -390,18 +390,30 @@ textElement = {
 Canonical mixed-state display + edit semantics are defined in:
 - [17-multi-selection-and-mixed-state.md](./17-multi-selection-and-mixed-state.md)
 
+This section uses the **Baseline vs Target** model from 17.
+
 ### 10.1 Same Properties
 
 Display shared values, edits apply to all.
 
 ### 10.2 Mixed Properties
 
-| Property | Display |
-|----------|---------|
-| Font Family | First or "Multiple" |
-| Font Size | "—" (mixed) |
-| Color | First swatch |
-| Alignment | No selection highlight |
+#### 10.2.1 Baseline (Current Story, non-breaking)
+
+- Some fields MAY display the first/active element value when mixed.
+- Editing a control MUST NOT silently apply to only the active element unless explicitly labeled “active only”.
+- Alignment controls remain editable for multi-selection and for text linked to typography styles (intentional Story UX).
+
+#### 10.2.2 Target (Figma-referenced parity for overlapping interactions)
+
+| Property | Display when mixed | Edit behavior |
+|----------|-------------------|---------------|
+| Font family/weight | “Mixed” | Picking a value sets all (absolute set) |
+| Font size/line height/letter spacing | `—` | Typing sets all (absolute); arrows/scrub apply relative delta (per-element start values) |
+| Text alignment (H/V) | No button highlighted | Clicking an option sets all (absolute set) |
+| Text fill (color/opacity) | Mixed indicator for text value; swatch visually mixed | Picking a color sets all (absolute); drag is transient; release commits |
+
+**Known gap:** Text fill controls are implemented with a combination of raw DOM inputs and fill flyouts. Mixed display/edit semantics for multi-selection are not consistently implemented and must be validated against 17.
 
 ### 10.3 Non-Text in Selection
 

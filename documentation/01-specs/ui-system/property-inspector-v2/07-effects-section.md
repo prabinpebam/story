@@ -460,6 +460,30 @@ toggleVisibility(effectType) {
 
 ---
 
+## 14.5 Multi-Selection Behavior (Baseline vs Target)
+
+Canonical mixed-state display + edit semantics are defined in:
+- [17-multi-selection-and-mixed-state.md](./17-multi-selection-and-mixed-state.md)
+
+Effects is a **list editor** with per-row flyouts.
+
+### 14.5.1 Baseline (Current Story, non-breaking)
+
+- The Effects list MAY be rendered from the **first/active selected element**.
+- Adding/removing effects MAY apply to all selected elements.
+- Editing flyout values MAY overwrite the corresponding effect by index/type on all selected elements.
+
+Baseline MUST NOT silently apply edits to only one element unless explicitly labeled “active only”.
+
+### 14.5.2 Target (Figma-referenced parity for overlapping interactions)
+
+- Effects rows must be mapped across selection using stable identifiers (effects already have `id` in Story’s data model).
+- If list shapes are uniform, enable row-level mixed display and edits per 17.
+- If list shapes are mixed, show a truthful mixed-list state and restrict to safe list-level actions.
+- Flyout numeric controls must follow relative-delta semantics for scrubbing/arrows in mixed state (per-element start values).
+
+---
+
 ## 15. Accessibility (ARIA)
 
 ### 15.1 ARIA Attributes by Control

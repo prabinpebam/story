@@ -120,11 +120,14 @@ handleAlign(action) {
 
 ### 4.4 Multi-Selection Behavior
 
+Canonical mixed-state display + edit semantics are defined in:
+- [17-multi-selection-and-mixed-state.md](./17-multi-selection-and-mixed-state.md)
+
 | Scenario | Display | Behavior |
 |----------|---------|----------|
 | Single Element | Element's X/Y | Direct edit |
-| Multi, Same Values | Shared value | Edit all together |
-| Multi, Different Values | First element's value (or "Mixed") | Relative adjustment |
+| Multi-selection (Baseline) | Selection bounding box origin (top-left) | Typing sets absolute `x/y` on all selected elements (can collapse layout) |
+| Multi-selection (Target) | Selection bounding box origin (top-left) | Typing moves the selection bounds to the typed value (delta move), preserving per-element offsets |
 
 ---
 

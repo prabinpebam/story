@@ -31,6 +31,16 @@ For each control:
    - Hidden/section-owned
 5. If current implementation is not compliant with the Figma-referenced behaviors defined in [17-multi-selection-and-mixed-state.md](./17-multi-selection-and-mixed-state.md), record it under **Notes / parity gaps**.
 
+### 1.1 Baseline vs Target (non-breaking)
+
+This matrix tracks two tiers:
+- **Baseline (Current Story):** behavior currently allowed/expected by the shipped implementation.
+- **Target (Figma-referenced parity):** recommended behavior for overlapping interactions per 17.
+
+When a control is not Target-compliant, record:
+- **Current (Baseline):** what actually happens today (so we don’t break it accidentally)
+- **Recommended (Target):** what we want per 17
+
 ---
 
 ## 2. Global control-type rules (pointer)
@@ -71,7 +81,8 @@ This matrix only records:
   - **Current behavior:** logs only (no property updates)
 
 **Notes / parity gaps**
-- X/Y multi-select uses bounding-box display (fine), but relative-delta semantics for arrows/scrub are not explicitly captured per-element start values.
+- **Current (Baseline):** X/Y display uses bounding-box origin, but edits set the same `x`/`y` on every selected element (can collapse the layout).
+- **Recommended (Target):** treat X/Y edits as “move selection bounds to X/Y” (delta move), and preserve per-element differences for arrow/scrub (per-element start values).
 
 ---
 
@@ -91,8 +102,8 @@ This matrix only records:
   - **UI:** icon switches between link / broken link
 
 **Notes / parity gaps**
-- Multi-select mixed width/height display is not implemented (shows first element). Figma-referenced parity typically shows mixed/—.
-- Constrain behavior uses `this.aspectRatio` from first element; multi-select parity would require per-element ratios.
+- **Current (Baseline):** W/H show first element values in multi-select; constrain uses first element aspect ratio.
+- **Recommended (Target):** W/H show mixed `—` when values differ; constrain uses per-element ratios.
 
 ---
 
@@ -151,8 +162,8 @@ This section is a **list editor**.
 - Blend mode menu (custom DOM menu)
 
 **Notes / parity gaps**
-- Multi-selection fill list parity requires stable row addressing across selection (id-based rows). Current code is index-based.
-- Mixed display/edit semantics across multi-selection for list rows are not implemented.
+- **Current (Baseline):** section renders list from the first selected element; edits typically overwrite list-style state across the full selection (index-based).
+- **Recommended (Target):** implement list-level mixed state + row-level mixed state, and use stable row addressing (id-based rows or robust mapping).
 
 ---
 
@@ -184,7 +195,8 @@ This section is a **list editor**.
 - Blend mode menu (custom DOM menu)
 
 **Notes / parity gaps**
-- Same list-editor parity requirements as Fill (stable row addressing, mixed row state, multi-select semantics).
+- **Current (Baseline):** section renders list from the first selected element; edits can overwrite list-style state across the selection (index-based).
+- **Recommended (Target):** same list-editor parity requirements as Fill (stable row addressing, mixed row state, safe multi-select semantics).
 
 ---
 
@@ -218,7 +230,8 @@ This section is a **list editor** with per-effect flyouts.
 - Blur radius (NumberInput)
 
 **Notes / parity gaps**
-- Same list-editor parity requirements as Fill/Stroke.
+- **Current (Baseline):** section renders list from the first selected element; edits overwrite list-style state across selection. Effects have per-row IDs, but multi-select row mapping is not yet implemented.
+- **Recommended (Target):** same list-editor parity requirements as Fill/Stroke, using effect IDs for row mapping.
 
 ---
 
@@ -252,8 +265,10 @@ This section is a **list editor** with per-effect flyouts.
 - FillFlyout (FillFlyout)
 
 **Notes / parity gaps**
-- Style-linking disables “styleable” controls, except alignment (intentional UX).
-- Mixed + relative delta parity for numeric edits still requires per-element start values (canonical requirement).
+- **Baseline:** Style-linking disables “styleable” controls, except alignment (intentional UX).
+- **Baseline:** Text fill controls are implemented via a mix of raw DOM + flyouts; mixed display and “edit applies to all” semantics are not consistently enforced across all sub-controls.
+- **Target:** Mixed indicators are explicit for typography controls (including text fill); edits always apply to the full selection unless explicitly labeled otherwise.
+- **Target:** Mixed + relative-delta parity for numeric edits requires per-element start values (canonical requirement).
 
 ---
 
@@ -318,7 +333,8 @@ Shown only for single selection of boolean shapes.
 - Preview (read-only; renders an `<img>`)
 
 **Notes / parity gaps**
-- This section is selection-based but uses “first element presets” semantics; multi-selection parity for export presets is undefined.
+- **Current (Baseline):** presets UI is sourced from the first selected element and preset edits write to the first selected element only.
+- **Recommended (Target):** explicitly choose an applicability strategy for multi-select (intersection-only disable, explicit “apply to all”, or explicit “active only”), and represent the scope in the UI.
 
 ---
 

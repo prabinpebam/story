@@ -421,6 +421,35 @@ update(selection) {
 
 ---
 
+## 13.5 Multi-Selection Behavior (Baseline vs Target)
+
+Export has two distinct concepts:
+- **Export action scope:** what gets exported when you click Export
+- **Preset edit scope:** which element(s) receive changes when you edit preset rows
+
+### 13.5.1 Baseline (Current Story, non-breaking)
+
+- UI MAY source presets from the **first/active selected element**.
+- Editing preset rows MAY update only the first/active selected element.
+- Export button label MAY reflect multi-selection count.
+
+If preset edits are “active only”, the UI SHOULD communicate that (e.g., helper text “Editing presets for: <active layer>”).
+
+### 13.5.2 Target (Figma-referenced parity for overlapping interactions)
+
+Pick one explicit strategy and reflect it in the UI:
+
+1) **Intersection-only:** disable preset editing on multi-select; allow export action only.
+2) **Apply-to-all:** preset edits apply to all selected elements (requires list mapping if presets can differ).
+3) **Active-only (explicit):** preset edits apply to the active element only, but the export action applies to the full selection.
+
+Whatever strategy is chosen, it MUST be:
+- consistent across controls,
+- discoverable (not silent), and
+- covered by tests.
+
+---
+
 ## 14. Accessibility (ARIA)
 
 ### 14.1 ARIA Attributes by Control

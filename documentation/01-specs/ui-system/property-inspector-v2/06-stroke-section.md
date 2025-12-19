@@ -397,6 +397,29 @@ if (style.borderWidth > 0 && !style.strokes) {
 
 ---
 
+## 13.5 Multi-Selection Behavior (Baseline vs Target)
+
+Canonical mixed-state display + edit semantics are defined in:
+- [17-multi-selection-and-mixed-state.md](./17-multi-selection-and-mixed-state.md)
+
+Stroke is a **list editor** (multiple strokes). Multi-selection must consider:
+- list-level mixed vs row-level mixed (see 17 §5.7)
+
+### 13.5.1 Baseline (Current Story, non-breaking)
+
+- The Stroke section MAY render the stroke list from the **first/active selected element**.
+- Row edits MAY apply by **index** and MAY overwrite the corresponding row/index across selection.
+- If list shapes differ across selection, unsafe per-row edits MUST be disabled or explicitly treated as “apply first element stroke stack to all”.
+
+### 13.5.2 Target (Figma-referenced parity for overlapping interactions)
+
+- Uniform list shape across selection: enable row-level mixed display + edits per 17.
+- Mixed list shape: show a truthful mixed-list state and allow only safe list-level actions.
+
+Row mapping MUST be stable across selection before enabling per-row edits when list shapes can differ.
+
+---
+
 ## 14. Accessibility (ARIA)
 
 ### 14.1 ARIA Attributes by Control

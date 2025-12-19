@@ -411,6 +411,10 @@ onRadiusChange(value) {
 Canonical mixed-state display + edit semantics are defined in:
 - [17-multi-selection-and-mixed-state.md](./17-multi-selection-and-mixed-state.md)
 
+This section uses the **Baseline vs Target** model from 17:
+- **Baseline:** current Story behavior that must remain consistent and non-surprising
+- **Target:** Figma-referenced parity for overlapping interactions
+
 ### 8.1 Opacity
 
 | Scenario | Display | Behavior |
@@ -423,7 +427,8 @@ Canonical mixed-state display + edit semantics are defined in:
 | Scenario | Display | Behavior |
 |----------|---------|----------|
 | Same Mode | Shared mode | Edit all together |
-| Different | First or "Multiple" | Sets all to same mode |
+| Different (Baseline) | First or "Multiple" | Sets all to same mode |
+| Different (Target) | "Mixed" | Sets all to same mode; dropdown menu shows no stale selection highlight |
 
 ### 8.3 Visibility
 
@@ -431,24 +436,19 @@ Canonical mixed-state display + edit semantics are defined in:
 |----------|------------|-----------------|
 | All Visible | Eye open | Hides all |
 | All Hidden | Eye crossed | Shows all |
-| Mixed | Partial icon | Shows all (match first) |
+| Mixed (Baseline) | Partial icon or first-state icon | Applies a consistent toggle behavior (must not silently affect only one element) |
+| Mixed (Target) | Indeterminate | Click sets all visible (see 17 §5.4) |
 
-### 8.4 Corner Radius (parity gap)
+### 8.4 Corner Radius
 
 Figma-referenced parity expectation (for overlapping behaviors) is defined in [17-multi-selection-and-mixed-state.md](./17-multi-selection-and-mixed-state.md) (structured properties + mixed state).
 
-Current implementation uses a single-element display for radius in multi-selection (see implementation note in `AppearanceSection`). This is not parity-compliant.
-
-**Requirement:** Radius controls must become mixed-aware (uniform vs mixed vs unset) and apply edits across selection without using “first element only”.
-
-### 8.4 Corner Radius (Multi-Selection)
-
-| Scenario | Control State | Behavior |
-|----------|---------------|----------|
-| All support radius | ✅ Enabled | Edit all together |
-| Some support radius | ✅ Enabled | Only apply to supporting types |
-| None support radius | ❌ Hidden | Control hidden |
-| Mixed uniform/per-corner | Show "Mixed" | Choosing sets all uniform |
+| Scenario | Baseline (Current Story, non-breaking) | Target (Figma-referenced parity) |
+|----------|----------------------------------------|----------------------------------|
+| All selected elements support radius | Control enabled; may display first/active element value; edits set the same radius on all selected elements | Mixed-aware (uniform vs per-corner vs unset); edits apply to all selected elements with correct mixed indicators |
+| Some support radius | Control enabled; edits apply only to supporting types (no-op for others) | Same as Baseline, but with explicit “not applicable” handling per 17 (no silent partial edits) |
+| None support radius | Control hidden/disabled | Control hidden/disabled |
+| Mixed uniform vs per-corner across selection | May show first/active state | Shows “Mixed”; choosing uniform sets all uniform; per-corner edits set all per-corner |
 
 ---
 

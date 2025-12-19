@@ -770,6 +770,38 @@ if (/^#[0-9A-F]{6}$/i.test(val) || /^#[0-9A-F]{3}$/i.test(val)) {
 
 ---
 
+## 15.5 Multi-Selection Behavior (Baseline vs Target)
+
+Canonical mixed-state display + edit semantics are defined in:
+- [17-multi-selection-and-mixed-state.md](./17-multi-selection-and-mixed-state.md)
+
+Because Fill is a **list editor**, multi-selection has two levels of “mixedness”:
+- **List-level mixed:** the fill stack shape differs (count/order/types)
+- **Row-level mixed:** a “corresponding” row exists but properties differ (opacity/color/etc)
+
+### 15.5.1 Baseline (Current Story, non-breaking)
+
+- The Fill section MAY render the fill list from the **first/active selected element**.
+- Row edits MAY apply by **index** and MAY overwrite the corresponding row/index across selection.
+- If list shapes differ across selection, behavior MUST be one of:
+    - disable unsafe row edits, OR
+    - treat the operation as “apply first element’s fill stack to all” and clearly communicate that scope.
+
+Baseline MUST NOT silently apply an edit to only one element unless explicitly labeled as “active only”.
+
+### 15.5.2 Target (Figma-referenced parity for overlapping interactions)
+
+- When list shapes are uniform across the selection:
+    - list renders normally
+    - each row supports mixed display and mixed edits per 17
+- When list shapes are mixed:
+    - section MUST show a truthful mixed-list UI (no fake first-only values)
+    - allow only safe list-level actions (e.g., “Add Fill to all”)
+
+Row mapping MUST be stable across the selection (id-based rows or robust mapping) before enabling per-row edits in mixed-list selections.
+
+---
+
 ## 16. Test Scenarios & Acceptance Criteria
 
 > **Reference:** [TEST-AUTOMATION-PLAN.md](./TEST-AUTOMATION-PLAN.md) §4.3
