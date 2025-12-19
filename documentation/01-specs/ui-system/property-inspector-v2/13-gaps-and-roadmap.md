@@ -10,8 +10,12 @@
 
 | Gap | Description | Impact | Effort |
 |-----|-------------|--------|--------|
-| **Multi-selection value display** | Mixed values show first value instead of "Mixed" | User confusion | Medium |
-| ~~**Per-corner radius**~~ | ~~Cannot set individual corner radii~~ | ✅ **Spec complete** - see [04-appearance-section.md](./04-appearance-section.md) Section 6 | Medium |
+| **Multi-selection mixed display** | Many controls still show first/active values instead of truthful mixed indicators | User confusion / accidental edits | Medium |
+| **Relative-delta semantics in mixed state** | Arrow/scrub should apply per-element deltas (preserve differences) per [17](./17-multi-selection-and-mixed-state.md) | Breaks Figma-referenced parity | High |
+| **Undo batching for multi-selection** | Multi-select gestures must commit as a single undo step | Unusable undo history | High |
+| **List editor row mapping (fills/strokes/effects)** | Multi-select list editors need stable row addressing + row-level mixed state | Accidental overwrites | High |
+| **Export preset edit scope** | Preset edits are active-only today; scope must be explicit (no silent partial edits) | Confusing / error-prone | Low |
+| **Corner radius multi-select** | Radius UI is first-element-only in multi-select; needs mixed-aware structured-property handling | Visible mismatch vs spec | Medium |
 | **Distribute controls** | No even spacing distribution | Workflow gap | Medium |
 | **Anchor point selector** | Cannot change transform origin | Limits rotation use | High |
 
@@ -23,6 +27,9 @@
 | **Effect styles library** | Cannot save/apply effect presets | Workflow efficiency | High |
 | **Export preview** | No preview of export output | Quality assurance | Medium |
 | **Constraints system** | No responsive constraints | Advanced layouts | High |
+
+**Notes**
+- “Multiple shadows” is separate from the multi-select list-editor row-mapping gap above; both can be pursued independently.
 
 ### 1.3 Medium Priority Gaps (P2)
 
@@ -94,18 +101,18 @@
 
 | Feature | Story | Figma | Gap |
 |---------|-------|-------|-----|
-| Position/Alignment | ✅ | ✅ | ✅ Parity |
-| Layout (Dimensions) | ✅ | ✅ | ✅ Parity |
+| Position/Alignment | ✅ | ✅ | ⚠️ Target gaps: X/Y delta semantics + undo batching |
+| Layout (Dimensions) | ✅ | ✅ | ⚠️ Target gaps: mixed display + per-element constrain ratios |
 | Auto Layout | ❌ | ✅ | ❌ Major gap |
 | Constraints | ❌ | ✅ | ❌ Major gap |
-| Multiple Fills | ✅ | ✅ | ✅ Parity |
+| Multiple Fills | ✅ | ✅ | ⚠️ Target gaps: multi-select list row mapping + mixed row state |
 | Code Fills | ✅ | ❌ | ✅ Advantage |
 | Video Fills | ✅ | ❌ | ✅ Advantage |
-| Multiple Strokes | ✅ | ✅ | ✅ Parity |
-| Multiple Effects | ❌ | ✅ | ❌ Gap |
+| Multiple Strokes | ✅ | ✅ | ⚠️ Target gaps: multi-select list row mapping + mixed row state |
+| Multiple Effects | Partial | ✅ | ⚠️ Target gaps: stacking parity + list row mapping |
 | Effect Styles | ❌ | ✅ | ❌ Gap |
 | Variables/Modes | Partial | ✅ | ⚠️ Partial |
-| Export Presets | ✅ | ✅ | ✅ Parity |
+| Export Presets | ✅ | ✅ | ⚠️ Target gap: explicit scope strategy for multi-select |
 
 ### 4.2 vs. Keynote/PowerPoint
 
@@ -140,7 +147,11 @@
 
 | Feature | Priority | Effort | Status |
 |---------|----------|--------|--------|
-| Per-corner radius | P0 | 2 weeks | Planned |
+| Multi-select mixed display + semantics (core) | P0 | 2–4 weeks | Planned |
+| Undo batching for multi-select gestures | P0 | 1–2 weeks | Planned |
+| List editor row mapping (fills/strokes/effects) | P0 | 3–6 weeks | Planned |
+| Export preset scope strategy | P0 | 1 week | Planned |
+| Corner radius multi-select (structured property) | P0 | 1–2 weeks | Planned |
 | Multiple shadows | P1 | 2 weeks | Planned |
 | Distribute controls | P0 | 1 week | Planned |
 | Effect styles | P1 | 3 weeks | Planned |
