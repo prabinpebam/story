@@ -333,7 +333,7 @@ Shown only for single selection of boolean shapes.
 - Preview (read-only; renders an `<img>`)
 
 **Notes / parity gaps**
-- **Current (Baseline):** presets UI is sourced from the first selected element and preset edits write to the first selected element only.
+- **Current (Baseline):** presets UI is sourced from the first/active selected element and preset edits write to the first/active selected element only (this MUST be explicitly communicated in the UI to avoid silent partial edits).
 - **Recommended (Target):** explicitly choose an applicability strategy for multi-select (intersection-only disable, explicit “apply to all”, or explicit “active only”), and represent the scope in the UI.
 
 ---

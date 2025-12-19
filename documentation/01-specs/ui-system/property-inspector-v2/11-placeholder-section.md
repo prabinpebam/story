@@ -26,6 +26,15 @@ The Placeholder Section provides a palette for adding placeholder elements to la
 
 ---
 
+## 1.1 Multi-Selection & Mixed State
+
+This section is a palette for creating placeholders and does not edit properties of the current canvas selection.
+
+- **Baseline/Target:** Not applicable for element multi-selection rules in [17-multi-selection-and-mixed-state.md](./17-multi-selection-and-mixed-state.md).
+- If future UX allows selecting multiple placeholders and batch-editing them via this section, this spec MUST add an explicit “Multi-Selection Behavior” subsection that follows 17.
+
+---
+
 ## 2. Layout Structure
 
 ```

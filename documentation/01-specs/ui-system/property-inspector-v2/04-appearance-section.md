@@ -427,7 +427,7 @@ This section uses the **Baseline vs Target** model from 17:
 | Scenario | Display | Behavior |
 |----------|---------|----------|
 | Same Mode | Shared mode | Edit all together |
-| Different (Baseline) | First or "Multiple" | Sets all to same mode |
+| Different (Baseline) | First value or "Multiple" (mixed) | Sets all to same mode |
 | Different (Target) | "Mixed" | Sets all to same mode; dropdown menu shows no stale selection highlight |
 
 ### 8.3 Visibility

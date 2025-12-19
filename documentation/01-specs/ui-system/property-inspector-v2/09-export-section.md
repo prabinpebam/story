@@ -433,7 +433,7 @@ Export has two distinct concepts:
 - Editing preset rows MAY update only the first/active selected element.
 - Export button label MAY reflect multi-selection count.
 
-If preset edits are “active only”, the UI SHOULD communicate that (e.g., helper text “Editing presets for: <active layer>”).
+If preset edits are “active only”, the UI MUST communicate that scope (e.g., helper text “Editing presets for: <active layer>”).
 
 ### 13.5.2 Target (Figma-referenced parity for overlapping interactions)
 

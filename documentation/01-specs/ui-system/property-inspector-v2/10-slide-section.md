@@ -15,6 +15,13 @@ The Slide section displays slide-level properties when no elements are selected 
 - **Shown when:** No element is selected (selection is empty)
 - **Mode-dependent:** Different UI for Slide mode vs. Master mode
 
+### Multi-Selection & Mixed State
+
+This section does **not** participate in element multi-selection semantics from [17-multi-selection-and-mixed-state.md](./17-multi-selection-and-mixed-state.md) because it is only shown when the canvas element selection is empty.
+
+- **Baseline/Target:** Not applicable for element multi-selection.
+- If Story later supports selecting multiple slides/masters at once, this spec MUST be updated to define mixed display + edit semantics for slide/master properties.
+
 ---
 
 ## 2. Mode-Specific Layout
@@ -254,6 +261,8 @@ this.fillSection = new FillSection({
     onUpdate: (fills, isTransient) => this.updateBackground(fills, isTransient)
 });
 ```
+
+**Note:** Background editing targets a single slide/master object at a time. It reuses FillSection UI, but it is not an element multi-selection list editor.
 
 ### 8.2 Inherited Background
 
