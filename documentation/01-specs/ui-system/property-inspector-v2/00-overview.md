@@ -35,6 +35,9 @@ This specification consolidates and supersedes all previous Property Inspector d
 | [13-gaps-and-roadmap.md](./13-gaps-and-roadmap.md) | Current gaps, risks, and future improvements |
 | [14-visual-design.md](./14-visual-design.md) | Layout specifications, colors, typography |
 | [15-glossary.md](./15-glossary.md) | Terminology and definitions |
+| [16-theme-linked-properties.md](./16-theme-linked-properties.md) | Theme linking model (colors/typography) |
+| [17-multi-selection-and-mixed-state.md](./17-multi-selection-and-mixed-state.md) | Canonical multi-selection + mixed-state rules (Figma-referenced parity for overlapping features) |
+| [18-control-inventory-and-coverage-matrix.md](./18-control-inventory-and-coverage-matrix.md) | Omission-proof control inventory + parity coverage checklist (references 17) |
 
 ---
 

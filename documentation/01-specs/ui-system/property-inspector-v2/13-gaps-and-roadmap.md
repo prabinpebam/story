@@ -19,7 +19,7 @@
 
 | Gap | Description | Impact | Effort |
 |-----|-------------|--------|--------|
-| **Multiple shadows** | Only one drop shadow per element | Feature parity with Figma | Medium |
+| **Multiple shadows** | Only one drop shadow per element | Figma-referenced parity for overlapping workflows | Medium |
 | **Effect styles library** | Cannot save/apply effect presets | Workflow efficiency | High |
 | **Export preview** | No preview of export output | Quality assurance | Medium |
 | **Constraints system** | No responsive constraints | Advanced layouts | High |
@@ -289,7 +289,7 @@
 - [ ] All P0 gaps addressed
 - [ ] Test coverage > 90%
 - [ ] No critical bugs in production
-- [ ] Feature parity with Figma basics
+- [ ] Figma-referenced parity for core overlapping PI behaviors
 
 ### 10.2 For V2.0 Release
 

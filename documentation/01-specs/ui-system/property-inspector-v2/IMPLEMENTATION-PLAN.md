@@ -284,10 +284,10 @@ if (!result.mixed) {
 
 ---
 
-## Phase 2: Feature Parity
+## Phase 2: Figma-Referenced Parity
 
 ### Goal
-Achieve feature parity with Figma for core inspector features.
+Achieve Figma-referenced parity for core inspector features (i.e., match detailed UI/UX behavior where Story and Figma are meaningfully comparable).
 
 **Principles Alignment:**
 - ✅ Small incremental changes (one feature at a time)

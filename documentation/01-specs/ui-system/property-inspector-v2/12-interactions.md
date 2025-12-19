@@ -299,6 +299,9 @@ if (state.ui && state.ui.isInteracting) return; // Skip render during drag
 
 ## 9. Multi-Selection Behavior
 
+For the normative, cross-control rules (numeric inputs, dropdowns, toggles, button groups) and Figma-referenced parity editing semantics (for overlapping interactions), see:
+- [17-multi-selection-and-mixed-state.md](./17-multi-selection-and-mixed-state.md)
+
 ### 9.1 Same Values
 
 When all selected elements have the same value:

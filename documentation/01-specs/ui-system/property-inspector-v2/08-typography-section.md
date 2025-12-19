@@ -387,6 +387,9 @@ textElement = {
 
 ## 10. Multi-Selection Behavior
 
+Canonical mixed-state display + edit semantics are defined in:
+- [17-multi-selection-and-mixed-state.md](./17-multi-selection-and-mixed-state.md)
+
 ### 10.1 Same Properties
 
 Display shared values, edits apply to all.
@@ -396,7 +399,7 @@ Display shared values, edits apply to all.
 | Property | Display |
 |----------|---------|
 | Font Family | First or "Multiple" |
-| Font Size | First or "—" |
+| Font Size | "—" (mixed) |
 | Color | First swatch |
 | Alignment | No selection highlight |
 

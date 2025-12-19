@@ -408,12 +408,15 @@ onRadiusChange(value) {
 
 ## 8. Multi-Selection Behavior
 
+Canonical mixed-state display + edit semantics are defined in:
+- [17-multi-selection-and-mixed-state.md](./17-multi-selection-and-mixed-state.md)
+
 ### 8.1 Opacity
 
 | Scenario | Display | Behavior |
 |----------|---------|----------|
 | Same Opacity | Shared value | Edit all together |
-| Different | First value or "Mixed" | Sets all to same value |
+| Different | "—" (mixed) | Type sets absolute; arrows/scrub apply relative delta; commit is single undo |
 
 ### 8.2 Blend Mode
 
@@ -429,6 +432,14 @@ onRadiusChange(value) {
 | All Visible | Eye open | Hides all |
 | All Hidden | Eye crossed | Shows all |
 | Mixed | Partial icon | Shows all (match first) |
+
+### 8.4 Corner Radius (parity gap)
+
+Figma-referenced parity expectation (for overlapping behaviors) is defined in [17-multi-selection-and-mixed-state.md](./17-multi-selection-and-mixed-state.md) (structured properties + mixed state).
+
+Current implementation uses a single-element display for radius in multi-selection (see implementation note in `AppearanceSection`). This is not parity-compliant.
+
+**Requirement:** Radius controls must become mixed-aware (uniform vs mixed vs unset) and apply edits across selection without using “first element only”.
 
 ### 8.4 Corner Radius (Multi-Selection)
 
