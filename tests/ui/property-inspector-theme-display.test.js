@@ -239,17 +239,15 @@ describe('Property Inspector - Theme Display', () => {
 
     describe('DOM Structure Validation', () => {
         it('should have correct DOM structure for colors section', () => {
-            const colorsContent = container.querySelector('.theme-colors-content');
-            expect(colorsContent).not.toBeNull();
+            const badge = container.querySelector('[data-testid="color-theme-inherited-badge"]');
+            expect(badge).not.toBeNull();
 
-            const headerRow = colorsContent.querySelector('.pi-row--space-between');
+            const headerRow = badge.closest('.pi-row');
             expect(headerRow).not.toBeNull();
 
-            const badge = headerRow.querySelector('.inherited-fill-badge');
             const themeName = headerRow.querySelector('.theme-detail-name');
             const buttonGroup = headerRow.querySelector('.pi-button-group');
 
-            expect(badge).not.toBeNull();
             expect(themeName).not.toBeNull();
             expect(buttonGroup).not.toBeNull();
 
@@ -261,7 +259,13 @@ describe('Property Inspector - Theme Display', () => {
         });
 
         it('should have both edit and reset buttons in button group', () => {
-            const buttonGroup = container.querySelector('.pi-button-group');
+            const badge = container.querySelector('[data-testid="color-theme-inherited-badge"]');
+            expect(badge).not.toBeNull();
+
+            const headerRow = badge.closest('.pi-row');
+            expect(headerRow).not.toBeNull();
+
+            const buttonGroup = headerRow.querySelector('.pi-button-group');
             expect(buttonGroup).not.toBeNull();
 
             const buttons = buttonGroup.querySelectorAll('button');
@@ -443,13 +447,12 @@ describe('Property Inspector - Theme Display', () => {
 
     describe('Typography Section (Parallel Test)', () => {
         it('should have same badge pattern for typography', () => {
-            const typographySection = container.querySelector('.theme-typography-content');
-            if (!typographySection) return; // Skip if not rendered
+            const badge = container.querySelector('[data-testid="typography-inherited-badge"]');
+            if (!badge) return; // Skip if not rendered
 
-            const headerRow = typographySection.querySelector('.pi-row--space-between');
+            const headerRow = badge.closest('.pi-row');
             expect(headerRow).not.toBeNull();
 
-            const badge = headerRow.querySelector('.inherited-fill-badge');
             const buttonGroup = headerRow.querySelector('.pi-button-group');
 
             expect(badge).not.toBeNull();

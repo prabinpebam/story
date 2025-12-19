@@ -205,15 +205,25 @@ describe('TextEditManager', () => {
         });
 
         it('should call selectAll for enter entry mode', () => {
+            vi.useFakeTimers();
             manager.enterEditMode('text-1', mockElement, { entryMode: 'enter' });
+
+            vi.runAllTimers();
             
             expect(selectionManager.selectAll).toHaveBeenCalledWith(mockElement);
+
+            vi.useRealTimers();
         });
 
         it('should call placeCaretAtEnd for doubleClick entry mode', () => {
+            vi.useFakeTimers();
             manager.enterEditMode('text-1', mockElement, { entryMode: 'doubleClick' });
+
+            vi.runAllTimers();
             
             expect(selectionManager.placeCaretAtEnd).toHaveBeenCalledWith(mockElement);
+
+            vi.useRealTimers();
         });
     });
 
