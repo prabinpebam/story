@@ -22,6 +22,12 @@ export class ExportSection extends BaseSection {
         this.previewContainer = document.createElement('div');
         this.previewContainer.className = 'pi-export-preview';
         this.section.appendChild(this.previewContainer);
+
+        // Multi-selection scope hint
+        this.scopeHint = document.createElement('div');
+        this.scopeHint.className = 'pi-export-scope-hint hidden';
+        this.scopeHint.setAttribute('data-testid', 'export-presets-scope-hint');
+        this.section.appendChild(this.scopeHint);
         
         // Presets Container
         this.container = document.createElement('div');
@@ -52,6 +58,14 @@ export class ExportSection extends BaseSection {
         
         this.section.element.classList.remove('hidden');
         this.selection = selection;
+
+        if (this.selection.length > 1) {
+            this.scopeHint.textContent = 'Editing export presets applies to all selected layers.';
+            this.scopeHint.classList.remove('hidden');
+        } else {
+            this.scopeHint.textContent = '';
+            this.scopeHint.classList.add('hidden');
+        }
         
         const state = store.getState();
         const element = this.getElement(state, selection[0]);

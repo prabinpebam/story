@@ -1277,3 +1277,9 @@ select.pi-input option {
 .pi-export-preview-error {
     color: var(--color-text-tertiary);
 }
+
+.pi-export-scope-hint {
+    margin-bottom: var(--spacing-2);
+    font-size: var(--font-size-xs);
+    color: var(--color-text-tertiary);
+}
