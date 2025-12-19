@@ -167,21 +167,67 @@ describe('SlideSection', () => {
         vi.doMock('../../../src/ui/components/Section.js', () => ({
             Section: class {
                 constructor({ title }) {
+                    this.collapsed = false;
+
                     this.element = global.document.createElement('div');
-                    this.element.className = 'section';
-                    this.title = title;
+                    this.element.className = 'pi-section';
+
+                    this.header = global.document.createElement('div');
+                    this.header.className = 'pi-section__header';
+                    this.header.setAttribute('role', 'button');
+                    this.header.setAttribute('tabindex', '0');
+                    this.header.setAttribute('aria-expanded', 'true');
+
+                    const titleGroup = global.document.createElement('div');
+                    titleGroup.className = 'pi-section__title-group';
+
+                    const titleEl = global.document.createElement('div');
+                    titleEl.className = 'pi-section__title';
+                    titleEl.textContent = title;
+                    titleGroup.appendChild(titleEl);
+
+                    this.actionsGroup = global.document.createElement('div');
+                    this.actionsGroup.className = 'pi-section__actions';
+                    this.actionsGroup.addEventListener('click', (e) => e.stopPropagation());
+                    this.actionsGroup.addEventListener('keydown', (e) => e.stopPropagation());
+
+                    this.header.addEventListener('click', () => {
+                        this.collapsed = !this.collapsed;
+                        this.header.setAttribute('aria-expanded', String(!this.collapsed));
+                    });
+
+                    this.header.appendChild(titleGroup);
+                    this.header.appendChild(this.actionsGroup);
+
+                    this.content = global.document.createElement('div');
+                    this.content.className = 'pi-section__content';
+
+                    this.element.appendChild(this.header);
+                    this.element.appendChild(this.content);
                 }
                 appendChild(el) {
-                    this.element.appendChild(el);
+                    this.content.appendChild(el);
                 }
             }
         }));
 
         vi.doMock('../../../src/ui/components/Button.js', () => ({
             Button: class {
-                constructor({ label, onClick }) {
+                constructor({ label, title, icon, className, onClick, dataTestId }) {
                     this.element = global.document.createElement('button');
-                    this.element.textContent = label;
+                    if (className) this.element.className = className;
+                    if (title) {
+                        this.element.setAttribute('title', title);
+                        this.element.setAttribute('aria-label', title);
+                    }
+                    if (dataTestId) {
+                        this.element.setAttribute('data-testid', dataTestId);
+                    }
+                    if (icon) {
+                        this.element.innerHTML = icon;
+                    } else {
+                        this.element.textContent = label || '';
+                    }
                     this.element.onclick = onClick;
                     this.label = label;
                 }
@@ -281,7 +327,8 @@ describe('SlideSection', () => {
         vi.doMock('../../../src/ui/PanelManager.js', () => ({
             panelManager: {
                 register: vi.fn(),
-                unregister: vi.fn()
+                unregister: vi.fn(),
+                toggle: vi.fn()
             }
         }));
 
@@ -492,6 +539,73 @@ describe('SlideSection', () => {
             
             expect(slideSection.layoutTriggerBtn.label).toBe('Content Layout');
             expect(slideSection.layoutTriggerBtn.label).not.toBe(initialLabel);
+        });
+    });
+
+    describe('Theme Header Controls', () => {
+        const getSectionByTitle = (root, title) => {
+            return Array.from(root.querySelectorAll('.pi-section')).find(sec => {
+                const titleEl = sec.querySelector('.pi-section__title');
+                return titleEl && titleEl.textContent === title;
+            }) || null;
+        };
+
+        it('should render Colors controls in the section header actions', () => {
+            const slideSection = new SlideSection();
+
+            const colorsSection = getSectionByTitle(slideSection.element, 'Colors');
+            expect(colorsSection).toBeTruthy();
+
+            const header = colorsSection.querySelector('.pi-section__header');
+            const actions = colorsSection.querySelector('.pi-section__actions');
+            const content = colorsSection.querySelector('.pi-section__content');
+
+            expect(header).toBeTruthy();
+            expect(actions).toBeTruthy();
+            expect(content).toBeTruthy();
+
+            expect(actions.querySelector('[data-testid="color-theme-inherited-badge"]')).toBeTruthy();
+            expect(actions.querySelector('[data-testid="color-theme-reset-btn"]')).toBeTruthy();
+            expect(content.querySelector('[data-testid="color-theme-inherited-badge"]')).toBeNull();
+
+            // Clicking inside actions should not toggle collapse.
+            expect(header.getAttribute('aria-expanded')).toBe('true');
+            actions.querySelector('[data-testid="color-theme-inherited-badge"]').click();
+            expect(header.getAttribute('aria-expanded')).toBe('true');
+
+            const editBtn = actions.querySelector('button[title="Edit colors"]');
+            expect(editBtn).toBeTruthy();
+            editBtn.click();
+            expect(header.getAttribute('aria-expanded')).toBe('true');
+        });
+
+        it('should render Typography controls in the section header actions', () => {
+            const slideSection = new SlideSection();
+
+            const typoSection = getSectionByTitle(slideSection.element, 'Typography');
+            expect(typoSection).toBeTruthy();
+
+            const header = typoSection.querySelector('.pi-section__header');
+            const actions = typoSection.querySelector('.pi-section__actions');
+            const content = typoSection.querySelector('.pi-section__content');
+
+            expect(header).toBeTruthy();
+            expect(actions).toBeTruthy();
+            expect(content).toBeTruthy();
+
+            expect(actions.querySelector('[data-testid="typography-inherited-badge"]')).toBeTruthy();
+            expect(actions.querySelector('[data-testid="typography-reset-btn"]')).toBeTruthy();
+            expect(content.querySelector('[data-testid="typography-inherited-badge"]')).toBeNull();
+
+            // Clicking inside actions should not toggle collapse.
+            expect(header.getAttribute('aria-expanded')).toBe('true');
+            actions.querySelector('[data-testid="typography-inherited-badge"]').click();
+            expect(header.getAttribute('aria-expanded')).toBe('true');
+
+            const editBtn = actions.querySelector('button[title="Edit typography"]');
+            expect(editBtn).toBeTruthy();
+            editBtn.click();
+            expect(header.getAttribute('aria-expanded')).toBe('true');
         });
     });
 

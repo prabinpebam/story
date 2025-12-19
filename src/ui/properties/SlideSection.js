@@ -647,9 +647,9 @@ export class SlideSection {
         
         console.log('SlideSection: Creating colors section content');
 
-        // Current theme name/preset row (for display info)
+        // Header actions row (rendered in the section header to save vertical space)
         const headerRow = document.createElement('div');
-        headerRow.className = 'pi-row pi-row--space-between';
+        headerRow.className = 'pi-row';
         
         // Left side: Inheritance badge OR theme name
         this.colorBadge = document.createElement('span');
@@ -688,7 +688,14 @@ export class SlideSection {
         
         headerRow.appendChild(buttonGroup);
 
-        container.appendChild(headerRow);
+        // Prefer placing this row in the section header actions area.
+        const actionsHost = this.colorsSection?.element?.querySelector?.('.pi-section__actions');
+        if (actionsHost) {
+            actionsHost.appendChild(headerRow);
+        } else {
+            // Fallback (e.g., in unit tests with a simplified Section mock)
+            container.appendChild(headerRow);
+        }
 
         // Theme source indicator row (shows where the theme comes from in cascade)
         const sourceRow = document.createElement('div');
@@ -790,9 +797,9 @@ export class SlideSection {
         const container = document.createElement('div');
         container.className = 'theme-typography-content';
 
-        // Header row with name/badge and buttons (like color theme)
+        // Header actions row with name/badge and buttons (rendered in the section header)
         const headerRow = document.createElement('div');
-        headerRow.className = 'pi-row pi-row--space-between';
+        headerRow.className = 'pi-row';
 
         // Left side: Inheritance badge OR typography name
         this.typoBadge = document.createElement('span');
@@ -831,7 +838,14 @@ export class SlideSection {
         buttonGroup.appendChild(this.typoResetBtn.element);
         
         headerRow.appendChild(buttonGroup);
-        container.appendChild(headerRow);
+
+        const actionsHost = this.typographySection?.element?.querySelector?.('.pi-section__actions');
+        if (actionsHost) {
+            actionsHost.appendChild(headerRow);
+        } else {
+            // Fallback (e.g., in unit tests with a simplified Section mock)
+            container.appendChild(headerRow);
+        }
 
         // Heading font row
         const headingRow = document.createElement('div');
@@ -991,16 +1005,21 @@ export class SlideSection {
         if (this.themeSourceIcon && this.themeSourceLabel) {
             const sourceRow = this.themeSourceIcon.parentElement;
             if (themeInfo?.isInherited) {
-                this.themeSourceIcon.textContent = '↑';
+                // Redundant with the "Inherited" badge; don't show a duplicate row.
+                sourceRow.classList.add('hidden');
+                this.themeSourceIcon.textContent = '';
+                this.themeSourceLabel.textContent = '';
                 sourceRow.classList.remove('active');
-                this.themeSourceLabel.textContent = themeInfo.sourceLabel || 'from Master';
             } else if (isOverride) {
+                sourceRow.classList.remove('hidden');
                 this.themeSourceIcon.textContent = '◆';
                 sourceRow.classList.add('active');
                 this.themeSourceLabel.textContent = 'slide-specific';
             } else {
+                sourceRow.classList.add('hidden');
                 this.themeSourceIcon.textContent = '';
                 this.themeSourceLabel.textContent = '';
+                sourceRow.classList.remove('active');
             }
         }
 

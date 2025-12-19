@@ -251,7 +251,7 @@ describe('HitTesting', () => {
         it('should detect corner radius handles', () => {
             const mockSlide = {
                 elements: {
-                    'el-1': { id: 'el-1', x: 100, y: 100, width: 200, height: 200, rotation: 0 }
+                    'el-1': { id: 'el-1', type: 'rect', x: 100, y: 100, width: 200, height: 200, rotation: 0 }
                 }
             };
             mockCanvasManager.getActiveContainer.mockReturnValue(mockSlide);
