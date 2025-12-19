@@ -697,20 +697,6 @@ export class SlideSection {
             container.appendChild(headerRow);
         }
 
-        // Theme source indicator row (shows where the theme comes from in cascade)
-        const sourceRow = document.createElement('div');
-        sourceRow.className = 'theme-source-row slide-theme-source-row';
-        
-        this.themeSourceIcon = document.createElement('span');
-        this.themeSourceIcon.className = 'slide-theme-source-icon';
-        sourceRow.appendChild(this.themeSourceIcon);
-        
-        this.themeSourceLabel = document.createElement('span');
-        this.themeSourceLabel.className = 'slide-theme-source-label';
-        sourceRow.appendChild(this.themeSourceLabel);
-        
-        container.appendChild(sourceRow);
-
         // Mode toggle row (Light ☀️ / Dark 🌙)
         const modeRow = document.createElement('div');
         modeRow.className = 'pi-row theme-mode-row pi-mb-2';
@@ -741,7 +727,7 @@ export class SlideSection {
         this.themeSwatchesComponent = new ThemeSwatches({
             onColorSelect: () => {}, // No-op for display-only in SlideSection
             showThemeName: false, // We show the name in the header row
-            showThemeSource: false, // We show source in our own row
+            showThemeSource: false,
             columns: 6
         });
         container.appendChild(this.themeSwatchesComponent.element);
@@ -999,28 +985,6 @@ export class SlideSection {
             this.colorThemeName.classList.remove('hidden');
             this.colorBadge.classList.add('hidden');
             this.colorResetBtn.element.classList.add('hidden');
-        }
-
-        // Update source indicator (cascade info)
-        if (this.themeSourceIcon && this.themeSourceLabel) {
-            const sourceRow = this.themeSourceIcon.parentElement;
-            if (themeInfo?.isInherited) {
-                // Redundant with the "Inherited" badge; don't show a duplicate row.
-                sourceRow.classList.add('hidden');
-                this.themeSourceIcon.textContent = '';
-                this.themeSourceLabel.textContent = '';
-                sourceRow.classList.remove('active');
-            } else if (isOverride) {
-                sourceRow.classList.remove('hidden');
-                this.themeSourceIcon.textContent = '◆';
-                sourceRow.classList.add('active');
-                this.themeSourceLabel.textContent = 'slide-specific';
-            } else {
-                sourceRow.classList.add('hidden');
-                this.themeSourceIcon.textContent = '';
-                this.themeSourceLabel.textContent = '';
-                sourceRow.classList.remove('active');
-            }
         }
 
         // NOTE: We no longer apply CSS variables globally here.
