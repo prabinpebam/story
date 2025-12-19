@@ -116,13 +116,21 @@ When the selected text is linked:
 - The typography controls show the effective values.
 - Typography controls are **locked/read-only** for any property governed by the style.
 
+**Exception: Alignment overrides are allowed while linked.**
+- The user may change **horizontal alignment** (`textAlign`: left/center/right/justify as supported by the UI) from the Property Inspector.
+- The user may change **vertical alignment** (`verticalAlign`: top/middle/bottom) from the Property Inspector.
+- These alignment changes apply immediately to the selected text element(s).
+- When the user changes the Text Style via the dropdown (i.e., re-applies a style), the style **wins back** alignment: any local alignment overrides are cleared and alignment follows the newly selected style.
+
 **Locked controls include (at minimum):**
 - Font family
 - Font weight
 - Font size
 - Line height
 - Letter spacing
-- Alignment
+
+**Not locked (editable while linked):**
+- Alignment (horizontal + vertical)
 - Text fill/color
 
 The UI must make it clear that:
@@ -180,6 +188,7 @@ If a text object references a style that no longer exists:
 - If selected text objects have different styles:
   - The Style dropdown shows a mixed state.
   - Direct typography controls remain disabled to avoid accidental partial edits.
+  - **Exception: Alignment remains editable** (horizontal + vertical), so users can align multiple selected text objects even when their styles differ.
   - The user may set a single style from the dropdown to apply uniformly.
 
 ### 5.2 Mixed selection including non-text elements
@@ -208,6 +217,10 @@ When a text object is being edited inline:
 This UX spec intentionally does **not** include:
 - Linked-with-local-overrides behavior (i.e., “Title but font size overridden”).
 - Per-property override indicators and reset actions.
+
+This spec **does** allow one narrow override case while linked:
+- Alignment overrides (horizontal + vertical) are permitted.
+- No override indicator UI is required for alignment overrides.
 
 If/when local overrides are introduced, a separate UX doc should define:
 - Which properties can be overridden while linked

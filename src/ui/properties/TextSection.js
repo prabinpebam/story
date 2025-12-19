@@ -481,8 +481,8 @@ export class TextSection extends BaseSection {
         const selection = state.editor.selectedElementIds;
         const editingElementId = state.editor.editingElementId;
         
-        // Check if any selected element has a typography style linked
-        // If so, block changes to styleable properties (user must unlink first)
+        // If a Typography style is linked, block changes to style-governed properties
+        // (user must unlink first). Alignment is an explicit exception.
         const styleableProps = [
             'fontFamily',
             'fontWeight',
@@ -490,8 +490,6 @@ export class TextSection extends BaseSection {
             'fontStyle',
             'lineHeight',
             'letterSpacing',
-            'textAlign',
-            'verticalAlign',
             'textDecoration',
             // NOTE: textFill is intentionally NOT style-locked.
             // Text color is driven by Color Theme and should remain overridable
@@ -755,6 +753,7 @@ export class TextSection extends BaseSection {
             lineHeight: undefined,
             letterSpacing: undefined,
             textAlign: undefined,
+            verticalAlign: undefined,
             // Keep textFill if custom, or clear to use theme
             // textFill: undefined
         };
@@ -854,6 +853,7 @@ export class TextSection extends BaseSection {
             lineHeight: props.lineHeight,
             letterSpacing: props.letterSpacing,
             textAlign: props.textAlign,
+            verticalAlign: props.verticalAlign,
             textFill: props.textFill
         };
         
@@ -907,15 +907,16 @@ export class TextSection extends BaseSection {
             }
         });
 
-        // Disable/enable alignment controls when linked
+        // Alignment is always editable (explicit exception), even when linked or mixed.
         if (this.alignButtons) {
             this.alignButtons.forEach(({ btn }) => {
+                const shouldLockAlignment = false;
                 if (typeof btn?.setDisabled === 'function') {
-                    btn.setDisabled(shouldLockTypography);
+                    btn.setDisabled(shouldLockAlignment);
                 } else if (btn?.element) {
-                    btn.element.disabled = shouldLockTypography;
-                    btn.element.style.pointerEvents = shouldLockTypography ? 'none' : 'auto';
-                    btn.element.style.opacity = shouldLockTypography ? '0.5' : '1';
+                    btn.element.disabled = shouldLockAlignment;
+                    btn.element.style.pointerEvents = shouldLockAlignment ? 'none' : 'auto';
+                    btn.element.style.opacity = shouldLockAlignment ? '0.5' : '1';
                 }
             });
         }

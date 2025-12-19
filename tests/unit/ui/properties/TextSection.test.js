@@ -329,12 +329,12 @@ describe('TextSection', () => {
             expect(textSection.fillSwatch.style.pointerEvents).toBe('auto');
             expect(textSection.overrideIndicator.classList.contains('hidden')).toBe(true);
 
-            // Alignment buttons should be disabled via IconButton.setDisabled
+            // Alignment remains editable even when linked to a Typography style.
             const alignButtonMocks = IconButton.mock.results
                 .map(r => r.value)
                 .filter(v => v && typeof v.setDisabled === 'function');
             expect(alignButtonMocks.length).toBeGreaterThan(0);
-            expect(alignButtonMocks.some(v => v.setDisabled.mock.calls.some(([arg]) => arg === true))).toBe(true);
+            expect(alignButtonMocks.some(v => v.setDisabled.mock.calls.some(([arg]) => arg === true))).toBe(false);
         });
 
         it('should unlock typography controls when no style is applied', () => {
@@ -520,7 +520,7 @@ describe('TextSection', () => {
             );
         });
 
-        it('should block verticalAlign updates while linked (strict linking)', () => {
+        it('should allow verticalAlign updates while linked (alignment override exception)', () => {
             store.getState.mockReturnValue({
                 editor: {
                     mode: 'edit',
@@ -537,7 +537,66 @@ describe('TextSection', () => {
             store.dispatch.mockClear();
 
             textSection.updateProperty('verticalAlign', 'middle');
-            expect(store.dispatch).not.toHaveBeenCalled();
+            expect(store.dispatch).toHaveBeenCalledWith(
+                'UPDATE_ELEMENT',
+                expect.objectContaining({ id: 'el-1', verticalAlign: 'middle' }),
+                expect.anything()
+            );
+        });
+
+        it('should allow textAlign updates while linked (alignment override exception)', () => {
+            store.getState.mockReturnValue({
+                editor: {
+                    mode: 'edit',
+                    activeSlideId: 'slide-1',
+                    selectedElementIds: ['el-1'],
+                    editingElementId: null
+                },
+                slides: { 'slide-1': { elements: { 'el-1': { id: 'el-1', type: 'text', textStyleId: 'title' } } } },
+                slideMasterPresets: {}
+            });
+
+            textSection.selection = ['el-1'];
+            textSection.currentStyleId = 'title';
+            store.dispatch.mockClear();
+
+            textSection.updateProperty('textAlign', 'center');
+            expect(store.dispatch).toHaveBeenCalledWith(
+                'UPDATE_ELEMENT',
+                expect.objectContaining({ id: 'el-1', textAlign: 'center' }),
+                expect.anything()
+            );
+        });
+    });
+
+    describe('applyTextStyle()', () => {
+        it('should clear alignment overrides when applying a style (style wins back alignment)', () => {
+            store.getState.mockReturnValue({
+                editor: {
+                    mode: 'edit',
+                    activeSlideId: 'slide-1',
+                    selectedElementIds: ['el-1'],
+                    editingElementId: null
+                },
+                slides: { 'slide-1': { elements: { 'el-1': { id: 'el-1', type: 'text' } } } },
+                slideMasterPresets: {}
+            });
+
+            textSection.selection = ['el-1'];
+            store.dispatch.mockClear();
+
+            textSection.applyTextStyle('title');
+
+            expect(store.dispatch).toHaveBeenCalledWith(
+                'UPDATE_ELEMENT',
+                expect.objectContaining({
+                    id: 'el-1',
+                    textStyleId: 'title',
+                    textAlign: undefined,
+                    verticalAlign: undefined
+                }),
+                expect.anything()
+            );
         });
     });
 
