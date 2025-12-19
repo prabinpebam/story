@@ -94,7 +94,7 @@ export class EditorPage {
      */
     async goto() {
         // Avoid `networkidle` (the app can keep long-lived connections open).
-        await this.page.goto('/', { waitUntil: 'domcontentloaded' });
+        await this.page.goto('/', { waitUntil: 'domcontentloaded', timeout: 60000 });
 
         // Ensure the app bootstrapped and exposed a store for tests.
         await this.page.waitForFunction(() => {
@@ -122,6 +122,33 @@ export class EditorPage {
         await this.page.evaluate(async () => {
             await document.fonts.ready;
         });
+    }
+
+    /**
+     * Wait until a contenteditable text element is focused/active and
+     * browser selection is inside it. Helps avoid first-keystroke drops
+     * caused by typing before focus/selection is established.
+     */
+    async waitForTextEditingReady(timeout = 2000) {
+        await this.page.waitForFunction(() => {
+            const sel = window.getSelection();
+            if (!sel || sel.rangeCount === 0) return false;
+
+            const anchor = sel.anchorNode;
+            if (!anchor) return false;
+
+            const anchorEl =
+                anchor.nodeType === Node.ELEMENT_NODE
+                    ? (anchor as Element)
+                    : (anchor.parentElement as Element | null);
+            if (!anchorEl) return false;
+
+            const editable = anchorEl.closest('[contenteditable="true"]') as HTMLElement | null;
+            if (!editable) return false;
+
+            const active = document.activeElement as HTMLElement | null;
+            return active === editable || (active ? editable.contains(active) : false);
+        }, null, { timeout });
     }
     
     /**

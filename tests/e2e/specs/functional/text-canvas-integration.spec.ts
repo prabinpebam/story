@@ -59,6 +59,7 @@ test.describe('Text Canvas Integration', () => {
         // Since we panned (0.5,0.5) -> (0.4,0.4), the text should be at 0.4, 0.4
         await canvas.clickAt(0.4, 0.4);
         await editor.page.keyboard.press('Enter');
+        await editor.waitForTextEditingReady();
         
         await canvas.typeText('Works');
         await canvas.clickAt(0.1, 0.1);

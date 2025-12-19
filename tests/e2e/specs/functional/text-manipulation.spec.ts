@@ -14,20 +14,18 @@ test.describe('Text Manipulation', () => {
         await editor.waitForFonts();
     });
 
-    test('TC-06: Double-click to enter edit mode', async () => {
+    test('TC-06: Enter to enter edit mode (select-all)', async () => {
         await editor.setActiveTool('text');
         await canvas.clickAt(0.5, 0.5);
         await canvas.typeText('Hello World');
         await canvas.clickAt(0.1, 0.1); // Commit
 
         await editor.setActiveTool('select');
-        await canvas.doubleClickAt(0.5, 0.5);
-        
-        // Verify we are in edit mode by typing
-        // Double click selects all text, so typing replaces it.
-        await editor.page.waitForTimeout(500); // Wait for edit mode to settle
-        // Type a dummy character first as the first character is sometimes lost in test environment
-        await canvas.typeText(' '); 
+        await canvas.clickAt(0.5, 0.5);
+        await editor.page.keyboard.press('Enter');
+        await editor.waitForTextEditingReady();
+
+        // Enter selects all text in the new UX, so typing replaces it.
         await canvas.typeText('Edited');
         await canvas.clickAt(0.1, 0.1); // Commit
 
@@ -38,8 +36,7 @@ test.describe('Text Manipulation', () => {
         const elements = Object.values(slide.elements);
         // Filter out placeholders to find the newly created text
         const textElement = elements.find((el: any) => el.type === 'text' && !el.id.startsWith('placeholder')) as any;
-        // Expect " Edited" or "Edited" depending on if space was captured
-        expect(textElement.content).toMatch(/ ?Edited/);
+        expect(textElement.content).toBe('Edited');
     });
 
     /*
