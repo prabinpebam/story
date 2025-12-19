@@ -208,6 +208,15 @@ export class SelectionManager {
         const { clientX, clientY } = position;
         let range;
 
+        // Temporarily disable pointer-events on the interaction canvas so caretRangeFromPoint
+        // can resolve to the underlying text node (mirrors legacy TextElement behavior).
+        const canvas = document.getElementById('interaction-canvas');
+        let originalPointerEvents = null;
+        if (canvas) {
+            originalPointerEvents = canvas.style.pointerEvents;
+            canvas.style.pointerEvents = 'none';
+        }
+
         if (document.caretRangeFromPoint) {
             // Standard (Chrome, Safari, Edge)
             range = document.caretRangeFromPoint(clientX, clientY);
@@ -221,19 +230,24 @@ export class SelectionManager {
             }
         }
 
-        if (range) {
-            // Ensure range is within our element
-            if (element.contains(range.startContainer)) {
-                const selection = window.getSelection();
-                selection.removeAllRanges();
-                selection.addRange(range);
-            } else {
-                // Fallback to end if click was outside valid text nodes (e.g. padding)
-                this.placeCaretAtEnd(element);
-            }
-        } else {
-            this.placeCaretAtEnd(element);
+        if (canvas && originalPointerEvents !== null) {
+            canvas.style.pointerEvents = originalPointerEvents;
         }
+
+        if (!range) {
+            this.placeCaretAtEnd(element);
+            return;
+        }
+
+        // Ensure range is within our element
+        if (!element.contains(range.startContainer)) {
+            this.placeCaretAtEnd(element);
+            return;
+        }
+
+        const selection = window.getSelection();
+        selection.removeAllRanges();
+        selection.addRange(range);
     }
 
     /**

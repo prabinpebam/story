@@ -1,8 +1,14 @@
 # Comprehensive Text Editing Interaction Specification
 
+> **Status note (2025-12-19):** This document is **deprecated** as a source of truth.
+>
+> Use the canonical spec: `documentation/specs/canvas/text-editing-interaction-comprehensive.md`.
+>
+> Rationale: we maintain a single browser-first “text edit isolation mode” contract and a single DOM-validation checklist to prevent drift.
+
 **Version**: 2.0  
 **Last Updated**: December 2024  
-**Status**: Authoritative Specification  
+**Status**: Deprecated (see canonical spec)  
 **Industry Benchmark**: Figma, Keynote, PowerPoint
 
 ---

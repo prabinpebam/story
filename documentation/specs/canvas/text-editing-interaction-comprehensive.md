@@ -48,6 +48,24 @@ This specification defines all text editing interactions in the Story editor, en
 - IME (Input Method Editor) support
 - Property Inspector synchronization
 
+### 1.4 Fundamental Principle: Browser-First Text Edit Isolation
+
+When `editingElementId` is set, the editor is in **Text Edit Mode (isolation mode)**:
+
+- **The browser owns** caret movement, selection, IME behavior, and mouse semantics inside the text box:
+    - Single click places caret
+    - Double click selects word
+    - Triple click selects paragraph/line
+    - Arrow keys move caret
+    - Shift+Arrow extends selection
+- **The app owns** only the lifecycle + persistence boundaries:
+    - Enter/Exit edit mode
+    - Save/Cancel
+    - Sanitization + store sync
+    - Optional, explicitly-scoped behaviors (e.g. list indentation)
+
+This spec intentionally minimizes custom text interaction logic. If browser defaults can provide the behavior reliably, we prefer them over custom code.
+
 ### 1.3 Key Files
 
 | File | Purpose |
@@ -60,6 +78,29 @@ This specification defines all text editing interactions in the Story editor, en
 | `src/core/text/SelectionManager.js` | Selection save/restore for PI interaction |
 | `src/core/text/PlaceholderManager.js` | Placeholder lifecycle handling |
 | `src/core/text/IMEHandler.js` | International input handling |
+
+### 1.5 Non-Goals
+
+- Re-implementing browser selection rules (click/dblclick/triple-click) in custom JS
+- Custom caret math for normal clicks inside the text box
+- Canvas-level shortcuts firing while in text edit mode
+
+---
+
+## 1.6 Mode Contract (Input Routing)
+
+### Object Mode (not editing)
+
+- Keyboard shortcuts control canvas/editor actions (nudge, duplicate, arrange, etc.)
+- Pointer input drives selection, transform, marquee, etc.
+
+### Text Edit Mode (editing)
+
+- Keyboard input and mouse interactions are routed to the `contenteditable` element.
+- Canvas/global shortcut handlers MUST NOT run while editing, regardless of focus.
+    - Rationale: the user may click UI chrome (toolbar/PI) without leaving edit mode.
+- The interaction overlay (`#interaction-canvas`) MUST NOT block pointer interactions with the editable text element while editing.
+    - If an overlay is required for rendering, it must be `pointer-events: none` during edit mode.
 
 ---
 
@@ -268,7 +309,6 @@ While in edit mode:
 |---------|------------|-------------------|--------|
 | Double-click on text element | `doubleClick` | Caret at click position | CanvasManager |
 | Enter key while selected | `enter` | Select all content | KeyHandler |
-| Type character while selected | `typing` | Replace all content | KeyHandler |
 | Text tool click (new element) | `click` | Select all content | CanvasManager |
 | Programmatic | Varies | Per options | API |
 
@@ -286,7 +326,7 @@ While in edit mode:
 8. Set pointer-events and cursor
 9. Attach event listeners (input, keydown, blur, paste)
 10. Attach IME handler
-11. Handle initial character (type-to-edit)
+11. (Optional) Apply initial character when provided
 12. Set initial selection based on entry mode
 13. Focus element
 14. Dispatch store action (ENTER_TEXT_EDIT)
@@ -405,7 +445,7 @@ setCaretToEnd(element)          // After specific content
 | `Tab` | Exit edit mode, select next element | Not in list |
 | `Tab` | Indent list item | In list |
 | `Shift + Tab` | Outdent list item | In list |
-| Any printable char | Enter edit mode (type-to-edit) | Element selected, not editing |
+| Any printable char | Does NOT enter edit mode | Element selected, not editing |
 | `Delete` / `Backspace` | Delete selected elements | Element selected, not editing |
 | `Arrow Keys` | Nudge element by 1px | Element selected, not editing |
 | `Shift + Arrow Keys` | Nudge element by 10px | Element selected, not editing |
@@ -909,7 +949,7 @@ Else: store.dispatch('UPDATE_ELEMENT')
 
 - [ ] Double-click enters edit mode with caret at click
 - [ ] Enter key enters edit mode with select-all
-- [ ] Type-to-edit enters edit mode and replaces content
+- [ ] Typing does NOT enter edit mode
 - [ ] Escape exits without saving
 - [ ] Ctrl+Enter exits with saving
 - [ ] Tab exits and selects next element
@@ -928,6 +968,73 @@ Else: store.dispatch('UPDATE_ELEMENT')
 - [ ] "- " auto-converts to bullet list
 - [ ] "1. " auto-converts to numbered list
 - [ ] Tab indents list item
+
+---
+
+## Appendix C: Implementation Audit (Input Isolation)
+
+This section captures the required invariants and the current places in code that can violate them.
+
+### C.1 Keyboard Routing
+
+- Global key handler: `src/core/CanvasManager.js` (`window.addEventListener('keydown', ...)`)
+    - Risk: relies on `InputManager.shouldBlockShortcut()` which depends on focus.
+    - Requirement: when `state.editor.editingElementId` is set, global canvas shortcuts MUST be blocked even if focus temporarily moves to non-input UI.
+- Input focus heuristic: `src/core/InputManager.js`
+    - Purpose: blocks global shortcuts when focused in an input/contenteditable.
+    - Limitation: not sufficient alone for edit isolation.
+- Text key handler: `src/core/text/TextEditManager.js` (`keydown` capture listener)
+    - Allowed overrides (explicit):
+        - `Escape` (cancel + exit)
+        - `Ctrl/Cmd+Enter` (commit + exit)
+        - Optional formatting shortcuts (bold/italic/underline/strikethrough)
+        - Optional list indentation behavior
+    - Disallowed: intercepting arrow keys/caret navigation or re-implementing click selection.
+
+### C.2 Mouse Routing / Overlay
+
+- Canvas interaction surface: `#interaction-canvas`
+    - Requirement: MUST NOT block pointer events intended for the editable text element while in text edit mode.
+    - If the overlay remains above the text, native click/dblclick selection will fail and the app will be forced to emulate it.
+
+### C.3 Caret Placement on Entry (Double-Click)
+
+- Double-click edit entry is initiated from `src/core/CanvasManager.js` (hit-test driven).
+- Because the initiating event may land on an overlay instead of the text node, the implementation MAY set caret once on entry using browser APIs:
+    - `document.caretRangeFromPoint(x, y)` (Chromium/WebKit)
+    - `document.caretPositionFromPoint(x, y)` (Firefox)
+- Guardrail: this caret placement is a **bridge** for entry only; subsequent in-edit clicks should be native.
+
+---
+
+## Appendix D: Playwright DOM Validation Checklist
+
+These are the invariants tests should assert so manual verification is unnecessary.
+
+### D.1 Enter Edit Mode
+
+- `contenteditable="true"` is set on the correct `.slide-element[data-element-id=...]`
+- `window.getSelection()` exists and anchors inside the element
+
+### D.2 Isolation: No Canvas Shortcuts While Editing
+
+- While editing, pressing Arrow keys updates selection/caret (selection changes) and does NOT move the element in store.
+- While not editing, pressing Arrow keys nudges the element in store.
+
+### D.3 Mouse Selection Semantics (Native)
+
+- Single click inside editable places a collapsed selection (`isCollapsed === true`)
+- Double click creates a non-collapsed selection (`isCollapsed === false`) and selection text length increases
+- Triple click expands selection further (selected text length increases vs double click)
+
+### D.4 Double-Click Entry Caret Correctness
+
+- After double-click entry, the selection range start equals `caretRangeFromPoint()` for the same coordinates (when range is within the element).
+
+### D.5 Empty Text Caret Baseline
+
+- With empty content, caret renders on the first line (not vertically centered).
+- Implementation hint: ensure the editable element has a stable line box when empty (e.g. `<br>` and/or `min-height: 1em`), and avoid vertical-centering styles.
 - [ ] Shift+Tab outdents list item
 - [ ] Enter on empty item exits/outdents
 - [ ] Backspace at start outdents

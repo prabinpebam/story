@@ -193,6 +193,13 @@ export class CanvasManager {
             if (!editingId) {
                 this.liveResizeData = null;
             }
+
+            // Text Edit Mode is browser-first isolation: the DOM contenteditable must receive
+            // pointer events for native caret/selection behavior (click/dblclick/triple-click).
+            // Disable the interaction canvas overlay while editing.
+            if (this.canvas) {
+                this.canvas.style.pointerEvents = editingId ? 'none' : 'auto';
+            }
         });
 
         // Register context menu zones
@@ -3193,38 +3200,6 @@ export class CanvasManager {
                         });
                     }
                     store.dispatch('SET_EDITING_ELEMENT', { id: elementId, selectionType: 'all' });
-                }
-            }
-        }
-
-        // Type-to-Edit
-        if (!e.ctrlKey && !e.metaKey && !e.altKey && e.key.length === 1) {
-            if (!state.editor.editingElementId && state.editor.selectedElementIds.length === 1) {
-                const elementId = state.editor.selectedElementIds[0];
-                const container = this.getActiveContainer(state);
-                let el = container?.elements?.[elementId];
-                
-                // If not in container, check effective elements (for placeholders from layout)
-                if (!el) {
-                    const effectiveSlide = store.getEffectiveSlide(container?.id);
-                    el = effectiveSlide?.effectiveElements?.[elementId];
-                }
-                
-                if (el && (el.type === 'text' || (el.isPlaceholder && el.type === 'text'))) {
-                    e.preventDefault();
-                    // Instantiate placeholder if needed
-                    if (el.isPlaceholder && !container?.elements?.[elementId]) {
-                        store.dispatch('INSTANTIATE_PLACEHOLDER', { 
-                            placeholderId: elementId,
-                            element: el
-                        });
-                    }
-                    store.dispatch('SET_EDITING_ELEMENT', { 
-                        id: elementId, 
-                        selectionType: 'all',
-                        initialChar: e.key 
-                    });
-                    return;
                 }
             }
         }

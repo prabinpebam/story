@@ -123,24 +123,29 @@ export class TextEditManager {
             imeHandler.attach(domElement);
         }
 
-        // Handle initial character input (Type-to-Edit)
-        if (options.initialChar) {
-            // Replace content with the typed character
-            domElement.textContent = options.initialChar;
-            this.hasReceivedInput = true;
-            
-            // Move caret to end
-            selectionManager.placeCaretAtEnd(domElement);
-            
-            // Trigger input event to ensure state is updated
-            this._handleInput({ target: domElement });
-        } else {
-            // Set initial selection based on entry mode
-            this._setInitialSelection(domElement, options);
+        // Focus the element first (selection APIs are more reliable after focus)
+        try {
+            domElement.focus({ preventScroll: true });
+        } catch {
+            domElement.focus();
         }
 
-        // Focus the element
-        domElement.focus();
+        // Apply initial selection after focus (next tick to avoid focus resetting caret)
+        setTimeout(() => {
+            // Bail if we already exited or switched elements
+            if (!this.isEditing || this.currentElementId !== elementId || this.currentElement !== domElement) return;
+
+            // Handle initial character input (Type-to-Edit)
+            if (options.initialChar) {
+                domElement.textContent = options.initialChar;
+                this.hasReceivedInput = true;
+                selectionManager.placeCaretAtEnd(domElement);
+                this._handleInput({ target: domElement });
+                return;
+            }
+
+            this._setInitialSelection(domElement, options);
+        }, 0);
 
         // Dispatch store action
         store.dispatch(ACTION_TYPES.ENTER_TEXT_EDIT, { elementId });
@@ -245,6 +250,10 @@ export class TextEditManager {
             elementId: this.currentElementId,
             keepSelection 
         });
+
+        // Keep the editor's canonical editing flag in sync.
+        // Many canvas/input routes key off editor.editingElementId.
+        store.dispatch('SET_EDITING_ELEMENT', null);
 
         // Emit event
         this._emit(EVENTS.TEXT_EDIT_END, { 
