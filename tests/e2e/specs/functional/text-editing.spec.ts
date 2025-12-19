@@ -160,6 +160,7 @@ test.describe('Text Editing Scenarios', () => {
     // Enter: select all
     await page.keyboard.press('Enter');
     await expect(textEl).toHaveAttribute('contenteditable', 'true');
+    await editor.waitForTextEditingSelectionState({ mode: 'selectAll', elementId });
     const enterSelection = await page.evaluate((id) => {
       const el = document.querySelector(`#slide-content .slide-element[data-element-id="${id}"]`) as HTMLElement | null;
       if (!el) throw new Error('Element not found for selection check');
@@ -183,6 +184,7 @@ test.describe('Text Editing Scenarios', () => {
     if (!box) throw new Error('Text element has no bounding box');
     await page.mouse.dblclick(box.x + box.width / 2, box.y + box.height / 2);
     await expect(textEl).toHaveAttribute('contenteditable', 'true');
+    await editor.waitForTextEditingSelectionState({ mode: 'caret', elementId });
     const dblSelection = await page.evaluate((id) => {
       const el = document.querySelector(`#slide-content .slide-element[data-element-id="${id}"]`) as HTMLElement | null;
       if (!el) throw new Error('Element not found for selection check');

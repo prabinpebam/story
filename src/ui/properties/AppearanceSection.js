@@ -167,27 +167,31 @@ export class AppearanceSection extends BaseSection {
         if (!this.selection || this.selection.length === 0) return;
         
         const state = store.getState();
-        const element = this.getElement(state, this.selection[0]);
-        if (!element) return;
 
-        // Get current corner radii or initialize from borderRadius
-        const currentRadii = element.cornerRadii || {
-            tl: element.borderRadius || 0,
-            tr: element.borderRadius || 0,
-            bl: element.borderRadius || 0,
-            br: element.borderRadius || 0
-        };
+        // Update each element independently so we don't overwrite other corners
+        // with the first element's radii.
+        this.selection.forEach((id) => {
+            const element = this.getElement(state, id);
+            if (!element) return;
 
-        // Update the specific corner
-        const newRadii = { ...currentRadii, [corner]: val };
+            const base = element.cornerRadii || {
+                tl: element.borderRadius || 0,
+                tr: element.borderRadius || 0,
+                bl: element.borderRadius || 0,
+                br: element.borderRadius || 0
+            };
 
-        // Update for all selected elements
-        this.selection.forEach(id => {
-            store.dispatch('UPDATE_ELEMENT', { 
-                id, 
-                cornerRadii: newRadii,
-                borderRadius: null  // Clear uniform radius when using per-corner
-            }, { skipHistory: isTransient });
+            const next = { ...base, [corner]: val };
+
+            store.dispatch(
+                'UPDATE_ELEMENT',
+                {
+                    id,
+                    cornerRadii: next,
+                    borderRadius: null
+                },
+                { skipHistory: isTransient }
+            );
         });
     }
 
@@ -312,33 +316,66 @@ export class AppearanceSection extends BaseSection {
             this.blendModeSelect.setValue(blendMode);
         }
         
-        // For radius, use first element for now (complex multi-select case)
-        const element = elements[0];
-        
-        // Only show radius for rectangles/images
-        if (isRectangleElement(element) || element.type === 'image') {
+        // Radius only makes sense when ALL selected elements support it.
+        const supportsRadius = (el) => isRectangleElement(el) || el.type === 'image';
+        const allSupportRadius = elements.every(supportsRadius);
+
+        const hasPerCorner = (el) => {
+            const radii = el.cornerRadii;
+            if (!radii) return false;
+            return (
+                radii.tl !== undefined ||
+                radii.tr !== undefined ||
+                radii.bl !== undefined ||
+                radii.br !== undefined
+            );
+        };
+
+        if (allSupportRadius) {
             this.radiusRow.classList.remove('hidden');
             this.radiusLinkBtn.element.classList.remove('hidden');
-            
-            // Check if element has per-corner radii
-            const hasPerCorner = element.cornerRadii && (
-                element.cornerRadii.tl !== undefined ||
-                element.cornerRadii.tr !== undefined ||
-                element.cornerRadii.bl !== undefined ||
-                element.cornerRadii.br !== undefined
-            );
 
-            if (hasPerCorner) {
+            const perCornerFlags = elements.map(hasPerCorner);
+            const allPerCorner = perCornerFlags.every(Boolean);
+            const nonePerCorner = perCornerFlags.every((v) => !v);
+
+            if (allPerCorner) {
                 this._radiusLinked = false;
-                const radii = element.cornerRadii;
-                this.tlRadiusInput.setValue(radii.tl || 0, false);
-                this.trRadiusInput.setValue(radii.tr || 0, false);
-                this.blRadiusInput.setValue(radii.bl || 0, false);
-                this.brRadiusInput.setValue(radii.br || 0, false);
+
+                const radiiObjects = elements.map((el) => {
+                    const r = el.cornerRadii || {};
+                    return {
+                        tl: r.tl ?? 0,
+                        tr: r.tr ?? 0,
+                        bl: r.bl ?? 0,
+                        br: r.br ?? 0
+                    };
+                });
+
+                const tl = this.getMixedValue(radiiObjects, 'tl');
+                const tr = this.getMixedValue(radiiObjects, 'tr');
+                const bl = this.getMixedValue(radiiObjects, 'bl');
+                const br = this.getMixedValue(radiiObjects, 'br');
+
+                tl.mixed ? this.tlRadiusInput.setMixed(true) : (this.tlRadiusInput.setMixed(false), this.tlRadiusInput.setValue(tl.value ?? 0, false));
+                tr.mixed ? this.trRadiusInput.setMixed(true) : (this.trRadiusInput.setMixed(false), this.trRadiusInput.setValue(tr.value ?? 0, false));
+                bl.mixed ? this.blRadiusInput.setMixed(true) : (this.blRadiusInput.setMixed(false), this.blRadiusInput.setValue(bl.value ?? 0, false));
+                br.mixed ? this.brRadiusInput.setMixed(true) : (this.brRadiusInput.setMixed(false), this.brRadiusInput.setValue(br.value ?? 0, false));
+
+                // When per-corner is active, hide uniform input.
+                this.radiusInput.setMixed(false);
             } else {
+                // Uniform mode (also used as fallback if selection is mixed per-corner vs uniform)
                 this._radiusLinked = true;
-                const radius = element.borderRadius || 0;
-                this.radiusInput.setValue(radius, false);
+
+                const uniformObjects = elements.map((el) => ({ v: el.borderRadius || 0 }));
+                const uniform = this.getMixedValue(uniformObjects, 'v');
+                if (uniform.mixed || !nonePerCorner) {
+                    this.radiusInput.setMixed(true);
+                } else {
+                    this.radiusInput.setMixed(false);
+                    this.radiusInput.setValue(uniform.value ?? 0, false);
+                }
             }
             
             this._updateRadiusUI();

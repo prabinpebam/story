@@ -150,6 +150,61 @@ export class EditorPage {
             return active === editable || (active ? editable.contains(active) : false);
         }, null, { timeout });
     }
+
+    /**
+     * Wait for a focused text element to be in a specific selection state.
+     * This is important because `TextEditManager.enterEditMode()` applies the
+     * initial selection (select-all vs caret) on a `setTimeout(0)`.
+     */
+    async waitForTextEditingSelectionState(options: {
+        mode: 'selectAll' | 'caret';
+        elementId?: string;
+        timeout?: number;
+    }) {
+        const { mode, elementId, timeout = 2000 } = options;
+
+        await this.page.waitForFunction(
+            ({ mode, elementId }) => {
+                const editable: HTMLElement | null = elementId
+                    ? (document.querySelector(
+                          `#slide-content .slide-element[data-element-id="${elementId}"]`
+                      ) as HTMLElement | null)
+                    : (document.querySelector('[contenteditable="true"][data-editing="true"]') as HTMLElement | null);
+
+                if (!editable) return false;
+                if (editable.getAttribute('contenteditable') !== 'true') return false;
+                if (editable.getAttribute('data-editing') !== 'true') return false;
+
+                const active = document.activeElement as HTMLElement | null;
+                if (!(active === editable || (active ? editable.contains(active) : false))) return false;
+
+                const sel = window.getSelection();
+                if (!sel || sel.rangeCount === 0) return false;
+
+                const anchor = sel.anchorNode;
+                if (!anchor) return false;
+
+                const anchorEl =
+                    anchor.nodeType === Node.ELEMENT_NODE
+                        ? (anchor as Element)
+                        : (anchor.parentElement as Element | null);
+                if (!anchorEl) return false;
+
+                const anchorEditable = anchorEl.closest('[contenteditable="true"][data-editing="true"]') as HTMLElement | null;
+                if (!anchorEditable || anchorEditable !== editable) return false;
+
+                if (mode === 'caret') {
+                    return sel.isCollapsed;
+                }
+
+                const fullText = editable.textContent || '';
+                const selected = sel.toString();
+                return !sel.isCollapsed && selected === fullText;
+            },
+            { mode, elementId },
+            { timeout }
+        );
+    }
     
     /**
      * Select a tool from the toolbar

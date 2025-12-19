@@ -258,17 +258,19 @@ describe('Bidirectional Sync', () => {
             expect(store.dispatch).toHaveBeenCalledWith(
                 'UPDATE_ELEMENT',
                 expect.objectContaining({ id: 'el-1', x: 500 }),
-                expect.anything()
+                { skipHistory: false }
             );
             expect(store.dispatch).toHaveBeenCalledWith(
                 'UPDATE_ELEMENT',
-                expect.objectContaining({ id: 'el-2', x: 500 }),
-                expect.anything()
+                // Multi-select X/Y uses bounding-box top-left and applies a delta to move the
+                // selection together (Figma behavior), rather than collapsing to one X.
+                expect.objectContaining({ id: 'el-2', x: 600 }),
+                { skipHistory: false }
             );
             expect(store.dispatch).toHaveBeenCalledWith(
                 'UPDATE_ELEMENT',
-                expect.objectContaining({ id: 'el-3', x: 500 }),
-                expect.anything()
+                expect.objectContaining({ id: 'el-3', x: 700 }),
+                { skipHistory: false }
             );
         });
     });

@@ -87,6 +87,11 @@ export class PropertyInspector {
         this.container.innerHTML = '';
         
         if (selection && selection.length > 0) {
+            const selectedElements = selection
+                .map((id) => this.getElement(state, id))
+                .filter(Boolean);
+            const hasText = selectedElements.some((el) => el.type === 'text');
+
             // 1. Position Section
             this.positionSection.update(selection);
             this.container.appendChild(this.positionSection.section.element);
@@ -119,16 +124,17 @@ export class PropertyInspector {
             this.shapeSection.update(selection);
             this.container.appendChild(this.shapeSection.section.element);
 
-            // 5. Fill Section (Hide for Text as it has its own control)
-            const isText = selection.length === 1 && this.getElement(state, selection[0])?.type === 'text';
-            if (!isText) {
+            // 5. Fill Section (Hide when any text is selected; text has its own fill model/control)
+            if (!hasText) {
                 this.fillSection.update(selection);
                 this.container.appendChild(this.fillSection.section.element);
             }
 
             // 5. Stroke Section
-            this.strokeSection.update(selection);
-            this.container.appendChild(this.strokeSection.section.element);
+            if (!hasText) {
+                this.strokeSection.update(selection);
+                this.container.appendChild(this.strokeSection.section.element);
+            }
 
             // 6. Effects Section
             this.effectsSection.update(selection);

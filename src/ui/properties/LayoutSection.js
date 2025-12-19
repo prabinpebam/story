@@ -42,14 +42,18 @@ export class LayoutSection extends BaseSection {
         this.wInput = new NumberInput({
             icon: Icons.WIDTH || 'W',
             value: 0,
+            mixedPlaceholder: 'Mixed',
             onChange: (val, isTransient) => this.updateDimension('width', val, isTransient)
         });
+        this.wInput.element.dataset.testid = 'layout-width';
 
         this.hInput = new NumberInput({
             icon: Icons.HEIGHT || 'H',
             value: 0,
+            mixedPlaceholder: 'Mixed',
             onChange: (val, isTransient) => this.updateDimension('height', val, isTransient)
         });
+        this.hInput.element.dataset.testid = 'layout-height';
 
         // Constrain Button
         const state = store.getState();
@@ -111,34 +115,49 @@ export class LayoutSection extends BaseSection {
         }
         
         const state = store.getState();
-        const elementId = this.selection[0];
-        const element = this.getElement(state, elementId);
+        const elements = this.getSelectedElements();
+        const element = elements[0];
 
         // Update Constrain Button State
         this.constrainBtn.setActive(state.editor.constrainProportions);
         this.constrainBtn.element.innerHTML = state.editor.constrainProportions ? Icons.LINK : Icons.LINK_BROKEN;
 
         if (element) {
-            this.wInput.setValue(element.width, false);
-            this.hInput.setValue(element.height, false);
+            const widthResult = this.getMixedValue(elements, 'width');
+            if (widthResult.mixed) {
+                this.wInput.setMixed(true);
+            } else {
+                this.wInput.setMixed(false);
+                this.wInput.setValue(widthResult.value ?? 0, false);
+            }
+
+            const heightResult = this.getMixedValue(elements, 'height');
+            if (heightResult.mixed) {
+                this.hInput.setMixed(true);
+            } else {
+                this.hInput.setMixed(false);
+                this.hInput.setValue(heightResult.value ?? 0, false);
+            }
             
             // Store aspect ratio for constraint logic
             this.aspectRatio = element.width / element.height;
 
-            // Show layout mode buttons only for text elements
-            this.isTextElement = element.type === 'text';
+            // Show layout mode buttons only when ALL selected are text elements
+            this.isTextElement = elements.length > 0 && elements.every((el) => el.type === 'text');
             this.layoutModeRow.classList.toggle('visible', this.isTextElement);
 
             if (this.isTextElement) {
                 // Update layout mode button states
-                // Check root level first, then style level for resizing mode
-                const currentMode = element.resizing || element.style?.resizing || 'fixedWidth';
+                // Mixed if selected text elements have different resizing modes.
+                const modeObjects = elements.map((el) => ({ mode: el.resizing || el.style?.resizing || 'fixedWidth' }));
+                const modeResult = this.getMixedValue(modeObjects, 'mode');
+                const currentMode = modeResult.mixed ? null : (modeResult.value || 'fixedWidth');
                 this.layoutButtons.forEach(({ btn, value }) => {
-                    btn.setActive(value === currentMode);
+                    btn.setActive(currentMode != null && value === currentMode);
                 });
 
                 // Update W/H input enabled states based on mode
-                this.updateInputStates(currentMode);
+                this.updateInputStates(currentMode || 'fixedWidth');
             } else {
                 // Non-text elements: enable both inputs
                 this.wInput.setDisabled(false);

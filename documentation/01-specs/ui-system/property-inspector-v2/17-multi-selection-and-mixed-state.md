@@ -359,6 +359,20 @@ If fills can diverge in count/order, parity requires migrating fills to stable I
 
 ---
 
+### 5.8 Export presets (list editor)
+
+Export presets behave like a list editor.
+
+#### 5.8.1 Display rules
+- If preset stacks are structurally aligned across selection (same length): render the rows and allow row-level mixed state.
+- If preset stacks are mixed (different lengths / some empty while others non-empty): show a non-destructive Mixed state (do not attempt to auto-normalize).
+
+#### 5.8.2 Editing rules
+- Aligned stacks: edits apply-to-all selected elements.
+- Mixed stacks: disable unsafe row edits; allow export to proceed using the merged effective preset set across selection.
+
+---
+
 ## 6. Typography-specific multi-selection rules
 
 ### 6.1 Text style dropdown

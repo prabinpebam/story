@@ -8,8 +8,11 @@ export class ColorInput {
             width: '100%',
             showHex: true,
             compact: false,
+            mixed: false,
+            mixedPlaceholder: 'Mixed',
             ...options
         };
+        this.mixed = this.options.mixed;
         this.element = this.create();
     }
 
@@ -114,6 +117,7 @@ export class ColorInput {
                 if (!val.startsWith('#')) val = '#' + val;
                 // Validate Hex
                 if (/^#[0-9A-F]{6}$/i.test(val)) {
+                    this.setMixed(false);
                     swatch.style.backgroundColor = val;
                     nativeInput.value = val;
                     this.onChange(val);
@@ -128,6 +132,7 @@ export class ColorInput {
         
         nativeInput.oninput = (e) => {
             const val = e.target.value;
+            this.setMixed(false);
             swatch.style.backgroundColor = val;
             this.updateSwatchBorder(swatch, val);
             if (hexInput) hexInput.value = val.toUpperCase();
@@ -165,7 +170,36 @@ export class ColorInput {
         this._hexInput = hexInput;
         this._nativeInput = nativeInput;
 
+        // Apply initial mixed state
+        if (this.mixed) {
+            this.applyMixedDisplay(true);
+        }
+
         return container;
+    }
+
+    applyMixedDisplay(mixed) {
+        if (this._swatch) {
+            this._swatch.classList.toggle('mixed', mixed);
+            if (mixed) {
+                // Swatch: show a neutral checker preview
+                this._swatch.style.backgroundColor = 'transparent';
+            } else {
+                this._swatch.style.backgroundColor = this.value;
+                this.updateSwatchBorder(this._swatch, this.value);
+            }
+        }
+
+        if (this._hexInput) {
+            this._hexInput.classList.toggle('mixed', mixed);
+            if (mixed) {
+                this._hexInput.value = '';
+                this._hexInput.placeholder = this.options.mixedPlaceholder;
+            } else {
+                this._hexInput.placeholder = '';
+                this._hexInput.value = (this.value || '#000000').toUpperCase();
+            }
+        }
     }
     
     /**
@@ -174,6 +208,9 @@ export class ColorInput {
      */
     setValue(value) {
         this.value = value || '#000000';
+        if (this.mixed) {
+            this.mixed = false;
+        }
         if (this._swatch) {
             this._swatch.style.backgroundColor = this.value;
             this.updateSwatchBorder(this._swatch, this.value);
@@ -184,5 +221,22 @@ export class ColorInput {
         if (this._nativeInput) {
             this._nativeInput.value = this.value;
         }
+    }
+
+    /**
+     * Set mixed state for multi-selection with different values
+     * @param {boolean} mixed
+     */
+    setMixed(mixed) {
+        this.mixed = mixed;
+        this.applyMixedDisplay(mixed);
+    }
+
+    /**
+     * Check if ColorInput is in mixed state
+     * @returns {boolean}
+     */
+    isMixed() {
+        return this.mixed;
     }
 }

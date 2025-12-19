@@ -47,6 +47,7 @@ export class EffectsSection extends BaseSection {
         
         this.activeFlyout = null;
         this.activeEffectId = null;
+        this.activeEffectIndex = null;
     }
 
     /**
@@ -60,11 +61,116 @@ export class EffectsSection extends BaseSection {
         }
         
         const state = store.getState();
-        const element = this.getElement(state, this.selection[0]);
-        
-        if (element) {
-            this.render(element);
+        const elements = this.selection.map((id) => this.getElement(state, id)).filter(Boolean);
+        if (elements.length === 0) return;
+        if (elements.length === 1) {
+            this.render(elements[0]);
+        } else {
+            this.renderMulti(elements);
         }
+    }
+
+    getMixedResult(values) {
+        if (!values || values.length === 0) return { value: undefined, mixed: false };
+        const first = values[0];
+        const mixed = values.some((v) => v !== first);
+        return { value: first, mixed };
+    }
+
+    areEffectStacksCompatible(effectsByElement) {
+        if (effectsByElement.length === 0) return false;
+        const first = effectsByElement[0];
+        for (let i = 1; i < effectsByElement.length; i++) {
+            if (effectsByElement[i].length !== first.length) return false;
+        }
+        for (let index = 0; index < first.length; index++) {
+            const baseType = first[index]?.type;
+            for (let i = 1; i < effectsByElement.length; i++) {
+                if (effectsByElement[i][index]?.type !== baseType) return false;
+            }
+        }
+        return true;
+    }
+
+    renderMulti(elements) {
+        this.container.innerHTML = '';
+
+        const effectsByElement = elements.map((el) => this.getEffects(el));
+        const compatible = this.areEffectStacksCompatible(effectsByElement);
+        if (!compatible) {
+            const empty = new EmptyState('Mixed');
+            this.container.appendChild(empty.element);
+            return;
+        }
+
+        const effects = effectsByElement[0] || [];
+        if (effects.length === 0) {
+            const empty = new EmptyState('No effects');
+            this.container.appendChild(empty.element);
+            return;
+        }
+
+        effects.forEach((effect, index) => {
+            const row = this.createEffectRowMulti(effect, index, effects.length, effectsByElement);
+            this.container.appendChild(row);
+        });
+    }
+
+    createEffectRowMulti(effect, index, total, effectsByElement) {
+        const visibleValues = effectsByElement.map((effects) => (effects[index]?.visible !== false));
+        const visibleMixed = visibleValues.some((v) => v !== visibleValues[0]);
+        const allVisible = visibleValues.every(Boolean);
+
+        const propertyRow = new PropertyRow({
+            index,
+            draggable: total > 1,
+            showVisibility: true,
+            showDelete: true,
+            onVisibilityToggle: () => {
+                const nextVisible = allVisible ? false : true;
+                this.toggleEffectVisibilityAtIndex(index, nextVisible);
+            },
+            onDelete: () => {
+                this.removeEffectAtIndex(index);
+            },
+            onDrop: ({ position, event }) => {
+                const fromIndex = parseInt(event.dataTransfer.getData('text/plain'));
+                let toIndex = index;
+                if (position === 'after') {
+                    toIndex = index + 1;
+                }
+                if (fromIndex !== toIndex) {
+                    this.reorderEffect(fromIndex, toIndex);
+                }
+            },
+            onClick: () => {
+                this.openEffectFlyoutAtIndex(index, effectsByElement);
+            }
+        });
+
+        propertyRow.setVisible(visibleMixed ? true : allVisible);
+        propertyRow.setActive(this.activeEffectIndex === index);
+
+        const row = propertyRow.element;
+        row.classList.add('pi-effect-row');
+        row.dataset.effectIndex = index;
+        row.setAttribute('data-testid', `effect-row-${index}`);
+
+        const effectContent = document.createElement('div');
+        effectContent.className = 'pi-effect-content';
+
+        const indicator = document.createElement('div');
+        indicator.className = 'pi-effect-indicator';
+        indicator.innerHTML = this.getEffectIcon(effect.type);
+        effectContent.appendChild(indicator);
+
+        const label = document.createElement('div');
+        label.className = 'pi-effect-label';
+        label.textContent = EffectTypeLabels[effect.type] || effect.type;
+        effectContent.appendChild(label);
+
+        propertyRow.appendChild(effectContent);
+        return row;
     }
 
     /**
@@ -137,6 +243,7 @@ export class EffectsSection extends BaseSection {
         row.classList.add('pi-effect-row');
         row.dataset.effectId = effect.id;
         row.dataset.effectIndex = index;
+        row.setAttribute('data-testid', `effect-row-${index}`);
 
         // Effect content (icon + label)
         const effectContent = document.createElement('div');
@@ -229,6 +336,7 @@ export class EffectsSection extends BaseSection {
         }
 
         this.activeEffectId = effect.id;
+        this.activeEffectIndex = null;
         
         const trigger = this.container.querySelector(`[data-effect-id="${effect.id}"]`);
         
@@ -251,12 +359,45 @@ export class EffectsSection extends BaseSection {
         this.refreshRender();
     }
 
+    openEffectFlyoutAtIndex(index, effectsByElement) {
+        if (this.activeFlyout) {
+            this.activeFlyout.close();
+        }
+
+        const baseEffect = effectsByElement?.[0]?.[index];
+        if (!baseEffect) return;
+
+        this.activeEffectId = null;
+        this.activeEffectIndex = index;
+
+        const trigger = this.container.querySelector(`[data-effect-index="${index}"]`);
+        const content = isShadowEffect(baseEffect.type)
+            ? this.createShadowFlyoutContent(baseEffect, { index, effectsByElement })
+            : this.createBlurFlyoutContent(baseEffect, { index, effectsByElement });
+
+        this.activeFlyout = new Flyout({
+            trigger: trigger,
+            content: content,
+            position: 'left',
+            onClose: () => {
+                this.activeFlyout = null;
+                this.activeEffectIndex = null;
+                this.refreshRender();
+            }
+        });
+
+        this.activeFlyout.open();
+        this.refreshRender();
+    }
+
     /**
      * Create flyout content for shadow effects
      */
-    createShadowFlyoutContent(effect) {
+    createShadowFlyoutContent(effect, mixedCtx = null) {
         const content = document.createElement('div');
         content.className = 'pi-flyout-content';
+
+        const idKey = mixedCtx ? `idx-${mixedCtx.index}` : `id-${effect.id}`;
 
         // Header
         const header = document.createElement('div');
@@ -266,8 +407,15 @@ export class EffectsSection extends BaseSection {
             options: getEffectTypeOptions(),
             value: effect.type,
             size: 'lg',
-            onChange: (newType) => this.changeEffectType(effect.id, newType)
+            onChange: (newType) => {
+                if (mixedCtx) {
+                    this.changeEffectTypeAtIndex(mixedCtx.index, newType);
+                } else {
+                    this.changeEffectType(effect.id, newType);
+                }
+            }
         });
+        typeSelect.element.setAttribute('data-testid', `effect-${idKey}-type`);
 
         const headerRight = document.createElement('div');
         headerRight.className = 'pi-effect-row-right';
@@ -276,8 +424,21 @@ export class EffectsSection extends BaseSection {
             options: BlendModeOptions,
             value: effect.blendMode || 'normal',
             size: 'sm',
-            onChange: (val) => this.updateEffect(effect.id, { blendMode: val })
+            onChange: (val) => {
+                if (mixedCtx) {
+                    this.updateEffectAtIndex(mixedCtx.index, { blendMode: val });
+                } else {
+                    this.updateEffect(effect.id, { blendMode: val });
+                }
+            }
         });
+        blendDropdown.element.setAttribute('data-testid', `effect-${idKey}-blendMode`);
+
+        if (mixedCtx) {
+            const blendValues = mixedCtx.effectsByElement.map((effects) => effects[mixedCtx.index]?.blendMode || 'normal');
+            const blendResult = this.getMixedResult(blendValues);
+            blendDropdown.setMixed(blendResult.mixed);
+        }
 
         const closeBtn = new IconButton({ 
             icon: Icons.CLOSE, 
@@ -298,13 +459,39 @@ export class EffectsSection extends BaseSection {
         const xInput = new NumberInput({ 
             value: effect.x ?? 0, 
             label: 'X', 
-            onChange: (v, isTransient) => this.updateEffect(effect.id, { x: v }, isTransient)
+            mixedPlaceholder: 'Mixed',
+            onChange: (v, isTransient) => {
+                if (mixedCtx) {
+                    this.updateEffectAtIndex(mixedCtx.index, { x: v }, isTransient);
+                } else {
+                    this.updateEffect(effect.id, { x: v }, isTransient);
+                }
+            }
         });
         const yInput = new NumberInput({ 
             value: effect.y ?? 4, 
             label: 'Y', 
-            onChange: (v, isTransient) => this.updateEffect(effect.id, { y: v }, isTransient)
+            mixedPlaceholder: 'Mixed',
+            onChange: (v, isTransient) => {
+                if (mixedCtx) {
+                    this.updateEffectAtIndex(mixedCtx.index, { y: v }, isTransient);
+                } else {
+                    this.updateEffect(effect.id, { y: v }, isTransient);
+                }
+            }
         });
+
+        xInput.element.setAttribute('data-testid', `effect-${idKey}-shadow-x`);
+        yInput.element.setAttribute('data-testid', `effect-${idKey}-shadow-y`);
+
+        if (mixedCtx) {
+            const xValues = mixedCtx.effectsByElement.map((effects) => effects[mixedCtx.index]?.x ?? 0);
+            const yValues = mixedCtx.effectsByElement.map((effects) => effects[mixedCtx.index]?.y ?? 4);
+            const xResult = this.getMixedResult(xValues);
+            const yResult = this.getMixedResult(yValues);
+            xInput.setMixed(xResult.mixed);
+            yInput.setMixed(yResult.mixed);
+        }
         
         xInput.element.classList.add('pi-flex-1');
         yInput.element.classList.add('pi-flex-1');
@@ -321,13 +508,39 @@ export class EffectsSection extends BaseSection {
             value: effect.blur ?? 8, 
             label: 'Blur', 
             min: 0, 
-            onChange: (v, isTransient) => this.updateEffect(effect.id, { blur: v }, isTransient)
+            mixedPlaceholder: 'Mixed',
+            onChange: (v, isTransient) => {
+                if (mixedCtx) {
+                    this.updateEffectAtIndex(mixedCtx.index, { blur: v }, isTransient);
+                } else {
+                    this.updateEffect(effect.id, { blur: v }, isTransient);
+                }
+            }
         });
         const spreadInput = new NumberInput({ 
             value: effect.spread ?? 0, 
             label: 'Spread', 
-            onChange: (v, isTransient) => this.updateEffect(effect.id, { spread: v }, isTransient)
+            mixedPlaceholder: 'Mixed',
+            onChange: (v, isTransient) => {
+                if (mixedCtx) {
+                    this.updateEffectAtIndex(mixedCtx.index, { spread: v }, isTransient);
+                } else {
+                    this.updateEffect(effect.id, { spread: v }, isTransient);
+                }
+            }
         });
+
+        blurInput.element.setAttribute('data-testid', `effect-${idKey}-shadow-blur`);
+        spreadInput.element.setAttribute('data-testid', `effect-${idKey}-shadow-spread`);
+
+        if (mixedCtx) {
+            const blurValues = mixedCtx.effectsByElement.map((effects) => effects[mixedCtx.index]?.blur ?? 8);
+            const spreadValues = mixedCtx.effectsByElement.map((effects) => effects[mixedCtx.index]?.spread ?? 0);
+            const blurResult = this.getMixedResult(blurValues);
+            const spreadResult = this.getMixedResult(spreadValues);
+            blurInput.setMixed(blurResult.mixed);
+            spreadInput.setMixed(spreadResult.mixed);
+        }
         
         blurInput.element.classList.add('pi-flex-1');
         spreadInput.element.classList.add('pi-flex-1');
@@ -342,18 +555,44 @@ export class EffectsSection extends BaseSection {
 
         const colorInput = new ColorInput(
             effect.color || '#000000',
-            (v, isTransient) => this.updateEffect(effect.id, { color: v }, isTransient)
+            (v, isTransient) => {
+                if (mixedCtx) {
+                    this.updateEffectAtIndex(mixedCtx.index, { color: v }, isTransient);
+                } else {
+                    this.updateEffect(effect.id, { color: v }, isTransient);
+                }
+            }
         );
         colorInput.element.classList.add('pi-flex-1');
+        colorInput.element.setAttribute('data-testid', `effect-${idKey}-shadow-color`);
 
         const opacityInput = new NumberInput({ 
             value: effect.opacity ?? 25,
             label: '%', 
             min: 0, 
             max: 100,
-            onChange: (v, isTransient) => this.updateEffect(effect.id, { opacity: v }, isTransient)
+            mixedPlaceholder: 'Mixed',
+            onChange: (v, isTransient) => {
+                if (mixedCtx) {
+                    this.updateEffectAtIndex(mixedCtx.index, { opacity: v }, isTransient);
+                } else {
+                    this.updateEffect(effect.id, { opacity: v }, isTransient);
+                }
+            }
         });
         opacityInput.element.classList.add('pi-width-60');
+        opacityInput.element.setAttribute('data-testid', `effect-${idKey}-shadow-opacity`);
+
+        if (mixedCtx) {
+            const colorValues = mixedCtx.effectsByElement.map((effects) => (effects[mixedCtx.index]?.color || '#000000'));
+            const opacityValues = mixedCtx.effectsByElement.map((effects) => (effects[mixedCtx.index]?.opacity ?? 25));
+            const colorResult = this.getMixedResult(colorValues);
+            const opacityResult = this.getMixedResult(opacityValues);
+            if (typeof colorInput.setMixed === 'function') {
+                colorInput.setMixed(colorResult.mixed);
+            }
+            opacityInput.setMixed(opacityResult.mixed);
+        }
 
         row3.appendChild(colorInput.element);
         row3.appendChild(opacityInput.element);
@@ -365,9 +604,11 @@ export class EffectsSection extends BaseSection {
     /**
      * Create flyout content for blur effects
      */
-    createBlurFlyoutContent(effect) {
+    createBlurFlyoutContent(effect, mixedCtx = null) {
         const content = document.createElement('div');
         content.className = 'pi-flyout-content';
+
+        const idKey = mixedCtx ? `idx-${mixedCtx.index}` : `id-${effect.id}`;
 
         // Header
         const header = document.createElement('div');
@@ -377,8 +618,15 @@ export class EffectsSection extends BaseSection {
             options: getEffectTypeOptions(),
             value: effect.type,
             size: 'lg',
-            onChange: (newType) => this.changeEffectType(effect.id, newType)
+            onChange: (newType) => {
+                if (mixedCtx) {
+                    this.changeEffectTypeAtIndex(mixedCtx.index, newType);
+                } else {
+                    this.changeEffectType(effect.id, newType);
+                }
+            }
         });
+        typeSelect.element.setAttribute('data-testid', `effect-${idKey}-type`);
 
         const closeBtn = new IconButton({ 
             icon: Icons.CLOSE, 
@@ -398,7 +646,13 @@ export class EffectsSection extends BaseSection {
                     { label: 'Progressive', value: 'progressive' }
                 ],
                 effect.mode || 'uniform',
-                (val) => this.updateEffect(effect.id, { mode: val })
+                (val) => {
+                    if (mixedCtx) {
+                        this.updateEffectAtIndex(mixedCtx.index, { mode: val });
+                    } else {
+                        this.updateEffect(effect.id, { mode: val });
+                    }
+                }
             );
             content.appendChild(modeControl.element);
         }
@@ -408,11 +662,104 @@ export class EffectsSection extends BaseSection {
             value: effect.radius ?? 12,
             label: Icons.GRID_3X3 || 'Blur',
             min: 0, 
-            onChange: (v, isTransient) => this.updateEffect(effect.id, { radius: v }, isTransient)
+            mixedPlaceholder: 'Mixed',
+            onChange: (v, isTransient) => {
+                if (mixedCtx) {
+                    this.updateEffectAtIndex(mixedCtx.index, { radius: v }, isTransient);
+                } else {
+                    this.updateEffect(effect.id, { radius: v }, isTransient);
+                }
+            }
         });
+        blurInput.element.setAttribute('data-testid', `effect-${idKey}-blur-radius`);
+
+        if (mixedCtx) {
+            const radiusValues = mixedCtx.effectsByElement.map((effects) => (effects[mixedCtx.index]?.radius ?? 12));
+            const radiusResult = this.getMixedResult(radiusValues);
+            blurInput.setMixed(radiusResult.mixed);
+        }
         content.appendChild(blurInput.element);
 
         return content;
+    }
+
+    removeEffectAtIndex(index) {
+        if (this.activeFlyout) {
+            this.activeFlyout.close();
+        }
+        this.activeEffectIndex = null;
+        this.selection.forEach((id) => {
+            const state = store.getState();
+            const element = this.getElement(state, id);
+            const effects = [...this.getEffects(element)];
+            effects.splice(index, 1);
+            this.dispatchEffectsUpdate(id, effects);
+        });
+    }
+
+    updateEffectAtIndex(index, updates, isTransient = false) {
+        this.selection.forEach((id) => {
+            const state = store.getState();
+            const element = this.getElement(state, id);
+            const effects = [...this.getEffects(element)];
+            const existing = effects[index];
+            if (!existing) return;
+            effects[index] = { ...existing, ...updates };
+            this.dispatchEffectsUpdate(id, effects, isTransient);
+        });
+    }
+
+    toggleEffectVisibilityAtIndex(index, nextVisible) {
+        this.selection.forEach((id) => {
+            const state = store.getState();
+            const element = this.getElement(state, id);
+            const effects = [...this.getEffects(element)];
+            const existing = effects[index];
+            if (!existing) return;
+            effects[index] = { ...existing, visible: nextVisible };
+            this.dispatchEffectsUpdate(id, effects);
+        });
+    }
+
+    changeEffectTypeAtIndex(index, newType) {
+        this.selection.forEach((id) => {
+            const state = store.getState();
+            const element = this.getElement(state, id);
+            const effects = [...this.getEffects(element)];
+            const existing = effects[index];
+            if (!existing) return;
+
+            const defaults = EffectDefaults[newType];
+            const next = (() => {
+                if (isShadowEffect(existing.type) && isShadowEffect(newType)) {
+                    return { ...defaults, ...existing, type: newType, id: existing.id };
+                }
+                if (isBlurEffect(existing.type) && isBlurEffect(newType)) {
+                    return { ...defaults, ...existing, type: newType, id: existing.id };
+                }
+                return { ...defaults, type: newType, id: existing.id };
+            })();
+
+            effects[index] = next;
+            this.dispatchEffectsUpdate(id, effects);
+        });
+
+        if (this.activeFlyout) {
+            this.activeFlyout.close();
+            this.activeFlyout = null;
+            setTimeout(() => {
+                const state = store.getState();
+                const element = this.getElement(state, this.selection[0]);
+                const effects = this.getEffects(element);
+                const effect = effects[index];
+                if (effect) {
+                    this.openEffectFlyoutAtIndex(index, this.selection.map((id) => {
+                        const el = this.getElement(state, id);
+                        return this.getEffects(el);
+                    }));
+                }
+            }, 50);
+        }
     }
 
     // ===== Effect Operations =====
@@ -571,9 +918,11 @@ export class EffectsSection extends BaseSection {
     refreshRender() {
         if (this.selection && this.selection.length > 0) {
             const state = store.getState();
-            const element = this.getElement(state, this.selection[0]);
-            if (element) {
-                this.render(element);
+            const elements = this.selection.map((id) => this.getElement(state, id)).filter(Boolean);
+            if (elements.length === 1) {
+                this.render(elements[0]);
+            } else if (elements.length > 1) {
+                this.renderMulti(elements);
             }
         }
     }

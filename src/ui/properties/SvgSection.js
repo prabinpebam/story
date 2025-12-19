@@ -14,26 +14,26 @@ export class SvgSection extends BaseSection {
     }
 
     update(selection) {
-        if (!selection || selection.length !== 1) {
+        super.update(selection);
+        if (!this.selection || this.selection.length === 0) {
             this.section.element.classList.add('hidden');
             return;
         }
 
-        this.selection = selection;
-
         const state = store.getState();
-        const el = this.getElement(state, selection[0]);
+        const elements = this.selection.map((id) => this.getElement(state, id)).filter(Boolean);
+        const allSvg = elements.length > 0 && elements.every((el) => el.type === 'svg');
 
-        if (!el || el.type !== 'svg') {
+        if (!allSvg) {
             this.section.element.classList.add('hidden');
             return;
         }
 
         this.section.element.classList.remove('hidden');
-        this.render(el);
+        this.render(elements);
     }
 
-    render(el) {
+    render(elements) {
         this.container.innerHTML = '';
 
         const row = document.createElement('div');
@@ -49,11 +49,19 @@ export class SvgSection extends BaseSection {
                 { label: 'Fill', value: 'fill' },
                 { label: 'Stretch', value: 'stretch' }
             ],
-            value: el.fitMode || 'fit',
+            value: (elements[0].fitMode || 'fit'),
             size: 'sm',
             onChange: (val) => this.updateProperty('fitMode', val)
         });
         this.fitDropdown.element.setAttribute('data-testid', 'svg-fit-mode');
+
+        const fitResult = this.getMixedValue(elements, 'fitMode');
+        if (fitResult.mixed) {
+            this.fitDropdown.setMixed(true);
+        } else {
+            this.fitDropdown.setMixed(false);
+            this.fitDropdown.setValue(fitResult.value || 'fit');
+        }
 
         row.appendChild(label);
         row.appendChild(this.fitDropdown.element);

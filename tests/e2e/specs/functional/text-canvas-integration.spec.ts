@@ -60,8 +60,15 @@ test.describe('Text Canvas Integration', () => {
         await canvas.clickAt(0.4, 0.4);
         await editor.page.keyboard.press('Enter');
         await editor.waitForTextEditingReady();
-        
-        await canvas.typeText('Works');
+
+        // Ensure focus is actually inside the contenteditable before typing;
+        // avoids occasional first-keystroke drop where the first key is treated as a shortcut.
+        const editable = editor.page.locator('#slide-content [contenteditable="true"]');
+        await expect(editable).toBeVisible();
+        await editable.evaluate((el) => (el as HTMLElement).focus());
+        await editor.waitForTextEditingReady();
+
+        await editor.page.keyboard.type('Works', { delay: 50 });
         await canvas.clickAt(0.1, 0.1);
         
         const state = await editor.getState();

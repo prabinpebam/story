@@ -23,7 +23,7 @@ test.describe('Text Manipulation', () => {
         await editor.setActiveTool('select');
         await canvas.clickAt(0.5, 0.5);
         await editor.page.keyboard.press('Enter');
-        await editor.waitForTextEditingReady();
+        await editor.waitForTextEditingSelectionState({ mode: 'selectAll' });
 
         // Enter selects all text in the new UX, so typing replaces it.
         await canvas.typeText('Edited');

@@ -118,6 +118,7 @@ export class TextSection extends BaseSection {
         this.fontSizeInput = new NumberInput({
             value: 16,
             min: 1,
+            mixedPlaceholder: 'Mixed',
             scrubbable: true,
             onChange: (val) => this.updateProperty('fontSize', val)
         });
@@ -145,6 +146,7 @@ export class TextSection extends BaseSection {
             label: 'LH',
             value: 1.2,
             step: 0.1,
+            mixedPlaceholder: 'Mixed',
             onChange: (val) => this.updateProperty('lineHeight', val)
         });
         this.lineHeightInput.element.dataset.testid = 'line-height-input';
@@ -155,6 +157,7 @@ export class TextSection extends BaseSection {
             value: 0,
             step: 0.1,
             units: '%',
+            mixedPlaceholder: 'Mixed',
             onChange: (val) => this.updateProperty('letterSpacing', val + '%')
         });
         this.letterSpacingInput.element.dataset.testid = 'letter-spacing-input';
@@ -295,6 +298,7 @@ export class TextSection extends BaseSection {
             max: 100,
             step: 1,
             units: '%',
+            mixedPlaceholder: 'Mixed',
             scrubbable: true,
             onChange: (val) => {
                 this.updateTextFillOpacity(val);
@@ -312,15 +316,18 @@ export class TextSection extends BaseSection {
     update(selection) {
         super.update(selection);
         const state = store.getState();
-        const textElements = this.selection
+        const selectedElements = this.selection
             .map(id => this.getElement(state, id))
-            .filter(el => el && el.type === 'text');
+            .filter(el => el);
 
-        if (textElements.length === 0) {
+        const allText = selectedElements.length > 0 && selectedElements.every((el) => el.type === 'text');
+        if (!allText) {
             this.element.classList.add('hidden');
             return;
         }
         this.element.classList.remove('hidden');
+
+        const textElements = selectedElements;
 
         // Detect mixed style selection (multiple text elements selected)
         const styleIds = textElements.map(el => el.textStyleId || null);
@@ -355,40 +362,101 @@ export class TextSection extends BaseSection {
         
         // Use StyleResolver to get effective properties with slide context
         const slideId = state.editor?.activeSlideId;
-        const props = StyleResolver.getEffectiveTextProperties(el, {}, slideId);
-        
-        this.fontFamilyInput.setValue(props.fontFamily, false);
-        this.fontWeightInput.setValue(props.fontWeight, false);
-        this.fontSizeInput.setValue(props.fontSize, false);
-        
-        // Line Height
-        if (props.lineHeight === 'auto') {
-            this.lineHeightInput.setValue(1.2, false); 
+        const effectivePropsList = textElements.map((t) => StyleResolver.getEffectiveTextProperties(t, {}, slideId));
+        const props = effectivePropsList[0];
+
+        // Font family
+        const fontFamilyResult = this.getMixedValue(effectivePropsList, 'fontFamily');
+        if (fontFamilyResult.mixed) {
+            if (typeof this.fontFamilyInput?.setMixed === 'function') this.fontFamilyInput.setMixed(true);
         } else {
-            this.lineHeightInput.setValue(props.lineHeight, false);
+            if (typeof this.fontFamilyInput?.setMixed === 'function') this.fontFamilyInput.setMixed(false);
+            this.fontFamilyInput.setValue(fontFamilyResult.value, false);
         }
-        
-        // Letter Spacing
-        let ls = props.letterSpacing;
-        if (typeof ls === 'string' && ls.endsWith('%')) {
-            ls = parseFloat(ls);
+
+        // Font weight
+        const fontWeightResult = this.getMixedValue(effectivePropsList, 'fontWeight');
+        if (fontWeightResult.mixed) {
+            if (typeof this.fontWeightInput?.setMixed === 'function') this.fontWeightInput.setMixed(true);
         } else {
-            ls = parseFloat(ls) || 0;
+            if (typeof this.fontWeightInput?.setMixed === 'function') this.fontWeightInput.setMixed(false);
+            this.fontWeightInput.setValue(fontWeightResult.value, false);
         }
-        this.letterSpacingInput.setValue(ls, false);
-        
-        // Alignment - toggle active class, CSS handles styling
+
+        // Font size
+        const fontSizeResult = this.getMixedValue(effectivePropsList, 'fontSize');
+        if (fontSizeResult.mixed) {
+            if (typeof this.fontSizeInput?.setMixed === 'function') this.fontSizeInput.setMixed(true);
+        } else {
+            if (typeof this.fontSizeInput?.setMixed === 'function') this.fontSizeInput.setMixed(false);
+            this.fontSizeInput.setValue(fontSizeResult.value ?? 0, false);
+        }
+
+        // Line height (treat 'auto' as 1.2 for display)
+        const lineHeightObjects = effectivePropsList.map((p) => ({ v: p.lineHeight === 'auto' ? 1.2 : p.lineHeight }));
+        const lineHeightResult = this.getMixedValue(lineHeightObjects, 'v');
+        if (lineHeightResult.mixed) {
+            if (typeof this.lineHeightInput?.setMixed === 'function') this.lineHeightInput.setMixed(true);
+        } else {
+            if (typeof this.lineHeightInput?.setMixed === 'function') this.lineHeightInput.setMixed(false);
+            this.lineHeightInput.setValue(lineHeightResult.value ?? 1.2, false);
+        }
+
+        // Letter spacing (normalize to number)
+        const letterSpacingObjects = effectivePropsList.map((p) => {
+            let ls = p.letterSpacing;
+            if (typeof ls === 'string' && ls.endsWith('%')) {
+                ls = parseFloat(ls);
+            } else {
+                ls = parseFloat(ls) || 0;
+            }
+            return { v: ls };
+        });
+        const letterSpacingResult = this.getMixedValue(letterSpacingObjects, 'v');
+        if (letterSpacingResult.mixed) {
+            if (typeof this.letterSpacingInput?.setMixed === 'function') this.letterSpacingInput.setMixed(true);
+        } else {
+            if (typeof this.letterSpacingInput?.setMixed === 'function') this.letterSpacingInput.setMixed(false);
+            this.letterSpacingInput.setValue(letterSpacingResult.value ?? 0, false);
+        }
+
+        // Alignment - show active only if not mixed for each group
+        const textAlignResult = this.getMixedValue(effectivePropsList, 'textAlign');
+        const verticalAlignResult = this.getMixedValue(effectivePropsList, 'verticalAlign');
         this.alignButtons.forEach(({ btn, value, prop }) => {
-            if (props[prop] === value) {
+            if (prop === 'textAlign' && !textAlignResult.mixed && props[prop] === value) {
+                btn.element.classList.add('active');
+            } else if (prop === 'verticalAlign' && !verticalAlignResult.mixed && props[prop] === value) {
                 btn.element.classList.add('active');
             } else {
                 btn.element.classList.remove('active');
             }
         });
-        
-        // Text Fill
-        this.updateFillUI(props.textFill);
-        this.currentTextFill = props.textFill;
+
+        // Text Fill (mixed-aware)
+        const textFillResult = this.getMixedValue(effectivePropsList, 'textFill');
+        if (textFillResult.mixed) {
+            this.currentTextFill = null;
+            this._currentFillColor = null;
+            this.fillPreview.style.background = 'var(--color-bg-app)';
+            this.fillPreview.style.backgroundImage = 'linear-gradient(45deg, var(--color-surface-tertiary) 25%, transparent 25%), linear-gradient(-45deg, var(--color-surface-tertiary) 25%, transparent 25%), linear-gradient(45deg, transparent 75%, var(--color-surface-tertiary) 75%), linear-gradient(-45deg, transparent 75%, var(--color-surface-tertiary) 75%)';
+            this.fillPreview.style.backgroundSize = '8px 8px';
+            this.fillPreview.style.boxShadow = 'inset 0 0 0 1px rgba(0, 0, 0, 0.3)';
+
+            this.fillHexInput.value = '';
+            this.fillHexInput.placeholder = 'Mixed';
+            this.fillHexInput.classList.add('mixed');
+            this.fillHexInput.title = '';
+            this.fillHexInput.disabled = false;
+
+            if (typeof this.fillOpacityInput?.setMixed === 'function') this.fillOpacityInput.setMixed(true);
+        } else {
+            this.fillHexInput.classList.remove('mixed');
+            this.fillHexInput.placeholder = '';
+            this.updateFillUI(textFillResult.value);
+            this.currentTextFill = textFillResult.value;
+            if (typeof this.fillOpacityInput?.setMixed === 'function') this.fillOpacityInput.setMixed(false);
+        }
 
         // Apply linked/mixed UI locking after updating displayed values
         // (prevents later UI updates from re-enabling locked controls)

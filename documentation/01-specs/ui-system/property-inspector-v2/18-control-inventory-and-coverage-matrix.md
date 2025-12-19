@@ -70,7 +70,7 @@ This matrix only records:
   - **Props:** `x`, `y`
   - **Current display:** for multi-select, shows selection bounding box origin (`getBoundingBox`)
   - **Mixed display:** not used for x/y in multi-select (uses computed bounds)
-  - **Edit semantics:** absolute set for typed value; relative-delta required for arrows/scrub for Figma-referenced parity
+  - **Edit semantics:** typed values move the selection as a group (delta move), preserving per-element offsets; arrows/scrub are relative-delta per-element
 - Rotation (NumberInput)
   - **Prop:** `rotation`
   - **Mixed display:** uses `SelectionUtils.getMixedValue` → shows mixed when rotations differ
@@ -78,11 +78,11 @@ This matrix only records:
   - **Action:** per-element `UPDATE_ELEMENT` of `rotation = current + (-90)`
   - **Parity note:** multi-select should be single undo step (requires batching)
 - Flip H / Flip V (IconButton)
-  - **Current behavior:** logs only (no property updates)
+  - **Props:** `flipX`, `flipY`
+  - **Current behavior:** toggles `flipX`/`flipY` on all selected elements
 
 **Notes / parity gaps**
-- **Current (Baseline):** X/Y display uses bounding-box origin, but edits set the same `x`/`y` on every selected element (can collapse the layout).
-- **Recommended (Target):** treat X/Y edits as “move selection bounds to X/Y” (delta move), and preserve per-element differences for arrow/scrub (per-element start values).
+- X/Y multi-select uses bounding-box origin display and delta move updates (Target parity).
 
 ---
 
@@ -95,15 +95,14 @@ This matrix only records:
   - **Applicability:** only for `el.type === 'text'`
 - Width / Height (NumberInput)
   - **Props:** `width`, `height`
-  - **Mixed display:** not currently computed; shows first element values
+  - **Mixed display:** uses `getMixedValue` → shows Mixed when values differ
   - **Edit semantics:** absolute set; constrained proportional updates when global constrain is enabled
 - Constrain proportions toggle (IconButton)
   - **State:** `state.editor.constrainProportions` (global)
   - **UI:** icon switches between link / broken link
 
 **Notes / parity gaps**
-- **Current (Baseline):** W/H show first element values in multi-select; constrain uses first element aspect ratio.
-- **Recommended (Target):** W/H show mixed `—` when values differ; constrain uses per-element ratios.
+- Width/Height mixed display + apply-to-all are implemented (Target parity).
 
 ---
 
@@ -119,12 +118,12 @@ This matrix only records:
 - Corner radius (NumberInput + Button + 4× NumberInput)
   - **Props:** `borderRadius` (uniform), `cornerRadii.{tl,tr,bl,br}` (per-corner)
   - **Mode toggle:** link/unlink button toggles uniform vs per-corner UI
-  - **Mixed display:** radius currently uses **first element only**
+  - **Mixed display:** uniform and per-corner inputs show Mixed when values differ
 - Visibility toggle (section header action)
   - **Prop:** `hidden` (toggles based on first selected element)
 
 **Notes / parity gaps**
-- Corner radius multi-select is explicitly not parity (first element only).
+- Corner radius mixed + apply-to-all are implemented for both uniform and per-corner modes.
 
 ---
 
@@ -149,10 +148,10 @@ This section is a **list editor**.
   - **Edits:** opens FillFlyout; sets `fill.color/value` and/or `fill.opacity`
 - Hex input (raw `<input>.fill-hex-input`)
   - **Edits:** for solid fills, commits a hex color; if linked to theme, editing unlinks
-  - **Mixed display:** not implemented for multi-select
+  - **Mixed display:** implemented for aligned multi-select (same stack length and types)
 - Opacity (NumberInput)
   - **Prop:** `style.fills[i].opacity`
-  - **Mixed display:** not implemented for multi-select
+  - **Mixed display:** implemented for aligned multi-select (same stack length and types)
 - Blend mode (button; raw DOM menu)
   - **Prop:** `style.fills[i].blendMode`
 
@@ -162,8 +161,8 @@ This section is a **list editor**.
 - Blend mode menu (custom DOM menu)
 
 **Notes / parity gaps**
-- **Current (Baseline):** section renders list from the first selected element; edits typically overwrite list-style state across the full selection (index-based).
-- **Recommended (Target):** implement list-level mixed state + row-level mixed state, and use stable row addressing (id-based rows or robust mapping).
+- Multi-select is supported when fill stacks are structurally compatible (same length and per-index type). In incompatible cases, the section shows a non-destructive “Mixed” empty state.
+- Row-level mixed indicators and apply-to-all edits are implemented for compatible stacks (index-based).
 
 ---
 
@@ -195,8 +194,8 @@ This section is a **list editor**.
 - Blend mode menu (custom DOM menu)
 
 **Notes / parity gaps**
-- **Current (Baseline):** section renders list from the first selected element; edits can overwrite list-style state across the selection (index-based).
-- **Recommended (Target):** same list-editor parity requirements as Fill (stable row addressing, mixed row state, safe multi-select semantics).
+- Multi-select is supported when stroke stacks are structurally compatible (same length). In incompatible cases, the section shows a non-destructive “Mixed” empty state.
+- Row-level mixed indicators and apply-to-all edits are implemented for compatible stacks (index-based).
 
 ---
 
@@ -230,8 +229,8 @@ This section is a **list editor** with per-effect flyouts.
 - Blur radius (NumberInput)
 
 **Notes / parity gaps**
-- **Current (Baseline):** section renders list from the first selected element; edits overwrite list-style state across selection. Effects have per-row IDs, but multi-select row mapping is not yet implemented.
-- **Recommended (Target):** same list-editor parity requirements as Fill/Stroke, using effect IDs for row mapping.
+- Multi-select is supported when effect stacks are structurally compatible (same length and per-index type). In incompatible cases, the section shows a non-destructive “Mixed” empty state.
+- Flyout controls support mixed display and apply-to-all for compatible stacks (index-based).
 
 ---
 
@@ -283,7 +282,7 @@ This section is a **list editor** with per-effect flyouts.
 
 ### 3.9 Shape (src/ui/properties/ShapeSection.js)
 
-Shown only for single selection of polygon/star shapes.
+Shown when selection contains only polygon shapes or only star shapes.
 
 **Controls**
 - Polygon: Sides (NumberInput) → `params.sides`
@@ -291,6 +290,9 @@ Shown only for single selection of polygon/star shapes.
 - Star: Points (NumberInput) → `params.points`
 - Star: Inner radius ratio (NumberInput) → `params.innerRadiusRatio`
 - Star: Rotation (NumberInput) → `params.rotation`
+
+**Multi-select**
+- Mixed display is shown when selected shapes differ; edits apply to all selected shapes.
 
 ---
 
@@ -333,8 +335,8 @@ Shown only for single selection of boolean shapes.
 - Preview (read-only; renders an `<img>`)
 
 **Notes / parity gaps**
-- **Current (Baseline):** presets UI is sourced from the first/active selected element and preset edits write to the first/active selected element only (this MUST be explicitly communicated in the UI to avoid silent partial edits).
-- **Recommended (Target):** explicitly choose an applicability strategy for multi-select (intersection-only disable, explicit “apply to all”, or explicit “active only”), and represent the scope in the UI.
+- Preset editing is apply-to-all when preset stacks are structurally aligned.
+- When selected elements have mismatched preset stacks (length/emptiness differences), the UI shows a non-destructive “Mixed” state and disables unsafe edits; export uses a merged effective preset set across selection.
 
 ---
 

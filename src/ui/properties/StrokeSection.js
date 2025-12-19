@@ -36,11 +36,246 @@ export class StrokeSection extends BaseSection {
         if (!this.selection || this.selection.length === 0) return;
         
         const state = store.getState();
-        const element = this.getElement(state, this.selection[0]);
-        
-        if (element) {
-            this.render(element);
+        const elements = this.selection.map((id) => this.getElement(state, id)).filter(Boolean);
+        if (elements.length === 0) return;
+        if (elements.length === 1) {
+            this.render(elements[0]);
+        } else {
+            this.renderMulti(elements);
         }
+    }
+
+    getNormalizedStrokes(element) {
+        const style = element?.style || {};
+        let strokes = [];
+        if (style.strokes && Array.isArray(style.strokes)) {
+            strokes = style.strokes;
+        } else {
+            const hasStroke = style.borderWidth > 0;
+            if (hasStroke) {
+                strokes = [{
+                    color: style.borderColor || '#000000',
+                    width: style.borderWidth,
+                    opacity: 100,
+                    position: style.strokeAlign || 'center',
+                    visible: true
+                }];
+            }
+        }
+        return strokes;
+    }
+
+    areStrokeStacksCompatible(strokesByElement) {
+        if (strokesByElement.length === 0) return false;
+        const first = strokesByElement[0];
+        for (let i = 1; i < strokesByElement.length; i++) {
+            if (strokesByElement[i].length !== first.length) return false;
+        }
+        for (let index = 0; index < first.length; index++) {
+            const baseType = (first[index]?.type || 'solid');
+            for (let i = 1; i < strokesByElement.length; i++) {
+                const t = (strokesByElement[i][index]?.type || 'solid');
+                if (t !== baseType) return false;
+            }
+        }
+        return true;
+    }
+
+    getMixedResult(values) {
+        if (!values || values.length === 0) return { value: undefined, mixed: false };
+        const first = values[0];
+        const mixed = values.some((v) => v !== first);
+        return { value: first, mixed };
+    }
+
+    renderMulti(elements) {
+        this.container.innerHTML = '';
+
+        const strokesByElement = elements.map((el) => this.getNormalizedStrokes(el));
+        const compatible = this.areStrokeStacksCompatible(strokesByElement);
+        if (!compatible) {
+            const empty = new EmptyState('Mixed');
+            this.container.appendChild(empty.element);
+            return;
+        }
+
+        const baseStrokes = strokesByElement[0];
+        if (baseStrokes.length === 0) {
+            const empty = new EmptyState('No stroke');
+            this.container.appendChild(empty.element);
+            return;
+        }
+
+        const list = document.createElement('div');
+        list.className = 'stroke-list';
+
+        baseStrokes.forEach((stroke, index) => {
+            const row = this.createStrokeRowMulti(stroke, index, baseStrokes, strokesByElement, elements);
+            list.appendChild(row);
+        });
+
+        this.container.appendChild(list);
+    }
+
+    createStrokeRowMulti(stroke, index, allStrokes, strokesByElement, elements) {
+        const type = stroke?.type || 'solid';
+
+        const visibleValues = strokesByElement.map((strokes) => (strokes[index]?.visible !== false));
+        const visibleMixed = visibleValues.some((v) => v !== visibleValues[0]);
+        const allVisible = visibleValues.every(Boolean);
+
+        const propertyRow = new PropertyRow({
+            index,
+            draggable: allStrokes.length > 1,
+            showVisibility: true,
+            showDelete: true,
+            onVisibilityToggle: () => {
+                const nextVisible = allVisible ? false : true;
+                this.updateStrokeForSelection(index, { visible: nextVisible });
+            },
+            onDelete: () => {
+                this.removeStrokeForSelection(index);
+            },
+            onDrop: ({ position, event }) => {
+                const fromIndex = parseInt(event.dataTransfer.getData('text/plain'));
+                let toIndex = index;
+                if (position === 'after') toIndex = index + 1;
+                if (fromIndex !== toIndex) {
+                    this.reorderStrokesForSelection(fromIndex, toIndex);
+                }
+            }
+        });
+
+        propertyRow.setVisible(visibleMixed ? true : allVisible);
+
+        const row = propertyRow.element;
+        row.classList.add('stroke-row');
+
+        const combinedInput = document.createElement('div');
+        combinedInput.className = 'stroke-input-group';
+
+        const swatch = document.createElement('div');
+        swatch.className = 'stroke-swatch-trigger';
+
+        const preview = document.createElement('div');
+        preview.className = 'stroke-preview';
+
+        let swatchMixed = false;
+        if (type === 'solid' || !type) {
+            const colorValues = strokesByElement.map((strokes) => (strokes[index]?.color || '#000000').toUpperCase());
+            swatchMixed = colorValues.some((c) => c !== colorValues[0]);
+            if (!swatchMixed) {
+                preview.style.backgroundColor = colorValues[0];
+                this.updateSwatchBorder(preview, colorValues[0], false);
+            }
+        } else if (type === 'gradient') {
+            const gradientValues = strokesByElement.map((strokes) => (strokes[index]?.value || ''));
+            swatchMixed = gradientValues.some((v) => v !== gradientValues[0]);
+            if (!swatchMixed) {
+                preview.style.background = gradientValues[0] || 'linear-gradient(90deg, #000000 0%, #ffffff 100%)';
+                preview.style.boxShadow = 'inset 0 0 0 1px rgba(0, 0, 0, 0.3)';
+            }
+        }
+
+        if (swatchMixed) {
+            preview.classList.add('mixed');
+        }
+
+        swatch.onclick = (e) => {
+            e.stopPropagation();
+            // Flyout uses first element's stroke for UI, but edits apply to all via updateStrokeForSelection
+            this.openFlyout(stroke, index, swatch);
+        };
+
+        combinedInput.appendChild(swatch);
+        swatch.appendChild(preview);
+
+        const hexInput = document.createElement('input');
+        hexInput.type = 'text';
+        hexInput.className = 'stroke-hex-input';
+        hexInput.spellcheck = false;
+        hexInput.setAttribute('data-testid', `stroke-hex-${index}`);
+
+        if (type === 'solid' || !type) {
+            const colorValues = strokesByElement.map((strokes) => (strokes[index]?.color || '#000000').toUpperCase());
+            const colorResult = this.getMixedResult(colorValues);
+            if (colorResult.mixed) {
+                hexInput.value = '';
+                hexInput.placeholder = 'Mixed';
+                hexInput.classList.add('mixed');
+            } else {
+                hexInput.value = colorResult.value;
+            }
+            hexInput.onchange = (e) => {
+                let val = e.target.value.trim();
+                if (!val) return;
+                if (!val.startsWith('#')) val = '#' + val;
+                if (/^#[0-9A-F]{6}$/i.test(val) || /^#[0-9A-F]{3}$/i.test(val)) {
+                    this.updateStrokeForSelection(index, { color: val });
+                } else {
+                    if (colorResult.mixed) {
+                        e.target.value = '';
+                        e.target.placeholder = 'Mixed';
+                    } else {
+                        e.target.value = colorResult.value;
+                    }
+                }
+            };
+        } else {
+            const typeLabel = (type || 'Solid').charAt(0).toUpperCase() + (type || 'Solid').slice(1);
+            hexInput.value = typeLabel;
+            hexInput.disabled = true;
+        }
+        combinedInput.appendChild(hexInput);
+
+        const separator = document.createElement('div');
+        separator.className = 'stroke-separator';
+        combinedInput.appendChild(separator);
+
+        const opacityValues = strokesByElement.map((strokes) => {
+            const op = strokes[index]?.opacity;
+            return op !== undefined ? op : 100;
+        });
+        const opacityResult = this.getMixedResult(opacityValues);
+
+        const opacityInput = new NumberInput({
+            value: opacityResult.mixed ? 100 : opacityResult.value,
+            onChange: (val, isTransient) => {
+                this.updateStrokeForSelection(index, { opacity: val }, isTransient);
+            },
+            min: 0,
+            max: 100,
+            step: 1,
+            units: '%',
+            scrubbable: true,
+            mixedPlaceholder: 'Mixed'
+        });
+        opacityInput.element.classList.add('stroke-opacity-input');
+        opacityInput.element.setAttribute('data-testid', `stroke-opacity-${index}`);
+        opacityInput.setMixed(opacityResult.mixed);
+        combinedInput.appendChild(opacityInput.element);
+
+        const isNormalBlend = strokesByElement.every((strokes) => !strokes[index]?.blendMode || strokes[index]?.blendMode === 'normal');
+        const blendBtn = new IconButton({
+            icon: Icons.BLEND_MODE,
+            title: `Blend Mode: ${stroke.blendMode || 'Normal'}`,
+            onClick: (e) => {
+                const btn = e.target.closest('button') || e.target;
+                this.openBlendModeMenu(btn, stroke, index, (elements && elements[0]) ? elements[0] : null);
+            }
+        });
+        blendBtn.element.classList.add('pi-btn-compact');
+        if (!isNormalBlend) {
+            blendBtn.element.classList.add('pi-btn-active');
+        }
+
+        const strokeContent = document.createElement('div');
+        strokeContent.className = 'stroke-content';
+        strokeContent.appendChild(combinedInput);
+        strokeContent.appendChild(blendBtn.element);
+        propertyRow.appendChild(strokeContent);
+
+        return row;
     }
 
     render(element) {
@@ -256,7 +491,7 @@ export class StrokeSection extends BaseSection {
         this.activeFlyout = new StrokeSettingsFlyout({
             trigger: trigger,
             stroke: stroke,
-            onChange: (updates, isTransient) => this.updateStroke(index, updates, isTransient),
+            onChange: (updates, isTransient) => this.updateStrokeForSelection(index, updates, isTransient),
             onClose: () => {
                 this.activeFlyout = null;
             }
@@ -324,147 +559,152 @@ export class StrokeSection extends BaseSection {
     }
 
     addStroke() {
-        const state = store.getState();
-        const element = this.getElement(state, this.selection[0]);
-        if (!element) return;
+        this.addStrokeForSelection();
+    }
 
-        const style = element.style || {};
-        let strokes = style.strokes ? [...style.strokes] : [];
-        
-        // If migrating from legacy
-        if (!style.strokes && style.borderWidth > 0) {
-            strokes.push({
-                color: style.borderColor || '#000000',
-                width: style.borderWidth,
-                opacity: 100,
-                position: style.strokeAlign || 'center',
-                visible: true
-            });
+    removeStroke(index) {
+        this.removeStrokeForSelection(index);
+    }
+
+    updateStroke(index, updates, isTransient = false) {
+        this.updateStrokeForSelection(index, updates, isTransient);
+    }
+
+    reorderStrokes(element, fromIndex, toIndex) {
+        // Legacy single-element contract (used by unit tests): operate on provided element.
+        if (element) {
+            const strokes = element?.style?.strokes;
+            if (!Array.isArray(strokes) || strokes.length === 0) return;
+            if (fromIndex === toIndex) return;
+            if (fromIndex < 0 || fromIndex >= strokes.length) return;
+            if (toIndex < 0 || toIndex > strokes.length) return;
+
+            const next = [...strokes];
+            const [movedItem] = next.splice(fromIndex, 1);
+            const adjustedToIndex = fromIndex < toIndex ? toIndex - 1 : toIndex;
+            next.splice(adjustedToIndex, 0, movedItem);
+
+            // For unit tests we only need to preserve legacy sync behavior.
+            this.applyStrokesToElement(element.id, element, next, false);
+            return;
         }
 
-        // Add new default stroke
-        const isFirst = strokes.length === 0;
-        
-        if (isFirst) {
-            strokes.unshift({
+        // Default behavior: apply to current selection.
+        this.reorderStrokesForSelection(fromIndex, toIndex);
+    }
+
+    // Legacy helper used by unit tests and older call sites.
+    // Applies a whole strokes array and syncs legacy border props.
+    commitChanges(strokes, isTransient = false) {
+        if (!this.selection || this.selection.length === 0) return;
+        const state = store.getState();
+        this.selection.forEach((id) => {
+            const element = this.getElement(state, id);
+            if (!element) return;
+            this.applyStrokesToElement(id, element, strokes || [], isTransient);
+        });
+    }
+
+    addStrokeForSelection() {
+        if (!this.selection || this.selection.length === 0) return;
+        const state = store.getState();
+        this.selection.forEach((id) => {
+            const element = this.getElement(state, id);
+            if (!element) return;
+            const style = element.style || {};
+            let strokes = [...this.getNormalizedStrokes(element)];
+
+            const isFirst = strokes.length === 0;
+            strokes.unshift(isFirst ? {
                 color: LastUsed.solid,
                 width: 1,
                 opacity: 100,
                 position: 'center',
                 visible: true
-            });
-        } else {
-            strokes.unshift({
+            } : {
                 color: '#000000',
                 width: 1,
                 opacity: 25,
                 position: 'center',
                 visible: true
             });
-        }
 
-        this.commitChanges(strokes);
-    }
-
-    removeStroke(index) {
-        const state = store.getState();
-        const element = this.getElement(state, this.selection[0]);
-        if (!element) return;
-
-        const style = element.style || {};
-        let strokes = style.strokes ? [...style.strokes] : [];
-        
-        // Handle legacy migration if needed
-        if (!style.strokes && style.borderWidth > 0) {
-             strokes = [{
-                color: style.borderColor || '#000000',
-                width: style.borderWidth,
-                opacity: 100,
-                position: style.strokeAlign || 'center',
-                visible: true
-            }];
-        }
-
-        strokes.splice(index, 1);
-        this.commitChanges(strokes);
-    }
-
-    updateStroke(index, updates, isTransient = false) {
-        const state = store.getState();
-        const element = this.getElement(state, this.selection[0]);
-        if (!element) return;
-
-        const style = element.style || {};
-        let strokes = style.strokes ? [...style.strokes] : [];
-
-        // Handle legacy migration if needed
-        if (!style.strokes && style.borderWidth > 0) {
-             strokes = [{
-                color: style.borderColor || '#000000',
-                width: style.borderWidth,
-                opacity: 100,
-                position: style.strokeAlign || 'center',
-                visible: true
-            }];
-        }
-
-        const stroke = { ...strokes[index] };
-        
-        if (updates.type) {
-            stroke.type = updates.type;
-            if (updates.type === 'solid') {
-                stroke.color = LastUsed.solid;
-            } else if (updates.type === 'gradient') {
-                stroke.value = LastUsed.gradient;
-            }
-        }
-
-        if (updates.color) {
-            stroke.color = updates.color;
-            if (!stroke.type || stroke.type === 'solid') {
-                LastUsed.solid = updates.color;
-            }
-        }
-        
-        if (updates.value) {
-            stroke.value = updates.value;
-            if (stroke.type === 'gradient') {
-                LastUsed.gradient = updates.value;
-            }
-        }
-
-        // Apply other updates
-        Object.keys(updates).forEach(key => {
-            if (key !== 'type' && key !== 'color' && key !== 'value') {
-                stroke[key] = updates[key];
-            }
+            this.applyStrokesToElement(id, element, strokes, false);
         });
-
-        strokes[index] = stroke;
-        this.commitChanges(strokes, isTransient);
     }
 
-    reorderStrokes(element, fromIndex, toIndex) {
-        const style = element.style || {};
-        if (!style.strokes) return;
-
-        const newStrokes = [...style.strokes];
-        const [movedItem] = newStrokes.splice(fromIndex, 1);
-        
-        // Adjust toIndex if we removed an item before it
-        if (fromIndex < toIndex) {
-            toIndex--;
-        }
-        
-        newStrokes.splice(toIndex, 0, movedItem);
-        this.commitChanges(newStrokes);
+    removeStrokeForSelection(index) {
+        if (!this.selection || this.selection.length === 0) return;
+        const state = store.getState();
+        this.selection.forEach((id) => {
+            const element = this.getElement(state, id);
+            if (!element) return;
+            const strokes = [...this.getNormalizedStrokes(element)];
+            strokes.splice(index, 1);
+            this.applyStrokesToElement(id, element, strokes, false);
+        });
     }
 
-    commitChanges(strokes, isTransient = false) {
-        // Sync back to legacy properties for the first visible stroke
-        // This ensures the renderer (which likely uses borderWidth/borderColor) still works
-        const firstVisible = strokes.find(s => s.visible !== false);
-        
+    reorderStrokesForSelection(fromIndex, toIndex) {
+        if (!this.selection || this.selection.length === 0) return;
+        const state = store.getState();
+        this.selection.forEach((id) => {
+            const element = this.getElement(state, id);
+            if (!element) return;
+            const strokes = [...this.getNormalizedStrokes(element)];
+            const [movedItem] = strokes.splice(fromIndex, 1);
+            const adjustedToIndex = fromIndex < toIndex ? toIndex - 1 : toIndex;
+            strokes.splice(adjustedToIndex, 0, movedItem);
+            this.applyStrokesToElement(id, element, strokes, false);
+        });
+    }
+
+    updateStrokeForSelection(index, updates, isTransient = false) {
+        if (!this.selection || this.selection.length === 0) return;
+        const state = store.getState();
+        this.selection.forEach((id) => {
+            const element = this.getElement(state, id);
+            if (!element) return;
+            const style = element.style || {};
+            const strokes = [...this.getNormalizedStrokes(element)];
+            const nextStroke = { ...(strokes[index] || {}) };
+
+            if (updates.type) {
+                nextStroke.type = updates.type;
+                if (updates.type === 'solid') {
+                    nextStroke.color = LastUsed.solid;
+                } else if (updates.type === 'gradient') {
+                    nextStroke.value = LastUsed.gradient;
+                }
+            }
+
+            if (updates.color) {
+                nextStroke.color = updates.color;
+                if (!nextStroke.type || nextStroke.type === 'solid') {
+                    LastUsed.solid = updates.color;
+                }
+            }
+
+            if (updates.value) {
+                nextStroke.value = updates.value;
+                if (nextStroke.type === 'gradient') {
+                    LastUsed.gradient = updates.value;
+                }
+            }
+
+            Object.keys(updates).forEach((key) => {
+                if (key !== 'type' && key !== 'color' && key !== 'value') {
+                    nextStroke[key] = updates[key];
+                }
+            });
+
+            strokes[index] = nextStroke;
+            this.applyStrokesToElement(id, element, strokes, isTransient);
+        });
+    }
+
+    applyStrokesToElement(id, element, strokes, isTransient = false) {
+        const firstVisible = strokes.find((s) => s.visible !== false);
         const legacyUpdates = {};
         if (firstVisible) {
             legacyUpdates.borderColor = firstVisible.color;
@@ -474,10 +714,8 @@ export class StrokeSection extends BaseSection {
             legacyUpdates.borderWidth = 0;
         }
 
-        this.updateStyle({
-            strokes: strokes,
-            ...legacyUpdates
-        }, isTransient);
+        const newStyle = { ...(element.style || {}), strokes, ...legacyUpdates };
+        store.dispatch('UPDATE_ELEMENT', { id, style: newStyle }, { skipHistory: isTransient });
     }
 
     /**

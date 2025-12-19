@@ -249,11 +249,19 @@ export function buildSvgMarkup(elements, { width, height, bounds, slideData, res
         const transform = (() => {
             let t = `translate(${x} ${y})`;
             const rot = Number(element.rotation) || 0;
-            if (rot) {
+            const sx = element.flipX ? -1 : 1;
+            const sy = element.flipY ? -1 : 1;
+            const hasFlip = sx !== 1 || sy !== 1;
+
+            if (rot || hasFlip) {
                 const cx = (Number(element.width) || 0) / 2;
                 const cy = (Number(element.height) || 0) / 2;
-                t += ` rotate(${rot} ${cx} ${cy})`;
+                t += ` translate(${cx} ${cy})`;
+                if (rot) t += ` rotate(${rot})`;
+                if (hasFlip) t += ` scale(${sx} ${sy})`;
+                t += ` translate(${-cx} ${-cy})`;
             }
+
             return t;
         })();
 
@@ -759,12 +767,21 @@ async function exportRaster(elements, filename, format, { width, height, bounds 
         
         ctx.save();
         
-        // Apply rotation if present
-        if (element.rotation) {
+        // Apply rotation / flip around center if present
+        const rot = Number(element.rotation) || 0;
+        const sx = element.flipX ? -1 : 1;
+        const sy = element.flipY ? -1 : 1;
+        if (rot || sx !== 1 || sy !== 1) {
             const centerX = x + w / 2;
             const centerY = y + h / 2;
             ctx.translate(centerX, centerY);
-            ctx.rotate((element.rotation * Math.PI) / 180);
+            if (rot) {
+                ctx.rotate((rot * Math.PI) / 180);
+            }
+            if (sx !== 1 || sy !== 1) {
+                // Note: rotate() then scale() => scale occurs in local/object space.
+                ctx.scale(sx, sy);
+            }
             ctx.translate(-centerX, -centerY);
         }
         

@@ -3,11 +3,14 @@ export class TextInput {
         this.options = {
             value: '',
             placeholder: '',
+            mixed: false,
+            mixedPlaceholder: 'Mixed',
             onChange: () => {},
             ...options
         };
 
         this.value = this.options.value;
+        this.mixed = this.options.mixed;
         this.element = this.create();
     }
 
@@ -18,8 +21,7 @@ export class TextInput {
         this.input = document.createElement('input');
         this.input.className = 'pi-input';
         this.input.type = 'text';
-        this.input.value = this.value;
-        this.input.placeholder = this.options.placeholder;
+        this.updateDisplay();
         
         let initialValue = this.value;
 
@@ -52,6 +54,39 @@ export class TextInput {
 
     setValue(newValue) {
         this.value = newValue;
-        this.input.value = newValue;
+        // Clear mixed state when setting a concrete value
+        if (this.mixed) {
+            this.mixed = false;
+        }
+        this.updateDisplay();
+    }
+
+    updateDisplay() {
+        if (this.mixed) {
+            this.input.value = '';
+            this.input.placeholder = this.options.mixedPlaceholder;
+            this.input.classList.add('mixed');
+        } else {
+            this.input.value = this.value;
+            this.input.placeholder = this.options.placeholder;
+            this.input.classList.remove('mixed');
+        }
+    }
+
+    /**
+     * Set mixed state for multi-selection with different values
+     * @param {boolean} mixed
+     */
+    setMixed(mixed) {
+        this.mixed = mixed;
+        this.updateDisplay();
+    }
+
+    /**
+     * Check if input is in mixed state
+     * @returns {boolean}
+     */
+    isMixed() {
+        return this.mixed;
     }
 }

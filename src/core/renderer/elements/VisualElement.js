@@ -97,7 +97,15 @@ export class VisualElement {
         div.style.top = `${y}px`;
         div.style.width = `${el.width}px`;
         div.style.height = `${el.height}px`;
-        div.style.transform = `rotate(${rotation}deg)`;
+
+        const sx = el.flipX ? -1 : 1;
+        const sy = el.flipY ? -1 : 1;
+        const hasFlip = sx !== 1 || sy !== 1;
+        if (hasFlip) {
+            div.style.transform = `rotate(${rotation}deg) scale(${sx}, ${sy})`;
+        } else {
+            div.style.transform = `rotate(${rotation}deg)`;
+        }
         
         // Handle inherited/locked elements - they should appear dimmed
         // source: 'theme' or 'layout' means inherited, source: 'slide' means editable

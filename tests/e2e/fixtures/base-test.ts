@@ -47,10 +47,24 @@ export const test = base.extend<StoryFixtures>({
     page.on('requestfailed', request => {
       // Ignore cancelled requests
       if (request.failure()?.errorText === 'net::ERR_ABORTED') return;
+
+      // Vite dev server on Windows/OneDrive can intermittently drop a connection during
+      // dependency temp-dir cleanup; a single stylesheet fetch can fail and then recover.
+      // Treat these as non-fatal to avoid flaky E2E failures.
+      const errorText = request.failure()?.errorText || '';
+      const url = request.url() || '';
+      if (
+        request.resourceType() === 'stylesheet' &&
+        errorText.includes('net::ERR_CONNECTION_FAILED') &&
+        url.includes('/styles/modules/') &&
+        url.endsWith('.css')
+      ) {
+        return;
+      }
       
       errors.push({
         type: 'request',
-        message: `Failed: ${request.url()} - ${request.failure()?.errorText}`
+        message: `Failed: ${url} - ${errorText}`
       });
     });
     

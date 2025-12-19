@@ -17,27 +17,26 @@ export class BooleanSection extends BaseSection {
     }
 
     update(selection) {
-        if (!selection || selection.length !== 1) {
+        super.update(selection);
+        if (!this.selection || this.selection.length === 0) {
             this.section.element.classList.add('hidden');
             return;
         }
 
-        this.selection = selection;
-
         const state = store.getState();
-        const el = this.getElement(state, selection[0]);
-        const kind = getShapeKind(el);
+        const elements = this.selection.map((id) => this.getElement(state, id)).filter(Boolean);
+        const allBoolean = elements.length > 0 && elements.every((el) => getShapeKind(el) === 'boolean');
 
-        if (!el || kind !== 'boolean') {
+        if (!allBoolean) {
             this.section.element.classList.add('hidden');
             return;
         }
 
         this.section.element.classList.remove('hidden');
-        this.render(el);
+        this.render(elements);
     }
 
-    render(el) {
+    render(elements) {
         this.container.innerHTML = '';
 
         const row = document.createElement('div');
@@ -54,61 +53,75 @@ export class BooleanSection extends BaseSection {
                 { label: 'Intersect', value: 'intersect' },
                 { label: 'Exclude', value: 'exclude' }
             ],
-            value: el.operation || 'union',
+            value: elements[0].operation || 'union',
             size: 'sm',
             onChange: (val) => {
-                store.dispatch('SET_BOOLEAN_OPERATION', { id: el.id, operation: val });
+                this.selection.forEach((id) => {
+                    store.dispatch('SET_BOOLEAN_OPERATION', { id, operation: val });
+                });
             }
         });
         this.operationDropdown.element.setAttribute('data-testid', 'boolean-operation');
+
+        const opResult = this.getMixedValue(elements, 'operation');
+        if (opResult.mixed) {
+            this.operationDropdown.setMixed(true);
+        } else {
+            this.operationDropdown.setMixed(false);
+            this.operationDropdown.setValue(opResult.value || 'union');
+        }
 
         row.appendChild(label);
         row.appendChild(this.operationDropdown.element);
 
         this.container.appendChild(row);
 
-        // Drill-in: reveal/edit operands.
-        const state = store.getState();
-        const deepEdit = state?.editor?.deepEdit;
-        const isEditingOperands = deepEdit?.kind === 'boolean' && deepEdit?.elementId === el.id && deepEdit?.mode === 'operands';
+        // Deep edit + warnings are single-element affordances.
+        if (elements.length === 1) {
+            const el = elements[0];
 
-        const editRow = document.createElement('div');
-        editRow.className = 'pi-row';
+            const state = store.getState();
+            const deepEdit = state?.editor?.deepEdit;
+            const isEditingOperands = deepEdit?.kind === 'boolean' && deepEdit?.elementId === el.id && deepEdit?.mode === 'operands';
 
-        const editBtn = new Button({
-            label: isEditingOperands ? 'Done' : 'Edit operands',
-            size: 'sm',
-            variant: isEditingOperands ? 'primary' : 'secondary',
-            dataTestId: 'boolean-edit-operands',
-            onClick: () => {
-                if (isEditingOperands) {
-                    store.dispatch('SET_DEEP_EDIT', null);
-                } else {
-                    store.dispatch('SET_DEEP_EDIT', { kind: 'boolean', elementId: el.id, mode: 'operands' });
+            const editRow = document.createElement('div');
+            editRow.className = 'pi-row';
+
+            const editBtn = new Button({
+                label: isEditingOperands ? 'Done' : 'Edit operands',
+                size: 'sm',
+                variant: isEditingOperands ? 'primary' : 'secondary',
+                dataTestId: 'boolean-edit-operands',
+                onClick: () => {
+                    if (isEditingOperands) {
+                        store.dispatch('SET_DEEP_EDIT', null);
+                    } else {
+                        store.dispatch('SET_DEEP_EDIT', { kind: 'boolean', elementId: el.id, mode: 'operands' });
+                    }
                 }
+            });
+
+            editRow.appendChild(editBtn.element);
+            this.container.appendChild(editRow);
+
+            const warning = this.getBooleanWarning(el);
+            if (warning) {
+                const warnRow = document.createElement('div');
+                warnRow.className = 'pi-row';
+                warnRow.setAttribute('data-testid', 'boolean-status-warning');
+
+                const label = document.createElement('div');
+                label.className = 'pi-label';
+                label.textContent = 'Status';
+
+                const value = document.createElement('div');
+                value.className = 'pi-value';
+                value.textContent = warning;
+
+                warnRow.appendChild(label);
+                warnRow.appendChild(value);
+                this.container.appendChild(warnRow);
             }
-        });
-
-        editRow.appendChild(editBtn.element);
-        this.container.appendChild(editRow);
-
-        const warning = this.getBooleanWarning(el);
-        if (warning) {
-            const warnRow = document.createElement('div');
-            warnRow.className = 'pi-row';
-            warnRow.setAttribute('data-testid', 'boolean-status-warning');
-
-            const label = document.createElement('div');
-            label.className = 'pi-label';
-            label.textContent = 'Status';
-
-            const value = document.createElement('div');
-            value.className = 'pi-value';
-            value.textContent = warning;
-
-            warnRow.appendChild(label);
-            warnRow.appendChild(value);
-            this.container.appendChild(warnRow);
         }
     }
 

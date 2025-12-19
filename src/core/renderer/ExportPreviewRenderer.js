@@ -101,12 +101,20 @@ async function renderExportPreview(elements, options = {}) {
                 
                 ctx.save();
                 
-                // Apply rotation if present
-                if (element.rotation) {
+                // Apply rotation / flip around center if present
+                const rot = Number(element.rotation) || 0;
+                const sx = element.flipX ? -1 : 1;
+                const sy = element.flipY ? -1 : 1;
+                if (rot || sx !== 1 || sy !== 1) {
                     const centerX = x + w / 2;
                     const centerY = y + h / 2;
                     ctx.translate(centerX, centerY);
-                    ctx.rotate((element.rotation * Math.PI) / 180);
+                    if (rot) {
+                        ctx.rotate((rot * Math.PI) / 180);
+                    }
+                    if (sx !== 1 || sy !== 1) {
+                        ctx.scale(sx, sy);
+                    }
                     ctx.translate(-centerX, -centerY);
                 }
                 

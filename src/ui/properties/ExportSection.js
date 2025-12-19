@@ -7,6 +7,7 @@ import { Icons } from '../Icons.js';
 import { store } from '../../core/Store.js';
 import { ExportPreviewRenderer } from '../../core/renderer/ExportPreviewRenderer.js';
 import { exportElements, exportToClipboard } from '../../core/export/Exporter.js';
+import { EmptyState } from '../components/EmptyState.js';
 
 export class ExportSection extends BaseSection {
     constructor() {
@@ -48,6 +49,10 @@ export class ExportSection extends BaseSection {
         
         // Debounce timer for preview updates
         this.previewDebounceTimer = null;
+
+        this.presets = [];
+        this.presetsMixed = [];
+        this.presetsMode = 'default'; // 'default' | 'aligned' | 'mixed-structure'
     }
 
     update(selection) {
@@ -68,8 +73,9 @@ export class ExportSection extends BaseSection {
         }
         
         const state = store.getState();
-        const element = this.getElement(state, selection[0]);
-        
+        const elements = selection.map((id) => this.getElement(state, id)).filter(Boolean);
+        const element = elements[0];
+
         if (element) {
             // Check if there are any custom export presets defined
             // If element.exportPresets is undefined or empty, we consider it "no export settings"
@@ -82,14 +88,65 @@ export class ExportSection extends BaseSection {
             // Let's assume if exportPresets is present and length > 0, it's "active".
             // If it's undefined, we show default but keep it collapsed.
             
-            const hasCustomPresets = element.exportPresets && element.exportPresets.length > 0;
+            const presetsLists = elements.map((el) => (Array.isArray(el.exportPresets) ? el.exportPresets : []));
+            const hasCustomPresets = presetsLists.some((list) => list.length > 0);
             this.section.setCollapsed(!hasCustomPresets);
 
-            this.presets = element.exportPresets || [{ scale: '1x', format: 'png', suffix: '' }];
+            const defaultPreset = { scale: '1x', format: 'png', suffix: '' };
+
+            // Determine whether preset stacks are aligned across selection.
+            // We do NOT auto-normalize other elements here; we only unify when the user edits.
+            const lengths = presetsLists.map((list) => list.length);
+            const allSameLength = lengths.every((v) => v === lengths[0]);
+            const anyEmpty = presetsLists.some((list) => list.length === 0);
+
+            if (!hasCustomPresets) {
+                this.presetsMode = 'default';
+                this.presets = [defaultPreset];
+                this.presetsMixed = [{ scale: false, format: false, suffix: false }];
+            } else if (!allSameLength || anyEmpty) {
+                // Mixed structure: different preset counts across selection.
+                // Non-destructive UI: show Mixed. Export action uses merged effective presets.
+                this.presetsMode = 'mixed-structure';
+                this.presets = presetsLists.find((list) => list.length > 0) || [defaultPreset];
+                this.presetsMixed = [];
+            } else {
+                this.presetsMode = 'aligned';
+                // Clone the first list for editing.
+                this.presets = (presetsLists[0] || []).map((p) => this.normalizePreset(p, defaultPreset));
+
+                // Precompute mixed flags per preset index for common fields.
+                this.presetsMixed = (this.presets || []).map((_, index) => {
+                    const scales = presetsLists.map((list) => this.normalizePreset(list[index], defaultPreset).scale);
+                    const formats = presetsLists.map((list) => this.normalizePreset(list[index], defaultPreset).format);
+                    const suffixes = presetsLists.map((list) => this.normalizePreset(list[index], defaultPreset).suffix);
+
+                    const allSame = (arr) => arr.every((v) => v === arr[0]);
+                    return {
+                        scale: !allSame(scales),
+                        format: !allSame(formats),
+                        suffix: !allSame(suffixes)
+                    };
+                });
+            }
+
             this.renderPresets();
-            this.exportBtn.setLabel(`Export ${element.name || 'Layer'}`);
+            if (this.selection.length > 1) {
+                this.exportBtn.setLabel('Export Selection');
+            } else {
+                this.exportBtn.setLabel(`Export ${element.name || 'Layer'}`);
+            }
             this.updatePreview();
         }
+    }
+
+    normalizePreset(preset, defaults) {
+        const p = preset || {};
+        return {
+            scale: typeof p.scale === 'string' && p.scale ? p.scale : defaults.scale,
+            format: typeof p.format === 'string' && p.format ? p.format : defaults.format,
+            suffix: typeof p.suffix === 'string' ? p.suffix : defaults.suffix
+        };
     }
 
     getElement(state, id) {
@@ -105,6 +162,18 @@ export class ExportSection extends BaseSection {
 
     renderPresets() {
         this.container.innerHTML = '';
+
+        if (this.presetsMode === 'mixed-structure') {
+            const empty = new EmptyState('Mixed');
+            this.container.appendChild(empty.element);
+            return;
+        }
+
+        if (!Array.isArray(this.presets) || this.presets.length === 0) {
+            const empty = new EmptyState('No export presets');
+            this.container.appendChild(empty.element);
+            return;
+        }
         
         this.presets.forEach((preset, index) => {
             const row = document.createElement('div');
@@ -127,13 +196,24 @@ export class ExportSection extends BaseSection {
                 size: 'sm',
                 onChange: (val) => this.updatePreset(index, 'scale', val)
             });
+            scaleSelect.element.setAttribute('data-testid', `export-preset-scale-${index}`);
+
+            if (this.presetsMixed?.[index]?.scale) {
+                scaleSelect.setMixed(true);
+            }
 
             // Suffix (Optional, maybe hidden or small)
             const suffixInput = new TextInput({
                 value: preset.suffix,
                 placeholder: 'Suffix',
+                mixedPlaceholder: 'Mixed',
                 onChange: (val) => this.updatePreset(index, 'suffix', val)
             });
+            suffixInput.element.setAttribute('data-testid', `export-preset-suffix-${index}`);
+
+            if (this.presetsMixed?.[index]?.suffix) {
+                suffixInput.setMixed(true);
+            }
             // suffixInput.element.style.flex = '1'; // Let it take remaining space
 
             // Format
@@ -149,6 +229,11 @@ export class ExportSection extends BaseSection {
                 size: 'sm',
                 onChange: (val) => this.updatePreset(index, 'format', val)
             });
+            formatSelect.element.setAttribute('data-testid', `export-preset-format-${index}`);
+
+            if (this.presetsMixed?.[index]?.format) {
+                formatSelect.setMixed(true);
+            }
 
             // Remove Button
             const removeBtn = new IconButton({
@@ -169,7 +254,10 @@ export class ExportSection extends BaseSection {
     addPreset() {
         this.section.setCollapsed(false);
         const newPreset = { scale: '1x', format: 'png', suffix: '' };
-        const newPresets = [...this.presets, newPreset];
+        const base = Array.isArray(this.presets) && this.presets.length > 0
+            ? this.presets
+            : [{ scale: '1x', format: 'png', suffix: '' }];
+        const newPresets = [...base, newPreset];
         this.savePresets(newPresets);
     }
 
@@ -194,6 +282,7 @@ export class ExportSection extends BaseSection {
 
     savePresets(newPresets) {
         this.presets = newPresets;
+        this.presetsMode = 'aligned';
         this.renderPresets(); // Optimistic update
         
         // Save to store
@@ -315,11 +404,13 @@ export class ExportSection extends BaseSection {
                 throw new Error('No valid elements to export');
             }
             
+            const presets = this.getPresetsForExport(elements);
+
             console.log('[ExportSection] Exporting elements:', elements);
-            console.log('[ExportSection] Presets:', this.presets);
-            
+            console.log('[ExportSection] Presets:', presets);
+
             // Export with all presets
-            await exportElements(elements, this.presets);
+            await exportElements(elements, presets);
             
             // Success feedback
             this.exportBtn.setLabel('Export Complete!');
@@ -343,6 +434,39 @@ export class ExportSection extends BaseSection {
                 this.exportBtn.setDisabled(false);
             }, 2000);
         }
+    }
+
+    getPresetsForExport(elements) {
+        const defaultPreset = { scale: '1x', format: 'png', suffix: '' };
+
+        // If UI is aligned (or single selection), use the edited list (or default).
+        if (this.presetsMode !== 'mixed-structure') {
+            const presets = Array.isArray(this.presets) && this.presets.length > 0
+                ? this.presets.map((p) => this.normalizePreset(p, defaultPreset))
+                : [defaultPreset];
+            return presets;
+        }
+
+        // Mixed structure: merge effective presets across selection so export is not surprising.
+        const merged = [];
+        const seen = new Set();
+
+        const normalizeList = (list) => {
+            const raw = Array.isArray(list) && list.length > 0 ? list : [defaultPreset];
+            return raw.map((p) => this.normalizePreset(p, defaultPreset));
+        };
+
+        elements.forEach((el) => {
+            const list = normalizeList(el?.exportPresets);
+            list.forEach((p) => {
+                const key = `${p.scale}|${p.format}|${p.suffix}`;
+                if (seen.has(key)) return;
+                seen.add(key);
+                merged.push(p);
+            });
+        });
+
+        return merged.length > 0 ? merged : [defaultPreset];
     }
     
     /**

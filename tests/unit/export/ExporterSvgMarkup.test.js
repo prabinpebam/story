@@ -64,7 +64,9 @@ describe('Exporter SVG markup', () => {
         const bounds = { x: 0, y: 0, width: 100, height: 50 };
         const svg = normalize(buildSvgMarkup([rect], { width: 100, height: 50, bounds, slideData: { elements: { 'rect-rot': rect } } }));
 
-        expect(svg).toContain('transform="translate(0 0) rotate(45 50 25)"');
+        // Rotation is applied around the element center using a pivot transform sequence.
+        // (This matches the flip-aware export transform logic.)
+        expect(svg).toContain('transform="translate(0 0) translate(50 25) rotate(45) translate(-50 -25)"');
         expect(svg).toContain('<rect');
     });
 

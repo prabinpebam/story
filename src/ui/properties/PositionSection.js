@@ -3,7 +3,6 @@ import { IconButton } from '../components/IconButton.js';
 import { NumberInput } from '../components/NumberInput.js';
 import { Icons } from '../Icons.js';
 import { store } from '../../core/Store.js';
-import { getBoundingBox } from '../../utils/SelectionUtils.js';
 
 export class PositionSection extends BaseSection {
     constructor() {
@@ -69,14 +68,18 @@ export class PositionSection extends BaseSection {
         this.xInput = new NumberInput({
             icon: Icons.AXIS_X || 'X',
             value: 0,
+            mixedPlaceholder: 'Mixed',
             onChange: (val, isTransient) => this.updateProperty('x', val, isTransient)
         });
+        this.xInput.element.dataset.testid = 'position-x';
 
         this.yInput = new NumberInput({
             icon: Icons.AXIS_Y || 'Y',
             value: 0,
+            mixedPlaceholder: 'Mixed',
             onChange: (val, isTransient) => this.updateProperty('y', val, isTransient)
         });
+        this.yInput.element.dataset.testid = 'position-y';
 
         coordRow.appendChild(this.xInput.element);
         coordRow.appendChild(this.yInput.element);
@@ -105,6 +108,7 @@ export class PositionSection extends BaseSection {
             title: 'Rotate -90°',
             onClick: () => this.handleRotateStep(-90)
         });
+        rot90Btn.element.setAttribute('data-testid', 'position-rotate-ccw');
 
         // Flip H
         const flipHBtn = new IconButton({
@@ -112,6 +116,7 @@ export class PositionSection extends BaseSection {
             title: 'Flip Horizontal',
             onClick: () => this.handleFlip('horizontal')
         });
+        flipHBtn.element.setAttribute('data-testid', 'position-flip-h');
 
         // Flip V
         const flipVBtn = new IconButton({
@@ -119,6 +124,7 @@ export class PositionSection extends BaseSection {
             title: 'Flip Vertical',
             onClick: () => this.handleFlip('vertical')
         });
+        flipVBtn.element.setAttribute('data-testid', 'position-flip-v');
 
         flipGroup.appendChild(rot90Btn.element);
         flipGroup.appendChild(flipHBtn.element);
@@ -147,31 +153,69 @@ export class PositionSection extends BaseSection {
             return;
         }
 
-        // For multi-selection, use bounding box for position display
+        // X / Y
+        // For multi-selection, show the bounding box top-left (Figma behavior).
         if (elements.length > 1) {
-            const bounds = getBoundingBox(elements);
-            this.xInput.setValue(bounds.x, false);
-            this.yInput.setValue(bounds.y, false);
-            
-            // Rotation is mixed if elements have different rotations
-            const rotationResult = this.getMixedValue(elements, 'rotation');
-            if (rotationResult.mixed) {
-                this.rotationInput.setMixed(true);
-            } else {
-                this.rotationInput.setMixed(false);
-                this.rotationInput.setValue(rotationResult.value || 0, false);
-            }
-        } else {
-            // Single element - show its actual values
-            const element = elements[0];
+            const minX = Math.min(...elements.map((el) => el.x ?? 0));
+            const minY = Math.min(...elements.map((el) => el.y ?? 0));
             this.xInput.setMixed(false);
             this.yInput.setMixed(false);
-            this.rotationInput.setMixed(false);
-            
-            this.xInput.setValue(element.x, false);
-            this.yInput.setValue(element.y, false);
-            this.rotationInput.setValue(element.rotation || 0, false);
+            this.xInput.setValue(minX, false);
+            this.yInput.setValue(minY, false);
+        } else {
+            const xResult = this.getMixedValue(elements, 'x');
+            if (xResult.mixed) {
+                this.xInput.setMixed(true);
+            } else {
+                this.xInput.setMixed(false);
+                this.xInput.setValue(xResult.value ?? 0, false);
+            }
+
+            const yResult = this.getMixedValue(elements, 'y');
+            if (yResult.mixed) {
+                this.yInput.setMixed(true);
+            } else {
+                this.yInput.setMixed(false);
+                this.yInput.setValue(yResult.value ?? 0, false);
+            }
         }
+
+        // Rotation - check for mixed values
+        const rotationResult = this.getMixedValue(elements, 'rotation');
+        if (rotationResult.mixed) {
+            this.rotationInput.setMixed(true);
+        } else {
+            this.rotationInput.setMixed(false);
+            this.rotationInput.setValue(rotationResult.value || 0, false);
+        }
+    }
+
+    updateProperty(prop, value, isTransient = false) {
+        // When editing X/Y with multiple elements selected, apply a delta so
+        // the selection moves together instead of collapsing to one position.
+        if ((prop === 'x' || prop === 'y') && this.selection && this.selection.length > 1) {
+            const state = store.getState();
+            const slideId = state?.editor?.activeSlideId;
+            const slide = slideId ? state?.slides?.[slideId] : null;
+            const canResolve = !!slide && !!slide.elements;
+
+            if (canResolve) {
+                const elements = this.selection
+                    .map((id) => this.getElement(state, id))
+                    .filter(Boolean);
+                if (elements.length === 0) return;
+                const currentMin = Math.min(...elements.map((el) => el[prop] ?? 0));
+                const delta = (value ?? 0) - currentMin;
+                this.selection.forEach((id) => {
+                    const el = elements.find((e) => e.id === id);
+                    if (!el) return;
+                    store.dispatch('UPDATE_ELEMENT', { id, [prop]: (el[prop] ?? 0) + delta }, { skipHistory: isTransient });
+                });
+                return;
+            }
+        }
+
+        super.updateProperty(prop, value, isTransient);
     }
 
     /**
@@ -214,8 +258,17 @@ export class PositionSection extends BaseSection {
     }
 
     handleFlip(axis) {
-        // Flip logic usually involves scaling by -1
-        // Or if we have specific flip properties
-        console.log('Flip:', axis);
+        const state = store.getState();
+        const selection = Array.isArray(state?.editor?.selectedElementIds) ? state.editor.selectedElementIds : [];
+        if (selection.length === 0) return;
+
+        const key = axis === 'vertical' ? 'flipY' : 'flipX';
+
+        selection.forEach((id) => {
+            const el = this.getElement(state, id);
+            if (!el) return;
+            const current = !!el[key];
+            store.dispatch('UPDATE_ELEMENT', { id, [key]: !current });
+        });
     }
 }

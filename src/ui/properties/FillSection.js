@@ -53,18 +53,277 @@ export class FillSection extends BaseSection {
         
         super.update(selection);
         
-        // If custom getElement is provided
-        let element;
+        // If custom getElement is provided (e.g. SlideSection background), keep single-target behavior
         if (this.options.getElement) {
-            element = this.options.getElement(selection);
+            const element = this.options.getElement(selection);
+            if (element) this.render(element);
+            return;
+        }
+
+        const state = store.getState();
+        const elements = (selection || []).map((id) => this.getElement(state, id)).filter(Boolean);
+        if (elements.length === 0) {
+            this.section.element.classList.add('hidden');
+            return;
+        }
+
+        if (elements.length === 1) {
+            this.render(elements[0]);
         } else {
-            const state = store.getState();
-            element = this.getElement(state, selection[0]);
+            this.renderMulti(elements);
         }
-        
-        if (element) {
-            this.render(element);
+    }
+
+    getNormalizedFills(element) {
+        const style = element?.style || {};
+        let fills = [];
+        if (style.fills && Array.isArray(style.fills)) {
+            fills = style.fills;
+        } else {
+            // Migration / Legacy support
+            const isTransparent = !style.backgroundColor || style.backgroundColor === 'transparent';
+            const isHidden = style._fillEnabled === false;
+            const hasLegacyFill = !isTransparent || isHidden || style.fillType;
+            if (hasLegacyFill) {
+                fills = [{
+                    type: style.fillType || 'solid',
+                    value: style.fillValue || style.backgroundColor || '#D9D9D9',
+                    color: style.backgroundColor || '#D9D9D9',
+                    opacity: 100,
+                    visible: style._fillEnabled !== false
+                }];
+                if (isHidden && style._savedFillColor) {
+                    fills[0].color = style._savedFillColor;
+                    fills[0].value = style._savedFillColor;
+                }
+            }
         }
+        return fills;
+    }
+
+    areFillStacksCompatible(fillsByElement) {
+        if (fillsByElement.length === 0) return false;
+        const first = fillsByElement[0];
+        for (let i = 1; i < fillsByElement.length; i++) {
+            if (fillsByElement[i].length !== first.length) return false;
+        }
+
+        for (let index = 0; index < first.length; index++) {
+            const baseType = (first[index]?.type || 'solid');
+            for (let i = 1; i < fillsByElement.length; i++) {
+                const t = (fillsByElement[i][index]?.type || 'solid');
+                if (t !== baseType) return false;
+            }
+        }
+
+        return true;
+    }
+
+    getMixedResult(values) {
+        if (!values || values.length === 0) return { value: undefined, mixed: false };
+        const first = values[0];
+        const mixed = values.some((v) => v !== first);
+        return { value: first, mixed };
+    }
+
+    renderMulti(elements) {
+        this.container.innerHTML = '';
+
+        const fillsByElement = elements.map((el) => this.getNormalizedFills(el));
+        const compatible = this.areFillStacksCompatible(fillsByElement);
+        if (!compatible) {
+            const empty = new EmptyState('Mixed');
+            this.container.appendChild(empty.element);
+            return;
+        }
+
+        const list = document.createElement('div');
+        list.className = 'fill-list';
+        const baseFills = fillsByElement[0];
+        if (baseFills.length === 0) {
+            const empty = new EmptyState('No fill');
+            this.container.appendChild(empty.element);
+            return;
+        }
+        baseFills.forEach((fill, index) => {
+            const row = this.createFillRowMulti(fill, index, baseFills, fillsByElement, elements);
+            list.appendChild(row);
+        });
+        this.container.appendChild(list);
+    }
+
+    createFillRowMulti(fill, index, allFills, fillsByElement, elements) {
+        const type = fill?.type || 'solid';
+
+        const visibleValues = fillsByElement.map((fills) => (fills[index]?.visible !== false));
+        const visibleMixed = visibleValues.some((v) => v !== visibleValues[0]);
+        const allVisible = visibleValues.every(Boolean);
+
+        const propertyRow = new PropertyRow({
+            index,
+            draggable: allFills.length > 1,
+            showVisibility: true,
+            showDelete: true,
+            onVisibilityToggle: () => {
+                const nextVisible = allVisible ? false : true;
+                this.updateFillForSelection(index, { visible: nextVisible });
+            },
+            onDelete: () => {
+                this.removeFillForSelection(index);
+            },
+            onDrop: ({ position, event }) => {
+                const fromIndex = parseInt(event.dataTransfer.getData('text/plain'));
+                let toIndex = index;
+                if (position === 'after') toIndex = index + 1;
+                if (fromIndex !== toIndex) {
+                    this.reorderFillsForSelection(fromIndex, toIndex);
+                }
+            }
+        });
+
+        // If visibility differs, show as visible (but toggling will unify)
+        propertyRow.setVisible(visibleMixed ? true : allVisible);
+
+        const row = propertyRow.element;
+        row.classList.add('fill-row');
+
+        const combinedInput = document.createElement('div');
+        combinedInput.className = 'fill-input-group';
+
+        const swatch = document.createElement('div');
+        swatch.className = 'fill-swatch-trigger';
+
+        const preview = document.createElement('div');
+        preview.className = 'fill-preview';
+
+        // Mixed detection per type
+        const typeValues = fillsByElement.map((fills) => (fills[index]?.type || 'solid'));
+        const typeMixed = typeValues.some((t) => t !== typeValues[0]);
+
+        let swatchMixed = false;
+        if (typeMixed) {
+            swatchMixed = true;
+        } else if (type === 'solid' || !type) {
+            const colorValues = fillsByElement.map((fills) => this.rgbToHex((fills[index]?.color || fills[index]?.value || '#000000')).toUpperCase());
+            swatchMixed = colorValues.some((c) => c !== colorValues[0]);
+            if (!swatchMixed) {
+                preview.style.backgroundColor = colorValues[0];
+            }
+        } else if (type === 'gradient') {
+            const gradientValues = fillsByElement.map((fills) => {
+                const v = fills[index]?.value;
+                return typeof v === 'string' ? v : JSON.stringify(v);
+            });
+            swatchMixed = gradientValues.some((v) => v !== gradientValues[0]);
+            if (!swatchMixed) {
+                preview.style.background = fillsByElement[0][index]?.value;
+            }
+        } else if (type === 'image' || type === 'video' || type === 'code') {
+            // Treat non-solid fills as mixed unless values match
+            const vValues = fillsByElement.map((fills) => {
+                const f = fills[index] || {};
+                return `${f.type || ''}|${f.assetId || ''}|${f.value || ''}`;
+            });
+            swatchMixed = vValues.some((v) => v !== vValues[0]);
+        }
+
+        if (swatchMixed) {
+            preview.classList.add('mixed');
+        }
+
+        swatch.appendChild(preview);
+        swatch.onclick = (e) => {
+            e.stopPropagation();
+            this.openFlyout(swatch, fill, index, (elements && elements[0]) ? elements[0] : null);
+        };
+        combinedInput.appendChild(swatch);
+
+        const hexInput = document.createElement('input');
+        hexInput.type = 'text';
+        hexInput.className = 'fill-hex-input';
+        hexInput.spellcheck = false;
+        hexInput.setAttribute('data-testid', `fill-hex-${index}`);
+
+        if (type === 'solid' || !type) {
+            const colorValues = fillsByElement.map((fills) => this.rgbToHex((fills[index]?.color || fills[index]?.value || '#000000')).toUpperCase());
+            const colorMixed = colorValues.some((c) => c !== colorValues[0]);
+            if (colorMixed) {
+                hexInput.value = '';
+                hexInput.placeholder = 'Mixed';
+                hexInput.classList.add('mixed');
+            } else {
+                hexInput.value = colorValues[0];
+            }
+
+            hexInput.onchange = (e) => {
+                let val = e.target.value.trim();
+                if (!val) return;
+                if (!val.startsWith('#')) val = '#' + val;
+                if (/^#[0-9A-F]{6}$/i.test(val) || /^#[0-9A-F]{3}$/i.test(val)) {
+                    this.updateFillForSelection(index, { color: val });
+                } else {
+                    // Revert to current
+                    if (colorMixed) {
+                        e.target.value = '';
+                        e.target.placeholder = 'Mixed';
+                    } else {
+                        e.target.value = colorValues[0];
+                    }
+                }
+            };
+        } else {
+            // Non-solid fills
+            const labelValues = fillsByElement.map((fills) => {
+                const f = fills[index] || {};
+                if (f.type === 'code') return 'Code Fill';
+                return (f.type || 'Fill').charAt(0).toUpperCase() + (f.type || 'Fill').slice(1);
+            });
+            const mixed = labelValues.some((v) => v !== labelValues[0]);
+            if (mixed) {
+                hexInput.value = '';
+                hexInput.placeholder = 'Mixed';
+                hexInput.classList.add('mixed');
+            } else {
+                hexInput.value = labelValues[0];
+            }
+            hexInput.disabled = true;
+        }
+        combinedInput.appendChild(hexInput);
+
+        const separator = document.createElement('div');
+        separator.className = 'fill-separator';
+        combinedInput.appendChild(separator);
+
+        const opacityValues = fillsByElement.map((fills) => {
+            const op = fills[index]?.opacity;
+            return op !== undefined ? op : 100;
+        });
+        const opacityResult = this.getMixedResult(opacityValues);
+
+        const opacityInput = new NumberInput({
+            value: opacityResult.mixed ? 100 : opacityResult.value,
+            onChange: (val, isTransient) => {
+                this.updateFillForSelection(index, { opacity: val }, isTransient);
+            },
+            min: 0,
+            max: 100,
+            step: 1,
+            units: '%',
+            scrubbable: true,
+            mixedPlaceholder: 'Mixed'
+        });
+        opacityInput.element.classList.add('fill-opacity-input');
+        opacityInput.element.setAttribute('data-testid', `fill-opacity-${index}`);
+        opacityInput.setMixed(opacityResult.mixed);
+        combinedInput.appendChild(opacityInput.element);
+
+        const fillContent = document.createElement('div');
+        fillContent.className = 'fill-content';
+        fillContent.appendChild(combinedInput);
+
+        propertyRow.appendChild(fillContent);
+
+        return row;
     }
 
     render(element) {
@@ -301,6 +560,7 @@ export class FillSection extends BaseSection {
         hexInput.type = 'text';
         hexInput.className = 'fill-hex-input';
         hexInput.spellcheck = false;
+        hexInput.setAttribute('data-testid', `fill-hex-${index}`);
         
         if (isLinked && (fill.type === 'solid' || !fill.type)) {
             // Show theme slot name for linked fills
@@ -392,6 +652,7 @@ export class FillSection extends BaseSection {
         
         // Style opacity input to fit in group
         opacityInput.element.classList.add('fill-opacity-input');
+        opacityInput.element.setAttribute('data-testid', `fill-opacity-${index}`);
         
         if (!fill.visible) {
             opacityInput.element.classList.add('fill-disabled-interactive');
@@ -486,66 +747,236 @@ export class FillSection extends BaseSection {
     addFill() {
         if (!this.selection) return;
         
-        let element;
+        // Slide/master background path
         if (this.options.getElement) {
-            element = this.options.getElement(this.selection);
-        } else {
-            const state = store.getState();
-            element = this.getElement(state, this.selection[0]);
-        }
-        if (!element) return;
+            const element = this.options.getElement(this.selection);
+            if (!element) return;
+            const style = element.style || {};
+            let fills = style.fills ? [...style.fills] : [];
+            if (!style.fills && (style.backgroundColor || style.fillType)) {
+                const isTransparent = !style.backgroundColor || style.backgroundColor === 'transparent';
+                if (!isTransparent) {
+                    fills.push({
+                        type: style.fillType || 'solid',
+                        value: style.fillValue || style.backgroundColor,
+                        color: style.backgroundColor,
+                        opacity: 100,
+                        visible: style._fillEnabled !== false
+                    });
+                }
+            }
 
-        const style = element.style || {};
-        let fills = style.fills ? [...style.fills] : [];
-        
-        // If migrating from legacy single fill
-        if (!style.fills && (style.backgroundColor || style.fillType)) {
-             const isTransparent = !style.backgroundColor || style.backgroundColor === 'transparent';
-             if (!isTransparent) {
-                 fills.push({
-                    type: style.fillType || 'solid',
-                    value: style.fillValue || style.backgroundColor,
-                    color: style.backgroundColor,
-                    opacity: 100,
-                    visible: style._fillEnabled !== false
-                 });
-             }
-        }
-
-        // Add new fill to TOP (index 0)
-        // Use memory for defaults when adding new fill
-        const memoryDefaults = propertyMemory.getFillDefaults(this.contextKey, 'solid');
-        
-        const isFirst = fills.length === 0;
-        
-        if (isFirst) {
-            // First fill: use memory color at full opacity
-            fills.unshift({
+            const memoryDefaults = propertyMemory.getFillDefaults(this.contextKey, 'solid');
+            const isFirst = fills.length === 0;
+            fills.unshift(isFirst ? {
                 type: 'solid',
                 color: memoryDefaults?.color || LastUsed.solid,
                 value: memoryDefaults?.color || LastUsed.solid,
                 opacity: memoryDefaults?.opacity || 100,
                 visible: true
-            });
-        } else {
-            // Subsequent fills: black at 25% opacity
-            fills.unshift({
+            } : {
                 type: 'solid',
                 color: '#000000',
                 value: '#000000',
                 opacity: 25,
                 visible: true
             });
+
+            if (this.options.onUpdate) {
+                this.options.onUpdate(fills, false);
+            }
+            return;
         }
 
+        // Multi-select object fill: apply per element, preserving existing stacks
+        const state = store.getState();
+        const memoryDefaults = propertyMemory.getFillDefaults(this.contextKey, 'solid');
+
+        // Allow external owners (tests / special sections) to override dispatch behavior.
+        // Keep legacy contract: onUpdate(fills, isTransient)
         if (this.options.onUpdate) {
-            this.options.onUpdate(fills, false);
-        } else {
-            this.updateStyle({
-                fills: fills,
-                backgroundColor: this.getCompositeColor(fills)
+            const id = this.selection[0];
+            const element = id ? this.getElement(state, id) : null;
+            if (!element) return;
+            let fills = [...this.getNormalizedFills(element)];
+            const isFirst = fills.length === 0;
+            fills.unshift(isFirst ? {
+                type: 'solid',
+                color: memoryDefaults?.color || LastUsed.solid,
+                value: memoryDefaults?.color || LastUsed.solid,
+                opacity: memoryDefaults?.opacity || 100,
+                visible: true
+            } : {
+                type: 'solid',
+                color: '#000000',
+                value: '#000000',
+                opacity: 25,
+                visible: true
             });
+            this.options.onUpdate(fills, false);
+            return;
         }
+
+        this.selection.forEach((id) => {
+            const element = this.getElement(state, id);
+            if (!element) return;
+            let fills = [...this.getNormalizedFills(element)];
+            const isFirst = fills.length === 0;
+            fills.unshift(isFirst ? {
+                type: 'solid',
+                color: memoryDefaults?.color || LastUsed.solid,
+                value: memoryDefaults?.color || LastUsed.solid,
+                opacity: memoryDefaults?.opacity || 100,
+                visible: true
+            } : {
+                type: 'solid',
+                color: '#000000',
+                value: '#000000',
+                opacity: 25,
+                visible: true
+            });
+            const newStyle = { ...(element.style || {}), fills, backgroundColor: this.getCompositeColor(fills) };
+            store.dispatch('UPDATE_ELEMENT', { id, style: newStyle }, { skipHistory: false });
+        });
+    }
+
+    removeFillForSelection(index) {
+        if (!this.selection || this.selection.length === 0) return;
+        const state = store.getState();
+        this.selection.forEach((id) => {
+            const element = this.getElement(state, id);
+            if (!element) return;
+            const fills = [...this.getNormalizedFills(element)];
+            fills.splice(index, 1);
+            const newStyle = { ...(element.style || {}), fills, backgroundColor: this.getCompositeColor(fills) };
+            store.dispatch('UPDATE_ELEMENT', { id, style: newStyle }, { skipHistory: false });
+        });
+    }
+
+    reorderFillsForSelection(fromIndex, toIndex) {
+        if (!this.selection || this.selection.length === 0) return;
+        const state = store.getState();
+        this.selection.forEach((id) => {
+            const element = this.getElement(state, id);
+            if (!element) return;
+            const fills = [...this.getNormalizedFills(element)];
+            const [movedItem] = fills.splice(fromIndex, 1);
+            const adjustedToIndex = fromIndex < toIndex ? toIndex - 1 : toIndex;
+            fills.splice(adjustedToIndex, 0, movedItem);
+            const newStyle = { ...(element.style || {}), fills, backgroundColor: this.getCompositeColor(fills) };
+            store.dispatch('UPDATE_ELEMENT', { id, style: newStyle }, { skipHistory: false });
+        });
+    }
+
+    updateFillForSelection(index, updates, isTransient = false) {
+        if (!this.selection || this.selection.length === 0) return;
+        const state = store.getState();
+        this.selection.forEach((id) => {
+            const element = this.getElement(state, id);
+            if (!element) return;
+
+            const style = element.style || {};
+            let fills = [...this.getNormalizedFills(element)];
+            const existing = { ...(fills[index] || {}) };
+
+            let fill = existing;
+            if (updates.type && updates.type !== fill.type) {
+                const commonProps = {
+                    type: updates.type,
+                    visible: fill.visible,
+                    blendMode: fill.blendMode,
+                    opacity: fill.opacity !== undefined ? fill.opacity : 100
+                };
+
+                if (updates.type === 'solid') {
+                    fill = {
+                        ...commonProps,
+                        color: updates.color || LastUsed.solid,
+                        value: updates.value || updates.color || LastUsed.solid
+                    };
+                } else if (updates.type === 'gradient') {
+                    fill = {
+                        ...commonProps,
+                        value: updates.value || LastUsed.gradient
+                    };
+                } else if (updates.type === 'code') {
+                    fill = {
+                        ...commonProps,
+                        code: updates.code || LastUsed.code || CodeRunner.DEFAULT_CODE,
+                        value: updates.value || LastUsed.code || CodeRunner.DEFAULT_CODE
+                    };
+                } else if (updates.type === 'image') {
+                    fill = {
+                        ...commonProps,
+                        assetId: updates.assetId || null,
+                        value: updates.value || '',
+                        scaleMode: updates.scaleMode || 'fill',
+                        position: updates.position || { x: 0.5, y: 0.5 }
+                    };
+                } else if (updates.type === 'video') {
+                    fill = {
+                        ...commonProps,
+                        assetId: updates.assetId || null,
+                        value: updates.value || '',
+                        scaleMode: updates.scaleMode || 'fill'
+                    };
+                }
+            } else {
+                if (updates.blendMode !== undefined) {
+                    fill.blendMode = updates.blendMode;
+                }
+
+                if (updates.code !== undefined) {
+                    fill.code = updates.code;
+                    LastUsed.code = updates.code;
+                }
+
+                if (updates.color) {
+                    fill.color = updates.color;
+                    if (fill.themeSlot) {
+                        delete fill.themeSlot;
+                    }
+                    if (fill.type === 'solid') {
+                        fill.value = updates.color;
+                        LastUsed.solid = updates.color;
+                    }
+                }
+
+                if (updates.themeSlot !== undefined) {
+                    if (updates.themeSlot === null) {
+                        delete fill.themeSlot;
+                    } else {
+                        fill.themeSlot = updates.themeSlot;
+                    }
+                }
+
+                if (updates.opacity !== undefined) {
+                    fill.opacity = updates.opacity;
+                }
+
+                if (fill.type !== 'solid' && updates.value !== undefined) {
+                    fill.value = updates.value;
+                    if (fill.type === 'gradient') {
+                        LastUsed.gradient = updates.value;
+                    }
+                }
+
+                if (updates.visible !== undefined) {
+                    fill.visible = updates.visible;
+                }
+
+                if (updates.assetId !== undefined) fill.assetId = updates.assetId;
+                if (updates.scaleMode !== undefined) fill.scaleMode = updates.scaleMode;
+                if (updates.position !== undefined) fill.position = updates.position;
+                if (updates.filters !== undefined) fill.filters = updates.filters;
+                if (updates.playback !== undefined) fill.playback = updates.playback;
+            }
+
+            fills[index] = fill;
+
+            const newStyle = { ...style, fills, backgroundColor: this.getCompositeColor(fills) };
+            store.dispatch('UPDATE_ELEMENT', { id, style: newStyle }, { skipHistory: isTransient });
+        });
     }
 
     removeFill(element, index) {
@@ -576,6 +1007,11 @@ export class FillSection extends BaseSection {
     }
 
     updateFill(element, index, updates, isTransient = false) {
+        // Multi-selection object fills: update per element without overwriting stacks
+        if (!this.options.onUpdate && !this.options.getElement && this.selection && this.selection.length > 1) {
+            this.updateFillForSelection(index, updates, isTransient);
+            return;
+        }
         // IMPORTANT: Get fresh element data from store to avoid stale reference issues
         // The element parameter may be captured in a closure and become stale
         const state = store.getState();
