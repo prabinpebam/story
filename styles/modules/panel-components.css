@@ -1496,6 +1496,41 @@
     padding: var(--spacing-2);
 }
 
+/* ===========================================
+   Slide Notes Panel
+   =========================================== */
+.slide-notes-panel .draggable-panel-content {
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-2);
+}
+
+.slide-notes-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--spacing-1);
+    padding: var(--spacing-2);
+    border-bottom: 1px solid var(--color-border);
+    background: var(--color-bg-hover);
+}
+
+.slide-notes-editor {
+    flex: 1;
+    margin: var(--spacing-2);
+    padding: var(--spacing-2);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    background: var(--color-bg-elevated);
+    color: var(--color-text-primary);
+    overflow: auto;
+    outline: none;
+}
+
+.slide-notes-editor:focus {
+    border-color: var(--color-accent);
+}
+
 /* Resize Handles */
 .resize-handle {
     position: absolute;

@@ -1873,6 +1873,7 @@ export function createInitialState() {
                 }, 
                 elementOrder: ["placeholder-title", "placeholder-subtitle"],
                 notes: "",
+                notesDoc: { version: 1, blocks: [] },
                 transition: "magic"
             },
             // Slide 2: Title and Content - all properties inherited, no overrides
@@ -1897,6 +1898,7 @@ export function createInitialState() {
                 }, 
                 elementOrder: ["placeholder-title", "placeholder-body"],
                 notes: "",
+                notesDoc: { version: 1, blocks: [] },
                 transition: "magic"
             }
         },

@@ -71,6 +71,21 @@ function reconcileLayoutChange(draft, slide, newLayoutId) {
     detachUnmappedPlaceholderContent(slide, { sourceLayoutId, idsToDetach });
 }
 
+function cloneNotesDoc(notesDoc) {
+    if (!notesDoc || typeof notesDoc !== 'object') return { version: 1, blocks: [] };
+    try {
+        if (typeof structuredClone === 'function') return structuredClone(notesDoc);
+    } catch {
+        // ignore
+    }
+
+    try {
+        return JSON.parse(JSON.stringify(notesDoc));
+    } catch {
+        return { version: 1, blocks: [] };
+    }
+}
+
 export function handleAddSlide(draft, payload) {
     const newSlideId = `slide-${Date.now()}`;
     
@@ -108,6 +123,7 @@ export function handleAddSlide(draft, payload) {
         elements: elements,
         elementOrder: elementOrder,
         notes: "",
+        notesDoc: { version: 1, blocks: [] },
         transition: "magic"
     };
     draft.slides[newSlideId] = newSlide;
@@ -156,6 +172,7 @@ export function handleDuplicateSlide(draft, payload) {
         title: `${sourceSlide.title} (Copy)`,
         elements: newElements,
         elementOrder: [...sourceSlide.elementOrder],
+        notesDoc: cloneNotesDoc(sourceSlide.notesDoc),
         // Copy styleAssignments (or initialize if missing)
         styleAssignments: sourceSlide.styleAssignments 
             ? { ...sourceSlide.styleAssignments }
@@ -186,6 +203,7 @@ export function handlePasteSlide(draft, payload) {
         title: `${pasteSourceSlide.title} (Copy)`,
         elements: pasteNewElements,
         elementOrder: [...pasteSourceSlide.elementOrder],
+        notesDoc: cloneNotesDoc(pasteSourceSlide.notesDoc),
         // Copy styleAssignments (or initialize if missing)
         styleAssignments: pasteSourceSlide.styleAssignments 
             ? { ...pasteSourceSlide.styleAssignments }

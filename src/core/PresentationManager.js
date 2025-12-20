@@ -1,3 +1,8 @@
+import {
+    createEmptyNotesDoc,
+    legacyNotesToNotesDoc,
+    notesDocToSafeHtml
+} from './notes/NotesDoc.js';
 import { store } from './Store.js';
 import { LaserPointer } from './LaserPointer.js';
 import { mouseStateManager } from './MouseStateManager.js';
@@ -486,7 +491,12 @@ export class PresentationManager {
 
         const slideId = state?.editor?.activeSlideId;
         const slide = slideId ? state?.slides?.[slideId] : null;
-        const notesHtml = (slide?.notes || '').trim();
+        const notesDoc = slide?.notesDoc
+            ? slide.notesDoc
+            : (slide?.notes || '').trim()
+                ? legacyNotesToNotesDoc(slide.notes)
+                : createEmptyNotesDoc();
+        const notesHtml = notesDocToSafeHtml(notesDoc).trim();
         const notesEl = this._presenterUi.panelEl?.querySelector('#pv-notes');
         if (notesEl) {
             notesEl.innerHTML = notesHtml || '<div class="pv-notes-empty">No notes</div>';

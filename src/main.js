@@ -21,6 +21,7 @@ import { HUD } from './ui/HUD.js';
 import { panelManager } from './ui/PanelManager.js';
 import { ColorThemeManager } from './ui/panels/ColorThemeManager.js';
 import { TypographyStyleManager } from './ui/panels/TypographyStyleManager.js';
+import { SlideNotesPanel } from './ui/panels/SlideNotesPanel.js';
 import { CodeFillPanel } from './ui/panels/CodeFillPanel.js';
 import { ProfileButton } from './ui/auth/ProfileButton.js';
 import { SignInModal } from './ui/auth/SignInModal.js';
@@ -160,6 +161,9 @@ class App {
         panelManager.register('code-fill-panel', this.codeFillPanel, {
             shortcut: 'ctrl+shift+k'
         });
+
+        this.slideNotesPanel = new SlideNotesPanel();
+        panelManager.register('slide-notes-panel', this.slideNotesPanel);
 
         // Initialize Auth UI
         this.signInModal = new SignInModal();

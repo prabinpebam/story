@@ -21,6 +21,7 @@ import { BooleanSection } from './properties/BooleanSection.js';
 import { ShapeSection } from './properties/ShapeSection.js';
 import { getShapeKind } from '../core/shapes/ShapeElementAdapter.js';
 import { BooleanOpsHeaderControl } from './BooleanOpsHeaderControl.js';
+import { SlideNotesHeaderControl } from './SlideNotesHeaderControl.js';
 
 export class PropertyInspector {
     constructor(containerId) {
@@ -55,6 +56,11 @@ export class PropertyInspector {
         // Sidebar header controls (selection-level actions)
         this.booleanOpsHeaderControl = this.sidebarHeader
             ? new BooleanOpsHeaderControl(this.sidebarHeader)
+            : null;
+
+        // Sidebar header controls (slide-level actions)
+        this.slideNotesHeaderControl = this.sidebarHeader
+            ? new SlideNotesHeaderControl(this.sidebarHeader)
             : null;
         
         this.init();
