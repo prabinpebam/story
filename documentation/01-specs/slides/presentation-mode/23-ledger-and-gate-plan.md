@@ -33,7 +33,8 @@ Status legend: ✅ Done (locked) · 🟡 In progress · ❌ Not started · ⛔ B
 - 🟡 Gate 8: Accessibility + theming discipline.
   - Implemented: live region scaffolding + HUD ARIA groundwork; reduced-motion/forced-colors CSS rules.
   - ✅ Playwright a11y: `tests/e2e/specs/functional/presentation-accessibility.spec.ts` green (live region updates, HUD aria + toggle semantics, keyboard-only exit, prefers-reduced-motion disables transitions, forced-colors/contrast smoke, token-discipline checks for stage/HUD colors).
-  - Remaining: add theme switching assertions (if/when UI supports it) and expand forced-colors/contrast coverage beyond smoke.
+  - ✅ Theming assertions: same spec validates light/dark changes propagate to presentation tokens and accent theme updates the grid active indicator.
+  - Remaining: expand forced-colors/contrast coverage beyond smoke.
 
 - ❌ Gates 9–11: Not started (observability/CI quality gates, kiosk/rehearsal, final parity audit).
 

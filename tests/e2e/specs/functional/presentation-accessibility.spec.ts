@@ -27,6 +27,39 @@ async function resolveCssVar(page: any, cssVarName: string, property: 'backgroun
     );
 }
 
+async function getCssVar(page: any, cssVarName: string) {
+    return await page.evaluate(
+        ({ cssVarName }: { cssVarName: string }) => {
+            return getComputedStyle(document.body).getPropertyValue(cssVarName).trim();
+        },
+        { cssVarName }
+    );
+}
+
+async function openSettingsAppearance(page: any) {
+    await page.locator('.app-menu-trigger').click();
+    await page.locator('.app-menu-dropdown .app-menu-item', { hasText: 'Settings...' }).click();
+
+    const modal = page.getByTestId('settings-modal');
+    await expect(modal).toBeVisible();
+    await modal.locator('.modal-nav-item', { hasText: 'Appearance' }).click();
+    return modal;
+}
+
+async function setThemeModeViaSettings(page: any, mode: 'Light' | 'Dark') {
+    const modal = await openSettingsAppearance(page);
+    const themeDropdown = modal.locator('.dropdown-trigger').first();
+    await themeDropdown.click();
+    await page.locator('.dropdown-item', { hasText: mode }).click();
+    await modal.locator('.close-btn').click();
+}
+
+async function setAccentThemeViaSettings(page: any, accentLabel: 'Blue' | 'Purple' | 'Teal' | 'Orange' | 'Pink') {
+    const modal = await openSettingsAppearance(page);
+    await modal.locator('.theme-card', { hasText: accentLabel }).click();
+    await modal.locator('.close-btn').click();
+}
+
 test.describe('Presentation Mode (Gate 8) — Accessibility', () => {
     test('should announce slide/build changes via live region', async ({ page }) => {
         const editor = new EditorPage(page);
@@ -187,5 +220,58 @@ test.describe('Presentation Mode (Gate 8) — Accessibility', () => {
 
         expect(actualStageBg).toBe(expectedStageBg);
         expect(actualHudBg).toBe(expectedHudBg);
+    });
+
+    test('should apply light/dark theme changes to presentation tokens', async ({ page }) => {
+        const editor = new EditorPage(page);
+        await editor.goto();
+        await editor.waitForLoad();
+
+        const darkStageBgToken = await getCssVar(page, '--color-presentation-stage-bg');
+
+        await setThemeModeViaSettings(page, 'Light');
+        await expect(page.locator('body')).toHaveClass(/theme-light/);
+
+        const lightStageBgToken = await getCssVar(page, '--color-presentation-stage-bg');
+        expect(lightStageBgToken).not.toBe(darkStageBgToken);
+
+        await page.locator('[data-testid="play-btn"]').click();
+        await page.locator('[data-testid="present-windowed"]').click();
+
+        const stage = page.locator('#app');
+        await expect(stage).toBeVisible();
+
+        const expectedStageBg = await resolveCssVar(page, '--color-presentation-stage-bg', 'backgroundColor');
+        const actualStageBg = await stage.evaluate(el => getComputedStyle(el).backgroundColor);
+        expect(actualStageBg).toBe(expectedStageBg);
+    });
+
+    test('should apply accent theme to presentation grid active indicator', async ({ page }) => {
+        const editor = new EditorPage(page);
+        await editor.goto();
+        await editor.waitForLoad();
+
+        const defaultAccent = await getCssVar(page, '--color-accent');
+
+        await setAccentThemeViaSettings(page, 'Purple');
+        const updatedAccent = await getCssVar(page, '--color-accent');
+        expect(updatedAccent).not.toBe(defaultAccent);
+
+        await page.locator('[data-testid="play-btn"]').click();
+        await page.locator('[data-testid="present-windowed"]').click();
+
+        await expect
+            .poll(async () => (await getStateFrom(page)).editor.mode, { timeout: 5000 })
+            .toBe('presentation');
+
+        await page.locator('[data-testid="hud-grid-btn"]').click();
+        await expect(page.locator('#presentation-grid-view')).toBeVisible();
+
+        const expectedBorderColor = await resolveCssVar(page, '--color-accent', 'color');
+        const activePreview = page.locator('.grid-slide-item.active .slide-preview');
+        await expect(activePreview).toBeVisible();
+
+        const actualBorderColor = await activePreview.evaluate(el => getComputedStyle(el).borderColor);
+        expect(actualBorderColor).toBe(expectedBorderColor);
     });
 });
