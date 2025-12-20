@@ -1,0 +1,114 @@
+/* Keyboard Shortcuts Overlay
+ * Uses existing design system tokens only.
+ */
+
+.shortcuts-overlay {
+    z-index: var(--z-modal-backdrop);
+}
+
+.shortcuts-modal {
+    width: min(960px, calc(100vw - var(--spacing-10)));
+    height: min(720px, calc(100vh - var(--spacing-10)));
+    display: flex;
+    flex-direction: column;
+}
+
+.shortcuts-modal__header {
+    padding: var(--spacing-4) var(--spacing-6);
+    border-bottom: 1px solid var(--color-border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--spacing-3);
+}
+
+.shortcuts-modal__header h3 {
+    margin: 0;
+    font-size: var(--font-size-lg);
+    font-weight: var(--font-weight-semibold);
+    color: var(--color-text-primary);
+}
+
+.shortcuts-modal__close {
+    padding: 0;
+}
+
+.shortcuts-modal__search-row {
+    padding: var(--spacing-4) var(--spacing-6);
+    border-bottom: 1px solid var(--color-border);
+}
+
+.shortcuts-modal__search {
+    font-size: var(--font-size-md);
+}
+
+.shortcuts-modal__body {
+    flex: 1;
+    overflow: auto;
+    padding: var(--spacing-6);
+}
+
+.shortcuts-modal__list {
+    columns: 3 280px;
+    column-gap: var(--spacing-6);
+}
+
+@media (max-width: 1000px) {
+    .shortcuts-modal__list {
+        columns: 2 280px;
+    }
+}
+
+@media (max-width: 720px) {
+    .shortcuts-modal__list {
+        columns: 1 280px;
+    }
+}
+
+.shortcuts-modal__section {
+    break-inside: avoid;
+    margin-bottom: var(--spacing-6);
+}
+
+.shortcuts-modal__section-title {
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-semibold);
+    color: var(--color-text-secondary);
+    margin-bottom: var(--spacing-3);
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+}
+
+.shortcuts-modal__grid {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: var(--spacing-2) var(--spacing-4);
+}
+
+.shortcuts-modal__row {
+    display: contents;
+}
+
+.shortcuts-modal__label {
+    font-size: var(--font-size-md);
+    color: var(--color-text-primary);
+}
+
+.shortcuts-modal__keys {
+    display: inline-flex;
+    gap: var(--spacing-2);
+    justify-content: flex-end;
+    align-items: center;
+}
+
+.shortcuts-modal__kbd {
+    font-family: var(--font-family-mono);
+    font-size: var(--font-size-sm);
+    color: var(--color-text-primary);
+    background: var(--color-bg-hover);
+    border: 1px solid var(--color-border);
+    border-bottom-color: var(--color-border);
+    border-radius: var(--radius-sm);
+    padding: 2px var(--spacing-2);
+    white-space: nowrap;
+}

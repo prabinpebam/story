@@ -31,6 +31,13 @@ export class InputManager {
             return false; // Not in an input, allow global shortcuts
         }
 
+        // Allow opening the keyboard shortcuts overlay from inputs.
+        // (Cmd/Ctrl+/ is not a typical text entry keystroke, unlike plain '?' which would type.)
+        const isCmdOrCtrl = event.ctrlKey || event.metaKey;
+        if (isCmdOrCtrl && event.key === '/') {
+            return false;
+        }
+
         // If we are in an input, we generally BLOCK global shortcuts,
         // EXCEPT for standard editing keys which we want to pass through to the input.
         // However, the question is: does the global handler need to run?

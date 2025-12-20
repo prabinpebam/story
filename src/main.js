@@ -15,6 +15,7 @@ import { Toolbar } from './ui/Toolbar.js';
 import { aiService } from './core/ai/AIService.js';
 import { PresentationManager } from './core/PresentationManager.js';
 import { SettingsModal } from './ui/SettingsModal.js';
+import { KeyboardShortcutsModal } from './ui/KeyboardShortcutsModal.js';
 import { GridView } from './ui/GridView.js';
 import { HUD } from './ui/HUD.js';
 import { panelManager } from './ui/PanelManager.js';
@@ -121,6 +122,7 @@ class App {
         this.toolbar = new Toolbar();
         this.presentationManager = new PresentationManager();
         this.settingsModal = new SettingsModal();
+        this.keyboardShortcutsModal = new KeyboardShortcutsModal();
         this.gridView = new GridView('presentation-grid-view');
         this.hud = new HUD('presentation-hud');
         this.viewportControls = new ViewportControls();
@@ -158,6 +160,10 @@ class App {
 
         window.addEventListener('story:show-settings', () => {
             this.settingsModal.open();
+        });
+
+        window.addEventListener('story:show-shortcuts', () => {
+            this.keyboardShortcutsModal.toggle();
         });
 
         window.addEventListener('story:insert-svg', async (e) => {
@@ -239,6 +245,19 @@ class App {
         // Keyboard Shortcuts
         window.addEventListener('keydown', (e) => {
             if (InputManager.shouldBlockShortcut(e)) return;
+
+            // Keyboard Shortcuts Overlay
+            // - '?' (Shift+/)
+            // - Cmd/Ctrl+/
+            const isCmdOrCtrl = e.ctrlKey || e.metaKey;
+            const isQuestion = !isCmdOrCtrl && (e.key === '?' || (e.code === 'Slash' && e.shiftKey));
+            const isCmdCtrlSlash = isCmdOrCtrl && (e.key === '/' || e.code === 'Slash');
+            const isOverlayToggle = isQuestion || isCmdCtrlSlash;
+            if (isOverlayToggle) {
+                e.preventDefault();
+                this.keyboardShortcutsModal.toggle();
+                return;
+            }
 
             const state = store.getState();
             if (state.editor.mode === 'presentation') return;
