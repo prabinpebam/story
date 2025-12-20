@@ -82,6 +82,131 @@ test.describe('Presenter View (Gate 7)', () => {
         }
     });
 
+    test('should keep buildIndex in lockstep across presenter and audience', async ({ page, context }) => {
+        const editor = new EditorPage(page);
+
+        await installSyncSpy(context);
+        await editor.goto();
+        await editor.waitForLoad();
+
+        // Open app menu → Present submenu → Presenter View.
+        await page.locator('.app-menu-trigger').click();
+        await page.locator('.app-menu-item:has(.app-menu-item-label:text-is("Present"))').click();
+        await expect(page.locator('.app-menu-dropdown.app-menu-submenu')).toBeVisible();
+
+        const popupPromise = page.waitForEvent('popup');
+        await page
+            .locator('.app-menu-dropdown.app-menu-submenu .app-menu-item:has(.app-menu-item-label:text-is("Presenter View"))')
+            .click();
+        const presenterPage = await popupPromise;
+        await presenterPage.waitForLoadState('domcontentloaded');
+
+        await expect
+            .poll(async () => (await getStateFrom(page)).editor.mode, { timeout: 5000 })
+            .toBe('presentation');
+        await expect
+            .poll(async () => (await getStateFrom(presenterPage)).editor.mode, { timeout: 5000 })
+            .toBe('presentation');
+
+        const forceBuildCountForActiveSlide = async (p: any, buildCount: number) => {
+            await p.evaluate((bc: number) => {
+                const store = (window as any).__TEST_STORE__;
+                if (!store) throw new Error('Test store not exposed');
+
+                const state = store.getState();
+                const slideIndex = state?.presentation?.currentSlideIndex;
+                const slideId = state?.editor?.activeSlideId;
+                if (typeof slideIndex !== 'number') throw new Error('No current slide index');
+                if (typeof slideId !== 'string') throw new Error('No active slide');
+
+                store.dispatch('SET_BUILD_COUNT_FOR_SLIDE', { slideId, buildCount: bc });
+                store.dispatch('PRESENTATION_GOTO', { index: slideIndex, buildIndex: -1 });
+            }, buildCount);
+        };
+
+        // Ensure both windows compute the same build count for the active slide.
+        await forceBuildCountForActiveSlide(page, 2);
+        await forceBuildCountForActiveSlide(presenterPage, 2);
+
+        await expect
+            .poll(async () => (await getStateFrom(page)).presentation.buildIndex, { timeout: 5000 })
+            .toBe(-1);
+        await expect
+            .poll(async () => (await getStateFrom(presenterPage)).presentation.buildIndex, { timeout: 5000 })
+            .toBe(-1);
+
+        // Advance a build in presenter window and ensure audience follows.
+        await presenterPage.keyboard.press('ArrowRight');
+        await expect
+            .poll(async () => (await getStateFrom(presenterPage)).presentation.buildIndex, { timeout: 5000 })
+            .toBe(0);
+        await expect
+            .poll(async () => (await getStateFrom(page)).presentation.buildIndex, { timeout: 5000 })
+            .toBe(0);
+
+        // Avoid key repeat throttle (INPUT_THROTTLE_MS).
+        await presenterPage.waitForTimeout(150);
+        await presenterPage.keyboard.press('ArrowRight');
+        await expect
+            .poll(async () => (await getStateFrom(presenterPage)).presentation.buildIndex, { timeout: 5000 })
+            .toBe(1);
+        await expect
+            .poll(async () => (await getStateFrom(page)).presentation.buildIndex, { timeout: 5000 })
+            .toBe(1);
+    });
+
+    test('should sanitize speaker notes in the presenter panel', async ({ page, context }) => {
+        const editor = new EditorPage(page);
+
+        await installSyncSpy(context);
+        await editor.goto();
+        await editor.waitForLoad();
+
+        // Open app menu → Present submenu → Presenter View.
+        await page.locator('.app-menu-trigger').click();
+        await page.locator('.app-menu-item:has(.app-menu-item-label:text-is("Present"))').click();
+        await expect(page.locator('.app-menu-dropdown.app-menu-submenu')).toBeVisible();
+
+        const popupPromise = page.waitForEvent('popup');
+        await page
+            .locator('.app-menu-dropdown.app-menu-submenu .app-menu-item:has(.app-menu-item-label:text-is("Presenter View"))')
+            .click();
+        const presenterPage = await popupPromise;
+        await presenterPage.waitForLoadState('domcontentloaded');
+
+        await expect(presenterPage.locator('[data-testid="presenter-view-panel"]')).toBeVisible();
+        const notesEl = presenterPage.locator('[data-testid="presenter-notes"]');
+        await expect(notesEl).toBeVisible();
+
+        // Inject legacy HTML into presenter window state to validate NotesDoc import + sanitization.
+        await presenterPage.evaluate(() => {
+            const store = (window as any).__TEST_STORE__;
+            if (!store) throw new Error('Test store not exposed');
+
+            const state = store.getState();
+            const slideId = state?.editor?.activeSlideId;
+            if (!slideId) throw new Error('No active slide');
+
+            store.dispatch('UPDATE_SLIDE', {
+                id: slideId,
+                notesDoc: null,
+                notes: '<p>Hello<img src=x onerror=alert(1)></p><p><a href="javascript:alert(1)">bad</a></p><p><a href="https://example.com">good</a></p>'
+            });
+        });
+
+        await expect
+            .poll(async () => (await notesEl.innerHTML()).toLowerCase(), { timeout: 5000 })
+            .toContain('hello');
+
+        const html = await notesEl.innerHTML();
+        expect(html.includes('<img')).toBe(false);
+        expect(html.toLowerCase().includes('onerror')).toBe(false);
+        expect(html.toLowerCase().includes('javascript:')).toBe(false);
+        expect(html).toContain('bad');
+        expect(html).toContain('good');
+        expect(html).toContain('href="https://example.com"');
+    });
+
     test('should prompt to reopen if presenter window closes during a show', async ({ page, context }) => {
         const editor = new EditorPage(page);
 

@@ -23,13 +23,12 @@ Status legend: ✅ Done (locked) · 🟡 In progress · ❌ Not started · ⛔ B
   - Playwright includes required-ID DOM contract + audience-clean forbidden-selector audit + enter→exit cleanup invariants.
   - Visual surface: aspect-fit scaling with letterboxing, token-based stage background, DPR-correct canvas rendering.
   - HUD: tokenized styling (no hardcoded HUD colors), focus-visible support, reduced-motion handling, forced-colors fallback.
-  - Validation: `npm test` green; Playwright `tests/e2e/specs/functional/presentation-mode.spec.ts` green.
+  - Validation: `npm test` green; `npm run test:e2e` green (suite).
 
-- 🟡 Gate 7: Presenter View + security/privacy boundary.
+- ✅ Gate 7: Presenter View + security/privacy boundary.
   - Implemented: presenter view window + BroadcastChannel allowlist; presenter panel only renders during presentation mode.
-  - ✅ Multi-page Playwright: `tests/e2e/specs/functional/presenter-view.spec.ts` now passes (popup open + lockstep + privacy payload audit + malformed message rejected + close→reopen recovery).
-  - Notes dependency: Presenter View notes MUST follow the canonical `NotesDoc v1` + sanitization contract in [../05-slide-notes.md](../05-slide-notes.md) (do not duplicate schema here).
-  - Remaining: expand Gate 7 coverage for buildIndex lockstep and additional negative cases.
+  - ✅ Multi-page Playwright: `tests/e2e/specs/functional/presenter-view.spec.ts` green (popup open + slide/build lockstep + privacy payload audit + malformed message rejected + close→reopen recovery).
+  - ✅ Notes: presenter notes render via canonical `NotesDoc v1` → safe HTML renderer (sanitization contract in [../05-slide-notes.md](../05-slide-notes.md)); per-slide editing validated by `tests/e2e/specs/functional/slide-notes.spec.ts`.
 
 - 🟡 Gate 8: Accessibility + theming discipline.
   - Implemented: live region scaffolding + HUD ARIA groundwork; reduced-motion/forced-colors CSS rules.
@@ -61,7 +60,7 @@ Gate details live in **Section 6**. This section is the quick status index.
 - ✅ Gate 4 — Transition readiness gating (decode-first) WITHOUT cache tiers
 - ✅ Gate 5 — Cache tiers (ACTIVE/HOT/WARM/COLD) + perf baselines
 - ✅ Gate 6 — HUD + Grid + Laser parity (audience-safe)
-- 🟡 Gate 7 — Presenter View + security/privacy boundary
+- ✅ Gate 7 — Presenter View + security/privacy boundary
 - 🟡 Gate 8 — Accessibility + theming discipline
 - ❌ Gate 9 — Observability + CI quality gates
 - ❌ Gate 10 — Kiosk/autoplay/rehearsal modes
@@ -187,7 +186,7 @@ Notes:
 | MUST-052 | 11-presenter-tools.md | 4) Sync Protocol / Requirements | MUST keep presenter and audience windows in lockstep (slide/build position) and MUST handle close/reopen without losing position. | PM-080 | UT: protocol; E2E: multi-page sync |
 | MUST-053 | 11-presenter-tools.md | 3) Privacy Boundary / Requirements | MUST enforce strict separation: notes/diagnostics never appear in audience DOM. | PM-081 | E2E: audience DOM audit |
 | MUST-054 | 11-presenter-tools.md | Privacy Boundary | Speaker notes MUST NOT be in sync messages. | PM-121 | UT: message schema; E2E: payload audit |
-| MUST-069 | ../05-slide-notes.md | 4) Rendering + sanitization contract | Notes MUST render via `NotesDoc v1` → safe HTML renderer and MUST NOT inject raw user-provided HTML (links sanitized, no `javascript:`). | PM-120 | UT (planned): notes renderer sanitization; E2E (planned): presenter notes XSS fixture |
+| MUST-069 | ../05-slide-notes.md | 4) Rendering + sanitization contract | Notes MUST render via `NotesDoc v1` → safe HTML renderer and MUST NOT inject raw user-provided HTML (links sanitized, no `javascript:`). | PM-120 | UT: `tests/unit/core/notes/NotesDoc.test.js`; E2E: `tests/e2e/specs/functional/slide-notes.spec.ts`; E2E: `tests/e2e/specs/functional/presenter-view.spec.ts` |
 | MUST-055 | 16-security-privacy-and-safety.md | 2) Content Security / Requirements | MUST sanitize all user-generated content and MUST prevent XSS via script injection in slides. | PM-120 | UT: sanitizer; E2E: XSS fixture deck |
 | MUST-056 | 16-security-privacy-and-safety.md | 2) Content Security / Requirements | MUST validate cross-window messages (postMessage/BroadcastChannel). | PM-121 | UT: validator; E2E: reject malformed |
 | MUST-057 | 16-security-privacy-and-safety.md | 1) Privacy Boundaries / Requirements | Speaker notes MUST never appear in audience DOM; diagnostics MUST be presenter-only; sync messages MUST NOT include note content. | PM-081 | E2E: privacy boundary checks |
@@ -607,15 +606,16 @@ This is the **hardened** gate plan. It is intentionally more granular and more m
   - Playwright validates stage transform semantics and stage background token usage.
   - Unit tests validate scale math + DPR canvas sizing and transform reset.
 
-### Gate 7 🟡 — Presenter View + security/privacy boundary
+### Gate 7 ✅ — Presenter View + security/privacy boundary
 **Goal:** implement Presenter View without leaking presenter-only data.
 - Implement presenter window + typed sync.
 - Implement strict message validation.
 - Exit criteria:
   - Playwright validates:
     - presenter view opens,
-    - slide changes sync both directions,
-    - notes are never present in audience DOM.
+    - slide/build changes sync both directions,
+    - notes are never present in audience DOM or sync payloads,
+    - presenter notes render via `NotesDoc v1` safe HTML (no raw HTML injection).
   - Security tests validate malformed messages are ignored.
 
 ### Gate 8 🟡 — Accessibility + theming discipline
