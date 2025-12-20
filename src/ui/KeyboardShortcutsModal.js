@@ -1,6 +1,7 @@
 import { Button } from './components/Button.js';
 import { Icons } from './Icons.js';
 import { getShortcutCatalog, groupShortcutsBySection } from './shortcuts/shortcutCatalog.js';
+import { MasonryGrid } from './layout/MasonryGrid.js';
 
 export class KeyboardShortcutsModal {
     constructor() {
@@ -8,6 +9,8 @@ export class KeyboardShortcutsModal {
         this.query = '';
         this.shortcuts = getShortcutCatalog();
         this.grouped = groupShortcutsBySection(this.shortcuts);
+
+        this._masonry = null;
 
         this._create();
         this._bind();
@@ -64,7 +67,7 @@ export class KeyboardShortcutsModal {
         this.body.className = 'shortcuts-modal__body';
 
         this.list = document.createElement('div');
-        this.list.className = 'shortcuts-modal__list ds-auto-grid';
+        this.list.className = 'shortcuts-modal__list ds-masonry-grid';
         this.list.setAttribute('data-testid', 'keyboard-shortcuts-list');
 
         this.body.appendChild(this.list);
@@ -77,6 +80,10 @@ export class KeyboardShortcutsModal {
         document.body.appendChild(this.overlay);
 
         this._renderList();
+
+        this._masonry = new MasonryGrid(this.list, {
+            itemSelector: '.shortcuts-modal__section',
+        });
     }
 
     _bind() {
@@ -132,7 +139,7 @@ export class KeyboardShortcutsModal {
 
         for (const group of groups) {
             const sectionEl = document.createElement('div');
-            sectionEl.className = 'shortcuts-modal__section ds-surface-card';
+            sectionEl.className = 'shortcuts-modal__section ds-surface-card ds-masonry-item';
 
             const header = document.createElement('div');
             header.className = 'shortcuts-modal__section-title';
@@ -169,6 +176,9 @@ export class KeyboardShortcutsModal {
             sectionEl.appendChild(grid);
             this.list.appendChild(sectionEl);
         }
+
+        // Ensure masonry spans are recalculated after DOM updates.
+        this._masonry?.scheduleLayout();
     }
 
     open() {
@@ -176,6 +186,9 @@ export class KeyboardShortcutsModal {
         this.isOpen = true;
         this.overlay.style.display = 'flex';
         this.overlay.setAttribute('data-open', 'true');
+
+        // The modal is display:none when closed; relayout after it becomes visible.
+        requestAnimationFrame(() => this._masonry?.scheduleLayout());
 
         // Focus the search input for quick filtering.
         setTimeout(() => this.searchInput.focus(), 0);
