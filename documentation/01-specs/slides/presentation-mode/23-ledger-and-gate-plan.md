@@ -11,6 +11,7 @@ References (must stay in sync):
 - Strict TDD rules: [documentation/02-implementation/00-strict-tdd-and-dom-validation.md](../../../02-implementation/00-strict-tdd-and-dom-validation.md)
 - Global app principles: [documentation/00-product/principles.md](../../../00-product/principles.md)
 - Presentation Mode principles: [01-principles.md](01-principles.md)
+- Slide Notes / Presenter Notes (canonical format + sanitization contract): [../05-slide-notes.md](../05-slide-notes.md)
 
 ---
 
@@ -27,6 +28,7 @@ Status legend: ✅ Done (locked) · 🟡 In progress · ❌ Not started · ⛔ B
 - 🟡 Gate 7: Presenter View + security/privacy boundary.
   - Implemented: presenter view window + BroadcastChannel allowlist; presenter panel only renders during presentation mode.
   - ✅ Multi-page Playwright: `tests/e2e/specs/functional/presenter-view.spec.ts` now passes (popup open + lockstep + privacy payload audit + malformed message rejected + close→reopen recovery).
+  - Notes dependency: Presenter View notes MUST follow the canonical `NotesDoc v1` + sanitization contract in [../05-slide-notes.md](../05-slide-notes.md) (do not duplicate schema here).
   - Remaining: expand Gate 7 coverage for buildIndex lockstep and additional negative cases.
 
 - 🟡 Gate 8: Accessibility + theming discipline.
@@ -185,6 +187,7 @@ Notes:
 | MUST-052 | 11-presenter-tools.md | 4) Sync Protocol / Requirements | MUST keep presenter and audience windows in lockstep (slide/build position) and MUST handle close/reopen without losing position. | PM-080 | UT: protocol; E2E: multi-page sync |
 | MUST-053 | 11-presenter-tools.md | 3) Privacy Boundary / Requirements | MUST enforce strict separation: notes/diagnostics never appear in audience DOM. | PM-081 | E2E: audience DOM audit |
 | MUST-054 | 11-presenter-tools.md | Privacy Boundary | Speaker notes MUST NOT be in sync messages. | PM-121 | UT: message schema; E2E: payload audit |
+| MUST-069 | ../05-slide-notes.md | 4) Rendering + sanitization contract | Notes MUST render via `NotesDoc v1` → safe HTML renderer and MUST NOT inject raw user-provided HTML (links sanitized, no `javascript:`). | PM-120 | UT (planned): notes renderer sanitization; E2E (planned): presenter notes XSS fixture |
 | MUST-055 | 16-security-privacy-and-safety.md | 2) Content Security / Requirements | MUST sanitize all user-generated content and MUST prevent XSS via script injection in slides. | PM-120 | UT: sanitizer; E2E: XSS fixture deck |
 | MUST-056 | 16-security-privacy-and-safety.md | 2) Content Security / Requirements | MUST validate cross-window messages (postMessage/BroadcastChannel). | PM-121 | UT: validator; E2E: reject malformed |
 | MUST-057 | 16-security-privacy-and-safety.md | 1) Privacy Boundaries / Requirements | Speaker notes MUST never appear in audience DOM; diagnostics MUST be presenter-only; sync messages MUST NOT include note content. | PM-081 | E2E: privacy boundary checks |

@@ -1,6 +1,6 @@
 # Slides — Specs (Implementation-aligned)
 
-**Last updated:** Dec 13, 2025
+**Last updated:** Dec 20, 2025
 
 This folder contains the *current, implementation-aligned* documentation for the slide system.
 
@@ -23,6 +23,7 @@ This folder contains the *current, implementation-aligned* documentation for the
 - [02-master-presets-and-master-mode.md](02-master-presets-and-master-mode.md) — Master Mode interaction + preset application
 - [03-layout-guides-and-snapping.md](03-layout-guides-and-snapping.md) — Layout Guide overlay, PI controls, snapping options
 - [04-navigation-thumbnails-and-operations.md](04-navigation-thumbnails-and-operations.md) — Slide list, thumbnails, add/duplicate/delete
+- [05-slide-notes.md](05-slide-notes.md) — Slide notes / presenter notes (editor panel + presenter view contract)
 
 ## Related (kept as separate sub-specs)
 

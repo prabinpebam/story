@@ -158,12 +158,29 @@ Presenter View SHOULD include:
 
 ## 6) Notes behavior
 
-### 6.1 Rendering
-- MUST render notes with readable typography (line wrapping, paragraphs).
+### 6.1 Notes storage format (dependency; shared with editor)
+
+Presenter Notes MUST use a single canonical format that is shared by:
+- Presenter View rendering during a show
+- Slide edit mode notes panel (see [../05-slide-notes.md](../05-slide-notes.md))
+
+This is a dependency for full Presenter View parity.
+
+The canonical schema (`NotesDoc v1`), supported rich text features, and sanitization rules are defined in [../05-slide-notes.md](../05-slide-notes.md).
+
+### 6.2 Rendering
+- MUST render notes with readable typography (line wrapping, paragraphs, list indentation).
 - MUST support scroll and text selection.
 - SHOULD support adjustable note text size.
 
-### 6.2 Editing
+Rendering pipeline requirements:
+- MUST render notes by converting `NotesDoc v1` → HTML via a dedicated renderer.
+- The renderer MUST produce a constrained, safe HTML subset.
+- Notes rendering MUST NOT directly inject raw user-provided HTML.
+
+Allowed HTML output subset and link rules MUST match [../05-slide-notes.md](../05-slide-notes.md).
+
+### 6.3 Editing
 - If the product supports editing notes during a show, it MUST be presenter-only and safe.
 - If editing during a show is not supported, Presenter View MUST state that clearly.
 
