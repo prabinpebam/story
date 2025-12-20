@@ -21,6 +21,36 @@
 - **Chrome**: Minimal toolbar, drag/drop affordances.
 - **Transform**: Fixed thumbnail size.
 
+### 1.3 Presenter View (Presenter Tools)
+- **Purpose**: Presenter-only tools (notes, next slide preview, diagnostics, timers).
+- **Audience boundary**: Presenter-only UI MUST NOT appear in audience/presentation output.
+- **Rendering**: Separate window/view (or separate DOM root) that mirrors slide/build position.
+
+### 1.4 Render Modes Matrix (Visibility Contract)
+
+Legend:
+- ✅ visible
+- 🚫 must not be visible (even if present in DOM)
+- ⚠️ present but must be inert/non-rendering (e.g., transparent overlay canvas)
+
+| Surface | Edit | Master | Presentation (Audience) | Presenter View |
+|---|---:|---:|---:|---:|
+| Slide content (`#viewport`, `#slide-background`, `#slide-content`) | ✅ | ✅ (thumbnail/preview) | ✅ | ✅ (preview + next) |
+| Editor chrome: sidebars (`#sidebar-left`, `#sidebar-right`) | ✅ | ✅/minimal | 🚫 | 🚫 |
+| Editor chrome: top controls (`#top-controls`, `#play-btn`) | ✅ | ✅/minimal | 🚫 | 🚫 |
+| Editor chrome: floating toolbar/panels (`#floating-toolbar`, `#floating-panels`) | ✅ | ✅/minimal | 🚫 | 🚫 |
+| Editor chrome: viewport controls (`#viewport-controls`) | ✅ | ✅ | 🚫 | 🚫 |
+| File metadata UI (`#file-indicator-container`, `.file-indicator`) | ✅ | ✅ | 🚫 | 🚫 |
+| Authoring affordances: placeholders (`.story-placeholder-empty`, `.placeholder-icon-container`) | ✅ | ✅ | 🚫 | 🚫 |
+| Editor popovers/menus (`.context-menu`, `.snapping-options-flyout`) | ✅ | ✅ | 🚫 | 🚫 |
+| App modals/overlays (`.modal-overlay`, `.alert-modal-overlay`, `.share-modal-overlay`, `.sign-in-modal-overlay`) | ✅ | ✅ | 🚫 | 🚫 |
+| App notifications/toasts (`.notification-popover-container`, `.file-toast`, `.panel-toast`, `.tsm-toast`) | ✅ | ✅ | 🚫 | 🚫 |
+| Interaction overlay canvas (`#interaction-canvas`) | ✅ | ✅ | ⚠️ | ⚠️ |
+| Presentation HUD (`#presentation-hud`) | 🚫 | 🚫 | ✅ | ✅ (presenter controls) |
+| Presentation grid (`#presentation-grid-view`, `#grid-content`) | 🚫 | 🚫 | ✅ | ✅ |
+| Presentation overlays (`#overlay-black`, `#overlay-white`) | 🚫 | 🚫 | ✅ | ✅ |
+| Laser pointer (`#laser-canvas`, `body.laser-active`) | 🚫 | 🚫 | ✅ | ✅ |
+
 ### 1.3 Presentation Mode
 - **Purpose**: Live delivery to audience.
 - **Rendering**: Final output only, no editing affordances.
@@ -33,22 +63,95 @@
 
 ### 2.1 Chrome Hiding
 - MUST hide all editing chrome (toolbar, panels, selection handles).
+- MUST hide any editor-only file metadata UI (e.g., file indicator pill).
+- MUST NOT show placeholder authoring affordances in presentation output:
+  - No dashed/dotted placeholder borders.
+  - No placeholder prompt text (e.g., “Click to add title”).
+  - No placeholder icons (e.g., image/media placeholder glyphs).
 - MUST apply via CSS class (e.g., `body.mode-presentation`).
 - MUST ensure no layout shift when entering/exiting.
 
+**Note: canvas-based selection/handles**
+
+In this app, selection boxes / resize handles / rotation handles are **not DOM chrome**; they are rendered via a canvas overlay (e.g., the gizmo/selection renderer). Because of this:
+- CSS alone is insufficient (there may be nothing to hide).
+- Entering Presentation MUST logically clear/disable any selection/hover gizmo rendering so no handles/selection outlines can be drawn at all.
+- Exiting Presentation MAY restore normal edit-mode selection behavior.
+
+#### 2.1.1 Forbidden Selector Checklist (Presentation MUST NOT show)
+
+This checklist is the **single source of truth** for “audience-clean” output.
+Playwright MUST enforce that each selector below is not visible when `body.mode-presentation` is active.
+
+**Core editor chrome (always present in DOM)**
+- `#sidebar-left`
+- `#sidebar-right`
+- `#top-controls`
+- `#floating-toolbar`
+- `#floating-panels`
+- `#viewport-controls`
+- `#file-indicator-container`
+
+**Editor affordances (authoring-only)**
+- `.story-placeholder-empty`
+- `.placeholder-icon-container`
+- `.layout-guide-overlay`
+
+**File metadata UI (editor-only)**
+- `.file-indicator`
+
+**Popovers/menus (editor-only)**
+- `.context-menu`
+- `.snapping-options-flyout`
+
+**Modals/overlays (editor-only; MUST never appear in audience view)**
+- `.modal-overlay`
+- `.alert-modal-overlay`
+- `.sign-in-modal-overlay`
+- `.share-modal-overlay`
+- `.panel-modal-overlay`
+- `.code-modal-overlay`
+
+**Notifications/toasts (editor-only; MUST never appear in audience view)**
+- `.notification-popover-container`
+- `.file-toast`
+- `.panel-toast`
+- `.tsm-toast`
+
 ### CSS Implementation
 ```css
+/* Hide editor chrome */
+body.mode-presentation #sidebar-left,
+body.mode-presentation #sidebar-right,
+body.mode-presentation #top-controls,
+body.mode-presentation #floating-toolbar,
+body.mode-presentation #floating-panels,
+body.mode-presentation #viewport-controls,
+body.mode-presentation #file-indicator-container {
+  display: none !important;
+}
+
+/* Hide authoring-only placeholder affordances */
+body.mode-presentation .story-placeholder-empty,
+body.mode-presentation .placeholder-icon-container {
+  display: none !important;
+}
+
+/* Hide editor-only menus/modals/notifications */
+body.mode-presentation .context-menu,
+body.mode-presentation .snapping-options-flyout,
+body.mode-presentation .modal-overlay,
+body.mode-presentation .alert-modal-overlay,
+body.mode-presentation .sign-in-modal-overlay,
+body.mode-presentation .share-modal-overlay,
+body.mode-presentation .notification-popover-container,
+body.mode-presentation .file-toast,
+body.mode-presentation .panel-toast,
+body.mode-presentation .tsm-toast {
+  display: none !important;
+}
+
 body.mode-presentation {
-  /* Hide editor chrome */
-  .toolbar,
-  .panel,
-  .property-inspector,
-  .selection-handle,
-  .guide,
-  .grid-overlay-editor {
-    display: none !important;
-  }
-  
   /* Ensure full viewport */
   overflow: hidden;
 }

@@ -76,6 +76,22 @@ export class HUD {
                 this.show();
             }
         });
+
+        // Touch: tap-to-reveal HUD
+        document.addEventListener('touchstart', () => {
+            const state = store.getState();
+            if (state.editor.mode === 'presentation') {
+                this.show();
+            }
+        }, { passive: true });
+
+        // Pointer devices (pen) should also reveal HUD.
+        document.addEventListener('pointermove', () => {
+            const state = store.getState();
+            if (state.editor.mode === 'presentation') {
+                this.show();
+            }
+        });
     }
 
     show() {

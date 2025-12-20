@@ -142,6 +142,10 @@ Notes:
 | MUST-062 | 17-observability-and-quality-gates.md | 4) Crash Reporting / Requirements | MUST capture stack traces, include context, and sanitize stack traces (remove deck content, notes). | PM-130 | UT: scrubber; E2E: crash fixture |
 | MUST-063 | 15-accessibility.md | Requirements | MUST announce slide/build changes to screen readers. | PM-110 | E2E: aria-live announcements |
 | MUST-064 | 15-accessibility.md | Requirements | MUST support keyboard-only navigation and MUST not trap focus in presentation mode. | PM-111 | E2E: keyboard-only completion |
+| MUST-065 | 03-rendering-in-presentation-mode.md | 2.1 Chrome Hiding | MUST hide editor-only file metadata UI (e.g., file indicator pill) in presentation output. | PM-032 | E2E: file indicator not visible |
+| MUST-066 | 03-rendering-in-presentation-mode.md | 2.1 Chrome Hiding | Placeholder authoring affordances MUST NOT appear in presentation (no dashed borders, no prompt text, no placeholder icons). | PM-032 | E2E: empty placeholders not visible |
+| MUST-067 | 03-rendering-in-presentation-mode.md | 2.1 Chrome Hiding | Layout guides / guide overlays MUST NOT appear in presentation (renderer DOM overlays such as `.layout-guide-overlay`). | PM-032 | E2E: forbidden selector audit includes `.layout-guide-overlay` |
+| MUST-068 | 03-rendering-in-presentation-mode.md | 2.1 Chrome Hiding | Selection boxes / resize handles / rotation handles MUST NOT appear in presentation; if rendered via canvas, they MUST be logically cleared/disabled (not just CSS-hidden). | PM-032 | E2E (planned): no gizmo/selection overlay rendered in presentation |
 
 ### 0.3 Use deterministic fixtures (“Golden Decks”) for tests
 **Problem:** Without canonical fixtures, coverage is accidental and regressions slip through.
@@ -389,6 +393,9 @@ This ledger is exhaustive at the “feature surface” level. Individual subtask
   - Spec: [09-visual-surface-and-scaling.md](09-visual-surface-and-scaling.md)
 - PM-031 HiDPI fidelity rules applied
   - Spec: [09-visual-surface-and-scaling.md](09-visual-surface-and-scaling.md)
+- PM-032 Presentation chrome hiding (audience-clean surface)
+  - Spec: [03-rendering-in-presentation-mode.md](03-rendering-in-presentation-mode.md)
+  - Includes: file indicator UI, placeholder affordances, editor popovers/modals/toasts, renderer DOM guide overlays (e.g., `.layout-guide-overlay`), and canvas-based selection/handles must be cleared/disabled.
 
 ### 5.5 Playback + transitions
 - PM-040 Transition types + configuration
@@ -457,6 +464,7 @@ This is the **hardened** gate plan. It is intentionally more granular and more m
 ### Gate 0 — Baseline safety net (lock current behavior)
 **Goal:** prevent regressions while upgrading implementation.
 - Add Playwright DOM contract tests asserting required IDs exist (at minimum: `#viewport`, `#slide-content`, `#slide-background`, `#presentation-hud`, `#presentation-grid-view`, `#laser-canvas`, `#overlay-black`, `#overlay-white`).
+- Add Playwright “audience-clean DOM audit” enforcing the forbidden-selector checklist for Presentation chrome hiding (PM-032), including placeholders, file indicator, editor chrome, menus/modals/toasts, and renderer DOM guide overlays.
 - Add Playwright “enter → exit restores editor” tests that assert:
   - `document.body` loses `mode-presentation` and `laser-active` on exit.
   - `#viewport` transform/position styles are reset.

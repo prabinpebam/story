@@ -7,7 +7,33 @@ body.mode-presentation .sidebar,
 body.mode-presentation #floating-toolbar,
 body.mode-presentation #floating-panels,
 body.mode-presentation #top-controls,
-body.mode-presentation #viewport-controls {
+body.mode-presentation #file-indicator-container,
+body.mode-presentation #viewport-controls,
+body.mode-presentation .layout-guide-overlay,
+body.mode-presentation .context-menu,
+body.mode-presentation .snapping-options-flyout,
+body.mode-presentation .modal-overlay,
+body.mode-presentation .alert-modal-overlay,
+body.mode-presentation .sign-in-modal-overlay,
+body.mode-presentation .share-modal-overlay,
+body.mode-presentation .panel-modal-overlay,
+body.mode-presentation .code-modal-overlay,
+body.mode-presentation .notification-popover-container,
+body.mode-presentation .file-toast,
+body.mode-presentation .panel-toast,
+body.mode-presentation .tsm-toast,
+body.mode-presentation .file-indicator {
+    display: none !important;
+}
+
+/* Placeholders are authoring affordances; they must not appear in presentation. */
+body.mode-presentation .story-placeholder-empty {
+    border: none !important;
+    visibility: hidden !important;
+}
+
+/* Placeholder icons (e.g., image/media placeholders) must not appear in presentation. */
+body.mode-presentation .placeholder-icon-container {
     display: none !important;
 }
 

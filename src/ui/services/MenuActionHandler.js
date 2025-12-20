@@ -288,7 +288,7 @@ class MenuActionHandler {
     }
 
     startPresentation(slideIndex = 0) {
-        store.dispatch('SET_MODE', 'present');
+        store.dispatch('SET_MODE', 'presentation');
         store.dispatch('PRESENTATION_GOTO', slideIndex);
     }
 
