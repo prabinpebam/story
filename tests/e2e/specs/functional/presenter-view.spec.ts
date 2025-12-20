@@ -90,6 +90,52 @@ test.describe('Presenter View (Gate 7)', () => {
         }
     });
 
+    test('should allow pausing and resetting the presenter timer', async ({ page, context }) => {
+        const editor = new EditorPage(page);
+
+        await installSyncSpy(context);
+        await editor.goto();
+        await editor.waitForLoad();
+
+        // Open app menu → Present submenu → Presenter View.
+        await page.locator('.app-menu-trigger').click();
+        await page.locator('.app-menu-item:has(.app-menu-item-label:text-is("Present"))').click();
+        await expect(page.locator('.app-menu-dropdown.app-menu-submenu')).toBeVisible();
+
+        const popupPromise = page.waitForEvent('popup');
+        await page
+            .locator('.app-menu-dropdown.app-menu-submenu .app-menu-item:has(.app-menu-item-label:text-is("Presenter View"))')
+            .click();
+        const presenterPage = await popupPromise;
+        await presenterPage.waitForLoadState('domcontentloaded');
+
+        await expect(presenterPage.locator('[data-testid="presenter-view-panel"]')).toBeVisible();
+
+        const elapsed = presenterPage.locator('[data-testid="presenter-elapsed"]');
+        const pause = presenterPage.locator('[data-testid="presenter-pause"]');
+        const reset = presenterPage.locator('[data-testid="presenter-reset"]');
+
+        // Wait until the timer ticks at least once.
+        await expect
+            .poll(async () => (await elapsed.textContent()) || '', { timeout: 5000 })
+            .not.toBe('00:00:00');
+
+        await pause.click();
+        const frozen = (await elapsed.textContent()) || '';
+        await presenterPage.waitForTimeout(1500);
+        await expect(elapsed).toHaveText(frozen);
+
+        // Resume and verify it advances again.
+        await pause.click();
+        await expect
+            .poll(async () => (await elapsed.textContent()) || '', { timeout: 5000 })
+            .not.toBe(frozen);
+
+        // Reset should return to 00:00:00.
+        await reset.click();
+        await expect(elapsed).toHaveText('00:00:00');
+    });
+
     test('should swap presenter role between windows (Swap Displays)', async ({ page, context }) => {
         const editor = new EditorPage(page);
 

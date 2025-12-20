@@ -1833,6 +1833,13 @@ export function createInitialState() {
             buildCountBySlideId: {},
             isPaused: false,
             requestFullscreen: true,
+            kiosk: {
+                enabled: false,
+                autoAdvanceSeconds: 5,
+                loop: true,
+                passwordHash: null,
+                disableInput: false
+            },
             blackScreen: false,
             whiteScreen: false,
             laserPointer: false,

@@ -130,6 +130,39 @@ export function handlePresentationGoBack(draft) {
     draft.editor.activeSlideId = slideId;
 }
 
+export function handleSetKioskConfig(draft, payload) {
+    const current = draft.presentation.kiosk || {
+        enabled: false,
+        autoAdvanceSeconds: 5,
+        loop: true,
+        passwordHash: null,
+        disableInput: false
+    };
+
+    if (!payload || typeof payload !== 'object') {
+        draft.presentation.kiosk = { ...current, enabled: false };
+        return;
+    }
+
+    const enabled = payload.enabled === true;
+    const autoAdvanceSeconds = Number.isFinite(payload.autoAdvanceSeconds)
+        ? Math.max(0.1, Number(payload.autoAdvanceSeconds))
+        : current.autoAdvanceSeconds;
+    const loop = payload.loop !== undefined ? payload.loop === true : current.loop;
+    const disableInput = payload.disableInput !== undefined ? payload.disableInput === true : current.disableInput;
+    const passwordHash = typeof payload.passwordHash === 'string' && payload.passwordHash.trim()
+        ? payload.passwordHash.trim()
+        : null;
+
+    draft.presentation.kiosk = {
+        enabled,
+        autoAdvanceSeconds,
+        loop,
+        passwordHash,
+        disableInput
+    };
+}
+
 export function handleNextBuild(draft) {
     if (draft.presentation.buildIndex < draft.presentation.buildCount - 1) {
         draft.presentation.buildIndex++;

@@ -31,12 +31,17 @@ const runsDir = path.join(repoRoot, 'documentation', '03-automation', 'perf-runs
 
 function usage() {
   console.log(`Usage:
-  node scripts/perf/perf-bench.mjs [--no-run] [--no-update] [--out <path>] [--open] [--dev] [--strict-coverage]
+  node scripts/perf/perf-bench.mjs [--no-run] [--no-update] [--out <path>] [--open] [--dev] [--strict-coverage] [--gate]
 
 Defaults:
   - runs Playwright benchmark spec with PW_WORKERS=1
   - writes JSONL results into documentation/03-automation/perf-runs/<timestamp>.jsonl
   - updates 11-performance-benchmark-report.md (auto-generated sections)
+
+Gate mode:
+  - pass --gate to enforce registry gate thresholds (CI-style)
+  - exits non-zero if any metric violates its gate threshold
+  - also fails if a metric with a numeric gate has no data in the run
 
 Server mode:
   - default uses a production-like server (build + preview) on http://127.0.0.1:5173
@@ -331,6 +336,7 @@ const noUpdate = args.includes('--no-update');
 const open = args.includes('--open');
 const useDevServer = args.includes('--dev');
 const strictCoverage = args.includes('--strict-coverage');
+const gateMode = args.includes('--gate');
 const outIdx = args.indexOf('--out');
 const outPath = outIdx !== -1 ? args[outIdx + 1] : null;
 
@@ -427,13 +433,19 @@ if (!noRun) {
   }
 }
 
-if (!noUpdate) {
+// Registry + aggregation (needed for both report update and gate mode).
+let registry = null;
+let meta = null;
+let resultsByMetricScenario = null;
+try {
   const reportMd = fs.readFileSync(reportPath, 'utf8');
-  const registry = readRegistryFromReport(reportMd);
+  registry = readRegistryFromReport(reportMd);
 
   const rawAll = parseJsonl(outFile);
-  const { meta, metrics: raw } = splitRecords(rawAll);
-  const resultsByMetricScenario = new Map();
+  const split = splitRecords(rawAll);
+  meta = split.meta;
+  const raw = split.metrics;
+  resultsByMetricScenario = new Map();
 
   // Aggregate by (metricId, scenarioId)
   for (const m of registry.metrics) {
@@ -443,6 +455,15 @@ if (!noUpdate) {
       .map((r) => r.value);
     resultsByMetricScenario.set(key, computeAgg(values));
   }
+} catch (e) {
+  if (gateMode) {
+    console.error(`[perf:bench] Gate mode requires registry + results: ${e?.message ?? e}`);
+    process.exit(1);
+  }
+}
+
+if (!noUpdate && registry && resultsByMetricScenario) {
+  const reportMd = fs.readFileSync(reportPath, 'utf8');
 
   const latest = renderLatestRunSection({
     stamp,
@@ -463,6 +484,34 @@ if (!noUpdate) {
 
   fs.writeFileSync(reportPath, updated, 'utf8');
   console.log(`\nUpdated report: ${path.relative(repoRoot, reportPath)}`);
+}
+
+if (gateMode && registry && resultsByMetricScenario) {
+  const failures = [];
+  for (const item of registry.metrics) {
+    if (typeof item.gate !== 'number') continue;
+
+    const key = `${item.metricId}::${item.scenarioId}`;
+    const agg = resultsByMetricScenario.get(key);
+    const direction = item.direction ?? 'lte';
+    const score = direction === 'gte' ? (agg?.p05 ?? null) : (agg?.p95 ?? null);
+
+    if (score == null) {
+      failures.push({ item, reason: 'NO DATA' });
+      continue;
+    }
+
+    const fail = direction === 'gte' ? (score < item.gate) : (score > item.gate);
+    if (fail) failures.push({ item, reason: `GATE VIOLATION (${score})` });
+  }
+
+  if (failures.length) {
+    console.error('\n[perf:bench] Gate failures:');
+    for (const f of failures) {
+      console.error(`- ${f.item.metricId} (${f.item.scenarioId}) -> ${f.reason} (gate=${f.item.gate}, direction=${f.item.direction ?? 'lte'})`);
+    }
+    process.exit(1);
+  }
 }
 
 if (open) {

@@ -13,6 +13,26 @@ import { fileService } from '../ui/services/FileService.js';
 import { PresentationPrefetchManager } from './presentation/PresentationPrefetchManager.js';
 import { SlideView } from './renderer/SlideView.js';
 import { notify } from '../ui/services/NotificationService.js';
+import { telemetry } from './telemetry/Telemetry.js';
+import { KioskMode, normalizeKioskConfig } from './presentation/KioskMode.js';
+import {
+    createPresenterTimer,
+    formatElapsedMs,
+    getPresenterTimerElapsedMs,
+    isPresenterTimerPaused,
+    pausePresenterTimer,
+    resetPresenterTimer,
+    resumePresenterTimer
+} from './presentation/PresenterTimer.js';
+import {
+    createRehearsalTimings,
+    formatRehearsalSummary,
+    isRehearsalEnabled,
+    onRehearsalSlideChange,
+    pauseRehearsal,
+    resumeRehearsal,
+    setRehearsalEnabled
+} from './presentation/RehearsalTimings.js';
 
 export class PresentationManager {
     constructor() {
@@ -67,8 +87,12 @@ export class PresentationManager {
             panelEl: null,
             liveRegionEl: null,
             lastAnnounced: { slideIndex: null, buildIndex: null },
-            startedAt: null,
+            timer: null,
             timerInterval: null,
+            pauseBtnEl: null,
+            rehearseBtnEl: null,
+            rehearsalEl: null,
+            rehearsal: null,
             progressEl: null,
             jumpEl: null,
             nextPreview: {
@@ -89,14 +113,99 @@ export class PresentationManager {
         this._presentationOffsetY = 0;
         this._slideWidth = 1920;
         this._slideHeight = 1080;
+
+        // Gate 9: observability (privacy-safe telemetry + KPI marks).
+        this._telemetry = telemetry;
+        this._telemetryPresentationStartedAt = null;
+        this._lastInputMethod = 'unknown';
+
+        // Gate 10: kiosk/autoplay controller (disabled by default).
+        this._kiosk = new KioskMode({
+            getState: () => store.getState(),
+            dispatch: (type, payload) => store.dispatch(type, payload),
+            navigateSlideGuarded: (dir) => this._navigateSlideGuarded(dir),
+            config: { enabled: false }
+        });
         
         this.init();
+    }
+
+    _setLastInputMethod(method) {
+        this._lastInputMethod = method || 'unknown';
+    }
+
+    _raf() {
+        return new Promise((resolve) => requestAnimationFrame(resolve));
+    }
+
+    async _measureUntilVisible({ selector, maxMs = 2000 }) {
+        const start = performance.now();
+        while (performance.now() - start < maxMs) {
+            const el = document.querySelector(selector);
+            if (el) {
+                const rect = el.getBoundingClientRect();
+                if (rect.width > 0 && rect.height > 0) return true;
+            }
+            await this._raf();
+        }
+        return false;
     }
 
     _isPresenter() {
         if (this._sync.role === 'presenter') return true;
         if (this._sync.role === 'audience') return false;
         return new URLSearchParams(window.location.search).get('presenter') === '1';
+    }
+
+    _getKioskConfigForSession(state) {
+        const base = normalizeKioskConfig(state?.presentation?.kiosk);
+
+        // Optional deterministic override hook for tests (no-op unless explicitly set).
+        // Kept intentionally undocumented as a product feature.
+        const testOverride = window.__PM_TEST_KIOSK_CONFIG;
+        if (testOverride && typeof testOverride === 'object') {
+            return normalizeKioskConfig({ ...base, ...testOverride });
+        }
+
+        return base;
+    }
+
+    _startKioskIfEnabled() {
+        const state = store.getState();
+        if (this._isPresenter()) return;
+
+        const cfg = this._getKioskConfigForSession(state);
+        this._kiosk.setConfig(cfg);
+
+        if (cfg.enabled) {
+            try {
+                this._telemetry.emit('presentation.feature', { feature: 'kiosk', active: true });
+            } catch {
+                // Best-effort.
+            }
+            this._kiosk.start();
+        }
+    }
+
+    _stopKiosk() {
+        if (this._kiosk?.active) {
+            this._kiosk.stop();
+            try {
+                this._telemetry.emit('presentation.feature', { feature: 'kiosk', active: false });
+            } catch {
+                // Best-effort.
+            }
+        }
+    }
+
+    _isKioskInputDisabled() {
+        return this._kiosk?.active && this._kiosk?.config?.disableInput === true;
+    }
+
+    _interruptKioskCountdown() {
+        if (!this._kiosk?.active) return;
+        if (this._isKioskInputDisabled()) return;
+        this._kiosk.interrupt?.();
     }
 
     _setRole(nextRole) {
@@ -490,6 +599,7 @@ export class PresentationManager {
                     <span class="pv-progress" data-testid="presenter-progress"></span>
                     <span class="pv-elapsed" data-testid="presenter-elapsed">00:00:00</span>
                     <span class="pv-clock" data-testid="presenter-clock">--:--</span>
+                    <span class="pv-rehearsal" data-testid="presenter-rehearsal"></span>
                 </div>
             </div>
             <div class="pv-section">
@@ -507,6 +617,9 @@ export class PresentationManager {
             <div class="pv-controls" role="toolbar" aria-label="Presenter controls">
                 <button type="button" class="btn btn--secondary btn--sm" data-testid="presenter-prev" aria-label="Previous" aria-keyshortcuts="ArrowLeft PageUp Backspace">Prev</button>
                 <button type="button" class="btn btn--secondary btn--sm" data-testid="presenter-next" aria-label="Next" aria-keyshortcuts="ArrowRight PageDown Space Enter">Next</button>
+                <button type="button" class="btn btn--secondary btn--sm" data-testid="presenter-pause" aria-label="Pause timer">Pause</button>
+                <button type="button" class="btn btn--secondary btn--sm" data-testid="presenter-reset" aria-label="Reset timer">Reset</button>
+                <button type="button" class="btn btn--secondary btn--sm" data-testid="presenter-rehearse" aria-label="Toggle rehearsal timings">Rehearse</button>
                 <button type="button" class="btn btn--secondary btn--sm" data-testid="presenter-grid" aria-label="Toggle grid" aria-keyshortcuts="G">Grid</button>
                 <button type="button" class="btn btn--secondary btn--sm" data-testid="presenter-laser" aria-label="Toggle laser pointer" aria-keyshortcuts="L">Laser</button>
                 <button type="button" class="btn btn--secondary btn--sm" data-testid="presenter-black" aria-label="Toggle black screen" aria-keyshortcuts="B">Black</button>
@@ -522,6 +635,9 @@ export class PresentationManager {
 
         this._presenterUi.progressEl = panel.querySelector('[data-testid="presenter-progress"]');
         this._presenterUi.jumpEl = panel.querySelector('[data-testid="presenter-jump-indicator"]');
+        this._presenterUi.pauseBtnEl = panel.querySelector('[data-testid="presenter-pause"]');
+        this._presenterUi.rehearseBtnEl = panel.querySelector('[data-testid="presenter-rehearse"]');
+        this._presenterUi.rehearsalEl = panel.querySelector('[data-testid="presenter-rehearsal"]');
 
         const bind = (testId, fn) => {
             const el = panel.querySelector(`[data-testid="${testId}"]`);
@@ -534,6 +650,9 @@ export class PresentationManager {
             if (state?.presentation?.buildIndex < state?.presentation?.buildCount - 1) store.dispatch('NEXT_BUILD');
             else store.dispatch('PRESENTATION_NEXT');
         });
+        bind('presenter-pause', () => this._togglePresenterTimerPaused());
+        bind('presenter-reset', () => this._resetPresenterTimer());
+        bind('presenter-rehearse', () => this._toggleRehearsalTimings());
         bind('presenter-grid', () => store.dispatch('TOGGLE_GRID_VIEW'));
         bind('presenter-laser', () => store.dispatch('TOGGLE_LASER'));
         bind('presenter-black', () => store.dispatch('TOGGLE_BLACK_SCREEN'));
@@ -542,7 +661,8 @@ export class PresentationManager {
         bind('presenter-exit', () => this.stopPresentation());
 
         // Timer
-        if (!this._presenterUi.startedAt) this._presenterUi.startedAt = Date.now();
+        if (!this._presenterUi.timer) this._presenterUi.timer = createPresenterTimer();
+        if (!this._presenterUi.rehearsal) this._presenterUi.rehearsal = createRehearsalTimings();
         if (this._presenterUi.timerInterval) clearInterval(this._presenterUi.timerInterval);
         this._presenterUi.timerInterval = setInterval(() => this._updatePresenterTimer(), 1000);
         this._updatePresenterTimer();
@@ -577,6 +697,9 @@ export class PresentationManager {
 
         this._presenterUi.progressEl = null;
         this._presenterUi.jumpEl = null;
+        this._presenterUi.pauseBtnEl = null;
+        this._presenterUi.rehearseBtnEl = null;
+        this._presenterUi.rehearsalEl = null;
 
         if (this._presenterUi.panelEl) {
             this._presenterUi.panelEl.remove();
@@ -600,6 +723,14 @@ export class PresentationManager {
         this._ensurePresenterPanel();
 
         const slideId = state?.editor?.activeSlideId;
+
+        // Rehearsal timings are presenter-only and update on slide changes.
+        if (this._presenterUi.rehearsal && isRehearsalEnabled(this._presenterUi.rehearsal)) {
+            const prev = this._presenterUi.rehearsal.currentSlideId;
+            if (slideId && prev !== slideId) {
+                this._presenterUi.rehearsal = onRehearsalSlideChange(this._presenterUi.rehearsal, slideId);
+            }
+        }
         const slide = slideId ? state?.slides?.[slideId] : null;
         const notesDoc = slide?.notesDoc
             ? slide.notesDoc
@@ -740,13 +871,8 @@ export class PresentationManager {
         if (!this._isPresenter()) return;
         if (!this._presenterUi.panelEl) return;
 
-        const startedAt = this._presenterUi.startedAt || Date.now();
-        const elapsedMs = Math.max(0, Date.now() - startedAt);
-        const totalSeconds = Math.floor(elapsedMs / 1000);
-        const hours = String(Math.floor(totalSeconds / 3600)).padStart(2, '0');
-        const mins = String(Math.floor((totalSeconds % 3600) / 60)).padStart(2, '0');
-        const secs = String(totalSeconds % 60).padStart(2, '0');
-        const elapsed = `${hours}:${mins}:${secs}`;
+        const elapsedMs = getPresenterTimerElapsedMs(this._presenterUi.timer);
+        const elapsed = formatElapsedMs(elapsedMs);
 
         const now = new Date();
         const clock = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -755,6 +881,53 @@ export class PresentationManager {
         const clockEl = this._presenterUi.panelEl.querySelector('[data-testid="presenter-clock"]');
         if (elapsedEl) elapsedEl.textContent = elapsed;
         if (clockEl) clockEl.textContent = clock;
+
+        const paused = isPresenterTimerPaused(this._presenterUi.timer);
+        const pauseBtn = this._presenterUi.pauseBtnEl;
+        if (pauseBtn) {
+            pauseBtn.textContent = paused ? 'Resume' : 'Pause';
+            pauseBtn.setAttribute('aria-pressed', paused ? 'true' : 'false');
+        }
+
+        const rehearsalEl = this._presenterUi.rehearsalEl;
+        if (rehearsalEl) {
+            rehearsalEl.textContent = formatRehearsalSummary(this._presenterUi.rehearsal);
+        }
+
+        const rehearseBtn = this._presenterUi.rehearseBtnEl;
+        if (rehearseBtn) {
+            const on = isRehearsalEnabled(this._presenterUi.rehearsal);
+            rehearseBtn.setAttribute('aria-pressed', on ? 'true' : 'false');
+        }
+    }
+
+    _togglePresenterTimerPaused() {
+        if (!this._presenterUi.timer) this._presenterUi.timer = createPresenterTimer();
+        const paused = isPresenterTimerPaused(this._presenterUi.timer);
+        this._presenterUi.timer = paused
+            ? resumePresenterTimer(this._presenterUi.timer)
+            : pausePresenterTimer(this._presenterUi.timer);
+
+        // Keep rehearsal timing paused/resumed in sync with timer pause.
+        if (this._presenterUi.rehearsal && isRehearsalEnabled(this._presenterUi.rehearsal)) {
+            this._presenterUi.rehearsal = paused
+                ? resumeRehearsal(this._presenterUi.rehearsal)
+                : pauseRehearsal(this._presenterUi.rehearsal);
+        }
+        this._updatePresenterTimer();
+    }
+
+    _resetPresenterTimer() {
+        this._presenterUi.timer = resetPresenterTimer(this._presenterUi.timer);
+        this._updatePresenterTimer();
+    }
+
+    _toggleRehearsalTimings() {
+        const state = store.getState();
+        const slideId = state?.editor?.activeSlideId ?? null;
+        const on = isRehearsalEnabled(this._presenterUi.rehearsal);
+        this._presenterUi.rehearsal = setRehearsalEnabled(this._presenterUi.rehearsal, !on, { currentSlideId: slideId });
+        this._updatePresenterTimer();
     }
 
     _getPrefetchManager() {
@@ -877,6 +1050,59 @@ export class PresentationManager {
             // Gate 8: announce slide/build changes.
             this._announcePresentationState(state);
 
+            // Gate 9: complete KPI measurements from Store marks.
+            try {
+                if (state?.editor?.mode === 'presentation') {
+                    const currentIndex = Number(state?.presentation?.currentSlideIndex ?? 0);
+                    const currentBuild = Number(state?.presentation?.buildIndex ?? -1);
+
+                    const navKeys = ['pm.nav.next', 'pm.nav.prev', 'pm.nav.goto', 'pm.nav.jump', 'pm.nav.back'];
+                    for (const key of navKeys) {
+                        const mark = this._telemetry.consumeMark(key);
+                        if (!mark) continue;
+
+                        const startedAt = mark.startedAt;
+                        requestAnimationFrame(() => {
+                            const endAt = performance.now();
+                            const direction = key.includes('.next') ? 'next' : key.includes('.prev') ? 'prev' : 'jump';
+                            const metricId = key.includes('.next') ? 'pm.nav.next_ms' : key.includes('.prev') ? 'pm.nav.prev_ms' : 'pm.nav.next_ms';
+                            const latencyMs = endAt - startedAt;
+
+                            this._telemetry.emit('performance.kpi', {
+                                metricId,
+                                scenarioId: 'presentation.nav',
+                                unit: 'ms',
+                                value: latencyMs
+                            });
+
+                            this._telemetry.emit('presentation.navigate', {
+                                toSlideIndex: currentIndex,
+                                toBuildIndex: currentBuild,
+                                method: this._lastInputMethod,
+                                direction,
+                                latencyMs
+                            });
+                        });
+                    }
+
+                    const gridMark = this._telemetry.consumeMark('pm.grid.open');
+                    if (gridMark && state?.presentation?.gridView === true) {
+                        const startedAt = gridMark.startedAt;
+                        this._measureUntilVisible({ selector: '#presentation-grid-view', maxMs: 5000 }).then(() => {
+                            const endAt = performance.now();
+                            this._telemetry.emit('performance.kpi', {
+                                metricId: 'pm.grid.open_ms',
+                                scenarioId: 'presentation.grid_open',
+                                unit: 'ms',
+                                value: endAt - startedAt
+                            });
+                        });
+                    }
+                }
+            } catch {
+                // Best-effort.
+            }
+
             // Gate 7: presenter-only panel updates.
             if (this._isPresenter()) {
                 this._updatePresenterPanel(state);
@@ -927,17 +1153,54 @@ export class PresentationManager {
             const state = store.getState();
             if (state?.editor?.mode !== 'presentation') return;
             const dir = e?.detail?.direction;
+            this._setLastInputMethod('hud');
+            this._interruptKioskCountdown();
             if (dir === 'prev') this._navigateSlideGuarded('prev');
             if (dir === 'next') this._navigateSlideGuarded('next');
         });
 
         // Keyboard Navigation
-        document.addEventListener('keydown', (e) => {
+        document.addEventListener('keydown', async (e) => {
             const state = store.getState();
             if (state.editor.mode !== 'presentation') return;
 
+            this._setLastInputMethod('keyboard');
+            this._interruptKioskCountdown();
+
             // When paused (e.g., nav gating), still allow Escape to exit.
             if (state.presentation?.isPaused && e.key !== 'Escape') return;
+
+            // Gate 10: kiosk disableInput blocks manual navigation/toggles.
+            if (this._isKioskInputDisabled()) {
+                if (e.key === 'Escape') {
+                    e.preventDefault();
+                    await this.stopPresentation();
+                    return;
+                }
+
+                const isPresentationShortcut =
+                    /^[0-9]$/.test(e.key) ||
+                    e.key === 'Enter' ||
+                    e.key === ' ' ||
+                    e.key === 'Space' ||
+                    e.key === 'Backspace' ||
+                    e.key === 'PageUp' ||
+                    e.key === 'PageDown' ||
+                    e.key === 'Home' ||
+                    e.key === 'End' ||
+                    e.key === 'n' ||
+                    e.key === 'p' ||
+                    e.key === 'b' ||
+                    e.key === 'w' ||
+                    e.key === 'l' ||
+                    e.key === 'g' ||
+                    (typeof e.key === 'string' && e.key.startsWith('Arrow'));
+
+                if (isPresentationShortcut) {
+                    e.preventDefault();
+                }
+                return;
+            }
 
             // Interactive element priority: if the event originated from a focused control (HUD, grid, links,
             // form fields, media controls), do not steal keystrokes that should activate or navigate that control.
@@ -1060,7 +1323,7 @@ export class PresentationManager {
                 }
                 case 'Escape':
                     e.preventDefault();
-                    this.stopPresentation();
+                    await this.stopPresentation();
                     break;
                 case 'b':
                 case '.':
@@ -1087,8 +1350,15 @@ export class PresentationManager {
         document.addEventListener('click', (e) => {
             const state = store.getState();
             if (state.editor.mode !== 'presentation') return;
+
+            this._interruptKioskCountdown();
             if (state.presentation?.isPaused) return;
             if (!this._clickAdvanceConfig.enabled) return;
+
+            // Gate 10: kiosk disableInput blocks manual navigation.
+            if (this._isKioskInputDisabled()) return;
+
+            this._setLastInputMethod('mouse');
 
             // Don't advance when overlays/grid are showing.
             if (state.presentation.blackScreen || state.presentation.whiteScreen || state.presentation.gridView) return;
@@ -1125,6 +1395,9 @@ export class PresentationManager {
         document.addEventListener('touchstart', (e) => {
             const state = store.getState();
             if (state.editor.mode !== 'presentation') return;
+
+            this._setLastInputMethod('touch');
+            this._interruptKioskCountdown();
             if (e.touches.length !== 1) {
                 this._touchStart = null;
                 return;
@@ -1138,6 +1411,12 @@ export class PresentationManager {
             if (state.editor.mode !== 'presentation') return;
             if (state.presentation?.isPaused) return;
             if (!this._touchStart) return;
+
+            // Gate 10: kiosk disableInput blocks manual navigation.
+            if (this._isKioskInputDisabled()) {
+                this._touchStart = null;
+                return;
+            }
 
             // Don't navigate when overlays/grid are showing.
             if (state.presentation.blackScreen || state.presentation.whiteScreen || state.presentation.gridView) {
@@ -1190,6 +1469,41 @@ export class PresentationManager {
                 if (state?.editor?.mode === 'presentation') {
                     this.updateScale();
                 }
+            }
+        });
+
+        // Gate 9: crash reporting (presentation-only, privacy-safe).
+        window.addEventListener('error', (e) => {
+            try {
+                const st = store.getState();
+                if (st?.editor?.mode !== 'presentation') return;
+                const err = e?.error;
+                this._telemetry.emit('crash', {
+                    kind: 'error',
+                    message: String(err?.message ?? e?.message ?? 'error'),
+                    stack: String(err?.stack ?? ''),
+                    slideIndex: Number(st?.presentation?.currentSlideIndex ?? 0),
+                    buildIndex: Number(st?.presentation?.buildIndex ?? -1)
+                });
+            } catch {
+                // Best-effort.
+            }
+        });
+
+        window.addEventListener('unhandledrejection', (e) => {
+            try {
+                const st = store.getState();
+                if (st?.editor?.mode !== 'presentation') return;
+                const reason = e?.reason;
+                this._telemetry.emit('crash', {
+                    kind: 'unhandledrejection',
+                    message: String(reason?.message ?? reason ?? 'unhandledrejection'),
+                    stack: String(reason?.stack ?? ''),
+                    slideIndex: Number(st?.presentation?.currentSlideIndex ?? 0),
+                    buildIndex: Number(st?.presentation?.buildIndex ?? -1)
+                });
+            } catch {
+                // Best-effort.
             }
         });
 
@@ -1322,15 +1636,48 @@ export class PresentationManager {
         }
 
         store.dispatch('PRESENTATION_SET_REQUEST_FULLSCREEN', requestFullscreen !== false);
+        store.dispatch('PRESENTATION_SET_KIOSK_CONFIG', null);
         store.dispatch('SET_MODE', 'presentation');
     }
 
-    stopPresentation() {
+    startKioskWithOptions({ requestFullscreen, kiosk }) {
+        const state = store.getState();
+        const slideCount = state.slideOrder?.length ?? Object.keys(state.slides ?? {}).length;
+        if (slideCount <= 0) {
+            window.alert('Deck must have at least 1 slide');
+            return;
+        }
+
+        store.dispatch('PRESENTATION_SET_REQUEST_FULLSCREEN', requestFullscreen !== false);
+        store.dispatch('PRESENTATION_SET_KIOSK_CONFIG', normalizeKioskConfig({ enabled: true, ...(kiosk || {}) }));
+        store.dispatch('SET_MODE', 'presentation');
+    }
+
+    async stopPresentation() {
         this._numericBuffer.cancel();
         cursorManager.show('presentation-idle');
         if (this._idleCursorTimer) {
             clearTimeout(this._idleCursorTimer);
             this._idleCursorTimer = null;
+        }
+
+        // Gate 10: optional kiosk password-protected exit.
+        try {
+            const cfg = this._kiosk?.config;
+            if (this._kiosk?.active && cfg?.enabled && cfg?.passwordHash) {
+                const input = window.prompt('Enter password to exit:');
+                if (!input) return;
+
+                const encoder = new TextEncoder();
+                const buffer = encoder.encode(input);
+                const hashBuf = await crypto.subtle.digest('SHA-256', buffer);
+                const hash = Array.from(new Uint8Array(hashBuf))
+                    .map((b) => b.toString(16).padStart(2, '0'))
+                    .join('');
+                if (hash !== cfg.passwordHash) return;
+            }
+        } catch {
+            // Best-effort: if hashing fails, do not block exit.
         }
 
         // SHOULD prompt if exiting with unsaved changes.
@@ -1345,6 +1692,9 @@ export class PresentationManager {
         }
 
         store.dispatch('SET_MODE', 'edit');
+
+        // Presenter-only: ensure timer state doesn't leak between sessions.
+        this._presenterUi.timer = null;
     }
 
     async enterPresentation({ requestFullscreen }) {
@@ -1370,6 +1720,19 @@ export class PresentationManager {
             // Fullscreen may be blocked (e.g. in automated tests or restrictive browsers).
             // Presentation mode should still work without fullscreen.
             console.warn(`Fullscreen denied. Continuing in windowed mode: ${err?.message ?? err}`);
+
+            // Gate 9: record fullscreen denial (privacy-safe).
+            try {
+                const state = store.getState();
+                this._telemetry.emit('presentation.error', {
+                    errorType: 'fullscreen.denied',
+                    message: String(err?.message ?? err ?? 'fullscreen denied'),
+                    slideIndex: Number(state?.presentation?.currentSlideIndex ?? 0),
+                    buildIndex: Number(state?.presentation?.buildIndex ?? -1)
+                });
+            } catch {
+                // Best-effort.
+            }
         }
 
         document.body.classList.add('mode-presentation');
@@ -1377,8 +1740,40 @@ export class PresentationManager {
         // Gate 7/8: ensure presenter-only chrome and accessibility surfaces exist.
         this._ensureLiveRegion();
         if (this._isPresenter()) {
-            this._presenterUi.startedAt = Date.now();
+            this._presenterUi.timer = createPresenterTimer();
             this._ensurePresenterPanel();
+        }
+
+        // Gate 10: kiosk/autoplay (behind flags + deterministic test hook).
+        this._startKioskIfEnabled();
+
+        // Gate 9: telemetry entry + first-frame KPI.
+        try {
+            const st = store.getState();
+            this._telemetryPresentationStartedAt = performance.now();
+            this._telemetry.emit('presentation.entered', {
+                mode: this._isPresenter() ? 'presenter' : 'viewer',
+                fullscreen: !!document.fullscreenElement,
+                isPresenter: this._isPresenter(),
+                requestFullscreen: requestFullscreen !== false,
+                slideIndex: Number(st?.presentation?.currentSlideIndex ?? 0),
+                slideCount: Number(st?.slideOrder?.length ?? Object.keys(st?.slides ?? {}).length ?? 0)
+            });
+
+            const startAt = this._telemetryPresentationStartedAt;
+            requestAnimationFrame(() => {
+                requestAnimationFrame(() => {
+                    const endAt = performance.now();
+                    this._telemetry.emit('performance.kpi', {
+                        metricId: 'pm.entry.first_frame_ms',
+                        scenarioId: 'presentation.entry',
+                        unit: 'ms',
+                        value: endAt - startAt
+                    });
+                });
+            });
+        } catch {
+            // Best-effort.
         }
 
         // Gate 7: broadcast state so a presenter window can lockstep.
@@ -1392,6 +1787,8 @@ export class PresentationManager {
     }
 
     exitPresentation() {
+        this._stopKiosk();
+
         // Clear any in-flight navigation gate UI state.
         this._navGatePromise = null;
         try {
@@ -1409,6 +1806,22 @@ export class PresentationManager {
         if (document.fullscreenElement) {
             document.exitFullscreen();
         }
+
+        // Gate 9: exit event (compute duration before we clear UI state).
+        try {
+            const st = store.getState();
+            const startedAt = this._telemetryPresentationStartedAt;
+            const durationMs = (typeof startedAt === 'number') ? Math.max(0, performance.now() - startedAt) : null;
+            this._telemetry.emit('presentation.exited', {
+                durationMs,
+                fullscreen: !!document.fullscreenElement,
+                isPresenter: this._isPresenter(),
+                slideIndex: Number(st?.presentation?.currentSlideIndex ?? 0)
+            });
+        } catch {
+            // Best-effort.
+        }
+
         document.body.classList.remove('mode-presentation');
         document.body.classList.remove('laser-active');
 
@@ -1609,9 +2022,18 @@ export class PresentationManager {
         menu.style.top = `${rect.bottom + 6}px`;
         menu.style.left = `${Math.max(8, rect.left)}px`;
 
+        const kioskEnabled = (() => {
+            try {
+                return window.__PM_TEST_SHOW_KIOSK === true || localStorage.getItem('story-feature-kiosk') === '1';
+            } catch {
+                return false;
+            }
+        })();
+
         menu.innerHTML = `
             <div class="dropdown-item" data-action="present-fullscreen" data-testid="present-fullscreen">Start fullscreen</div>
             <div class="dropdown-item" data-action="present-windowed" data-testid="present-windowed">Present in window</div>
+            ${kioskEnabled ? '<div class="dropdown-item" data-action="present-kiosk" data-testid="present-kiosk">Kiosk autoplay</div>' : ''}
         `;
 
         const onDocClick = (e) => {
@@ -1644,6 +2066,9 @@ export class PresentationManager {
             }
             if (action === 'present-windowed') {
                 this.startPresentationWithOptions({ requestFullscreen: false });
+            }
+            if (action === 'present-kiosk') {
+                this.startKioskWithOptions({ requestFullscreen: true });
             }
             cleanup();
         });

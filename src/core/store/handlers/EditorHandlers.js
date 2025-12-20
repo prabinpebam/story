@@ -86,6 +86,9 @@ export function handleSetMode(draft, payload) {
         draft.presentation.currentSlideIndex = currentIndex !== -1 ? currentIndex : 0;
     } else {
         draft.presentation.isActive = false;
+        if (draft.presentation.kiosk) {
+            draft.presentation.kiosk.enabled = false;
+        }
         draft.presentation.laserPointer = false;
         draft.presentation.blackScreen = false;
         draft.presentation.whiteScreen = false;

@@ -27,6 +27,26 @@ async function resolveCssVar(page: any, cssVarName: string, property: 'backgroun
     );
 }
 
+async function resolveSystemColor(page: any, cssColorValue: string, property: 'backgroundColor' | 'color' = 'backgroundColor') {
+    return await page.evaluate(
+        ({ cssColorValue, property }: { cssColorValue: string; property: 'backgroundColor' | 'color' }) => {
+            const probe = document.createElement('div');
+            probe.style.position = 'absolute';
+            probe.style.left = '-99999px';
+            probe.style.top = '0';
+            if (property === 'backgroundColor') probe.style.backgroundColor = cssColorValue;
+            else probe.style.color = cssColorValue;
+            document.body.appendChild(probe);
+            const computed = getComputedStyle(probe);
+            const value = property === 'backgroundColor' ? computed.backgroundColor : computed.color;
+            probe.remove();
+            return value;
+        },
+        { cssColorValue, property }
+    );
+}
+
+
 async function getCssVar(page: any, cssVarName: string) {
     return await page.evaluate(
         ({ cssVarName }: { cssVarName: string }) => {
@@ -199,6 +219,34 @@ test.describe('Presentation Mode (Gate 8) — Accessibility', () => {
         await expect(page.locator('#app')).toBeVisible();
         await expect(page.locator('#presentation-hud')).toBeVisible();
         await expect(page.locator('[data-testid="hud-exit-btn"]')).toBeVisible();
+
+        // Verify forced-colors specific system styling hooks are in effect.
+        const hudControls = page.locator('#presentation-hud .hud-controls');
+        await expect(hudControls).toBeVisible();
+
+        const forcedAdjustControls = await hudControls.evaluate(el => getComputedStyle(el as HTMLElement).forcedColorAdjust);
+        expect(forcedAdjustControls).toBe('none');
+
+        const prevBtn = page.locator('[data-testid="hud-prev-btn"]');
+        const forcedAdjustBtn = await prevBtn.evaluate(el => getComputedStyle(el as HTMLElement).forcedColorAdjust);
+        expect(forcedAdjustBtn).toBe('none');
+
+        // Deterministic system-color mapping checks.
+        const expectedCanvasBg = await resolveSystemColor(page, 'Canvas', 'backgroundColor');
+        const expectedCanvasText = await resolveSystemColor(page, 'CanvasText', 'color');
+        // Note: Under Chromium forced-colors emulation, computed colors for active button states can be unreliable.
+        // We validate deterministic system surface mapping (Canvas/CanvasText) and basic interactivity instead.
+
+        const actualHudBg = await hudControls.evaluate(el => getComputedStyle(el as HTMLElement).backgroundColor);
+        const actualHudBorder = await hudControls.evaluate(el => getComputedStyle(el as HTMLElement).borderColor);
+        expect(actualHudBg).toBe(expectedCanvasBg);
+        expect(actualHudBorder).toBe(expectedCanvasText);
+
+        // Interactivity sanity check: grid toggle remains usable.
+        const gridBtn = page.locator('[data-testid="hud-grid-btn"]');
+        await gridBtn.click();
+        await expect(gridBtn).toHaveAttribute('aria-pressed', 'true');
+        await expect(page.locator('#presentation-grid-view')).toBeVisible();
     });
 
     test('should apply presentation stage/HUD colors via tokens (no hardcoded overrides)', async ({ page }) => {

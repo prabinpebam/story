@@ -36,7 +36,8 @@ Status legend: ✅ Done (locked) · 🟡 In progress · ❌ Not started · ⛔ B
   - ✅ Theming assertions: same spec validates light/dark changes propagate to presentation tokens and accent theme updates the grid active indicator.
   - Remaining: expand forced-colors/contrast coverage beyond smoke.
 
-- ❌ Gates 9–11: Not started (observability/CI quality gates, kiosk/rehearsal, final parity audit).
+- 🟡 Gate 9: In progress (observability/CI quality gates).
+- 🟡 Gates 10–11: In progress (kiosk/autoplay done; remaining: rehearsal/timer workflows if required + final parity audit).
 
 ---
 
@@ -63,8 +64,8 @@ Gate details live in **Section 6**. This section is the quick status index.
 - ✅ Gate 6 — HUD + Grid + Laser parity (audience-safe)
 - ✅ Gate 7 — Presenter View + security/privacy boundary
 - 🟡 Gate 8 — Accessibility + theming discipline
-- ❌ Gate 9 — Observability + CI quality gates
-- ❌ Gate 10 — Kiosk/autoplay/rehearsal modes
+- 🟡 Gate 9 — Observability + CI quality gates
+- 🟡 Gate 10 — Kiosk/autoplay/rehearsal modes
 - ❌ Gate 11 — Final parity audit (“no spec/impl gaps”)
 
 ---
@@ -192,10 +193,10 @@ Notes:
 | MUST-056 | 16-security-privacy-and-safety.md | 2) Content Security / Requirements | MUST validate cross-window messages (postMessage/BroadcastChannel). | PM-121 | UT: validator; E2E: reject malformed |
 | MUST-057 | 16-security-privacy-and-safety.md | 1) Privacy Boundaries / Requirements | Speaker notes MUST never appear in audience DOM; diagnostics MUST be presenter-only; sync messages MUST NOT include note content. | PM-081 | E2E: privacy boundary checks |
 | MUST-058 | 16-security-privacy-and-safety.md | 3) Audience-Safe Errors / Requirements | MUST not display presenter-only error messages in audience view; MUST fallback gracefully for media failures; MUST log errors to telemetry without sensitive data. | PM-051 | E2E: audience-safe error rendering |
-| MUST-059 | 16-security-privacy-and-safety.md | 4) Network Privacy / Requirements | MUST respect Do Not Track (DNT) if enabled. | PM-130 | UT: telemetry respects DNT |
-| MUST-060 | 17-observability-and-quality-gates.md | 1) KPIs / Requirements | MUST instrument KPIs; MUST aggregate telemetry (privacy-safe, no PII); MUST fail CI builds on regression. | PM-130 | UT: payload; CI perf gates |
-| MUST-061 | 17-observability-and-quality-gates.md | 2) Telemetry Events / Requirements | MUST NOT track PII (user identity, deck content, speaker notes). | PM-130 | UT: schema sanitizer |
-| MUST-062 | 17-observability-and-quality-gates.md | 4) Crash Reporting / Requirements | MUST capture stack traces, include context, and sanitize stack traces (remove deck content, notes). | PM-130 | UT: scrubber; E2E: crash fixture |
+| MUST-059 | 16-security-privacy-and-safety.md | 4) Network Privacy / Requirements | MUST respect Do Not Track (DNT) if enabled. | PM-130 | UT: tests/unit/core/telemetry/Telemetry.test.js |
+| MUST-060 | 17-observability-and-quality-gates.md | 1) KPIs / Requirements | MUST instrument KPIs; MUST aggregate telemetry (privacy-safe, no PII); MUST fail CI builds on regression. | PM-130 | E2E: tests/e2e/specs/functional/telemetry.spec.ts; CI perf gate: npm run perf:bench:gate |
+| MUST-061 | 17-observability-and-quality-gates.md | 2) Telemetry Events / Requirements | MUST NOT track PII (user identity, deck content, speaker notes). | PM-130 | UT: tests/unit/core/telemetry/Telemetry.test.js; E2E: tests/e2e/specs/functional/telemetry.spec.ts |
+| MUST-062 | 17-observability-and-quality-gates.md | 4) Crash Reporting / Requirements | MUST capture stack traces, include context, and sanitize stack traces (remove deck content, notes). | PM-130 | Impl: src/core/telemetry/Telemetry.js + PresentationManager crash hooks |
 | MUST-063 | 15-accessibility.md | Requirements | MUST announce slide/build changes to screen readers. | PM-110 | E2E: aria-live announcements |
 | MUST-064 | 15-accessibility.md | Requirements | MUST support keyboard-only navigation and MUST not trap focus in presentation mode. | PM-111 | E2E: keyboard-only completion |
 | MUST-065 | 03-rendering-in-presentation-mode.md | 2.1 Chrome Hiding | MUST hide editor-only file metadata UI (e.g., file indicator pill) in presentation output. | PM-032 | E2E: file indicator not visible |
@@ -370,10 +371,12 @@ Each gap includes **handling strategy** (how we will close it without breaking t
   - Gate 8 introduces CI gates for perf and DOM compliance.
 
 ### G8 — Kiosk/autoplay/rehearse modes are not implemented
-- Evidence: no runtime scheduler/timer system for autoplay loops is present.
+- Evidence (historical): no runtime scheduler/timer system for autoplay loops.
+- Current: kiosk/autoplay scheduler implemented behind a feature flag with deterministic test hooks.
 - Spec source: [06-mode-taxonomy-and-entry-exit.md](06-mode-taxonomy-and-entry-exit.md)
 - Handling:
-  - Gate 9 implements kiosk/rehearse behind flags and adds deterministic test controls.
+  - Gate 10 implements kiosk/autoplay behind flags and adds deterministic test controls.
+  - Remaining: rehearsal/timer workflows (if required by parity checklist).
 
 ---
 
@@ -426,7 +429,7 @@ Emoji status (quick scan): ✅ Done · 🟡 In progress · ❌ Not started · �
 | 🟡 | `11-presenter-tools.md` | READY | IN PROGRESS | VITEST+PLAYWRIGHT | NONE | Scope expanded to PowerPoint parity: automatic dual-display behavior (host adapter tiers), display assignment + Swap Displays, presenter surface IA (current/next/notes/timer/clock/progress), keyboard parity, and a required DOM contract for test hooks. Current impl/tests: popup + lockstep sync + close→reopen recovery covered by Playwright `tests/e2e/specs/functional/presenter-view.spec.ts`; message validation covered by unit `tests/unit/core/presentation/PresenterSyncValidation.test.js`. Remaining: buildIndex lockstep, swap UI, host adapter implementation + hotplug behavior, richer presenter navigation surfaces (thumbnails/sorter) and controls parity. |
 | 🟡 | `15-accessibility.md` | READY | IN PROGRESS | PLAYWRIGHT | NONE | Gate 8 Playwright added and green: `tests/e2e/specs/functional/presentation-accessibility.spec.ts` (live region announcements, HUD aria + toggles, keyboard-only exit, reduced motion disables transitions). Remaining: extend coverage for contrast/forced-colors and theme switching assertions. |
 | 🟡 | `16-security-privacy-and-safety.md` | READY | IN PROGRESS | VITEST+PLAYWRIGHT | NONE | Message allowlist + malformed rejection covered: unit `tests/unit/core/presentation/PresenterSyncValidation.test.js`, e2e `tests/e2e/specs/functional/presenter-view.spec.ts`. Remaining: broaden negative cases + ensure no presenter-only DOM leaks under stress. |
-| ❌ | `17-observability-and-quality-gates.md` | READY | NOT STARTED | NONE | PERF | CI perf gates + telemetry enforcement planned (Gate 9). |
+| 🟡 | `17-observability-and-quality-gates.md` | READY | IN PROGRESS | VITEST+PLAYWRIGHT | PERF | Telemetry core + debug hook + perf gate mode implemented; remaining: expand crash fixture coverage and add explicit regression test for gated perf failure. |
 | ✅ | `18-test-strategy.md` | READY | DONE | NONE | NONE | Documentation-only; must reflect current test contract and fixtures. |
 | ✅ | `19-implementation-boundaries-and-extensibility.md` | READY | DONE | NONE | NONE | Documentation-only; clarifies what must not leak to audience. |
 | ✅ | `20-parity-mapping-table.md` | READY | DONE | NONE | NONE | Documentation-only; parity map for review. |
@@ -531,6 +534,8 @@ This ledger is exhaustive at the “feature surface” level. Individual subtask
 ### 5.14 Observability
 - PM-130 Telemetry events and quality gate measurements
   - Spec: [17-observability-and-quality-gates.md](17-observability-and-quality-gates.md)
+  - Impl: src/core/telemetry/Telemetry.js; src/core/PresentationManager.js; src/core/Store.js
+  - Tests: tests/unit/core/telemetry/Telemetry.test.js; tests/e2e/specs/functional/telemetry.spec.ts; npm run perf:bench:gate
 
 ### 5.15 Kiosk / rehearsal
 - PM-140 Kiosk/autoplay + exit policy
@@ -627,18 +632,27 @@ This is the **hardened** gate plan. It is intentionally more granular and more m
   - Playwright a11y checks pass for key flows.
   - Theme switching tests pass (light/dark + accent).
 
-### Gate 9 ❌ — Observability + CI quality gates
+### Gate 9 🟡 — Observability + CI quality gates
 **Goal:** make performance/quality regression-proof.
 - Implement telemetry events and wire CI gates.
 - Exit criteria:
-  - CI fails on regressions beyond thresholds.
   - Telemetry schema conformance is validated by tests.
+    - UT: tests/unit/core/telemetry/Telemetry.test.js
+    - E2E: tests/e2e/specs/functional/telemetry.spec.ts
+  - CI-style perf gate exists and fails on registry gate violations.
+    - Script: npm run perf:bench:gate
+  - Remaining:
+    - Expand crash fixture coverage and add explicit regression test for gated perf failure.
 
-### Gate 10 ❌ — Kiosk/autoplay/rehearsal modes
+### Gate 10 🟡 — Kiosk/autoplay/rehearsal modes
 **Goal:** implement unattended loops and rehearsal workflows deterministically.
 - Implement kiosk and rehearsal behind feature flags.
 - Exit criteria:
   - Playwright deterministically validates autoplay timing and exit policy.
+  - Current: kiosk/autoplay + loop + disableInput + optional password-hash exit implemented and covered by:
+    - Unit: tests/unit/core/presentation/KioskMode.test.js
+    - E2E: tests/e2e/specs/functional/kiosk-mode.spec.ts
+  - Remaining: rehearsal/timer workflows if required by benchmark parity checklist.
 
 ### Gate 11 ❌ — Final parity audit (“no spec/impl gaps”)
 **Goal:** formal sign-off.

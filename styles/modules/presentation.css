@@ -498,8 +498,13 @@ body.presenter-view .pv-jump {
         color: CanvasText;
     }
     .hud-btn.active {
-        background-color: Highlight;
-        color: HighlightText;
+        background-color: Highlight !important;
+        color: HighlightText !important;
+    }
+    .hud-btn:focus,
+    .hud-btn:focus-visible {
+        outline: 2px solid Highlight;
+        outline-offset: 2px;
     }
     .hud-divider {
         background-color: CanvasText;
