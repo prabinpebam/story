@@ -1,171 +1,268 @@
-# Presenter Tools (Dual-screen / Presenter View)
+# Presenter Tools (Dual‑screen / Presenter View)
 
-## Goals
-- Provide presenter with private notes, timing, and preview.
-- Maintain strict privacy boundary (notes never in audience feed).
+This document defines Presenter View at **PowerPoint parity**.
+
+Hard constraints:
+- Audience DOM must remain **audience‑clean**.
+- Presenter‑only content (notes/diagnostics) must never leak to the audience surface or sync payloads.
+- Presenter View must behave “smart by default” when a second display is connected.
 
 ---
 
-## 1) Presenter View Window
-### Requirements
-- MUST open as separate window (not modal).
-- MUST sync position with audience window.
-- MUST survive accidental close (prompt to reopen).
-- SHOULD allow presenter to choose which display shows audience vs presenter view.
+## 0) Definitions
+- **Audience surface**: what attendees see.
+- **Presenter surface**: what the speaker sees.
+- **Show**: one active presentation session.
+- **Display**: physical monitor/projector.
+- **Window**: browser window/tab.
+- **Host**: runtime environment (web browser vs desktop wrapper).
 
-### Window Creation
-```typescript
-function openPresenterView(): Window {
-  const presenterWindow = window.open(
-    '/presenter-view.html',
-    'presenter-view',
-    'width=1280,height=720,menubar=no,toolbar=no'
-  );
-  
-  if (!presenterWindow) {
-    throw new Error('Popup blocked - cannot open presenter view');
-  }
-  
-  // Setup sync channel
-  const channel = new BroadcastChannel('presentation-sync');
-  
-  // Send initial state
-  channel.postMessage({
-    type: 'state-sync',
-    state: getCurrentPresentationState()
-  });
-  
-  // Handle window close
-  presenterWindow.addEventListener('beforeunload', () => {
-    const reopen = confirm('Presenter view closed. Reopen?');
-    if (reopen) {
-      setTimeout(() => openPresenterView(), 100);
-    }
-  });
-  
-  return presenterWindow;
-}
+---
+
+## 1) PowerPoint parity baseline
+Presenter View MUST provide:
+- Automatic dual‑display behavior when possible.
+- A dedicated presenter surface: current slide, next slide, notes, timer/clock, slide/build progress.
+- Presenter navigation controls (slide/build, jump, thumbnails/sorter).
+- In‑show display management: swap audience/presenter.
+- Robustness: popup blockers, accidental close/reopen, display hotplug.
+
+---
+
+## 2) Entry behavior (automatic + manual)
+
+### 2.1 Start show actions
+- MUST support starting a show:
+  - From beginning
+  - From current slide
+  - From a chosen slide (via grid / jump)
+
+### 2.2 Default behavior (single display)
+- MUST start a show in a single window.
+- SHOULD offer presenter tools as an in‑window panel if a second display is not available.
+
+### 2.3 Default behavior (two displays)
+- MUST automatically start in Presenter View mode when:
+  - multiple displays are detected with confidence by the host, AND
+  - the user starts a show.
+
+Default assignment:
+- Audience surface SHOULD go fullscreen on the external display.
+- Presenter surface SHOULD remain on the primary display.
+
+### 2.4 Manual controls (always present)
+- MUST provide explicit actions:
+  - Open Presenter View
+  - Close Presenter View
+  - Swap Displays
+  - Return to single‑window viewer
+
+These MUST work regardless of whether automatic detection is supported.
+
+---
+
+## 3) Connected display detection + placement
+
+### 3.1 Requirements
+- MUST implement multi‑display behavior via a Host Display Adapter.
+- MUST not block the show if display detection fails.
+- MUST surface actionable guidance when permissions/popup policies prevent auto behavior.
+
+### 3.2 Host Display Adapter (contract)
+The app MUST route display enumeration/placement through an adapter (host‑provided implementation):
+
+```ts
+type DisplayInfo = { id: string; name?: string; isPrimary?: boolean };
+
+type DisplayCapabilities = {
+  canEnumerateDisplays: boolean;
+  canPlaceWindows: boolean;
+  canFullscreenOnTargetDisplay: boolean;
+};
+
+type DisplayAdapter = {
+  getCapabilities(): Promise<DisplayCapabilities>;
+  getDisplays(): Promise<DisplayInfo[]>; // may be [] if unsupported
+  onDisplaysChanged?(cb: () => void): () => void;
+
+  // Optional placement primitives
+  placeWindowOnDisplay?(win: Window, displayId: string): Promise<void>;
+  requestFullscreenOnDisplay?(displayId: string): Promise<void>;
+};
 ```
 
----
+### 3.3 Web implementation guidance (minimum viable)
+- SHOULD use the Multi‑Screen / Window Placement capability when available.
+  - Example signals: `navigator.permissions` + `window.getScreenDetails` (where supported).
+- MUST gracefully fall back when not supported:
+  - Still open Presenter View (manual or automatic Tier‑B),
+  - Ask the user to move windows to the desired screens.
 
-## 2) Presenter View Content
-### Requirements
-- MUST show:
-  - Current slide (same as audience)
-  - Next slide preview
-  - Speaker notes for current slide
-  - Elapsed time / timer
-- SHOULD show:
-  - Build progress indicator
-  - Slide counter
-  - Diagnostics (FPS, memory, cache status)
-
-### Layout
-```html
-<div class="presenter-view">
-  <div class="pv-main">
-    <div class="pv-current-slide">
-      <!-- Current slide render -->
-    </div>
-    <div class="pv-notes">
-      <h3>Speaker Notes</h3>
-      <div class="notes-content">
-        <!-- Slide notes here -->
-      </div>
-    </div>
-  </div>
-  
-  <div class="pv-sidebar">
-    <div class="pv-next-preview">
-      <h4>Next Slide</h4>
-      <!-- Next slide thumbnail -->
-    </div>
-    
-    <div class="pv-timer">
-      <div class="elapsed">00:15:32</div>
-      <div class="clock">2:45 PM</div>
-    </div>
-    
-    <div class="pv-progress">
-      <span>Slide 5 / 24</span>
-      <span>Build 2 / 4</span>
-    </div>
-    
-    <div class="pv-diagnostics" (if enabled)>
-      <div>FPS: 60</div>
-      <div>Memory: 245 MB</div>
-      <div>Cache: HOT ready</div>
-    </div>
-  </div>
-</div>
-```
+### 3.4 Desktop host implementation guidance (PowerPoint‑level)
+- Desktop hosts (Electron/Tauri/etc) SHOULD implement Tier‑A:
+  - enumerate displays,
+  - place presenter and audience windows,
+  - swap displays during a show,
+  - detect hotplug.
 
 ---
 
-## 3) Privacy Boundary
-### Requirements
-- MUST enforce strict separation: notes/diagnostics never appear in audience DOM.
-- MUST sanitize cross-window messages (no note content in sync protocol).
-- MUST provide visual indicator when presenter view is active.
+## 4) Display assignment + Swap Displays
+
+### 4.1 Assignment
+- MUST support assigning which display shows Audience and which shows Presenter.
+- MUST preserve show position during reassignment (slide index + build index + overlays).
+
+### 4.2 Swap Displays
+- MUST provide a one‑action Swap Displays.
+- MUST preserve show position.
+- MUST NOT leak notes/diagnostics during swap (including transient DOM).
+
+### 4.3 Persistence
+- SHOULD persist the last successful assignment policy per device/host.
 
 ---
 
-## 4) Sync Protocol
-### Requirements
-- MUST keep presenter and audience windows in lockstep (slide/build position).
-- MUST handle window close/reopen without losing position.
-- SHOULD use BroadcastChannel or postMessage for sync.
+## 5) Presenter View surface (information architecture)
 
-### Message Schema
-```typescript
-type SyncMessage = 
-  | { type: 'state-sync'; state: PresentationState }
-  | { type: 'navigate'; slideIndex: number; buildIndex: number }
-  | { type: 'toggle-feature'; feature: 'laser' | 'grid' | 'black' | 'white'; active: boolean }
-  | { type: 'exit' };
+### 5.1 Core panes (PowerPoint parity)
+Presenter View MUST display:
+- **Current slide** pane (matches audience)
+- **Next slide** pane (preview)
+- **Notes** pane (scrollable)
+- **Timing** pane (elapsed timer + clock)
+- **Progress** pane (slide X of N, build k of m when builds exist)
 
-// Audience window listens and updates
-channel.addEventListener('message', (e: MessageEvent<SyncMessage>) => {
-  switch (e.data.type) {
-    case 'state-sync':
-      updatePresentationState(e.data.state);
-      break;
-    case 'navigate':
-      navigateToSlide(e.data.slideIndex, e.data.buildIndex);
-      break;
-    case 'toggle-feature':
-      toggleFeature(e.data.feature, e.data.active);
-      break;
-    case 'exit':
-      exitPresentation();
-      break;
-  }
-});
+### 5.2 Navigation surfaces
+Presenter View MUST provide at least one of:
+- Slide thumbnails strip, OR
+- Slide sorter grid/list, OR
+- A jump-to-slide control with visible feedback.
 
-// Presenter view sends commands
-function sendNavigate(slideIndex: number, buildIndex: number) {
-  channel.postMessage({ type: 'navigate', slideIndex, buildIndex });
-}
-```
+Presenter View MUST support jump by number (e.g., type digits then Enter).
 
-### Privacy Boundary
-- **Speaker notes MUST NOT be in sync messages**.
-- Presenter view fetches notes directly from deck data, never via sync channel.
-- Audience window never receives or has access to note content.
+### 5.3 Presenter tools (PowerPoint parity)
+Presenter View MUST include controls to:
+- Next/Previous
+- Toggle laser/pointer
+- Toggle black/white screen overlays
+- Open slide sorter/thumbnails
+- Exit show
+
+Presenter View SHOULD include:
+- Pen/ink annotations, erase, and clear (presenter-only),
+- A “laser active” indicator,
+- Optional diagnostics (FPS/frame time/memory/cache tier) behind a presenter-only toggle.
 
 ---
 
-## Telemetry
-- Presenter view usage rate
-- Window close/reopen events
+## 6) Notes behavior
 
-## Test plan
-- Dual-screen setup (physical or simulated)
-- Window close/reopen during show
-- Privacy boundary audit (ensure notes never in audience DOM)
+### 6.1 Rendering
+- MUST render notes with readable typography (line wrapping, paragraphs).
+- MUST support scroll and text selection.
+- SHOULD support adjustable note text size.
 
-## Edge cases
-- No second display available
-- Display hotplug during show
-- Sleep/wake with presenter view open
+### 6.2 Editing
+- If the product supports editing notes during a show, it MUST be presenter-only and safe.
+- If editing during a show is not supported, Presenter View MUST state that clearly.
+
+---
+
+## 7) Keyboard + input parity
+
+Presenter View MUST support:
+- Next: `ArrowRight`, `PageDown`, `Space`, `Enter`
+- Previous: `ArrowLeft`, `PageUp`, `Backspace`
+- First/Last: `Home` / `End`
+- Jump: digits then `Enter` (with a visible input affordance)
+- Black screen: `B`
+- White screen: `W`
+- Exit: `Esc`
+
+Notes:
+- These keybindings mirror common presenter expectations and should be consistent with the broader input spec.
+
+---
+
+## 8) Windowing model + reliability
+
+### 8.1 Separate windows
+- MUST implement Presenter View as a separate window (not a modal).
+- MUST implement the audience surface as a distinct, audience-clean surface.
+
+### 8.2 Popup blockers
+- If the presenter window cannot open:
+  - MUST continue the show in audience/viewer mode,
+  - MUST provide a visible, actionable instruction to allow popups.
+
+### 8.3 Close/reopen recovery
+- MUST detect presenter window closure during an active show.
+- MUST allow reopening without losing position.
+
+### 8.4 Hotplug
+- SHOULD detect display connect/disconnect.
+- MUST keep the audience surface stable if displays change.
+
+---
+
+## 9) Security + privacy boundary (non‑negotiable)
+
+### 9.1 Audience cleanliness
+- Notes MUST NOT appear in the audience DOM.
+- Presenter UI MUST NOT appear in the audience DOM.
+- Presenter-only diagnostics MUST NOT appear in the audience DOM.
+
+### 9.2 Sync payload hygiene
+- Notes MUST NOT be included in sync messages.
+- Diagnostics MUST NOT be included in audience-bound messages.
+- All cross-window messages MUST be allowlisted and schema-validated.
+
+### 9.3 Logging/telemetry
+- MUST NOT log note content.
+- MUST NOT emit telemetry containing note content or slide content.
+
+---
+
+## 10) DOM contract (test hooks)
+
+Presenter View MUST expose stable selectors for automated tests:
+- `[data-testid="presenter-view-panel"]`
+- `[data-testid="presenter-current-slide"]`
+- `[data-testid="presenter-next-preview"]`
+- `[data-testid="presenter-notes"]`
+- `[data-testid="presenter-elapsed"]`
+- `[data-testid="presenter-clock"]`
+- `[data-testid="presenter-swap-displays"]`
+
+Audience window MUST NOT contain `[data-testid="presenter-view-panel"]`.
+
+---
+
+## 11) Acceptance tests
+
+### 11.1 Automated (CI proxies)
+Playwright MUST validate:
+- Presenter window opens (manual path).
+- Lockstep slide navigation.
+- Close→reopen recovery.
+- Malformed sync messages are ignored.
+- Privacy boundary (no notes/diagnostics leaked to audience DOM or sync payload).
+
+Vitest MUST validate:
+- Sync message sanitizer/validator behavior.
+- Show position snapshotting (slide + build indices) used for reopen.
+
+### 11.2 Manual / hardware checklist (host dependent)
+- Start show with 2 displays → presenter view opens automatically (where host supports detection).
+- Swap displays during show.
+- Hotplug a display during show.
+
+---
+
+## 12) Future (beyond PowerPoint)
+Non-blocking extensions:
+- Pace coaching and rehearsal insights.
+- Remote presenter pairing.
+- Rich next-build preview and cue list.
+- Streaming/recording overlays.

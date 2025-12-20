@@ -321,7 +321,8 @@ This section answers: **“What prerequisites are not satisfied in the current i
 Each gap includes **handling strategy** (how we will close it without breaking the app).
 
 ### G1 — Presenter View is not implemented
-- Evidence: menu item `present-presenter` exists, but no handler is registered.
+- Evidence (historical): previously missing.
+- Current: implemented via menu action `present-presenter` → `startPresenterView()` and `presentation:open-presenter-view`, opening a `?presenter=1` popup with lockstep sync.
 - Spec source: [11-presenter-tools.md](11-presenter-tools.md)
 - Handling:
   - Gate 6 adds a dedicated presenter surface and a typed sync protocol.
@@ -419,7 +420,7 @@ Emoji status (quick scan): ✅ Done · 🟡 In progress · ❌ Not started · �
 | ✅ | `02-performance-and-caching.md` | READY | DONE | VITEST+PLAYWRIGHT | PERF | Tiered prefetch + HOT gating enforced; perf harness exists (baseline work continues in later gates). |
 | ✅ | `13-theming-and-polish.md` | READY | DONE | PLAYWRIGHT | NONE | Token discipline for stage/HUD + reduced motion/forced colors behaviors. |
 | ✅ | `14-reliability-and-recovery.md` | READY | DONE | PLAYWRIGHT | NONE | Audience-safe error surfacing rules enforced where applicable. |
-| 🟡 | `11-presenter-tools.md` | READY | IN PROGRESS | VITEST+PLAYWRIGHT | NONE | Presenter popup + lockstep sync: Playwright `tests/e2e/specs/functional/presenter-view.spec.ts` green; unit: `tests/unit/core/presentation/PresenterSyncValidation.test.js` green. Remaining: buildIndex lockstep + close/reopen recovery coverage. |
+| 🟡 | `11-presenter-tools.md` | READY | IN PROGRESS | VITEST+PLAYWRIGHT | NONE | Scope expanded to PowerPoint parity: automatic dual-display behavior (host adapter tiers), display assignment + Swap Displays, presenter surface IA (current/next/notes/timer/clock/progress), keyboard parity, and a required DOM contract for test hooks. Current impl/tests: popup + lockstep sync + close→reopen recovery covered by Playwright `tests/e2e/specs/functional/presenter-view.spec.ts`; message validation covered by unit `tests/unit/core/presentation/PresenterSyncValidation.test.js`. Remaining: buildIndex lockstep, swap UI, host adapter implementation + hotplug behavior, richer presenter navigation surfaces (thumbnails/sorter) and controls parity. |
 | 🟡 | `15-accessibility.md` | READY | IN PROGRESS | PLAYWRIGHT | NONE | Gate 8 Playwright added and green: `tests/e2e/specs/functional/presentation-accessibility.spec.ts` (live region announcements, HUD aria + toggles, keyboard-only exit, reduced motion disables transitions). Remaining: extend coverage for contrast/forced-colors and theme switching assertions. |
 | 🟡 | `16-security-privacy-and-safety.md` | READY | IN PROGRESS | VITEST+PLAYWRIGHT | NONE | Message allowlist + malformed rejection covered: unit `tests/unit/core/presentation/PresenterSyncValidation.test.js`, e2e `tests/e2e/specs/functional/presenter-view.spec.ts`. Remaining: broaden negative cases + ensure no presenter-only DOM leaks under stress. |
 | ❌ | `17-observability-and-quality-gates.md` | READY | NOT STARTED | NONE | PERF | CI perf gates + telemetry enforcement planned (Gate 9). |
