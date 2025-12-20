@@ -207,5 +207,24 @@
     font-weight: var(--font-weight-medium);
 }
 
+/* Design-system layout utilities
+ * Token-only primitives intended for reuse across modals/panels.
+ */
+
+.ds-auto-grid {
+    --ds-grid-min: 280px;
+    --ds-grid-gap: var(--spacing-6);
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(var(--ds-grid-min), 100%), 1fr));
+    gap: var(--ds-grid-gap);
+    align-content: start;
+}
+
+.ds-surface-card {
+    background: var(--color-bg-canvas);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+}
+
 
 

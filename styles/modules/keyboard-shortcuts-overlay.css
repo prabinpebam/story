@@ -49,25 +49,12 @@
 }
 
 .shortcuts-modal__list {
-    columns: 3 280px;
-    column-gap: var(--spacing-6);
-}
-
-@media (max-width: 1000px) {
-    .shortcuts-modal__list {
-        columns: 2 280px;
-    }
-}
-
-@media (max-width: 720px) {
-    .shortcuts-modal__list {
-        columns: 1 280px;
-    }
+    --ds-grid-min: 280px;
+    --ds-grid-gap: var(--spacing-6);
 }
 
 .shortcuts-modal__section {
-    break-inside: avoid;
-    margin-bottom: var(--spacing-6);
+    padding: var(--spacing-4);
 }
 
 .shortcuts-modal__section-title {
@@ -92,6 +79,7 @@
 .shortcuts-modal__label {
     font-size: var(--font-size-md);
     color: var(--color-text-primary);
+    min-width: 0;
 }
 
 .shortcuts-modal__keys {
@@ -99,6 +87,7 @@
     gap: var(--spacing-2);
     justify-content: flex-end;
     align-items: center;
+    flex-wrap: wrap;
 }
 
 .shortcuts-modal__kbd {

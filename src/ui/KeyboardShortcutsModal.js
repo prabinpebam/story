@@ -64,7 +64,7 @@ export class KeyboardShortcutsModal {
         this.body.className = 'shortcuts-modal__body';
 
         this.list = document.createElement('div');
-        this.list.className = 'shortcuts-modal__list';
+        this.list.className = 'shortcuts-modal__list ds-auto-grid';
         this.list.setAttribute('data-testid', 'keyboard-shortcuts-list');
 
         this.body.appendChild(this.list);
@@ -132,7 +132,7 @@ export class KeyboardShortcutsModal {
 
         for (const group of groups) {
             const sectionEl = document.createElement('div');
-            sectionEl.className = 'shortcuts-modal__section';
+            sectionEl.className = 'shortcuts-modal__section ds-surface-card';
 
             const header = document.createElement('div');
             header.className = 'shortcuts-modal__section-title';
