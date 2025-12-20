@@ -56,10 +56,10 @@ export class MasonryGrid {
         }
 
         for (const item of items) {
-            const rect = item.getBoundingClientRect();
-            if (!rect.height) continue;
+            const height = item.offsetHeight;
+            if (!height) continue;
 
-            const rowSpan = Math.ceil((rect.height + rowGap) / (autoRows + rowGap));
+            const rowSpan = Math.ceil((height + rowGap) / (autoRows + rowGap));
             item.style.gridRowEnd = `span ${Math.max(1, rowSpan)}`;
         }
 

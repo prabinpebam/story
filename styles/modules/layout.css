@@ -228,8 +228,8 @@
 .ds-masonry-grid {
     --ds-grid-min: 280px;
     --ds-grid-gap: var(--spacing-6);
-    /* Smaller auto-row improves fit accuracy and avoids extra vertical whitespace. */
-    --ds-masonry-row: 4px;
+    /* Smaller auto-row improves fit accuracy and reduces perceived vertical gaps. */
+    --ds-masonry-row: 2px;
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(min(var(--ds-grid-min), 100%), 1fr));
     grid-auto-rows: var(--ds-masonry-row);

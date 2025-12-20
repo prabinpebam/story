@@ -1,13 +1,50 @@
 import { getMenuConfig } from '../components/AppMenu/menuConfig.js';
 
-function flattenMenu(items, acc = []) {
+function inferFunctionalSection({ id, label, pathLabel }) {
+    const actionId = String(id || '');
+    const top = String(pathLabel || '').toLowerCase();
+
+    // Prefer semantic action id prefixes when available.
+    if (actionId.startsWith('file-') || actionId === 'file') return 'File';
+    if (actionId.startsWith('edit-') || actionId === 'edit') return 'Edit';
+    if (actionId.startsWith('insert-') || actionId === 'insert') return 'Insert';
+    if (actionId.startsWith('arrange-') || actionId === 'arrange') return 'Arrange';
+    if (actionId.startsWith('view-') || actionId === 'view') return 'View';
+    if (actionId.startsWith('present-') || actionId === 'present') return 'Presentation';
+    if (actionId.startsWith('help-') || actionId === 'help') return 'Help';
+    if (actionId === 'settings') return 'Settings';
+
+    // Fallback to top-level menu location (still function-oriented).
+    if (top.includes('file')) return 'File';
+    if (top.includes('edit')) return 'Edit';
+    if (top.includes('insert')) return 'Insert';
+    if (top.includes('arrange')) return 'Arrange';
+    if (top.includes('view')) return 'View';
+    if (top.includes('present')) return 'Presentation';
+    if (top.includes('help')) return 'Help';
+    if (top.includes('setting')) return 'Settings';
+
+    // Final heuristic: label keywords.
+    const text = String(label || '').toLowerCase();
+    if (text.includes('export') || text.includes('save') || text.includes('open') || text.includes('new')) return 'File';
+    if (text.includes('undo') || text.includes('redo') || text.includes('copy') || text.includes('paste') || text.includes('duplicate')) return 'Edit';
+    if (text.includes('zoom') || text.includes('grid') || text.includes('ruler')) return 'View';
+
+    return 'Other';
+}
+
+function flattenMenu(items, acc = [], parentLabel = null) {
     for (const item of items || []) {
         if (!item) continue;
-        if (item.submenu) flattenMenu(item.submenu, acc);
+
+        const isTopLevel = parentLabel == null;
+        const nextParent = isTopLevel ? item.label : parentLabel;
+
+        if (item.submenu) flattenMenu(item.submenu, acc, nextParent);
         if (item.shortcut && item.label) {
             acc.push({
                 id: item.id,
-                section: 'Menu',
+                section: inferFunctionalSection({ id: item.id, label: item.label, pathLabel: nextParent }),
                 label: item.label,
                 shortcut: item.shortcut,
             });

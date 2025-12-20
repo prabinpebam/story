@@ -51,7 +51,7 @@
 .shortcuts-modal__list {
     --ds-grid-min: 280px;
     --ds-grid-gap: var(--spacing-6);
-    --ds-masonry-row: 4px;
+    --ds-masonry-row: 2px;
 }
 
 .shortcuts-modal__section {
