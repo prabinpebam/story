@@ -58,6 +58,14 @@ test.describe('Presenter View (Gate 7)', () => {
         await expect(presenterPage.locator('[data-testid="presenter-view-panel"]')).toBeVisible();
         await expect(page.locator('[data-testid="presenter-view-panel"]')).toHaveCount(0);
 
+        // Presenter Tools DOM contract (minimum required hooks).
+        await expect(presenterPage.locator('[data-testid="presenter-current-slide"]')).toBeVisible();
+        await expect(presenterPage.locator('[data-testid="presenter-next-preview"]')).toBeVisible();
+        await expect(presenterPage.locator('[data-testid="presenter-notes"]')).toBeVisible();
+        await expect(presenterPage.locator('[data-testid="presenter-elapsed"]')).toBeVisible();
+        await expect(presenterPage.locator('[data-testid="presenter-clock"]')).toBeVisible();
+        await expect(presenterPage.locator('[data-testid="presenter-swap-displays"]')).toBeVisible();
+
         // Navigate in presenter window and ensure audience follows.
         const before = await getStateFrom(page);
         const beforeIndex = before.presentation.currentSlideIndex;
@@ -80,6 +88,36 @@ test.describe('Presenter View (Gate 7)', () => {
             expect(raw.includes('diagnostic')).toBe(false);
             expect(raw.includes('speaker')).toBe(false);
         }
+    });
+
+    test('should swap presenter role between windows (Swap Displays)', async ({ page, context }) => {
+        const editor = new EditorPage(page);
+
+        await installSyncSpy(context);
+        await editor.goto();
+        await editor.waitForLoad();
+
+        // Open app menu → Present submenu → Presenter View.
+        await page.locator('.app-menu-trigger').click();
+        await page.locator('.app-menu-item:has(.app-menu-item-label:text-is("Present"))').click();
+        await expect(page.locator('.app-menu-dropdown.app-menu-submenu')).toBeVisible();
+
+        const popupPromise = page.waitForEvent('popup');
+        await page
+            .locator('.app-menu-dropdown.app-menu-submenu .app-menu-item:has(.app-menu-item-label:text-is("Presenter View"))')
+            .click();
+        const presenterPage = await popupPromise;
+        await presenterPage.waitForLoadState('domcontentloaded');
+
+        await expect(presenterPage.locator('[data-testid="presenter-view-panel"]')).toBeVisible();
+        await expect(page.locator('[data-testid="presenter-view-panel"]')).toHaveCount(0);
+
+        // Trigger swap from the presenter window.
+        await presenterPage.locator('[data-testid="presenter-swap-displays"]').click();
+
+        // After swap: audience becomes presenter.
+        await expect(page.locator('[data-testid="presenter-view-panel"]')).toBeVisible();
+        await expect(presenterPage.locator('[data-testid="presenter-view-panel"]')).toHaveCount(0);
     });
 
     test('should keep buildIndex in lockstep across presenter and audience', async ({ page, context }) => {

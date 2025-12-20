@@ -103,6 +103,15 @@ class MenuActionHandler {
         this.register('present-current', () => this.startPresentationFromCurrent());
         this.register('present-window', () => this.startPresentation({ slideIndex: 0, requestFullscreen: false }));
         this.register('present-presenter', () => this.startPresenterView());
+        this.register('present-close-presenter', () => {
+            window.dispatchEvent(new CustomEvent('presentation:close-presenter-view'));
+        });
+        this.register('present-swap-displays', () => {
+            window.dispatchEvent(new CustomEvent('presentation:swap-displays'));
+        });
+        this.register('present-single-window', () => {
+            window.dispatchEvent(new CustomEvent('presentation:return-single-window'));
+        });
 
         // Settings
         this.register('settings', () => {

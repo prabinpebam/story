@@ -12,6 +12,7 @@ import { PresentationInputBuffer, INPUT_THROTTLE_MS } from './presentation/Prese
 import { fileService } from '../ui/services/FileService.js';
 import { PresentationPrefetchManager } from './presentation/PresentationPrefetchManager.js';
 import { SlideView } from './renderer/SlideView.js';
+import { notify } from '../ui/services/NotificationService.js';
 
 export class PresentationManager {
     constructor() {
@@ -57,7 +58,8 @@ export class PresentationManager {
             isApplyingRemote: false,
             lastSent: null,
             presenterWindow: null,
-            presenterWatchdog: null
+            presenterWatchdog: null,
+            role: null
         };
 
         // Gate 7: Presenter panel
@@ -67,7 +69,14 @@ export class PresentationManager {
             lastAnnounced: { slideIndex: null, buildIndex: null },
             startedAt: null,
             timerInterval: null,
+            progressEl: null,
+            jumpEl: null,
             nextPreview: {
+                slideId: null,
+                wrapperEl: null,
+                view: null
+            },
+            currentPreview: {
                 slideId: null,
                 wrapperEl: null,
                 view: null
@@ -85,7 +94,35 @@ export class PresentationManager {
     }
 
     _isPresenter() {
+        if (this._sync.role === 'presenter') return true;
+        if (this._sync.role === 'audience') return false;
         return new URLSearchParams(window.location.search).get('presenter') === '1';
+    }
+
+    _setRole(nextRole) {
+        const role = nextRole === 'presenter' ? 'presenter' : 'audience';
+        if (this._sync.role === role) return;
+        this._sync.role = role;
+
+        const state = store.getState();
+        if (role === 'presenter') {
+            // If we are currently in a show, ensure the panel exists.
+            if (state?.editor?.mode === 'presentation') {
+                this._ensurePresenterPanel();
+                this._updatePresenterPanel(state);
+            }
+            return;
+        }
+
+        // Switching to audience must remove any presenter-only UI.
+        this._destroyPresenterPanel();
+    }
+
+    _swapDisplays() {
+        // Web implementation: swap presenter/audience roles between the two windows.
+        // Physical display placement is best-effort and user-managed.
+        this._setRole(this._isPresenter() ? 'audience' : 'presenter');
+        this._postSyncMessage({ type: 'swap-role' });
     }
 
     _getSyncClientId() {
@@ -195,6 +232,10 @@ export class PresentationManager {
             return { type: 'exit', senderId: typeof data.senderId === 'string' ? data.senderId : null };
         }
 
+        if (type === 'swap-role') {
+            return { type: 'swap-role', senderId: typeof data.senderId === 'string' ? data.senderId : null };
+        }
+
         return null;
     }
 
@@ -234,6 +275,11 @@ export class PresentationManager {
             } finally {
                 this._sync.isApplyingRemote = false;
             }
+            return;
+        }
+
+        if (msg.type === 'swap-role') {
+            this._setRole(this._isPresenter() ? 'audience' : 'presenter');
         }
     }
 
@@ -370,6 +416,21 @@ export class PresentationManager {
             }, 1000);
         } catch (e) {
             console.warn('[PresentationManager] Failed to open presenter view', e);
+
+            // Must provide actionable guidance when popups prevent Presenter View.
+            try {
+                notify({
+                    type: 'blocked',
+                    title: 'Presenter View blocked',
+                    body: 'Allow popups for this site to open Presenter View.',
+                    dismissible: true,
+                    autoDismissMs: 0,
+                    actionLabel: 'Try again',
+                    onAction: () => this._openPresenterWindow()
+                });
+            } catch {
+                // Best-effort.
+            }
         }
     }
 
@@ -426,9 +487,14 @@ export class PresentationManager {
             <div class="pv-header">
                 <div class="pv-badge" data-testid="presenter-indicator">Presenter View</div>
                 <div class="pv-timer" data-testid="presenter-timer">
+                    <span class="pv-progress" data-testid="presenter-progress"></span>
                     <span class="pv-elapsed" data-testid="presenter-elapsed">00:00:00</span>
                     <span class="pv-clock" data-testid="presenter-clock">--:--</span>
                 </div>
+            </div>
+            <div class="pv-section">
+                <div class="pv-section-title">Current Slide</div>
+                <div id="pv-current-slide" class="pv-current-slide" data-testid="presenter-current-slide"></div>
             </div>
             <div class="pv-section">
                 <div class="pv-section-title">Next Slide</div>
@@ -438,10 +504,42 @@ export class PresentationManager {
                 <div class="pv-section-title">Speaker Notes</div>
                 <div id="pv-notes" class="pv-notes" data-testid="presenter-notes"></div>
             </div>
+            <div class="pv-controls" role="toolbar" aria-label="Presenter controls">
+                <button type="button" class="btn btn--secondary btn--sm" data-testid="presenter-prev" aria-label="Previous" aria-keyshortcuts="ArrowLeft PageUp Backspace">Prev</button>
+                <button type="button" class="btn btn--secondary btn--sm" data-testid="presenter-next" aria-label="Next" aria-keyshortcuts="ArrowRight PageDown Space Enter">Next</button>
+                <button type="button" class="btn btn--secondary btn--sm" data-testid="presenter-grid" aria-label="Toggle grid" aria-keyshortcuts="G">Grid</button>
+                <button type="button" class="btn btn--secondary btn--sm" data-testid="presenter-laser" aria-label="Toggle laser pointer" aria-keyshortcuts="L">Laser</button>
+                <button type="button" class="btn btn--secondary btn--sm" data-testid="presenter-black" aria-label="Toggle black screen" aria-keyshortcuts="B">Black</button>
+                <button type="button" class="btn btn--secondary btn--sm" data-testid="presenter-white" aria-label="Toggle white screen" aria-keyshortcuts="W">White</button>
+                <button type="button" class="btn btn--secondary btn--sm" data-testid="presenter-swap-displays" aria-label="Swap displays">Swap</button>
+                <button type="button" class="btn btn--secondary btn--sm" data-testid="presenter-exit" aria-label="Exit show" aria-keyshortcuts="Escape">Exit</button>
+                <div class="pv-jump" data-testid="presenter-jump-indicator" aria-live="polite" aria-atomic="true"></div>
+            </div>
         `;
 
         document.body.appendChild(panel);
         this._presenterUi.panelEl = panel;
+
+        this._presenterUi.progressEl = panel.querySelector('[data-testid="presenter-progress"]');
+        this._presenterUi.jumpEl = panel.querySelector('[data-testid="presenter-jump-indicator"]');
+
+        const bind = (testId, fn) => {
+            const el = panel.querySelector(`[data-testid="${testId}"]`);
+            if (el) el.addEventListener('click', fn);
+        };
+
+        bind('presenter-prev', () => store.dispatch('PRESENTATION_PREV'));
+        bind('presenter-next', () => {
+            const state = store.getState();
+            if (state?.presentation?.buildIndex < state?.presentation?.buildCount - 1) store.dispatch('NEXT_BUILD');
+            else store.dispatch('PRESENTATION_NEXT');
+        });
+        bind('presenter-grid', () => store.dispatch('TOGGLE_GRID_VIEW'));
+        bind('presenter-laser', () => store.dispatch('TOGGLE_LASER'));
+        bind('presenter-black', () => store.dispatch('TOGGLE_BLACK_SCREEN'));
+        bind('presenter-white', () => store.dispatch('TOGGLE_WHITE_SCREEN'));
+        bind('presenter-swap-displays', () => this._swapDisplays());
+        bind('presenter-exit', () => this.stopPresentation());
 
         // Timer
         if (!this._presenterUi.startedAt) this._presenterUi.startedAt = Date.now();
@@ -452,6 +550,9 @@ export class PresentationManager {
         // Next preview mount wrapper
         const wrapper = panel.querySelector('#pv-next-preview');
         this._presenterUi.nextPreview.wrapperEl = wrapper;
+
+        const currentWrapper = panel.querySelector('#pv-current-slide');
+        this._presenterUi.currentPreview.wrapperEl = currentWrapper;
     }
 
     _destroyPresenterPanel() {
@@ -467,6 +568,15 @@ export class PresentationManager {
             try { preview.view.unmount(); } catch { /* noop */ }
         }
         this._presenterUi.nextPreview = { slideId: null, wrapperEl: null, view: null };
+
+        const current = this._presenterUi.currentPreview;
+        if (current?.view) {
+            try { current.view.unmount(); } catch { /* noop */ }
+        }
+        this._presenterUi.currentPreview = { slideId: null, wrapperEl: null, view: null };
+
+        this._presenterUi.progressEl = null;
+        this._presenterUi.jumpEl = null;
 
         if (this._presenterUi.panelEl) {
             this._presenterUi.panelEl.remove();
@@ -502,9 +612,81 @@ export class PresentationManager {
             notesEl.innerHTML = notesHtml || '<div class="pv-notes-empty">No notes</div>';
         }
 
+        // Visible progress pane.
+        const totalSlides = Array.isArray(state?.slideOrder) ? state.slideOrder.length : 0;
+        const p = state?.presentation || {};
+        const slideIndex = Number.isFinite(p.currentSlideIndex) ? p.currentSlideIndex : 0;
+        const buildIndex = Number.isFinite(p.buildIndex) ? p.buildIndex : -1;
+        const buildCount = Number.isFinite(p.buildCount) ? p.buildCount : 0;
+        const progressText = buildCount > 0
+            ? `Slide ${slideIndex + 1}/${totalSlides} · Build ${Math.max(buildIndex, -1) + 1}/${buildCount}`
+            : `Slide ${slideIndex + 1}/${totalSlides}`;
+        if (this._presenterUi.progressEl) this._presenterUi.progressEl.textContent = progressText;
+
+        // Visible numeric jump indicator.
+        if (this._presenterUi.jumpEl) {
+            const v = this._numericBuffer?.value || '';
+            this._presenterUi.jumpEl.textContent = v ? `Jump: ${v}` : '';
+        }
+
+        // Current preview
+        this._updateCurrentPreview(slideId);
+
         // Next preview
         const nextId = this._getNextVisibleSlideId(state);
         this._updateNextPreview(nextId);
+    }
+
+    _updateCurrentPreview(currentSlideId) {
+        const preview = this._presenterUi.currentPreview;
+        const wrapper = preview?.wrapperEl;
+        if (!wrapper) return;
+
+        if (!currentSlideId) {
+            wrapper.innerHTML = '<div class="pv-next-empty">(No current slide)</div>';
+            preview.slideId = null;
+            if (preview.view) {
+                try { preview.view.unmount(); } catch { /* noop */ }
+                preview.view = null;
+            }
+            return;
+        }
+
+        if (preview.slideId === currentSlideId && preview.view) return;
+
+        if (preview.view) {
+            try { preview.view.unmount(); } catch { /* noop */ }
+            preview.view = null;
+        }
+
+        wrapper.innerHTML = '';
+        if (preview.view) {
+            try { preview.view.unmount(); } catch { /* noop */ }
+            preview.view = null;
+        }
+
+        const slideData = store.getEffectiveSlide(currentSlideId);
+        if (!slideData) {
+            wrapper.innerHTML = '<div class="pv-next-empty">(Unavailable)</div>';
+            preview.slideId = currentSlideId;
+            return;
+        }
+
+        const stage = document.createElement('div');
+        stage.className = 'pv-next-stage';
+        wrapper.appendChild(stage);
+
+        const view = new SlideView(currentSlideId);
+        view.mount(stage);
+        view.update(slideData);
+
+        const targetW = stage.clientWidth || 280;
+        const scale = targetW / (slideData.width || 1920);
+        view.domElement.style.transformOrigin = '0 0';
+        view.domElement.style.transform = `scale(${scale})`;
+
+        preview.slideId = currentSlideId;
+        preview.view = view;
     }
 
     _updateNextPreview(nextSlideId) {
@@ -709,6 +891,38 @@ export class PresentationManager {
             this._openPresenterWindow();
         });
 
+        window.addEventListener('presentation:close-presenter-view', () => {
+            // If we're in the presenter window, just close ourselves.
+            if (this._isPresenter()) {
+                try { window.close(); } catch { /* noop */ }
+                return;
+            }
+
+            // Otherwise close the managed presenter window if present.
+            try {
+                if (this._sync.presenterWindow && !this._sync.presenterWindow.closed) {
+                    this._sync.presenterWindow.close();
+                }
+            } catch {
+                // Best-effort.
+            } finally {
+                this._sync.presenterWindow = null;
+            }
+        });
+
+        window.addEventListener('presentation:swap-displays', () => {
+            this._swapDisplays();
+        });
+
+        window.addEventListener('presentation:return-single-window', () => {
+            // Web implementation: close presenter window and continue presenting here.
+            if (this._isPresenter()) {
+                try { window.close(); } catch { /* noop */ }
+                return;
+            }
+            window.dispatchEvent(new CustomEvent('presentation:close-presenter-view'));
+        });
+
         window.addEventListener('presentation:navigate', (e) => {
             const state = store.getState();
             if (state?.editor?.mode !== 'presentation') return;
@@ -772,6 +986,11 @@ export class PresentationManager {
             if (/^[0-9]$/.test(e.key)) {
                 e.preventDefault();
                 this._numericBuffer.pushDigit(e.key);
+                // Provide visible feedback in Presenter View.
+                if (this._isPresenter()) {
+                    const stateNow = store.getState();
+                    this._updatePresenterPanel(stateNow);
+                }
                 return;
             }
 
@@ -780,11 +999,19 @@ export class PresentationManager {
                 if (e.key === 'Enter') {
                     e.preventDefault();
                     this._numericBuffer.commit();
+                    if (this._isPresenter()) {
+                        const stateNow = store.getState();
+                        this._updatePresenterPanel(stateNow);
+                    }
                     return;
                 }
                 if (e.key === 'Escape') {
                     e.preventDefault();
                     this._numericBuffer.cancel();
+                    if (this._isPresenter()) {
+                        const stateNow = store.getState();
+                        this._updatePresenterPanel(stateNow);
+                    }
                     return;
                 }
             }

@@ -299,6 +299,9 @@ export function getMenuConfig() {
             { id: 'present-current', label: 'From Current Slide', shortcut: 'Ctrl+Shift+Enter', icon: 'fa-solid fa-forward' },
             { divider: true },
             { id: 'present-presenter', label: 'Presenter View', icon: 'fa-solid fa-display' },
+            { id: 'present-close-presenter', label: 'Close Presenter View', icon: 'fa-solid fa-xmark' },
+            { id: 'present-swap-displays', label: 'Swap Displays', icon: 'fa-solid fa-right-left' },
+            { id: 'present-single-window', label: 'Return to Single Window', icon: 'fa-regular fa-window-restore' },
             { divider: true },
             { id: 'present-rehearse', label: 'Rehearse Timings', icon: 'fa-solid fa-stopwatch' }
         ]
