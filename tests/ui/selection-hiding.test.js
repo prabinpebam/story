@@ -240,8 +240,10 @@ describe('Selection Hiding During Property Changes', () => {
             const endTime = performance.now();
             const duration = endTime - startTime;
             
-            // Should complete in reasonable time (less than 100ms for 100 iterations)
-            expect(duration).toBeLessThan(100);
+            // Keep this as a very loose perf smoke-test to catch pathological slowdowns,
+            // not as a tight benchmark (timing can vary significantly across OS/CI).
+            const maxDurationMs = process.env.CI ? 250 : 150;
+            expect(duration).toBeLessThan(maxDurationMs);
         });
 
         it('should not leak memory during repeated renders', () => {

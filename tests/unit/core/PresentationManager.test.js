@@ -4,6 +4,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 vi.mock('../../../src/core/Store.js', () => ({
     store: {
         getState: vi.fn(),
+        getEffectiveSlide: vi.fn(() => null),
         dispatch: vi.fn(),
         on: vi.fn(),
         off: vi.fn()
@@ -144,6 +145,12 @@ describe('PresentationManager', () => {
         // Reset LaserPointer mock methods
         laserPointerMockInstance = createLaserPointerMock();
 
+        // Make guarded slide navigation deterministic in unit tests.
+        // PresentationManager prefers a global prefetch manager (provided by PresentationRenderer in-app).
+        window.__presentationPrefetch = {
+            ensurePrefetched: vi.fn(() => Promise.resolve())
+        };
+
         // Create instance
         presentationManager = new PresentationManager();
     });
@@ -151,6 +158,10 @@ describe('PresentationManager', () => {
     afterEach(() => {
         // Cleanup DOM
         document.body.innerHTML = '';
+
+        // Cleanup any global prefetch manager injected by tests.
+        delete window.__presentationPrefetch;
+
         vi.restoreAllMocks();
         vi.unstubAllGlobals();
     });
@@ -245,7 +256,7 @@ describe('PresentationManager', () => {
 
         it('should handle fullscreen errors gracefully', async () => {
             mockAppContainer.requestFullscreen = vi.fn().mockRejectedValue(new Error('Fullscreen denied'));
-            const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+            const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
 
             await presentationManager.enterFullscreen();
 
@@ -374,8 +385,8 @@ describe('PresentationManager', () => {
             presentationManager.updateScale();
 
             expect(mockViewport.style.position).toBe('absolute');
-            expect(mockViewport.style.top).toBe('50%');
-            expect(mockViewport.style.left).toBe('50%');
+            expect(mockViewport.style.top).toBe('0px');
+            expect(mockViewport.style.left).toBe('0px');
         });
 
         it('should set slide container dimensions', () => {
@@ -475,6 +486,43 @@ describe('PresentationManager', () => {
             });
         });
 
+        it('should throttle rapid navigation events (<100ms)', () => {
+            let now = 1000;
+            const nowSpy = vi
+                .spyOn(performance, 'now')
+                .mockImplementation(() => now);
+
+            const event1 = new KeyboardEvent('keydown', { key: 'ArrowRight' });
+            document.dispatchEvent(event1);
+
+            const afterFirst = store.dispatch.mock.calls.length;
+
+            now = 1050;
+
+            const event2 = new KeyboardEvent('keydown', { key: 'ArrowRight' });
+            document.dispatchEvent(event2);
+
+            expect(store.dispatch.mock.calls.length).toBe(afterFirst);
+
+            nowSpy.mockRestore();
+        });
+
+        it('should not steal Enter from focused HUD controls', () => {
+            const hud = document.createElement('div');
+            hud.id = 'presentation-hud';
+            const gridBtn = document.createElement('button');
+            gridBtn.id = 'hud-grid';
+            hud.appendChild(gridBtn);
+            document.body.appendChild(hud);
+
+            gridBtn.focus();
+
+            const event = new KeyboardEvent('keydown', { key: 'Enter', bubbles: true });
+            gridBtn.dispatchEvent(event);
+
+            expect(store.dispatch).not.toHaveBeenCalled();
+        });
+
         it('should navigate next on ArrowRight', () => {
             const event = new KeyboardEvent('keydown', { key: 'ArrowRight' });
             document.dispatchEvent(event);
@@ -510,15 +558,23 @@ describe('PresentationManager', () => {
             expect(store.dispatch).toHaveBeenCalledWith('NEXT_BUILD');
         });
 
-        it('should go to next slide when at last build', () => {
+        it('should go to next slide when at last build', async () => {
             store.getState.mockReturnValue({
                 editor: { mode: 'presentation', activeSlideId: 'slide-1' },
-                presentation: { buildIndex: 2, buildCount: 3 },
-                slides: { 'slide-1': { width: 1920, height: 1080 } }
+                presentation: { buildIndex: 2, buildCount: 3, currentSlideIndex: 0 },
+                slideOrder: ['slide-1', 'slide-2'],
+                slides: {
+                    'slide-1': { width: 1920, height: 1080 },
+                    'slide-2': { width: 1920, height: 1080 }
+                }
             });
 
-            const event = new KeyboardEvent('keydown', { key: 'ArrowRight' });
-            document.dispatchEvent(event);
+            // Avoid relying on accumulated DOM listeners; exercise the guarded navigation directly.
+            vi.spyOn(presentationManager, '_getPrefetchManager').mockReturnValue({
+                ensurePrefetched: vi.fn(() => Promise.resolve())
+            });
+
+            await presentationManager._navigateSlideGuarded('next');
 
             expect(store.dispatch).toHaveBeenCalledWith('PRESENTATION_NEXT');
         });
@@ -575,9 +631,42 @@ describe('PresentationManager', () => {
             expect(store.dispatch).toHaveBeenCalledWith('PREV_BUILD');
         });
 
-        it('should go to previous slide when at first build', () => {
-            const event = new KeyboardEvent('keydown', { key: 'ArrowLeft' });
-            document.dispatchEvent(event);
+        it('should go to previous slide when at first build', async () => {
+            store.getState.mockReturnValue({
+                editor: { mode: 'presentation', activeSlideId: 'slide-1' },
+                presentation: { buildIndex: -1, buildCount: 0, currentSlideIndex: 1 },
+                slideOrder: ['slide-0', 'slide-1'],
+                slides: {
+                    'slide-0': { width: 1920, height: 1080 },
+                    'slide-1': { width: 1920, height: 1080 }
+                }
+            });
+
+            vi.spyOn(presentationManager, '_getPrefetchManager').mockReturnValue({
+                ensurePrefetched: vi.fn(() => Promise.resolve())
+            });
+
+            await presentationManager._navigateSlideGuarded('prev');
+
+            expect(store.dispatch).toHaveBeenCalledWith('PRESENTATION_PREV');
+        });
+
+        it('should go to previous slide when at buildIndex = 0 (first build)', async () => {
+            store.getState.mockReturnValue({
+                editor: { mode: 'presentation', activeSlideId: 'slide-1' },
+                presentation: { buildIndex: 0, buildCount: 3, currentSlideIndex: 1 },
+                slideOrder: ['slide-0', 'slide-1'],
+                slides: {
+                    'slide-0': { width: 1920, height: 1080 },
+                    'slide-1': { width: 1920, height: 1080 }
+                }
+            });
+
+            vi.spyOn(presentationManager, '_getPrefetchManager').mockReturnValue({
+                ensurePrefetched: vi.fn(() => Promise.resolve())
+            });
+
+            await presentationManager._navigateSlideGuarded('prev');
 
             expect(store.dispatch).toHaveBeenCalledWith('PRESENTATION_PREV');
         });
@@ -652,7 +741,8 @@ describe('PresentationManager', () => {
             const clickEvent = new MouseEvent('click', { bubbles: true });
             mockPlayBtn.dispatchEvent(clickEvent);
 
-            expect(store.dispatch).toHaveBeenCalledWith('SET_MODE', 'presentation');
+            const picker = document.querySelector('[data-testid="presentation-mode-picker"]');
+            expect(picker).not.toBeNull();
         });
 
         it('should stop event propagation', () => {
@@ -805,7 +895,7 @@ describe('PresentationManager', () => {
     });
 
     describe('fullscreen change handling', () => {
-        it('should stop presentation when exiting fullscreen externally', () => {
+        it('should continue presenting when exiting fullscreen externally', () => {
             store.getState.mockReturnValue({
                 editor: { mode: 'presentation' },
                 presentation: {}
@@ -815,7 +905,8 @@ describe('PresentationManager', () => {
             const event = new Event('fullscreenchange');
             document.dispatchEvent(event);
 
-            expect(store.dispatch).toHaveBeenCalledWith('SET_MODE', 'edit');
+            // Spec: presentation continues windowed; no mode exit.
+            expect(store.dispatch).not.toHaveBeenCalledWith('SET_MODE', 'edit');
         });
 
         it('should not stop presentation if still in fullscreen', () => {

@@ -72,6 +72,22 @@ export class VisualElement {
             div.removeAttribute('data-text-style-id');
         }
 
+        // Presentation build metadata: entrance animations are treated as builds.
+        // This enables spec-compliant build discovery via DOM attributes.
+        const entrance = el?.animations?.entrance;
+        if (entrance && entrance !== 'none') {
+            div.setAttribute('data-build', 'true');
+            const order = el?.animations?.buildOrder;
+            if (Number.isFinite(order)) {
+                div.setAttribute('data-build-order', String(order));
+            } else {
+                div.removeAttribute('data-build-order');
+            }
+        } else {
+            div.removeAttribute('data-build');
+            div.removeAttribute('data-build-order');
+        }
+
         // Canonical shape metadata (use adapter so legacy `type:'rect'` etc are covered)
         const shapeKind = getShapeKind(el);
         if (shapeKind) {

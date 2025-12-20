@@ -99,8 +99,10 @@ class MenuActionHandler {
         this.register('insert-code', () => this.openCodeFillPanel());
 
         // Present operations
-        this.register('present-start', () => this.startPresentation(0));
+        this.register('present-start', () => this.startPresentation({ slideIndex: 0, requestFullscreen: true }));
         this.register('present-current', () => this.startPresentationFromCurrent());
+        this.register('present-window', () => this.startPresentation({ slideIndex: 0, requestFullscreen: false }));
+        this.register('present-presenter', () => this.startPresenterView());
 
         // Settings
         this.register('settings', () => {
@@ -287,15 +289,23 @@ class MenuActionHandler {
         }));
     }
 
-    startPresentation(slideIndex = 0) {
+    startPresentation({ slideIndex = 0, requestFullscreen = true } = {}) {
+        store.dispatch('PRESENTATION_SET_REQUEST_FULLSCREEN', requestFullscreen);
         store.dispatch('SET_MODE', 'presentation');
         store.dispatch('PRESENTATION_GOTO', slideIndex);
     }
 
     startPresentationFromCurrent() {
         const state = store.getState();
-        const currentIndex = state.slides.findIndex(s => s.id === state.editor.activeSlideId);
-        this.startPresentation(Math.max(0, currentIndex));
+        const currentIndex = state.slideOrder?.indexOf(state.editor.activeSlideId) ?? 0;
+        this.startPresentation({ slideIndex: Math.max(0, currentIndex), requestFullscreen: true });
+    }
+
+    startPresenterView() {
+        // Gate 7: start the audience presentation (windowed) and open a synced presenter window.
+        store.dispatch('PRESENTATION_SET_REQUEST_FULLSCREEN', false);
+        this.startPresentationFromCurrent();
+        window.dispatchEvent(new CustomEvent('presentation:open-presenter-view'));
     }
 
     showKeyboardShortcuts() {

@@ -25,7 +25,9 @@ function next(state: PresentationState): PresentationState {
     return {
       ...state,
       slideIndex: state.slideIndex + 1,
-      buildIndex: 0,
+      // Enter the next slide in the "pre-build" state so the first Next
+      // reveals build 0 (if any builds exist).
+      buildIndex: -1,
       buildCount: getBuildsForSlide(state.slideIndex + 1)
     };
   }
@@ -55,7 +57,8 @@ function prev(state: PresentationState): PresentationState {
 
 ### Build Count Determination
 - Count all elements with `data-build` attribute or `.build` class on slide.
-- If slide has no builds, `buildCount = 0` and `buildIndex = -1` (special case).
+- `buildIndex = -1` means "no builds executed yet" on the current slide.
+- If slide has no builds, `buildCount = 0` and `buildIndex` stays `-1`.
 - Builds execute in DOM order unless explicit `data-build-order` specified.
 
 ---
@@ -86,7 +89,7 @@ function jumpToSlide(slideNumber: number): boolean {
   // Navigate to target slide
   setState({
     slideIndex,
-    buildIndex: 0,
+    buildIndex: -1,
     buildCount: getBuildsForSlide(slideIndex)
   });
   
@@ -207,7 +210,7 @@ function nextSlide(state: PresentationState): PresentationState {
   return {
     ...state,
     slideIndex: nextVisible,
-    buildIndex: 0,
+    buildIndex: -1,
     buildCount: getBuildsForSlide(nextVisible)
   };
 }

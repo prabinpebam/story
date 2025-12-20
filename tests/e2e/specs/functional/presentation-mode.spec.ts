@@ -50,6 +50,26 @@ test.describe('Presentation Mode', () => {
         await expect(editor.sidebar).not.toBeVisible();
     });
 
+    test('should expose a mode picker (fullscreen vs windowed) from Play button', async ({ page }) => {
+        await expect(page.locator('[data-testid="presentation-mode-picker"]')).toHaveCount(0);
+        await page.locator('[data-testid="play-btn"]').click();
+        await expect(page.locator('[data-testid="presentation-mode-picker"]')).toBeVisible();
+
+        // Choose windowed start (does not require fullscreen)
+        await page.locator('[data-testid="present-windowed"]').click();
+        const mode = await editor.getEditorMode();
+        expect(mode).toBe('presentation');
+    });
+
+    test('should show fullscreen re-request button in HUD when not fullscreen', async ({ page }) => {
+        // Start in windowed mode
+        await page.locator('[data-testid="play-btn"]').click();
+        await page.locator('[data-testid="present-windowed"]').click();
+
+        // When not fullscreen, the HUD should offer a re-request button.
+        await expect(page.locator('[data-testid="hud-fullscreen-btn"]')).toBeVisible();
+    });
+
     test('should hide editor-only chrome and placeholder affordances in presentation', async ({ page }) => {
         // Inject deterministic fixtures so this test does not depend on deck content.
         await page.evaluate(() => {
@@ -94,6 +114,166 @@ test.describe('Presentation Mode', () => {
             document.getElementById('__pw_placeholder_empty')?.remove();
             document.getElementById('__pw_placeholder_icon')?.remove();
         });
+    });
+
+    test('should scale using offset translate + scale (no -50% centering)', async ({ page }) => {
+        await page.locator('[data-testid="play-btn"]').click();
+        await page.locator('[data-testid="present-windowed"]').click();
+
+        const scaleInfo = await page.evaluate(() => {
+            const viewport = document.getElementById('viewport');
+            if (!viewport) return null;
+            const style = getComputedStyle(viewport);
+            return {
+                top: style.top,
+                left: style.left,
+                transformOrigin: style.transformOrigin,
+                inlineTransform: viewport.style.transform
+            };
+        });
+
+        expect(scaleInfo).toBeTruthy();
+        expect(scaleInfo?.top).toBe('0px');
+        expect(scaleInfo?.left).toBe('0px');
+        expect(scaleInfo?.transformOrigin).toBe('0px 0px');
+        expect(scaleInfo?.inlineTransform).toContain('translate(');
+        expect(scaleInfo?.inlineTransform).toContain('scale(');
+        expect(scaleInfo?.inlineTransform).not.toContain('translate(-50%');
+    });
+
+    test('should use token-based presentation stage background', async ({ page }) => {
+        await page.locator('[data-testid="play-btn"]').click();
+        await page.locator('[data-testid="present-windowed"]').click();
+
+        const colors = await page.evaluate(() => {
+            const stage = document.getElementById('main-stage');
+            if (!stage) return null;
+
+            const probe = document.createElement('div');
+            probe.style.position = 'fixed';
+            probe.style.left = '-9999px';
+            probe.style.top = '-9999px';
+            probe.style.backgroundColor = 'var(--color-presentation-stage-bg)';
+            document.body.appendChild(probe);
+
+            const stageBg = getComputedStyle(stage).backgroundColor;
+            const tokenBg = getComputedStyle(probe).backgroundColor;
+
+            probe.remove();
+            return { stageBg, tokenBg };
+        });
+
+        expect(colors).toBeTruthy();
+        expect(colors?.stageBg).toBe(colors?.tokenBg);
+    });
+
+    test('should never render presenter-only loading indicator in audience view', async ({ page }) => {
+        // Audience view must never include presenter-only diagnostics UI.
+        await expect(page.locator('[data-testid="pm-presenter-loading"]')).toHaveCount(0);
+
+        await editor.startPresentation();
+
+        await expect(page.locator('[data-testid="pm-presenter-loading"]')).toHaveCount(0);
+
+        // Navigate once to ensure we don't accidentally render it during nav.
+        await presentation.next();
+        await expect(page.locator('[data-testid="pm-presenter-loading"]')).toHaveCount(0);
+    });
+
+    test('should show presenter-only loading indicator while navigation is gated (and hide after ready)', async ({ page, getState }) => {
+        // Presenter view is identified via query param.
+        await page.goto('/?presenter=1', { waitUntil: 'domcontentloaded', timeout: 60000 });
+        await editor.waitForLoad();
+
+        await page.locator('[data-testid="play-btn"]').click();
+        await page.locator('[data-testid="present-windowed"]').click();
+
+        // Stall HOT prefetch deterministically, then release it.
+        await page.evaluate(() => {
+            const win = window as any;
+            if (!win.__presentationPrefetch) {
+                win.__presentationPrefetch = {};
+            }
+
+            let resolveGate: (() => void) | null = null;
+            const gate = new Promise<void>((resolve) => {
+                resolveGate = resolve;
+            });
+
+            win.__pwResolveHotPrefetch = () => resolveGate?.();
+
+            win.__presentationPrefetch.ensurePrefetched = () => gate;
+        });
+
+        // Trigger slide navigation (not build navigation).
+        await page.locator('[data-testid="hud-next-btn"]').click();
+
+        // Presenter-only loader should appear and presentation should pause while gated.
+        await expect(page.locator('[data-testid="pm-presenter-loading"]')).toBeVisible();
+        await expect
+            .poll(async () => (await getState()).presentation.isPaused, { timeout: 3000 })
+            .toBe(true);
+        await expect
+            .poll(async () => (await getState()).presentation.navLoading, { timeout: 3000 })
+            .toBe(true);
+
+        // Release prefetch gate and ensure loader clears and navigation completes.
+        const before = await getState();
+        const beforeIndex = before.presentation.currentSlideIndex;
+
+        await page.evaluate(() => (window as any).__pwResolveHotPrefetch?.());
+
+        await expect
+            .poll(async () => (await getState()).presentation.isPaused, { timeout: 3000 })
+            .toBe(false);
+        await expect
+            .poll(async () => (await getState()).presentation.navLoading, { timeout: 3000 })
+            .toBe(false);
+        await expect
+            .poll(async () => (await getState()).presentation.currentSlideIndex, { timeout: 3000 })
+            .toBe(beforeIndex + 1);
+
+        // Element exists in presenter view but should be hidden when not loading.
+        await expect(page.locator('[data-testid="pm-presenter-loading"]')).toHaveClass(/hidden/);
+    });
+
+    test('should bypass prefetch gating when offline (navigator.onLine=false)', async ({ page, getState }) => {
+        await editor.startPresentation();
+
+        // Force offline signal without actually breaking the dev server network.
+        await page.evaluate(() => {
+            try {
+                Object.defineProperty(navigator, 'onLine', { get: () => false, configurable: true });
+            } catch {
+                // Fallback for engines that reject defineProperty on navigator.
+                (navigator as any).__defineGetter__('onLine', () => false);
+            }
+        });
+
+        // If prefetch is incorrectly invoked while offline, record it.
+        await page.evaluate(() => {
+            const win = window as any;
+            win.__pwPrefetchCalled = 0;
+            if (!win.__presentationPrefetch) {
+                win.__presentationPrefetch = {};
+            }
+            win.__presentationPrefetch.ensurePrefetched = () => {
+                win.__pwPrefetchCalled++;
+                return Promise.resolve();
+            };
+        });
+
+        const before = await getState();
+        const beforeIndex = before.presentation.currentSlideIndex;
+
+        await page.locator('[data-testid="hud-next-btn"]').click();
+
+        await expect
+            .poll(async () => (await getState()).presentation.currentSlideIndex, { timeout: 3000 })
+            .toBe(beforeIndex + 1);
+
+        const called = await page.evaluate(() => (window as any).__pwPrefetchCalled);
+        expect(called).toBe(0);
     });
 
     test('should enforce forbidden selector checklist in presentation (DOM audit)', async ({ page }) => {
@@ -324,6 +504,25 @@ test.describe('Presentation Mode', () => {
         expect(state.presentation.currentSlideIndex).toBe(initialIndex);
     });
 
+    test('should prioritize focused HUD controls over global navigation shortcuts', async ({ page, getState }) => {
+        await editor.startPresentation();
+
+        // Reveal HUD and focus a control.
+        await page.mouse.move(10, 10);
+        const hudGridBtn = page.getByTestId('hud-grid-btn');
+        await hudGridBtn.focus();
+
+        const before = await getState();
+
+        // Enter should activate the focused button (open grid), not advance slide/build.
+        await page.keyboard.press('Enter');
+        await expect(presentation.gridView).toBeVisible();
+
+        const after = await getState();
+        expect(after.presentation.currentSlideIndex).toBe(before.presentation.currentSlideIndex);
+        expect(after.presentation.buildIndex).toBe(before.presentation.buildIndex);
+    });
+
     test('should advance on click-to-advance when clicking the slide area', async ({ page, getState }) => {
         await editor.startPresentation();
 
@@ -390,6 +589,98 @@ test.describe('Presentation Mode', () => {
         
         // Verify grid view is hidden again
         await expect(presentation.gridView).not.toBeVisible();
+    });
+
+    test('should jump via grid and support back-stack (Alt+Backspace)', async ({ page, getState }) => {
+        await editor.startPresentation();
+
+        const before = await getState();
+        test.skip((before.slideOrder?.length ?? 0) < 2, 'Need at least 2 slides');
+
+        // Open grid.
+        await presentation.toggleGrid();
+        await expect(presentation.gridView).toBeVisible();
+
+        // Jump to slide 2.
+        await page.locator('.grid-slide-item').nth(1).click();
+
+        const afterJump = await getState();
+        expect(afterJump.presentation.currentSlideIndex).toBe(1);
+
+        // Go back to previous position.
+        await page.keyboard.down('Alt');
+        await page.keyboard.press('Backspace');
+        await page.keyboard.up('Alt');
+
+        const afterBack = await getState();
+        expect(afterBack.presentation.currentSlideIndex).toBe(before.presentation.currentSlideIndex);
+    });
+
+    test('should not start slide transition until assets are decoded (readiness gate)', async ({ page, dispatchAction, getState }) => {
+        await editor.startPresentation();
+
+        // Patch decode() to be controllably delayed.
+        await page.evaluate(() => {
+            const original = HTMLImageElement.prototype.decode;
+            let resolver: null | (() => void) = null;
+            const gate = new Promise<void>((resolve) => {
+                resolver = resolve;
+            });
+
+            // Expose resolver for the test to release.
+            (window as any).__pwResolveDecode = () => resolver?.();
+            (window as any).__pwRestoreDecode = () => {
+                HTMLImageElement.prototype.decode = original;
+            };
+
+            HTMLImageElement.prototype.decode = function () {
+                return gate;
+            };
+        });
+
+        const state = await getState();
+        const slide2 = state.slideOrder?.[1];
+        if (!slide2) throw new Error('Expected at least 2 slides');
+
+        // Inject an image into slide 2 to force decode gating.
+        await dispatchAction('UPDATE_SLIDE', {
+            id: slide2,
+            elements: {
+                ...(state.slides?.[slide2]?.elements || {}),
+                __pw_gate_img: {
+                    id: '__pw_gate_img',
+                    type: 'image',
+                    x: 0,
+                    y: 0,
+                    width: 200,
+                    height: 200,
+                    rotation: 0,
+                    src: 'data:image/gif;base64,R0lGODlhAQABAAAAACw='
+                }
+            },
+            elementOrder: Array.from(new Set([...(state.slides?.[slide2]?.elementOrder || []), '__pw_gate_img']))
+        });
+
+        // Navigate to slide 2.
+        await presentation.next();
+
+        // We should enter loading status and NOT start transitioning until decode resolves.
+        await expect(page.locator('#slide-content')).toHaveAttribute('data-pm-transition-status', 'loading');
+        await expect(page.locator('#slide-content')).toHaveAttribute('data-pm-transition-target', slide2);
+
+        // Release decode, then transition should proceed and settle back to idle.
+        await page.evaluate(() => (window as any).__pwResolveDecode?.());
+        await expect
+            .poll(async () => await page.locator('#slide-content').getAttribute('data-pm-transition-status'))
+            .not.toBe('loading');
+        await expect(page.locator('#slide-content')).toHaveAttribute('data-pm-transition-status', 'idle');
+
+        // Cleanup
+        await page.evaluate(() => {
+            (window as any).__pwRestoreDecode?.();
+            delete (window as any).__pwResolveDecode;
+            delete (window as any).__pwRestoreDecode;
+        });
     });
 
     test('should clear overlays when exiting presentation mode', async ({ getState }) => {

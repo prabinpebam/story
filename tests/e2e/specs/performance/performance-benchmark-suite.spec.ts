@@ -343,6 +343,134 @@ test.describe('Performance Benchmark Suite (no CI gating)', () => {
         });
       };
 
+      win.__bench.measurePresentationEntry = (slideIndex: number = 0) => {
+        const store = getStore();
+        const container = document.querySelector('#slide-content');
+        if (!container) throw new Error('Missing #slide-content');
+
+        const start = performance.now();
+        // Ensure a known entry slide.
+        store.dispatch('PRESENTATION_GOTO', slideIndex);
+
+        // Drive entry via menu action (matches normal UX).
+        window.dispatchEvent(new CustomEvent('story:menu-action', { detail: { action: 'present-start' } }));
+
+        return new Promise((resolve, reject) => {
+          const deadline = performance.now() + 5000;
+
+          const tick = () => {
+            const st = store.getState();
+            const modeOk = st?.editor?.mode === 'presentation';
+            const status = (container as HTMLElement).getAttribute('data-pm-transition-status');
+            const readyOk = status === 'idle';
+
+            if (modeOk && readyOk) {
+              requestAnimationFrame(() => {
+                const end = performance.now();
+                resolve({ durationMs: end - start });
+              });
+              return;
+            }
+
+            if (performance.now() > deadline) {
+              reject(new Error(`Timed out waiting for presentation entry (modeOk=${modeOk}, status=${status})`));
+              return;
+            }
+            requestAnimationFrame(tick);
+          };
+
+          tick();
+        });
+      };
+
+      win.__bench.measurePresentationNav = (direction: 'next' | 'prev') => {
+        const store = getStore();
+        const container = document.querySelector('#slide-content');
+        if (!container) throw new Error('Missing #slide-content');
+
+        const st = store.getState();
+        if (st?.editor?.mode !== 'presentation') throw new Error('Not in presentation mode');
+
+        const startState = store.getState();
+        const startIndex = Number(startState?.presentation?.currentSlideIndex ?? 0);
+        const startActiveId = startState?.editor?.activeSlideId ?? null;
+
+        const start = performance.now();
+        store.dispatch(direction === 'next' ? 'PRESENTATION_NEXT' : 'PRESENTATION_PREV');
+
+        return new Promise((resolve, reject) => {
+          const deadline = performance.now() + 5000;
+          const tick = () => {
+            const s = store.getState();
+            const activeId = s?.editor?.activeSlideId ?? null;
+            const curIndex = Number(s?.presentation?.currentSlideIndex ?? 0);
+            const status = (container as HTMLElement).getAttribute('data-pm-transition-status');
+
+            const navigated = curIndex !== startIndex || activeId !== startActiveId;
+            const ready = status === 'idle';
+
+            if (navigated && ready) {
+              const end = performance.now();
+              resolve({
+                durationMs: end - start,
+                fromId: startActiveId,
+                toId: activeId,
+                fromIndex: startIndex,
+                toIndex: curIndex,
+              });
+              return;
+            }
+            if (performance.now() > deadline) {
+              reject(
+                new Error(
+                  `Timed out waiting for presentation nav (dir=${direction}, startIndex=${startIndex}, curIndex=${curIndex}, startActive=${startActiveId}, active=${activeId}, status=${status})`
+                )
+              );
+              return;
+            }
+            requestAnimationFrame(tick);
+          };
+          tick();
+        });
+      };
+
+      win.__bench.measurePresentationGridOpen = () => {
+        const store = getStore();
+        const grid = document.querySelector('#presentation-grid-view');
+        if (!grid) throw new Error('Missing #presentation-grid-view');
+
+        const st = store.getState();
+        if (st?.editor?.mode !== 'presentation') throw new Error('Not in presentation mode');
+
+        const start = performance.now();
+        store.dispatch('TOGGLE_GRID_VIEW');
+
+        return new Promise((resolve, reject) => {
+          const deadline = performance.now() + 5000;
+
+          const tick = () => {
+            const s = store.getState();
+            const open = s?.presentation?.gridView === true;
+            const rect = (grid as HTMLElement).getBoundingClientRect();
+            const visible = rect.width > 0 && rect.height > 0;
+            if (open && visible) {
+              requestAnimationFrame(() => {
+                const end = performance.now();
+                resolve({ durationMs: end - start });
+              });
+              return;
+            }
+            if (performance.now() > deadline) {
+              reject(new Error(`Timed out waiting for grid open (open=${open}, visible=${visible})`));
+              return;
+            }
+            requestAnimationFrame(tick);
+          };
+
+          tick();
+        });
+      };
+
       win.__bench.measureDragStart = (elementId: string) => {
         const cm = (win as any).app?.canvasManager;
         if (!cm) throw new Error('Missing app.canvasManager');
@@ -800,6 +928,88 @@ test.describe('Performance Benchmark Suite (no CI gating)', () => {
       });
       expect(ms).toBeGreaterThan(0);
     }
+
+    // === Scenario: presentation.entry / presentation.nav / presentation.grid_open ===
+    console.log('[perf:bench] scenario presentation.entry');
+    const entryTotal = warmupIterations + Math.min(perMetricIterations, 6);
+    for (let i = 0; i < entryTotal; i++) {
+      // Ensure we're not currently presenting.
+      await page.evaluate(() => {
+        const win = window as any;
+        const store = win.__TEST_STORE__ || win._storyAppStore;
+        store.dispatch('SET_MODE', 'edit');
+      });
+
+      const r = (await withTimeout(page.evaluate(() => (window as any).__bench.measurePresentationEntry(0)) as any, 7000, 'pm_entry')) as any;
+      const ms = Number(r?.durationMs);
+      if (i < warmupIterations) continue;
+      writeBenchResult({
+        metricId: 'pm.entry.first_frame_ms',
+        scenarioId: 'presentation.entry',
+        unit: 'ms',
+        value: ms,
+        details: { iteration: i - warmupIterations, note: 'Provisional end condition: #slide-content [data-pm-transition-status] becomes idle after present-start.' },
+      });
+      expect(ms).toBeGreaterThan(0);
+    }
+
+    console.log('[perf:bench] scenario presentation.nav');
+    const navTotal = warmupIterations + Math.min(perMetricIterations, 10);
+    // Ensure presenting.
+    await page.evaluate(() => (window as any).__bench.measurePresentationEntry(0));
+    for (let i = 0; i < navTotal; i++) {
+      const dir: 'next' | 'prev' = i % 2 === 0 ? 'next' : 'prev';
+      const r = (await withTimeout(page.evaluate((d) => (window as any).__bench.measurePresentationNav(d), dir) as any, 7000, 'pm_nav')) as any;
+      const ms = Number(r?.durationMs);
+      if (i < warmupIterations) continue;
+      writeBenchResult({
+        metricId: dir === 'next' ? 'pm.nav.next_ms' : 'pm.nav.prev_ms',
+        scenarioId: 'presentation.nav',
+        unit: 'ms',
+        value: ms,
+        details: {
+          iteration: i - warmupIterations,
+          direction: dir,
+          fromId: r?.fromId ?? null,
+          toId: r?.toId ?? null,
+          fromIndex: r?.fromIndex ?? null,
+          toIndex: r?.toIndex ?? null,
+          note: 'Provisional end condition: active slide/index changes + transition-status returns to idle.',
+        },
+      });
+      expect(ms).toBeGreaterThan(0);
+    }
+
+    console.log('[perf:bench] scenario presentation.grid_open');
+    const gridTotal = warmupIterations + Math.min(perMetricIterations, 6);
+    for (let i = 0; i < gridTotal; i++) {
+      // Ensure grid starts closed.
+      await page.evaluate(() => {
+        const win = window as any;
+        const store = win.__TEST_STORE__ || win._storyAppStore;
+        const st = store.getState();
+        if (st?.presentation?.gridView === true) store.dispatch('TOGGLE_GRID_VIEW');
+      });
+
+      const r = (await withTimeout(page.evaluate(() => (window as any).__bench.measurePresentationGridOpen()) as any, 7000, 'pm_grid_open')) as any;
+      const ms = Number(r?.durationMs);
+      if (i < warmupIterations) continue;
+      writeBenchResult({
+        metricId: 'pm.grid.open_ms',
+        scenarioId: 'presentation.grid_open',
+        unit: 'ms',
+        value: ms,
+        details: { iteration: i - warmupIterations, note: 'Provisional end condition: state.presentation.gridView=true and #presentation-grid-view has a non-zero client rect.' },
+      });
+      expect(ms).toBeGreaterThan(0);
+    }
+
+    // Exit presentation before the remainder of the suite.
+    await page.evaluate(() => {
+      const win = window as any;
+      const store = win.__TEST_STORE__ || win._storyAppStore;
+      store.dispatch('SET_MODE', 'edit');
+    });
 
     // === Scenario: idle.typical (steady frames) ===
     for (let i = 0; i < warmupIterations + cappedFrameIterations; i++) {

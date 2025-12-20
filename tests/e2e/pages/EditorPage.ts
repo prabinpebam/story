@@ -265,6 +265,9 @@ export class EditorPage {
      */
     async startPresentation() {
         await this.playBtn.click();
+        // Spec UX: Play button opens mode picker.
+        await this.page.locator('[data-testid="presentation-mode-picker"]').waitFor({ state: 'visible' });
+        await this.page.locator('[data-testid="present-fullscreen"]').click();
         await this.page.waitForTimeout(500); // Wait for mode transition
     }
     

@@ -1830,11 +1830,15 @@ export function createInitialState() {
             currentSlideIndex: 0,
             buildIndex: -1,
             buildCount: 0,
+            buildCountBySlideId: {},
             isPaused: false,
+            requestFullscreen: true,
             blackScreen: false,
             whiteScreen: false,
             laserPointer: false,
-            gridView: false
+            gridView: false,
+            backStack: [],
+            backStackMaxDepth: 10
         },
         ui: {
             isInteracting: false,

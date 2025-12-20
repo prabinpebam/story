@@ -235,72 +235,56 @@ Recommended rule:
 <!-- BEGIN AUTO:LAST_RUN -->
 ## 10) Latest Benchmark Run (Auto-Generated)
 
-- Run timestamp: 2025-12-18_14-39-32
+- Run timestamp: 2025-12-20_19-15-10
 - Environment class: runner.local
-- Output file: `documentation/03-automation/perf-runs/2025-12-18_14-39-32.jsonl`
+- Output file: `documentation/03-automation/perf-runs/2025-12-20_19-15-10.jsonl`
 
 ### 10.0 Run Metadata
 
 - Scenario: `suite.all`
-- Warmup: 1
-- Iterations: 1
+- Warmup: 5
+- Iterations: 10
 - Browser: 143.0.7499.4
 - Viewport: 1280x720 @ dpr 1
 - User agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.7499.4 Safari/537.36
-- Host OS (node): win32 10.0.26436
-- CPU (node): snapdragon (tm) 8cx gen 3 @ 3.40 GHz
+- Host OS (node): win32 10.0.26220
+- CPU (node): 13th Gen Intel(R) Core(TM) i9-13900K
 
 ### 10.1 Results (distribution vs Target/Gate)
 
 | Metric ID | Scenario ID | n | p50 | p95 | p99 | Target | Gate | Status |
 |---|---|---:|---:|---:|---:|---:|---:|---|
-| `selection.highlight.latency_ms` | `selection.simple_rect` | 1 | 0.3 | 0.3 | 0.3 | 50ms | 80ms | PASS |
-| `selection.pi_ready.latency_ms` | `selection.simple_rect` | 1 | 0.8 | 0.8 | 0.8 | 80ms | 120ms | PASS |
-| `tool_switch.latency_ms` | `tool_switch.text` | 1 | 50.3 | 50.3 | 50.3 | 50ms | 80ms | BELOW TARGET |
-| `drag.start.latency_ms` | `drag.simple_shape` | 1 | 15.7 | 15.7 | 15.7 | 16ms | 32ms | PASS |
-| `typing.latency_ms` | `typing.simple_text` | 1 | 9.1 | 9.1 | 9.1 | 16ms | 30ms | PASS |
-| `slide_switch.latency_ms` | `slide_switch.typical_deck` | 1 | 35.2 | 35.2 | 35.2 | 100ms | 180ms | PASS |
-| `theme_switch.latency_ms` | `theme_switch.typical_deck` | 1 | 6.2 | 6.2 | 6.2 | 120ms | 200ms | PASS |
-| `frame.steady.p95_ms` | `idle.typical` | 1 | 16.8 | 16.8 | 16.8 | 16.7ms | 18.2ms | BELOW TARGET |
+| `selection.highlight.latency_ms` | `selection.simple_rect` | 10 | 0.9 | 4.0 | 4.0 | 50ms | 80ms | PASS |
+| `selection.pi_ready.latency_ms` | `selection.simple_rect` | 10 | 0.3 | 0.5 | 0.5 | 80ms | 120ms | PASS |
+| `tool_switch.latency_ms` | `tool_switch.text` | 10 | 40.6 | 45.9 | 45.9 | 50ms | 80ms | PASS |
+| `drag.start.latency_ms` | `drag.simple_shape` | 0 | — | — | — | 16ms | 32ms | NO DATA |
+| `typing.latency_ms` | `typing.simple_text` | 6 | 4.7 | 5.2 | 5.2 | 16ms | 30ms | PASS |
+| `slide_switch.latency_ms` | `slide_switch.typical_deck` | 10 | 42.0 | 44.3 | 44.3 | 100ms | 180ms | PASS |
+| `theme_switch.latency_ms` | `theme_switch.typical_deck` | 10 | 10.4 | 15.3 | 15.3 | 120ms | 200ms | PASS |
+| `pm.entry.first_frame_ms` | `presentation.entry` | 6 | 49.2 | 63.5 | 63.5 | 300ms | 800ms | PASS |
+| `pm.nav.next_ms` | `presentation.nav` | 5 | 14.3 | 16.4 | 16.4 | 50ms | 150ms | PASS |
+| `pm.nav.prev_ms` | `presentation.nav` | 5 | 16.1 | 17.8 | 17.8 | 50ms | 150ms | PASS |
+| `pm.grid.open_ms` | `presentation.grid_open` | 6 | 7.3 | 7.7 | 7.7 | 200ms | 500ms | PASS |
+| `frame.steady.p95_ms` | `idle.typical` | 10 | 16.7 | 16.8 | 16.8 | 16.7ms | 18.2ms | BELOW TARGET |
 | `frame.interaction.p95_ms` | `selection.simple_rect` | 0 | — | — | — | 24ms | 33ms | NO DATA |
-| `longtask.count` | `selection.simple_rect` | 1 | 0.0 | 0.0 | 0.0 | 0 | 0 | PASS |
-| `render.simple_slide.p95_ms` | `render.simple_slide` | 1 | 1.7 | 1.7 | 1.7 | 16ms | 33ms | PASS |
-| `render.complex_slide.p95_ms` | `render.complex_slide` | 1 | 10.8 | 10.8 | 10.8 | 50ms | 100ms | PASS |
-| `hittest.pointer.p95_ms` | `selection.simple_rect` | 1 | 0.5 | 0.5 | 0.5 | 2ms | 5ms | PASS |
-| `startup.tti_ms` | `startup.warm` | 1 | 566.7 | 566.7 | 566.7 | 2000ms | — | PASS |
-| `startup.first_frame_ms` | `startup.warm` | 1 | 582.5 | 582.5 | 582.5 | 1000ms | — | PASS |
+| `longtask.count` | `selection.simple_rect` | 10 | 0.0 | 0.0 | 0.0 | 0 | 0 | PASS |
+| `render.simple_slide.p95_ms` | `render.simple_slide` | 10 | 0.5 | 0.7 | 0.7 | 16ms | 33ms | PASS |
+| `render.complex_slide.p95_ms` | `render.complex_slide` | 10 | 11.1 | 12.8 | 12.8 | 50ms | 100ms | PASS |
+| `hittest.pointer.p95_ms` | `selection.simple_rect` | 10 | 0.1 | 0.1 | 0.1 | 2ms | 5ms | PASS |
+| `startup.tti_ms` | `startup.warm` | 1 | 503.4 | 503.4 | 503.4 | 2000ms | — | PASS |
+| `startup.first_frame_ms` | `startup.warm` | 1 | 519.5 | 519.5 | 519.5 | 1000ms | — | PASS |
 | `memory.heap_delta_mb` | `soak.60min` | 1 | 0.0 | 0.0 | 0.0 | — | — | PASS |
-| `memory.detached_nodes` | `soak.60min` | 1 | -61892.0 | -61892.0 | -61892.0 | — | — | PASS |
+| `memory.detached_nodes` | `soak.60min` | 1 | -14854.0 | -14854.0 | -14854.0 | — | — | PASS |
 
 
 ## 11) Findings and Improvement Plans (Auto-Generated)
 
 Each item below includes a generated triage hypothesis and an improvement plan template. Replace/augment with trace-backed findings when available.
 
-### 11.4 tool_switch.latency_ms (tool_switch.text)
+### 11.4 frame.steady.p95_ms (idle.typical)
 
 - Status: BELOW TARGET
-- Distribution: n=1, p50=50.3ms, p95=50.3ms, p99=50.3ms
-- Comparison rule: lower is better (uses p95 as score)
-- Score: 50.3ms (target 50ms, gate 80ms)
-- Delta vs target: 0.3ms
-
-- Likely contributors (hypotheses):
-
-- Evidence to collect (next run):
-  - Capture Playwright trace and identify the slowest iteration
-  - Capture DevTools Performance trace focusing on the interaction window
-  - Record long task counts during the interaction (if available)
-
-- Improvement plan (start here):
-  - Run workstream A from the audit plan for this scenario
-  - Isolate the critical path stage (hit-test vs render vs PI) with additional in-page marks
-  - Implement the smallest change that reduces p95, then re-measure (warmup + N iterations)
-
-### 11.24 frame.steady.p95_ms (idle.typical)
-
-- Status: BELOW TARGET
-- Distribution: n=1, p50=16.8ms, p95=16.8ms, p99=16.8ms
+- Distribution: n=10, p50=16.7ms, p95=16.8ms, p99=16.8ms
 - Comparison rule: lower is better (uses p95 as score)
 - Score: 16.8ms (target 16.7ms, gate 18.2ms)
 - Delta vs target: 0.1ms
@@ -395,6 +379,42 @@ Rule:
       "direction": "lte",
       "target": 120,
       "gate": 200
+    },
+    {
+      "metricId": "pm.entry.first_frame_ms",
+      "scenarioId": "presentation.entry",
+      "category": "interaction.presentation",
+      "unit": "ms",
+      "direction": "lte",
+      "target": 300,
+      "gate": 800
+    },
+    {
+      "metricId": "pm.nav.next_ms",
+      "scenarioId": "presentation.nav",
+      "category": "interaction.presentation",
+      "unit": "ms",
+      "direction": "lte",
+      "target": 50,
+      "gate": 150
+    },
+    {
+      "metricId": "pm.nav.prev_ms",
+      "scenarioId": "presentation.nav",
+      "category": "interaction.presentation",
+      "unit": "ms",
+      "direction": "lte",
+      "target": 50,
+      "gate": 150
+    },
+    {
+      "metricId": "pm.grid.open_ms",
+      "scenarioId": "presentation.grid_open",
+      "category": "interaction.presentation",
+      "unit": "ms",
+      "direction": "lte",
+      "target": 200,
+      "gate": 500
     },
     {
       "metricId": "frame.steady.p95_ms",

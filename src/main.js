@@ -40,6 +40,18 @@ class App {
 
     async initAsync() {
         console.log('Story App Initializing...');
+
+        // Register Service Worker (offline-first caching) in production builds.
+        // Keep dev free of SW caching issues.
+        try {
+            if (import.meta?.env?.PROD && 'serviceWorker' in navigator && window.location.protocol !== 'file:') {
+                navigator.serviceWorker.register('/sw.js').catch(() => {
+                    // Best-effort.
+                });
+            }
+        } catch {
+            // Best-effort.
+        }
         
         // Boot authentication first (handles OAuth callback if needed)
         this.authBootResult = await bootAuth();

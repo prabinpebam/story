@@ -5,11 +5,14 @@ export class HUD {
         this.container = document.getElementById(containerId);
         this.hideTimeout = null;
         this.isVisible = false;
+        this.isPresenter = false;
         this.init();
     }
 
     init() {
         if (!this.container) return;
+
+        this.isPresenter = new URLSearchParams(window.location.search).get('presenter') === '1';
 
         // Create UI
         this.render();
@@ -29,28 +32,32 @@ export class HUD {
     }
 
     render() {
+        const presenterLoading = this.isPresenter
+            ? '<div id="pm-presenter-loading" class="pm-presenter-loading hidden" data-testid="pm-presenter-loading" role="status" aria-live="polite">Loading…</div>'
+            : '';
+
         this.container.innerHTML = `
-            <div class="hud-controls">
-                <button id="hud-prev" class="hud-btn" data-testid="hud-prev-btn" title="Previous (Left Arrow)"><i class="fa-solid fa-chevron-left"></i></button>
+            ${presenterLoading}
+            <div class="hud-controls" role="toolbar" aria-label="Presentation controls">
+                <button id="hud-prev" class="hud-btn" data-testid="hud-prev-btn" title="Previous (Left Arrow)" aria-label="Previous slide" aria-keyshortcuts="ArrowLeft Backspace"><i class="fa-solid fa-chevron-left" aria-hidden="true"></i></button>
                 <div class="hud-divider"></div>
-                <button id="hud-laser" class="hud-btn" data-testid="hud-laser-btn" title="Laser Pointer (L)"><i class="fa-solid fa-wand-magic-sparkles"></i></button>
-                <button id="hud-grid" class="hud-btn" data-testid="hud-grid-btn" title="Slide Navigator (G)"><i class="fa-solid fa-border-all"></i></button>
-                <button id="hud-black" class="hud-btn" data-testid="hud-black-btn" title="Black Screen (B)"><i class="fa-solid fa-eye-slash"></i></button>
+                <button id="hud-laser" class="hud-btn" data-testid="hud-laser-btn" title="Laser Pointer (L)" aria-label="Toggle laser pointer" aria-keyshortcuts="L" aria-pressed="false"><i class="fa-solid fa-wand-magic-sparkles" aria-hidden="true"></i></button>
+                <button id="hud-grid" class="hud-btn" data-testid="hud-grid-btn" title="Slide Navigator (G)" aria-label="Open grid navigator" aria-keyshortcuts="G" aria-pressed="false"><i class="fa-solid fa-border-all" aria-hidden="true"></i></button>
+                <button id="hud-black" class="hud-btn" data-testid="hud-black-btn" title="Black Screen (B)" aria-label="Toggle black screen" aria-keyshortcuts="B" aria-pressed="false"><i class="fa-solid fa-eye-slash" aria-hidden="true"></i></button>
+                <button id="hud-fullscreen" class="hud-btn hidden" data-testid="hud-fullscreen-btn" title="Enter Fullscreen" aria-label="Enter fullscreen"><i class="fa-solid fa-expand" aria-hidden="true"></i></button>
                 <div class="hud-divider"></div>
-                <button id="hud-next" class="hud-btn" data-testid="hud-next-btn" title="Next (Right Arrow)"><i class="fa-solid fa-chevron-right"></i></button>
+                <span id="hud-counter" class="hud-counter" data-testid="hud-counter" role="status" aria-live="polite">1 / 1</span>
+                <button id="hud-next" class="hud-btn" data-testid="hud-next-btn" title="Next (Right Arrow)" aria-label="Next slide" aria-keyshortcuts="ArrowRight PageDown"><i class="fa-solid fa-chevron-right" aria-hidden="true"></i></button>
                 <div class="hud-divider"></div>
-                <button id="hud-exit" class="hud-btn" data-testid="hud-exit-btn" title="Exit (Esc)"><i class="fa-solid fa-xmark"></i></button>
+                <button id="hud-exit" class="hud-btn" data-testid="hud-exit-btn" title="Exit (Esc)" aria-label="Exit presentation" aria-keyshortcuts="Escape"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
             </div>
         `;
 
         // Bind Button Actions
         this.container.querySelector('#hud-prev').onclick = () => {
             const state = store.getState();
-            if (state.presentation.buildIndex > -1) {
-                store.dispatch('PREV_BUILD');
-            } else {
-                store.dispatch('PRESENTATION_PREV');
-            }
+            if (state.presentation.buildIndex > 0) store.dispatch('PREV_BUILD');
+            else window.dispatchEvent(new CustomEvent('presentation:navigate', { detail: { direction: 'prev' } }));
         };
 
         this.container.querySelector('#hud-next').onclick = () => {
@@ -58,7 +65,7 @@ export class HUD {
             if (state.presentation.buildIndex < state.presentation.buildCount - 1) {
                 store.dispatch('NEXT_BUILD');
             } else {
-                store.dispatch('PRESENTATION_NEXT');
+                window.dispatchEvent(new CustomEvent('presentation:navigate', { detail: { direction: 'next' } }));
             }
         };
 
@@ -66,13 +73,25 @@ export class HUD {
         this.container.querySelector('#hud-grid').onclick = () => store.dispatch('TOGGLE_GRID_VIEW');
         this.container.querySelector('#hud-black').onclick = () => store.dispatch('TOGGLE_BLACK_SCREEN');
         this.container.querySelector('#hud-exit').onclick = () => store.dispatch('SET_MODE', 'edit');
+
+        this.container.querySelector('#hud-fullscreen').onclick = async () => {
+            const state = store.getState();
+            if (state?.editor?.mode !== 'presentation') return;
+            const app = document.getElementById('app');
+            if (!app || document.fullscreenElement) return;
+            try {
+                await app.requestFullscreen();
+            } catch {
+                // Best-effort. Presentation continues windowed.
+            }
+        };
     }
 
     bindEvents() {
         // Mouse Move to show HUD
         document.addEventListener('mousemove', (e) => {
             const state = store.getState();
-            if (state.editor.mode === 'presentation') {
+            if (state?.editor?.mode === 'presentation') {
                 this.show();
             }
         });
@@ -80,7 +99,7 @@ export class HUD {
         // Touch: tap-to-reveal HUD
         document.addEventListener('touchstart', () => {
             const state = store.getState();
-            if (state.editor.mode === 'presentation') {
+            if (state?.editor?.mode === 'presentation') {
                 this.show();
             }
         }, { passive: true });
@@ -88,7 +107,23 @@ export class HUD {
         // Pointer devices (pen) should also reveal HUD.
         document.addEventListener('pointermove', () => {
             const state = store.getState();
-            if (state.editor.mode === 'presentation') {
+            if (state?.editor?.mode === 'presentation') {
+                this.show();
+            }
+        });
+
+        // Keyboard interaction should reveal HUD (Tab/Arrow/etc).
+        document.addEventListener('keydown', () => {
+            const state = store.getState();
+            if (state?.editor?.mode === 'presentation') {
+                this.show();
+            }
+        });
+
+        // If any HUD control receives focus, keep it visible.
+        this.container.addEventListener('focusin', () => {
+            const state = store.getState();
+            if (state?.editor?.mode === 'presentation') {
                 this.show();
             }
         });
@@ -121,13 +156,35 @@ export class HUD {
     update(state) {
         if (!this.container) return;
 
+        const loading = this.container.querySelector('#pm-presenter-loading');
+        if (loading) {
+            loading.classList.toggle('hidden', !state?.presentation?.navLoading);
+        }
+
         // Update active states of buttons
         const laserBtn = this.container.querySelector('#hud-laser');
         const blackBtn = this.container.querySelector('#hud-black');
         const gridBtn = this.container.querySelector('#hud-grid');
+        const fullscreenBtn = this.container.querySelector('#hud-fullscreen');
+        const counter = this.container.querySelector('#hud-counter');
 
-        if (laserBtn) laserBtn.classList.toggle('active', state.presentation.laserPointer);
-        if (blackBtn) blackBtn.classList.toggle('active', state.presentation.blackScreen);
-        if (gridBtn) gridBtn.classList.toggle('active', state.presentation.gridView);
+        if (laserBtn) laserBtn.classList.toggle('active', !!state?.presentation?.laserPointer);
+        if (blackBtn) blackBtn.classList.toggle('active', !!state?.presentation?.blackScreen);
+        if (gridBtn) gridBtn.classList.toggle('active', !!state?.presentation?.gridView);
+
+        if (laserBtn) laserBtn.setAttribute('aria-pressed', (!!state?.presentation?.laserPointer).toString());
+        if (blackBtn) blackBtn.setAttribute('aria-pressed', (!!state?.presentation?.blackScreen).toString());
+        if (gridBtn) gridBtn.setAttribute('aria-pressed', (!!state?.presentation?.gridView).toString());
+
+        if (counter) {
+            const idx = Number.isFinite(state?.presentation?.currentSlideIndex) ? state.presentation.currentSlideIndex : 0;
+            const total = Array.isArray(state?.slideOrder) ? state.slideOrder.length : 1;
+            counter.textContent = `${idx + 1} / ${total}`;
+        }
+
+        if (fullscreenBtn) {
+            const needsFullscreen = state?.editor?.mode === 'presentation' && !document.fullscreenElement;
+            fullscreenBtn.classList.toggle('hidden', !needsFullscreen);
+        }
     }
 }

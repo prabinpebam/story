@@ -232,7 +232,7 @@ describe('GridView', () => {
             const items = content.querySelectorAll('.grid-slide-item');
             items[1].click();
             
-            expect(mockDispatch).toHaveBeenCalledWith('PRESENTATION_GOTO', 1);
+            expect(mockDispatch).toHaveBeenCalledWith('PRESENTATION_JUMP_TO', { index: 1, source: 'grid' });
         });
 
         it('should dispatch TOGGLE_GRID_VIEW on click', () => {

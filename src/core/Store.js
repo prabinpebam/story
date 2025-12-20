@@ -180,9 +180,15 @@ export class Store extends EventEmitter {
             case 'PRESENTATION_PREV': 
             case 'PRESENTATION_GOTO': 
             case 'NEXT_BUILD': 
+            case 'PRESENTATION_JUMP_TO':
+            case 'PRESENTATION_GO_BACK':
             case 'PREV_BUILD': 
             case 'SET_BUILD_COUNT': 
             case 'TOGGLE_LASER': 
+            case 'SET_BUILD_COUNT_FOR_SLIDE':
+            case 'PRESENTATION_SET_REQUEST_FULLSCREEN':
+            case 'PRESENTATION_SET_PAUSED':
+            case 'PRESENTATION_SET_NAV_LOADING':
             case 'TOGGLE_BLACK_SCREEN': 
             case 'TOGGLE_WHITE_SCREEN': 
             case 'TOGGLE_GRID_VIEW':
@@ -191,9 +197,15 @@ export class Store extends EventEmitter {
                         case 'PRESENTATION_NEXT': PresentationHandlers.handlePresentationNext(draft); break;
                         case 'PRESENTATION_PREV': PresentationHandlers.handlePresentationPrev(draft); break;
                         case 'PRESENTATION_GOTO': PresentationHandlers.handlePresentationGoto(draft, payload); break;
+                        case 'PRESENTATION_JUMP_TO': PresentationHandlers.handlePresentationJumpTo(draft, payload); break;
+                        case 'PRESENTATION_GO_BACK': PresentationHandlers.handlePresentationGoBack(draft); break;
                         case 'NEXT_BUILD': PresentationHandlers.handleNextBuild(draft); break;
                         case 'PREV_BUILD': PresentationHandlers.handlePrevBuild(draft); break;
                         case 'SET_BUILD_COUNT': PresentationHandlers.handleSetBuildCount(draft, payload); break;
+                        case 'SET_BUILD_COUNT_FOR_SLIDE': PresentationHandlers.handleSetBuildCountForSlide(draft, payload); break;
+                        case 'PRESENTATION_SET_REQUEST_FULLSCREEN': PresentationHandlers.handleSetRequestFullscreen(draft, payload); break;
+                        case 'PRESENTATION_SET_PAUSED': PresentationHandlers.handleSetPresentationPaused(draft, payload); break;
+                        case 'PRESENTATION_SET_NAV_LOADING': PresentationHandlers.handleSetPresentationNavLoading(draft, payload); break;
                         case 'TOGGLE_LASER': PresentationHandlers.handleToggleLaser(draft); break;
                         case 'TOGGLE_BLACK_SCREEN': PresentationHandlers.handleToggleBlackScreen(draft); break;
                         case 'TOGGLE_WHITE_SCREEN': PresentationHandlers.handleToggleWhiteScreen(draft); break;

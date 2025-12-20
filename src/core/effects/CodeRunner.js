@@ -62,6 +62,11 @@ export class CodeRunner {
             get: () => this.mouse.isDown,
             set: (v) => { this.mouse.isDown = v; }
         });
+
+        // Logical sizing (CSS pixels / element-local units). Canvas backing store may be DPR-scaled.
+        this._logicalWidth = canvas.width || 0;
+        this._logicalHeight = canvas.height || 0;
+        this._dpr = 1;
     }
     
     /**
@@ -140,9 +145,11 @@ export class CodeRunner {
         const localX = globalState.worldX - bounds.x;
         const localY = globalState.worldY - bounds.y;
         
-        // Scale to canvas resolution
-        const scaleX = this.canvas.width / bounds.width;
-        const scaleY = this.canvas.height / bounds.height;
+        // Scale to logical canvas resolution (coordinates user code draws in)
+        const logicalW = this._logicalWidth || (this.canvas.width / (this._dpr || 1));
+        const logicalH = this._logicalHeight || (this.canvas.height / (this._dpr || 1));
+        const scaleX = logicalW / bounds.width;
+        const scaleY = logicalH / bounds.height;
         
         this.mouse.x = localX * scaleX;
         this.mouse.y = localY * scaleY;
@@ -161,8 +168,8 @@ export class CodeRunner {
         this.mouse.released = globalState.released; // Released can happen anywhere
         
         // Distance and angle from center
-        const cx = this.canvas.width / 2;
-        const cy = this.canvas.height / 2;
+        const cx = logicalW / 2;
+        const cy = logicalH / 2;
         const dx = this.mouse.x - cx;
         const dy = this.mouse.y - cy;
         const maxDist = Math.max(cx, cy);
@@ -195,8 +202,11 @@ export class CodeRunner {
         }
         
         // Initialize mouse props on canvas (legacy)
-        this.canvas.mouseX = this.canvas.width / 2;
-        this.canvas.mouseY = this.canvas.height / 2;
+        const dpr = this._dpr || ((typeof window !== 'undefined' && window.devicePixelRatio) ? window.devicePixelRatio : 1);
+        const logicalW = this._logicalWidth || (this.canvas.width / dpr);
+        const logicalH = this._logicalHeight || (this.canvas.height / dpr);
+        this.canvas.mouseX = logicalW / 2;
+        this.canvas.mouseY = logicalH / 2;
         this.canvas.isMouseDown = false;
 
         this.run();
@@ -238,15 +248,33 @@ export class CodeRunner {
     resize(w, h) {
         const newW = Math.floor(w);
         const newH = Math.floor(h);
-        
-        if (this.canvas.width !== newW || this.canvas.height !== newH) {
-            this.canvas.width = newW;
-            this.canvas.height = newH;
+
+        const dpr = (typeof window !== 'undefined' && window.devicePixelRatio) ? window.devicePixelRatio : 1;
+        const backingW = Math.max(1, Math.floor(newW * dpr));
+        const backingH = Math.max(1, Math.floor(newH * dpr));
+
+        const sizeChanged =
+            this._logicalWidth !== newW ||
+            this._logicalHeight !== newH ||
+            this._dpr !== dpr ||
+            this.canvas.width !== backingW ||
+            this.canvas.height !== backingH;
+
+        if (sizeChanged) {
+            this._logicalWidth = newW;
+            this._logicalHeight = newH;
+            this._dpr = dpr;
+
+            // Backing store size (for crisp rendering on HiDPI)
+            this.canvas.width = backingW;
+            this.canvas.height = backingH;
+
+            // Logical coordinate space (avoid cumulative scaling)
+            this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
             
             // Force immediate redraw to prevent flickering
             if (this.drawFunction && this.isPlaying) {
                 const time = (Date.now() - this.startTime) / 1000;
-                this.ctx.setTransform(1, 0, 0, 1, 0, 0);
                 try {
                     this.drawFunction(time);
                 } catch (e) {
@@ -262,9 +290,14 @@ export class CodeRunner {
             return;
         }
 
-        // console.log('CodeRunner: Starting execution');
-        // Clear canvas
-        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+        // Ensure DPI transform is applied before any user drawing.
+        const dpr = this._dpr || ((typeof window !== 'undefined' && window.devicePixelRatio) ? window.devicePixelRatio : 1);
+        this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+        // Clear canvas in logical coordinates
+        const logicalW = this._logicalWidth || (this.canvas.width / dpr);
+        const logicalH = this._logicalHeight || (this.canvas.height / dpr);
+        this.ctx.clearRect(0, 0, logicalW, logicalH);
 
         try {
             // Create a safe-ish scope
@@ -282,7 +315,7 @@ export class CodeRunner {
             // This handles cases like: { draw: function(t) { ... } }
             try {
                 func = new Function('ctx', 'canvas', 'width', 'height', 'time', 'mouse', `return (${this.userCode}\n);`);
-                result = func(this.ctx, this.canvas, this.canvas.width, this.canvas.height, 0, mouse);
+                result = func(this.ctx, this.canvas, logicalW, logicalH, 0, mouse);
                 if (result && typeof result.draw === 'function') {
                     success = true;
                 }
@@ -300,7 +333,7 @@ export class CodeRunner {
                         if (typeof draw === 'function') return { draw };
                         return null;
                     `);
-                    result = func(this.ctx, this.canvas, this.canvas.width, this.canvas.height, 0, mouse);
+                    result = func(this.ctx, this.canvas, logicalW, logicalH, 0, mouse);
                 } catch (e) {
                     console.error('Compilation error in user code:', e);
                     this.startErrorState();
@@ -330,8 +363,9 @@ export class CodeRunner {
                     
                     const time = (Date.now() - this.startTime) / 1000;
                     
-                    // Reset transform before draw
-                    this.ctx.setTransform(1, 0, 0, 1, 0, 0);
+                    // Reset transform before draw (DPR-aware, non-cumulative)
+                    const dpr = this._dpr || ((typeof window !== 'undefined' && window.devicePixelRatio) ? window.devicePixelRatio : 1);
+                    this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
                     
                     // Reset single-frame mouse flags after they've been consumed
                     // (They persist for one frame so user code can detect them)
@@ -372,7 +406,8 @@ export class CodeRunner {
             const loop = () => {
                 if (!this.isPlaying) return;
                 const time = (Date.now() - this.startTime) / 1000;
-                this.ctx.setTransform(1, 0, 0, 1, 0, 0);
+                const dpr = this._dpr || ((typeof window !== 'undefined' && window.devicePixelRatio) ? window.devicePixelRatio : 1);
+                this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
                 this.drawErrorState(time);
                 this.animationFrame = requestAnimationFrame(loop);
             };
@@ -381,8 +416,9 @@ export class CodeRunner {
     }
 
     drawErrorState(t) {
-        const w = this.canvas.width;
-        const h = this.canvas.height;
+        const dpr = this._dpr || ((typeof window !== 'undefined' && window.devicePixelRatio) ? window.devicePixelRatio : 1);
+        const w = this._logicalWidth || (this.canvas.width / dpr);
+        const h = this._logicalHeight || (this.canvas.height / dpr);
         const ctx = this.ctx;
 
         // Matrix Rain Effect

@@ -46,7 +46,7 @@ export class GridView {
             const item = document.createElement('div');
             item.className = `grid-slide-item ${isActive ? 'active' : ''}`;
             item.onclick = () => {
-                store.dispatch('PRESENTATION_GOTO', index);
+                store.dispatch('PRESENTATION_JUMP_TO', { index, source: 'grid' });
                 store.dispatch('TOGGLE_GRID_VIEW');
             };
 

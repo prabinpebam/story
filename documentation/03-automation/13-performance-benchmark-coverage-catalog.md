@@ -30,6 +30,7 @@ The coverage lint reads the machine-readable JSON block below.
     "interaction.typing",
     "interaction.slide_switch",
     "interaction.theme_switch",
+    "interaction.presentation",
     "smoothness.frames",
     "smoothness.longtasks",
     "render.pipeline",
@@ -44,6 +45,9 @@ The coverage lint reads the machine-readable JSON block below.
     "typing.simple_text",
     "slide_switch.typical_deck",
     "theme_switch.typical_deck",
+    "presentation.entry",
+    "presentation.nav",
+    "presentation.grid_open",
     "idle.typical",
     "render.simple_slide",
     "render.complex_slide",
@@ -74,6 +78,10 @@ The coverage lint reads the machine-readable JSON block below.
     "interaction.theme_switch": {
       "primaryCode": ["src/boot/theme-hydration.js", "src/core"],
       "notes": "Theme change → stable theme application across UI/canvas."
+    },
+    "interaction.presentation": {
+      "primaryCode": ["src/core/PresentationManager.js", "src/core/renderer/PresentationRenderer.js", "src/core/presentation"],
+      "notes": "Presentation Mode entry/navigation/grid open latency; includes readiness gating + cache tiers/prefetch policy."
     },
     "smoothness.frames": {
       "primaryCode": ["src/core/AnimationManager.js"],

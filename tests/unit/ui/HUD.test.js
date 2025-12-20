@@ -134,11 +134,17 @@ describe('HUD', () => {
     });
 
     describe('button actions', () => {
-        it('should dispatch PRESENTATION_PREV on prev button click', () => {
+        it('should emit presentation:navigate prev on prev button click', () => {
+            const handler = vi.fn();
+            window.addEventListener('presentation:navigate', handler);
+
             const prevBtn = container.querySelector('#hud-prev');
             prevBtn.click();
-            
-            expect(mockDispatch).toHaveBeenCalledWith('PRESENTATION_PREV');
+
+            expect(handler).toHaveBeenCalledTimes(1);
+            expect(handler.mock.calls[0][0]?.detail).toEqual({ direction: 'prev' });
+
+            window.removeEventListener('presentation:navigate', handler);
         });
 
         it('should dispatch PREV_BUILD when in build step', () => {
@@ -152,11 +158,17 @@ describe('HUD', () => {
             expect(mockDispatch).toHaveBeenCalledWith('PREV_BUILD');
         });
 
-        it('should dispatch PRESENTATION_NEXT on next button click', () => {
+        it('should emit presentation:navigate next on next button click', () => {
+            const handler = vi.fn();
+            window.addEventListener('presentation:navigate', handler);
+
             const nextBtn = container.querySelector('#hud-next');
             nextBtn.click();
-            
-            expect(mockDispatch).toHaveBeenCalledWith('PRESENTATION_NEXT');
+
+            expect(handler).toHaveBeenCalledTimes(1);
+            expect(handler.mock.calls[0][0]?.detail).toEqual({ direction: 'next' });
+
+            window.removeEventListener('presentation:navigate', handler);
         });
 
         it('should dispatch NEXT_BUILD when builds remaining', () => {

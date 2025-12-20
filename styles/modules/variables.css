@@ -89,6 +89,18 @@
     --color-grid-dot: rgba(255, 255, 255, 0.08);
     --color-selection-fill: rgba(24, 160, 251, 0.3);
     --color-drag-indicator: #18A0FB;
+
+   /* Presentation */
+   --color-presentation-stage-bg: var(--color-bg-app);
+   --color-presentation-hud-bg: var(--color-bg-elevated);
+   --color-presentation-hud-border: var(--color-border-subtle);
+   --color-hud-button-hover: var(--color-interactive-hover);
+   --color-hud-button-active: var(--color-accent);
+   --color-hud-divider: var(--color-border-subtle);
+   --color-hud-text: var(--color-text-primary);
+   --color-hud-text-muted: var(--color-text-secondary);
+   --color-presentation-presenter-panel-bg: var(--color-bg-panel);
+   --color-presentation-presenter-panel-border: var(--color-border);
     
     /* -------------------------------------------------------------------------
        TYPOGRAPHY TOKENS

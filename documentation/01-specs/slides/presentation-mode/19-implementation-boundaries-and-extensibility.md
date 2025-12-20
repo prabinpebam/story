@@ -21,7 +21,7 @@
 interface PresentationState {
   mode: 'viewer' | 'windowed' | 'presenter' | 'kiosk' | 'reading';
   slideIndex: number;          // 0-based
-  buildIndex: number;          // 0-based, -1 if no builds
+  buildIndex: number;          // -1 = pre-build (no builds executed yet), 0..N-1 = executed build index
   buildCount: number;          // Total builds on current slide
   fullscreen: boolean;
   isActive: boolean;           // Is presentation mode active

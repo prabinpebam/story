@@ -1,16 +1,69 @@
 # Presentation Mode — Delivery Ledger & Gate Plan
 
-## Purpose
-This document is the canonical **delivery ledger** and **gate plan** for implementing Presentation Mode exhaustively.
+**Goal**: ship Presentation Mode with **no spec/implementation gaps**, enforced by tests.
 
-**Non-negotiable outcome**
-- When the **final gate** exits, there is **no gap** between spec and implementation.
-- All features marked **MUST** across the Presentation Mode spec suite are implemented.
-- All gates are enforced by **strict TDD** (Vitest) and **DOM/UI validation** (Playwright).
+Non-negotiable outcomes:
+- ✅ Audience DOM stays **clean** (no editor chrome, no presenter-only UI, no notes/diagnostics leaks).
+- ✅ MUST requirements across the Presentation Mode spec suite are implemented and **mechanically verifiable**.
+- ✅ Gates exit only when backed by **strict TDD** (Vitest) and **DOM/UI validation** (Playwright).
 
-**Principles binding this plan**
+References (must stay in sync):
+- Strict TDD rules: [documentation/02-implementation/00-strict-tdd-and-dom-validation.md](../../../02-implementation/00-strict-tdd-and-dom-validation.md)
 - Global app principles: [documentation/00-product/principles.md](../../../00-product/principles.md)
 - Presentation Mode principles: [01-principles.md](01-principles.md)
+
+---
+
+## Current Status (as of December 20, 2025)
+
+Status legend: ✅ Done (locked) · 🟡 In progress · ❌ Not started · ⛔ Blocked
+
+- ✅ Gates 0–6: Complete and enforced.
+  - Playwright includes required-ID DOM contract + audience-clean forbidden-selector audit + enter→exit cleanup invariants.
+  - Visual surface: aspect-fit scaling with letterboxing, token-based stage background, DPR-correct canvas rendering.
+  - HUD: tokenized styling (no hardcoded HUD colors), focus-visible support, reduced-motion handling, forced-colors fallback.
+  - Validation: `npm test` green; Playwright `tests/e2e/specs/functional/presentation-mode.spec.ts` green.
+
+- 🟡 Gate 7: Presenter View + security/privacy boundary.
+  - Implemented: presenter view window + BroadcastChannel allowlist; presenter panel only renders during presentation mode.
+  - ✅ Multi-page Playwright: `tests/e2e/specs/functional/presenter-view.spec.ts` now passes (popup open + lockstep + privacy payload audit + malformed message rejected + close→reopen recovery).
+  - Remaining: expand Gate 7 coverage for buildIndex lockstep and additional negative cases.
+
+- 🟡 Gate 8: Accessibility + theming discipline.
+  - Implemented: live region scaffolding + HUD ARIA groundwork; reduced-motion/forced-colors CSS rules.
+  - ✅ Playwright a11y: `tests/e2e/specs/functional/presentation-accessibility.spec.ts` green (live region updates, HUD aria + toggle semantics, keyboard-only exit, prefers-reduced-motion disables transitions, forced-colors/contrast smoke, token-discipline checks for stage/HUD colors).
+  - Remaining: add theme switching assertions (if/when UI supports it) and expand forced-colors/contrast coverage beyond smoke.
+
+- ❌ Gates 9–11: Not started (observability/CI quality gates, kiosk/rehearsal, final parity audit).
+
+---
+
+## Non‑Negotiable Rules (How work is allowed to ship)
+
+- Red → Green → Refactor for every increment.
+- Every increment adds/updates Playwright assertions that enforce **audience-clean DOM** and required IDs.
+- Add Vitest tests whenever the increment introduces logic (navigation, readiness gating, sync protocol, a11y state).
+- Every bug fix requires a regression test first.
+- Each change updates this ledger’s status markers (✅/🟡/❌/⛔) so “done” is always visible.
+
+---
+
+## Execution Gates (The only roadmap)
+
+Gate details live in **Section 6**. This section is the quick status index.
+
+- ✅ Gate 0 — Baseline safety net (DOM contract + audience-clean audit + cleanup invariants)
+- ✅ Gate 1 — Mode lifecycle correctness (windowed + fullscreen)
+- ✅ Gate 2 — Input model + interactive element priority
+- ✅ Gate 3 — Navigation + builds baseline parity
+- ✅ Gate 4 — Transition readiness gating (decode-first) WITHOUT cache tiers
+- ✅ Gate 5 — Cache tiers (ACTIVE/HOT/WARM/COLD) + perf baselines
+- ✅ Gate 6 — HUD + Grid + Laser parity (audience-safe)
+- 🟡 Gate 7 — Presenter View + security/privacy boundary
+- 🟡 Gate 8 — Accessibility + theming discipline
+- ❌ Gate 9 — Observability + CI quality gates
+- ❌ Gate 10 — Kiosk/autoplay/rehearsal modes
+- ❌ Gate 11 — Final parity audit (“no spec/impl gaps”)
 
 ---
 
@@ -340,18 +393,42 @@ Each gap includes **handling strategy** (how we will close it without breaking t
 
 ---
 
-## 4) Ledger Schema (Canonical)
+## Spec Coverage Ledger (Source of Truth)
 
-Each deliverable item is tracked as a ledger row.
+Status values (use these exact words to keep search/filters simple):
+- **Readiness**: `NOT REVIEWED` | `BLOCKED` | `READY`
+- **Implementation**: `NOT STARTED` | `IN PROGRESS` | `DONE`
+- **Tests**: `NONE` | `VITEST` | `PLAYWRIGHT` | `VITEST+PLAYWRIGHT`
+- **Artifacts**: `NONE` | `CORPUS` | `GOLDENS` | `PERF` | `MIXED`
 
-### Fields
-- **ID**: `PM-###`
-- **Spec source**: canonical spec file link(s)
-- **Implementation surface**: module(s) expected to change
-- **Tests**:
-  - `UT:` Vitest unit test(s)
-  - `E2E:` Playwright test(s)
-- **Exit criteria**: exact pass/fail checks
+Ledger is maintained in this file because the plan and the traceability system must never drift.
+
+Emoji status (quick scan): ✅ Done · 🟡 In progress · ❌ Not started · ⛔ Blocked
+
+| Status | Spec file | Readiness | Implementation | Tests | Artifacts | Notes (owner, links, gaps) |
+|---|---|---|---|---|---|---|
+| ✅ | `00-master-outline.md` | READY | DONE | NONE | NONE | Outline-only; keep in sync with spec suite structure. |
+| ✅ | `01-principles.md` | READY | DONE | NONE | NONE | Principles locked; must match gating + audience-clean DOM rules. |
+| ✅ | `03-rendering-in-presentation-mode.md` | READY | DONE | VITEST+PLAYWRIGHT | NONE | Audience-clean DOM contract + forbidden-selector audit enforced by Playwright. |
+| ✅ | `06-mode-taxonomy-and-entry-exit.md` | READY | DONE | PLAYWRIGHT | NONE | Entry/exit + fullscreen policy locked by functional tests. |
+| ✅ | `07-input-and-controls.md` | READY | DONE | VITEST+PLAYWRIGHT | NONE | Input buffering/throttle + interactive priority covered by unit + e2e. |
+| ✅ | `08-navigation-model.md` | READY | DONE | VITEST+PLAYWRIGHT | NONE | Slide/build parity + jump semantics covered by unit + e2e. |
+| ✅ | `09-visual-surface-and-scaling.md` | READY | DONE | VITEST+PLAYWRIGHT | NONE | Aspect-fit + letterbox + DPR correctness enforced. |
+| ✅ | `10-playback-system.md` | READY | DONE | VITEST+PLAYWRIGHT | NONE | BuildIndex semantics and transition gating proxies implemented. |
+| ✅ | `12-hud-and-audience-controls.md` | READY | DONE | PLAYWRIGHT | NONE | HUD visibility + controls parity enforced. |
+| ✅ | `02-performance-and-caching.md` | READY | DONE | VITEST+PLAYWRIGHT | PERF | Tiered prefetch + HOT gating enforced; perf harness exists (baseline work continues in later gates). |
+| ✅ | `13-theming-and-polish.md` | READY | DONE | PLAYWRIGHT | NONE | Token discipline for stage/HUD + reduced motion/forced colors behaviors. |
+| ✅ | `14-reliability-and-recovery.md` | READY | DONE | PLAYWRIGHT | NONE | Audience-safe error surfacing rules enforced where applicable. |
+| 🟡 | `11-presenter-tools.md` | READY | IN PROGRESS | VITEST+PLAYWRIGHT | NONE | Presenter popup + lockstep sync: Playwright `tests/e2e/specs/functional/presenter-view.spec.ts` green; unit: `tests/unit/core/presentation/PresenterSyncValidation.test.js` green. Remaining: buildIndex lockstep + close/reopen recovery coverage. |
+| 🟡 | `15-accessibility.md` | READY | IN PROGRESS | PLAYWRIGHT | NONE | Gate 8 Playwright added and green: `tests/e2e/specs/functional/presentation-accessibility.spec.ts` (live region announcements, HUD aria + toggles, keyboard-only exit, reduced motion disables transitions). Remaining: extend coverage for contrast/forced-colors and theme switching assertions. |
+| 🟡 | `16-security-privacy-and-safety.md` | READY | IN PROGRESS | VITEST+PLAYWRIGHT | NONE | Message allowlist + malformed rejection covered: unit `tests/unit/core/presentation/PresenterSyncValidation.test.js`, e2e `tests/e2e/specs/functional/presenter-view.spec.ts`. Remaining: broaden negative cases + ensure no presenter-only DOM leaks under stress. |
+| ❌ | `17-observability-and-quality-gates.md` | READY | NOT STARTED | NONE | PERF | CI perf gates + telemetry enforcement planned (Gate 9). |
+| ✅ | `18-test-strategy.md` | READY | DONE | NONE | NONE | Documentation-only; must reflect current test contract and fixtures. |
+| ✅ | `19-implementation-boundaries-and-extensibility.md` | READY | DONE | NONE | NONE | Documentation-only; clarifies what must not leak to audience. |
+| ✅ | `20-parity-mapping-table.md` | READY | DONE | NONE | NONE | Documentation-only; parity map for review. |
+| ✅ | `21-constants-and-configuration.md` | READY | DONE | VITEST | NONE | Constants/config surface documented; tests cover key invariants where present. |
+| ✅ | `22-implementation-readiness.md` | READY | DONE | NONE | NONE | Documentation-only readiness checklist; updated during gate work. |
+| ✅ | `00-benchmark-gap-checklist.md` | READY | DONE | NONE | PERF | Checklist for perf gaps; perf artifacts enforced later (Gate 9). |
 
 ---
 
@@ -461,7 +538,7 @@ This ledger is exhaustive at the “feature surface” level. Individual subtask
 
 This is the **hardened** gate plan. It is intentionally more granular and more measurable.
 
-### Gate 0 — Baseline safety net (lock current behavior)
+### Gate 0 ✅ — Baseline safety net (lock current behavior)
 **Goal:** prevent regressions while upgrading implementation.
 - Add Playwright DOM contract tests asserting required IDs exist (at minimum: `#viewport`, `#slide-content`, `#slide-background`, `#presentation-hud`, `#presentation-grid-view`, `#laser-canvas`, `#overlay-black`, `#overlay-white`).
 - Add Playwright “audience-clean DOM audit” enforcing the forbidden-selector checklist for Presentation chrome hiding (PM-032), including placeholders, file indicator, editor chrome, menus/modals/toasts, and renderer DOM guide overlays.
@@ -473,7 +550,7 @@ This is the **hardened** gate plan. It is intentionally more granular and more m
   - Existing Vitest + Playwright pass.
   - New invariants pass.
 
-### Gate 1 — Mode lifecycle correctness (windowed + fullscreen)
+### Gate 1 ✅ — Mode lifecycle correctness (windowed + fullscreen)
 **Goal:** match spec-defined fullscreen and windowed presenting.
 - Implement fullscreen policy without forcing exit when fullscreen exits unless spec says so.
 - Add fullscreen denial handling.
@@ -481,21 +558,21 @@ This is the **hardened** gate plan. It is intentionally more granular and more m
   - Playwright covers “fullscreen denied → still presents windowed”.
   - Playwright covers “fullscreen exits externally → remains in presentation (windowed)” if required by spec.
 
-### Gate 2 — Input model + interactive element priority
+### Gate 2 ✅ — Input model + interactive element priority
 **Goal:** match [07-input-and-controls.md](07-input-and-controls.md) exactly.
 - Implement numeric jump buffer, throttling, and focus/interactive priority.
 - Exit criteria:
   - Playwright keyboard-only script passes (defined steps + assertions, not a manual statement).
   - Playwright validates that focused interactive elements do not trigger slide advance.
 
-### Gate 3 — Navigation + builds baseline parity
+### Gate 3 ✅ — Navigation + builds baseline parity
 **Goal:** match [08-navigation-model.md](08-navigation-model.md) and current build behavior safely.
 - Introduce the formal state machine and back-stack semantics.
 - Exit criteria:
   - Unit tests cover state machine transitions.
   - Playwright covers linear + non-linear navigation.
 
-### Gate 4 — Transition readiness gating (decode-first) WITHOUT cache tiers
+### Gate 4 ✅ — Transition readiness gating (decode-first) WITHOUT cache tiers
 **Goal:** prevent pixelated transitions using deterministic readiness proxies.
 - Add an asset-readiness API that blocks transition start until:
   - images: `decode()` completed (or equivalent),
@@ -505,7 +582,7 @@ This is the **hardened** gate plan. It is intentionally more granular and more m
   - Playwright asserts `transitionStartedAt >= readinessSatisfiedAt` for the next slide.
   - Playwright asserts no “loading UI” appears in audience view.
 
-### Gate 5 — Cache tiers (ACTIVE/HOT/WARM/COLD) + perf baselines
+### Gate 5 ✅ — Cache tiers (ACTIVE/HOT/WARM/COLD) + perf baselines
 **Goal:** hit perf targets using stable measurements.
 - Implement cache tiers and eviction.
 - Add performance harness + baselines using golden decks.
@@ -513,14 +590,20 @@ This is the **hardened** gate plan. It is intentionally more granular and more m
   - Perf tests run on defined golden decks and produce JSON artifacts.
   - Thresholds are asserted with explicit tolerance rules.
 
-### Gate 6 — HUD + Grid + Laser parity (audience-safe)
+### Gate 6 ✅ — HUD + Grid + Laser parity (audience-safe)
 **Goal:** ensure audience-visible controls match spec and don’t regress.
+- Ensure visual surface matches [09-visual-surface-and-scaling.md](09-visual-surface-and-scaling.md):
+  - aspect-fit scaling + letterboxing,
+  - token-based stage background,
+  - DPR-correct canvas rendering.
 - Ensure HUD DOM structure and behaviors match [12-hud-and-audience-controls.md](12-hud-and-audience-controls.md).
 - Ensure grid navigator behavior matches [03-rendering-in-presentation-mode.md](03-rendering-in-presentation-mode.md).
 - Exit criteria:
   - Playwright validates show/hide timers, button actions, and grid click-to-jump.
+  - Playwright validates stage transform semantics and stage background token usage.
+  - Unit tests validate scale math + DPR canvas sizing and transform reset.
 
-### Gate 7 — Presenter View + security/privacy boundary
+### Gate 7 🟡 — Presenter View + security/privacy boundary
 **Goal:** implement Presenter View without leaking presenter-only data.
 - Implement presenter window + typed sync.
 - Implement strict message validation.
@@ -531,7 +614,7 @@ This is the **hardened** gate plan. It is intentionally more granular and more m
     - notes are never present in audience DOM.
   - Security tests validate malformed messages are ignored.
 
-### Gate 8 — Accessibility + theming discipline
+### Gate 8 🟡 — Accessibility + theming discipline
 **Goal:** meet a11y requirements and token discipline.
 - Implement live region announcements and focus rules.
 - Add “no new hardcoded colors” checks for presentation surface.
@@ -539,20 +622,20 @@ This is the **hardened** gate plan. It is intentionally more granular and more m
   - Playwright a11y checks pass for key flows.
   - Theme switching tests pass (light/dark + accent).
 
-### Gate 9 — Observability + CI quality gates
+### Gate 9 ❌ — Observability + CI quality gates
 **Goal:** make performance/quality regression-proof.
 - Implement telemetry events and wire CI gates.
 - Exit criteria:
   - CI fails on regressions beyond thresholds.
   - Telemetry schema conformance is validated by tests.
 
-### Gate 10 — Kiosk/autoplay/rehearsal modes
+### Gate 10 ❌ — Kiosk/autoplay/rehearsal modes
 **Goal:** implement unattended loops and rehearsal workflows deterministically.
 - Implement kiosk and rehearsal behind feature flags.
 - Exit criteria:
   - Playwright deterministically validates autoplay timing and exit policy.
 
-### Gate 11 — Final parity audit (“no spec/impl gaps”)
+### Gate 11 ❌ — Final parity audit (“no spec/impl gaps”)
 **Goal:** formal sign-off.
 - Every `PM-###` item MUST have a completed traceability row.
 - Exit criteria:

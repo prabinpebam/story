@@ -32,7 +32,11 @@ export class LaserPointer {
         const dpr = window.devicePixelRatio || 1;
         this.canvas.width = this.width * dpr;
         this.canvas.height = this.height * dpr;
-        this.ctx.scale(dpr, dpr);
+        if (this.ctx && typeof this.ctx.setTransform === 'function') {
+            this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        } else if (this.ctx && typeof this.ctx.scale === 'function') {
+            this.ctx.scale(dpr, dpr);
+        }
         this.canvas.style.width = `${this.width}px`;
         this.canvas.style.height = `${this.height}px`;
     }
