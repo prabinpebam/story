@@ -2,7 +2,11 @@
 
 ## Overview
 
-This document audits the current keyboard shortcut implementations in the Story application as of December 10, 2025, and provides recommendations for alignment with the new specification.
+This document audits the current keyboard shortcut implementations in the Story application and provides recommendations for alignment with the authoritative spec in `documentation/02-specs/core/keyboard-shortcuts.md`.
+
+Canonical ledger: `documentation/02-specs/core/keyboard-shortcuts-ledger.md`
+
+This audit is **informational** and may lag behind the spec; treat the ledger as canonical.
 
 ---
 
@@ -85,7 +89,7 @@ Escape          → Close topmost panel
 - Ready for additional panel shortcuts
 
 **Missing:**
-- Keyboard shortcuts panel (Ctrl/Cmd+Shift+?)
+- Keyboard shortcuts overlay (`?` / `Cmd/Ctrl+/`)
 - Other panel shortcuts from spec
 
 ---
@@ -342,7 +346,7 @@ if (InputManager.shouldBlockShortcut(e)) return;
 1. [ ] Create ShortcutPanel component
 2. [ ] Add search functionality
 3. [ ] Add category filtering
-4. [ ] Register Ctrl/Cmd+Shift+? shortcut
+4. [ ] Register `?` / `Cmd/Ctrl+/` shortcut
 5. [ ] Style panel
 
 **Files to create:**
@@ -455,7 +459,7 @@ if (InputManager.shouldBlockShortcut(e)) return;
    - Start with high-priority tools
    - Test keyboard activation
 
-### Short Term (Next Sprint)
+### Sequencing (example)
 
 1. **Implement edit operations** - 2 days
    - Copy/Cut/Paste
@@ -467,16 +471,17 @@ if (InputManager.shouldBlockShortcut(e)) return;
    - Arrange (Ctrl/Cmd+]/[)
    - Group (Ctrl/Cmd+G)
 
-3. **Start KeyboardManager planning** - 1 day
-   - Review architecture
-   - Plan migration strategy
+3. **Centralize routing**
+   - Unify context priority and event normalization
+   - Migrate distributed handlers incrementally
 
-### Long Term (Future Sprints)
+4. **Shortcut overlay**
+   - Implement the overlay defined in `keyboard-shortcuts-overlay-ux.md`
+   - Ensure `?` / `Cmd/Ctrl+/` toggles it
 
-1. **Implement KeyboardManager** - 1 week
-2. **Build Shortcut Panel UI** - 3 days
-3. **Add advanced features** - 1 week
-4. **Comprehensive testing** - 3 days
+5. **Comprehensive testing**
+   - Cross-browser conflict coverage
+   - Context priority tests
 
 ---
 
@@ -498,12 +503,9 @@ if (InputManager.shouldBlockShortcut(e)) return;
 - [ ] No shortcut conflicts
 - [ ] Comprehensive test coverage (>90%)
 
-### Phase 8 (Complete)
-- [ ] All advanced features working
-- [ ] Custom shortcuts (optional)
+### Complete
 - [ ] Full accessibility support
 - [ ] Complete documentation
-- [ ] Video tutorials published
 
 ---
 

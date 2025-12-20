@@ -564,7 +564,7 @@ presentation: {
 
 | Shortcut | Action |
 |----------|--------|
-| `Ctrl+Shift+T` | Open Typography Style Manager |
+| `Ctrl+Shift+T` / `Cmd+Shift+T` | Open Typography Style Manager |
 | `Escape` | Close panel |
 | `Enter` (in AI prompt) | Generate styles |
 | `Tab` | Navigate between sections |

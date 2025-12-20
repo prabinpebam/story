@@ -1,8 +1,10 @@
 # Keyboard Shortcuts Overlay - UI/UX Specification
 
+Canonical ledger: `documentation/02-specs/core/keyboard-shortcuts-ledger.md`
+
 ## Overview
 
-A fast, responsive, multi-column keyboard shortcuts panel optimized for quick access and learning. Users can bring it up instantly with `?` or `Ctrl+Shift+/`, scan shortcuts across multiple columns, and dismiss it just as quickly.
+A fast, responsive, multi-column keyboard shortcuts panel optimized for quick access and learning. Users can bring it up instantly with `?` (Shift+`/`) or `Cmd/Ctrl+/`, scan shortcuts across multiple columns, and dismiss it just as quickly.
 
 **Key Features:**
 - **Instant access**: Opens in <100ms with `?` shortcut
@@ -65,72 +67,32 @@ This overlay uses the **modal pattern** that should be consistent with:
 
 ## 2. Layout & Dimensions
 
+Note: the overlay’s shortcut content must be generated from the canonical ledger (`documentation/02-specs/core/keyboard-shortcuts-ledger.md`). Any diagrams below are illustrative of layout density, not a hardcoded source of truth.
+
 ### 2.1 Desktop Layout (3 Columns)
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────────────────┐
-│  Keyboard Shortcuts                               Press ? or Ctrl+Shift+/ to toggle [×] │ ← Header (56px)
+│  Keyboard Shortcuts                                     Press ? or Cmd/Ctrl+/ to toggle [×] │
 ├─────────────────────────────────────────────────────────────────────────────────────────┤
-│  🔍 Search shortcuts...                                                                  │ ← Search (48px)
+│  🔍 Search shortcuts...                                                                  │
 ├─────────────────────────────────────────────────────────────────────────────────────────┤
-│  All  Recent  Tools  Edit  View  Text  File  Arrange  Transform  Slides  →              │ ← Tabs (44px)
+│  All  Recent  Slides  Tools  Edit  Arrange  Text  Panels  Presentation  →                │
 ├───────────────────────────┬───────────────────────────┬─────────────────────────────────┤
-│ SELECTION                 │ TOOLS                     │ EDIT                            │
-│ Select All                │ Move Tool            ⭐   │ Copy                            │
-│ Ctrl+A                    │ V                         │ Ctrl+C                          │
-│                           │                           │                                 │
-│ Select None               │ Hand Tool            ⭐   │ Cut                             │
-│ Ctrl+Shift+A              │ H                         │ Ctrl+X                          │
-│                           │                           │                                 │
-│ Invert Selection          │ Rectangle Tool       ⭐   │ Paste                           │
-│ Ctrl+Shift+I              │ R                         │ Ctrl+V                          │
-│                           │                           │                                 │
-│ Multi-Select              │ Text Tool            ⭐   │ Duplicate                       │
-│ Shift+Click               │ T                         │ Ctrl+D                          │
-│                           │                           │                                 │
-│ ARRANGE                   │ Ellipse Tool              │ Delete                          │
-│ Bring Forward             │ O                         │ Delete                          │
-│ Ctrl+]                    │                           │                                 │
-│                           │ Line Tool                 │ Copy as PNG                     │
-│ Send Backward             │ L                         │ Ctrl+Alt+C                      │
-│ Ctrl+[                    │                           │                                 │
-│                           │ Pen Tool                  │ TRANSFORM                       │
-│ Bring to Front            │ P                         │ Nudge 1px                       │
-│ Ctrl+Shift+]              │                           │ Arrow keys                      │
-│                           │ Frame Tool                │                                 │
-│ Send to Back              │ F                         │ Nudge 10px                      │
-│ Ctrl+Shift+[              │                           │ Shift+Arrow                     │
-│                           │ Scale Tool                │                                 │
-│ Group                     │ K                         │ Resize from Center              │
-│ Ctrl+G                    │                           │ Alt+Drag                        │
-│                           │ Eyedropper                │                                 │
-│ Ungroup                   │ I                         │ Maintain Aspect                 │
-│ Ctrl+Shift+G              │                           │ Shift+Drag                      │
-│                           │                           │                                 │
-│ VIEW                      │ ALIGNMENT                 │ TEXT                            │
-│ Zoom In                   │ Align Left                │ Bold                            │
-│ Ctrl++                    │ Ctrl+Alt+←                │ Ctrl+B                          │
-│                           │                           │                                 │
-│ Zoom Out                  │ Align Center H            │ Italic                          │
-│ Ctrl+-                    │ Ctrl+Alt+H                │ Ctrl+I                          │
-│                           │                           │                                 │
-│ Zoom to Fit               │ Align Right               │ Underline                       │
-│ Ctrl+0                    │ Ctrl+Alt+→                │ Ctrl+U                          │
-│                           │                           │                                 │
-│ Zoom to Selection         │ Align Top                 │ Increase Size                   │
-│ Ctrl+2                    │ Ctrl+Alt+↑                │ Ctrl+Shift+>                    │
-│                           │                           │                                 │
-│ Actual Size               │ Align Bottom              │ Decrease Size                   │
-│ Ctrl+1                    │ Ctrl+Alt+↓                │ Ctrl+Shift+<                    │
-│                           │                           │                                 │
-│ Pan                       │ Distribute H              │ SLIDES                          │
-│ Space+Drag                │ Ctrl+Alt+D                │ New Slide                       │
-│                           │                           │ Ctrl+M                          │
-│                           │ Distribute V              │                                 │
-│                           │ Ctrl+Alt+Shift+D          │ Duplicate Slide                 │
-│                           │                           │ Ctrl+Shift+D                    │
+│ TOOLS                     │ EDIT                      │ TEXT                            │
+│ Select / Move        V    │ Copy                 ⌘C   │ Bold                       ⌘B   │
+│ Hand (Pan)           H    │ Paste                ⌘V   │ Italic                     ⌘I   │
+│ Rectangle            R    │ Duplicate             ⌘D   │ Underline                  ⌘U   │
+│ Ellipse              O    │ Delete             Del/⌫  │ Exit text edit           Esc/⌘↵  │
+│ Line                 L    │ Undo                 ⌘Z   │                               │
+│ Arrow            Shift+L  │ Redo                ⌘⇧Z  │                               │
+│                           │                           │                               │
+│ ARRANGE                   │ CANVAS                    │ PRESENTATION                    │
+│ Bring forward        ⌘]   │ Pan (hold)        Space+drag │ Next (→/Space/Enter/…)         │
+│ Send backward        ⌘[   │ Nudge             Arrows  │ Prev (←/Backspace/…)           │
+│ Bring to front      ⌘⇧]   │ Nudge fast     Shift+Arrows │ Black/White/Laser/Grid keys    │
+│ Send to back        ⌘⇧[   │                           │ Exit presentation          Esc  │
 └───────────────────────────┴───────────────────────────┴─────────────────────────────────┘
-                            50+ shortcuts visible at once
 ```
 
 **Dimensions:**
@@ -289,7 +251,7 @@ This overlay uses the **modal pattern** that should be consistent with:
   <div class="shortcut-overlay__title-group">
     <h2 id="shortcuts-title">Keyboard Shortcuts</h2>
     <span class="shortcut-overlay__hint">
-      Press <kbd>?</kbd> or <kbd>Ctrl+Shift+/</kbd> to toggle
+      Press <kbd>?</kbd> or <kbd>Cmd/Ctrl+/</kbd> to toggle
     </span>
   </div>
   <button class="shortcut-overlay__close" aria-label="Close (Escape)">
@@ -314,72 +276,29 @@ This overlay uses the **modal pattern** that should be consistent with:
 
 .shortcut-overlay__title-group {
   display: flex;
-  align-items: baseline;
-  gap: var(--spacing-4);
-}
-
-.shortcut-overlay__title-group h2 {
-  font-size: var(--font-size-3xl);
-  font-weight: var(--font-weight-semibold);
-  margin: 0;
-  color: var(--color-text-primary);
-  font-family: var(--font-ui);
-}
-
-.shortcut-overlay__hint {
-  font-size: var(--font-size-lg);
-  color: var(--color-text-secondary);
-  font-family: var(--font-ui);
-}
-
-.shortcut-overlay__hint kbd {
-  font-family: var(--font-mono);
-  font-size: var(--font-size-sm);
-  padding: var(--spacing-0-5) var(--spacing-1-5);
-  background: var(--color-bg-input);
-  border: var(--border-width-1) solid var(--color-border);
-  border-radius: var(--radius-sm);
-  margin: 0 var(--spacing-0-5);
-  color: var(--color-text-primary);
-}
-
-.shortcut-overlay__close {
-  width: var(--control-size-lg);
-  height: var(--control-size-lg);
-  border-radius: var(--radius-lg);
-  background: transparent;
-  border: none;
-  cursor: var(--cursor-pointer);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--color-text-secondary);
-  transition: var(--transition-normal);
-  flex-shrink: 0;
-}
-
-.shortcut-overlay__close:hover {
-  background: var(--color-accent-subtle);
-  color: var(--color-accent);
-}
-
-.shortcut-overlay__close:active {
-  background: var(--color-accent-muted);
-}
-
-/* Mobile: Hide hint */
-@media (max-width: 640px) {
-  .shortcut-overlay__hint {
-    display: none;
-  }
-  
-  .shortcut-overlay__title-group h2 {
-    font-size: 18px;
-  }
-}
-```
-
-### 3.3 Search Bar
+  ```
+  ┌─────────────────────────────────────────────────────────────────────────────────────────┐
+  │  Keyboard Shortcuts                                     Press ? or Cmd/Ctrl+/ to toggle [×] │
+  ├─────────────────────────────────────────────────────────────────────────────────────────┤
+  │  🔍 Search shortcuts...                                                                  │
+  ├─────────────────────────────────────────────────────────────────────────────────────────┤
+  │  All  Recent  Slides  Tools  Edit  Arrange  Text  Panels  Presentation  →                │
+  ├───────────────────────────┬───────────────────────────┬─────────────────────────────────┤
+  │ TOOLS                     │ EDIT                      │ TEXT                            │
+  │ Select / Move        V    │ Copy                 ⌘C   │ Bold                       ⌘B   │
+  │ Hand (Pan)           H    │ Paste                ⌘V   │ Italic                     ⌘I   │
+  │ Rectangle            R    │ Duplicate             ⌘D   │ Underline                  ⌘U   │
+  │ Ellipse              O    │ Delete             Del/⌫  │ Exit text edit           Esc/⌘↵  │
+  │ Line                 L    │ Undo                 ⌘Z   │                               │
+  │ Arrow            Shift+L  │ Redo                ⌘⇧Z  │                               │
+  │                           │                           │                               │
+  │ ARRANGE                   │ CANVAS                    │ PRESENTATION                    │
+  │ Bring forward        ⌘]   │ Pan (hold)        Space+drag │ Next (→/Space/Enter/…)         │
+  │ Send backward        ⌘[   │ Nudge             Arrows  │ Prev (←/Backspace/…)           │
+  │ Bring to front      ⌘⇧]   │ Nudge fast     Shift+Arrows │ Black/White/Laser/Grid keys    │
+  │ Send to back        ⌘⇧[   │                           │ Exit presentation          Esc  │
+  └───────────────────────────┴───────────────────────────┴─────────────────────────────────┘
+  ```
 
 ```html
 <div class="shortcut-overlay__search">
@@ -792,7 +711,7 @@ class ShortcutSearch {
 
 **Triggers:**
 1. Press `?` (single key, not in text input)
-2. Press `Ctrl+Shift+/` (works everywhere)
+2. Press `Cmd/Ctrl+/` (works everywhere)
 3. Click "Shortcuts" in help menu
 
 **Behavior:**
@@ -806,8 +725,9 @@ class ShortcutOverlay {
   
   setupKeyboardListeners() {
     document.addEventListener('keydown', (e) => {
-      // Toggle with Ctrl+Shift+/
-      if (e.ctrlKey && e.shiftKey && e.key === '/') {
+      // Toggle with Cmd/Ctrl+/
+      const modKey = e.metaKey || e.ctrlKey;
+      if (modKey && e.key === '/') {
         e.preventDefault();
         this.toggle();
         return;
@@ -872,7 +792,7 @@ class ShortcutOverlay {
 **Methods:**
 1. **Escape key** - Fastest
 2. **Backdrop click** - Natural
-3. **Same shortcut** - `?` or `Ctrl+Shift+/`
+3. **Same shortcut** - `?` or `Cmd/Ctrl+/`
 4. **Close button** - Visible option
 
 ### 4.4 Category Filtering
@@ -1300,7 +1220,7 @@ class MemoryOptimizedOverlay {
 
 **Core Functionality:**
 - [ ] Multi-column layout (3 → 2 → 1 responsive)
-- [ ] Instant open (<100ms): `?` and `Ctrl+Shift+/`
+- [ ] Instant open (<100ms): `?` and `Cmd/Ctrl+/`
 - [ ] Autofocus search on open
 - [ ] Live search with 150ms debounce
 - [ ] ESC / backdrop / same-key to dismiss
@@ -1375,18 +1295,9 @@ tests/unit/ShortcutOverlay.test.js          # Including theme tests
 - Recent shortcuts highlighted
 - Conflicts clearly marked
 
-### P3: Customization (Week 4)
+### P3: Customization
 
-**Goal: Power users can personalize**
-
-- [ ] Edit mode (inline shortcut recording)
-- [ ] Preset management (Figma/Adobe/Story)
-- [ ] Import/export JSON
-- [ ] Reset to defaults
-- [ ] Custom shortcut validation
-- [ ] Conflict resolution UI
-- [ ] Advanced animations
-- [ ] Analytics tracking
+Shortcut customization is a non-goal for Story.
 
 ---
 
@@ -1460,8 +1371,8 @@ describe('Quick Access', () => {
     expect(overlay.isOpen).toBe(true);
   });
   
-  it('opens with Ctrl+Shift+/', () => {
-    pressKey('/', { ctrlKey: true, shiftKey: true });
+  it('opens with Cmd/Ctrl+/', () => {
+    pressKey('/', { ctrlKey: true });
     expect(overlay.isOpen).toBe(true);
   });
   
@@ -1629,7 +1540,7 @@ describe('Theme Switching', () => {
 
 ### Key Features
 - ✅ **Multi-column layout**: 3 columns (desktop) → 2 (tablet) → 1 (mobile)
-- ✅ **Instant access**: Opens in <100ms with `?` or `Ctrl+Shift+/`
+- ✅ **Instant access**: Opens in <100ms with `?` or `Cmd/Ctrl+/`
 - ✅ **High density**: Shows 50+ shortcuts at once
 - ✅ **Quick dismiss**: Escape, backdrop, or same shortcut
 - ✅ **Live search**: Fuzzy search with 150ms debounce

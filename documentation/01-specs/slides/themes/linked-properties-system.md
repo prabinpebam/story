@@ -660,7 +660,7 @@ For potentially destructive actions, show confirmation:
 │  USER FLOW: Change Accent 1 Color for Entire Presentation       │
 ├─────────────────────────────────────────────────────────────────┤
 │                                                                  │
-│  1. User opens Color Theme Manager (Ctrl+Shift+C)               │
+│  1. User opens Color Theme Manager (Ctrl+Shift+C / Cmd+Shift+C) │
 │  2. Switches to Custom tab                                       │
 │  3. Clicks "Edit" next to Accent 1                              │
 │  4. Changes color from blue (#18A0FB) to orange (#FF6B00)       │
@@ -1137,8 +1137,8 @@ function getLinkSource(element, propertyPath) {
 
 | Action | Shortcut |
 |--------|----------|
-| Open Color Theme Manager | `Ctrl+Shift+C` |
-| Open Typography Style Manager | `Ctrl+Shift+T` |
+| Open Color Theme Manager | `Ctrl+Shift+C` / `Cmd+Shift+C` |
+| Open Typography Style Manager | `Ctrl+Shift+T` / `Cmd+Shift+T` |
 | Detach selected property | `Ctrl+D` (when focused on linked property) |
 | Reset override | `Ctrl+R` (when focused on overridden property) |
 

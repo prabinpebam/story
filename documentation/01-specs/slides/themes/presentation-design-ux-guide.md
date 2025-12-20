@@ -66,7 +66,7 @@ A Color Theme is a palette of **12 semantic colors** that define the visual iden
 
 #### Scenario A: "I want a quick, polished look"
 
-1. **Open Color Theme Manager** (`Ctrl+Shift+C` or click "Colors" button in Property Inspector)
+1. **Open Color Theme Manager** (`Ctrl+Shift+C` / `Cmd+Shift+C` or click "Colors" button in Property Inspector)
 2. **Browse Presets Tab**: Filter by category (Professional, Creative, Dark, etc.)
 3. **Hover on a preset**: See live preview on your canvas
 4. **Click "Apply"**: Theme is applied to entire presentation
@@ -192,7 +192,7 @@ Each Text Style specifies:
 
 #### Scenario A: "I want a cohesive font system quickly"
 
-1. **Open Typography Style Manager** (`Ctrl+Shift+T` or click "Fonts" button)
+1. **Open Typography Style Manager** (`Ctrl+Shift+T` / `Cmd+Shift+T` or click "Fonts" button)
 2. **Browse Presets Tab**: Filter by category (Sans Serif, Serif, Mixed, etc.)
 3. **Hover on a preset**: See live preview on canvas (title + body text)
 4. **Click "Apply"**: Fonts and all text styles update
@@ -357,11 +357,11 @@ Color Themes and Typography Styles work together as your presentation's **Design
 "Before creating content, choose your design system"
 
 1. Open a new presentation
-2. Open Color Theme Manager (Ctrl+Shift+C)
+2. Open Color Theme Manager (`Ctrl+Shift+C` / `Cmd+Shift+C`)
 3. Browse presets or use AI to generate
 4. Apply a theme that matches your brand/mood
 
-5. Open Typography Style Manager (Ctrl+Shift+T)
+5. Open Typography Style Manager (`Ctrl+Shift+T` / `Cmd+Shift+T`)
 6. Browse presets or customize
 7. Apply fonts that complement your theme
 ```
@@ -399,12 +399,12 @@ Need different fonts?
 
 | Task | Entry Point | Shortcut |
 |------|-------------|----------|
-| Change entire color palette | Color Theme Manager → Presets | `Ctrl+Shift+C` |
-| Adjust specific theme color | Color Theme Manager → Custom | `Ctrl+Shift+C` |
-| Generate colors from image/AI | Color Theme Manager → AI | `Ctrl+Shift+C` |
+| Change entire color palette | Color Theme Manager → Presets | `Ctrl+Shift+C` / `Cmd+Shift+C` |
+| Adjust specific theme color | Color Theme Manager → Custom | `Ctrl+Shift+C` / `Cmd+Shift+C` |
+| Generate colors from image/AI | Color Theme Manager → AI | `Ctrl+Shift+C` / `Cmd+Shift+C` |
 | Pick theme color for element | Any color picker → Theme Swatches | - |
-| Change entire font system | Typography Manager → Presets | `Ctrl+Shift+T` |
-| Adjust specific text style | Typography Manager → Custom | `Ctrl+Shift+T` |
+| Change entire font system | Typography Manager → Presets | `Ctrl+Shift+T` / `Cmd+Shift+T` |
+| Adjust specific text style | Typography Manager → Custom | `Ctrl+Shift+T` / `Cmd+Shift+T` |
 | Apply text style to selection | Property Inspector → Style dropdown | - |
 
 ---

@@ -4,7 +4,8 @@
 
 Web applications face unique challenges with keyboard shortcuts due to browser default behaviors. This document provides a comprehensive strategy for preventing conflicts and ensuring shortcuts work reliably.
 
----
+Canonical ledger: `documentation/02-specs/core/keyboard-shortcuts-ledger.md`
+
 
 ## 1. Browser Conflicts & Prevention
 
@@ -15,6 +16,7 @@ These shortcuts should **NEVER** be prevented as they're essential browser funct
 | Shortcut | Browser Action | Strategy |
 |----------|---------------|----------|
 | `Ctrl/Cmd+Q` | Quit browser | ❌ Never intercept |
+| `Cmd+H` | Hide app (macOS) | ❌ Never intercept |
 | `Ctrl/Cmd+W` | Close tab | ❌ Never intercept |
 | `Ctrl/Cmd+T` | New tab | ❌ Never intercept |
 | `Ctrl/Cmd+Shift+T` | Reopen tab | ❌ Never intercept |
@@ -24,6 +26,7 @@ These shortcuts should **NEVER** be prevented as they're essential browser funct
 | `F11` | Fullscreen | ❌ Never intercept |
 | `F12` | DevTools | ❌ Never intercept |
 | `Ctrl/Cmd+U` | View source | ❌ Never intercept |
+| `Ctrl+H` | History (Windows/Linux) | ❌ Never intercept |
 | `Ctrl/Cmd+P` | Print | ⚠️ Context-aware (allow in presentation mode) |
 
 ### 1.2 Conditional Browser Shortcuts (CONTEXT-AWARE)
@@ -33,9 +36,8 @@ These can be overridden in specific contexts:
 | Shortcut | Browser Action | Our Action | Prevention Strategy |
 |----------|---------------|------------|---------------------|
 | `Ctrl/Cmd+F` | Find in page | Search in app | ✅ preventDefault() in canvas context |
-| `Ctrl/Cmd+H` | History | Hand tool | ✅ preventDefault() always |
-| `Ctrl/Cmd+L` | Focus address bar | Line tool | ⚠️ Only prevent in canvas |
-| `Ctrl/Cmd+K` | Search bar | Scale tool | ⚠️ Only prevent in canvas |
+| `Ctrl/Cmd+L` | Focus address bar | (No default binding) | ❌ avoid binding |
+| `Ctrl/Cmd+K` | Browser search | (No default binding) | ❌ avoid binding |
 | `Ctrl/Cmd+D` | Bookmark | Duplicate | ✅ preventDefault() always |
 | `Ctrl/Cmd+B` | Bookmarks bar | Bold (text) | ✅ preventDefault() in text-editing |
 | `Ctrl/Cmd+I` | DevTools | Italic (text) | ✅ preventDefault() in text-editing |
@@ -47,10 +49,10 @@ These can be overridden in specific contexts:
 These have no browser conflicts:
 
 ```
-Single keys: V, R, T, O, L, P, F (no browser action)
-Modifiers + numbers: Cmd+1/2/3 (browser tabs - avoid!)
-Modifiers + symbols: Cmd+]/[ (no browser action)
-Alt combinations: Alt+A/W/H/T/S/V (no browser action)
+Single keys: V, H, T, R, O, L (no browser action)
+Modifiers + numbers: avoid Ctrl/Cmd+1..9 (tab switching)
+Modifiers + symbols: Ctrl/Cmd+]/[ and Ctrl/Cmd+Shift+]/[ are generally safe
+Alt+Shift+letter: generally safe but reserve for Story-specific panels only
 ```
 
 ---
@@ -599,7 +601,7 @@ function showFirstRunNotification() {
             message: `
                 <p>Story uses keyboard shortcuts like professional design tools.</p>
                 <p>Some shortcuts may override browser defaults (like Ctrl+D).</p>
-                <p>Press <kbd>Ctrl+Shift+?</kbd> anytime to see all shortcuts.</p>
+                <p>Press <kbd>?</kbd> or <kbd>Cmd/Ctrl+/</kbd> anytime to see all shortcuts.</p>
             `,
             actions: [
                 {
@@ -608,10 +610,6 @@ function showFirstRunNotification() {
                     action: () => {
                         localStorage.setItem('shortcuts-intro-shown', 'true');
                     }
-                },
-                {
-                    label: 'Customize',
-                    action: () => openShortcutSettings()
                 }
             ]
         });

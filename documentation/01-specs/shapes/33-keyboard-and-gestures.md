@@ -54,16 +54,17 @@ Constrain rules are defined in [39-toolbar-tools-and-creation-ux.md](./39-toolba
 
 Boolean/mask commands are only active when selection is compatible (see [30-boolean-mask-ux.md](./30-boolean-mask-ux.md)).
 
-**V1 NON-GOAL**: Selection-level boolean/mask keyboard shortcuts are not shipped in v1.
+Selection-level boolean/mask shortcuts are **not assigned by default**.
 
-Suggested shortcuts (future work, Windows):
-- `Alt+Shift+U` → Union
-- `Alt+Shift+S` → Subtract
-- `Alt+Shift+I` → Intersect
-- `Alt+Shift+E` → Exclude
-- `Alt+Shift+F` → Flatten (irreversible)
+Rationale:
+- Figma-style parity does not require boolean ops to have default key bindings.
+- Web/browser conflict avoidance: letter+modifier combos collide easily with browser/OS shortcuts.
+- Story already uses single-letter shortcuts heavily for tools.
 
-Mac equivalents use `Option+Shift+…`.
+If/when dedicated shortcuts are added, they must:
+- Be listed in `documentation/02-specs/core/keyboard-shortcuts.md`.
+- Avoid critical browser shortcuts (see `keyboard-shortcuts-conflict-resolution.md`).
+- Never fire while typing in inputs or in text-editing.
 
 ---
 

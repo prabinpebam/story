@@ -4,6 +4,8 @@
 
 This document provides technical guidance for implementing the keyboard shortcut system defined in `keyboard-shortcuts.md`. It covers architecture, priority handling, context awareness, design system compliance, and testing strategies.
 
+It documents a **target** centralized shortcut router (KeyboardManager/Registry/Overlay) and a **migration path** from the current codebase.
+
 **Key Requirements:**
 - **Design System Compliance**: Zero hardcoded values, all CSS variables
 - **Theme Compatibility**: Works in light/dark mode, accent color switchable
@@ -14,7 +16,23 @@ This document provides technical guidance for implementing the keyboard shortcut
 
 ---
 
+Canonical ledger: `documentation/02-specs/core/keyboard-shortcuts-ledger.md`
 ## 1. Architecture
+
+### 1.0 Current state (in repo today)
+
+Keyboard handling is currently distributed across multiple listeners/handlers:
+
+- Global app: `src/main.js`
+- Canvas editing: `src/core/CanvasManager.js`
+- Tool switching: `src/ui/Toolbar.js`
+- Panels (toggle + Esc close): `src/ui/PanelManager.js`
+- Presentation: `src/core/PresentationManager.js`
+- Text editing capture: `src/core/text/TextEditManager.js`
+- Menus/context menus: `src/ui/components/AppMenu/*`, `src/ui/components/ContextMenu/ContextMenu.js`
+- Input gating helpers: `src/core/InputManager.js`
+
+The spec’s context priority model must be enforced consistently across these paths.
 
 ### 1.1 System Components
 
@@ -37,7 +55,7 @@ This document provides technical guidance for implementing the keyboard shortcut
    ┌─────────┐   ┌─────────┐   ┌─────────┐   ┌──────────┐
    │  Input  │   │ Context │   │ Global  │   │ Overlay  │
    │ Handler │   │ Handler │   │ Handler │   │  (? or   │
-   └─────────┘   └─────────┘   └─────────┘   │ Ctrl+/)  │
+    └─────────┘   └─────────┘   └─────────┘   │ Cmd/Ctrl+/)│
         │              │              │       └──────────┘
         ▼              ▼              ▼              │
    Block if      Route to       Execute          ▼
@@ -51,7 +69,7 @@ This document provides technical guidance for implementing the keyboard shortcut
 ### 1.2 Core Classes
 
 #### KeyboardManager
-**Location:** `src/core/keyboard/KeyboardManager.js`
+**Target Location:** `src/core/keyboard/KeyboardManager.js` (not implemented yet)
 
 **Responsibilities:**
 - Register and manage all keyboard shortcuts
@@ -81,7 +99,7 @@ class KeyboardManager {
     }
 
     handleKeyEvent(event) {
-        // 1. Check if overlay toggle (? or Ctrl+Shift+/)
+        // 1. Check if overlay toggle (? or Cmd/Ctrl+/)
         // 2. Normalize event
         // 3. Check browser conflicts
         // 4. Check input context
@@ -106,7 +124,7 @@ class KeyboardManager {
 ```
 
 #### ShortcutRegistry
-**Location:** `src/core/keyboard/ShortcutRegistry.js`
+**Target Location:** `src/core/keyboard/ShortcutRegistry.js` (not implemented yet)
 
 **Responsibilities:**
 - Store shortcut definitions
@@ -549,7 +567,8 @@ keyboardManager.register({
 - `'cmd+d'` or `'ctrl+d'`
 - `'shift+cmd+z'` or `'shift+ctrl+z'`
 - `'alt+a'` or `'opt+a'`
-- `'cmd+shift+?'`
+- `'?'`
+- `'cmd+/'` or `'ctrl+/'`
 
 **Normalized format:**
 - Lowercase
@@ -1123,14 +1142,15 @@ describe('Keyboard Shortcuts', () => {
 - [ ] Migrate canvas shortcuts from `CanvasManager.js`
 - [ ] Migrate panel shortcuts from `PanelManager.js`
 
-**Phase 3: Add New Shortcuts**
-- [ ] Implement missing tool shortcuts (O, L, P, F)
-- [ ] Implement arrange shortcuts (Cmd+]/[)
-- [ ] Implement alignment shortcuts (Alt+A/W/H/T/S/V)
-- [ ] Implement presentation shortcuts
+**Phase 3: Close Parity Gaps**
+- [ ] Implement Cut (`Cmd/Ctrl+X`) in canvas context
+- [ ] Implement Copy as PNG (`Cmd/Ctrl+Shift+C`)
+- [ ] Implement paste variants as needed (`Cmd/Ctrl+Shift+V`)
+- [ ] Resolve conflicts with Story-specific panels (move panel toggles off Figma-standard bindings)
+- [ ] Ensure consistent context routing (menus/modals/text edit/presentation/panels/canvas/global)
 
 **Phase 4: Polish**
-- [ ] Create shortcut panel UI (Cmd+Shift+?)
+- [ ] Create shortcut overlay UI (toggle with `?` and `Cmd/Ctrl+/`)
 - [ ] Add tooltips with shortcuts
 - [ ] Add usage tracking
 - [ ] Add keyboard layout support
@@ -1343,38 +1363,9 @@ keyboardManager.enable('tool-rectangle');
 keyboardManager.enableAll();
 ```
 
-### 14.2 Custom Shortcuts (Future)
+### 14.2 Shortcut Customization (Non-goal)
 
-```javascript
-// Allow user customization
-class CustomShortcutManager {
-    constructor() {
-        this.customizations = this.loadFromStorage();
-    }
-
-    customize(shortcutId, newKey) {
-        // Validate no conflicts
-        if (this.hasConflict(newKey)) {
-            throw new Error('Shortcut already in use');
-        }
-        
-        // Update
-        this.customizations.set(shortcutId, newKey);
-        
-        // Re-register
-        keyboardManager.updateShortcut(shortcutId, newKey);
-        
-        // Save
-        this.saveToStorage();
-    }
-
-    reset(shortcutId) {
-        this.customizations.delete(shortcutId);
-        keyboardManager.resetShortcut(shortcutId);
-        this.saveToStorage();
-    }
-}
-```
+Story does not support user-customizable shortcut bindings. This keeps parity with Figma-style conventions, avoids fragmentation of muscle memory, and reduces complexity/conflict surface in a browser environment.
 
 ---
 
@@ -1397,7 +1388,7 @@ class CustomShortcutManager {
 - [ ] Create `shortcut-overlay.css` with **ZERO hardcoded values**
 - [ ] Implement multi-column layout (3 → 2 → 1 responsive)
 - [ ] Add instant open (<100ms target)
-- [ ] Add `?` and `Ctrl+Shift+/` shortcuts
+- [ ] Add `?` and `Cmd/Ctrl+/` shortcuts
 - [ ] Add autofocus search
 - [ ] Add live search with 150ms debounce
 - [ ] Add ESC/backdrop/same-key dismiss
@@ -1531,22 +1522,9 @@ class CustomShortcutManager {
 
 ---
 
-### Phase 5: Customization (Future - Week 5+)
-**Priority: P3 - Power Users**
+### Phase 5: Customization
 
-#### Custom Shortcuts
-- [ ] Add edit mode (inline recording)
-- [ ] Add preset management (Figma/Adobe/Story)
-- [ ] Add import/export JSON
-- [ ] Add reset to defaults
-- [ ] Add custom shortcut validation
-- [ ] Add conflict resolution UI
-
-#### Advanced Features
-- [ ] Add chord shortcuts (e.g., Cmd+K Cmd+S)
-- [ ] Add sequence shortcuts
-- [ ] Add macro recording
-- [ ] Add shortcut profiles per project
+No customization phase. Shortcut customization is a non-goal for Story.
 
 ---
 
