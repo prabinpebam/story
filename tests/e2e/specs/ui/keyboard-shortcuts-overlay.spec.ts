@@ -35,6 +35,37 @@ test.describe('Keyboard Shortcuts Overlay', () => {
     await expect(overlay).toHaveAttribute('data-open', 'false');
   });
 
+  test('opens from Help menu', async ({ page }) => {
+    const editor = new EditorPage(page);
+    await editor.goto();
+    await editor.waitForLoad();
+
+    const overlay = page.locator('[data-testid="keyboard-shortcuts-overlay"]');
+    await expect(overlay).toHaveCount(1);
+    await expect(overlay).toBeHidden();
+
+    await page.getByRole('button', { name: 'Story application menu' }).click();
+    const appMenu = page.getByRole('menu', { name: 'Application menu' });
+    await expect(appMenu).toBeVisible();
+
+    await appMenu.getByRole('menuitem', { name: 'Help' }).click();
+    const submenu = page.getByRole('menu', { name: 'Submenu' });
+    await expect(submenu).toBeVisible();
+
+    await submenu.getByRole('menuitem', { name: 'Keyboard Shortcuts' }).click();
+
+    await expect(overlay).toBeVisible();
+    await expect(overlay).toHaveAttribute('data-open', 'true');
+
+    // Menu should close after selecting an action.
+    await expect
+      .poll(async () => page.locator('.app-menu-dropdown').count())
+      .toBe(0);
+
+    await page.keyboard.press('Escape');
+    await expect(overlay).toBeHidden();
+  });
+
   test('toggles with Cmd/Ctrl+/', async ({ page }) => {
     const editor = new EditorPage(page);
     await editor.goto();
