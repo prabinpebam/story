@@ -182,7 +182,8 @@ export class PresentationRenderer extends BaseRenderer {
             return '2000+';
         };
 
-        let effectiveTransition = StyleResolver.getEffectiveSlideTransition(newId).transition;
+        const effectiveTransitionInfo = StyleResolver.getEffectiveSlideTransition(newId);
+        let effectiveTransition = effectiveTransitionInfo.transition;
 
         let isReducedMotion = false;
         try {
@@ -198,6 +199,21 @@ export class PresentationRenderer extends BaseRenderer {
             easing: effectiveTransition?.easing,
             isReducedMotion,
         });
+
+        // If a legacy transition string (e.g., 'magic') was resolved to none due to Phase 1
+        // unsupported semantics, emit a privacy-safe fallback event.
+        try {
+            const legacyReason = effectiveTransitionInfo?.legacyFallbackReason;
+            if (legacyReason && effectiveTransition?.type === 'none') {
+                telemetry.emit('transition_fallback_to_none', {
+                    reason: legacyReason,
+                    transitionType: effectiveTransition?.type,
+                    direction: effectiveTransition?.direction,
+                });
+            }
+        } catch {
+            // Best-effort.
+        }
 
         // Transition readiness gating: keep the new slide hidden until fonts/media are ready.
         this._setTransitionStatus('loading', newId);

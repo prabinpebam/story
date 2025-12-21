@@ -226,7 +226,7 @@ export const StyleResolver = {
      * Masters/layouts use `styleAssignments.slideTransition`.
      *
      * @param {string} slideId
-     * @returns {{transition: {type: string, durationMs: number, easing: string, direction?: string}, source: 'slide'|'layout'|'master', sourceId: string|null, sourceLabel: string, isInherited: boolean}}
+    * @returns {{transition: {type: string, durationMs: number, easing: string, direction?: string}, source: 'slide'|'layout'|'master', sourceId: string|null, sourceLabel: string, isInherited: boolean, legacyTransition?: string, legacyFallbackReason?: string|null}}
      */
     getEffectiveSlideTransition(slideId) {
         const store = getStore();
@@ -320,12 +320,30 @@ export const StyleResolver = {
             // null = inherit; proceed to layout/master/default.
         } else if (slide.transition) {
             // 1b) Legacy slide.transition (only if canonical is missing)
+            const legacyTransition = typeof slide.transition === 'string' ? slide.transition : String(slide.transition);
+            const legacyFallbackReason = (() => {
+                // Phase 1: legacy slide.transition supported set.
+                // Note: 'magic' is explicitly unsupported in Phase 1 (Morph is Phase 2).
+                switch (legacyTransition) {
+                    case 'fade':
+                    case 'push':
+                    case 'slide':
+                    case 'none':
+                        return null;
+                    case 'magic':
+                        return 'legacy-magic';
+                    default:
+                        return 'legacy-unsupported';
+                }
+            })();
             return {
                 transition: coerceSlideTransition(slide.transition),
                 source: 'slide',
                 sourceId: slideId,
                 sourceLabel: 'legacy slide transition',
-                isInherited: false
+                isInherited: false,
+                legacyTransition,
+                legacyFallbackReason
             };
         }
 

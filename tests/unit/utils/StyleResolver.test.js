@@ -317,6 +317,28 @@ describe('StyleResolver', () => {
             const result = StyleResolver.getEffectiveSlideTransition('slide-legacy');
             expect(result.source).toBe('slide');
             expect(result.transition.type).toBe('none');
+            expect(result.legacyTransition).toBe('unsupported-transition');
+            expect(result.legacyFallbackReason).toBe('legacy-unsupported');
+        });
+
+        it('should mark legacy magic as unsupported and report a legacy fallback reason', () => {
+            const mockState = createMockState({
+                slides: {
+                    ...createMockState().slides,
+                    'slide-legacy': {
+                        ...createMockState().slides['slide-legacy'],
+                        transition: 'magic'
+                        // no styleAssignments
+                    }
+                }
+            });
+            store.getState = vi.fn(() => mockState);
+
+            const result = StyleResolver.getEffectiveSlideTransition('slide-legacy');
+            expect(result.source).toBe('slide');
+            expect(result.transition.type).toBe('none');
+            expect(result.legacyTransition).toBe('magic');
+            expect(result.legacyFallbackReason).toBe('legacy-magic');
         });
 
         it('should clamp duration to [0, 5000] and normalize invalid direction', () => {
