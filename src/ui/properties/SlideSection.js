@@ -59,6 +59,17 @@ export class SlideSection {
         }
     }
 
+    _getSelectedSlideIdsForTransition(state, currentObject) {
+        if (state?.editor?.mode !== 'slide') return [currentObject?.id].filter(Boolean);
+
+        const ids = Array.isArray(state?.editor?.selectedSlideIds)
+            ? state.editor.selectedSlideIds.filter(Boolean)
+            : [];
+
+        if (ids.length > 0) return ids;
+        return [currentObject?.id].filter(Boolean);
+    }
+
     static DEFAULT_LAYOUT_GUIDE = {
         enabled: true,
         margins: { top: 40, right: 40, bottom: 40, left: 40 },
@@ -456,6 +467,8 @@ export class SlideSection {
         const currentObject = this.getActiveContainer(state);
         if (!currentObject) return;
 
+        const selectedSlideIds = this._getSelectedSlideIdsForTransition(state, currentObject);
+
         const effective = StyleResolver.getEffectiveSlideTransition(currentObject.id)?.transition;
         const existing = currentObject.styleAssignments?.slideTransition;
         const base = (existing && typeof existing === 'object') ? existing : (effective || { type: SLIDE_TRANSITION_TYPES.CROSS_FADE, durationMs: 300, easing: 'ease-in-out' });
@@ -469,7 +482,12 @@ export class SlideSection {
         // Normalize and ensure direction defaults.
         const normalized = coerceSlideTransition(next);
 
-        if (mode === 'master') {
+        if (mode !== 'master' && selectedSlideIds.length > 1) {
+            store.dispatch('UPDATE_SLIDES_STYLE_ASSIGNMENTS', {
+                slideIds: selectedSlideIds,
+                styleAssignments: { slideTransition: normalized }
+            });
+        } else if (mode === 'master') {
             store.dispatch('UPDATE_MASTER_STYLE_ASSIGNMENTS', {
                 masterId: currentObject.id,
                 styleAssignments: { slideTransition: normalized }
@@ -559,13 +577,28 @@ export class SlideSection {
         const currentObject = this.getActiveContainer(state);
         if (!currentObject) return;
 
+        const selectedSlideIds = this._getSelectedSlideIdsForTransition(state, currentObject);
+        const hasMixedSelectedTypes = (() => {
+            if (state?.editor?.mode !== 'slide') return false;
+            if (selectedSlideIds.length <= 1) return false;
+
+            const types = selectedSlideIds.map((slideId) => {
+                const info = StyleResolver.getEffectiveSlideTransition(slideId);
+                const t = info?.transition ? coerceSlideTransition(info.transition) : coerceSlideTransition({ type: SLIDE_TRANSITION_TYPES.CROSS_FADE });
+                return t.type;
+            });
+
+            const first = types[0];
+            return types.some((t) => t !== first);
+        })();
+
         const info = StyleResolver.getEffectiveSlideTransition(currentObject.id);
         const transition = info?.transition ? coerceSlideTransition(info.transition) : coerceSlideTransition({ type: SLIDE_TRANSITION_TYPES.CROSS_FADE });
 
         const hasCanonical = !!currentObject.styleAssignments && Object.prototype.hasOwnProperty.call(currentObject.styleAssignments, 'slideTransition');
         const hasDirectOverride = hasCanonical && currentObject.styleAssignments.slideTransition && typeof currentObject.styleAssignments.slideTransition === 'object';
 
-        const label = this._formatTransitionLabel(transition);
+        const label = hasMixedSelectedTypes ? 'Mixed' : this._formatTransitionLabel(transition);
 
         if (this.transitionTypeTriggerBtn?.setLabel) {
             this.transitionTypeTriggerBtn.setLabel(label);

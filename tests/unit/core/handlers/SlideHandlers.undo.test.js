@@ -416,6 +416,87 @@ describe('SlideHandlers - Undo/Redo Integration', () => {
         });
     });
 
+    describe('UPDATE_SLIDE_STYLE_ASSIGNMENTS (slideTransition) undo/redo', () => {
+        it('should undo/redo slideTransition override changes', () => {
+            const slideId = store.getState().slideOrder[0];
+            const before = store.getState();
+            const initial = before.slides[slideId].styleAssignments?.slideTransition ?? null;
+
+            store.dispatch('UPDATE_SLIDE_STYLE_ASSIGNMENTS', {
+                slideId,
+                styleAssignments: {
+                    slideTransition: { type: 'wipe', direction: 'right', durationMs: 300, easing: 'ease-in-out' }
+                }
+            });
+
+            expect(store.getState().slides[slideId].styleAssignments?.slideTransition?.type).toBe('wipe');
+
+            store.dispatch('UNDO');
+            expect(store.getState().slides[slideId].styleAssignments?.slideTransition ?? null).toEqual(initial);
+
+            store.dispatch('REDO');
+            expect(store.getState().slides[slideId].styleAssignments?.slideTransition?.type).toBe('wipe');
+        });
+
+        it('should undo/redo reset-to-inherited (slideTransition = null)', () => {
+            const slideId = store.getState().slideOrder[0];
+
+            store.dispatch('UPDATE_SLIDE_STYLE_ASSIGNMENTS', {
+                slideId,
+                styleAssignments: {
+                    slideTransition: { type: 'push', direction: 'left', durationMs: 350, easing: 'ease-in-out' }
+                }
+            });
+            expect(store.getState().slides[slideId].styleAssignments?.slideTransition?.type).toBe('push');
+
+            store.dispatch('UPDATE_SLIDE_STYLE_ASSIGNMENTS', {
+                slideId,
+                styleAssignments: { slideTransition: null }
+            });
+            expect(store.getState().slides[slideId].styleAssignments?.slideTransition).toBeNull();
+
+            store.dispatch('UNDO');
+            expect(store.getState().slides[slideId].styleAssignments?.slideTransition?.type).toBe('push');
+
+            store.dispatch('REDO');
+            expect(store.getState().slides[slideId].styleAssignments?.slideTransition).toBeNull();
+        });
+    });
+
+    describe('UPDATE_SLIDES_STYLE_ASSIGNMENTS (bulk slideTransition) undo/redo', () => {
+        it('should undo/redo bulk transition updates across multiple slides as a single step', () => {
+            const initial = store.getState();
+            const slideA = initial.slideOrder[0];
+
+            // Create a second slide.
+            store.dispatch('ADD_SLIDE');
+            const afterAdd = store.getState();
+            const slideB = afterAdd.slideOrder[afterAdd.slideOrder.length - 1];
+
+            const beforeBulk = store.getState();
+            const initialA = beforeBulk.slides[slideA].styleAssignments?.slideTransition ?? null;
+            const initialB = beforeBulk.slides[slideB].styleAssignments?.slideTransition ?? null;
+
+            store.dispatch('UPDATE_SLIDES_STYLE_ASSIGNMENTS', {
+                slideIds: [slideA, slideB],
+                styleAssignments: {
+                    slideTransition: { type: 'cover', direction: 'right', durationMs: 300, easing: 'ease-in-out' }
+                }
+            });
+
+            expect(store.getState().slides[slideA].styleAssignments?.slideTransition?.type).toBe('cover');
+            expect(store.getState().slides[slideB].styleAssignments?.slideTransition?.type).toBe('cover');
+
+            store.dispatch('UNDO');
+            expect(store.getState().slides[slideA].styleAssignments?.slideTransition ?? null).toEqual(initialA);
+            expect(store.getState().slides[slideB].styleAssignments?.slideTransition ?? null).toEqual(initialB);
+
+            store.dispatch('REDO');
+            expect(store.getState().slides[slideA].styleAssignments?.slideTransition?.type).toBe('cover');
+            expect(store.getState().slides[slideB].styleAssignments?.slideTransition?.type).toBe('cover');
+        });
+    });
+
     describe('Complex undo/redo scenarios', () => {
         it('should handle mixed operations with undo/redo', () => {
             const initialCount = store.getState().slideOrder.length;

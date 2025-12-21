@@ -268,3 +268,19 @@ export function handleUpdateSlideStyleAssignments(draft, payload) {
     // Merge the new style assignments
     Object.assign(slide.styleAssignments, styleAssignments);
 }
+
+/**
+ * Bulk update style assignments for multiple slides.
+ * Used for multi-slide operations that must remain a single undo step.
+ *
+ * @param {Object} draft - Immer draft
+ * @param {Object} payload - { slideIds: string[], styleAssignments: Object }
+ */
+export function handleUpdateSlidesStyleAssignments(draft, payload) {
+    const slideIds = Array.isArray(payload?.slideIds) ? payload.slideIds : [];
+    const styleAssignments = payload?.styleAssignments || {};
+
+    slideIds.forEach((slideId) => {
+        handleUpdateSlideStyleAssignments(draft, { slideId, styleAssignments });
+    });
+}

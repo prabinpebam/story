@@ -32,7 +32,8 @@ describe('SlideSection', () => {
                     mode: 'slide',
                     activeSlideId: 'slide-1',
                     activeMasterId: null,
-                    selectedElementIds: []
+                    selectedElementIds: [],
+                    selectedSlideIds: ['slide-1'],
                 },
                 slides: {
                     'slide-1': {
@@ -120,6 +121,15 @@ describe('SlideSection', () => {
                         slide.styleAssignments = slide.styleAssignments || {};
                         Object.assign(slide.styleAssignments, payload.styleAssignments || {});
                     }
+                }
+
+                if (action === 'UPDATE_SLIDES_STYLE_ASSIGNMENTS' && Array.isArray(payload?.slideIds)) {
+                    payload.slideIds.forEach((slideId) => {
+                        const slide = this.state.slides[slideId];
+                        if (!slide) return;
+                        slide.styleAssignments = slide.styleAssignments || {};
+                        Object.assign(slide.styleAssignments, payload.styleAssignments || {});
+                    });
                 }
 
                 if (action === 'UPDATE_MASTER_STYLE_ASSIGNMENTS' && payload?.masterId) {
@@ -1246,6 +1256,80 @@ describe('SlideSection', () => {
             expect(region).toBeTruthy();
             expect(region.textContent).toContain('Transition reset to inherited');
             expect(region.textContent).not.toContain('TOP SECRET');
+        });
+
+        it('should show Mixed in the transition picker when multiple selected slides have different effective types', () => {
+            // Add a second slide and select both.
+            store.state.slides['slide-2'] = {
+                id: 'slide-2',
+                layoutId: 'layout-title',
+                width: 1920,
+                height: 1080,
+                background: null,
+                elements: {},
+                elementOrder: []
+            };
+
+            store.state.editor.activeSlideId = 'slide-2';
+            store.state.editor.selectedSlideIds = ['slide-1', 'slide-2'];
+
+            // Slide 1 overrides to wipe, slide 2 inherits default (crossFade).
+            store.state.slides['slide-1'].styleAssignments = {
+                slideTransition: {
+                    type: 'wipe',
+                    direction: 'right',
+                    durationMs: 300,
+                    easing: 'ease-in-out'
+                }
+            };
+            delete store.state.slides['slide-2'].styleAssignments;
+
+            const slideSection = new SlideSection();
+            slideSection.updateTransitionDisplay();
+
+            const trigger = slideSection.element.querySelector('[data-testid="transition-picker-trigger"]');
+            expect(trigger).toBeTruthy();
+            expect(trigger.textContent).toBe('Mixed');
+        });
+
+        it('should apply transition type to all selected slides when in Mixed state', () => {
+            // Add a second slide and select both.
+            store.state.slides['slide-2'] = {
+                id: 'slide-2',
+                layoutId: 'layout-title',
+                width: 1920,
+                height: 1080,
+                background: null,
+                elements: {},
+                elementOrder: []
+            };
+
+            store.state.editor.activeSlideId = 'slide-2';
+            store.state.editor.selectedSlideIds = ['slide-1', 'slide-2'];
+
+            store.state.slides['slide-1'].styleAssignments = {
+                slideTransition: { type: 'wipe', direction: 'right', durationMs: 300, easing: 'ease-in-out' }
+            };
+            delete store.state.slides['slide-2'].styleAssignments;
+
+            const slideSection = new SlideSection();
+            const dispatchSpy = vi.spyOn(store, 'dispatch');
+
+            slideSection.applySlideTransitionType('push');
+
+            // Single bulk dispatch is preferred for one-step undo.
+            expect(dispatchSpy).toHaveBeenCalledWith(
+                'UPDATE_SLIDES_STYLE_ASSIGNMENTS',
+                expect.objectContaining({
+                    slideIds: ['slide-1', 'slide-2'],
+                    styleAssignments: expect.objectContaining({
+                        slideTransition: expect.objectContaining({ type: 'push' })
+                    })
+                })
+            );
+
+            expect(store.state.slides['slide-1'].styleAssignments?.slideTransition?.type).toBe('push');
+            expect(store.state.slides['slide-2'].styleAssignments?.slideTransition?.type).toBe('push');
         });
     });
 

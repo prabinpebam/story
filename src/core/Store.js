@@ -259,6 +259,7 @@ export class Store extends EventEmitter {
             case 'REORDER_SLIDES': 
             case 'UPDATE_SLIDE': 
             case 'UPDATE_SLIDE_STYLE_ASSIGNMENTS':
+            case 'UPDATE_SLIDES_STYLE_ASSIGNMENTS':
                 this.snapshot(type);
                 this.state = produce(this.state, draft => {
                     switch(type) {
@@ -269,6 +270,7 @@ export class Store extends EventEmitter {
                         case 'REORDER_SLIDES': SlideHandlers.handleReorderSlides(draft, payload); break;
                         case 'UPDATE_SLIDE': SlideHandlers.handleUpdateSlide(draft, payload); break;
                         case 'UPDATE_SLIDE_STYLE_ASSIGNMENTS': SlideHandlers.handleUpdateSlideStyleAssignments(draft, payload); break;
+                        case 'UPDATE_SLIDES_STYLE_ASSIGNMENTS': SlideHandlers.handleUpdateSlidesStyleAssignments(draft, payload); break;
                     }
                 });
                 this.emit('state-changed', this.state);
@@ -282,6 +284,9 @@ export class Store extends EventEmitter {
                             colorTheme: payload.styleAssignments?.colorTheme
                         });
                     }
+                }
+                if (type === 'UPDATE_SLIDES_STYLE_ASSIGNMENTS') {
+                    this.emit('style-assignment-changed', payload);
                 }
                 break;
 
