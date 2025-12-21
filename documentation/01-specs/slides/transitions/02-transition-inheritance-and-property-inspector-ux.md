@@ -1,4 +1,4 @@
-# Slide Transitions — Inheritance Model + Property Inspector UX (Phase 1)
+# Slide Transitions — Inheritance Model + Property Inspector UX
 
 ## 0) Scope
 This document specifies:
@@ -9,7 +9,7 @@ It MUST mirror the cascade model used by color themes:
 - Reference: `documentation/01-specs/slides/themes/color-themes-spec.md`
 - Resolver pattern reference: `src/utils/StyleResolver.js` (slide → layout → master)
 
-Morph is out of scope (Phase 2).
+Morph / Smart Animate is out of scope.
 
 App principles alignment (normative):
 - Must reuse existing design system components and global CSS variables.
@@ -39,8 +39,8 @@ To mirror the theme system:
 - **`null` MUST mean “inherit”.**
 - The UI MUST provide a “Reset to inherited” action that writes `null` at that level.
 
-### 1.4 Canonical storage (Phase 1)
-Phase 1 MUST store transition configuration in a way that:
+### 1.4 Canonical storage
+The implementation MUST store transition configuration in a way that:
 - matches the existing cascade pattern (slide → layout → master)
 - is compatible with the current store shape (which already mixes legacy top-level fields and `styleAssignments`)
 - is safe for serialization/sync
@@ -49,7 +49,7 @@ Therefore:
 
 - Slide records MUST support both:
   - legacy `transition` (string) (already present today), and
-  - `styleAssignments.slideTransition` (object or null) (Phase 1 canonical).
+  - `styleAssignments.slideTransition` (object or null) (canonical).
 
 - Layout master records (type `layoutMaster`) MUST store the optional override under:
   - `styleAssignments.slideTransition`
@@ -63,15 +63,15 @@ Null semantics (same as themes):
 - A present `styleAssignments.slideTransition` object means “override set here”.
 
 ### 1.5 Backward compatibility (existing `slide.transition`)
-The current store has a legacy `slide.transition` string. Phase 1 MUST define a migration behavior:
+The current store has a legacy `slide.transition` string. The implementation MUST define a migration behavior:
 
 - If `styleAssignments.slideTransition` exists (even if null), it is the source of truth.
 - Else if `slide.transition` exists:
   - it MUST be mapped to `styleAssignments.slideTransition` using the following rules:
     - `'fade'` → `{ type: 'crossFade', durationMs: 300, easing: 'ease-in-out' }`
     - `'push'` → `{ type: 'push', direction: 'right', durationMs: 300, easing: 'ease-in-out' }` (default direction)
-    - `'slide'` → `{ type: 'cover', direction: 'right', durationMs: 300, easing: 'ease-in-out' }` (closest Phase 1 semantic)
-    - `'magic'` → Phase 1 MUST treat as unsupported (Morph is Phase 2) and MUST fall back safely (and MUST report telemetry `transition_fallback_to_none` or `transition_unsupported`).
+    - `'slide'` → `{ type: 'cover', direction: 'right', durationMs: 300, easing: 'ease-in-out' }` (closest supported semantic)
+    - `'magic'` → MUST treat as unsupported (Morph/Smart Animate is not implemented) and MUST fall back safely (and MUST report telemetry `transition_fallback_to_none` or `transition_unsupported`).
 
 Notes:
 - This mapping is intentionally conservative to avoid inventing Morph semantics.
@@ -99,11 +99,17 @@ interface EffectiveSlideTransition {
 
 ---
 
-## 2) Property Inspector UX (slide selected)
+## 2) Property Inspector UX
+
+The Transition section is implemented in `src/ui/properties/SlideSection.js`.
 
 ### 2.1 Placement
 - A new **Slide Transition** section MUST appear in the Property Inspector when a slide is selected.
 - It MUST be shown only when the selection is empty (same display condition as Slide properties).
+
+Mode support:
+- In normal editing mode, changes apply to the selected slide(s).
+- In master editing mode, changes apply to the active master entity.
 
 Design system alignment:
 - The Transition section MUST be implemented inside the existing `SlideSection` architecture (same surface as Layout/Colors/Typography).
@@ -168,7 +174,21 @@ Selection rules:
 - Clicking an option MUST apply it immediately and close the flyout.
 - The current option MUST have `aria-selected="true"`.
 
-No additional “Apply/Cancel” footer is allowed in Phase 1 for the transition picker (match layout picker, not master preset picker).
+No additional “Apply/Cancel” footer is used for the transition picker (it matches the layout picker behavior).
+
+### 2.6.1 Preview thumbnails (current implementation)
+Each option includes a pure-CSS preview thumbnail:
+- The preview DOM contains two layers:
+  - an “old” layer with the text `START`
+  - a “new” layer with the text `END`
+- Preview animations:
+  - do not autoplay
+  - play on hover
+  - reset when hover ends
+
+Implementation note:
+- The flyout content uses the same layout flyout structure/classes (`layout-flyout-*`).
+- The flyout root is marked with `data-testid="transition-picker-flyout"` for Playwright.
 
 ### 2.7 Controls shown after selection
 After a specific transition is selected, the section MUST show controls:
@@ -199,6 +219,14 @@ Direction UI MUST be a compact button grid (segmented control style) using exist
 If transition is set to `none`:
 - Duration and Direction controls MUST be hidden (or disabled) because they have no effect.
 
+Current behavior:
+- Selecting `none` forces `durationMs = 0` and clears `direction`.
+
+## 3) Mixed / multi-selection behavior
+When multiple slides are selected:
+- If their effective transitions differ, the UI displays a `Mixed` state.
+- Applying a transition in the mixed state sets the selected transition override on all selected slides.
+
 Undo/redo:
 - Changing any control MUST be recorded as an undoable store action (except transient scrubbing if the existing `skipHistory` pattern is used).
 
@@ -225,7 +253,7 @@ Storage alignment:
 ## 4) Mixed / multi-selection
 Slide Transition is a slide property.
 - In current UX, multiple slides are not edited simultaneously via the Property Inspector Slide section.
-- Phase 1 MUST define behavior for future multi-slide selection:
+- For future multi-slide selection, behavior is defined here:
   - If multiple slides are selected and their effective transitions differ, the transition picker MUST show a `Mixed` state.
   - Applying a transition in mixed state MUST set overrides on all selected slides.
 

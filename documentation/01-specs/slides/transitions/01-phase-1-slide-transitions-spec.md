@@ -1,12 +1,11 @@
-# Slide Transitions — Phase 1 Specification (Cross fade, Wipe, Push, Cover, Uncover)
+# Slide Transitions — Current Implementation (No Morph)
 
-## 0) Status
-- **Phase:** 1
-- **Morph:** explicitly deferred to Phase 2
-- **Audience surface:** Presentation Mode playback (and any other slide playback surfaces that reuse the same renderer)
+This document records the **current** slide transition implementation.
+
+Morph / Smart Animate is intentionally not implemented as a slide transition.
 
 ## 1) Goals
-- Provide a **fully specified** transition system for Phase 1.
+- Provide a **fully specified** slide transition system.
 - Ensure transitions are **inheritably configured** via the existing slide style cascade model (Master preset → Layout master → Slide override).
 - Ensure transitions are **deterministic, testable, and performance-safe**:
   - never show half-loaded media
@@ -39,7 +38,7 @@ Additionally (app principles alignment):
 - Property Inspector slide/flyout ARIA patterns: `documentation/01-specs/ui-system/property-inspector-v2/10-slide-section.md`
 - App principles: `documentation/00-product/principles.md`
 
-## 5) Supported transition types (Phase 1)
+## 5) Supported transition types
 
 ### 5.1 Canonical type IDs
 The transition system MUST use **canonical type IDs** (string literals) as follows:
@@ -65,7 +64,7 @@ type SlideTransitionType =
 
 type SlideTransitionDirection4 = 'left' | 'right' | 'up' | 'down';
 
-// Wipe supports diagonals in Phase 1.
+// Wipe supports diagonals.
 type SlideTransitionDirection8 =
   | SlideTransitionDirection4
   | 'upLeft'
@@ -102,33 +101,34 @@ interface SlideTransitionConfig {
 ### 5.4 Runtime integration contract (alignment to current app)
 The current Presentation playback pipeline invokes transitions from `PresentationRenderer` via `animationManager.transition(...)`.
 
-Phase 1 MUST standardize a single runtime API surface so duration/direction can be honored:
+The runtime MUST standardize a single API surface so duration/direction can be honored:
 
 - `AnimationManager.transition(container, outgoingEl, incomingEl, transition)` MUST accept:
   - either a legacy string (back-compat), or
   - a `SlideTransitionConfig` object.
 
 Back-compat rules:
-- If a legacy string is provided (e.g. `'fade'|'push'|'slide'|'none'|'magic'`), the implementation MUST map it to a Phase 1 `SlideTransitionConfig` or fall back safely.
-- `'magic'` MUST NOT silently behave as Morph in Phase 1. It MUST fall back (see Section 12).
+- If a legacy string is provided (e.g. `'fade'|'push'|'slide'|'none'|'magic'`), the implementation MUST map it to a `SlideTransitionConfig` or fall back safely.
+- `'magic'` MUST NOT silently behave as Morph. It MUST fall back (see Section 12).
 
 Implementation note (principles: avoid local one-offs):
 - The mapping MUST be centralized (single function/module) so UI, renderer, and tests share the same semantics.
 
 ## 6) Direction semantics (normative)
-Directional transitions MUST use a single consistent semantic:
+Direction semantics in the current implementation are:
 
-- `direction` describes the direction the **incoming slide moves from**.
-  - Example: `push` + `direction: 'right'` means the incoming slide starts to the **right** of the viewport and moves **leftwards into place**.
+- `push`, `cover`
+  - `direction` describes where the **incoming** slide starts.
+  - Example: `push` + `direction: 'right'` → incoming starts offscreen to the **right** and moves into place.
 
-This semantic applies to:
-- `push`
-- `cover`
 - `uncover`
+  - `direction` describes where the **outgoing** slide moves to.
+  - Example: `uncover` + `direction: 'right'` → outgoing moves offscreen to the **right**, revealing the incoming slide below.
 
-For `wipe`, `direction` describes where the wipe reveal originates:
-- Example: `wipe` + `direction: 'right'` means the incoming slide is revealed from the **right edge** toward the left.
-- Diagonal `wipe` directions originate from the named corner.
+- `wipe`
+  - `direction` describes the direction the reveal grows **toward**.
+  - Example: `wipe` + `direction: 'right'` → reveal grows from the **left edge** toward the right (the clip expands rightward).
+  - Diagonal directions expand from the opposite corner toward the named corner.
 
 ## 7) Visual stacking rules (normative)
 
@@ -163,24 +163,28 @@ Performance constraint:
   - incoming remains stationary (revealed as outgoing moves away)
 
 ## 8) Readiness gating (hard requirement)
-Transitions MUST NOT start until the incoming slide is ready:
-- fonts loaded and applied
-- images decoded at full resolution
-- video first frame decoded (for any video visible on the incoming slide)
+Transitions do not begin until the incoming slide is ready:
+- fonts ready (`document.fonts.ready` when available)
+- `<img>` loaded and decoded when possible (`img.decode()` when available)
+- `<video>` has first-frame data (`loadeddata` / `readyState >= 2`)
+- common `background-image: url(...)` assets are decoded via `Image()` preloads
 
-Alignment to current implementation:
-- The readiness probe is DOM-based (`waitForSlideAssetsReady(rootEl)`), and Phase 1 MUST NOT weaken it.
-- The probe MUST consider:
-  - `<img>` elements (load + optional `decode()`)
-  - `<video>` elements (at least first-frame `loadeddata`)
-  - CSS `background-image: url(...)` assets
+Implementation references:
+- `src/core/presentation/AssetReadiness.js` (`waitForSlideAssetsReady(rootEl)`)
+- `src/core/renderer/PresentationRenderer.js` (navigation blocking + bounded wait)
 
-If readiness fails or is delayed:
-- navigation MUST block until readiness succeeds
-- a loading indicator MAY be shown to the presenter surface
-- a loading indicator MUST NOT be shown to the audience surface
+Bounded wait behavior:
+- Navigation blocks for readiness, but only up to a renderer-level bounded wait.
+- Default bounded wait: **2000ms**
+- Override: `state.presentation.readinessBoundedWaitMs` (must be finite and > 0)
 
-(See the detailed readiness and caching rules in `03-performance-readiness-and-caching.md`.)
+If the bounded wait times out:
+- telemetry emits `transition_fallback_to_none` with reason `readiness-timeout`
+- the incoming slide is marked with `slide-view--readiness-fallback`
+- the transition is forced to `none` (`durationMs: 0`, `easing: 'linear'`)
+
+Audience cleanliness:
+- The renderer does not show a loading indicator to the audience surface.
 
 ## 9) Transition execution lifecycle (normative)
 
@@ -206,6 +210,10 @@ After completion:
 
 Security constraint:
 - Outgoing slide MUST not retain interactive focusable elements that remain tabbable after removal (no focus leaks).
+
+Visual stability constraint (regression-protected):
+- The outgoing slide must not disappear early in a way that briefly exposes the stage background.
+- The incoming slide is kept hidden until its start state is applied (to avoid a white flash).
 
 ### 9.3 Cancellation / re-entrancy
 If navigation happens again while `loading` or `transitioning`:
@@ -270,6 +278,13 @@ At minimum, transitions MUST emit privacy-safe telemetry:
 
 Payload MUST NOT include slide content, notes, or PII.
 
+## 14) Easing mapping
+`SlideTransitionConfig.easing` is stored as a CSS-like string, and is mapped to the animation engine easing:
+- `linear` → `linear`
+- `ease-in` → `easeInQuad`
+- `ease-out` → `easeOutQuad`
+- `ease-in-out` (and any unknown value) → `easeInOutQuad`
+
 ## 15) Undo/redo, serialization, and collaboration
 Transitions are user-authored slide/master properties and MUST therefore:
 - be undoable (each change is a store action recorded by undo/redo)
@@ -279,14 +294,10 @@ Transitions are user-authored slide/master properties and MUST therefore:
 Canonicalization:
 - When reading stored configs, the runtime MUST clamp and normalize values (duration bounds, direction validity) so that corrupted/old documents cannot crash playback.
 
-## 14) Acceptance criteria (Phase 1)
-- All Phase 1 types render correctly at 60fps on baseline hardware.
-- No transition begins until incoming slide is fully ready.
-- Reduced motion disables transitions.
-- Property Inspector can set transition at:
-  - master preset (default)
-  - layout master (override)
-  - slide (override)
-  - and can clear overrides to inherit.
+## 16) Acceptance criteria
+- Transitions never produce a “blank stage” frame during navigation.
+- No transition begins until incoming slide readiness gating completes (or bounded wait forces fallback).
+- Reduced motion forces `none`.
+- Transition configuration is normalized and safe against invalid/legacy input.
 
-See `04-testing-and-verification.md` for the complete verification matrix.
+See `04-testing-and-verification.md` for the verification matrix.

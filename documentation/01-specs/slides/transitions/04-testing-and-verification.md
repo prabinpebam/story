@@ -1,94 +1,44 @@
-# Slide Transitions — Testing & Verification (Phase 1)
+# Slide Transitions — Automated Testing & Verification
 
 ## 0) Goal
-Provide an enforceable verification plan that prevents spec/implementation gaps.
-
-This is modeled after the Presentation Mode gate discipline.
+Lock in transition correctness with automated tests (unit + Playwright), so regressions are caught without manual QA.
 
 ---
 
 ## 1) Test layers
 
 ### 1.1 Unit tests (Vitest)
-Unit tests MUST cover:
-- transition config validation (clamping duration, allowed directions)
-- effective transition resolution (slide → layout → master → default)
-- reduced motion forcing `none`
-- mapping from legacy `slide.transition` to `styleAssignments.slideTransition`
-- transition lifecycle state machine (idle/loading/transitioning)
-- readiness gating orchestration
+Key unit coverage lives in:
+- `tests/unit/core/AnimationManager.test.js`
+- `tests/unit/utils/StyleResolver.test.js`
+- `tests/unit/core/renderer/PresentationRenderer.readiness-timeout.test.js`
+- `tests/unit/core/renderer/PresentationRenderer.transition-visibility.test.js`
+- `tests/unit/core/renderer/PresentationRenderer.legacy-transition-telemetry.test.js`
+- `tests/unit/core/store/Store.loadPresentation.transitionMigration.test.js`
+- `tests/unit/core/handlers/SlideHandlers.transitionLegacyCleanup.test.js`
+- `tests/unit/storage/SlideTransition.storage-roundtrip.test.js`
 
 ### 1.2 E2E tests (Playwright)
-Playwright MUST enforce:
-- DOM contract attributes:
-  - `data-pm-transition-status`
-  - `data-pm-transition-target`
-- readiness gating:
-  - status becomes `loading` and stays until assets are ready
-  - status becomes `transitioning` only after readiness passes
-- audience-clean rule:
-  - no presenter-only loading indicator visible to audience
-- reduced motion:
-  - with `prefers-reduced-motion: reduce`, transitions are instant
+Key Playwright coverage lives in:
+- `tests/e2e/specs/functional/presentation-transition-no-blank.spec.ts`
+  - Samples multiple frames during a transition and asserts the stage never becomes “blank”.
+- `tests/e2e/specs/functional/transition-picker-lottie-hover.spec.ts`
+  - Verifies transition picker previews do not autoplay, animate on hover, and reset on mouseout.
 
-### 1.3 Visual verification
-At minimum, Playwright MUST include deterministic assertions for:
-- `cover` places incoming above outgoing
-- `uncover` places outgoing above incoming
-- `wipe` uses a masking strategy (clip-path present) and reveals correctly
-
-If visual regression tooling exists, transitions SHOULD be included.
+### 1.3 Visual assertions (how we do “visual” in E2E)
+We prefer deterministic DOM/style assertions over screenshot diffs:
+- computed `transform` / `opacity` / `clip-path` changes during transitions
+- lifecycle attributes (`data-pm-transition-status`, `data-pm-transition-target`)
 
 ---
 
-## 2) Golden decks (required fixtures)
-A deterministic fixture deck MUST exist that covers:
-- every Phase 1 transition type
-- each directional option
-- combinations with:
-  - images
-  - video (first-frame gating)
-  - custom fonts
-  - builds (assets used only after builds)
-
-The fixture MUST document expected behavior.
+## 2) How to run
+- Unit: `npm test`
+- E2E (single spec):
+  - `npm run test:e2e -- tests/e2e/specs/functional/presentation-transition-no-blank.spec.ts`
+  - `npm run test:e2e -- tests/e2e/specs/functional/transition-picker-lottie-hover.spec.ts`
 
 ---
 
-## 3) Mandatory Playwright specs (Phase 1)
-Suggested minimum suite (names are normative; exact filenames may vary):
-
-- `functional/transitions/transition-picker-inheritance.spec.ts`
-  - set master default transition
-  - override layout
-  - override slide
-  - reset to inherited
-  - verify source labels
-
-- `functional/transitions/transition-readiness-gating.spec.ts`
-  - simulate slow image decode
-  - assert transition does not start until decode complete
-  - assert audience sees no loader
-
-- `functional/transitions/transition-types-render.spec.ts`
-  - for each transition type, assert the expected DOM/styling contract is present during transitioning
-
-- `functional/transitions/reduced-motion.spec.ts`
-  - force reduced motion
-  - assert no animation and correct fallback telemetry
-
----
-
-## 4) Performance validation
-A perf gate MUST validate:
-- transitions maintain 60fps on baseline deck
-- transition start latency meets Presentation Mode targets once HOT is ready
-
----
-
-## 5) Traceability requirements
-Every MUST/MUST NOT clause in the transitions spec suite MUST map to at least one automated verification:
-- unit (Vitest) and/or
-- e2e (Playwright)
-
-The ledger file `05-ledger-and-gate-plan.md` is the authoritative tracker.
+## 3) Traceability
+This repo uses code + tests as the source of truth. Historical process/ledger docs are archived (see [README.md](README.md)).

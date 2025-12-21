@@ -1,11 +1,11 @@
-# Slide Transitions — Performance, Readiness Gating, and Caching (Phase 1)
+# Slide Transitions — Performance and Readiness Gating
 
 ## 0) Purpose
-This document binds Slide Transitions to Presentation Mode performance and caching rules.
+This document describes how slide transitions avoid showing partially-loaded assets.
 
-It is normative.
-
-Primary reference: `documentation/01-specs/slides/presentation-mode/02-performance-and-caching.md`
+Primary implementation references:
+- `src/core/presentation/AssetReadiness.js` (`waitForSlideAssetsReady`)
+- `src/core/renderer/PresentationRenderer.js` (navigation blocking + bounded wait)
 
 ---
 
@@ -32,40 +32,27 @@ Principles alignment:
 
 ---
 
-## 2) Cache tiers (Phase 1 alignment)
-The transition system MUST cooperate with the Presentation Mode cache tiers:
+## 2) Prefetch (implementation note)
+The presentation renderer instantiates a `PresentationPrefetchManager` and exposes it as `window.__presentationPrefetch`.
 
-- ACTIVE: current slide
-- HOT (±1): immediate neighbors
-- WARM (±3): prefetch window
-- COLD: everything else
-
-For transitions:
-- Navigation to HOT tier slides MUST be instant *after readiness gating*.
-- HOT tier MUST be “fully load + fully decode + render-ready”.
-
----
-
-## 3) Prefetch strategy integration
-
-### 3.1 Prefetch on enter
-On entering Presentation Mode:
-- MUST preload HOT tier (±1)
-- SHOULD begin WARM tier prefetch in idle cycles
-
-### 3.2 Deprioritize prefetch during navigation
-During active navigation:
-- MUST deprioritize background prefetch to avoid jank.
+This document does not specify cache tiering; it focuses on the readiness contract that transitions rely on.
 
 ---
 
 ## 4) Readiness contract
 
 ### 4.1 Readiness probe
-The readiness probe MUST validate:
-- `document.fonts.ready` (or equivalent) has resolved for the slide’s required fonts
-- all images visible on the incoming slide are decoded (`Image.decode()` or equivalent)
-- videos have `readyState` sufficient for first-frame presentation (or equivalent signal)
+`waitForSlideAssetsReady(rootEl)` performs best-effort blocking on:
+- Fonts: waits for `document.fonts.ready` when available
+- Images: waits for `load`/`error` when needed and calls `img.decode()` when available
+- Video: waits for `loadeddata` when `readyState < 2` (first frame)
+- Background images: extracts `url(...)` values from `background-image` and preloads/decodes them
+
+Timeouts:
+- Per-asset timeout defaults to **8000ms** and can be overridden via options.
+
+Test-only hook:
+- `window.__PM_TEST_READY_DELAY_MS` adds a deterministic delay before probing (used by Playwright). It is intentionally not a product feature.
 
 ### 4.2 What counts as “visible”
 Alignment to current implementation:
@@ -75,7 +62,7 @@ The existing readiness probe `waitForSlideAssetsReady(rootEl)` is DOM-based and 
 - all `<video>` descendants
 - CSS background-image URLs on common layers and the root element
 
-Phase 1 MUST preserve this behavior so transitions never show half-ready assets.
+The transition system MUST preserve this behavior so transitions never show half-ready assets.
 
 Performance note:
 - If future optimization is desired (e.g., excluding assets hidden for builds), it MUST not reduce correctness and MUST be proven by tests (no regressions where a build asset becomes visible immediately after transition).
@@ -92,15 +79,13 @@ Transitions MUST not cause performance regressions:
 ## 6) Failure modes
 
 ### 6.1 Asset readiness fails
-If readiness cannot be achieved due to a permanent failure (corrupt media, missing font):
-- The system MUST proceed with navigation after a bounded wait (configurable; default 2000ms).
-- The bounded wait MUST be implemented without blocking the UI thread.
-- The transition MUST fall back to `none` for that navigation event.
-- The audience view MUST render a safe placeholder (no crash, no broken DOM).
-- A presenter-only error indicator MAY appear.
+If readiness is slow or never completes:
+- The renderer proceeds after a bounded wait (**default 2000ms**) and forces the transition to `none`.
+- The incoming slide is marked `slide-view--readiness-fallback`.
+- Navigation blocking is bounded by `PresentationRenderer._getReadinessBoundedWaitMs()` and can be overridden via `state.presentation.readinessBoundedWaitMs`.
 
-Implementation alignment:
-- The readiness probe already applies a per-asset timeout (default 8000ms). Phase 1 MUST define which timeout governs the bounded-wait behavior to avoid double timeouts.
+Note on timeouts:
+- The readiness probe itself also applies a per-asset timeout (default **8000ms**). The renderer bounded wait is the stricter limit for navigation blocking.
 
 ### 6.2 Animation engine missing
 If the animation engine (e.g., Anime.js) is not available:
