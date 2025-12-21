@@ -423,6 +423,9 @@ describe('SlideSection', () => {
     afterEach(() => {
         vi.clearAllMocks();
         vi.resetModules();
+
+        const live = global.document?.getElementById?.('ui-live-region');
+        if (live && live.parentNode) live.parentNode.removeChild(live);
     });
 
     describe('Layout Picker', () => {
@@ -1166,6 +1169,83 @@ describe('SlideSection', () => {
                     styleAssignments: { slideTransition: null }
                 })
             );
+        });
+
+        it('should emit screen reader announcements for transition type changes', async () => {
+            const slideSection = new SlideSection();
+            dom.window.document.body.appendChild(slideSection.element);
+
+            slideSection.openTransitionFlyout();
+            const flyoutContent = slideSection.transitionFlyout.content;
+            const crossFadeBtn = Array.from(flyoutContent.querySelectorAll('[data-testid="transition-picker-option"]'))
+                .find(el => el.dataset.transitionType === 'crossFade');
+            expect(crossFadeBtn).toBeTruthy();
+
+            crossFadeBtn.click();
+            await Promise.resolve();
+
+            const region = dom.window.document.getElementById('ui-live-region');
+            expect(region).toBeTruthy();
+            expect(region.textContent).toBe('Transition changed to Cross fade');
+        });
+
+        it('should emit announcements for duration changes only when not transient', async () => {
+            const slideSection = new SlideSection();
+            dom.window.document.body.appendChild(slideSection.element);
+
+            store.state.slides['slide-1'].styleAssignments = {
+                slideTransition: {
+                    type: 'crossFade',
+                    durationMs: 300,
+                    easing: 'ease-in-out'
+                }
+            };
+
+            slideSection.updateSlideTransitionDuration(350, true);
+            await Promise.resolve();
+            expect(dom.window.document.getElementById('ui-live-region')).toBeNull();
+
+            slideSection.updateSlideTransitionDuration(400, false);
+            await Promise.resolve();
+            const region = dom.window.document.getElementById('ui-live-region');
+            expect(region).toBeTruthy();
+            expect(region.textContent).toBe('Transition duration 400 ms');
+        });
+
+        it('should emit announcements for direction changes', async () => {
+            const slideSection = new SlideSection();
+            dom.window.document.body.appendChild(slideSection.element);
+
+            store.state.slides['slide-1'].styleAssignments = {
+                slideTransition: {
+                    type: 'wipe',
+                    direction: 'right',
+                    durationMs: 300,
+                    easing: 'ease-in-out'
+                }
+            };
+
+            slideSection.updateSlideTransitionDirection('left');
+            await Promise.resolve();
+
+            const region = dom.window.document.getElementById('ui-live-region');
+            expect(region).toBeTruthy();
+            expect(region.textContent).toBe('Transition Direction: from left');
+        });
+
+        it('should announce reset to inherited and must not expose slide content', async () => {
+            store.state.slides['slide-1'].title = 'TOP SECRET SLIDE TITLE';
+
+            const slideSection = new SlideSection();
+            dom.window.document.body.appendChild(slideSection.element);
+
+            slideSection.resetSlideTransitionToInherited();
+            await Promise.resolve();
+
+            const region = dom.window.document.getElementById('ui-live-region');
+            expect(region).toBeTruthy();
+            expect(region.textContent).toContain('Transition reset to inherited');
+            expect(region.textContent).not.toContain('TOP SECRET');
         });
     });
 

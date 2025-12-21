@@ -18,6 +18,7 @@ import { StyleResolver } from '../../utils/StyleResolver.js';
 import { ThemeDiag } from '../../utils/ThemeDiagnostics.js';
 import { ThumbnailRenderer } from '../../core/renderer/ThumbnailRenderer.js';
 import { SLIDE_TRANSITION_TYPES, DIRECTION4, DIRECTION8, coerceSlideTransition } from '../../core/presentation/SlideTransitionUtils.js';
+import { announce } from '../services/LiveAnnouncer.js';
 
 export class SlideSection {
     constructor() {
@@ -37,6 +38,25 @@ export class SlideSection {
 
         this.createContent();
         this.setupThemeListener();
+    }
+    
+    _transitionTypeLabel(type) {
+        switch (type) {
+            case SLIDE_TRANSITION_TYPES.NONE:
+                return 'None';
+            case SLIDE_TRANSITION_TYPES.CROSS_FADE:
+                return 'Cross fade';
+            case SLIDE_TRANSITION_TYPES.WIPE:
+                return 'Wipe';
+            case SLIDE_TRANSITION_TYPES.PUSH:
+                return 'Push';
+            case SLIDE_TRANSITION_TYPES.COVER:
+                return 'Cover';
+            case SLIDE_TRANSITION_TYPES.UNCOVER:
+                return 'Uncover';
+            default:
+                return String(type || '');
+        }
     }
 
     static DEFAULT_LAYOUT_GUIDE = {
@@ -420,6 +440,14 @@ export class SlideSection {
         }
 
         this.updateTransitionDisplay();
+
+        try {
+            const nextEffective = StyleResolver.getEffectiveSlideTransition(currentObject.id)?.transition;
+            const label = this._transitionTypeLabel(coerceSlideTransition(nextEffective).type);
+            announce(`Transition reset to inherited: ${label}`);
+        } catch {
+            announce('Transition reset to inherited');
+        }
     }
 
     applySlideTransitionType(type) {
@@ -454,6 +482,8 @@ export class SlideSection {
         }
 
         this.updateTransitionDisplay();
+
+        announce(`Transition changed to ${this._transitionTypeLabel(type)}`);
     }
 
     updateSlideTransitionDuration(durationMs, isTransient) {
@@ -474,6 +504,11 @@ export class SlideSection {
 
         store.dispatch(action, payload, { skipHistory: !!isTransient });
         this.updateTransitionDisplay();
+
+        if (!isTransient) {
+            const ms = Number.isFinite(durationMs) ? Math.round(durationMs) : durationMs;
+            announce(`Transition duration ${ms} ms`);
+        }
     }
 
     updateSlideTransitionDirection(direction) {
@@ -494,6 +529,9 @@ export class SlideSection {
 
         store.dispatch(action, payload);
         this.updateTransitionDisplay();
+
+        const dirLabel = this._directionAriaLabel(direction);
+        announce(`Transition ${dirLabel}`);
     }
 
     _formatTransitionLabel(transition) {
