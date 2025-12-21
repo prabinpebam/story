@@ -26,6 +26,10 @@ Status legend: ✅ Done (locked) · 🟡 In progress · ❌ Not started · ⛔ B
 - 🟡 Gate 4 (reduced motion + fallbacks): legacy/unsupported + missing-engine fallbacks implemented and unit-tested; reduced-motion Playwright coverage pending
 - ❌ Gate 5 (perf + telemetry): telemetry + perf gates not implemented
 
+Verification evidence (run-once):
+- `npm test -- tests/unit/core/AnimationManager.test.js` → ✅ 1 file, 54 tests passed
+- `npm test` → ✅ 187 files passed, 1 skipped; 4564 tests passed, 43 skipped
+
 ---
 
 ## What “120% Complete” Means Here
