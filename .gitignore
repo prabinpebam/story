@@ -46,6 +46,7 @@ coverage/
 tmp/
 temp/
 *.tmp
+.tmp-*
 test-results/
 
 # Playwright local temp output (workaround folders)
