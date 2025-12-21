@@ -17,6 +17,7 @@ import { COLOR_MODES } from '../panels/color-theme/ColorThemeUtils.js';
 import { StyleResolver } from '../../utils/StyleResolver.js';
 import { ThemeDiag } from '../../utils/ThemeDiagnostics.js';
 import { ThumbnailRenderer } from '../../core/renderer/ThumbnailRenderer.js';
+import { SLIDE_TRANSITION_TYPES, DIRECTION4, DIRECTION8, coerceSlideTransition } from '../../core/presentation/SlideTransitionUtils.js';
 
 export class SlideSection {
     constructor() {
@@ -110,10 +111,325 @@ export class SlideSection {
         // 3. Theme Section
         this.createThemeSection();
 
+        // 3.25 Transition Section
+        this.createTransitionSection();
+
         // 3.5 Layout Guides (Master Mode only)
         this.createLayoutGuideSection();
 
         // 4. Background (FillSection) - Appended separately in PropertyInspector
+    }
+
+    createTransitionSection() {
+        this.transitionSection = new Section({ title: 'Transition' });
+        this.transitionSection.element.setAttribute('data-testid', 'transition-section');
+
+        this.transitionFlyout = null;
+
+        // Header / inheritance row
+        const headerRow = document.createElement('div');
+        headerRow.className = 'pi-row pi-row--space-between';
+
+        const left = document.createElement('div');
+        left.className = 'pi-row';
+
+        this.transitionBadge = document.createElement('span');
+        this.transitionBadge.className = 'inherited-fill-badge';
+        this.transitionBadge.textContent = 'Inherited';
+        this.transitionBadge.setAttribute('data-testid', 'transition-inherited-badge');
+        left.appendChild(this.transitionBadge);
+
+        this.transitionName = document.createElement('span');
+        this.transitionName.className = 'transition-detail-name hidden';
+        this.transitionName.textContent = '';
+        this.transitionName.setAttribute('data-testid', 'transition-name');
+        left.appendChild(this.transitionName);
+
+        this.transitionSourceLabel = document.createElement('span');
+        this.transitionSourceLabel.className = 'transition-source-label';
+        this.transitionSourceLabel.textContent = '';
+        this.transitionSourceLabel.setAttribute('data-testid', 'transition-source-label');
+        left.appendChild(this.transitionSourceLabel);
+
+        headerRow.appendChild(left);
+
+        const buttonGroup = document.createElement('div');
+        buttonGroup.className = 'pi-button-group';
+
+        this.transitionResetBtn = new Button({
+            icon: '<i class="fa-solid fa-arrow-rotate-left"></i>',
+            variant: 'text',
+            size: 'xs',
+            title: 'Reset to inherited',
+            onClick: () => this.resetSlideTransitionToInherited()
+        });
+        this.transitionResetBtn.element.setAttribute('data-testid', 'transition-reset-btn');
+        buttonGroup.appendChild(this.transitionResetBtn.element);
+
+        headerRow.appendChild(buttonGroup);
+        this.transitionSection.appendChild(headerRow);
+
+        // Transition type picker
+        const typeRow = document.createElement('div');
+        typeRow.className = 'pi-row';
+
+        this.transitionTypeTriggerBtn = new Button({
+            label: 'Select transition',
+            variant: 'secondary',
+            size: 'sm',
+            onClick: () => this.openTransitionFlyout()
+        });
+        this.transitionTypeTriggerBtn.element.setAttribute('data-testid', 'transition-picker-trigger');
+        typeRow.appendChild(this.transitionTypeTriggerBtn.element);
+
+        this.transitionSection.appendChild(typeRow);
+
+        // Duration
+        const durationRow = document.createElement('div');
+        durationRow.className = 'pi-row';
+
+        this.transitionDurationInput = new NumberInput({
+            label: 'Duration',
+            min: 0,
+            max: 5000,
+            step: 50,
+            precision: 0,
+            units: 'ms',
+            onChange: (val, isTransient) => this.updateSlideTransitionDuration(val, isTransient)
+        });
+        this.transitionDurationInput.element.setAttribute('data-testid', 'transition-duration-input');
+        durationRow.appendChild(this.transitionDurationInput.element);
+        this.transitionSection.appendChild(durationRow);
+
+        // Direction (shown only for directional transitions)
+        this.transitionDirectionRow = document.createElement('div');
+        this.transitionDirectionRow.className = 'pi-row';
+
+        this.transitionDirectionSelect = new Dropdown({
+            options: [],
+            onChange: (val) => this.updateSlideTransitionDirection(val)
+        });
+        this.transitionDirectionSelect.element.setAttribute('data-testid', 'transition-direction-select');
+        this.transitionDirectionRow.appendChild(this.transitionDirectionSelect.element);
+        this.transitionSection.appendChild(this.transitionDirectionRow);
+
+        this.element.appendChild(this.transitionSection.element);
+    }
+
+    openTransitionFlyout() {
+        const content = document.createElement('div');
+        content.className = 'layout-flyout-content';
+        content.setAttribute('data-testid', 'transition-picker-flyout');
+
+        const title = document.createElement('div');
+        title.className = 'layout-flyout-title';
+        title.textContent = 'Select Transition';
+        content.appendChild(title);
+
+        const options = [
+            { type: SLIDE_TRANSITION_TYPES.NONE, label: 'None' },
+            { type: SLIDE_TRANSITION_TYPES.CROSS_FADE, label: 'Cross fade' },
+            { type: SLIDE_TRANSITION_TYPES.WIPE, label: 'Wipe' },
+            { type: SLIDE_TRANSITION_TYPES.PUSH, label: 'Push' },
+            { type: SLIDE_TRANSITION_TYPES.COVER, label: 'Cover' },
+            { type: SLIDE_TRANSITION_TYPES.UNCOVER, label: 'Uncover' }
+        ];
+
+        options.forEach(opt => {
+            const btn = new Button({
+                label: opt.label,
+                variant: 'secondary',
+                size: 'sm',
+                onClick: () => {
+                    this.applySlideTransitionType(opt.type);
+                    if (this.transitionFlyout) this.transitionFlyout.close();
+                }
+            });
+            btn.element.setAttribute('data-testid', 'transition-picker-option');
+            btn.element.dataset.transitionType = opt.type;
+            content.appendChild(btn.element);
+        });
+
+        if (this.transitionFlyout) {
+            this.transitionFlyout.close();
+        }
+
+        this.transitionFlyout = new Flyout({
+            trigger: this.transitionTypeTriggerBtn.element,
+            content,
+            position: 'left'
+        });
+
+        this.transitionFlyout.open();
+    }
+
+    resetSlideTransitionToInherited() {
+        const state = store.getState();
+        const mode = state.editor.mode;
+        const currentObject = this.getActiveContainer(state);
+        if (!currentObject) return;
+
+        if (mode === 'master') {
+            store.dispatch('UPDATE_MASTER_STYLE_ASSIGNMENTS', {
+                masterId: currentObject.id,
+                styleAssignments: { slideTransition: null }
+            });
+        } else {
+            store.dispatch('UPDATE_SLIDE_STYLE_ASSIGNMENTS', {
+                slideId: currentObject.id,
+                styleAssignments: { slideTransition: null }
+            });
+        }
+
+        this.updateTransitionDisplay();
+    }
+
+    applySlideTransitionType(type) {
+        const state = store.getState();
+        const mode = state.editor.mode;
+        const currentObject = this.getActiveContainer(state);
+        if (!currentObject) return;
+
+        const effective = StyleResolver.getEffectiveSlideTransition(currentObject.id)?.transition;
+        const existing = currentObject.styleAssignments?.slideTransition;
+        const base = (existing && typeof existing === 'object') ? existing : (effective || { type: SLIDE_TRANSITION_TYPES.CROSS_FADE, durationMs: 300, easing: 'ease-in-out' });
+
+        const next = { ...base, type };
+        if (type === SLIDE_TRANSITION_TYPES.NONE) {
+            next.durationMs = 0;
+            delete next.direction;
+        }
+
+        // Normalize and ensure direction defaults.
+        const normalized = coerceSlideTransition(next);
+
+        if (mode === 'master') {
+            store.dispatch('UPDATE_MASTER_STYLE_ASSIGNMENTS', {
+                masterId: currentObject.id,
+                styleAssignments: { slideTransition: normalized }
+            });
+        } else {
+            store.dispatch('UPDATE_SLIDE_STYLE_ASSIGNMENTS', {
+                slideId: currentObject.id,
+                styleAssignments: { slideTransition: normalized }
+            });
+        }
+
+        this.updateTransitionDisplay();
+    }
+
+    updateSlideTransitionDuration(durationMs, isTransient) {
+        const state = store.getState();
+        const mode = state.editor.mode;
+        const currentObject = this.getActiveContainer(state);
+        if (!currentObject) return;
+
+        const effective = StyleResolver.getEffectiveSlideTransition(currentObject.id)?.transition;
+        const existing = currentObject.styleAssignments?.slideTransition;
+        const base = (existing && typeof existing === 'object') ? existing : (effective || { type: SLIDE_TRANSITION_TYPES.CROSS_FADE, durationMs: 300, easing: 'ease-in-out' });
+        const normalized = coerceSlideTransition({ ...base, durationMs });
+
+        const action = mode === 'master' ? 'UPDATE_MASTER_STYLE_ASSIGNMENTS' : 'UPDATE_SLIDE_STYLE_ASSIGNMENTS';
+        const payload = mode === 'master'
+            ? { masterId: currentObject.id, styleAssignments: { slideTransition: normalized } }
+            : { slideId: currentObject.id, styleAssignments: { slideTransition: normalized } };
+
+        store.dispatch(action, payload, { skipHistory: !!isTransient });
+        this.updateTransitionDisplay();
+    }
+
+    updateSlideTransitionDirection(direction) {
+        const state = store.getState();
+        const mode = state.editor.mode;
+        const currentObject = this.getActiveContainer(state);
+        if (!currentObject) return;
+
+        const effective = StyleResolver.getEffectiveSlideTransition(currentObject.id)?.transition;
+        const existing = currentObject.styleAssignments?.slideTransition;
+        const base = (existing && typeof existing === 'object') ? existing : (effective || { type: SLIDE_TRANSITION_TYPES.WIPE, durationMs: 300, easing: 'ease-in-out', direction: 'right' });
+        const normalized = coerceSlideTransition({ ...base, direction });
+
+        const action = mode === 'master' ? 'UPDATE_MASTER_STYLE_ASSIGNMENTS' : 'UPDATE_SLIDE_STYLE_ASSIGNMENTS';
+        const payload = mode === 'master'
+            ? { masterId: currentObject.id, styleAssignments: { slideTransition: normalized } }
+            : { slideId: currentObject.id, styleAssignments: { slideTransition: normalized } };
+
+        store.dispatch(action, payload);
+        this.updateTransitionDisplay();
+    }
+
+    _formatTransitionLabel(transition) {
+        const t = transition || { type: SLIDE_TRANSITION_TYPES.CROSS_FADE };
+        switch (t.type) {
+            case SLIDE_TRANSITION_TYPES.NONE:
+                return 'None';
+            case SLIDE_TRANSITION_TYPES.CROSS_FADE:
+                return 'Cross fade';
+            case SLIDE_TRANSITION_TYPES.WIPE:
+                return `Wipe${t.direction ? ` (${t.direction})` : ''}`;
+            case SLIDE_TRANSITION_TYPES.PUSH:
+                return `Push${t.direction ? ` (${t.direction})` : ''}`;
+            case SLIDE_TRANSITION_TYPES.COVER:
+                return `Cover${t.direction ? ` (${t.direction})` : ''}`;
+            case SLIDE_TRANSITION_TYPES.UNCOVER:
+                return `Uncover${t.direction ? ` (${t.direction})` : ''}`;
+            default:
+                return 'Transition';
+        }
+    }
+
+    updateTransitionDisplay() {
+        const state = store.getState();
+        const currentObject = this.getActiveContainer(state);
+        if (!currentObject) return;
+
+        const info = StyleResolver.getEffectiveSlideTransition(currentObject.id);
+        const transition = info?.transition ? coerceSlideTransition(info.transition) : coerceSlideTransition({ type: SLIDE_TRANSITION_TYPES.CROSS_FADE });
+
+        const hasCanonical = !!currentObject.styleAssignments && Object.prototype.hasOwnProperty.call(currentObject.styleAssignments, 'slideTransition');
+        const hasDirectOverride = hasCanonical && currentObject.styleAssignments.slideTransition && typeof currentObject.styleAssignments.slideTransition === 'object';
+
+        const label = this._formatTransitionLabel(transition);
+
+        if (this.transitionTypeTriggerBtn?.setLabel) {
+            this.transitionTypeTriggerBtn.setLabel(label);
+        }
+
+        if (this.transitionSourceLabel) {
+            this.transitionSourceLabel.textContent = info?.sourceLabel ? `(${info.sourceLabel})` : '';
+        }
+
+        if (info?.isInherited) {
+            this.transitionBadge?.classList.remove('hidden');
+            this.transitionName?.classList.add('hidden');
+        } else {
+            this.transitionName.textContent = label;
+            this.transitionName.classList.remove('hidden');
+            this.transitionBadge?.classList.add('hidden');
+        }
+
+        if (this.transitionResetBtn?.element) {
+            this.transitionResetBtn.element.classList.toggle('hidden', !hasDirectOverride);
+        }
+
+        if (this.transitionDurationInput?.setValue) {
+            this.transitionDurationInput.setValue(transition.durationMs, false);
+        }
+
+        const needsDirection = transition.type === SLIDE_TRANSITION_TYPES.WIPE || transition.type === SLIDE_TRANSITION_TYPES.PUSH || transition.type === SLIDE_TRANSITION_TYPES.COVER || transition.type === SLIDE_TRANSITION_TYPES.UNCOVER;
+        this.transitionDirectionRow?.classList.toggle('hidden', !needsDirection);
+
+        if (needsDirection && this.transitionDirectionSelect) {
+            const isWipe = transition.type === SLIDE_TRANSITION_TYPES.WIPE;
+            const dirs = isWipe ? DIRECTION8 : DIRECTION4;
+            const dirOptions = dirs.map(d => ({ label: d, value: d }));
+            if (this.transitionDirectionSelect.setOptions) {
+                this.transitionDirectionSelect.setOptions(dirOptions);
+            }
+            if (this.transitionDirectionSelect.setValue) {
+                this.transitionDirectionSelect.setValue(transition.direction || 'right', false);
+            }
+        }
     }
 
     createLayoutGuideSection() {
@@ -1226,6 +1542,9 @@ export class SlideSection {
         // 3. Dimensions
         this.wInput.setValue(currentObject.width, false);
         this.hInput.setValue(currentObject.height, false);
+
+        // 3.25 Transition
+        this.updateTransitionDisplay();
 
         // 3.5 Layout Guides (Master mode only; master root + layouts)
         const hasElementSelection = Array.isArray(state.editor?.selectedElementIds) && state.editor.selectedElementIds.length > 0;

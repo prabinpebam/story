@@ -146,10 +146,31 @@ export function handleUpdateMasterStyleAssignments(draft, payload) {
         if (styleAssignments.typographyStyle !== undefined) {
             master.typographyStyleId = styleAssignments.typographyStyle;
         }
-        
-        // Legacy cleanup if needed
+
+        // Persist other style assignments (e.g., slideTransition) on the master/layout.
+        // Keep colorTheme/typographyStyle as direct reference properties.
+        const { colorTheme, typographyStyle, ...rest } = styleAssignments;
+        const restKeys = Object.keys(rest);
+        if (restKeys.length > 0) {
+            if (!master.styleAssignments) master.styleAssignments = {};
+
+            for (const key of restKeys) {
+                const value = rest[key];
+                if (value === undefined) {
+                    delete master.styleAssignments[key];
+                } else {
+                    master.styleAssignments[key] = value;
+                }
+            }
+        }
+
+        // Legacy cleanup: ensure reference keys are not duplicated in styleAssignments
         if (master.styleAssignments) {
-            delete master.styleAssignments;
+            delete master.styleAssignments.colorTheme;
+            delete master.styleAssignments.typographyStyle;
+            if (Object.keys(master.styleAssignments).length === 0) {
+                delete master.styleAssignments;
+            }
         }
     }
 }

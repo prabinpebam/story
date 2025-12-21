@@ -66,7 +66,7 @@ describe('SlideHandlers', () => {
             expect(newSlide.height).toBe(1080);
             expect(newSlide.elements).toEqual({});
             expect(newSlide.elementOrder).toEqual([]);
-            expect(newSlide.transition).toBe('magic');
+            expect(newSlide.transition).toBe('fade');
         });
 
         it('should generate slide IDs based on timestamp', () => {

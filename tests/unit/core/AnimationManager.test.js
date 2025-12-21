@@ -174,6 +174,30 @@ describe('AnimationManager', () => {
             expect(['0', '0px']).toContain(oldContent.style.left);
             expect(oldContent.style.width).toBe('100%');
             expect(oldContent.style.height).toBe('100%');
+
+            expect(newContent.style.position).toBe('absolute');
+            expect(['0', '0px']).toContain(newContent.style.top);
+            expect(['0', '0px']).toContain(newContent.style.left);
+            expect(newContent.style.width).toBe('100%');
+            expect(newContent.style.height).toBe('100%');
+        });
+
+        it('should keep both outgoing and incoming slides in the DOM during an in-flight transition', async () => {
+            let resolveFinished;
+            const finished = new Promise((resolve) => {
+                resolveFinished = resolve;
+            });
+
+            mockAnime.mockImplementation(() => ({ finished }));
+
+            const promise = manager.transition(container, oldContent, newContent, 'fade');
+
+            // Before animation completes, both should be present.
+            expect(container.contains(oldContent)).toBe(true);
+            expect(container.contains(newContent)).toBe(true);
+
+            resolveFinished();
+            await promise;
         });
 
         it('should append new content to container', async () => {
@@ -222,6 +246,16 @@ describe('AnimationManager', () => {
             expect(container.contains(newContent)).toBe(true);
         });
 
+        it('should fall back to none for unsupported legacy transition strings', async () => {
+            mockAnime.mockClear();
+
+            await manager.transition(container, oldContent, newContent, 'unsupported-transition');
+
+            expect(container.contains(oldContent)).toBe(false);
+            expect(container.contains(newContent)).toBe(true);
+            expect(mockAnime).not.toHaveBeenCalled();
+        });
+
         it('should handle animation errors gracefully', async () => {
             mockAnime.mockImplementation(() => ({
                 finished: Promise.reject(new Error('Animation error'))
@@ -252,6 +286,73 @@ describe('AnimationManager', () => {
             // Should still swap content even without animation
             expect(container.contains(newContent)).toBe(true);
             expect(container.contains(oldContent)).toBe(false);
+        });
+
+        it('should accept canonical crossFade config objects', async () => {
+            mockAnime.mockClear();
+
+            await manager.transition(container, oldContent, newContent, {
+                type: 'crossFade',
+                durationMs: 123,
+                easing: 'linear'
+            });
+
+            expect(mockAnime).toHaveBeenCalledWith(expect.objectContaining({
+                targets: newContent,
+                opacity: [0, 1],
+                duration: 123
+            }));
+        });
+
+        it('should accept canonical cover config objects (directional)', async () => {
+            mockAnime.mockClear();
+
+            await manager.transition(container, oldContent, newContent, {
+                type: 'cover',
+                direction: 'up',
+                durationMs: 200,
+                easing: 'ease-in-out'
+            });
+
+            expect(mockAnime).toHaveBeenCalledWith(expect.objectContaining({
+                targets: [newContent],
+                translateY: ['-100%', '0%'],
+                duration: 200
+            }));
+        });
+
+        it('should accept canonical uncover config objects (directional)', async () => {
+            mockAnime.mockClear();
+
+            await manager.transition(container, oldContent, newContent, {
+                type: 'uncover',
+                direction: 'right',
+                durationMs: 150,
+                easing: 'linear'
+            });
+
+            expect(mockAnime).toHaveBeenCalledWith(expect.objectContaining({
+                targets: [oldContent],
+                translateX: ['0%', '100%'],
+                duration: 150
+            }));
+        });
+
+        it('should accept canonical wipe config objects (clip-path)', async () => {
+            mockAnime.mockClear();
+
+            await manager.transition(container, oldContent, newContent, {
+                type: 'wipe',
+                direction: 'right',
+                durationMs: 111,
+                easing: 'linear'
+            });
+
+            expect(mockAnime).toHaveBeenCalledWith(expect.objectContaining({
+                targets: newContent,
+                clipPath: expect.any(Array),
+                duration: 111
+            }));
         });
     });
 
@@ -290,17 +391,26 @@ describe('AnimationManager', () => {
             }
         });
 
-        it('should create ghost container for magic animations', async () => {
+        it('should not create ghost container for legacy magic in Phase 1', async () => {
+            mockAnime.mockClear();
+
             await manager.transition(container, oldContent, newContent, 'magic');
 
-            // Ghost container should be cleaned up after animation
+            // Phase 1 non-goal: morph.
             expect(container.querySelector('.ghost-container')).toBeNull();
+
+            // Coerced to type:none (duration 0) so no animation should run.
+            expect(mockAnime).not.toHaveBeenCalled();
         });
 
-        it('should match elements by ID for morphing', async () => {
+        it('should still swap slides for legacy magic', async () => {
+            mockAnime.mockClear();
+
             await manager.transition(container, oldContent, newContent, 'magic');
 
-            expect(mockAnime).toHaveBeenCalled();
+            expect(container.contains(oldContent)).toBe(false);
+            expect(container.contains(newContent)).toBe(true);
+            expect(mockAnime).not.toHaveBeenCalled();
         });
     });
 

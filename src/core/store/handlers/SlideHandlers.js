@@ -118,13 +118,15 @@ export function handleAddSlide(draft, payload) {
         // Style Assignments - inherit from parent by default
         styleAssignments: {
             colorTheme: null,      // null = inherit from layout/master
-            typographyStyle: null  // null = inherit from layout/master
+            typographyStyle: null, // null = inherit from layout/master
+            slideTransition: null  // null = inherit from layout/master/system
         },
         elements: elements,
         elementOrder: elementOrder,
         notes: "",
         notesDoc: { version: 1, blocks: [] },
-        transition: "magic"
+        // Legacy field retained for backward compatibility; Phase 1 must not default to morph-like transitions.
+        transition: "fade"
     };
     draft.slides[newSlideId] = newSlide;
     
@@ -176,7 +178,7 @@ export function handleDuplicateSlide(draft, payload) {
         // Copy styleAssignments (or initialize if missing)
         styleAssignments: sourceSlide.styleAssignments 
             ? { ...sourceSlide.styleAssignments }
-            : { colorTheme: null, typographyStyle: null }
+            : { colorTheme: null, typographyStyle: null, slideTransition: null }
     };
 
     const sourceIndex = draft.slideOrder.indexOf(sourceId);
@@ -207,7 +209,7 @@ export function handlePasteSlide(draft, payload) {
         // Copy styleAssignments (or initialize if missing)
         styleAssignments: pasteSourceSlide.styleAssignments 
             ? { ...pasteSourceSlide.styleAssignments }
-            : { colorTheme: null, typographyStyle: null }
+            : { colorTheme: null, typographyStyle: null, slideTransition: null }
     };
 
     const pasteTargetIndex = draft.slideOrder.indexOf(pasteTargetId);
@@ -258,7 +260,8 @@ export function handleUpdateSlideStyleAssignments(draft, payload) {
     if (!slide.styleAssignments) {
         slide.styleAssignments = {
             colorTheme: null,
-            typographyStyle: null
+            typographyStyle: null,
+            slideTransition: null
         };
     }
     

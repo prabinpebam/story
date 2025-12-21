@@ -1,6 +1,7 @@
 import { getEffectiveSlotIndex, COLOR_MODES, generateThemeColors, DEFAULT_ADJUSTMENTS } from '../ui/panels/color-theme/ColorThemeUtils.js';
 import { THEME_PRESETS, getPresetById } from '../ui/panels/color-theme/ThemePresets.js';
 import { ThemeDiag } from './ThemeDiagnostics.js';
+import { SYSTEM_DEFAULT_TRANSITION, coerceSlideTransition } from '../core/presentation/SlideTransitionUtils.js';
 
 const DEFAULT_COLOR_THEME_ID = 'preset_neutral';
 const DEFAULT_TYPOGRAPHY_STYLE_ID = 'typo-style-default';
@@ -215,6 +216,161 @@ export const StyleResolver = {
         
         // 4. Fallback: Find theme master with lumaTheme
         return this._getMasterThemeInfo(state);
+    },
+
+    /**
+     * Get the effective slide transition config for a slide by walking up the hierarchy.
+     * Hierarchy: Slide → Layout Master → Theme Master → System default
+     *
+     * Slide supports both legacy `transition` (string) and canonical `styleAssignments.slideTransition`.
+     * Masters/layouts use `styleAssignments.slideTransition`.
+     *
+     * @param {string} slideId
+     * @returns {{transition: {type: string, durationMs: number, easing: string, direction?: string}, source: 'slide'|'layout'|'master', sourceId: string|null, sourceLabel: string, isInherited: boolean}}
+     */
+    getEffectiveSlideTransition(slideId) {
+        const store = getStore();
+        if (!store) {
+            return {
+                transition: { ...SYSTEM_DEFAULT_TRANSITION },
+                source: 'master',
+                sourceId: null,
+                sourceLabel: 'system default',
+                isInherited: true
+            };
+        }
+
+        const state = store.getState();
+        const slide = state.slides?.[slideId];
+
+        // Master/layout context: allow callers (e.g. Property Inspector) to pass
+        // a master/layout id and resolve transition through the master cascade.
+        if (!slide) {
+            const master = state.slideMasterPresets?.[slideId];
+            if (!master) {
+                return {
+                    transition: { ...SYSTEM_DEFAULT_TRANSITION },
+                    source: 'master',
+                    sourceId: null,
+                    sourceLabel: 'system default',
+                    isInherited: true
+                };
+            }
+
+            const styleAssignments = master.styleAssignments;
+            const hasCanonical = !!styleAssignments && Object.prototype.hasOwnProperty.call(styleAssignments, 'slideTransition');
+
+            if (hasCanonical) {
+                const v = styleAssignments.slideTransition;
+                if (v && typeof v === 'object') {
+                    return {
+                        transition: coerceSlideTransition(v),
+                        source: master.type === 'layoutMaster' ? 'layout' : 'master',
+                        sourceId: master.id,
+                        sourceLabel: master.type === 'layoutMaster' ? 'layout-specific' : 'master-specific',
+                        isInherited: false
+                    };
+                }
+                // null = inherit
+            }
+
+            // Layout masters inherit from their parent master.
+            if (master.type === 'layoutMaster' && master.parentMasterId) {
+                const parent = state.slideMasterPresets?.[master.parentMasterId];
+                const parentStyleAssignments = parent?.styleAssignments;
+                const parentHasCanonical = !!parentStyleAssignments && Object.prototype.hasOwnProperty.call(parentStyleAssignments, 'slideTransition');
+                if (parentHasCanonical) {
+                    const v = parentStyleAssignments.slideTransition;
+                    if (v && typeof v === 'object') {
+                        return {
+                            transition: coerceSlideTransition(v),
+                            source: 'master',
+                            sourceId: parent?.id || null,
+                            sourceLabel: 'inherited from Master',
+                            isInherited: true
+                        };
+                    }
+                }
+            }
+
+            // System default
+            return {
+                transition: { ...SYSTEM_DEFAULT_TRANSITION },
+                source: master.type === 'layoutMaster' ? 'layout' : 'master',
+                sourceId: master.id,
+                sourceLabel: 'system default',
+                isInherited: true
+            };
+        }
+
+        // 1) Slide override (canonical)
+        const slideStyleAssignments = slide.styleAssignments;
+        const slideHasCanonical = !!slideStyleAssignments && Object.prototype.hasOwnProperty.call(slideStyleAssignments, 'slideTransition');
+        if (slideHasCanonical) {
+            const v = slideStyleAssignments.slideTransition;
+            if (v && typeof v === 'object') {
+                return {
+                    transition: coerceSlideTransition(v),
+                    source: 'slide',
+                    sourceId: slideId,
+                    sourceLabel: 'slide-specific',
+                    isInherited: false
+                };
+            }
+            // null = inherit; proceed to layout/master/default.
+        } else if (slide.transition) {
+            // 1b) Legacy slide.transition (only if canonical is missing)
+            return {
+                transition: coerceSlideTransition(slide.transition),
+                source: 'slide',
+                sourceId: slideId,
+                sourceLabel: 'legacy slide transition',
+                isInherited: false
+            };
+        }
+
+        // 2) Layout master
+        const layout = slide.layoutId ? state.slideMasterPresets?.[slide.layoutId] : null;
+        const layoutStyleAssignments = layout?.styleAssignments;
+        const layoutHasCanonical = !!layoutStyleAssignments && Object.prototype.hasOwnProperty.call(layoutStyleAssignments, 'slideTransition');
+        if (layoutHasCanonical) {
+            const v = layoutStyleAssignments.slideTransition;
+            if (v && typeof v === 'object') {
+                return {
+                    transition: coerceSlideTransition(v),
+                    source: 'layout',
+                    sourceId: layout?.id || null,
+                    sourceLabel: `inherited from ${layout?.name || 'Layout'}`,
+                    isInherited: true
+                };
+            }
+        }
+
+        // 3) Master preset
+        const themeMaster = layout?.parentMasterId ? state.slideMasterPresets?.[layout.parentMasterId] : null;
+        const masterStyleAssignments = themeMaster?.styleAssignments;
+        const masterHasCanonical = !!masterStyleAssignments && Object.prototype.hasOwnProperty.call(masterStyleAssignments, 'slideTransition');
+        if (masterHasCanonical) {
+            const v = masterStyleAssignments.slideTransition;
+            if (v && typeof v === 'object') {
+                return {
+                    transition: coerceSlideTransition(v),
+                    source: 'master',
+                    sourceId: themeMaster?.id || null,
+                    sourceLabel: 'inherited from Master',
+                    isInherited: true
+                };
+            }
+        }
+
+        // 4) System default
+        return {
+            transition: { ...SYSTEM_DEFAULT_TRANSITION },
+            source: 'master',
+            sourceId: themeMaster?.id || null,
+            sourceLabel: 'system default',
+            isInherited: true
+        };
     },
     
     /**

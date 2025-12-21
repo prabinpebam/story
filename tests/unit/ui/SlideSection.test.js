@@ -240,13 +240,18 @@ describe('SlideSection', () => {
 
         vi.doMock('../../../src/ui/components/Dropdown.js', () => ({
             Dropdown: class {
-                constructor({ onChange }) {
-                    this.element = global.document.createElement('select');
+                constructor({ options = [], onChange } = {}) {
+                    this.element = global.document.createElement('div');
                     this.onChange = onChange;
+                    this.options = options;
+                    this.value = null;
                 }
-                setValue(val) {
-                    this.element.value = val;
-                    if (this.onChange) this.onChange(val);
+                setOptions(opts) {
+                    this.options = opts;
+                }
+                setValue(val, triggerCallback = true) {
+                    this.value = val;
+                    if (triggerCallback && this.onChange) this.onChange(val);
                 }
             }
         }));
@@ -278,8 +283,14 @@ describe('SlideSection', () => {
 
         vi.doMock('../../../src/ui/components/NumberInput.js', () => ({
             NumberInput: class {
-                constructor() {
+                constructor({ onChange } = {}) {
                     this.element = global.document.createElement('input');
+                    this.value = 0;
+                    this.onChange = onChange;
+                }
+                setValue(val, notify = true, isTransient = false) {
+                    this.value = val;
+                    if (notify && this.onChange) this.onChange(val, isTransient);
                 }
             }
         }));
@@ -606,6 +617,78 @@ describe('SlideSection', () => {
             expect(editBtn).toBeTruthy();
             editBtn.click();
             expect(header.getAttribute('aria-expanded')).toBe('true');
+        });
+    });
+
+    describe('Transition Section', () => {
+        const getSectionByTitle = (root, title) => {
+            return Array.from(root.querySelectorAll('.pi-section')).find(sec => {
+                const titleEl = sec.querySelector('.pi-section__title');
+                return titleEl && titleEl.textContent === title;
+            }) || null;
+        };
+
+        it('should render Transition section and picker trigger', () => {
+            const slideSection = new SlideSection();
+            const section = getSectionByTitle(slideSection.element, 'Transition');
+            expect(section).toBeTruthy();
+
+            expect(section.getAttribute('data-testid')).toBe('transition-section');
+            expect(section.querySelector('[data-testid="transition-picker-trigger"]')).toBeTruthy();
+            expect(section.querySelector('[data-testid="transition-duration-input"]')).toBeTruthy();
+        });
+
+        it('should open transition flyout with options', () => {
+            const slideSection = new SlideSection();
+            slideSection.openTransitionFlyout();
+
+            expect(slideSection.transitionFlyout).toBeDefined();
+            expect(slideSection.transitionFlyout.isOpen).toBe(true);
+
+            const flyoutContent = slideSection.transitionFlyout.content;
+            expect(flyoutContent.getAttribute('data-testid')).toBe('transition-picker-flyout');
+
+            const opts = Array.from(flyoutContent.querySelectorAll('[data-testid="transition-picker-option"]'));
+            expect(opts.length).toBeGreaterThan(0);
+        });
+
+        it('should dispatch UPDATE_SLIDE_STYLE_ASSIGNMENTS when selecting a transition type', () => {
+            const slideSection = new SlideSection();
+            const dispatchSpy = vi.spyOn(store, 'dispatch');
+
+            slideSection.openTransitionFlyout();
+
+            const flyoutContent = slideSection.transitionFlyout.content;
+            const crossFadeBtn = Array.from(flyoutContent.querySelectorAll('[data-testid="transition-picker-option"]'))
+                .find(el => el.dataset.transitionType === 'crossFade');
+            expect(crossFadeBtn).toBeTruthy();
+
+            crossFadeBtn.click();
+
+            expect(dispatchSpy).toHaveBeenCalledWith(
+                'UPDATE_SLIDE_STYLE_ASSIGNMENTS',
+                expect.objectContaining({
+                    slideId: 'slide-1',
+                    styleAssignments: expect.objectContaining({
+                        slideTransition: expect.objectContaining({ type: 'crossFade' })
+                    })
+                })
+            );
+        });
+
+        it('should dispatch UPDATE_SLIDE_STYLE_ASSIGNMENTS with null on reset', () => {
+            const slideSection = new SlideSection();
+            const dispatchSpy = vi.spyOn(store, 'dispatch');
+
+            slideSection.resetSlideTransitionToInherited();
+
+            expect(dispatchSpy).toHaveBeenCalledWith(
+                'UPDATE_SLIDE_STYLE_ASSIGNMENTS',
+                expect.objectContaining({
+                    slideId: 'slide-1',
+                    styleAssignments: { slideTransition: null }
+                })
+            );
         });
     });
 

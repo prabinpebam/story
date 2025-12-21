@@ -3,6 +3,9 @@ import { StyleResolver } from '../../../src/utils/StyleResolver.js';
 import { store } from '../../../src/core/Store.js';
 import { COLOR_MODES } from '../../../src/ui/panels/color-theme/ColorThemeUtils.js';
 
+// Slide transition helpers are intentionally centralized and used by resolver + renderer.
+import { SYSTEM_DEFAULT_TRANSITION } from '../../../src/core/presentation/SlideTransitionUtils.js';
+
 describe('StyleResolver', () => {
     // Mock state for testing
     const createMockState = (overrides = {}) => ({
@@ -191,6 +194,183 @@ describe('StyleResolver', () => {
             const result = StyleResolver.getEffectiveColorTheme('non-existent');
 
             expect(result.source).toBe('master');
+        });
+    });
+
+    describe('getEffectiveSlideTransition()', () => {
+        it('should treat missing styleAssignments as inherit (no override set here)', () => {
+            const mockState = createMockState({
+                slides: {
+                    ...createMockState().slides,
+                    'slide-1': {
+                        ...createMockState().slides['slide-1'],
+                        transition: undefined,
+                        // no styleAssignments
+                    }
+                }
+            });
+            store.getState = vi.fn(() => mockState);
+
+            const result = StyleResolver.getEffectiveSlideTransition('slide-1');
+            expect(result.transition).toEqual(SYSTEM_DEFAULT_TRANSITION);
+        });
+
+        it('should return system default when nothing is set anywhere', () => {
+            const mockState = createMockState({
+                slides: {
+                    ...createMockState().slides,
+                    'slide-1': {
+                        ...createMockState().slides['slide-1'],
+                        // Explicitly no legacy transition
+                        transition: undefined,
+                        styleAssignments: { slideTransition: null }
+                    }
+                }
+            });
+            store.getState = vi.fn(() => mockState);
+
+            const result = StyleResolver.getEffectiveSlideTransition('slide-1');
+            expect(result.transition).toEqual(SYSTEM_DEFAULT_TRANSITION);
+        });
+
+        it('should prefer slide styleAssignments.slideTransition override when present', () => {
+            const mockState = createMockState({
+                slides: {
+                    ...createMockState().slides,
+                    'slide-1': {
+                        ...createMockState().slides['slide-1'],
+                        styleAssignments: {
+                            slideTransition: { type: 'push', direction: 'left', durationMs: 250, easing: 'linear' }
+                        }
+                    }
+                }
+            });
+            store.getState = vi.fn(() => mockState);
+
+            const result = StyleResolver.getEffectiveSlideTransition('slide-1');
+            expect(result.source).toBe('slide');
+            expect(result.transition.type).toBe('push');
+            expect(result.transition.direction).toBe('left');
+            expect(result.transition.durationMs).toBe(250);
+            expect(result.transition.easing).toBe('linear');
+        });
+
+        it('should treat styleAssignments.slideTransition === null as inherit (ignores legacy slide.transition)', () => {
+            const mockState = createMockState({
+                slides: {
+                    ...createMockState().slides,
+                    'slide-1': {
+                        ...createMockState().slides['slide-1'],
+                        transition: 'push',
+                        styleAssignments: { slideTransition: null }
+                    }
+                },
+                slideMasterPresets: {
+                    ...createMockState().slideMasterPresets,
+                    'layout-title': {
+                        ...createMockState().slideMasterPresets['layout-title'],
+                        styleAssignments: {
+                            slideTransition: { type: 'wipe', direction: 'downRight', durationMs: 300, easing: 'ease-in-out' }
+                        }
+                    }
+                }
+            });
+            store.getState = vi.fn(() => mockState);
+
+            const result = StyleResolver.getEffectiveSlideTransition('slide-1');
+            expect(result.source).toBe('layout');
+            expect(result.transition.type).toBe('wipe');
+            expect(result.transition.direction).toBe('downRight');
+        });
+
+        it('should map legacy slide.transition when styleAssignments.slideTransition is missing', () => {
+            const mockState = createMockState({
+                slides: {
+                    ...createMockState().slides,
+                    'slide-legacy': {
+                        ...createMockState().slides['slide-legacy'],
+                        transition: 'fade'
+                        // no styleAssignments
+                    }
+                }
+            });
+            store.getState = vi.fn(() => mockState);
+
+            const result = StyleResolver.getEffectiveSlideTransition('slide-legacy');
+            expect(result.source).toBe('slide');
+            expect(result.transition.type).toBe('crossFade');
+        });
+
+        it('should fall back to none for unsupported legacy slide.transition strings', () => {
+            const mockState = createMockState({
+                slides: {
+                    ...createMockState().slides,
+                    'slide-legacy': {
+                        ...createMockState().slides['slide-legacy'],
+                        transition: 'unsupported-transition'
+                        // no styleAssignments
+                    }
+                }
+            });
+            store.getState = vi.fn(() => mockState);
+
+            const result = StyleResolver.getEffectiveSlideTransition('slide-legacy');
+            expect(result.source).toBe('slide');
+            expect(result.transition.type).toBe('none');
+        });
+
+        it('should clamp duration to [0, 5000] and normalize invalid direction', () => {
+            const mockState = createMockState({
+                slides: {
+                    ...createMockState().slides,
+                    'slide-1': {
+                        ...createMockState().slides['slide-1'],
+                        styleAssignments: {
+                            slideTransition: { type: 'push', direction: 'upLeft', durationMs: 999999, easing: '   ' }
+                        }
+                    }
+                }
+            });
+            store.getState = vi.fn(() => mockState);
+
+            const result = StyleResolver.getEffectiveSlideTransition('slide-1');
+            expect(result.transition.durationMs).toBe(5000);
+            expect(result.transition.easing).toBe(SYSTEM_DEFAULT_TRANSITION.easing);
+            // push only supports direction4; invalid direction should be dropped and defaulted
+            expect(['left', 'right', 'up', 'down']).toContain(result.transition.direction);
+        });
+
+        it('should inherit from master preset styleAssignments.slideTransition when set', () => {
+            const mockState = createMockState({
+                slides: {
+                    ...createMockState().slides,
+                    'slide-1': {
+                        ...createMockState().slides['slide-1'],
+                        transition: undefined,
+                        styleAssignments: { slideTransition: null }
+                    }
+                },
+                slideMasterPresets: {
+                    ...createMockState().slideMasterPresets,
+                    'layout-title': {
+                        ...createMockState().slideMasterPresets['layout-title'],
+                        styleAssignments: undefined
+                    },
+                    'master-default': {
+                        ...createMockState().slideMasterPresets['master-default'],
+                        styleAssignments: {
+                            slideTransition: { type: 'cover', direction: 'right', durationMs: 450, easing: 'ease-in-out' }
+                        }
+                    }
+                }
+            });
+            store.getState = vi.fn(() => mockState);
+
+            const result = StyleResolver.getEffectiveSlideTransition('slide-1');
+            expect(result.source).toBe('master');
+            expect(result.transition.type).toBe('cover');
+            expect(result.transition.direction).toBe('right');
+            expect(result.transition.durationMs).toBe(450);
         });
     });
 

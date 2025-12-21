@@ -1,3 +1,8 @@
+import {
+    SLIDE_TRANSITION_TYPES,
+    coerceSlideTransition
+} from './presentation/SlideTransitionUtils.js';
+
 export class AnimationManager {
     constructor() {
         this.isAnimating = false;
@@ -33,10 +38,44 @@ export class AnimationManager {
     async transition(container, oldContent, newContent, type = 'fade') {
         if (this.isAnimating) return;
         this.isAnimating = true;
+
         const anime = this.anime;
+        const transition = coerceSlideTransition(type);
+
+        const duration = transition.durationMs;
+        const easing = (() => {
+            const v = typeof transition.easing === 'string' ? transition.easing.trim() : '';
+            switch (v) {
+                case 'linear':
+                    return 'linear';
+                case 'ease-in':
+                    return 'easeInQuad';
+                case 'ease-out':
+                    return 'easeOutQuad';
+                case 'ease-in-out':
+                default:
+                    return 'easeInOutQuad';
+            }
+        })();
+
+        const getAxisAndSign = (direction) => {
+            switch (direction) {
+                case 'left':
+                    return { axis: 'X', sign: -1 };
+                case 'right':
+                    return { axis: 'X', sign: 1 };
+                case 'up':
+                    return { axis: 'Y', sign: -1 };
+                case 'down':
+                default:
+                    return { axis: 'Y', sign: 1 };
+            }
+        };
+
+        let prevOverflow;
+        let didSetOverflow = false;
 
         try {
-            // Setup styles
             oldContent.style.position = 'absolute';
             oldContent.style.top = '0';
             oldContent.style.left = '0';
@@ -50,193 +89,132 @@ export class AnimationManager {
             newContent.style.width = '100%';
             newContent.style.height = '100%';
             newContent.style.zIndex = 2;
-            
+
             container.appendChild(newContent);
 
-            if (!anime) {
-                console.warn('Anime.js not loaded, skipping transition');
-                // Instant swap
+            const shouldAnimate = Boolean(anime) && transition.type !== SLIDE_TRANSITION_TYPES.NONE && duration > 0;
+
+            if (!shouldAnimate) {
+                if (!anime) {
+                    console.warn('Anime.js not loaded, skipping transition');
+                }
                 if (oldContent.parentNode === container) {
                     container.removeChild(oldContent);
                 }
+                newContent.style.transform = '';
+                newContent.style.clipPath = '';
+                newContent.style.opacity = '';
+                newContent.style.zIndex = 1;
                 return;
             }
 
-        if (type === 'fade') {
-            newContent.style.opacity = 0;
-            await this.run({
-                targets: newContent,
-                opacity: [0, 1],
-                duration: 400,
-                easing: 'easeInOutQuad'
-            }).finished;
-        } else if (type === 'slide') {
-            newContent.style.transform = 'translateX(100%)';
-            await this.run({
-                targets: [newContent],
-                translateX: ['100%', '0%'],
-                duration: 500,
-                easing: 'easeOutCubic'
-            }).finished;
-            
-            // Animate old out?
-            // anime({ targets: oldContent, translateX: -100% ... })
-        } else if (type === 'push') {
-             newContent.style.transform = 'translateX(100%)';
-             
-             let timeline;
-             if (typeof anime === 'function') {
-                 timeline = anime.timeline({
-                     easing: 'easeOutCubic',
-                     duration: 500
-                 });
-                 timeline.add({
-                     targets: newContent,
-                     translateX: ['100%', '0%']
-                 }, 0);
-                 timeline.add({
-                     targets: oldContent,
-                     translateX: ['0%', '-20%'], // Parallax effect
-                     opacity: [1, 0.5]
-                 }, 0);
-             } else if (anime.Timeline) {
-                 // v4
-                 timeline = new anime.Timeline({
-                     ease: 'out(3)', // Approx easeOutCubic
-                     duration: 500
-                 });
-                 timeline.add(newContent, {
-                     translateX: ['100%', '0%']
-                 }, 0);
-                 timeline.add(oldContent, {
-                     translateX: ['0%', '-20%'],
-                     opacity: [1, 0.5]
-                 }, 0);
-             }
-             
-             if (timeline) await timeline.finished;
+            if (transition.type !== SLIDE_TRANSITION_TYPES.CROSS_FADE) {
+                prevOverflow = container.style.overflow;
+                container.style.overflow = 'hidden';
+                didSetOverflow = true;
+            }
 
-        } else if (type === 'magic') {
-            // Smart Animate
-            const oldEls = Array.from(oldContent.querySelectorAll('.slide-element'));
-            const newEls = Array.from(newContent.querySelectorAll('.slide-element'));
-            
-            const pairs = [];
-            const oldMap = new Map(oldEls.map(el => [el.id, el]));
-            
-            newEls.forEach(newEl => {
-                if (oldMap.has(newEl.id)) {
-                    pairs.push({
-                        oldEl: oldMap.get(newEl.id),
-                        newEl: newEl
-                    });
-                    oldMap.delete(newEl.id);
-                }
-            });
+            if (transition.type === SLIDE_TRANSITION_TYPES.CROSS_FADE) {
+                newContent.style.opacity = '0';
+                await Promise.all([
+                    this.run({ targets: oldContent, opacity: [1, 0], duration, easing }).finished,
+                    this.run({ targets: newContent, opacity: [0, 1], duration, easing }).finished
+                ]);
+            } else if (transition.type === SLIDE_TRANSITION_TYPES.COVER) {
+                const { axis, sign } = getAxisAndSign(transition.direction);
+                const prop = axis === 'X' ? 'translateX' : 'translateY';
+                const from = sign < 0 ? '-100%' : '100%';
+                await this.run({
+                    targets: [newContent],
+                    [prop]: [from, '0%'],
+                    duration,
+                    easing
+                }).finished;
+            } else if (transition.type === SLIDE_TRANSITION_TYPES.UNCOVER) {
+                const { axis, sign } = getAxisAndSign(transition.direction);
+                const prop = axis === 'X' ? 'translateX' : 'translateY';
+                const to = sign < 0 ? '-100%' : '100%';
+                await this.run({
+                    targets: [oldContent],
+                    [prop]: ['0%', to],
+                    duration,
+                    easing
+                }).finished;
+            } else if (transition.type === SLIDE_TRANSITION_TYPES.PUSH) {
+                const { axis, sign } = getAxisAndSign(transition.direction);
+                const prop = axis === 'X' ? 'translateX' : 'translateY';
+                const newFrom = sign < 0 ? '-100%' : '100%';
+                const oldTo = sign < 0 ? '100%' : '-100%';
 
-            // Ghost Container
-            const ghostContainer = document.createElement('div');
-            ghostContainer.className = 'ghost-container';
-            Object.assign(ghostContainer.style, {
-                position: 'absolute', top: '0', left: '0', width: '100%', height: '100%',
-                zIndex: '100', pointerEvents: 'none'
-            });
-            container.appendChild(ghostContainer);
-
-            const animations = [];
-
-            // Animate Pairs
-            pairs.forEach(({ oldEl, newEl }) => {
-                const ghost = oldEl.cloneNode(true);
-                ghostContainer.appendChild(ghost);
-                
-                // Hide originals
-                oldEl.style.opacity = '0';
-                newEl.style.opacity = '0';
-
-                // Extract target props
-                const target = {
-                    left: newEl.style.left,
-                    top: newEl.style.top,
-                    width: newEl.style.width,
-                    height: newEl.style.height,
-                    opacity: newEl.style.opacity || 1,
-                    backgroundColor: newEl.style.backgroundColor,
-                    color: newEl.style.color,
-                    borderRadius: newEl.style.borderRadius,
-                    fontSize: newEl.style.fontSize
-                };
-                
-                // Handle Rotation (transform: rotate(Xdeg))
-                const rotMatch = newEl.style.transform.match(/rotate\(([-\d.]+)deg\)/);
-                if (rotMatch) {
-                    target.rotate = rotMatch[1]; // Anime uses 'rotate' property
+                if (typeof anime === 'function' && anime.timeline) {
+                    const tl = anime.timeline({ duration, easing });
+                    tl.add({ targets: [oldContent], [prop]: ['0%', oldTo] }, 0);
+                    tl.add({ targets: [newContent], [prop]: [newFrom, '0%'] }, 0);
+                    await tl.finished;
                 } else {
-                    target.rotate = 0;
+                    await Promise.all([
+                        this.run({ targets: [oldContent], [prop]: ['0%', oldTo], duration, easing }).finished,
+                        this.run({ targets: [newContent], [prop]: [newFrom, '0%'], duration, easing }).finished
+                    ]);
                 }
-                
-                // Clean undefined
-                Object.keys(target).forEach(key => !target[key] && delete target[key]);
+            } else if (transition.type === SLIDE_TRANSITION_TYPES.WIPE) {
+                const end = 'polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%)';
+                let start;
 
-                animations.push({
-                    targets: ghost,
-                    ...target,
-                    easing: 'easeInOutQuad',
-                    duration: 600
-                });
-            });
-
-            // Fade out old orphans
-            oldMap.forEach(oldEl => {
-                animations.push({
-                    targets: oldEl,
-                    opacity: 0,
-                    duration: 300,
-                    easing: 'linear'
-                });
-            });
-
-            // Fade in new orphans
-            newEls.forEach(newEl => {
-                if (!pairs.find(p => p.newEl === newEl)) {
-                    newEl.style.opacity = '0';
-                    animations.push({
-                        targets: newEl,
-                        opacity: [0, 1],
-                        delay: 200,
-                        duration: 400,
-                        easing: 'linear'
-                    });
+                switch (transition.direction) {
+                    case 'left':
+                        start = 'polygon(100% 0%, 100% 0%, 100% 100%, 100% 100%)';
+                        break;
+                    case 'up':
+                        start = 'polygon(0% 100%, 100% 100%, 100% 100%, 0% 100%)';
+                        break;
+                    case 'down':
+                        start = 'polygon(0% 0%, 100% 0%, 100% 0%, 0% 0%)';
+                        break;
+                    case 'upLeft':
+                        start = 'polygon(100% 100%, 100% 100%, 100% 100%, 100% 100%)';
+                        break;
+                    case 'upRight':
+                        start = 'polygon(0% 100%, 0% 100%, 0% 100%, 0% 100%)';
+                        break;
+                    case 'downLeft':
+                        start = 'polygon(100% 0%, 100% 0%, 100% 0%, 100% 0%)';
+                        break;
+                    case 'downRight':
+                        start = 'polygon(0% 0%, 0% 0%, 0% 0%, 0% 0%)';
+                        break;
+                    case 'right':
+                    default:
+                        start = 'polygon(0% 0%, 0% 0%, 0% 100%, 0% 100%)';
+                        break;
                 }
-            });
 
-            await Promise.all(animations.map(anim => this.run(anim).finished));
-            
-            // Cleanup
-            container.removeChild(ghostContainer);
-            pairs.forEach(p => p.newEl.style.opacity = '');
-        } else {
-            // None / Instant
-        }
+                newContent.style.clipPath = start;
+                await this.run({
+                    targets: newContent,
+                    clipPath: [start, end],
+                    duration,
+                    easing
+                }).finished;
+            }
 
-        // Cleanup
-        if (oldContent.parentNode === container) {
-            container.removeChild(oldContent);
-        }
-        
-        // Reset styles on new content if needed (e.g. remove transform)
-        newContent.style.transform = '';
-        newContent.style.zIndex = 1;
-        
+            if (oldContent.parentNode === container) {
+                container.removeChild(oldContent);
+            }
+
+            newContent.style.transform = '';
+            newContent.style.clipPath = '';
+            newContent.style.opacity = '';
+            newContent.style.zIndex = 1;
         } catch (e) {
-            console.error("Animation error:", e);
-            // Ensure cleanup happens even on error
+            console.error('Animation error:', e);
             if (oldContent && oldContent.parentNode === container) {
                 container.removeChild(oldContent);
             }
-            const ghostContainer = container.querySelector('.ghost-container'); // Add class to ghost container to find it
-            if (ghostContainer) ghostContainer.remove();
         } finally {
+            if (didSetOverflow) {
+                container.style.overflow = prevOverflow;
+            }
             this.isAnimating = false;
         }
     }

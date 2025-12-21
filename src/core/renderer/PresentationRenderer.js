@@ -4,6 +4,7 @@ import { SlideView } from './SlideView.js';
 import { animationManager } from '../AnimationManager.js';
 import { waitForSlideAssetsReady } from '../presentation/AssetReadiness.js';
 import { PresentationPrefetchManager } from '../presentation/PresentationPrefetchManager.js';
+import { StyleResolver } from '../../utils/StyleResolver.js';
 
 export class PresentationRenderer extends BaseRenderer {
     constructor(containerId) {
@@ -161,10 +162,10 @@ export class PresentationRenderer extends BaseRenderer {
             
             // Transition
             this.isTransitioning = true;
-            let transitionType = newSlideData.transition || 'fade';
+            let transitionConfig = StyleResolver.getEffectiveSlideTransition(newId).transition;
             try {
                 if (typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-                    transitionType = 'none';
+                    transitionConfig = { type: 'none', durationMs: 0, easing: 'linear' };
                 }
             } catch {
                 // Best-effort.
@@ -175,7 +176,7 @@ export class PresentationRenderer extends BaseRenderer {
 
             this._setTransitionStatus('transitioning', newId);
 
-            animationManager.transition(this.layers.content, oldView.domElement, newView.domElement, transitionType)
+            animationManager.transition(this.layers.content, oldView.domElement, newView.domElement, transitionConfig)
                 .then(() => {
                     this.isTransitioning = false;
                     oldView.unmount();
