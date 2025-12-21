@@ -22,6 +22,49 @@ button.active {
     color: var(--color-text-on-accent);
 }
 
+/* SegmentedControl */
+.segmented-control {
+    display: flex;
+    width: 100%;
+    overflow: hidden;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-xs);
+}
+
+.segmented-control__item {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--spacing-1) var(--spacing-2);
+    font-family: var(--font-mono);
+    font-size: var(--font-size-xs);
+    text-transform: none;
+    background: transparent;
+    border: none;
+    border-radius: 0;
+    cursor: pointer;
+}
+
+.segmented-control__item + .segmented-control__item {
+    border-left: 1px solid var(--color-border);
+}
+
+.segmented-control__item:hover {
+    background-color: var(--color-bg-hover);
+}
+
+.segmented-control__item.is-selected,
+.segmented-control__item[aria-pressed="true"] {
+    background-color: var(--color-accent);
+    color: var(--color-text-on-accent);
+}
+
+.segmented-control__item:focus-visible {
+    outline: var(--border-width-2) solid var(--color-accent);
+    outline-offset: calc(var(--border-width-2) * -1);
+}
+
 .action-btn {
     background-color: var(--te-orange);
     color: white;

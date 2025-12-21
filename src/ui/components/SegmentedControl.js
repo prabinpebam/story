@@ -22,17 +22,25 @@ export class SegmentedControl {
 
     create() {
         const container = document.createElement('div');
+        container.classList.add('segmented-control');
         if (this.testId) {
             container.setAttribute('data-testid', this.testId);
         }
-        container.style.display = 'flex';
-        container.style.border = '1px solid var(--color-border)';
-        container.style.borderRadius = '2px';
-        container.style.overflow = 'hidden';
-        container.style.width = '100%';
+
+        const updateAll = () => {
+            Array.from(container.children).forEach((child, i) => {
+                const option = this.options[i];
+                if (!option) return;
+                const isSelected = this.selectedValue === option.value;
+                child.classList.toggle('is-selected', isSelected);
+                child.setAttribute('aria-pressed', isSelected ? 'true' : 'false');
+            });
+        };
 
         this.options.forEach((opt, index) => {
-            const btn = document.createElement('div');
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.classList.add('segmented-control__item');
             if (opt.testId) {
                 btn.setAttribute('data-testid', opt.testId);
             }
@@ -48,48 +56,18 @@ export class SegmentedControl {
             } else {
                 btn.innerText = opt.label;
             }
-            
-            btn.style.flex = '1';
-            btn.style.display = 'flex';
-            btn.style.alignItems = 'center';
-            btn.style.justifyContent = 'center';
-            btn.style.padding = '4px 8px';
-            btn.style.fontSize = '11px';
-            btn.style.cursor = 'pointer';
-            btn.style.fontFamily = 'var(--font-mono)';
-            btn.style.transition = 'background-color 0.1s ease';
-            
-            // Border between items
-            if (index < this.options.length - 1) {
-                btn.style.borderRight = '1px solid var(--color-border)';
+
+            btn.setAttribute('aria-pressed', 'false');
+            if (this.selectedValue === opt.value) {
+                btn.classList.add('is-selected');
+                btn.setAttribute('aria-pressed', 'true');
             }
-
-            const updateState = () => {
-                if (this.selectedValue === opt.value) {
-                    btn.style.backgroundColor = 'var(--color-accent)';
-                    btn.style.color = 'var(--color-text-on-accent)';
-                } else {
-                    btn.style.backgroundColor = 'transparent';
-                    btn.style.color = 'var(--color-text-primary)';
-                }
-            };
-
-            updateState();
 
             btn.addEventListener('click', () => {
                 store.dispatch('UI_INTERACTION_START');
                 this.selectedValue = opt.value;
-                // Update all buttons
-                Array.from(container.children).forEach((child, i) => {
-                    const option = this.options[i];
-                    if (this.selectedValue === option.value) {
-                        child.style.backgroundColor = 'var(--color-accent)';
-                        child.style.color = 'var(--color-text-on-accent)';
-                    } else {
-                        child.style.backgroundColor = 'transparent';
-                        child.style.color = 'var(--color-text-primary)';
-                    }
-                });
+
+                updateAll();
                 
                 if (this.onChange) this.onChange(this.selectedValue);
                 store.dispatch('UI_INTERACTION_END');
@@ -97,6 +75,8 @@ export class SegmentedControl {
 
             container.appendChild(btn);
         });
+
+        updateAll();
 
         return container;
     }

@@ -83,12 +83,16 @@ describe('SegmentedControl', () => {
         it('should create a container element', () => {
             segmentedControl = new SegmentedControl(testOptions, 'left', onChange);
             expect(segmentedControl.element).toBeDefined();
-            expect(segmentedControl.element.style.display).toBe('flex');
+            expect(segmentedControl.element.classList.contains('segmented-control')).toBe(true);
         });
 
         it('should create buttons for each option', () => {
             segmentedControl = new SegmentedControl(testOptions, 'left', onChange);
             expect(segmentedControl.element.children.length).toBe(3);
+            Array.from(segmentedControl.element.children).forEach((child) => {
+                expect(child.tagName).toBe('BUTTON');
+                expect(child.classList.contains('segmented-control__item')).toBe(true);
+            });
         });
 
         it('should display labels in buttons', () => {
@@ -98,23 +102,26 @@ describe('SegmentedControl', () => {
             expect(segmentedControl.element.children[2].innerText).toBe('Right');
         });
 
-        it('should apply border between items except last', () => {
-            segmentedControl = new SegmentedControl(testOptions, 'left', onChange);
-            expect(segmentedControl.element.children[0].style.borderRight).toBe('1px solid var(--color-border)');
-            expect(segmentedControl.element.children[1].style.borderRight).toBe('1px solid var(--color-border)');
-            expect(segmentedControl.element.children[2].style.borderRight).toBe('');
-        });
-
         it('should highlight selected option', () => {
             segmentedControl = new SegmentedControl(testOptions, 'center', onChange);
-            expect(segmentedControl.element.children[1].style.backgroundColor).toBe('var(--color-accent)');
-            expect(segmentedControl.element.children[1].style.color).toBe('var(--color-text-on-accent)');
+            expect(segmentedControl.element.children[1].classList.contains('is-selected')).toBe(true);
+            expect(segmentedControl.element.children[1].getAttribute('aria-pressed')).toBe('true');
         });
 
         it('should not highlight unselected options', () => {
             segmentedControl = new SegmentedControl(testOptions, 'center', onChange);
-            expect(segmentedControl.element.children[0].style.backgroundColor).toBe('transparent');
-            expect(segmentedControl.element.children[2].style.backgroundColor).toBe('transparent');
+            expect(segmentedControl.element.children[0].classList.contains('is-selected')).toBe(false);
+            expect(segmentedControl.element.children[2].classList.contains('is-selected')).toBe(false);
+            expect(segmentedControl.element.children[0].getAttribute('aria-pressed')).toBe('false');
+            expect(segmentedControl.element.children[2].getAttribute('aria-pressed')).toBe('false');
+        });
+
+        it('should not use inline styles (design-system compliance)', () => {
+            segmentedControl = new SegmentedControl(testOptions, 'left', onChange);
+            expect(segmentedControl.element.getAttribute('style')).toBe(null);
+            Array.from(segmentedControl.element.children).forEach((child) => {
+                expect(child.getAttribute('style')).toBe(null);
+            });
         });
     });
 
@@ -172,9 +179,11 @@ describe('SegmentedControl', () => {
             segmentedControl.element.children[2].click();
             
             // New selection should be highlighted
-            expect(segmentedControl.element.children[2].style.backgroundColor).toBe('var(--color-accent)');
+            expect(segmentedControl.element.children[2].classList.contains('is-selected')).toBe(true);
+            expect(segmentedControl.element.children[2].getAttribute('aria-pressed')).toBe('true');
             // Old selection should be unhighlighted
-            expect(segmentedControl.element.children[0].style.backgroundColor).toBe('transparent');
+            expect(segmentedControl.element.children[0].classList.contains('is-selected')).toBe(false);
+            expect(segmentedControl.element.children[0].getAttribute('aria-pressed')).toBe('false');
         });
 
         it('should handle clicking already selected option', () => {
@@ -183,7 +192,7 @@ describe('SegmentedControl', () => {
             segmentedControl.element.children[1].click();
             
             expect(onChange).toHaveBeenCalledWith('center');
-            expect(segmentedControl.element.children[1].style.backgroundColor).toBe('var(--color-accent)');
+            expect(segmentedControl.element.children[1].classList.contains('is-selected')).toBe(true);
         });
 
         it('should work without onChange callback', () => {
@@ -191,39 +200,6 @@ describe('SegmentedControl', () => {
             
             expect(() => segmentedControl.element.children[1].click()).not.toThrow();
             expect(segmentedControl.selectedValue).toBe('center');
-        });
-    });
-
-    describe('styling', () => {
-        it('should apply border radius to container', () => {
-            segmentedControl = new SegmentedControl(testOptions, 'left', onChange);
-            expect(segmentedControl.element.style.borderRadius).toBe('2px');
-        });
-
-        it('should apply overflow hidden to container', () => {
-            segmentedControl = new SegmentedControl(testOptions, 'left', onChange);
-            expect(segmentedControl.element.style.overflow).toBe('hidden');
-        });
-
-        it('should apply full width to container', () => {
-            segmentedControl = new SegmentedControl(testOptions, 'left', onChange);
-            expect(segmentedControl.element.style.width).toBe('100%');
-        });
-
-        it('should apply flex to buttons', () => {
-            segmentedControl = new SegmentedControl(testOptions, 'left', onChange);
-            expect(segmentedControl.element.children[0].style.flex).toContain('1');
-        });
-
-        it('should center content in buttons', () => {
-            segmentedControl = new SegmentedControl(testOptions, 'left', onChange);
-            expect(segmentedControl.element.children[0].style.alignItems).toBe('center');
-            expect(segmentedControl.element.children[0].style.justifyContent).toBe('center');
-        });
-
-        it('should set cursor to pointer on buttons', () => {
-            segmentedControl = new SegmentedControl(testOptions, 'left', onChange);
-            expect(segmentedControl.element.children[0].style.cursor).toBe('pointer');
         });
     });
 
@@ -236,22 +212,22 @@ describe('SegmentedControl', () => {
         it('should handle single option', () => {
             segmentedControl = new SegmentedControl([{ label: 'Only', value: 'only' }], 'only', onChange);
             expect(segmentedControl.element.children.length).toBe(1);
-            expect(segmentedControl.element.children[0].style.borderRight).toBe('');
+            expect(segmentedControl.element.children[0].classList.contains('segmented-control__item')).toBe(true);
         });
 
         it('should handle no initial selection', () => {
             segmentedControl = new SegmentedControl(testOptions, null, onChange);
-            // All buttons should have transparent background
             Array.from(segmentedControl.element.children).forEach(child => {
-                expect(child.style.backgroundColor).toBe('transparent');
+                expect(child.classList.contains('is-selected')).toBe(false);
+                expect(child.getAttribute('aria-pressed')).toBe('false');
             });
         });
 
         it('should handle value not in options', () => {
             segmentedControl = new SegmentedControl(testOptions, 'invalid', onChange);
-            // All buttons should have transparent background
             Array.from(segmentedControl.element.children).forEach(child => {
-                expect(child.style.backgroundColor).toBe('transparent');
+                expect(child.classList.contains('is-selected')).toBe(false);
+                expect(child.getAttribute('aria-pressed')).toBe('false');
             });
         });
     });
