@@ -231,22 +231,62 @@ test.describe('Presentation Mode (Gate 8) — Accessibility', () => {
         const forcedAdjustBtn = await prevBtn.evaluate(el => getComputedStyle(el as HTMLElement).forcedColorAdjust);
         expect(forcedAdjustBtn).toBe('none');
 
+        // All HUD buttons should opt out of UA color substitutions.
+        const hudButtons = page.locator('#presentation-hud .hud-controls .hud-btn');
+        const forcedAdjustAll = await hudButtons.evaluateAll(nodes => nodes.map(n => getComputedStyle(n as HTMLElement).forcedColorAdjust));
+        expect(forcedAdjustAll.length).toBeGreaterThan(0);
+        for (const v of forcedAdjustAll) expect(v).toBe('none');
+
         // Deterministic system-color mapping checks.
         const expectedCanvasBg = await resolveSystemColor(page, 'Canvas', 'backgroundColor');
         const expectedCanvasText = await resolveSystemColor(page, 'CanvasText', 'color');
-        // Note: Under Chromium forced-colors emulation, computed colors for active button states can be unreliable.
-        // We validate deterministic system surface mapping (Canvas/CanvasText) and basic interactivity instead.
 
         const actualHudBg = await hudControls.evaluate(el => getComputedStyle(el as HTMLElement).backgroundColor);
         const actualHudBorder = await hudControls.evaluate(el => getComputedStyle(el as HTMLElement).borderColor);
         expect(actualHudBg).toBe(expectedCanvasBg);
         expect(actualHudBorder).toBe(expectedCanvasText);
 
+        const dividers = hudControls.locator('.hud-divider');
+        const dividerCount = await dividers.count();
+        expect(dividerCount).toBeGreaterThan(0);
+        const dividerBgs = await dividers.evaluateAll(nodes => nodes.map(n => getComputedStyle(n as HTMLElement).backgroundColor));
+        for (const bg of dividerBgs) expect(bg).toBe(expectedCanvasText);
+
+        // Keyboard focus must land on HUD controls (no focus trap / pointer-only UI).
+        await page.keyboard.press('Tab');
+        await expect(prevBtn).toBeFocused();
+        const isFocusVisible = await prevBtn.evaluate(el => (el as HTMLElement).matches(':focus-visible'));
+        expect(isFocusVisible).toBe(true);
+
         // Interactivity sanity check: grid toggle remains usable.
         const gridBtn = page.locator('[data-testid="hud-grid-btn"]');
         await gridBtn.click();
         await expect(gridBtn).toHaveAttribute('aria-pressed', 'true');
         await expect(page.locator('#presentation-grid-view')).toBeVisible();
+
+        // Note: Under Chromium forced-colors emulation, computed colors for active states can be unreliable.
+        // We validate deterministic system surface mapping (Canvas/CanvasText) and interactivity instead.
+
+        // Interactivity sanity check: black screen overlay remains usable.
+        const blackBtn = page.locator('[data-testid="hud-black-btn"]');
+        const blackOverlay = page.locator('#overlay-black');
+        await expect(blackOverlay).toBeAttached();
+        await expect(blackOverlay).toHaveClass(/hidden/);
+        await blackBtn.click();
+        await expect(blackBtn).toHaveAttribute('aria-pressed', 'true');
+        await expect(blackOverlay).not.toHaveClass(/hidden/);
+        await blackBtn.click();
+        await expect(blackBtn).toHaveAttribute('aria-pressed', 'false');
+        await expect(blackOverlay).toHaveClass(/hidden/);
+
+        // Interactivity sanity check: laser pointer state remains usable.
+        const laserBtn = page.locator('[data-testid="hud-laser-btn"]');
+        await laserBtn.click();
+        await expect(laserBtn).toHaveAttribute('aria-pressed', 'true');
+        await expect(page.locator('body')).toHaveClass(/laser-active/);
+        await laserBtn.click();
+        await expect(laserBtn).toHaveAttribute('aria-pressed', 'false');
+        await expect(page.locator('body')).not.toHaveClass(/laser-active/);
     });
 
     test('should apply presentation stage/HUD colors via tokens (no hardcoded overrides)', async ({ page }) => {

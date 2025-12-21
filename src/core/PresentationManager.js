@@ -33,6 +33,7 @@ import {
     resumeRehearsal,
     setRehearsalEnabled
 } from './presentation/RehearsalTimings.js';
+import { getDisplayAdapter } from './presentation/DisplayAdapter.js';
 
 export class PresentationManager {
     constructor() {
@@ -106,6 +107,9 @@ export class PresentationManager {
                 view: null
             }
         };
+
+        // Presenter Tools: Host Display Adapter (web fallback). Desktop wrappers can inject a stronger adapter.
+        this._displayAdapter = getDisplayAdapter();
         
         // Cache for presentation mode coordinate calculation
         this._presentationScale = 1;
@@ -128,6 +132,33 @@ export class PresentationManager {
         });
         
         this.init();
+    }
+
+    async _maybeAutoOpenPresenterView() {
+        // Spec (Presenter Tools): if host detects multiple displays with confidence,
+        // auto-open Presenter View when a show starts.
+        // This must be best-effort and MUST NOT block presenting if unsupported.
+        if (this._isPresenter()) return;
+        if (this._sync?.presenterWindow && !this._sync.presenterWindow.closed) return;
+        if (this._sync?.autoPresenterAttempted) return;
+
+        this._sync.autoPresenterAttempted = true;
+
+        try {
+            const adapter = this._displayAdapter;
+            if (!adapter || typeof adapter.getCapabilities !== 'function' || typeof adapter.getDisplays !== 'function') return;
+
+            const caps = await adapter.getCapabilities();
+            if (!caps?.canEnumerateDisplays) return;
+
+            const displays = await adapter.getDisplays();
+            if (!Array.isArray(displays) || displays.length < 2) return;
+
+            // Web fallback cannot place windows; opening Presenter View is still useful.
+            this._openPresenterWindow();
+        } catch {
+            // Best-effort.
+        }
     }
 
     _setLastInputMethod(method) {
@@ -1776,14 +1807,95 @@ export class PresentationManager {
             // Best-effort.
         }
 
+        // Gate 9 (E2E): deterministic crash fixture trigger (test-only).
+        this._maybeTriggerCrashFixtureForTests();
+
         // Gate 7: broadcast state so a presenter window can lockstep.
         this._postSyncMessage({ type: 'state-sync', state: this._getSyncStateSnapshot() });
+
+        // Presenter Tools: best-effort auto Presenter View when host supports multi-display detection.
+        // Do not await; never block entering the show.
+        this._maybeAutoOpenPresenterView();
 
         this.updateScale();
 
         // Start Laser Pointer loop if needed
         this.laserPointer.start();
         this.laserPointer.resize(); // Ensure it fits screen
+    }
+
+    _maybeTriggerCrashFixtureForTests() {
+        try {
+            if (typeof window === 'undefined') return;
+            // E2E runs the app via Vite in development mode; unit tests use test mode.
+            // Only enable when explicitly opted in via a window flag.
+            const mode = import.meta.env?.MODE;
+            if (mode !== 'test' && mode !== 'development') return;
+
+            const cfg = window.__PM_TEST_CRASH_FIXTURE;
+            if (!cfg) return;
+
+            const st = store.getState();
+            if (st?.editor?.mode !== 'presentation') return;
+
+            const kind = String(cfg);
+            const message = typeof window.__PM_TEST_CRASH_MESSAGE === 'string'
+                ? window.__PM_TEST_CRASH_MESSAGE
+                : 'pm-test-crash <script>ignored</script>';
+            const stackSeed = typeof window.__PM_TEST_CRASH_STACK === 'string'
+                ? window.__PM_TEST_CRASH_STACK
+                : 'x'.repeat(5000);
+
+            // Run once per page to avoid surprising other tests.
+            window.__PM_TEST_CRASH_FIXTURE = null;
+
+            setTimeout(() => {
+                try {
+                    if (kind === 'error' || kind === 'both') {
+                        window.addEventListener('error', (ev) => {
+                            try { ev.preventDefault(); } catch { /* noop */ }
+                        }, { once: true });
+
+                        const err = new Error(message);
+                        try {
+                            Object.defineProperty(err, 'stack', { value: stackSeed, configurable: true });
+                        } catch {
+                            // ignore
+                        }
+
+                        window.dispatchEvent(new ErrorEvent('error', { message, error: err }));
+                    }
+
+                    if (kind === 'unhandledrejection' || kind === 'both') {
+                        window.addEventListener('unhandledrejection', (ev) => {
+                            try { ev.preventDefault(); } catch { /* noop */ }
+                        }, { once: true });
+
+                        const reason = new Error(message);
+                        try {
+                            Object.defineProperty(reason, 'stack', { value: stackSeed, configurable: true });
+                        } catch {
+                            // ignore
+                        }
+
+                        if (typeof window.PromiseRejectionEvent === 'function') {
+                            window.dispatchEvent(new window.PromiseRejectionEvent('unhandledrejection', {
+                                reason,
+                                promise: Promise.resolve()
+                            }));
+                        } else {
+                            const ev = new Event('unhandledrejection');
+                            ev.reason = reason;
+                            window.dispatchEvent(ev);
+                        }
+                    }
+                } catch {
+                    // Best-effort.
+                }
+            }, 0);
+        } catch {
+            // Best-effort.
+        }
     }
 
     exitPresentation() {

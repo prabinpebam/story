@@ -1,0 +1,33 @@
+# Slide transitions
+
+Following are the slide transitions we need
+- Morph
+- Cross fade
+- Wipe
+    - Left to right
+    - right to left
+    - Top left to bottom right
+    - Top right to bottom left
+    - Bottom left to top right
+    - Bottom left to Top right
+- Push
+    - Left to right
+    - right to left
+    - Top left to bottom right
+    - Top right to bottom left
+    - Bottom left to top right
+    - Bottom left to Top right
+- Cover
+    - Left to right
+    - right to left
+    - Top left to bottom right
+    - Top right to bottom left
+    - Bottom left to top right
+    - Bottom left to Top right
+- Uncover
+    - Left to right
+    - right to left
+    - Top left to bottom right
+    - Top right to bottom left
+    - Bottom left to top right
+    - Bottom left to Top right

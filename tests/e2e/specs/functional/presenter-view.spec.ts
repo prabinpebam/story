@@ -183,8 +183,8 @@ test.describe('Presenter View (Gate 7)', () => {
             .toMatch(/Slide 00:00:0[01]/);
 
         // Pause should freeze rehearsal timing as well.
-        const frozen = (await summary.textContent()) || '';
         await pause.click();
+        const frozen = (await summary.textContent()) || '';
         await presenterPage.waitForTimeout(1500);
         await expect(summary).toHaveText(frozen);
 

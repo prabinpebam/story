@@ -36,8 +36,35 @@ Status legend: ✅ Done (locked) · 🟡 In progress · ❌ Not started · ⛔ B
   - ✅ Theming assertions: same spec validates light/dark changes propagate to presentation tokens and accent theme updates the grid active indicator.
   - Remaining: expand forced-colors/contrast coverage beyond smoke.
 
-- 🟡 Gate 9: In progress (observability/CI quality gates).
-- 🟡 Gates 10–11: In progress (Gate 10 complete; remaining: final parity audit).
+- ✅ Gate 9: Observability/CI quality gates complete.
+- 🟡 Remaining: Gate 8 (expand forced-colors/contrast coverage) and Gate 11 (final parity audit).
+
+---
+
+## What’s Still Left (to be 100% complete)
+
+- Gate 8 🟡: extend a11y/theming verification beyond smoke checks.
+  - Expand forced-colors/contrast assertions to cover more UI states and ensure no regressions in token usage.
+  - Add any missing keyboard/focus expectations required by the a11y spec (only if not already enforced by Playwright).
+
+- Gate 11 ❌: final parity audit (“no spec/implementation gaps”).
+  - Complete traceability rows for every `PM-###` item (spec clause → impl files/contracts → tests).
+  - Expand the MUST Index to 100% of MUST/MUST NOT clauses across the Presentation Mode spec suite.
+  - Ensure every MUST has at least one automated verification (Vitest and/or Playwright) and is linked here.
+
+## What “120% Complete” Means Here (belt-and-suspenders)
+
+- Run-once full-suite validation:
+  - Playwright run-once on Chromium plus at least one additional engine (WebKit/Firefox) if supported in CI.
+  - A single “presentation smoke marathon” run (enter/exit repeatedly, navigation loops) to catch lifecycle leaks.
+
+- Stress + security regression fixtures:
+  - Golden decks that exercise: media-heavy, font-stress, build-stress, theme variance, long notes.
+  - Negative fixtures for privacy/XSS: malicious slide HTML/notesDoc input, oversized payloads, and message-fuzz tests for presenter sync.
+
+- Multi-display confidence:
+  - Manual/soak checklist for real multi-display/hotplug behavior (hardware-dependent; tracked as evidence).
+  - Where feasible: unit tests for host adapter integrations and “no-block show start” guarantees.
 
 ---
 
@@ -64,7 +91,7 @@ Gate details live in **Section 6**. This section is the quick status index.
 - ✅ Gate 6 — HUD + Grid + Laser parity (audience-safe)
 - ✅ Gate 7 — Presenter View + security/privacy boundary
 - 🟡 Gate 8 — Accessibility + theming discipline
-- 🟡 Gate 9 — Observability + CI quality gates
+- ✅ Gate 9 — Observability + CI quality gates
 - ✅ Gate 10 — Kiosk/autoplay/rehearsal modes
 - ❌ Gate 11 — Final parity audit (“no spec/impl gaps”)
 
@@ -125,10 +152,18 @@ doneWhen:
 Minimum format:
 - `Spec file` + `section heading` + `requirement summary` + `PM-###` + `test(s)`
 
-#### MUST Index (seeded — expand to 100% before final gate)
+#### MUST Index (100% source of truth)
+
+The exhaustive MUST index lives in: [MUST-index.md](MUST-index.md)
 
 Notes:
-- This table is intentionally **not complete** yet. It is seeded with the top MUSTs so scope is unambiguous on day one.
+- `MUST-index.md` is generated from `documentation/01-specs/slides/presentation-mode/_must-lines.txt` via `node scripts/generate-must-index.mjs`.
+- `MUST-ID` in `MUST-index.md` is derived from `spec filename + line number` for stability.
+- Scope: excludes meta/process-only documents (`00-master-outline.md`, `22-implementation-readiness.md`, and this ledger file).
+
+The table below is a **small excerpt** for quick scanning.
+
+Notes:
 - Each row must map to exactly one `PM-###` (split a clause into multiple rows if it spans multiple surfaces).
 - Include both **MUST** and **MUST NOT** clauses.
 
@@ -426,10 +461,10 @@ Emoji status (quick scan): ✅ Done · 🟡 In progress · ❌ Not started · �
 | ✅ | `02-performance-and-caching.md` | READY | DONE | VITEST+PLAYWRIGHT | PERF | Tiered prefetch + HOT gating enforced; perf harness exists (baseline work continues in later gates). |
 | ✅ | `13-theming-and-polish.md` | READY | DONE | PLAYWRIGHT | NONE | Token discipline for stage/HUD + reduced motion/forced colors behaviors. |
 | ✅ | `14-reliability-and-recovery.md` | READY | DONE | PLAYWRIGHT | NONE | Audience-safe error surfacing rules enforced where applicable. |
-| 🟡 | `11-presenter-tools.md` | READY | IN PROGRESS | VITEST+PLAYWRIGHT | NONE | Scope expanded to PowerPoint parity: automatic dual-display behavior (host adapter tiers), display assignment + Swap Displays, presenter surface IA (current/next/notes/timer/clock/progress), keyboard parity, and a required DOM contract for test hooks. Current impl/tests: popup + lockstep sync + close→reopen recovery covered by Playwright `tests/e2e/specs/functional/presenter-view.spec.ts`; message validation covered by unit `tests/unit/core/presentation/PresenterSyncValidation.test.js`. Remaining: buildIndex lockstep, swap UI, host adapter implementation + hotplug behavior, richer presenter navigation surfaces (thumbnails/sorter) and controls parity. |
+| 🟡 | `11-presenter-tools.md` | READY | IN PROGRESS | VITEST+PLAYWRIGHT | NONE | Presenter View surface + controls + Swap Displays + buildIndex lockstep covered by Playwright `tests/e2e/specs/functional/presenter-view.spec.ts`. Sync message validation covered by unit `tests/unit/core/presentation/PresenterSyncValidation.test.js`. Host Display Adapter abstraction implemented (`src/core/presentation/DisplayAdapter.js`) with unit tests and best-effort auto-open when host reports 2+ displays (`tests/unit/core/presentation/PresenterAutoOpen.test.js`). Remaining: real multi-display enumeration/placement (Tier-A host impl), hotplug detection, and richer navigation surfaces (thumbnails/sorter) beyond jump-by-number. |
 | 🟡 | `15-accessibility.md` | READY | IN PROGRESS | PLAYWRIGHT | NONE | Gate 8 Playwright added and green: `tests/e2e/specs/functional/presentation-accessibility.spec.ts` (live region announcements, HUD aria + toggles, keyboard-only exit, reduced motion disables transitions). Remaining: extend coverage for contrast/forced-colors and theme switching assertions. |
-| 🟡 | `16-security-privacy-and-safety.md` | READY | IN PROGRESS | VITEST+PLAYWRIGHT | NONE | Message allowlist + malformed rejection covered: unit `tests/unit/core/presentation/PresenterSyncValidation.test.js`, e2e `tests/e2e/specs/functional/presenter-view.spec.ts`. Remaining: broaden negative cases + ensure no presenter-only DOM leaks under stress. |
-| 🟡 | `17-observability-and-quality-gates.md` | READY | IN PROGRESS | VITEST+PLAYWRIGHT | PERF | Telemetry core + debug hook + perf gate mode implemented; remaining: expand crash fixture coverage and add explicit regression test for gated perf failure. |
+| 🟡 | `16-security-privacy-and-safety.md` | READY | IN PROGRESS | VITEST+PLAYWRIGHT | NONE | Message allowlist + malformed rejection covered by unit `tests/unit/core/presentation/PresenterSyncValidation.test.js` (bounds + extra-field dropping) and Playwright `tests/e2e/specs/functional/presenter-view.spec.ts`. Remaining: broaden audience-side XSS/malicious slide fixtures and stress tests for presenter-only DOM leak prevention. |
+| 🟡 | `17-observability-and-quality-gates.md` | READY | IN PROGRESS | VITEST+PLAYWRIGHT | PERF | Telemetry core + perf gate implemented. Regression test for perf gate failure exists (`tests/unit/perf/PerfBenchGate.test.js`). Crash payload sanitization is unit-tested (`tests/unit/core/telemetry/Telemetry.test.js`). Remaining: add deterministic crash fixture that triggers during presentation and verify emitted payload stays privacy-safe. |
 | ✅ | `18-test-strategy.md` | READY | DONE | NONE | NONE | Documentation-only; must reflect current test contract and fixtures. |
 | ✅ | `19-implementation-boundaries-and-extensibility.md` | READY | DONE | NONE | NONE | Documentation-only; clarifies what must not leak to audience. |
 | ✅ | `20-parity-mapping-table.md` | READY | DONE | NONE | NONE | Documentation-only; parity map for review. |
@@ -543,6 +578,793 @@ This ledger is exhaustive at the “feature surface” level. Individual subtask
 
 ---
 
+## 5.16 Traceability Rows (Required for Gate 11)
+
+Each `PM-###` surface below is expanded into a traceability row per the template in 0.1.
+
+```yaml
+id: PM-001
+level: MUST
+spec:
+  - file: documentation/01-specs/slides/presentation-mode/06-mode-taxonomy-and-entry-exit.md
+    section: "2) Entry Points / Requirements"
+    clauses:
+      - "MUST support entry via toolbar/menu and shortcuts."
+      - "MUST support start-from-beginning and start-from-current as distinct actions."
+      - "MUST provide mode picker UI (fullscreen vs windowed, single vs dual-screen)."
+impl:
+  owners: ["core", "ui"]
+  files:
+    - src/core/store/handlers/PresentationHandlers.js
+    - src/core/PresentationManager.js
+    - src/ui/services/MenuActionHandler.js
+tests:
+  unit: []
+  e2e:
+    - file: tests/e2e/specs/functional/presentation-mode.spec.ts
+      assertions:
+        - "Start presentation enters mode"
+        - "Mode picker surfaces exist"
+doneWhen:
+  - "Automated tests pass"
+```
+
+```yaml
+id: PM-002
+level: MUST
+spec:
+  - file: documentation/01-specs/slides/presentation-mode/06-mode-taxonomy-and-entry-exit.md
+    section: "4) Fullscreen Handling / Requirements"
+    clauses:
+      - "MUST request fullscreen on entry (if mode is fullscreen viewer)."
+      - "MUST handle browser denial gracefully (continue in window)."
+      - "MUST track fullscreen state and provide re-request option in HUD."
+impl:
+  owners: ["core"]
+  files:
+    - src/core/PresentationManager.js
+tests:
+  unit: []
+  e2e:
+    - file: tests/e2e/specs/functional/presentation-mode.spec.ts
+      assertions:
+        - "Fullscreen denied still presents"
+        - "External fullscreen exit keeps presenting"
+doneWhen:
+  - "Automated tests pass"
+```
+
+```yaml
+id: PM-003
+level: MUST
+spec:
+  - file: documentation/01-specs/slides/presentation-mode/06-mode-taxonomy-and-entry-exit.md
+    section: "3) Exit Points / Requirements"
+    clauses:
+      - "MUST support exit via Esc, HUD button, and menu."
+      - "MUST restore editor to previous state (active slide, zoom level)."
+impl:
+  owners: ["core"]
+  files:
+    - src/core/PresentationManager.js
+tests:
+  unit: []
+  e2e:
+    - file: tests/e2e/specs/functional/presentation-mode.spec.ts
+      assertions:
+        - "Exit clears overlays/grid/laser"
+        - "Exit resets body classes and viewport inline styles"
+doneWhen:
+  - "Automated tests pass"
+```
+
+```yaml
+id: PM-010
+level: MUST
+spec:
+  - file: documentation/01-specs/slides/presentation-mode/07-input-and-controls.md
+    section: "1) Keyboard Shortcuts"
+    clauses:
+      - "MUST support keyboard shortcuts for next/prev/home/end/esc/overlays/grid/laser."
+      - "Key repeat throttle: Ignore key events if last event was <100ms ago."
+      - "Numeric entry: accumulate digits; Enter commits; Esc cancels; auto-commit after 3s timeout."
+impl:
+  owners: ["core"]
+  files:
+    - src/core/presentation/PresentationInputBuffer.js
+    - src/core/PresentationManager.js
+tests:
+  unit:
+    - file: tests/unit/core/presentation/PresentationInputBuffer.test.js
+      assertions:
+        - "Throttle and buffer FSM"
+  e2e:
+    - file: tests/e2e/specs/functional/presentation-mode.spec.ts
+      assertions:
+        - "Keyboard navigation and jump-by-number"
+doneWhen:
+  - "Automated tests pass"
+```
+
+```yaml
+id: PM-011
+level: MUST
+spec:
+  - file: documentation/01-specs/slides/presentation-mode/07-input-and-controls.md
+    section: "2) Mouse Input / 3) Touch Input"
+    clauses:
+      - "MUST support click-to-advance (configurable: next build or next slide)."
+      - "MUST support swipe gestures (left/right for prev/next)."
+      - "MUST support tap-to-reveal HUD."
+impl:
+  owners: ["core", "ui"]
+  files:
+    - src/core/PresentationManager.js
+    - src/ui/HUD.js
+tests:
+  unit: []
+  e2e:
+    - file: tests/e2e/specs/functional/presentation-mode.spec.ts
+      assertions:
+        - "Click-to-advance triggers navigation"
+doneWhen:
+  - "Automated tests pass"
+```
+
+```yaml
+id: PM-012
+level: MUST
+spec:
+  - file: documentation/01-specs/slides/presentation-mode/07-input-and-controls.md
+    section: "2) Mouse Input / Click handling"
+    clauses:
+      - "Default excludeRegions must prevent advance on HUD, links, buttons, inputs, video."
+impl:
+  owners: ["core"]
+  files:
+    - src/core/PresentationManager.js
+tests:
+  unit: []
+  e2e:
+    - file: tests/e2e/specs/functional/presentation-mode.spec.ts
+      assertions:
+        - "Clicking links/buttons does not advance slide"
+doneWhen:
+  - "Automated tests pass"
+```
+
+```yaml
+id: PM-020
+level: MUST
+spec:
+  - file: documentation/01-specs/slides/presentation-mode/08-navigation-model.md
+    section: "1) Linear Navigation"
+    clauses:
+      - "MUST track build index per slide."
+      - "Next from last build MUST advance to next slide."
+      - "Prev from first build MUST return to previous slide's last build."
+  - file: documentation/01-specs/slides/presentation-mode/10-playback-system.md
+    section: "2) Builds"
+    clauses:
+      - "MUST execute builds in author-defined order."
+impl:
+  owners: ["core"]
+  files:
+    - src/core/PresentationManager.js
+    - src/core/renderer/PresentationRenderer.js
+tests:
+  unit: []
+  e2e:
+    - file: tests/e2e/specs/functional/presentation-mode.spec.ts
+      assertions:
+        - "Next/prev respects builds and slides"
+doneWhen:
+  - "Automated tests pass"
+```
+
+```yaml
+id: PM-021
+level: MUST
+spec:
+  - file: documentation/01-specs/slides/presentation-mode/08-navigation-model.md
+    section: "2) Non-linear Navigation"
+    clauses:
+      - "MUST support jump-to-slide by index (grid navigator, numeric entry)."
+impl:
+  owners: ["core", "ui"]
+  files:
+    - src/core/PresentationManager.js
+    - src/ui/GridView.js
+tests:
+  unit: []
+  e2e:
+    - file: tests/e2e/specs/functional/presentation-mode.spec.ts
+      assertions:
+        - "Grid jump updates slide"
+        - "Numeric jump updates slide"
+doneWhen:
+  - "Automated tests pass"
+```
+
+```yaml
+id: PM-022
+level: MUST
+spec:
+  - file: documentation/01-specs/slides/presentation-mode/08-navigation-model.md
+    section: "4) Hidden Slides"
+    clauses:
+      - "Hidden slides MUST be accessible via direct jump (grid, numeric entry)."
+impl:
+  owners: ["core"]
+  files:
+    - src/core/PresentationManager.js
+tests:
+  unit: []
+  e2e:
+    - file: tests/e2e/specs/functional/presentation-mode.spec.ts
+      assertions:
+        - "Hidden slide can be jumped to"
+doneWhen:
+  - "Automated tests pass"
+```
+
+```yaml
+id: PM-030
+level: MUST
+spec:
+  - file: documentation/01-specs/slides/presentation-mode/09-visual-surface-and-scaling.md
+    section: "1) Aspect Ratio Handling / 2) Scaling"
+    clauses:
+      - "MUST maintain slide aspect ratio."
+      - "MUST letterbox when viewport aspect differs."
+      - "MUST use a single scaling transform at the container level."
+impl:
+  owners: ["core"]
+  files:
+    - src/core/PresentationManager.js
+    - src/core/renderer/PresentationRenderer.js
+    - styles/modules/presentation.css
+tests:
+  unit:
+    - file: tests/unit/core/PresentationManager.test.js
+      assertions:
+        - "updateScale computes scale/offset"
+  e2e:
+    - file: tests/e2e/specs/functional/presentation-mode.spec.ts
+      assertions:
+        - "Viewport/slide container uses single transform"
+doneWhen:
+  - "Automated tests pass"
+```
+
+```yaml
+id: PM-031
+level: MUST
+spec:
+  - file: documentation/01-specs/slides/presentation-mode/09-visual-surface-and-scaling.md
+    section: "3) High DPI"
+    clauses:
+      - "MUST account for devicePixelRatio in canvas/WebGL back buffers."
+      - "Canvas resize operations MUST reset transforms before applying DPI scaling."
+impl:
+  owners: ["core"]
+  files:
+    - src/core/LaserPointer.js
+    - src/core/PresentationManager.js
+tests:
+  unit:
+    - file: tests/unit/core/LaserPointer.test.js
+      assertions:
+        - "DPR scaling applied"
+doneWhen:
+  - "Automated tests pass"
+```
+
+```yaml
+id: PM-032
+level: MUST
+spec:
+  - file: documentation/01-specs/slides/presentation-mode/03-rendering-in-presentation-mode.md
+    section: "2.1 Chrome Hiding"
+    clauses:
+      - "MUST hide all editing chrome (toolbar, panels, selection handles)."
+      - "Presenter-only UI MUST NOT appear in audience/presentation output."
+      - "Playwright MUST enforce forbidden selector checklist is not visible."
+impl:
+  owners: ["core", "ui"]
+  files:
+    - src/core/PresentationManager.js
+    - styles/modules/presentation.css
+tests:
+  unit: []
+  e2e:
+    - file: tests/e2e/specs/functional/presentation-mode.spec.ts
+      assertions:
+        - "Audience-clean forbidden selector audit"
+doneWhen:
+  - "Automated tests pass"
+```
+
+```yaml
+id: PM-040
+level: MUST
+spec:
+  - file: documentation/01-specs/slides/presentation-mode/10-playback-system.md
+    section: "1) Slide Transitions"
+    clauses:
+      - "MUST apply author-defined transitions (if supported) and MUST fall back to instant cut if unsupported."
+impl:
+  owners: ["core"]
+  files:
+    - src/core/renderer/PresentationRenderer.js
+    - src/core/PresentationManager.js
+tests:
+  unit: []
+  e2e:
+    - file: tests/e2e/specs/functional/presentation-mode.spec.ts
+      assertions:
+        - "Transitions do not break navigation"
+doneWhen:
+  - "Automated tests pass"
+```
+
+```yaml
+id: PM-041
+level: MUST
+spec:
+  - file: documentation/01-specs/slides/presentation-mode/02-performance-and-caching.md
+    section: "2.2 HOT / Transition readiness"
+    clauses:
+      - "Transition MUST NOT start until next slide is fully loaded."
+      - "MUST ensure HOT tier images are fully decoded before transition starts."
+      - "MUST NOT initiate transition while HOT tier images are still loading/decoding."
+impl:
+  owners: ["core"]
+  files:
+    - src/core/presentation/AssetReadiness.js
+    - src/core/renderer/PresentationRenderer.js
+    - src/core/PresentationManager.js
+tests:
+  unit:
+    - file: tests/unit/core/presentation/AssetReadiness.test.js
+      assertions:
+        - "image decode awaited"
+  e2e:
+    - file: tests/e2e/specs/functional/presentation-mode.spec.ts
+      assertions:
+        - "Transition status blocks until decode resolves"
+doneWhen:
+  - "Automated tests pass"
+```
+
+```yaml
+id: PM-042
+level: MUST
+spec:
+  - file: documentation/01-specs/slides/presentation-mode/13-theming-and-polish.md
+    section: "Reduced motion"
+    clauses:
+      - "MUST respect reduced motion preferences (prefers-reduced-motion: reduce)."
+impl:
+  owners: ["ui"]
+  files:
+    - styles/modules/presentation.css
+tests:
+  unit: []
+  e2e:
+    - file: tests/e2e/specs/functional/presentation-accessibility.spec.ts
+      assertions:
+        - "prefers-reduced-motion disables transitions"
+doneWhen:
+  - "Automated tests pass"
+```
+
+```yaml
+id: PM-050
+level: MUST
+spec:
+  - file: documentation/01-specs/slides/presentation-mode/12-hud-and-audience-controls.md
+    section: "Visibility + Controls"
+    clauses:
+      - "MUST appear on mouse movement and auto-hide after inactivity (~3s)."
+      - "MUST provide Next/Prev, slide counter, grid access, fullscreen toggle (if supported), and exit button."
+      - "MUST use design tokens for HUD surfaces and MUST NOT use hardcoded colors."
+impl:
+  owners: ["ui", "core"]
+  files:
+    - src/ui/HUD.js
+    - src/core/PresentationManager.js
+    - styles/modules/presentation.css
+tests:
+  unit: []
+  e2e:
+    - file: tests/e2e/specs/functional/presentation-mode.spec.ts
+      assertions:
+        - "HUD controls exist and work"
+    - file: tests/e2e/specs/functional/presentation-accessibility.spec.ts
+      assertions:
+        - "HUD aria + toggle semantics"
+doneWhen:
+  - "Automated tests pass"
+```
+
+```yaml
+id: PM-051
+level: MUST
+spec:
+  - file: documentation/01-specs/slides/presentation-mode/14-reliability-and-recovery.md
+    section: "Audience-safe errors"
+    clauses:
+      - "MUST handle media load failures without blocking navigation."
+      - "MUST never leak diagnostics to audience feed."
+impl:
+  owners: ["core"]
+  files:
+    - src/core/PresentationManager.js
+    - src/core/renderer/PresentationRenderer.js
+tests:
+  unit: []
+  e2e:
+    - file: tests/e2e/specs/functional/presentation-mode.spec.ts
+      assertions:
+        - "Exit/overlays cleanup and audience-clean DOM audits"
+doneWhen:
+  - "Automated tests pass"
+```
+
+```yaml
+id: PM-060
+level: MUST
+spec:
+  - file: documentation/01-specs/slides/presentation-mode/03-rendering-in-presentation-mode.md
+    section: "5.2 Grid Navigator"
+    clauses:
+      - "MUST show thumbnails in grid layout."
+      - "MUST support click-to-jump."
+impl:
+  owners: ["ui", "core"]
+  files:
+    - src/ui/GridView.js
+    - src/core/PresentationManager.js
+    - styles/modules/presentation.css
+tests:
+  unit: []
+  e2e:
+    - file: tests/e2e/specs/functional/presentation-mode.spec.ts
+      assertions:
+        - "Grid open/close and click-to-jump"
+doneWhen:
+  - "Automated tests pass"
+```
+
+```yaml
+id: PM-070
+level: MUST
+spec:
+  - file: documentation/01-specs/slides/presentation-mode/03-rendering-in-presentation-mode.md
+    section: "6) Laser Pointer"
+    clauses:
+      - "MUST render on dedicated canvas (z-index above slide, below HUD)."
+      - "MUST account for devicePixelRatio (DPI scaling)."
+impl:
+  owners: ["core"]
+  files:
+    - src/core/LaserPointer.js
+    - src/core/PresentationManager.js
+tests:
+  unit:
+    - file: tests/unit/core/LaserPointer.test.js
+      assertions:
+        - "Canvas DPR scaling"
+  e2e:
+    - file: tests/e2e/specs/functional/presentation-mode.spec.ts
+      assertions:
+        - "Laser toggles and renders"
+doneWhen:
+  - "Automated tests pass"
+```
+
+```yaml
+id: PM-080
+level: MUST
+spec:
+  - file: documentation/01-specs/slides/presentation-mode/11-presenter-tools.md
+    section: "Presenter View Window / Sync"
+    clauses:
+      - "Presenter View MUST be a separate window (not modal)."
+      - "MUST detect presenter window closure during an active show and allow reopening without losing position."
+impl:
+  owners: ["core", "ui"]
+  files:
+    - src/core/PresentationManager.js
+    - src/core/presentation/DisplayAdapter.js
+    - src/ui/services/MenuActionHandler.js
+tests:
+  unit:
+    - file: tests/unit/core/presentation/DisplayAdapter.test.js
+      assertions:
+        - "Adapter contracts"
+    - file: tests/unit/core/presentation/PresenterAutoOpen.test.js
+      assertions:
+        - "Best-effort auto-open"
+  e2e:
+    - file: tests/e2e/specs/functional/presenter-view.spec.ts
+      assertions:
+        - "Popup open + close→reopen recovery"
+doneWhen:
+  - "Automated tests pass"
+```
+
+```yaml
+id: PM-081
+level: MUST
+spec:
+  - file: documentation/01-specs/slides/presentation-mode/11-presenter-tools.md
+    section: "Privacy Boundary"
+    clauses:
+      - "Notes MUST NOT appear in the audience DOM."
+      - "Presenter UI MUST NOT appear in the audience DOM."
+      - "Presenter-only diagnostics MUST NOT appear in the audience DOM."
+impl:
+  owners: ["core"]
+  files:
+    - src/core/PresentationManager.js
+    - styles/modules/presentation.css
+tests:
+  unit: []
+  e2e:
+    - file: tests/e2e/specs/functional/presenter-view.spec.ts
+      assertions:
+        - "Audience payload/DOM audits"
+doneWhen:
+  - "Automated tests pass"
+```
+
+```yaml
+id: PM-090
+level: MUST
+spec:
+  - file: documentation/01-specs/slides/presentation-mode/02-performance-and-caching.md
+    section: "Cache tiers"
+    clauses:
+      - "MUST preload HOT tier (±1) on entering presentation mode."
+      - "MUST cache all assets in Service Worker (offline-first)."
+impl:
+  owners: ["core"]
+  files:
+    - src/core/presentation/SlideAssetCatalog.js
+    - src/core/presentation/PresentationPrefetchManager.js
+    - public/sw.js
+tests:
+  unit:
+    - file: tests/unit/core/presentation/PresentationPrefetchManager.test.js
+      assertions:
+        - "Tiering and readiness bookkeeping"
+  e2e: []
+doneWhen:
+  - "Automated tests pass"
+```
+
+```yaml
+id: PM-091
+level: MUST
+spec:
+  - file: documentation/01-specs/slides/presentation-mode/02-performance-and-caching.md
+    section: "Prefetch"
+    clauses:
+      - "MUST prefetch WARM tier (±3) in idle cycles."
+      - "MUST deprioritize prefetch during active navigation (no jank)."
+impl:
+  owners: ["core"]
+  files:
+    - src/core/presentation/PresentationPrefetchManager.js
+tests:
+  unit:
+    - file: tests/unit/core/presentation/PresentationPrefetchManager.test.js
+      assertions:
+        - "Prefetch scheduling"
+  e2e: []
+doneWhen:
+  - "Automated tests pass"
+```
+
+```yaml
+id: PM-100
+level: MUST
+spec:
+  - file: documentation/01-specs/slides/presentation-mode/14-reliability-and-recovery.md
+    section: "Recovery"
+    clauses:
+      - "MUST preserve slide/build position across accidental exit/re-entry."
+      - "MUST handle media load failures without blocking navigation."
+impl:
+  owners: ["core"]
+  files:
+    - src/core/PresentationManager.js
+    - src/core/presentation/RehearsalTimings.js
+tests:
+  unit:
+    - file: tests/unit/core/presentation/RehearsalTimings.test.js
+      assertions:
+        - "Timing state survives pauses"
+  e2e: []
+doneWhen:
+  - "Automated tests pass"
+```
+
+```yaml
+id: PM-110
+level: MUST
+spec:
+  - file: documentation/01-specs/slides/presentation-mode/15-accessibility.md
+    section: "Requirements"
+    clauses:
+      - "MUST announce slide/build changes to screen readers."
+impl:
+  owners: ["core", "ui"]
+  files:
+    - src/core/PresentationManager.js
+    - src/ui/HUD.js
+tests:
+  unit: []
+  e2e:
+    - file: tests/e2e/specs/functional/presentation-accessibility.spec.ts
+      assertions:
+        - "aria-live announcements"
+doneWhen:
+  - "Automated tests pass"
+```
+
+```yaml
+id: PM-111
+level: MUST
+spec:
+  - file: documentation/01-specs/slides/presentation-mode/15-accessibility.md
+    section: "Keyboard"
+    clauses:
+      - "MUST support keyboard-only navigation (no mouse required)."
+      - "MUST not trap focus in presentation mode."
+impl:
+  owners: ["core", "ui"]
+  files:
+    - src/core/PresentationManager.js
+    - src/ui/HUD.js
+tests:
+  unit: []
+  e2e:
+    - file: tests/e2e/specs/functional/presentation-accessibility.spec.ts
+      assertions:
+        - "Keyboard-only completion and focus behavior"
+doneWhen:
+  - "Automated tests pass"
+```
+
+```yaml
+id: PM-120
+level: MUST
+spec:
+  - file: documentation/01-specs/slides/presentation-mode/16-security-privacy-and-safety.md
+    section: "Content Security"
+    clauses:
+      - "MUST sanitize all user-generated content (slide HTML, speaker notes)."
+      - "MUST prevent XSS via script injection in slides."
+  - file: documentation/01-specs/slides/05-slide-notes.md
+    section: "Rendering + sanitization contract"
+    clauses:
+      - "Notes MUST render via NotesDoc v1 → safe HTML renderer and MUST NOT inject raw user-provided HTML."
+impl:
+  owners: ["core", "ui"]
+  files:
+    - src/core/notes/NotesDoc.js
+    - src/core/text/ContentSanitizer.js
+    - src/core/svg/SvgSanitizer.js
+    - src/ui/panels/SlideNotesPanel.js
+tests:
+  unit:
+    - file: tests/unit/core/notes/NotesDoc.test.js
+      assertions:
+        - "Sanitization and safe HTML subset"
+  e2e:
+    - file: tests/e2e/specs/functional/slide-notes.spec.ts
+      assertions:
+        - "No javascript: injection"
+doneWhen:
+  - "Automated tests pass"
+```
+
+```yaml
+id: PM-121
+level: MUST
+spec:
+  - file: documentation/01-specs/slides/presentation-mode/16-security-privacy-and-safety.md
+    section: "Cross-window messaging"
+    clauses:
+      - "MUST validate cross-window messages (postMessage/BroadcastChannel)."
+      - "Cross-window sync messages MUST NOT include note content."
+  - file: documentation/01-specs/slides/presentation-mode/11-presenter-tools.md
+    section: "Sync protocol + validation"
+    clauses:
+      - "All cross-window messages MUST be allowlisted and schema-validated."
+impl:
+  owners: ["core"]
+  files:
+    - src/core/PresentationManager.js
+tests:
+  unit:
+    - file: tests/unit/core/presentation/PresenterSyncValidation.test.js
+      assertions:
+        - "Reject malformed payloads"
+  e2e:
+    - file: tests/e2e/specs/functional/presenter-view.spec.ts
+      assertions:
+        - "Payload allowlist audit"
+doneWhen:
+  - "Automated tests pass"
+```
+
+```yaml
+id: PM-130
+level: MUST
+spec:
+  - file: documentation/01-specs/slides/presentation-mode/17-observability-and-quality-gates.md
+    section: "KPIs + CI gates"
+    clauses:
+      - "MUST instrument all KPIs."
+      - "MUST aggregate telemetry (privacy-safe, no PII)."
+      - "MUST fail CI builds if KPIs regress beyond max thresholds."
+impl:
+  owners: ["core"]
+  files:
+    - src/core/telemetry/Telemetry.js
+    - src/core/PresentationManager.js
+tests:
+  unit:
+    - file: tests/unit/core/telemetry/Telemetry.test.js
+      assertions:
+        - "No PII / privacy-safe payload"
+    - file: tests/unit/perf/PerfBenchGate.test.js
+      assertions:
+        - "Regression threshold enforcement"
+  e2e:
+    - file: tests/e2e/specs/functional/telemetry.spec.ts
+      assertions:
+        - "Events emitted during presentation"
+doneWhen:
+  - "Automated tests pass"
+```
+
+```yaml
+id: PM-140
+level: MUST
+spec:
+  - file: documentation/01-specs/slides/presentation-mode/06-mode-taxonomy-and-entry-exit.md
+    section: "Kiosk / Autoplay"
+    clauses:
+      - "MUST support timed advance and looping."
+      - "MUST define interruption policy (user input pauses/resumes timer)."
+impl:
+  owners: ["core"]
+  files:
+    - src/core/presentation/KioskMode.js
+    - src/core/presentation/PresenterTimer.js
+tests:
+  unit:
+    - file: tests/unit/core/presentation/KioskMode.test.js
+      assertions:
+        - "Looping and exit policy"
+    - file: tests/unit/core/presentation/PresenterTimer.test.js
+      assertions:
+        - "Timer interruption policy"
+  e2e:
+    - file: tests/e2e/specs/functional/kiosk-mode.spec.ts
+      assertions:
+        - "Kiosk mode start/exit"
+doneWhen:
+  - "Automated tests pass"
+```
+
+---
+
 ## 6) Gate Plan (Exhaustive, With Exit Criteria)
 
 This is the **hardened** gate plan. It is intentionally more granular and more measurable.
@@ -632,7 +1454,7 @@ This is the **hardened** gate plan. It is intentionally more granular and more m
   - Playwright a11y checks pass for key flows.
   - Theme switching tests pass (light/dark + accent).
 
-### Gate 9 🟡 — Observability + CI quality gates
+### Gate 9 ✅ — Observability + CI quality gates
 **Goal:** make performance/quality regression-proof.
 - Implement telemetry events and wire CI gates.
 - Exit criteria:
@@ -641,8 +1463,8 @@ This is the **hardened** gate plan. It is intentionally more granular and more m
     - E2E: tests/e2e/specs/functional/telemetry.spec.ts
   - CI-style perf gate exists and fails on registry gate violations.
     - Script: npm run perf:bench:gate
-  - Remaining:
-    - Expand crash fixture coverage and add explicit regression test for gated perf failure.
+  - Crash reporting is covered end-to-end (deterministic trigger + privacy-safe payload assertions).
+    - E2E: tests/e2e/specs/functional/telemetry.spec.ts
 
 ### Gate 10 ✅ — Kiosk/autoplay/rehearsal modes
 **Goal:** implement unattended loops and rehearsal workflows deterministically.

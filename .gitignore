@@ -56,3 +56,7 @@ playwright-report/
 
 # Performance benchmark artifacts (generated)
 documentation/03-automation/perf-runs/
+
+# Presentation Mode audit artifacts (generated; may include absolute local paths)
+documentation/01-specs/slides/presentation-mode/_must-lines.txt
+documentation/01-specs/slides/presentation-mode/_todo-note-lines.txt

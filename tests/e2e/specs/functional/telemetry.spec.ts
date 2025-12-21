@@ -45,39 +45,44 @@ test.describe('Telemetry (Gate 9)', () => {
   });
 
   test('emits privacy-safe crash events during presentation (error + unhandledrejection)', async ({ page }) => {
-    await editor.startPresentation();
+    const secret = `PM_GATE9_SECRET_${Date.now()}_DO_NOT_LEAK`;
 
-    // Trigger a synthetic ErrorEvent without actually crashing the page.
-    await page.evaluate(() => {
-      // Prevent the test harness from treating this as a hard page error.
-      window.addEventListener('error', (ev) => {
-        try { ev.preventDefault(); } catch { /* noop */ }
-      }, { once: true });
+    // Seed a unique secret into slide content + notes, then ensure crash telemetry never includes it.
+    await page.evaluate((secret) => {
+      const store = (window as any).__TEST_STORE__;
+      if (!store) throw new Error('Test store not exposed');
+      const st = store.getState();
+      const slideId = st?.editor?.activeSlideId;
+      const slide = slideId ? st?.slides?.[slideId] : null;
+      if (!slide) throw new Error('No active slide');
 
-      window.dispatchEvent(
-        new ErrorEvent('error', {
-          message: 'boom-error',
-          error: new Error('boom-error')
-        })
-      );
-    });
-
-    // Trigger an unhandledrejection event *without* causing a Playwright pageerror.
-    await page.evaluate(() => {
-      // Prevent default so the browser doesn't surface this as an unhandled exception.
-      window.addEventListener('unhandledrejection', (ev) => {
-        try { ev.preventDefault(); } catch { /* noop */ }
-      }, { once: true });
-
-      const reason = new Error('boom-rejection');
-      if (typeof (window as any).PromiseRejectionEvent === 'function') {
-        window.dispatchEvent(new (window as any).PromiseRejectionEvent('unhandledrejection', { reason, promise: Promise.resolve() }));
-      } else {
-        const ev: any = new Event('unhandledrejection');
-        ev.reason = reason;
-        window.dispatchEvent(ev);
+      const elId = Array.isArray(slide.elementOrder) ? slide.elementOrder[0] : null;
+      if (elId) {
+        store.dispatch('UPDATE_ELEMENT', {
+          id: elId,
+          content: `<p>${secret}</p>`
+        });
       }
-    });
+
+      store.dispatch('UPDATE_SLIDE', {
+        id: slideId,
+        notesDoc: {
+          version: 1,
+          blocks: [{
+            type: 'paragraph',
+            inlines: [{ type: 'text', text: secret }]
+          }]
+        }
+      });
+
+      // Configure the deterministic crash fixture (test-only). It will auto-trigger on presentation entry.
+      (window as any).__PM_TEST_CRASH_FIXTURE = 'both';
+      // Do NOT include the secret in the crash message/stack; it lives only in slide content/notes.
+      (window as any).__PM_TEST_CRASH_MESSAGE = 'boom <script>ignored</script>';
+      (window as any).__PM_TEST_CRASH_STACK = 'x'.repeat(6000);
+    }, secret);
+
+    await editor.startPresentation();
 
     await expect
       .poll(async () => {
@@ -106,10 +111,22 @@ test.describe('Telemetry (Gate 9)', () => {
       return dbg?.getEvents?.() ?? [];
     });
 
+    const crashEvents = events.filter((e: any) => e?.type === 'crash');
+    expect(crashEvents.length).toBeGreaterThan(0);
+    for (const ev of crashEvents) {
+      // End-to-end sanitization assertions.
+      const msg = String(ev?.data?.message ?? '');
+      const stack = String(ev?.data?.stack ?? '');
+      expect(msg).not.toContain('<');
+      expect(msg).not.toContain('>');
+      expect(stack.length).toBeLessThanOrEqual(2000);
+    }
+
     const json = JSON.stringify(events);
     expect(json.toLowerCase()).not.toContain('notes');
     expect(json.toLowerCase()).not.toContain('speaker');
     expect(json.toLowerCase()).not.toContain('deckcontent');
     expect(json.toLowerCase()).not.toContain('<script');
+    expect(json).not.toContain(secret);
   });
 });

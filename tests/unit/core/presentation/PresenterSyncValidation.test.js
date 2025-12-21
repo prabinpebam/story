@@ -18,6 +18,12 @@ describe('Presenter sync message validation', () => {
         expect(sanitize({ type: 'navigate', slideIndex: NaN, buildIndex: 0 })).toBeNull();
     });
 
+    it('rejects navigate messages with out-of-range indices', () => {
+        expect(sanitize({ type: 'navigate', slideIndex: -1, buildIndex: -1 })).toBeNull();
+        expect(sanitize({ type: 'navigate', slideIndex: 100001, buildIndex: -1 })).toBeNull();
+        expect(sanitize({ type: 'navigate', slideIndex: 0, buildIndex: 100001 })).toBeNull();
+    });
+
     it('rejects state-sync messages with malformed indices', () => {
         expect(
             sanitize({ type: 'state-sync', state: { slideIndex: '0', buildIndex: -1, mode: 'presentation' } })
@@ -63,5 +69,19 @@ describe('Presenter sync message validation', () => {
     it('rejects unknown message types and unknown toggle features', () => {
         expect(sanitize({ type: 'nope' })).toBeNull();
         expect(sanitize({ type: 'toggle-feature', feature: 'notes', active: true })).toBeNull();
+    });
+
+    it('drops extra fields from accepted messages (no note leakage surface)', () => {
+        const out = sanitize({
+            type: 'navigate',
+            senderId: 'x',
+            slideIndex: 1,
+            buildIndex: 0,
+            notes: '<b>secret</b>',
+            diagnostics: { fps: 999 },
+        });
+        expect(out).toEqual({ type: 'navigate', senderId: 'x', slideIndex: 1, buildIndex: 0 });
+        expect(out.notes).toBeUndefined();
+        expect(out.diagnostics).toBeUndefined();
     });
 });
