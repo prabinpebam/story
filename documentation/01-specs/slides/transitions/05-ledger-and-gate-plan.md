@@ -28,7 +28,8 @@ Status legend: ✅ Done (locked) · 🟡 In progress · ❌ Not started · ⛔ B
 
 Verification evidence (run-once):
 - `npm test -- tests/unit/core/AnimationManager.test.js` → ✅ 1 file, 54 tests passed
-- `npm test` → ✅ 187 files passed, 1 skipped; 4564 tests passed, 43 skipped
+- `npm test -- tests/unit/ui/SlideSection.test.js` → ✅ 1 file, 21 tests passed
+- `npm test` → ✅ 187 files passed, 1 skipped; 4569 tests passed, 43 skipped
 
 ---
 
@@ -266,9 +267,9 @@ Rules:
 | ST-088 | Gate 1 | ✅ | The current option MUST have `aria-selected="true"`. | 02-transition-inheritance-and-property-inspector-ux.md — 2.6 Transition picker flyout (reuse existing component) | src/ui/properties/SlideSection.js | tests/unit/ui/SlideSection.test.js (Transition Section ARIA) |
 | ST-089 | Gate 1 | 🟡 | After a specific transition is selected, the section MUST show controls: | 02-transition-inheritance-and-property-inspector-ux.md — 2.7 Controls shown after selection | src/ui/properties/SlideSection.js | TBD |
 | ST-090 | Gate 1 | ✅ | The duration control MUST use the existing `NumberInput` component. | 02-transition-inheritance-and-property-inspector-ux.md — 2.7 Controls shown after selection | src/ui/properties/SlideSection.js | tests/unit/ui/SlideSection.test.js (duration input exists) |
-| ST-091 | Gate 1 | ❌ | Direction UI MUST be a compact button grid (segmented control style) using existing button primitives. | 02-transition-inheritance-and-property-inspector-ux.md — 2.7 Controls shown after selection | src/ui/properties/SlideSection.js (uses Dropdown today) | TBD |
-| ST-092 | Gate 1 | ❌ | Each direction button MUST have an aria-label like: - `"Direction: from left"` - `"Direction: from top-left"` | 02-transition-inheritance-and-property-inspector-ux.md — 2.7 Controls shown after selection | TBD | TBD |
-| ST-093 | Gate 1 | ❌ | Duration and Direction controls MUST be hidden (or disabled) because they have no effect. | 02-transition-inheritance-and-property-inspector-ux.md — 2.8 None | src/ui/properties/SlideSection.js | TBD |
+| ST-091 | Gate 1 | ✅ | Direction UI MUST be a compact button grid (segmented control style) using existing button primitives. | 02-transition-inheritance-and-property-inspector-ux.md — 2.7 Controls shown after selection | src/ui/properties/SlideSection.js | tests/unit/ui/SlideSection.test.js (direction grid) |
+| ST-092 | Gate 1 | ✅ | Each direction button MUST have an aria-label like: - `"Direction: from left"` - `"Direction: from top-left"` | 02-transition-inheritance-and-property-inspector-ux.md — 2.7 Controls shown after selection | src/ui/properties/SlideSection.js | tests/unit/ui/SlideSection.test.js (direction aria-labels) |
+| ST-093 | Gate 1 | ✅ | Duration and Direction controls MUST be hidden (or disabled) because they have no effect. | 02-transition-inheritance-and-property-inspector-ux.md — 2.8 None | src/ui/properties/SlideSection.js | tests/unit/ui/SlideSection.test.js (none hides rows) |
 | ST-094 | Gate 1 | 🟡 | Changing any control MUST be recorded as an undoable store action (except transient scrubbing if the existing `skipHistory` pattern is used). | 02-transition-inheritance-and-property-inspector-ux.md — 2.8 None | src/ui/properties/SlideSection.js | TBD (undo/redo coverage) |
 | ST-095 | Gate 1 | 🟡 | the Transition section MUST be available | 02-transition-inheritance-and-property-inspector-ux.md — 3.1 Master preset default | src/ui/properties/SlideSection.js | TBD |
 | ST-096 | Gate 1 | 🟡 | the Transition section MUST be available | 02-transition-inheritance-and-property-inspector-ux.md — 3.2 Layout master override | src/ui/properties/SlideSection.js | TBD |

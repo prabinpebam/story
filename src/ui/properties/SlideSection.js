@@ -187,6 +187,8 @@ export class SlideSection {
         // Duration
         const durationRow = document.createElement('div');
         durationRow.className = 'pi-row';
+        durationRow.setAttribute('data-testid', 'transition-duration-row');
+        this.transitionDurationRow = durationRow;
 
         this.transitionDurationInput = new NumberInput({
             label: 'Duration',
@@ -204,16 +206,99 @@ export class SlideSection {
         // Direction (shown only for directional transitions)
         this.transitionDirectionRow = document.createElement('div');
         this.transitionDirectionRow.className = 'pi-row';
+        this.transitionDirectionRow.setAttribute('data-testid', 'transition-direction-row');
 
-        this.transitionDirectionSelect = new Dropdown({
-            options: [],
-            onChange: (val) => this.updateSlideTransitionDirection(val)
-        });
-        this.transitionDirectionSelect.element.setAttribute('data-testid', 'transition-direction-select');
-        this.transitionDirectionRow.appendChild(this.transitionDirectionSelect.element);
+        this.transitionDirectionGrid = document.createElement('div');
+        this.transitionDirectionGrid.className = 'pi-grid-row cols-3';
+        this.transitionDirectionGrid.setAttribute('data-testid', 'transition-direction-grid');
+        this.transitionDirectionRow.appendChild(this.transitionDirectionGrid);
         this.transitionSection.appendChild(this.transitionDirectionRow);
 
         this.element.appendChild(this.transitionSection.element);
+    }
+
+    _directionAriaLabel(direction) {
+        switch (direction) {
+            case 'left':
+                return 'Direction: from left';
+            case 'right':
+                return 'Direction: from right';
+            case 'up':
+                return 'Direction: from top';
+            case 'down':
+                return 'Direction: from bottom';
+            case 'upLeft':
+                return 'Direction: from top-left';
+            case 'upRight':
+                return 'Direction: from top-right';
+            case 'downLeft':
+                return 'Direction: from bottom-left';
+            case 'downRight':
+                return 'Direction: from bottom-right';
+            default:
+                return 'Direction';
+        }
+    }
+
+    _directionGlyph(direction) {
+        switch (direction) {
+            case 'left':
+                return '←';
+            case 'right':
+                return '→';
+            case 'up':
+                return '↑';
+            case 'down':
+                return '↓';
+            case 'upLeft':
+                return '↖';
+            case 'upRight':
+                return '↗';
+            case 'downLeft':
+                return '↙';
+            case 'downRight':
+                return '↘';
+            default:
+                return '';
+        }
+    }
+
+    _renderTransitionDirectionGrid(transition) {
+        if (!this.transitionDirectionGrid) return;
+
+        const isWipe = transition.type === SLIDE_TRANSITION_TYPES.WIPE;
+        const allowedDirs = isWipe ? DIRECTION8 : DIRECTION4;
+        const currentDir = transition.direction || 'right';
+
+        this.transitionDirectionGrid.innerHTML = '';
+
+        const cells = isWipe
+            ? ['upLeft', 'up', 'upRight', 'left', null, 'right', 'downLeft', 'down', 'downRight']
+            : [null, 'up', null, 'left', null, 'right', null, 'down', null];
+
+        for (const dir of cells) {
+            if (!dir) {
+                this.transitionDirectionGrid.appendChild(document.createElement('div'));
+                continue;
+            }
+
+            if (!allowedDirs.includes(dir)) {
+                this.transitionDirectionGrid.appendChild(document.createElement('div'));
+                continue;
+            }
+
+            const btn = new Button({
+                label: this._directionGlyph(dir),
+                variant: 'secondary',
+                size: 'xs',
+                ariaLabel: this._directionAriaLabel(dir),
+                active: dir === currentDir,
+                dataTestId: `transition-direction-${dir}`,
+                onClick: () => this.updateSlideTransitionDirection(dir)
+            });
+
+            this.transitionDirectionGrid.appendChild(btn.element);
+        }
     }
 
     openTransitionFlyout() {
@@ -433,19 +518,14 @@ export class SlideSection {
             this.transitionDurationInput.setValue(transition.durationMs, false);
         }
 
-        const needsDirection = transition.type === SLIDE_TRANSITION_TYPES.WIPE || transition.type === SLIDE_TRANSITION_TYPES.PUSH || transition.type === SLIDE_TRANSITION_TYPES.COVER || transition.type === SLIDE_TRANSITION_TYPES.UNCOVER;
-        this.transitionDirectionRow?.classList.toggle('hidden', !needsDirection);
+        const isNone = transition.type === SLIDE_TRANSITION_TYPES.NONE;
+        this.transitionDurationRow?.classList.toggle('hidden', isNone);
 
-        if (needsDirection && this.transitionDirectionSelect) {
-            const isWipe = transition.type === SLIDE_TRANSITION_TYPES.WIPE;
-            const dirs = isWipe ? DIRECTION8 : DIRECTION4;
-            const dirOptions = dirs.map(d => ({ label: d, value: d }));
-            if (this.transitionDirectionSelect.setOptions) {
-                this.transitionDirectionSelect.setOptions(dirOptions);
-            }
-            if (this.transitionDirectionSelect.setValue) {
-                this.transitionDirectionSelect.setValue(transition.direction || 'right', false);
-            }
+        const needsDirection = transition.type === SLIDE_TRANSITION_TYPES.WIPE || transition.type === SLIDE_TRANSITION_TYPES.PUSH || transition.type === SLIDE_TRANSITION_TYPES.COVER || transition.type === SLIDE_TRANSITION_TYPES.UNCOVER;
+        this.transitionDirectionRow?.classList.toggle('hidden', isNone || !needsDirection);
+
+        if (!isNone && needsDirection) {
+            this._renderTransitionDirectionGrid(transition);
         }
     }
 

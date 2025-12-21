@@ -144,6 +144,10 @@ describe('SlideSection', () => {
             }
         };
 
+        // StyleResolver accesses the store via a window global.
+        dom.window._storyAppStore = mockStore;
+        global.window._storyAppStore = mockStore;
+
         // Mock ThumbnailRenderer
         const mockThumbnailRenderer = {
             createThumbnail: vi.fn((slideId, slideData) => {
@@ -213,15 +217,21 @@ describe('SlideSection', () => {
 
         vi.doMock('../../../src/ui/components/Button.js', () => ({
             Button: class {
-                constructor({ label, title, icon, className, onClick, dataTestId }) {
+                constructor({ label, title, ariaLabel, icon, className, onClick, dataTestId, active } = {}) {
                     this.element = global.document.createElement('button');
                     if (className) this.element.className = className;
                     if (title) {
                         this.element.setAttribute('title', title);
                         this.element.setAttribute('aria-label', title);
                     }
+                    if (ariaLabel) {
+                        this.element.setAttribute('aria-label', ariaLabel);
+                    }
                     if (dataTestId) {
                         this.element.setAttribute('data-testid', dataTestId);
+                    }
+                    if (active) {
+                        this.element.classList.add('btn--active');
                     }
                     if (icon) {
                         this.element.innerHTML = icon;
@@ -655,6 +665,97 @@ describe('SlideSection', () => {
             expect(section.getAttribute('data-testid')).toBe('transition-section');
             expect(section.querySelector('[data-testid="transition-picker-trigger"]')).toBeTruthy();
             expect(section.querySelector('[data-testid="transition-duration-input"]')).toBeTruthy();
+            expect(section.querySelector('[data-testid="transition-direction-grid"]')).toBeTruthy();
+        });
+
+        it('should render direction grid with aria-labels for wipe (8 directions)', () => {
+            const slideSection = new SlideSection();
+
+            // Force an effective wipe transition with a diagonal direction
+            store.state.slides['slide-1'].styleAssignments = {
+                slideTransition: {
+                    type: 'wipe',
+                    direction: 'upLeft',
+                    durationMs: 300,
+                    easing: 'ease-in-out'
+                }
+            };
+
+            slideSection.updateTransitionDisplay();
+
+            const grid = slideSection.element.querySelector('[data-testid="transition-direction-grid"]');
+            const row = slideSection.element.querySelector('[data-testid="transition-direction-row"]');
+            expect(grid).toBeTruthy();
+            expect(row.classList.contains('hidden')).toBe(false);
+
+            // Buttons for all 8 directions should exist
+            const btnUpLeft = grid.querySelector('[data-testid="transition-direction-upLeft"]');
+            const btnUp = grid.querySelector('[data-testid="transition-direction-up"]');
+            const btnUpRight = grid.querySelector('[data-testid="transition-direction-upRight"]');
+            const btnLeft = grid.querySelector('[data-testid="transition-direction-left"]');
+            const btnRight = grid.querySelector('[data-testid="transition-direction-right"]');
+            const btnDownLeft = grid.querySelector('[data-testid="transition-direction-downLeft"]');
+            const btnDown = grid.querySelector('[data-testid="transition-direction-down"]');
+            const btnDownRight = grid.querySelector('[data-testid="transition-direction-downRight"]');
+
+            expect(btnUpLeft).toBeTruthy();
+            expect(btnUp).toBeTruthy();
+            expect(btnUpRight).toBeTruthy();
+            expect(btnLeft).toBeTruthy();
+            expect(btnRight).toBeTruthy();
+            expect(btnDownLeft).toBeTruthy();
+            expect(btnDown).toBeTruthy();
+            expect(btnDownRight).toBeTruthy();
+
+            expect(btnUpLeft.getAttribute('aria-label')).toBe('Direction: from top-left');
+            expect(btnDownRight.getAttribute('aria-label')).toBe('Direction: from bottom-right');
+
+            // Selected direction should be visually active.
+            expect(btnUpLeft.classList.contains('btn--active')).toBe(true);
+        });
+
+        it('should render direction grid for cover/push/uncover with 4 directions only', () => {
+            const slideSection = new SlideSection();
+
+            store.state.slides['slide-1'].styleAssignments = {
+                slideTransition: {
+                    type: 'cover',
+                    direction: 'left',
+                    durationMs: 300,
+                    easing: 'ease-in-out'
+                }
+            };
+
+            slideSection.updateTransitionDisplay();
+
+            const grid = slideSection.element.querySelector('[data-testid="transition-direction-grid"]');
+            const btns = Array.from(grid.querySelectorAll('button[data-testid^="transition-direction-"]'));
+            // 4-direction grid should only include up/left/right/down
+            expect(btns.length).toBe(4);
+
+            expect(grid.querySelector('[data-testid="transition-direction-up"]')).toBeTruthy();
+            expect(grid.querySelector('[data-testid="transition-direction-left"]')).toBeTruthy();
+            expect(grid.querySelector('[data-testid="transition-direction-right"]')).toBeTruthy();
+            expect(grid.querySelector('[data-testid="transition-direction-down"]')).toBeTruthy();
+        });
+
+        it('should hide duration and direction controls when transition type is none', () => {
+            const slideSection = new SlideSection();
+
+            store.state.slides['slide-1'].styleAssignments = {
+                slideTransition: {
+                    type: 'none',
+                    durationMs: 0,
+                    easing: 'ease-in-out'
+                }
+            };
+
+            slideSection.updateTransitionDisplay();
+
+            const durationRow = slideSection.element.querySelector('[data-testid="transition-duration-row"]');
+            const directionRow = slideSection.element.querySelector('[data-testid="transition-direction-row"]');
+            expect(durationRow.classList.contains('hidden')).toBe(true);
+            expect(directionRow.classList.contains('hidden')).toBe(true);
         });
 
         it('should open transition flyout with options', () => {
