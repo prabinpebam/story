@@ -55,6 +55,71 @@ describe('Telemetry', () => {
     expect(t.getDebugEvents()).toHaveLength(0);
   });
 
+  it('accepts and sanitizes transition telemetry events (privacy-safe)', async () => {
+    const mod = await import('../../../../src/core/telemetry/Telemetry.js');
+    const t = new mod.Telemetry({ maxEvents: 20 });
+
+    t.emit('transition_requested', {
+      transitionType: 'wipe',
+      direction: 'upLeft',
+      durationMs: 300,
+      easing: 'ease-in-out',
+      isReducedMotion: false,
+      url: 'https://example.com/secret.png',
+      notes: 'should-not-pass',
+    });
+
+    t.emit('transition_blocked_for_readiness', {
+      blockedBucket: '50-200',
+      blockedMs: 123,
+      transitionType: 'wipe',
+      direction: 'upLeft',
+      assetUrl: 'https://example.com/secret.png',
+    });
+
+    t.emit('transition_ready_latency', {
+      latencyMs: 123,
+      transitionType: 'wipe',
+      direction: 'upLeft',
+      assetId: 'secret',
+    });
+
+    t.emit('transition_animation_duration', {
+      requestedMs: 300,
+      actualMs: 298,
+      transitionType: 'wipe',
+      direction: 'upLeft',
+      stack: 'should-not-pass',
+    });
+
+    t.emit('transition_fallback_to_none', {
+      reason: 'unsupported',
+      transitionType: 'magic',
+      direction: 'right',
+      slideContent: 'should-not-pass',
+    });
+
+    const evs = t.getDebugEvents();
+    expect(evs.length).toBeGreaterThanOrEqual(5);
+
+    const requested = evs.find((e) => e.type === 'transition_requested');
+    expect(requested).toBeTruthy();
+    expect(requested.data.transitionType).toBe('wipe');
+    expect(requested.data.url).toBeUndefined();
+    expect(requested.data.notes).toBeUndefined();
+
+    const blocked = evs.find((e) => e.type === 'transition_blocked_for_readiness');
+    expect(blocked).toBeTruthy();
+    expect(blocked.data.assetUrl).toBeUndefined();
+    expect(blocked.data.blockedBucket).toBe('50-200');
+    expect(blocked.data.blockedMs).toBe(123);
+
+    const fallback = evs.find((e) => e.type === 'transition_fallback_to_none');
+    expect(fallback).toBeTruthy();
+    expect(fallback.data.reason).toBe('unsupported');
+    expect(fallback.data.slideContent).toBeUndefined();
+  });
+
   it('truncates and strips angle brackets from messages', async () => {
     const mod = await import('../../../../src/core/telemetry/Telemetry.js');
     const t = new mod.Telemetry();

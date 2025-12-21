@@ -2,6 +2,7 @@ import {
     SLIDE_TRANSITION_TYPES,
     coerceSlideTransition
 } from './presentation/SlideTransitionUtils.js';
+import { telemetry } from './telemetry/Telemetry.js';
 
 export class AnimationManager {
     constructor() {
@@ -41,6 +42,20 @@ export class AnimationManager {
 
         const anime = this.anime;
         const transition = coerceSlideTransition(type);
+
+        const detectUnsupported = () => {
+            if (transition.type !== SLIDE_TRANSITION_TYPES.NONE) return false;
+            if (type && typeof type === 'object') {
+                const t = typeof type.type === 'string' ? type.type : '';
+                return Boolean(t && t !== SLIDE_TRANSITION_TYPES.NONE);
+            }
+            if (typeof type === 'string') {
+                // Legacy strings that result in NONE but are not 'none' are unsupported for animation.
+                const v = type.trim();
+                return Boolean(v && v !== 'none');
+            }
+            return false;
+        };
 
         const duration = transition.durationMs;
         const easing = (() => {
@@ -95,8 +110,19 @@ export class AnimationManager {
             const shouldAnimate = Boolean(anime) && transition.type !== SLIDE_TRANSITION_TYPES.NONE && duration > 0;
 
             if (!shouldAnimate) {
-                if (!anime) {
+                if (!anime && transition.type !== SLIDE_TRANSITION_TYPES.NONE && duration > 0) {
                     console.warn('Anime.js not loaded, skipping transition');
+                    telemetry.emit('transition_fallback_to_none', {
+                        reason: 'animation-engine-missing',
+                        transitionType: transition.type,
+                        direction: transition.direction,
+                    });
+                } else if (detectUnsupported()) {
+                    telemetry.emit('transition_fallback_to_none', {
+                        reason: 'unsupported',
+                        transitionType: typeof type === 'object' ? type?.type : type,
+                        direction: typeof type === 'object' ? type?.direction : undefined,
+                    });
                 }
                 if (oldContent.parentNode === container) {
                     container.removeChild(oldContent);
@@ -208,6 +234,11 @@ export class AnimationManager {
             newContent.style.zIndex = 1;
         } catch (e) {
             console.error('Animation error:', e);
+            telemetry.emit('transition_fallback_to_none', {
+                reason: 'error',
+                transitionType: transition.type,
+                direction: transition.direction,
+            });
             if (oldContent && oldContent.parentNode === container) {
                 container.removeChild(oldContent);
             }

@@ -104,6 +104,73 @@ function sanitizeBySchema(type, data) {
         };
     }
 
+    // --- Transitions telemetry (privacy-safe; no URLs/content) ---
+    if (type === 'transition_requested') {
+        const picked = pick(d, ['transitionType', 'direction', 'durationMs', 'easing', 'isReducedMotion']);
+        return {
+            transitionType: safeString(picked.transitionType, 32),
+            direction: safeString(picked.direction, 16),
+            durationMs: safeNumber(picked.durationMs),
+            easing: safeString(picked.easing, 32),
+            isReducedMotion: picked.isReducedMotion === true,
+        };
+    }
+
+    if (type === 'transition_blocked_for_readiness') {
+        const picked = pick(d, ['blockedBucket', 'blockedMs', 'transitionType', 'direction']);
+        return {
+            blockedBucket: safeString(picked.blockedBucket, 16),
+            blockedMs: safeNumber(picked.blockedMs),
+            transitionType: safeString(picked.transitionType, 32),
+            direction: safeString(picked.direction, 16),
+        };
+    }
+
+    if (type === 'transition_ready_latency') {
+        const picked = pick(d, ['latencyMs', 'transitionType', 'direction']);
+        return {
+            latencyMs: safeNumber(picked.latencyMs),
+            transitionType: safeString(picked.transitionType, 32),
+            direction: safeString(picked.direction, 16),
+        };
+    }
+
+    if (type === 'transition_started') {
+        const picked = pick(d, ['transitionType', 'direction', 'durationMs']);
+        return {
+            transitionType: safeString(picked.transitionType, 32),
+            direction: safeString(picked.direction, 16),
+            durationMs: safeNumber(picked.durationMs),
+        };
+    }
+
+    if (type === 'transition_completed') {
+        const picked = pick(d, ['transitionType', 'direction']);
+        return {
+            transitionType: safeString(picked.transitionType, 32),
+            direction: safeString(picked.direction, 16),
+        };
+    }
+
+    if (type === 'transition_animation_duration') {
+        const picked = pick(d, ['requestedMs', 'actualMs', 'transitionType', 'direction']);
+        return {
+            requestedMs: safeNumber(picked.requestedMs),
+            actualMs: safeNumber(picked.actualMs),
+            transitionType: safeString(picked.transitionType, 32),
+            direction: safeString(picked.direction, 16),
+        };
+    }
+
+    if (type === 'transition_fallback_to_none') {
+        const picked = pick(d, ['reason', 'transitionType', 'direction']);
+        return {
+            reason: safeString(picked.reason, 32),
+            transitionType: safeString(picked.transitionType, 32),
+            direction: safeString(picked.direction, 16),
+        };
+    }
+
     // Unknown types: emit nothing (strict).
     return {};
 }

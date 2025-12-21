@@ -5,6 +5,7 @@ import { animationManager } from '../AnimationManager.js';
 import { waitForSlideAssetsReady } from '../presentation/AssetReadiness.js';
 import { PresentationPrefetchManager } from '../presentation/PresentationPrefetchManager.js';
 import { StyleResolver } from '../../utils/StyleResolver.js';
+import { telemetry } from '../telemetry/Telemetry.js';
 
 export class PresentationRenderer extends BaseRenderer {
     constructor(containerId) {
@@ -151,10 +152,63 @@ export class PresentationRenderer extends BaseRenderer {
         // Calculate Builds
         this.calculateBuilds(newSlideData, newView);
 
+        const nowMs = () => {
+            try {
+                if (typeof performance !== 'undefined' && typeof performance.now === 'function') return performance.now();
+            } catch {
+                // ignore
+            }
+            return Date.now();
+        };
+
+        const bucketMs = (ms) => {
+            const v = Number(ms);
+            if (!Number.isFinite(v) || v <= 0) return '0';
+            if (v < 50) return '0-50';
+            if (v < 200) return '50-200';
+            if (v < 500) return '200-500';
+            if (v < 1000) return '500-1000';
+            if (v < 2000) return '1000-2000';
+            return '2000+';
+        };
+
+        let effectiveTransition = StyleResolver.getEffectiveSlideTransition(newId).transition;
+
+        let isReducedMotion = false;
+        try {
+            isReducedMotion = Boolean(typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+        } catch {
+            isReducedMotion = false;
+        }
+
+        telemetry.emit('transition_requested', {
+            transitionType: effectiveTransition?.type,
+            direction: effectiveTransition?.direction,
+            durationMs: effectiveTransition?.durationMs,
+            easing: effectiveTransition?.easing,
+            isReducedMotion,
+        });
+
         // Transition readiness gating: keep the new slide hidden until fonts/media are ready.
         this._setTransitionStatus('loading', newId);
         newView.domElement.style.visibility = 'hidden';
+
+        const readinessStart = nowMs();
         await waitForSlideAssetsReady(newView.domElement);
+        const readinessEnd = nowMs();
+        const readinessMs = Math.max(0, readinessEnd - readinessStart);
+        telemetry.emit('transition_blocked_for_readiness', {
+            blockedBucket: bucketMs(readinessMs),
+            blockedMs: Math.round(readinessMs),
+            transitionType: effectiveTransition?.type,
+            direction: effectiveTransition?.direction,
+        });
+        telemetry.emit('transition_ready_latency', {
+            latencyMs: Math.round(readinessMs),
+            transitionType: effectiveTransition?.type,
+            direction: effectiveTransition?.direction,
+        });
+
         newView.domElement.style.visibility = 'visible';
 
         if (oldId && this.activeSlideViews.has(oldId)) {
@@ -162,13 +216,32 @@ export class PresentationRenderer extends BaseRenderer {
             
             // Transition
             this.isTransitioning = true;
-            let transitionConfig = StyleResolver.getEffectiveSlideTransition(newId).transition;
+            let transitionConfig = effectiveTransition;
             try {
-                if (typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+                if (isReducedMotion && transitionConfig?.type && transitionConfig.type !== 'none') {
+                    telemetry.emit('transition_fallback_to_none', {
+                        reason: 'reduced-motion',
+                        transitionType: transitionConfig.type,
+                        direction: transitionConfig.direction,
+                    });
                     transitionConfig = { type: 'none', durationMs: 0, easing: 'linear' };
                 }
             } catch {
                 // Best-effort.
+            }
+
+            // If the animation engine is missing, fall back to none (readiness gating already happened).
+            try {
+                if (transitionConfig?.type && transitionConfig.type !== 'none' && transitionConfig.durationMs > 0 && !animationManager.anime) {
+                    telemetry.emit('transition_fallback_to_none', {
+                        reason: 'animation-engine-missing',
+                        transitionType: transitionConfig.type,
+                        direction: transitionConfig.direction,
+                    });
+                    transitionConfig = { type: 'none', durationMs: 0, easing: 'linear' };
+                }
+            } catch {
+                // ignore
             }
             
             // Hide builds initially
@@ -176,8 +249,28 @@ export class PresentationRenderer extends BaseRenderer {
 
             this._setTransitionStatus('transitioning', newId);
 
+            const animStart = nowMs();
+            telemetry.emit('transition_started', {
+                transitionType: transitionConfig?.type,
+                direction: transitionConfig?.direction,
+                durationMs: transitionConfig?.durationMs,
+            });
+
             animationManager.transition(this.layers.content, oldView.domElement, newView.domElement, transitionConfig)
                 .then(() => {
+                    const animEnd = nowMs();
+                    const actualMs = Math.max(0, animEnd - animStart);
+                    telemetry.emit('transition_animation_duration', {
+                        requestedMs: transitionConfig?.durationMs,
+                        actualMs: Math.round(actualMs),
+                        transitionType: transitionConfig?.type,
+                        direction: transitionConfig?.direction,
+                    });
+                    telemetry.emit('transition_completed', {
+                        transitionType: transitionConfig?.type,
+                        direction: transitionConfig?.direction,
+                    });
+
                     this.isTransitioning = false;
                     oldView.unmount();
                     this.activeSlideViews.delete(oldId);
