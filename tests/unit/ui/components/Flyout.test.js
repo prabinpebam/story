@@ -199,6 +199,68 @@ describe('Flyout', () => {
         });
     });
 
+    describe('focus trapping', () => {
+        it('should wrap focus from last to first on Tab when trapFocus is enabled', () => {
+            const wrapper = document.createElement('div');
+            const first = document.createElement('button');
+            first.textContent = 'First';
+            const last = document.createElement('button');
+            last.textContent = 'Last';
+            wrapper.appendChild(first);
+            wrapper.appendChild(last);
+
+            flyout = new Flyout({ trigger, content: wrapper, trapFocus: true });
+            flyout.open();
+            vi.advanceTimersByTime(10);
+
+            last.focus();
+            expect(document.activeElement).toBe(last);
+
+            document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Tab', bubbles: true, cancelable: true }));
+            expect(document.activeElement).toBe(first);
+        });
+
+        it('should wrap focus from first to last on Shift+Tab when trapFocus is enabled', () => {
+            const wrapper = document.createElement('div');
+            const first = document.createElement('button');
+            first.textContent = 'First';
+            const last = document.createElement('button');
+            last.textContent = 'Last';
+            wrapper.appendChild(first);
+            wrapper.appendChild(last);
+
+            flyout = new Flyout({ trigger, content: wrapper, trapFocus: true });
+            flyout.open();
+            vi.advanceTimersByTime(10);
+
+            first.focus();
+            expect(document.activeElement).toBe(first);
+
+            document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Tab', shiftKey: true, bubbles: true, cancelable: true }));
+            expect(document.activeElement).toBe(last);
+        });
+
+        it('should move focus into flyout when focus is outside and Tab is pressed', () => {
+            const wrapper = document.createElement('div');
+            const first = document.createElement('button');
+            first.textContent = 'First';
+            const last = document.createElement('button');
+            last.textContent = 'Last';
+            wrapper.appendChild(first);
+            wrapper.appendChild(last);
+
+            flyout = new Flyout({ trigger, content: wrapper, trapFocus: true });
+            flyout.open();
+            vi.advanceTimersByTime(10);
+
+            trigger.focus();
+            expect(document.activeElement).toBe(trigger);
+
+            document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Tab', bubbles: true, cancelable: true }));
+            expect(document.activeElement).toBe(first);
+        });
+    });
+
     describe('edge cases', () => {
         it('should work without content', () => {
             flyout = new Flyout({ trigger });

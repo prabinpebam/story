@@ -9,6 +9,7 @@ export class Flyout {
             onClose: () => {},
             trackInteraction: true, // Whether to dispatch UI_INTERACTION events
             closeOnEscape: false,
+            trapFocus: false,
             ...options
         };
         
@@ -35,7 +36,7 @@ export class Flyout {
         // Small delay to prevent immediate closing if triggered by click
         setTimeout(() => {
             document.addEventListener('mousedown', this.handleOutsideClick);
-            if (this.options.closeOnEscape) {
+            if (this.options.closeOnEscape || this.options.trapFocus) {
                 document.addEventListener('keydown', this.handleKeyDown);
             }
         }, 0);
@@ -57,8 +58,44 @@ export class Flyout {
     }
 
     handleKeyDown(e) {
-        if (e.key === 'Escape') {
+        if (e.key === 'Escape' && this.options.closeOnEscape) {
             this.close();
+            return;
+        }
+
+        if (e.key !== 'Tab' || !this.options.trapFocus) return;
+
+        const focusables = Array.from(this.element.querySelectorAll(
+            'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+        )).filter(el => {
+            // Skip elements that are not actually focusable/visible.
+            const style = window.getComputedStyle(el);
+            return style.display !== 'none' && style.visibility !== 'hidden';
+        });
+
+        if (focusables.length === 0) return;
+
+        const first = focusables[0];
+        const last = focusables[focusables.length - 1];
+        const active = document.activeElement;
+
+        // If focus is outside the flyout, pull it in.
+        if (!this.element.contains(active)) {
+            e.preventDefault();
+            first.focus();
+            return;
+        }
+
+        if (e.shiftKey) {
+            if (active === first) {
+                e.preventDefault();
+                last.focus();
+            }
+        } else {
+            if (active === last) {
+                e.preventDefault();
+                first.focus();
+            }
         }
     }
 

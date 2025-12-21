@@ -290,11 +290,14 @@ describe('SlideSection', () => {
 
         vi.doMock('../../../src/ui/components/Flyout.js', () => ({
             Flyout: class {
-                constructor({ trigger, content, position, closeOnEscape = false, onClose } = {}) {
+                constructor({ trigger, content, position, closeOnEscape = false, trapFocus = false, onClose } = {}) {
+                    this.options = { trigger, content, position, closeOnEscape, trapFocus, onClose };
+
                     this.trigger = trigger;
                     this.content = content;
                     this.position = position;
                     this.closeOnEscape = closeOnEscape;
+                    this.trapFocus = trapFocus;
                     this.onClose = onClose;
                     this.isOpen = false;
 
@@ -1060,6 +1063,7 @@ describe('SlideSection', () => {
 
             expect(slideSection.transitionFlyout.element.getAttribute('role')).toBe('dialog');
             expect(slideSection.transitionFlyout.element.getAttribute('aria-label')).toBe('Select Transition');
+            expect(slideSection.transitionFlyout.options.trapFocus).toBe(true);
 
             const flyoutContent = slideSection.transitionFlyout.content;
             const listbox = flyoutContent.querySelector('[data-testid="transition-picker-listbox"]');
@@ -1082,6 +1086,30 @@ describe('SlideSection', () => {
 
             // Default selection should mark exactly one option as selected.
             expect(opts.filter(o => o.getAttribute('aria-selected') === 'true').length).toBe(1);
+        });
+
+        it('should restore focus to the trigger when the transition flyout closes', () => {
+            const slideSection = new SlideSection();
+            dom.window.document.body.appendChild(slideSection.element);
+
+            slideSection.openTransitionFlyout();
+            expect(slideSection.transitionFlyout.isOpen).toBe(true);
+
+            const trigger = slideSection.element.querySelector('[data-testid="transition-picker-trigger"]');
+            expect(trigger).toBeTruthy();
+
+            const flyoutContent = slideSection.transitionFlyout.content;
+            const crossFadeBtn = Array.from(flyoutContent.querySelectorAll('[data-testid="transition-picker-option"]'))
+                .find(el => el.dataset.transitionType === 'crossFade');
+            expect(crossFadeBtn).toBeTruthy();
+
+            crossFadeBtn.focus();
+            expect(dom.window.document.activeElement).toBe(crossFadeBtn);
+
+            crossFadeBtn.click();
+            expect(slideSection.transitionFlyout.isOpen).toBe(false);
+            expect(dom.window.document.querySelector('[data-testid="transition-picker-flyout"]')).toBeNull();
+            expect(dom.window.document.activeElement).toBe(trigger);
         });
 
         it('should close the transition flyout when Escape is pressed', () => {

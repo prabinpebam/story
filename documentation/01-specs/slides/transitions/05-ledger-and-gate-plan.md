@@ -20,7 +20,7 @@ References:
 Status legend: ✅ Done (locked) · 🟡 In progress · ❌ Not started · ⛔ Blocked
 
 - ✅ Gate 0 (contracts): canonical config + coercion + resolver + storage model implemented and unit-tested
-- 🟡 Gate 1 (PI UX): Transition section + picker + reset implemented and unit-tested; ARIA-role specifics + Playwright coverage pending
+- 🟡 Gate 1 (PI UX): Transition section + picker + reset implemented and unit-tested; PI v2 focus trap + focus restore covered; announcements + Playwright coverage pending
 - 🟡 Gate 2 (readiness): readiness probe + renderer-level gating implemented; Playwright audience-clean assertions pending
 - 🟡 Gate 3 (rendering): Phase 1 transition runtime implemented and unit-tested; Playwright per-type visual/stacking assertions pending
 - 🟡 Gate 4 (reduced motion + fallbacks): legacy/unsupported + missing-engine fallbacks implemented and unit-tested; reduced-motion Playwright coverage pending
@@ -29,7 +29,8 @@ Status legend: ✅ Done (locked) · 🟡 In progress · ❌ Not started · ⛔ B
 Verification evidence (run-once):
 - `npm test -- tests/unit/core/AnimationManager.test.js` → ✅ 1 file, 54 tests passed
 - `npm test -- tests/unit/ui/components/NumberInput.test.js` → ✅ 1 file, 62 tests passed
-- `npm test -- tests/unit/ui/SlideSection.test.js` → ✅ 1 file, 31 tests passed
+- `npm test -- tests/unit/ui/components/Flyout.test.js` → ✅ 1 file, 27 tests passed
+- `npm test -- tests/unit/ui/SlideSection.test.js` → ✅ 1 file, 32 tests passed
 - `npm test` → ✅ 187 files passed, 1 skipped; 4581 tests passed, 43 skipped
 
 ---
@@ -280,7 +281,7 @@ Rules:
 | ST-100 | Gate 1 | ❌ | If multiple slides are selected and their effective transitions differ, the transition picker MUST show a `Mixed` state. - Applying a transition in mixed state MUST set overrides on all selected slides. | 02-transition-inheritance-and-property-inspector-ux.md — 4) Mixed / multi-selection | TBD | TBD |
 | ST-101 | Gate 1 | ❌ | Applying a transition in mixed state MUST set overrides on all selected slides. | 02-transition-inheritance-and-property-inspector-ux.md — 4) Mixed / multi-selection | TBD | TBD |
 | ST-102 | Gate 1 | ❌ | All transition changes MUST be undoable: | 02-transition-inheritance-and-property-inspector-ux.md — 5) Undo/Redo | TBD | TBD |
-| ST-103 | Gate 1 | ❌ | The Transition section MUST follow the Property Inspector v2 ARIA conventions. | 02-transition-inheritance-and-property-inspector-ux.md — 6) Accessibility requirements | TBD | TBD |
+| ST-103 | Gate 1 | ✅ | The Transition section MUST follow the Property Inspector v2 ARIA conventions. | 02-transition-inheritance-and-property-inspector-ux.md — 6) Accessibility requirements | src/ui/properties/SlideSection.js; src/ui/components/Flyout.js | tests/unit/ui/SlideSection.test.js (Transition Section ARIA + focus restore); tests/unit/ui/components/Flyout.test.js (focus trapping) |
 | ST-104 | Gate 1 | ❌ | Screen reader announcements MUST be emitted for: - “Transition changed to …” - “Transition duration … ms” - “Transition direction …” - “Transition reset to inherited …” | 02-transition-inheritance-and-property-inspector-ux.md — 6) Accessibility requirements | TBD | TBD |
 | ST-105 | Gate 1 | ❌ | The Transition UI MUST NOT expose slide content in accessibility labels beyond the transition name and control values. | 02-transition-inheritance-and-property-inspector-ux.md — 6) Accessibility requirements | TBD | TBD |
 | ST-106 | Gate 2 | 🟡 | Transitions MUST NOT begin until the incoming slide is fully ready: | 03-performance-readiness-and-caching.md — 1.1 Decode-first transitions | src/core/renderer/PresentationRenderer.js; src/core/presentation/AssetReadiness.js | tests/unit/core/presentation/AssetReadiness.test.js; TBD (Playwright) |

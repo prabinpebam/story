@@ -376,6 +376,7 @@ export class SlideSection {
             content,
             position: 'left',
             closeOnEscape: true,
+            trapFocus: true,
             onClose: () => {
                 try {
                     this.transitionTypeTriggerBtn?.element?.focus?.();
