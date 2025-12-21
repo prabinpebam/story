@@ -264,6 +264,18 @@ describe('NumberInput', () => {
             expect(numberInput.value).toBe(20);
         });
 
+        it('should use shiftStep when provided (Shift+Arrow)', () => {
+            const onChange = vi.fn();
+            numberInput = new NumberInput({ value: 0, step: 50, shiftStep: 200, onChange });
+            const event = new KeyboardEvent('keydown', { key: 'ArrowUp', shiftKey: true });
+            event.preventDefault = vi.fn();
+            event.stopPropagation = vi.fn();
+
+            numberInput.handleKeyDown(event);
+
+            expect(numberInput.value).toBe(200);
+        });
+
         it('should blur on Enter', () => {
             numberInput = new NumberInput();
             numberInput.input.blur = vi.fn();
@@ -318,6 +330,16 @@ describe('NumberInput', () => {
             numberInput.handleScrubMove({ movementX: 2, shiftKey: true, altKey: false });
             
             expect(numberInput.value).toBe(30);
+        });
+
+        it('should use shiftStep when provided (scrub)', () => {
+            const onChange = vi.fn();
+            numberInput = new NumberInput({ value: 0, step: 50, shiftStep: 200, onChange });
+            numberInput.isScrubbing = true;
+
+            numberInput.handleScrubMove({ movementX: 1, shiftKey: true, altKey: false });
+
+            expect(numberInput.value).toBe(200);
         });
 
         it('should use 0.1x step with altKey', () => {

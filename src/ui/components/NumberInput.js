@@ -8,6 +8,12 @@ export class NumberInput {
             min: -Infinity,
             max: Infinity,
             step: 1,
+            // Shift increment behavior:
+            // - By default, Shift uses a 10x multiplier (existing behavior).
+            // - If shiftStep is provided, it overrides the Shift increment.
+            // - If shiftMultiplier is provided, it overrides the default 10x multiplier.
+            shiftStep: null,
+            shiftMultiplier: 10,
             precision: 2,
             units: '',
             scrubbable: false,
@@ -170,7 +176,10 @@ export class NumberInput {
         if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
             e.preventDefault();
             e.stopPropagation();
-            const step = e.shiftKey ? this.options.step * 10 : this.options.step;
+            const shiftStep = (typeof this.options.shiftStep === 'number')
+                ? this.options.shiftStep
+                : (this.options.step * (this.options.shiftMultiplier || 10));
+            const step = e.shiftKey ? shiftStep : this.options.step;
             const delta = e.key === 'ArrowUp' ? step : -step;
             this.setValue(this.value + delta);
         }
@@ -182,7 +191,12 @@ export class NumberInput {
         if (!this.isScrubbing) return;
         
         const deltaX = e.movementX;
-        const step = e.shiftKey ? this.options.step * 10 : (e.altKey ? this.options.step * 0.1 : this.options.step);
+        const shiftStep = (typeof this.options.shiftStep === 'number')
+            ? this.options.shiftStep
+            : (this.options.step * (this.options.shiftMultiplier || 10));
+        const step = e.shiftKey
+            ? shiftStep
+            : (e.altKey ? this.options.step * 0.1 : this.options.step);
         
         const newValue = this.value + (deltaX * step);
         this.setValue(newValue, true, true);

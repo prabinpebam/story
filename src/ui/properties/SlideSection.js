@@ -183,6 +183,7 @@ export class SlideSection {
             min: 0,
             max: 5000,
             step: 50,
+            shiftStep: 200,
             precision: 0,
             units: 'ms',
             onChange: (val, isTransient) => this.updateSlideTransitionDuration(val, isTransient)

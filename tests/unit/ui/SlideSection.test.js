@@ -845,6 +845,91 @@ describe('SlideSection', () => {
             expect(directionRow.classList.contains('hidden')).toBe(true);
         });
 
+        it('should show duration control and hide direction control for non-directional transitions', () => {
+            const slideSection = new SlideSection();
+
+            store.state.slides['slide-1'].styleAssignments = {
+                slideTransition: {
+                    type: 'crossFade',
+                    durationMs: 300,
+                    easing: 'ease-in-out'
+                }
+            };
+
+            slideSection.updateTransitionDisplay();
+
+            const durationRow = slideSection.element.querySelector('[data-testid="transition-duration-row"]');
+            const directionRow = slideSection.element.querySelector('[data-testid="transition-direction-row"]');
+            expect(durationRow.classList.contains('hidden')).toBe(false);
+            expect(directionRow.classList.contains('hidden')).toBe(true);
+        });
+
+        it('should dispatch undoable action for duration changes and use skipHistory only for transient scrubbing', () => {
+            const slideSection = new SlideSection();
+            const dispatchSpy = vi.spyOn(store, 'dispatch');
+
+            // Ensure we have an object override so duration update writes at slide level.
+            store.state.slides['slide-1'].styleAssignments = {
+                slideTransition: {
+                    type: 'crossFade',
+                    durationMs: 300,
+                    easing: 'ease-in-out'
+                }
+            };
+
+            slideSection.updateSlideTransitionDuration(350, true);
+            expect(dispatchSpy).toHaveBeenLastCalledWith(
+                'UPDATE_SLIDE_STYLE_ASSIGNMENTS',
+                expect.objectContaining({
+                    slideId: 'slide-1',
+                    styleAssignments: expect.objectContaining({
+                        slideTransition: expect.objectContaining({ durationMs: 350 })
+                    })
+                }),
+                expect.objectContaining({ skipHistory: true })
+            );
+
+            slideSection.updateSlideTransitionDuration(400, false);
+            expect(dispatchSpy).toHaveBeenLastCalledWith(
+                'UPDATE_SLIDE_STYLE_ASSIGNMENTS',
+                expect.objectContaining({
+                    slideId: 'slide-1',
+                    styleAssignments: expect.objectContaining({
+                        slideTransition: expect.objectContaining({ durationMs: 400 })
+                    })
+                }),
+                expect.objectContaining({ skipHistory: false })
+            );
+        });
+
+        it('should dispatch undoable action for direction changes (no skipHistory)', () => {
+            const slideSection = new SlideSection();
+            const dispatchSpy = vi.spyOn(store, 'dispatch');
+
+            store.state.slides['slide-1'].styleAssignments = {
+                slideTransition: {
+                    type: 'wipe',
+                    direction: 'upLeft',
+                    durationMs: 300,
+                    easing: 'ease-in-out'
+                }
+            };
+
+            slideSection.updateSlideTransitionDirection('downRight');
+
+            const last = dispatchSpy.mock.calls[dispatchSpy.mock.calls.length - 1];
+            expect(last[0]).toBe('UPDATE_SLIDE_STYLE_ASSIGNMENTS');
+            expect(last[1]).toEqual(
+                expect.objectContaining({
+                    slideId: 'slide-1',
+                    styleAssignments: expect.objectContaining({
+                        slideTransition: expect.objectContaining({ direction: 'downRight' })
+                    })
+                })
+            );
+            expect(last[2]).toBeUndefined();
+        });
+
         it('should open transition flyout with options', () => {
             const slideSection = new SlideSection();
             slideSection.openTransitionFlyout();
