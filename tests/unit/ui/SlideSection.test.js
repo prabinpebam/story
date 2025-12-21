@@ -258,17 +258,36 @@ describe('SlideSection', () => {
 
         vi.doMock('../../../src/ui/components/Flyout.js', () => ({
             Flyout: class {
-                constructor({ trigger, content, position }) {
+                constructor({ trigger, content, position, closeOnEscape = false, onClose } = {}) {
                     this.trigger = trigger;
                     this.content = content;
                     this.position = position;
+                    this.closeOnEscape = closeOnEscape;
+                    this.onClose = onClose;
                     this.isOpen = false;
+
+                    this.element = global.document.createElement('div');
+                    this.element.className = 'ui-flyout';
+                    if (this.content) this.element.appendChild(this.content);
+
+                    this._handleKeyDown = (e) => {
+                        if (this.closeOnEscape && e.key === 'Escape') {
+                            this.close();
+                        }
+                    };
                 }
                 open() {
                     this.isOpen = true;
+                    global.document.body.appendChild(this.element);
+                    global.document.addEventListener('keydown', this._handleKeyDown);
                 }
                 close() {
                     this.isOpen = false;
+                    global.document.removeEventListener('keydown', this._handleKeyDown);
+                    if (this.element.parentNode) {
+                        this.element.parentNode.removeChild(this.element);
+                    }
+                    if (this.onClose) this.onClose();
                 }
             }
         }));
@@ -650,6 +669,41 @@ describe('SlideSection', () => {
 
             const opts = Array.from(flyoutContent.querySelectorAll('[data-testid="transition-picker-option"]'));
             expect(opts.length).toBeGreaterThan(0);
+        });
+
+        it('should apply required ARIA roles for the transition picker flyout', () => {
+            const slideSection = new SlideSection();
+            slideSection.openTransitionFlyout();
+
+            expect(slideSection.transitionFlyout.element.getAttribute('role')).toBe('dialog');
+            expect(slideSection.transitionFlyout.element.getAttribute('aria-label')).toBe('Select Transition');
+
+            const flyoutContent = slideSection.transitionFlyout.content;
+            const listbox = flyoutContent.querySelector('[data-testid="transition-picker-listbox"]');
+            expect(listbox).toBeTruthy();
+            expect(listbox.getAttribute('role')).toBe('listbox');
+
+            const opts = Array.from(listbox.querySelectorAll('[data-testid="transition-picker-option"]'));
+            expect(opts.length).toBeGreaterThan(0);
+            for (const opt of opts) {
+                expect(opt.getAttribute('role')).toBe('option');
+                expect(['true', 'false']).toContain(opt.getAttribute('aria-selected'));
+            }
+
+            // Default selection should mark exactly one option as selected.
+            expect(opts.filter(o => o.getAttribute('aria-selected') === 'true').length).toBe(1);
+        });
+
+        it('should close the transition flyout when Escape is pressed', () => {
+            const slideSection = new SlideSection();
+            slideSection.openTransitionFlyout();
+            expect(slideSection.transitionFlyout.isOpen).toBe(true);
+
+            const evt = new dom.window.KeyboardEvent('keydown', { key: 'Escape' });
+            dom.window.document.dispatchEvent(evt);
+
+            expect(slideSection.transitionFlyout.isOpen).toBe(false);
+            expect(dom.window.document.querySelector('[data-testid="transition-picker-flyout"]')).toBeNull();
         });
 
         it('should dispatch UPDATE_SLIDE_STYLE_ASSIGNMENTS when selecting a transition type', () => {

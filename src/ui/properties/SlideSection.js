@@ -235,7 +235,18 @@ export class SlideSection {
             { type: SLIDE_TRANSITION_TYPES.UNCOVER, label: 'Uncover' }
         ];
 
+        const state = store.getState();
+        const currentObject = this.getActiveContainer(state);
+        const info = currentObject ? StyleResolver.getEffectiveSlideTransition(currentObject.id) : null;
+        const currentType = info?.transition ? coerceSlideTransition(info.transition).type : SLIDE_TRANSITION_TYPES.CROSS_FADE;
+
+        const listbox = document.createElement('div');
+        listbox.setAttribute('role', 'listbox');
+        listbox.setAttribute('data-testid', 'transition-picker-listbox');
+        content.appendChild(listbox);
+
         options.forEach(opt => {
+            const isSelected = opt.type === currentType;
             const btn = new Button({
                 label: opt.label,
                 variant: 'secondary',
@@ -246,8 +257,10 @@ export class SlideSection {
                 }
             });
             btn.element.setAttribute('data-testid', 'transition-picker-option');
+            btn.element.setAttribute('role', 'option');
+            btn.element.setAttribute('aria-selected', isSelected ? 'true' : 'false');
             btn.element.dataset.transitionType = opt.type;
-            content.appendChild(btn.element);
+            listbox.appendChild(btn.element);
         });
 
         if (this.transitionFlyout) {
@@ -257,8 +270,12 @@ export class SlideSection {
         this.transitionFlyout = new Flyout({
             trigger: this.transitionTypeTriggerBtn.element,
             content,
-            position: 'left'
+            position: 'left',
+            closeOnEscape: true
         });
+
+        this.transitionFlyout.element.setAttribute('role', 'dialog');
+        this.transitionFlyout.element.setAttribute('aria-label', 'Select Transition');
 
         this.transitionFlyout.open();
     }

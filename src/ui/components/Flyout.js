@@ -8,6 +8,7 @@ export class Flyout {
             position: 'left', // 'left', 'right', 'bottom'
             onClose: () => {},
             trackInteraction: true, // Whether to dispatch UI_INTERACTION events
+            closeOnEscape: false,
             ...options
         };
         
@@ -19,6 +20,7 @@ export class Flyout {
         }
         
         this.handleOutsideClick = this.handleOutsideClick.bind(this);
+        this.handleKeyDown = this.handleKeyDown.bind(this);
     }
 
     open() {
@@ -33,6 +35,9 @@ export class Flyout {
         // Small delay to prevent immediate closing if triggered by click
         setTimeout(() => {
             document.addEventListener('mousedown', this.handleOutsideClick);
+            if (this.options.closeOnEscape) {
+                document.addEventListener('keydown', this.handleKeyDown);
+            }
         }, 0);
     }
 
@@ -41,6 +46,7 @@ export class Flyout {
             this.element.parentNode.removeChild(this.element);
         }
         document.removeEventListener('mousedown', this.handleOutsideClick);
+        document.removeEventListener('keydown', this.handleKeyDown);
         
         // Dispatch UI interaction end for property-editing flyouts
         if (this.options.trackInteraction) {
@@ -48,6 +54,12 @@ export class Flyout {
         }
         
         if (this.options.onClose) this.options.onClose();
+    }
+
+    handleKeyDown(e) {
+        if (e.key === 'Escape') {
+            this.close();
+        }
     }
 
     updatePosition() {
