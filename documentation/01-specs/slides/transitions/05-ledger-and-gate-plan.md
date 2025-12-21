@@ -31,7 +31,7 @@ Verification evidence (run-once):
 - `npm test -- tests/unit/ui/components/NumberInput.test.js` → ✅ 1 file, 62 tests passed
 - `npm test -- tests/unit/ui/components/Flyout.test.js` → ✅ 1 file, 27 tests passed
 - `npm test -- tests/unit/ui/SlideSection.test.js` → ✅ 1 file, 32 tests passed
-- `npm test` → ✅ 187 files passed, 1 skipped; 4581 tests passed, 43 skipped
+- `npm test` → ✅ 187 files passed, 1 skipped; 4585 tests passed, 43 skipped
 
 ---
 
