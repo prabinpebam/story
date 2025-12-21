@@ -253,7 +253,14 @@ export class PresentationRenderer extends BaseRenderer {
             effectiveTransition = { type: 'none', durationMs: 0, easing: 'linear' };
         }
 
-        newView.domElement.style.visibility = 'visible';
+        // IMPORTANT: Do not reveal the incoming slide yet when transitioning.
+        // If we set it visible here, it can briefly paint (commonly a white background)
+        // at its final position before AnimationManager applies the first keyframe.
+        // AnimationManager will reveal it after applying the correct start state.
+        const shouldAnimateFromOld = Boolean(oldId && this.activeSlideViews.has(oldId));
+        if (!shouldAnimateFromOld) {
+            newView.domElement.style.visibility = 'visible';
+        }
 
         if (oldId && this.activeSlideViews.has(oldId)) {
             const oldView = this.activeSlideViews.get(oldId);

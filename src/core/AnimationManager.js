@@ -21,19 +21,116 @@ export class AnimationManager {
         const anime = this.anime;
         if (!anime) return { finished: Promise.resolve() };
 
+        let resolveFinished;
+        const callbackFinished = new Promise((resolve) => {
+            resolveFinished = resolve;
+        });
+
+        let didResolve = false;
+        let timeoutId = null;
+
+        const safeResolve = () => {
+            try {
+                if (didResolve) return;
+                didResolve = true;
+                if (timeoutId !== null) {
+                    clearTimeout(timeoutId);
+                    timeoutId = null;
+                }
+                resolveFinished?.();
+            } catch {
+                // ignore
+            }
+        };
+
+        const patchedParams = { ...(params || {}) };
+
+        // IMPORTANT:
+        // - Anime.js v3 (function) uses `complete`.
+        // - Anime.js v4 (`anime.animate`) uses `onComplete`.
+        // Passing unsupported keys (e.g. `onComplete` into v3) can be treated as an
+        // animatable property and prevent the animation from running correctly.
+        if (typeof anime === 'function') {
+            const userComplete = patchedParams.complete;
+            patchedParams.complete = (...args) => {
+                try {
+                    if (typeof userComplete === 'function') userComplete(...args);
+                } finally {
+                    safeResolve();
+                }
+            };
+            // Ensure we don't accidentally feed v3 an unsupported callback key.
+            if ('onComplete' in patchedParams) delete patchedParams.onComplete;
+        } else if (anime.animate) {
+            const userOnComplete = patchedParams.onComplete;
+            patchedParams.onComplete = (...args) => {
+                try {
+                    if (typeof userOnComplete === 'function') userOnComplete(...args);
+                } finally {
+                    safeResolve();
+                }
+            };
+            if ('complete' in patchedParams) delete patchedParams.complete;
+        }
+
+        const duration = Number(patchedParams.duration);
+        const immediate = !Number.isFinite(duration) || duration <= 0;
+
+        // Fallback: if callbacks never fire, resolve around the expected time.
+        // (This prevents early unmounts when Anime.js doesn't expose a usable `finished` promise.)
+        if (!immediate) {
+            timeoutId = setTimeout(safeResolve, Math.max(0, duration) + 50);
+        }
+
         if (typeof anime === 'function') {
             // v3
-            return anime(params);
+            const result = anime(patchedParams);
+            if (immediate) queueMicrotask(safeResolve);
+            return { finished: callbackFinished, result };
         } else if (anime.animate) {
             // v4
-            const { targets, ...rest } = params;
+            const { targets, ...rest } = patchedParams;
             if (rest.easing && !rest.ease) {
                 rest.ease = rest.easing;
                 delete rest.easing;
             }
-            return anime.animate(targets, rest);
+            const result = anime.animate(targets, rest);
+            if (immediate) queueMicrotask(safeResolve);
+            return { finished: callbackFinished, result };
         }
         return { finished: Promise.resolve() };
+    }
+
+    _asFinishedPromise(result) {
+        if (!result) return Promise.resolve();
+
+        // Anime.js v3: returns an object with `finished: Promise`.
+        const maybeFinished = result.finished;
+        if (maybeFinished && typeof maybeFinished.then === 'function') {
+            return maybeFinished;
+        }
+
+        // Some APIs may return an array of animations.
+        if (Array.isArray(result)) {
+            return Promise.all(result.map((r) => this._asFinishedPromise(r))).then(() => undefined);
+        }
+
+        // Web Animations API style: Animation has `finished: Promise`.
+        if (result && typeof result === 'object') {
+            const waapiFinished = result.finished;
+            if (waapiFinished && typeof waapiFinished.then === 'function') {
+                return waapiFinished;
+            }
+
+            // Some libraries expose `animations: Animation[]`.
+            const animations = result.animations;
+            if (Array.isArray(animations) && animations.length) {
+                return Promise.all(animations.map((a) => this._asFinishedPromise(a))).then(() => undefined);
+            }
+        }
+
+        // Best-effort fallback: treat as synchronous.
+        return Promise.resolve();
     }
 
     async transition(container, oldContent, newContent, type = 'fade') {
@@ -87,6 +184,46 @@ export class AnimationManager {
             }
         };
 
+        const setTranslatePercent = (el, axis, value) => {
+            if (!el) return;
+            el.style.transform = axis === 'X' ? `translateX(${value})` : `translateY(${value})`;
+        };
+
+        const getWipeClipPaths = (direction) => {
+            const end = 'polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%)';
+            let start;
+
+            switch (direction) {
+                case 'left':
+                    start = 'polygon(100% 0%, 100% 0%, 100% 100%, 100% 100%)';
+                    break;
+                case 'up':
+                    start = 'polygon(0% 100%, 100% 100%, 100% 100%, 0% 100%)';
+                    break;
+                case 'down':
+                    start = 'polygon(0% 0%, 100% 0%, 100% 0%, 0% 0%)';
+                    break;
+                case 'upLeft':
+                    start = 'polygon(100% 100%, 100% 100%, 100% 100%, 100% 100%)';
+                    break;
+                case 'upRight':
+                    start = 'polygon(0% 100%, 0% 100%, 0% 100%, 0% 100%)';
+                    break;
+                case 'downLeft':
+                    start = 'polygon(100% 0%, 100% 0%, 100% 0%, 100% 0%)';
+                    break;
+                case 'downRight':
+                    start = 'polygon(0% 0%, 0% 0%, 0% 0%, 0% 0%)';
+                    break;
+                case 'right':
+                default:
+                    start = 'polygon(0% 0%, 0% 0%, 0% 100%, 0% 100%)';
+                    break;
+            }
+
+            return { start, end };
+        };
+
         let prevOverflow;
         let didSetOverflow = false;
 
@@ -98,6 +235,11 @@ export class AnimationManager {
             oldContent.style.height = '100%';
             oldContent.style.zIndex = 1;
 
+            // Defensive reset: ensure outgoing starts from a neutral transform.
+            // If a prior transition (or a cancelled transition) left a stale transform,
+            // the outgoing slide can be shifted off-center, exposing stage background.
+            oldContent.style.transform = '';
+
             newContent.style.position = 'absolute';
             newContent.style.top = '0';
             newContent.style.left = '0';
@@ -105,6 +247,34 @@ export class AnimationManager {
             newContent.style.height = '100%';
             newContent.style.zIndex = 2;
 
+            // Apply the initial visual state synchronously BEFORE the incoming slide is visible.
+            // This prevents a white flash where the incoming slide paints at its final position
+            // before the animation engine applies the first keyframe.
+            if (transition.type === SLIDE_TRANSITION_TYPES.CROSS_FADE) {
+                oldContent.style.opacity = '1';
+                newContent.style.opacity = '0';
+            } else if (transition.type === SLIDE_TRANSITION_TYPES.COVER) {
+                const { axis, sign } = getAxisAndSign(transition.direction);
+                const from = sign < 0 ? '-100%' : '100%';
+                setTranslatePercent(oldContent, axis, '0%');
+                setTranslatePercent(newContent, axis, from);
+            } else if (transition.type === SLIDE_TRANSITION_TYPES.PUSH) {
+                const { axis, sign } = getAxisAndSign(transition.direction);
+                const newFrom = sign < 0 ? '-100%' : '100%';
+                setTranslatePercent(oldContent, axis, '0%');
+                setTranslatePercent(newContent, axis, newFrom);
+            } else if (transition.type === SLIDE_TRANSITION_TYPES.UNCOVER) {
+                const { axis } = getAxisAndSign(transition.direction);
+                setTranslatePercent(oldContent, axis, '0%');
+            } else if (transition.type === SLIDE_TRANSITION_TYPES.WIPE) {
+                const { start } = getWipeClipPaths(transition.direction);
+                newContent.style.clipPath = start;
+            }
+
+            // Ensure the incoming content is only revealed after its start state is applied.
+            newContent.style.visibility = 'visible';
+
+            // Ensure the new slide is on top in DOM order as well.
             container.appendChild(newContent);
 
             const shouldAnimate = Boolean(anime) && transition.type !== SLIDE_TRANSITION_TYPES.NONE && duration > 0;
@@ -124,13 +294,14 @@ export class AnimationManager {
                         direction: typeof type === 'object' ? type?.direction : undefined,
                     });
                 }
-                if (oldContent.parentNode === container) {
-                    container.removeChild(oldContent);
-                }
                 newContent.style.transform = '';
                 newContent.style.clipPath = '';
                 newContent.style.opacity = '';
                 newContent.style.zIndex = 1;
+
+                if (oldContent.parentNode === container) {
+                    container.removeChild(oldContent);
+                }
                 return;
             }
 
@@ -141,31 +312,30 @@ export class AnimationManager {
             }
 
             if (transition.type === SLIDE_TRANSITION_TYPES.CROSS_FADE) {
-                newContent.style.opacity = '0';
                 await Promise.all([
-                    this.run({ targets: oldContent, opacity: [1, 0], duration, easing }).finished,
-                    this.run({ targets: newContent, opacity: [0, 1], duration, easing }).finished
+                    this._asFinishedPromise(this.run({ targets: oldContent, opacity: [1, 0], duration, easing })),
+                    this._asFinishedPromise(this.run({ targets: newContent, opacity: [0, 1], duration, easing }))
                 ]);
             } else if (transition.type === SLIDE_TRANSITION_TYPES.COVER) {
                 const { axis, sign } = getAxisAndSign(transition.direction);
                 const prop = axis === 'X' ? 'translateX' : 'translateY';
                 const from = sign < 0 ? '-100%' : '100%';
-                await this.run({
+                await this._asFinishedPromise(this.run({
                     targets: [newContent],
                     [prop]: [from, '0%'],
                     duration,
                     easing
-                }).finished;
+                }));
             } else if (transition.type === SLIDE_TRANSITION_TYPES.UNCOVER) {
                 const { axis, sign } = getAxisAndSign(transition.direction);
                 const prop = axis === 'X' ? 'translateX' : 'translateY';
                 const to = sign < 0 ? '-100%' : '100%';
-                await this.run({
+                await this._asFinishedPromise(this.run({
                     targets: [oldContent],
                     [prop]: ['0%', to],
                     duration,
                     easing
-                }).finished;
+                }));
             } else if (transition.type === SLIDE_TRANSITION_TYPES.PUSH) {
                 const { axis, sign } = getAxisAndSign(transition.direction);
                 const prop = axis === 'X' ? 'translateX' : 'translateY';
@@ -176,52 +346,21 @@ export class AnimationManager {
                     const tl = anime.timeline({ duration, easing });
                     tl.add({ targets: [oldContent], [prop]: ['0%', oldTo] }, 0);
                     tl.add({ targets: [newContent], [prop]: [newFrom, '0%'] }, 0);
-                    await tl.finished;
+                    await this._asFinishedPromise(tl);
                 } else {
                     await Promise.all([
-                        this.run({ targets: [oldContent], [prop]: ['0%', oldTo], duration, easing }).finished,
-                        this.run({ targets: [newContent], [prop]: [newFrom, '0%'], duration, easing }).finished
+                        this._asFinishedPromise(this.run({ targets: [oldContent], [prop]: ['0%', oldTo], duration, easing })),
+                        this._asFinishedPromise(this.run({ targets: [newContent], [prop]: [newFrom, '0%'], duration, easing }))
                     ]);
                 }
             } else if (transition.type === SLIDE_TRANSITION_TYPES.WIPE) {
-                const end = 'polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%)';
-                let start;
-
-                switch (transition.direction) {
-                    case 'left':
-                        start = 'polygon(100% 0%, 100% 0%, 100% 100%, 100% 100%)';
-                        break;
-                    case 'up':
-                        start = 'polygon(0% 100%, 100% 100%, 100% 100%, 0% 100%)';
-                        break;
-                    case 'down':
-                        start = 'polygon(0% 0%, 100% 0%, 100% 0%, 0% 0%)';
-                        break;
-                    case 'upLeft':
-                        start = 'polygon(100% 100%, 100% 100%, 100% 100%, 100% 100%)';
-                        break;
-                    case 'upRight':
-                        start = 'polygon(0% 100%, 0% 100%, 0% 100%, 0% 100%)';
-                        break;
-                    case 'downLeft':
-                        start = 'polygon(100% 0%, 100% 0%, 100% 0%, 100% 0%)';
-                        break;
-                    case 'downRight':
-                        start = 'polygon(0% 0%, 0% 0%, 0% 0%, 0% 0%)';
-                        break;
-                    case 'right':
-                    default:
-                        start = 'polygon(0% 0%, 0% 0%, 0% 100%, 0% 100%)';
-                        break;
-                }
-
-                newContent.style.clipPath = start;
-                await this.run({
+                const { start, end } = getWipeClipPaths(transition.direction);
+                await this._asFinishedPromise(this.run({
                     targets: newContent,
                     clipPath: [start, end],
                     duration,
                     easing
-                }).finished;
+                }));
             }
 
             if (oldContent.parentNode === container) {
@@ -241,6 +380,9 @@ export class AnimationManager {
             });
             if (oldContent && oldContent.parentNode === container) {
                 container.removeChild(oldContent);
+            }
+            if (newContent) {
+                newContent.style.visibility = 'visible';
             }
         } finally {
             if (didSetOverflow) {

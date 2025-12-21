@@ -368,6 +368,83 @@ describe('AnimationManager', () => {
                 duration: 111
             }));
         });
+
+        it('should apply the incoming start transform synchronously for cover to prevent a pre-animation flash', async () => {
+            let resolveFinished;
+            const finished = new Promise((resolve) => {
+                resolveFinished = resolve;
+            });
+            mockAnime.mockImplementation(() => ({ finished }));
+
+            // Simulate renderer behavior: incoming is mounted but hidden until transition starts.
+            newContent.style.visibility = 'hidden';
+
+            const promise = manager.transition(container, oldContent, newContent, {
+                type: 'cover',
+                direction: 'right',
+                durationMs: 200,
+                easing: 'linear'
+            });
+
+            // Start state should be applied before the first await.
+            expect(newContent.style.transform).toBe('translateX(100%)');
+            expect(newContent.style.visibility).toBe('visible');
+            expect(container.contains(oldContent)).toBe(true);
+            expect(container.contains(newContent)).toBe(true);
+
+            resolveFinished();
+            await promise;
+        });
+
+        it('should apply the incoming start transform synchronously for push to prevent a pre-animation flash', async () => {
+            let resolveFinished;
+            const finished = new Promise((resolve) => {
+                resolveFinished = resolve;
+            });
+            // push uses timeline() in v3; keep finished pending.
+            mockAnime.timeline.mockReturnValue({
+                add: vi.fn().mockReturnThis(),
+                finished
+            });
+
+            newContent.style.visibility = 'hidden';
+
+            const promise = manager.transition(container, oldContent, newContent, {
+                type: 'push',
+                direction: 'right',
+                durationMs: 200,
+                easing: 'linear'
+            });
+
+            expect(newContent.style.transform).toBe('translateX(100%)');
+            expect(newContent.style.visibility).toBe('visible');
+
+            resolveFinished();
+            await promise;
+        });
+
+        it('should apply the incoming start clip-path synchronously for wipe to prevent a pre-animation flash', async () => {
+            let resolveFinished;
+            const finished = new Promise((resolve) => {
+                resolveFinished = resolve;
+            });
+            mockAnime.mockImplementation(() => ({ finished }));
+
+            newContent.style.visibility = 'hidden';
+
+            const promise = manager.transition(container, oldContent, newContent, {
+                type: 'wipe',
+                direction: 'right',
+                durationMs: 200,
+                easing: 'linear'
+            });
+
+            expect(newContent.style.clipPath).toBe('polygon(0% 0%, 0% 0%, 0% 100%, 0% 100%)');
+            expect(newContent.style.visibility).toBe('visible');
+
+            resolveFinished();
+            await promise;
+        });
     });
 
     describe('transition() - magic type', () => {
