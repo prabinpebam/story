@@ -311,13 +311,32 @@ export class SlideSection {
         title.textContent = 'Select Transition';
         content.appendChild(title);
 
+        const getPreviewIcon = (type) => {
+            switch (type) {
+                case SLIDE_TRANSITION_TYPES.NONE:
+                    return Icons.CLOSE;
+                case SLIDE_TRANSITION_TYPES.CROSS_FADE:
+                    return Icons.OPACITY;
+                case SLIDE_TRANSITION_TYPES.WIPE:
+                    return Icons.GRID_3X3;
+                case SLIDE_TRANSITION_TYPES.PUSH:
+                    return Icons.CHEVRON_RIGHT;
+                case SLIDE_TRANSITION_TYPES.COVER:
+                    return Icons.FLIP_H;
+                case SLIDE_TRANSITION_TYPES.UNCOVER:
+                    return Icons.FLIP_V;
+                default:
+                    return Icons.STYLES;
+            }
+        };
+
         const options = [
-            { type: SLIDE_TRANSITION_TYPES.NONE, label: 'None' },
-            { type: SLIDE_TRANSITION_TYPES.CROSS_FADE, label: 'Cross fade' },
-            { type: SLIDE_TRANSITION_TYPES.WIPE, label: 'Wipe' },
-            { type: SLIDE_TRANSITION_TYPES.PUSH, label: 'Push' },
-            { type: SLIDE_TRANSITION_TYPES.COVER, label: 'Cover' },
-            { type: SLIDE_TRANSITION_TYPES.UNCOVER, label: 'Uncover' }
+            { type: SLIDE_TRANSITION_TYPES.NONE, label: 'None', icon: getPreviewIcon(SLIDE_TRANSITION_TYPES.NONE) },
+            { type: SLIDE_TRANSITION_TYPES.CROSS_FADE, label: 'Cross fade', icon: getPreviewIcon(SLIDE_TRANSITION_TYPES.CROSS_FADE) },
+            { type: SLIDE_TRANSITION_TYPES.WIPE, label: 'Wipe', icon: getPreviewIcon(SLIDE_TRANSITION_TYPES.WIPE) },
+            { type: SLIDE_TRANSITION_TYPES.PUSH, label: 'Push', icon: getPreviewIcon(SLIDE_TRANSITION_TYPES.PUSH) },
+            { type: SLIDE_TRANSITION_TYPES.COVER, label: 'Cover', icon: getPreviewIcon(SLIDE_TRANSITION_TYPES.COVER) },
+            { type: SLIDE_TRANSITION_TYPES.UNCOVER, label: 'Uncover', icon: getPreviewIcon(SLIDE_TRANSITION_TYPES.UNCOVER) }
         ];
 
         const state = store.getState();
@@ -326,25 +345,36 @@ export class SlideSection {
         const currentType = info?.transition ? coerceSlideTransition(info.transition).type : SLIDE_TRANSITION_TYPES.CROSS_FADE;
 
         const listbox = document.createElement('div');
+        listbox.className = 'layout-flyout-grid';
         listbox.setAttribute('role', 'listbox');
         listbox.setAttribute('data-testid', 'transition-picker-listbox');
         content.appendChild(listbox);
 
+        let selectedOptionEl = null;
+
         options.forEach(opt => {
             const isSelected = opt.type === currentType;
+
             const btn = new Button({
                 label: opt.label,
+                icon: `<div class="layout-preview">${opt.icon}</div>`,
+                iconPosition: 'left',
                 variant: 'secondary',
                 size: 'sm',
+                className: `layout-thumbnail${isSelected ? ' selected' : ''}`,
                 onClick: () => {
                     this.applySlideTransitionType(opt.type);
                     if (this.transitionFlyout) this.transitionFlyout.close();
                 }
             });
+
             btn.element.setAttribute('data-testid', 'transition-picker-option');
             btn.element.setAttribute('role', 'option');
             btn.element.setAttribute('aria-selected', isSelected ? 'true' : 'false');
             btn.element.dataset.transitionType = opt.type;
+
+            if (isSelected) selectedOptionEl = btn.element;
+
             listbox.appendChild(btn.element);
         });
 
@@ -356,13 +386,29 @@ export class SlideSection {
             trigger: this.transitionTypeTriggerBtn.element,
             content,
             position: 'left',
-            closeOnEscape: true
+            closeOnEscape: true,
+            onClose: () => {
+                try {
+                    this.transitionTypeTriggerBtn?.element?.focus?.();
+                } catch {
+                    // no-op
+                }
+            }
         });
 
         this.transitionFlyout.element.setAttribute('role', 'dialog');
         this.transitionFlyout.element.setAttribute('aria-label', 'Select Transition');
 
         this.transitionFlyout.open();
+
+        // Focus SHOULD move to the selected option on open.
+        setTimeout(() => {
+            try {
+                selectedOptionEl?.focus?.();
+            } catch {
+                // no-op
+            }
+        }, 0);
     }
 
     resetSlideTransitionToInherited() {

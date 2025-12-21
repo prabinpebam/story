@@ -359,6 +359,12 @@ describe('SlideSection', () => {
                 HIDDEN: 'icon-hidden',
                 CHEVRON_RIGHT: 'icon-chevron-right',
                 CHEVRON_DOWN: 'icon-chevron-down',
+                CLOSE: 'icon-close',
+                OPACITY: 'icon-opacity',
+                GRID_3X3: 'icon-grid-3x3',
+                FLIP_H: 'icon-flip-h',
+                FLIP_V: 'icon-flip-v',
+                STYLES: 'icon-styles',
                 PLUS: 'icon-plus',
                 MINUS: 'icon-minus'
             }
@@ -783,12 +789,19 @@ describe('SlideSection', () => {
             const listbox = flyoutContent.querySelector('[data-testid="transition-picker-listbox"]');
             expect(listbox).toBeTruthy();
             expect(listbox.getAttribute('role')).toBe('listbox');
+            expect(listbox.classList.contains('layout-flyout-grid')).toBe(true);
 
             const opts = Array.from(listbox.querySelectorAll('[data-testid="transition-picker-option"]'));
             expect(opts.length).toBeGreaterThan(0);
             for (const opt of opts) {
                 expect(opt.getAttribute('role')).toBe('option');
                 expect(['true', 'false']).toContain(opt.getAttribute('aria-selected'));
+
+                // Grid items MUST be thumbnail + label.
+                const preview = opt.querySelector('.layout-preview');
+                expect(preview).toBeTruthy();
+                expect(preview.textContent.trim().length).toBeGreaterThan(0);
+                expect(opt.textContent.trim().length).toBeGreaterThan(0);
             }
 
             // Default selection should mark exactly one option as selected.
@@ -812,6 +825,7 @@ describe('SlideSection', () => {
             const dispatchSpy = vi.spyOn(store, 'dispatch');
 
             slideSection.openTransitionFlyout();
+            expect(slideSection.transitionFlyout.isOpen).toBe(true);
 
             const flyoutContent = slideSection.transitionFlyout.content;
             const crossFadeBtn = Array.from(flyoutContent.querySelectorAll('[data-testid="transition-picker-option"]'))
@@ -819,6 +833,10 @@ describe('SlideSection', () => {
             expect(crossFadeBtn).toBeTruthy();
 
             crossFadeBtn.click();
+
+            // Single-step selection MUST close the flyout.
+            expect(slideSection.transitionFlyout.isOpen).toBe(false);
+            expect(dom.window.document.querySelector('[data-testid="transition-picker-flyout"]')).toBeNull();
 
             expect(dispatchSpy).toHaveBeenCalledWith(
                 'UPDATE_SLIDE_STYLE_ASSIGNMENTS',
