@@ -765,6 +765,15 @@ select.pi-input option {
     border-radius: var(--radius-sm);
     cursor: pointer;
     transition: background-color 0.15s;
+    background: none;
+    border: none;
+    color: inherit;
+    font: inherit;
+}
+
+.layout-thumbnail:focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 2px;
 }
 
 .layout-thumbnail:hover {
@@ -885,6 +894,126 @@ select.pi-input option {
 .layout-flyout-grid .layout-preview {
     width: var(--thumbnail-width-lg);
     height: var(--thumbnail-height-lg);
+}
+
+/* Transition picker preview (scoped so layout thumbnails remain unchanged) */
+.transition-preview {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    border-radius: var(--radius-sm);
+    color: var(--color-text-secondary);
+
+    /* Brand colors requested for visibility */
+    --transition-preview-old: #0058a3;
+    --transition-preview-new: #ffd900;
+    --transition-preview-duration: 300ms;
+    --transition-preview-ease: ease-in-out;
+}
+
+.transition-preview__layer {
+    position: absolute;
+    inset: 0;
+    transition:
+        transform var(--transition-preview-duration) var(--transition-preview-ease),
+        opacity var(--transition-preview-duration) var(--transition-preview-ease);
+    will-change: transform, opacity;
+}
+
+.transition-preview__layer--old {
+    background: var(--transition-preview-old);
+    z-index: 1;
+}
+
+.transition-preview__layer--new {
+    background: var(--transition-preview-new);
+    z-index: 2;
+}
+
+.transition-preview__text {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--color-text-inverse);
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-semibold);
+    letter-spacing: 0.08em;
+    line-height: 1;
+    user-select: none;
+    pointer-events: none;
+}
+
+/* Default resting state: show the old slide */
+.transition-preview[data-transition-type="none"] .transition-preview__layer {
+    transition-duration: 0ms;
+}
+
+.transition-preview[data-transition-type="none"] .transition-preview__layer--new {
+    opacity: 0;
+}
+
+.transition-preview[data-transition-type="crossFade"] .transition-preview__layer--new {
+    opacity: 0;
+}
+
+.transition-preview[data-transition-type="wipe"] .transition-preview__layer--new {
+    transform: scaleX(0);
+    transform-origin: left center;
+}
+
+.transition-preview[data-transition-type="push"] .transition-preview__layer--new,
+.transition-preview[data-transition-type="cover"] .transition-preview__layer--new {
+    transform: translateX(100%);
+}
+
+/* Uncover: new is visible behind old */
+.transition-preview[data-transition-type="uncover"] .transition-preview__layer--new {
+    transform: translateX(0);
+    z-index: 1;
+}
+
+.transition-preview[data-transition-type="uncover"] .transition-preview__layer--old {
+    z-index: 2;
+}
+
+/* Hover state: play the preview once (via CSS transitions) */
+.layout-thumbnail:hover .transition-preview[data-transition-type="crossFade"] .transition-preview__layer--old {
+    opacity: 0;
+}
+
+.layout-thumbnail:hover .transition-preview[data-transition-type="crossFade"] .transition-preview__layer--new {
+    opacity: 1;
+}
+
+.layout-thumbnail:hover .transition-preview[data-transition-type="none"] .transition-preview__layer--old {
+    opacity: 0;
+}
+
+.layout-thumbnail:hover .transition-preview[data-transition-type="none"] .transition-preview__layer--new {
+    opacity: 1;
+}
+
+.layout-thumbnail:hover .transition-preview[data-transition-type="wipe"] .transition-preview__layer--new {
+    transform: scaleX(1);
+}
+
+.layout-thumbnail:hover .transition-preview[data-transition-type="push"] .transition-preview__layer--old {
+    transform: translateX(-100%);
+}
+
+.layout-thumbnail:hover .transition-preview[data-transition-type="push"] .transition-preview__layer--new {
+    transform: translateX(0);
+}
+
+.layout-thumbnail:hover .transition-preview[data-transition-type="cover"] .transition-preview__layer--new {
+    transform: translateX(0);
+}
+
+.layout-thumbnail:hover .transition-preview[data-transition-type="uncover"] .transition-preview__layer--old {
+    transform: translateX(-100%);
 }
 
 .layout-flyout-grid .layout-label {

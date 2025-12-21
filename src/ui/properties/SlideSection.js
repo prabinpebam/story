@@ -331,32 +331,13 @@ export class SlideSection {
         title.textContent = 'Select Transition';
         content.appendChild(title);
 
-        const getPreviewIcon = (type) => {
-            switch (type) {
-                case SLIDE_TRANSITION_TYPES.NONE:
-                    return Icons.CLOSE;
-                case SLIDE_TRANSITION_TYPES.CROSS_FADE:
-                    return Icons.OPACITY;
-                case SLIDE_TRANSITION_TYPES.WIPE:
-                    return Icons.GRID_3X3;
-                case SLIDE_TRANSITION_TYPES.PUSH:
-                    return Icons.CHEVRON_RIGHT;
-                case SLIDE_TRANSITION_TYPES.COVER:
-                    return Icons.FLIP_H;
-                case SLIDE_TRANSITION_TYPES.UNCOVER:
-                    return Icons.FLIP_V;
-                default:
-                    return Icons.STYLES;
-            }
-        };
-
         const options = [
-            { type: SLIDE_TRANSITION_TYPES.NONE, label: 'None', icon: getPreviewIcon(SLIDE_TRANSITION_TYPES.NONE) },
-            { type: SLIDE_TRANSITION_TYPES.CROSS_FADE, label: 'Cross fade', icon: getPreviewIcon(SLIDE_TRANSITION_TYPES.CROSS_FADE) },
-            { type: SLIDE_TRANSITION_TYPES.WIPE, label: 'Wipe', icon: getPreviewIcon(SLIDE_TRANSITION_TYPES.WIPE) },
-            { type: SLIDE_TRANSITION_TYPES.PUSH, label: 'Push', icon: getPreviewIcon(SLIDE_TRANSITION_TYPES.PUSH) },
-            { type: SLIDE_TRANSITION_TYPES.COVER, label: 'Cover', icon: getPreviewIcon(SLIDE_TRANSITION_TYPES.COVER) },
-            { type: SLIDE_TRANSITION_TYPES.UNCOVER, label: 'Uncover', icon: getPreviewIcon(SLIDE_TRANSITION_TYPES.UNCOVER) }
+            { type: SLIDE_TRANSITION_TYPES.NONE, label: 'None' },
+            { type: SLIDE_TRANSITION_TYPES.CROSS_FADE, label: 'Cross fade' },
+            { type: SLIDE_TRANSITION_TYPES.WIPE, label: 'Wipe' },
+            { type: SLIDE_TRANSITION_TYPES.PUSH, label: 'Push' },
+            { type: SLIDE_TRANSITION_TYPES.COVER, label: 'Cover' },
+            { type: SLIDE_TRANSITION_TYPES.UNCOVER, label: 'Uncover' }
         ];
 
         const state = store.getState();
@@ -372,30 +353,79 @@ export class SlideSection {
 
         let selectedOptionEl = null;
 
+        // No runtime preview mounting needed; previews are pure CSS.
+
         options.forEach(opt => {
             const isSelected = opt.type === currentType;
 
-            const btn = new Button({
-                label: opt.label,
-                icon: `<div class="layout-preview">${opt.icon}</div>`,
-                iconPosition: 'left',
-                variant: 'secondary',
-                size: 'sm',
-                className: `layout-thumbnail${isSelected ? ' selected' : ''}`,
-                onClick: () => {
-                    this.applySlideTransitionType(opt.type);
-                    if (this.transitionFlyout) this.transitionFlyout.close();
-                }
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = `layout-thumbnail${isSelected ? ' selected' : ''}`;
+            btn.setAttribute('data-testid', 'transition-picker-option');
+            btn.setAttribute('role', 'option');
+            btn.setAttribute('aria-selected', isSelected ? 'true' : 'false');
+            btn.dataset.transitionType = opt.type;
+
+            const preview = document.createElement('div');
+            preview.className = 'layout-preview transition-preview';
+            preview.setAttribute('aria-hidden', 'true');
+            preview.dataset.transitionType = opt.type;
+
+            // Pure CSS preview layers.
+            if (opt.type === SLIDE_TRANSITION_TYPES.NONE) {
+                const layerOld = document.createElement('div');
+                layerOld.className = 'transition-preview__layer transition-preview__layer--old';
+
+                const startText = document.createElement('div');
+                startText.className = 'transition-preview__text';
+                startText.textContent = 'START';
+                layerOld.appendChild(startText);
+
+                const layerNew = document.createElement('div');
+                layerNew.className = 'transition-preview__layer transition-preview__layer--new';
+
+                const endText = document.createElement('div');
+                endText.className = 'transition-preview__text';
+                endText.textContent = 'END';
+                layerNew.appendChild(endText);
+
+                preview.appendChild(layerOld);
+                preview.appendChild(layerNew);
+            } else {
+                const layerOld = document.createElement('div');
+                layerOld.className = 'transition-preview__layer transition-preview__layer--old';
+
+                const startText = document.createElement('div');
+                startText.className = 'transition-preview__text';
+                startText.textContent = 'START';
+                layerOld.appendChild(startText);
+
+                const layerNew = document.createElement('div');
+                layerNew.className = 'transition-preview__layer transition-preview__layer--new';
+
+                const endText = document.createElement('div');
+                endText.className = 'transition-preview__text';
+                endText.textContent = 'END';
+                layerNew.appendChild(endText);
+
+                preview.appendChild(layerOld);
+                preview.appendChild(layerNew);
+            }
+
+            const label = document.createElement('div');
+            label.className = 'layout-label';
+            label.textContent = opt.label;
+
+            btn.appendChild(preview);
+            btn.appendChild(label);
+
+            btn.addEventListener('click', () => {
+                this.applySlideTransitionType(opt.type);
+                if (this.transitionFlyout) this.transitionFlyout.close();
             });
 
-            btn.element.setAttribute('data-testid', 'transition-picker-option');
-            btn.element.setAttribute('role', 'option');
-            btn.element.setAttribute('aria-selected', isSelected ? 'true' : 'false');
-            btn.element.dataset.transitionType = opt.type;
-
-            if (isSelected) selectedOptionEl = btn.element;
-
-            listbox.appendChild(btn.element);
+            if (isSelected) selectedOptionEl = btn;
+            listbox.appendChild(btn);
         });
 
         if (this.transitionFlyout) {
