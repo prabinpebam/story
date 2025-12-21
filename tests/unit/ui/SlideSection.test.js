@@ -108,11 +108,28 @@ describe('SlideSection', () => {
                     if (index > -1) this.subscribers.splice(index, 1);
                 };
             },
-            dispatch(action, payload) {
+            dispatch(action, payload, options) {
                 if (action === 'UPDATE_SLIDE' && payload.layoutId) {
                     // Simulate layout change
                     this.state.slides[payload.id].layoutId = payload.layoutId;
                 }
+
+                if (action === 'UPDATE_SLIDE_STYLE_ASSIGNMENTS' && payload?.slideId) {
+                    const slide = this.state.slides[payload.slideId];
+                    if (slide) {
+                        slide.styleAssignments = slide.styleAssignments || {};
+                        Object.assign(slide.styleAssignments, payload.styleAssignments || {});
+                    }
+                }
+
+                if (action === 'UPDATE_MASTER_STYLE_ASSIGNMENTS' && payload?.masterId) {
+                    const master = this.state.slideMasterPresets[payload.masterId];
+                    if (master) {
+                        master.styleAssignments = master.styleAssignments || {};
+                        Object.assign(master.styleAssignments, payload.styleAssignments || {});
+                    }
+                }
+
                 this.subscribers.forEach(callback => callback(this.state));
             },
             getEffectiveSlide(slideId) {
@@ -752,6 +769,99 @@ describe('SlideSection', () => {
 
             expect(badge.textContent).toBe('Inherited');
             expect(resetBtn.classList.contains('hidden')).toBe(true);
+            expect(source.textContent).toBe('Source: Layout: Title Layout');
+        });
+
+        it('should support Transition section in master preset mode and edit master.styleAssignments.slideTransition', () => {
+            // Switch to master preset editing mode.
+            store.state.editor.mode = 'master';
+            store.state.editor.activeMasterId = 'master-default';
+
+            const slideSection = new SlideSection();
+            const dispatchSpy = vi.spyOn(store, 'dispatch');
+
+            // No explicit transition override on the master preset → system default.
+            delete store.state.slideMasterPresets['master-default'].styleAssignments;
+
+            slideSection.updateTransitionDisplay();
+
+            const source = slideSection.element.querySelector('[data-testid="transition-source-label"]');
+            expect(source.textContent).toBe('Source: System default');
+
+            // Applying a transition writes to the master preset styleAssignments.
+            slideSection.applySlideTransitionType('crossFade');
+            expect(dispatchSpy).toHaveBeenCalledWith(
+                'UPDATE_MASTER_STYLE_ASSIGNMENTS',
+                expect.objectContaining({
+                    masterId: 'master-default',
+                    styleAssignments: expect.objectContaining({
+                        slideTransition: expect.objectContaining({ type: 'crossFade' })
+                    })
+                })
+            );
+        });
+
+        it('should show inheritance from parent master preset when editing a layout master', () => {
+            // Switch to layout master editing mode.
+            store.state.editor.mode = 'master';
+            store.state.editor.activeMasterId = 'layout-title';
+
+            // Parent master preset defines default; layout has no override.
+            store.state.slideMasterPresets['master-default'].styleAssignments = {
+                slideTransition: {
+                    type: 'push',
+                    direction: 'right',
+                    durationMs: 300,
+                    easing: 'ease-in-out'
+                }
+            };
+            delete store.state.slideMasterPresets['layout-title'].styleAssignments;
+
+            const slideSection = new SlideSection();
+            slideSection.updateTransitionDisplay();
+
+            const badge = slideSection.element.querySelector('[data-testid="transition-inherited-badge"]');
+            const resetBtn = slideSection.element.querySelector('[data-testid="transition-reset-btn"]');
+            const source = slideSection.element.querySelector('[data-testid="transition-source-label"]');
+
+            expect(badge.textContent).toBe('Inherited');
+            expect(resetBtn.classList.contains('hidden')).toBe(true);
+            expect(source.textContent).toBe('Source: Master preset');
+        });
+
+        it('should edit layout.styleAssignments.slideTransition when in master mode (layout master override)', () => {
+            store.state.editor.mode = 'master';
+            store.state.editor.activeMasterId = 'layout-title';
+
+            // Ensure a base effective config exists via parent.
+            store.state.slideMasterPresets['master-default'].styleAssignments = {
+                slideTransition: {
+                    type: 'crossFade',
+                    durationMs: 300,
+                    easing: 'ease-in-out'
+                }
+            };
+            delete store.state.slideMasterPresets['layout-title'].styleAssignments;
+
+            const slideSection = new SlideSection();
+            const dispatchSpy = vi.spyOn(store, 'dispatch');
+
+            slideSection.applySlideTransitionType('wipe');
+
+            expect(dispatchSpy).toHaveBeenCalledWith(
+                'UPDATE_MASTER_STYLE_ASSIGNMENTS',
+                expect.objectContaining({
+                    masterId: 'layout-title',
+                    styleAssignments: expect.objectContaining({
+                        slideTransition: expect.objectContaining({ type: 'wipe' })
+                    })
+                })
+            );
+
+            slideSection.updateTransitionDisplay();
+            const badge = slideSection.element.querySelector('[data-testid="transition-inherited-badge"]');
+            const source = slideSection.element.querySelector('[data-testid="transition-source-label"]');
+            expect(badge.textContent).toBe('Override');
             expect(source.textContent).toBe('Source: Layout: Title Layout');
         });
 

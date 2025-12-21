@@ -29,8 +29,8 @@ Status legend: ✅ Done (locked) · 🟡 In progress · ❌ Not started · ⛔ B
 Verification evidence (run-once):
 - `npm test -- tests/unit/core/AnimationManager.test.js` → ✅ 1 file, 54 tests passed
 - `npm test -- tests/unit/ui/components/NumberInput.test.js` → ✅ 1 file, 62 tests passed
-- `npm test -- tests/unit/ui/SlideSection.test.js` → ✅ 1 file, 28 tests passed
-- `npm test` → ✅ 187 files passed, 1 skipped; 4578 tests passed, 43 skipped
+- `npm test -- tests/unit/ui/SlideSection.test.js` → ✅ 1 file, 31 tests passed
+- `npm test` → ✅ 187 files passed, 1 skipped; 4581 tests passed, 43 skipped
 
 ---
 
@@ -272,9 +272,9 @@ Rules:
 | ST-092 | Gate 1 | ✅ | Each direction button MUST have an aria-label like: - `"Direction: from left"` - `"Direction: from top-left"` | 02-transition-inheritance-and-property-inspector-ux.md — 2.7 Controls shown after selection | src/ui/properties/SlideSection.js | tests/unit/ui/SlideSection.test.js (direction aria-labels) |
 | ST-093 | Gate 1 | ✅ | Duration and Direction controls MUST be hidden (or disabled) because they have no effect. | 02-transition-inheritance-and-property-inspector-ux.md — 2.8 None | src/ui/properties/SlideSection.js | tests/unit/ui/SlideSection.test.js (none hides rows) |
 | ST-094 | Gate 1 | ✅ | Changing any control MUST be recorded as an undoable store action (except transient scrubbing if the existing `skipHistory` pattern is used). | 02-transition-inheritance-and-property-inspector-ux.md — 2.8 None | src/ui/properties/SlideSection.js | tests/unit/ui/SlideSection.test.js (skipHistory transient only) |
-| ST-095 | Gate 1 | 🟡 | the Transition section MUST be available | 02-transition-inheritance-and-property-inspector-ux.md — 3.1 Master preset default | src/ui/properties/SlideSection.js | TBD |
-| ST-096 | Gate 1 | 🟡 | the Transition section MUST be available | 02-transition-inheritance-and-property-inspector-ux.md — 3.2 Layout master override | src/ui/properties/SlideSection.js | TBD |
-| ST-097 | Gate 1 | 🟡 | it MUST show inheritance information from the parent master preset | 02-transition-inheritance-and-property-inspector-ux.md — 3.2 Layout master override | src/ui/properties/SlideSection.js; src/utils/StyleResolver.js | TBD |
+| ST-095 | Gate 1 | ✅ | the Transition section MUST be available | 02-transition-inheritance-and-property-inspector-ux.md — 3.1 Master preset default | src/ui/properties/SlideSection.js | tests/unit/ui/SlideSection.test.js (master preset mode transition editing) |
+| ST-096 | Gate 1 | ✅ | the Transition section MUST be available | 02-transition-inheritance-and-property-inspector-ux.md — 3.2 Layout master override | src/ui/properties/SlideSection.js | tests/unit/ui/SlideSection.test.js (layout master mode transition editing) |
+| ST-097 | Gate 1 | ✅ | it MUST show inheritance information from the parent master preset | 02-transition-inheritance-and-property-inspector-ux.md — 3.2 Layout master override | src/ui/properties/SlideSection.js; src/utils/StyleResolver.js | tests/unit/ui/SlideSection.test.js (layout inherits from parent master preset) |
 | ST-098 | Gate 1 | ✅ | Master/layout transition values MUST live on the master entities (in `slideMasterPresets`) so that they serialize and sync exactly like other master properties. | 02-transition-inheritance-and-property-inspector-ux.md — 3.2 Layout master override | src/core/store/handlers/MasterHandlers.js; src/utils/StyleResolver.js | tests/unit/utils/StyleResolver.test.js (master override) |
 | ST-099 | Gate 1 | ❌ | Phase 1 MUST define behavior for future multi-slide selection: - If multiple slides are selected and their effective transitions differ, the transition picker MUST show a `Mixed` state. - Applying a transition in mixed state MUST set overrides on all selected slides. | 02-transition-inheritance-and-property-inspector-ux.md — 4) Mixed / multi-selection | TBD | TBD |
 | ST-100 | Gate 1 | ❌ | If multiple slides are selected and their effective transitions differ, the transition picker MUST show a `Mixed` state. - Applying a transition in mixed state MUST set overrides on all selected slides. | 02-transition-inheritance-and-property-inspector-ux.md — 4) Mixed / multi-selection | TBD | TBD |
