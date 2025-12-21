@@ -267,6 +267,14 @@ export function handleUpdateSlideStyleAssignments(draft, payload) {
     
     // Merge the new style assignments
     Object.assign(slide.styleAssignments, styleAssignments);
+
+    // Legacy transition migration (Phase 1): once canonical slideTransition is written
+    // (including null = inherit), remove legacy slide.transition to avoid drift.
+    if (styleAssignments && Object.prototype.hasOwnProperty.call(styleAssignments, 'slideTransition')) {
+        if (Object.prototype.hasOwnProperty.call(slide, 'transition')) {
+            delete slide.transition;
+        }
+    }
 }
 
 /**

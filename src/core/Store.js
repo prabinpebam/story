@@ -12,6 +12,7 @@ import * as AuthHandlers from './store/handlers/AuthHandlers.js';
 import * as TextEditHandlers from './store/handlers/TextEditHandlers.js';
 import { enrichSlideWithShapeKinds } from './shapes/ShapeMigration.js';
 import { telemetry } from './telemetry/Telemetry.js';
+import { coerceSlideTransition } from './presentation/SlideTransitionUtils.js';
 
 // Lazy-loaded modules to avoid circular dependency (StyleResolver imports store)
 let _StyleResolver = null;
@@ -542,6 +543,23 @@ export class Store extends EventEmitter {
                                     }
                                     migratedSlide.elements = elementsObj;
                                     migratedSlide.elementOrder = elementOrder;
+                                }
+
+                                // Phase 1 transition migration (legacy slide.transition -> canonical styleAssignments.slideTransition)
+                                // Deterministic + idempotent: only map when canonical property is missing; always remove legacy field.
+                                try {
+                                    const hasLegacy = typeof migratedSlide.transition === 'string' && migratedSlide.transition.length > 0;
+                                    if (hasLegacy) {
+                                        const sa = migratedSlide.styleAssignments;
+                                        const hasCanonical = !!sa && Object.prototype.hasOwnProperty.call(sa, 'slideTransition');
+                                        if (!hasCanonical) {
+                                            if (!migratedSlide.styleAssignments) migratedSlide.styleAssignments = {};
+                                            migratedSlide.styleAssignments.slideTransition = coerceSlideTransition(migratedSlide.transition);
+                                        }
+                                        delete migratedSlide.transition;
+                                    }
+                                } catch {
+                                    // Best-effort.
                                 }
                                 slidesObj[migratedSlide.id] = migratedSlide;
                                 slideOrder.push(migratedSlide.id);
