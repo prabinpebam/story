@@ -126,24 +126,18 @@ export class SlideSection {
 
         this.transitionFlyout = null;
 
-        // Header / inheritance row
-        const headerRow = document.createElement('div');
-        headerRow.className = 'pi-row pi-row--space-between';
+        // Primary row (name button + inheritance + source + reset)
+        const primaryRow = document.createElement('div');
+        primaryRow.className = 'pi-row pi-row--space-between';
 
         const left = document.createElement('div');
         left.className = 'pi-row';
 
         this.transitionBadge = document.createElement('span');
-        this.transitionBadge.className = 'inherited-fill-badge';
+        this.transitionBadge.className = 'inherited-fill-badge inherited';
         this.transitionBadge.textContent = 'Inherited';
         this.transitionBadge.setAttribute('data-testid', 'transition-inherited-badge');
         left.appendChild(this.transitionBadge);
-
-        this.transitionName = document.createElement('span');
-        this.transitionName.className = 'transition-detail-name hidden';
-        this.transitionName.textContent = '';
-        this.transitionName.setAttribute('data-testid', 'transition-name');
-        left.appendChild(this.transitionName);
 
         this.transitionSourceLabel = document.createElement('span');
         this.transitionSourceLabel.className = 'transition-source-label';
@@ -151,10 +145,19 @@ export class SlideSection {
         this.transitionSourceLabel.setAttribute('data-testid', 'transition-source-label');
         left.appendChild(this.transitionSourceLabel);
 
-        headerRow.appendChild(left);
+        primaryRow.appendChild(left);
 
         const buttonGroup = document.createElement('div');
         buttonGroup.className = 'pi-button-group';
+
+        this.transitionTypeTriggerBtn = new Button({
+            label: 'Select transition',
+            variant: 'secondary',
+            size: 'sm',
+            onClick: () => this.openTransitionFlyout()
+        });
+        this.transitionTypeTriggerBtn.element.setAttribute('data-testid', 'transition-picker-trigger');
+        buttonGroup.appendChild(this.transitionTypeTriggerBtn.element);
 
         this.transitionResetBtn = new Button({
             icon: '<i class="fa-solid fa-arrow-rotate-left"></i>',
@@ -166,23 +169,8 @@ export class SlideSection {
         this.transitionResetBtn.element.setAttribute('data-testid', 'transition-reset-btn');
         buttonGroup.appendChild(this.transitionResetBtn.element);
 
-        headerRow.appendChild(buttonGroup);
-        this.transitionSection.appendChild(headerRow);
-
-        // Transition type picker
-        const typeRow = document.createElement('div');
-        typeRow.className = 'pi-row';
-
-        this.transitionTypeTriggerBtn = new Button({
-            label: 'Select transition',
-            variant: 'secondary',
-            size: 'sm',
-            onClick: () => this.openTransitionFlyout()
-        });
-        this.transitionTypeTriggerBtn.element.setAttribute('data-testid', 'transition-picker-trigger');
-        typeRow.appendChild(this.transitionTypeTriggerBtn.element);
-
-        this.transitionSection.appendChild(typeRow);
+        primaryRow.appendChild(buttonGroup);
+        this.transitionSection.appendChild(primaryRow);
 
         // Duration
         const durationRow = document.createElement('div');
@@ -543,17 +531,32 @@ export class SlideSection {
             this.transitionTypeTriggerBtn.setLabel(label);
         }
 
+        const sourceText = (() => {
+            if (!info) return '';
+            if (info.source === 'slide') return 'Source: Slide';
+
+            if (info.source === 'layout') {
+                const layoutName = currentObject.type === 'slide'
+                    ? (state.slideMasterPresets?.[currentObject.layoutId]?.name || 'Layout')
+                    : (state.slideMasterPresets?.[info.sourceId]?.name || 'Layout');
+                return `Source: Layout: ${layoutName}`;
+            }
+
+            if (info.sourceLabel === 'system default') return 'Source: System default';
+            if (info.source === 'master') return 'Source: Master preset';
+            return `Source: ${info.sourceLabel || 'Unknown'}`;
+        })();
+
         if (this.transitionSourceLabel) {
-            this.transitionSourceLabel.textContent = info?.sourceLabel ? `(${info.sourceLabel})` : '';
+            this.transitionSourceLabel.textContent = sourceText;
         }
 
-        if (info?.isInherited) {
-            this.transitionBadge?.classList.remove('hidden');
-            this.transitionName?.classList.add('hidden');
-        } else {
-            this.transitionName.textContent = label;
-            this.transitionName.classList.remove('hidden');
-            this.transitionBadge?.classList.add('hidden');
+        const isOverrideAtLevel = !!hasDirectOverride;
+        if (this.transitionBadge) {
+            this.transitionBadge.textContent = isOverrideAtLevel ? 'Override' : 'Inherited';
+            this.transitionBadge.classList.remove('hidden');
+            this.transitionBadge.classList.toggle('override', isOverrideAtLevel);
+            this.transitionBadge.classList.toggle('inherited', !isOverrideAtLevel);
         }
 
         if (this.transitionResetBtn?.element) {

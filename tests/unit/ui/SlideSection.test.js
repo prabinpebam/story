@@ -208,6 +208,11 @@ describe('SlideSection', () => {
 
                     this.element.appendChild(this.header);
                     this.element.appendChild(this.content);
+
+                    this._titleEl = titleEl;
+                }
+                setTitle(title) {
+                    if (this._titleEl) this._titleEl.textContent = title;
                 }
                 appendChild(el) {
                     this.content.appendChild(el);
@@ -338,6 +343,7 @@ describe('SlideSection', () => {
                 constructor() {
                     this.element = global.document.createElement('div');
                 }
+                setSlideId() {}
             }
         }));
 
@@ -672,6 +678,81 @@ describe('SlideSection', () => {
             expect(section.querySelector('[data-testid="transition-picker-trigger"]')).toBeTruthy();
             expect(section.querySelector('[data-testid="transition-duration-input"]')).toBeTruthy();
             expect(section.querySelector('[data-testid="transition-direction-grid"]')).toBeTruthy();
+            expect(section.querySelector('[data-testid="transition-inherited-badge"]')).toBeTruthy();
+            expect(section.querySelector('[data-testid="transition-source-label"]')).toBeTruthy();
+        });
+
+        it('should show Inherited badge and System default source when no override exists', () => {
+            const slideSection = new SlideSection();
+
+            // No explicit transition override at slide/layout/master
+            delete store.state.slides['slide-1'].styleAssignments;
+            delete store.state.slideMasterPresets['layout-title'].styleAssignments;
+            delete store.state.slideMasterPresets['master-default'].styleAssignments;
+
+            slideSection.updateTransitionDisplay();
+
+            const badge = slideSection.element.querySelector('[data-testid="transition-inherited-badge"]');
+            const resetBtn = slideSection.element.querySelector('[data-testid="transition-reset-btn"]');
+            const trigger = slideSection.element.querySelector('[data-testid="transition-picker-trigger"]');
+            const source = slideSection.element.querySelector('[data-testid="transition-source-label"]');
+
+            expect(badge).toBeTruthy();
+            expect(badge.textContent).toBe('Inherited');
+            expect(resetBtn.classList.contains('hidden')).toBe(true);
+
+            // Trigger label should reflect effective transition name
+            expect(trigger.textContent.toLowerCase()).toContain('cross fade');
+
+            // Truthful source line for no-config state
+            expect(source.textContent).toBe('Source: System default');
+        });
+
+        it('should show Override badge + reset button + Source: Slide when slide override exists', () => {
+            const slideSection = new SlideSection();
+
+            store.state.slides['slide-1'].styleAssignments = {
+                slideTransition: {
+                    type: 'wipe',
+                    direction: 'upLeft',
+                    durationMs: 300,
+                    easing: 'ease-in-out'
+                }
+            };
+
+            slideSection.updateTransitionDisplay();
+
+            const badge = slideSection.element.querySelector('[data-testid="transition-inherited-badge"]');
+            const resetBtn = slideSection.element.querySelector('[data-testid="transition-reset-btn"]');
+            const source = slideSection.element.querySelector('[data-testid="transition-source-label"]');
+
+            expect(badge.textContent).toBe('Override');
+            expect(resetBtn.classList.contains('hidden')).toBe(false);
+            expect(source.textContent).toBe('Source: Slide');
+        });
+
+        it('should show Source: Layout: <layout name> when inherited from a layout override', () => {
+            const slideSection = new SlideSection();
+
+            delete store.state.slides['slide-1'].styleAssignments;
+            store.state.slideMasterPresets['layout-title'].styleAssignments = {
+                slideTransition: {
+                    type: 'push',
+                    direction: 'right',
+                    durationMs: 300,
+                    easing: 'ease-in-out'
+                }
+            };
+
+            slideSection.updateTransitionDisplay();
+
+            const badge = slideSection.element.querySelector('[data-testid="transition-inherited-badge"]');
+            const resetBtn = slideSection.element.querySelector('[data-testid="transition-reset-btn"]');
+            const source = slideSection.element.querySelector('[data-testid="transition-source-label"]');
+
+            expect(badge.textContent).toBe('Inherited');
+            expect(resetBtn.classList.contains('hidden')).toBe(true);
+            expect(source.textContent).toBe('Source: Layout: Title Layout');
         });
 
         it('should render direction grid with aria-labels for wipe (8 directions)', () => {
@@ -862,6 +943,18 @@ describe('SlideSection', () => {
                     styleAssignments: { slideTransition: null }
                 })
             );
+        });
+    });
+
+    describe('SlideSection visibility rules', () => {
+        it('should hide slide properties when an element selection exists', () => {
+            const slideSection = new SlideSection();
+
+            slideSection.update(['element-1']);
+            expect(slideSection.element.classList.contains('hidden')).toBe(true);
+
+            slideSection.update([]);
+            expect(slideSection.element.classList.contains('hidden')).toBe(false);
         });
     });
 

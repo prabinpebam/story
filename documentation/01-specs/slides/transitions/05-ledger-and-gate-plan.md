@@ -28,8 +28,8 @@ Status legend: ✅ Done (locked) · 🟡 In progress · ❌ Not started · ⛔ B
 
 Verification evidence (run-once):
 - `npm test -- tests/unit/core/AnimationManager.test.js` → ✅ 1 file, 54 tests passed
-- `npm test -- tests/unit/ui/SlideSection.test.js` → ✅ 1 file, 21 tests passed
-- `npm test` → ✅ 187 files passed, 1 skipped; 4569 tests passed, 43 skipped
+- `npm test -- tests/unit/ui/SlideSection.test.js` → ✅ 1 file, 25 tests passed
+- `npm test` → ✅ 187 files passed, 1 skipped; 4573 tests passed, 43 skipped
 
 ---
 
@@ -248,14 +248,14 @@ Rules:
 | ST-069 | Gate 0 | ✅ | The effective transition for a slide MUST be computed as: | 02-transition-inheritance-and-property-inspector-ux.md — 1.6 Effective transition resolution | src/utils/StyleResolver.js | tests/unit/utils/StyleResolver.test.js |
 | ST-070 | Gate 0 | ✅ | The resolver MUST also return a source descriptor used by UI: | 02-transition-inheritance-and-property-inspector-ux.md — 1.6 Effective transition resolution | src/utils/StyleResolver.js | tests/unit/utils/StyleResolver.test.js (source + sourceId) |
 | ST-071 | Gate 1 | ✅ | A new **Slide Transition** section MUST appear in the Property Inspector when a slide is selected. | 02-transition-inheritance-and-property-inspector-ux.md — 2.1 Placement | src/ui/properties/SlideSection.js | tests/unit/ui/SlideSection.test.js (Transition Section) |
-| ST-072 | Gate 1 | 🟡 | It MUST be shown only when the selection is empty (same display condition as Slide properties). | 02-transition-inheritance-and-property-inspector-ux.md — 2.1 Placement | src/ui/properties/SlideSection.js | TBD (selection state coverage / Playwright) |
+| ST-072 | Gate 1 | ✅ | It MUST be shown only when the selection is empty (same display condition as Slide properties). | 02-transition-inheritance-and-property-inspector-ux.md — 2.1 Placement | src/ui/properties/SlideSection.js | tests/unit/ui/SlideSection.test.js (SlideSection visibility rules) |
 | ST-073 | Gate 1 | ✅ | The Transition section MUST be implemented inside the existing `SlideSection` architecture (same surface as Layout/Colors/Typography). | 02-transition-inheritance-and-property-inspector-ux.md — 2.1 Placement | src/ui/properties/SlideSection.js | tests/unit/ui/SlideSection.test.js |
 | ST-074 | Gate 1 | 🟡 | It MUST use existing components (`Section`, `Button`, `NumberInput`, `SegmentedControl`, and `Flyout`) and existing CSS tokens. | 02-transition-inheritance-and-property-inspector-ux.md — 2.1 Placement | src/ui/properties/SlideSection.js | tests/unit/ui/SlideSection.test.js (uses Section/Button/NumberInput/Flyout; SegmentedControl pending) |
 | ST-075 | Gate 1 | 🟡 | It MUST NOT introduce new colors/shadows/fonts; it MUST use global CSS variables. | 02-transition-inheritance-and-property-inspector-ux.md — 2.1 Placement | src/ui/properties/SlideSection.js | TBD (token audit / Playwright) |
 | ST-076 | Gate 1 | ✅ | The section MUST be collapsible, consistent with other PI sections. | 02-transition-inheritance-and-property-inspector-ux.md — 2.2 Section header | src/ui/properties/SlideSection.js | tests/unit/ui/SlideSection.test.js (Section structure) |
-| ST-077 | Gate 1 | 🟡 | The first row MUST show: | 02-transition-inheritance-and-property-inspector-ux.md — 2.3 Primary row (transition picker) | src/ui/properties/SlideSection.js | TBD (UI assertions for badge/name/source presence) |
-| ST-078 | Gate 1 | 🟡 | The transition section MUST reuse the badge semantics from the Slide section theme controls: | 02-transition-inheritance-and-property-inspector-ux.md — 2.4 Inheritance badge rules | src/ui/properties/SlideSection.js | TBD |
-| ST-079 | Gate 1 | 🟡 | The section MUST also display a source line: | 02-transition-inheritance-and-property-inspector-ux.md — 2.4 Inheritance badge rules | src/ui/properties/SlideSection.js; src/utils/StyleResolver.js | TBD |
+| ST-077 | Gate 1 | ✅ | The first row MUST show: | 02-transition-inheritance-and-property-inspector-ux.md — 2.3 Primary row (transition picker) | src/ui/properties/SlideSection.js | tests/unit/ui/SlideSection.test.js (Transition Section: effective name + primary row) |
+| ST-078 | Gate 1 | ✅ | The transition section MUST reuse the badge semantics from the Slide section theme controls: | 02-transition-inheritance-and-property-inspector-ux.md — 2.4 Inheritance badge rules | src/ui/properties/SlideSection.js | tests/unit/ui/SlideSection.test.js (Transition Section: Inherited/Override badge) |
+| ST-079 | Gate 1 | ✅ | The section MUST also display a source line: | 02-transition-inheritance-and-property-inspector-ux.md — 2.4 Inheritance badge rules | src/ui/properties/SlideSection.js; src/utils/StyleResolver.js | tests/unit/ui/SlideSection.test.js (Transition Section: source line) |
 | ST-080 | Gate 1 | ✅ | clicking reset MUST set `styleAssignments.slideTransition = null` for that slide | 02-transition-inheritance-and-property-inspector-ux.md — 2.5 “Reset to inherited” | src/ui/properties/SlideSection.js | tests/unit/ui/SlideSection.test.js (reset dispatch) |
 | ST-081 | Gate 1 | 🟡 | The picker MUST use the same implementation pattern as the existing layout picker flyout (`SlideSection.openLayoutFlyout()`): | 02-transition-inheritance-and-property-inspector-ux.md — 2.6 Transition picker flyout (reuse existing component) | src/ui/properties/SlideSection.js | tests/unit/ui/SlideSection.test.js (flyout opens) |
 | ST-082 | Gate 1 | ✅ | Flyout root element MUST set `role="dialog"` and `aria-label="Select Transition"`. | 02-transition-inheritance-and-property-inspector-ux.md — 2.6 Transition picker flyout (reuse existing component) | src/ui/properties/SlideSection.js; src/ui/components/Flyout.js | tests/unit/ui/SlideSection.test.js (Transition Section ARIA) |
