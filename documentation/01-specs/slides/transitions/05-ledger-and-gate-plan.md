@@ -27,7 +27,7 @@ Status legend: ✅ Done (locked) · 🟡 In progress · ❌ Not started · ⛔ B
 - ❌ Gate 5 (perf + telemetry): telemetry + perf gates not implemented
 
 Verification evidence (run-once):
-- `npm test -- tests/unit/core/AnimationManager.test.js` → ✅ 1 file, 54 tests passed
+- `npm test -- tests/unit/core/AnimationManager.test.js` → ✅ 1 file, 55 tests passed
 - `npm test -- tests/unit/ui/components/NumberInput.test.js` → ✅ 1 file, 62 tests passed
 - `npm test -- tests/unit/ui/components/Flyout.test.js` → ✅ 1 file, 27 tests passed
 - `npm test -- tests/unit/ui/SlideSection.test.js` → ✅ 1 file, 38 tests passed
@@ -215,7 +215,7 @@ Rules:
 | ST-033 | Gate 0 | ✅ | both MUST share a common container coordinate space | 01-phase-1-slide-transitions-spec.md — 9.2 DOM contract | src/core/AnimationManager.js | tests/unit/core/AnimationManager.test.js (absolute positioning) |
 | ST-034 | Gate 0 | ✅ | outgoing slide element MUST be removed (or fully hidden and detached without leaving interactive remnants) | 01-phase-1-slide-transitions-spec.md — 9.2 DOM contract | src/core/AnimationManager.js | tests/unit/core/AnimationManager.test.js (remove old content) |
 | ST-035 | Gate 0 | ✅ | incoming slide MUST become the only active slide | 01-phase-1-slide-transitions-spec.md — 9.2 DOM contract | src/core/AnimationManager.js | tests/unit/core/AnimationManager.test.js (append new + remove old) |
-| ST-036 | Gate 0 | ❌ | Outgoing slide MUST not retain interactive focusable elements that remain tabbable after removal (no focus leaks). | 01-phase-1-slide-transitions-spec.md — 9.2 DOM contract | TBD | TBD |
+| ST-036 | Gate 0 | ✅ | Outgoing slide MUST not retain interactive focusable elements that remain tabbable after removal (no focus leaks). | 01-phase-1-slide-transitions-spec.md — 9.2 DOM contract | src/core/AnimationManager.js | tests/unit/core/AnimationManager.test.js (no focus leaks) |
 | ST-037 | Gate 0 | 🟡 | the system MUST queue the newest target and transition to it after the current transition completes (no partial mid-flight jumps) | 01-phase-1-slide-transitions-spec.md — 9.3 Cancellation / re-entrancy | src/core/renderer/PresentationRenderer.js | TBD |
 | ST-038 | Gate 0 | 🟡 | the system MUST NOT leak DOM nodes from abandoned intermediate targets | 01-phase-1-slide-transitions-spec.md — 9.3 Cancellation / re-entrancy | src/core/renderer/PresentationRenderer.js | TBD |
 | ST-039 | Gate 3 | 🟡 | If both are animated, the sum of opacities MUST NOT exceed 1.2 in a way that causes unacceptable brightness pumping. | 01-phase-1-slide-transitions-spec.md — 10.1 Cross fade (`crossFade`) | src/core/AnimationManager.js | TBD (Playwright visual assertions) |

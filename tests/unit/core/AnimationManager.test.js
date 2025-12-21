@@ -212,6 +212,20 @@ describe('AnimationManager', () => {
             expect(container.contains(oldContent)).toBe(false);
         });
 
+        it('should not retain focus on elements from the outgoing slide after removal (no focus leaks)', async () => {
+            const btn = document.createElement('button');
+            btn.textContent = 'Focusable';
+            oldContent.appendChild(btn);
+
+            btn.focus();
+            expect(document.activeElement).toBe(btn);
+
+            await manager.transition(container, oldContent, newContent, 'none');
+
+            expect(btn.isConnected).toBe(false);
+            expect(document.activeElement).not.toBe(btn);
+        });
+
         it('should handle fade transition type', async () => {
             await manager.transition(container, oldContent, newContent, 'fade');
 
