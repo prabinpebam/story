@@ -247,22 +247,23 @@ Status legend: ✅ Done (locked) · 🟡 In progress · ❌ Not started · ⛔ B
 
 | MOR-ID | Gate | Status | Requirement summary | Spec location | Implementation | Automated verification |
 |---|---|---|---|---|---|---|
-| MOR-001 | Gate 0 | ❌ | `morph` is a canonical transition type and normalizes safely. | 05-morph-slide-transition-spec.md — 3) Transition configuration | TBD | Vitest: transition normalization |
-| MOR-002 | Gate 1 | ❌ | Morph MUST NOT start until incoming slide is ready; bounded wait fallback to `none`. | 05-morph-slide-transition-spec.md — 11) Readiness gating & lifecycle | TBD | Vitest + Playwright |
-| MOR-003 | Gate 1 | ❌ | No blank stage; outgoing+incoming overlap in DOM during transition. | 05-morph-slide-transition-spec.md — 10.1 Core invariant | TBD | Playwright |
-| MOR-004 | Gate 2 | ❌ | Name-based deterministic matching; duplicates resolved top-most. | 05-morph-slide-transition-spec.md — 5) Matching model | TBD | Vitest |
-| MOR-005 | Gate 3 | ❌ | Shared PI interpolation + zero-equivalent missing properties. | 05-morph-slide-transition-spec.md — 6) Property model | TBD | Vitest |
+| MOR-001 | Gate 0 | ✅ | `morph` is a canonical transition type and normalizes safely; storage round-trip supports `morph`. | 05-morph-slide-transition-spec.md — 3) Transition configuration | `src/core/presentation/SlideTransitionUtils.js` + storage | Vitest: `tests/unit/core/presentation/SlideTransitionUtils.morph.test.js`, `tests/unit/storage/SlideTransition.storage-roundtrip.test.js` |
+| MOR-002 | Gate 1 | ✅ | Morph MUST NOT start until incoming slide is ready; bounded wait fallback to `none`. | 05-morph-slide-transition-spec.md — 11) Readiness gating & lifecycle | `src/core/renderer/PresentationRenderer.js` (readiness gate) | Vitest: `tests/unit/core/renderer/PresentationRenderer.readiness-timeout.test.js` |
+| MOR-003A | Gate 1 | ✅ | Outgoing+incoming overlap in DOM during transition (no gap/blank stage risk). | 05-morph-slide-transition-spec.md — 10.1 Core invariant | `src/core/AnimationManager.js` + renderer orchestration | Playwright: `tests/e2e/specs/functional/presentation-transition-no-blank.spec.ts` (overlap window check) |
+| MOR-003B | Gate 1 | ✅ | No blank stage frame during morph transition. | 05-morph-slide-transition-spec.md — 10.1 Core invariant | `src/core/AnimationManager.js` + renderer orchestration | Playwright: `tests/e2e/specs/functional/presentation-transition-no-blank.spec.ts` (per-frame background sampling) |
+| MOR-003C | Gate 1 | ✅ | Incoming slide stays hidden until AnimationManager applies start state (prevents flash). | 05-morph-slide-transition-spec.md — 10.1 Core invariant | `src/core/renderer/PresentationRenderer.js` + `src/core/AnimationManager.js` | Vitest: `tests/unit/core/renderer/PresentationRenderer.transition-visibility.test.js` |
+| MOR-003D | Gate 1 | ✅ | Legacy `magic` remains unsupported unless explicitly mapped (no silent morph). | 05-morph-slide-transition-spec.md — 3) Transition configuration | `src/core/presentation/SlideTransitionUtils.js` + `src/utils/StyleResolver.js` | Vitest: `tests/unit/core/renderer/PresentationRenderer.legacy-transition-telemetry.test.js` |
+| MOR-003E | Gate 1 | ✅ | Reduced-motion forces `none` for `morph` (forced transition fallback). | 05-morph-slide-transition-spec.md — 3) Transition configuration | `src/core/renderer/PresentationRenderer.js` | Vitest: `tests/unit/core/renderer/PresentationRenderer.reduced-motion.test.js` |
+| MOR-004 | Gate 2 | ✅ | Name-based deterministic matching; duplicates resolved top-most; exposed for tests. | 05-morph-slide-transition-spec.md — 5) Matching model | `src/core/presentation/MorphMatching.js` + `src/core/AnimationManager.js` | Vitest: `tests/unit/core/presentation/MorphMatching.test.js` · Playwright: `tests/e2e/specs/functional/presentation-transition-no-blank.spec.ts` (duplicate determinism) |
+| MOR-005 | Gate 3 | ❌ | Shared PI interpolation + zero-equivalent missing properties + per-element fallback. | 05-morph-slide-transition-spec.md — 6) Property model | TBD | Vitest |
 | MOR-006 | Gate 4 | ❌ | Same-identity video/code preserves runtime state via state transfer; no duplicate instances. | 05-morph-slide-transition-spec.md — 12) Animated fill state continuity | TBD | Playwright |
-| MOR-007 | Gate 5 | ❌ | Telemetry events and privacy constraints enforced. | 05-morph-slide-transition-spec.md — 13) Telemetry | TBD | Vitest |
+| MOR-007 | Gate 5 | ❌ | Telemetry events and privacy constraints enforced (privacy-safe payloads). | 05-morph-slide-transition-spec.md — 13) Telemetry | TBD | Vitest |
 
-Suggested ledger expansions (required before implementation starts):
-- Split MOR-003 into separate “DOM overlap” and “no blank stage” rows.
-- Add explicit rows for:
-  - reduced-motion behavior
-  - legacy `magic` fallback/migration policy
-  - lifecycle attributes (`data-pm-transition-status`, `data-pm-transition-target`)
-  - no-audience-loader invariant
-  - leak-free cleanup after rapid navigation
+Ledger expansions status:
+- MOR-003 has been split into MOR-003A–MOR-003C and is now verified.
+- Legacy `magic` policy is verified via MOR-003D.
+- Reduced-motion coverage is tracked as MOR-003E (verified via unit evidence).
+- Lifecycle attributes + audience-clean + leak-free rapid navigation will be tracked under Gate 5 (to add rows when implementing Gate 5 stress/telemetry work).
 
 ---
 

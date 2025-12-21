@@ -46,6 +46,8 @@ export class SlideSection {
                 return 'None';
             case SLIDE_TRANSITION_TYPES.CROSS_FADE:
                 return 'Cross fade';
+            case SLIDE_TRANSITION_TYPES.MORPH:
+                return 'Morph';
             case SLIDE_TRANSITION_TYPES.WIPE:
                 return 'Wipe';
             case SLIDE_TRANSITION_TYPES.PUSH:
@@ -334,6 +336,7 @@ export class SlideSection {
         const options = [
             { type: SLIDE_TRANSITION_TYPES.NONE, label: 'None' },
             { type: SLIDE_TRANSITION_TYPES.CROSS_FADE, label: 'Cross fade' },
+            { type: SLIDE_TRANSITION_TYPES.MORPH, label: 'Morph' },
             { type: SLIDE_TRANSITION_TYPES.WIPE, label: 'Wipe' },
             { type: SLIDE_TRANSITION_TYPES.PUSH, label: 'Push' },
             { type: SLIDE_TRANSITION_TYPES.COVER, label: 'Cover' },
@@ -407,6 +410,16 @@ export class SlideSection {
                 endText.className = 'transition-preview__text';
                 endText.textContent = 'END';
                 layerNew.appendChild(endText);
+
+                if (opt.type === SLIDE_TRANSITION_TYPES.MORPH) {
+                    const shapeOld = document.createElement('div');
+                    shapeOld.className = 'transition-preview__morph-shape transition-preview__morph-shape--old';
+                    layerOld.appendChild(shapeOld);
+
+                    const shapeNew = document.createElement('div');
+                    shapeNew.className = 'transition-preview__morph-shape transition-preview__morph-shape--new';
+                    layerNew.appendChild(shapeNew);
+                }
 
                 preview.appendChild(layerOld);
                 preview.appendChild(layerNew);
@@ -589,6 +602,8 @@ export class SlideSection {
                 return 'None';
             case SLIDE_TRANSITION_TYPES.CROSS_FADE:
                 return 'Cross fade';
+            case SLIDE_TRANSITION_TYPES.MORPH:
+                return 'Morph';
             case SLIDE_TRANSITION_TYPES.WIPE:
                 return `Wipe${t.direction ? ` (${t.direction})` : ''}`;
             case SLIDE_TRANSITION_TYPES.PUSH:

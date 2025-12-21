@@ -1070,6 +1070,17 @@ describe('SlideSection', () => {
             expect(opts.length).toBeGreaterThan(0);
         });
 
+        it('should include Morph in the transition flyout options', () => {
+            const slideSection = new SlideSection();
+            slideSection.openTransitionFlyout();
+
+            const flyoutContent = slideSection.transitionFlyout.content;
+            const opts = Array.from(flyoutContent.querySelectorAll('[data-testid="transition-picker-option"]'));
+            const morphOpt = opts.find((el) => el.dataset.transitionType === 'morph');
+            expect(morphOpt).toBeTruthy();
+            expect(morphOpt.textContent).toContain('Morph');
+        });
+
         it('should apply required ARIA roles for the transition picker flyout', () => {
             const slideSection = new SlideSection();
             slideSection.openTransitionFlyout();

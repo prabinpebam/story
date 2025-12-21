@@ -43,7 +43,7 @@ function createStateWithTransitions() {
                 }
             }
         },
-        slideOrder: ['slide-1', 'slide-2'],
+        slideOrder: ['slide-1', 'slide-2', 'slide-morph'],
         slides: {
             'slide-1': {
                 id: 'slide-1',
@@ -66,6 +66,19 @@ function createStateWithTransitions() {
                 background: { type: 'solid', color: '#FFFFFF' },
                 styleAssignments: {
                     slideTransition: null
+                }
+            },
+            'slide-morph': {
+                id: 'slide-morph',
+                layoutId: 'layout-title',
+                elements: [],
+                background: { type: 'solid', color: '#FFFFFF' },
+                styleAssignments: {
+                    slideTransition: {
+                        type: 'morph',
+                        durationMs: 450,
+                        easing: 'ease-in-out'
+                    }
                 }
             }
         },
@@ -96,6 +109,13 @@ describe('Slide Transition storage round-trip', () => {
 
         const slide2 = await reader.readSlide('slide-2');
         expect(slide2.styleAssignments?.slideTransition).toBe(null);
+
+        const slideMorph = await reader.readSlide('slide-morph');
+        expect(slideMorph.styleAssignments?.slideTransition).toEqual({
+            type: 'morph',
+            durationMs: 450,
+            easing: 'ease-in-out'
+        });
 
         const masters = await reader.readMasters();
         expect(masters['master-default']?.styleAssignments?.slideTransition).toEqual({
@@ -145,5 +165,11 @@ describe('Slide Transition storage round-trip', () => {
 
         // Important: null must remain null (inherit), not replaced by a default config.
         expect(loaded.slides['slide-2']?.styleAssignments?.slideTransition).toBe(null);
+
+        expect(loaded.slides['slide-morph']?.styleAssignments?.slideTransition).toEqual({
+            type: 'morph',
+            durationMs: 450,
+            easing: 'ease-in-out'
+        });
     });
 });

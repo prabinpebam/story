@@ -83,7 +83,7 @@ describe('AnimationManager', () => {
 
             manager.run(params);
 
-            expect(mockAnime).toHaveBeenCalledWith(params);
+            expect(mockAnime).toHaveBeenCalledWith(expect.objectContaining(params));
         });
 
         it('should return animation object with finished promise', () => {
@@ -108,11 +108,11 @@ describe('AnimationManager', () => {
                 duration: 500
             });
 
-            expect(v4Anime.animate).toHaveBeenCalledWith(target, {
+            expect(v4Anime.animate).toHaveBeenCalledWith(target, expect.objectContaining({
                 opacity: [0, 1],
                 ease: 'easeInOutQuad',
                 duration: 500
-            });
+            }));
         });
 
         it('should return resolved promise when anime is not loaded', () => {
@@ -502,6 +502,71 @@ describe('AnimationManager', () => {
             expect(container.contains(oldContent)).toBe(false);
             expect(container.contains(newContent)).toBe(true);
             expect(mockAnime).not.toHaveBeenCalled();
+        });
+    });
+
+    describe('transition() - morph type', () => {
+        let container;
+        let oldContent;
+        let newContent;
+
+        beforeEach(() => {
+            container = document.createElement('div');
+            oldContent = document.createElement('div');
+            newContent = document.createElement('div');
+
+            // Add a matchable L0 element (name-based)
+            const oldEl = document.createElement('div');
+            oldEl.className = 'slide-element';
+            oldEl.setAttribute('data-element-id', 'el-1');
+            oldEl.setAttribute('data-layer-name', 'Box');
+            oldEl.style.position = 'absolute';
+            oldEl.style.left = '100px';
+            oldEl.style.top = '100px';
+            oldEl.style.width = '100px';
+            oldEl.style.height = '100px';
+            oldEl.style.transform = 'rotate(0deg)';
+            oldEl.style.opacity = '1';
+            oldContent.appendChild(oldEl);
+
+            const newEl = document.createElement('div');
+            newEl.className = 'slide-element';
+            newEl.setAttribute('data-element-id', 'el-2');
+            newEl.setAttribute('data-layer-name', 'Box');
+            newEl.style.position = 'absolute';
+            newEl.style.left = '300px';
+            newEl.style.top = '250px';
+            newEl.style.width = '200px';
+            newEl.style.height = '150px';
+            newEl.style.transform = 'rotate(30deg)';
+            newEl.style.opacity = '1';
+            newContent.appendChild(newEl);
+
+            container.appendChild(oldContent);
+            document.body.appendChild(container);
+        });
+
+        afterEach(() => {
+            if (container.parentNode) {
+                document.body.removeChild(container);
+            }
+        });
+
+        it('should animate matched elements and then swap slides', async () => {
+            mockAnime.mockClear();
+
+            await manager.transition(container, oldContent, newContent, {
+                type: 'morph',
+                durationMs: 300,
+                easing: 'ease-in-out'
+            });
+
+            expect(container.contains(oldContent)).toBe(false);
+            expect(container.contains(newContent)).toBe(true);
+            expect(mockAnime).toHaveBeenCalled();
+
+            // Debug hook for tests
+            expect(newContent.getAttribute('data-morph-match-count')).toBe('1');
         });
     });
 

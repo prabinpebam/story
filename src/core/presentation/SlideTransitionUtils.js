@@ -1,6 +1,7 @@
 export const SLIDE_TRANSITION_TYPES = {
     NONE: 'none',
     CROSS_FADE: 'crossFade',
+    MORPH: 'morph',
     WIPE: 'wipe',
     PUSH: 'push',
     COVER: 'cover',
@@ -59,6 +60,11 @@ export function normalizeSlideTransitionConfig(config) {
     }
 
     if (type === SLIDE_TRANSITION_TYPES.CROSS_FADE) {
+        return { type, durationMs, easing };
+    }
+
+    if (type === SLIDE_TRANSITION_TYPES.MORPH) {
+        // Phase 2+: Morph has no direction.
         return { type, durationMs, easing };
     }
 

@@ -48,6 +48,23 @@ export class VisualElement {
             div.removeAttribute('data-element-type');
         }
 
+        // Morph matching key (V1): layer name (trimmed, case-sensitive).
+        // Only set when a meaningful name exists; otherwise the element is unmatchable.
+        const rawName = typeof el?.name === 'string' ? el.name : '';
+        const trimmedName = rawName.trim();
+        if (trimmedName) {
+            div.setAttribute('data-layer-name', trimmedName);
+        } else {
+            div.removeAttribute('data-layer-name');
+        }
+
+        // Morph eligibility (V1): L0-only. ParentId presence is used as a simple eligibility signal.
+        if (el?.parentId) {
+            div.setAttribute('data-parent-id', String(el.parentId));
+        } else {
+            div.removeAttribute('data-parent-id');
+        }
+
         if (el?.source) {
             div.setAttribute('data-source', String(el.source));
         } else {

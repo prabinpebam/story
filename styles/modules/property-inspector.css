@@ -979,6 +979,31 @@ select.pi-input option {
     z-index: 2;
 }
 
+/* Morph preview: a simple box moves/changes size to imply object morphing. */
+.transition-preview__morph-shape {
+    position: absolute;
+    left: 22%;
+    top: 30%;
+    width: var(--spacing-6);
+    height: var(--spacing-5);
+    border-radius: var(--radius-xs);
+    background: var(--color-text-inverse);
+    transition:
+        transform var(--transition-preview-duration) var(--transition-preview-ease),
+        opacity var(--transition-preview-duration) var(--transition-preview-ease);
+    will-change: transform, opacity;
+}
+
+.transition-preview[data-transition-type="morph"] .transition-preview__morph-shape--old {
+    opacity: 1;
+    transform: translate(0, 0) scale(1);
+}
+
+.transition-preview[data-transition-type="morph"] .transition-preview__morph-shape--new {
+    opacity: 0;
+    transform: translate(40px, 20px) scale(1.15);
+}
+
 /* Hover state: play the preview once (via CSS transitions) */
 .layout-thumbnail:hover .transition-preview[data-transition-type="crossFade"] .transition-preview__layer--old {
     opacity: 0;
@@ -1014,6 +1039,15 @@ select.pi-input option {
 
 .layout-thumbnail:hover .transition-preview[data-transition-type="uncover"] .transition-preview__layer--old {
     transform: translateX(-100%);
+}
+
+.layout-thumbnail:hover .transition-preview[data-transition-type="morph"] .transition-preview__morph-shape--old {
+    opacity: 0;
+    transform: translate(40px, 20px) scale(1.15);
+}
+
+.layout-thumbnail:hover .transition-preview[data-transition-type="morph"] .transition-preview__morph-shape--new {
+    opacity: 1;
 }
 
 .layout-flyout-grid .layout-label {
