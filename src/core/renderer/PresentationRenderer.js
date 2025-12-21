@@ -29,6 +29,16 @@ export class PresentationRenderer extends BaseRenderer {
         this.render();
     }
 
+    _getReadinessBoundedWaitMs() {
+        // Renderer-level bounded wait governs *navigation blocking* when readiness is slow/failed.
+        // AssetReadiness still applies a per-asset timeout (default 8000ms) to keep probing bounded,
+        // but navigation should not be blocked beyond this shorter bounded wait (default 2000ms).
+        const state = store.getState();
+        const configured = Number(state?.presentation?.readinessBoundedWaitMs);
+        if (Number.isFinite(configured) && configured > 0) return configured;
+        return 2000;
+    }
+
     destroy() {
         if (this._prefetch) {
             this._prefetch.destroy();
@@ -193,10 +203,17 @@ export class PresentationRenderer extends BaseRenderer {
         this._setTransitionStatus('loading', newId);
         newView.domElement.style.visibility = 'hidden';
 
+        newView.domElement.classList.remove('slide-view--readiness-fallback');
+
+        const boundedWaitMs = this._getReadinessBoundedWaitMs();
+
         const readinessStart = nowMs();
-        await waitForSlideAssetsReady(newView.domElement);
+        const readinessTimedOut = await Promise.race([
+            waitForSlideAssetsReady(newView.domElement).then(() => false),
+            new Promise((resolve) => setTimeout(() => resolve(true), boundedWaitMs))
+        ]);
         const readinessEnd = nowMs();
-        const readinessMs = Math.max(0, readinessEnd - readinessStart);
+        const readinessMs = readinessTimedOut ? boundedWaitMs : Math.max(0, readinessEnd - readinessStart);
         telemetry.emit('transition_blocked_for_readiness', {
             blockedBucket: bucketMs(readinessMs),
             blockedMs: Math.round(readinessMs),
@@ -208,6 +225,17 @@ export class PresentationRenderer extends BaseRenderer {
             transitionType: effectiveTransition?.type,
             direction: effectiveTransition?.direction,
         });
+
+        if (readinessTimedOut) {
+            telemetry.emit('transition_fallback_to_none', {
+                reason: 'readiness-timeout',
+                transitionType: effectiveTransition?.type,
+                direction: effectiveTransition?.direction,
+            });
+            // Audience-safe placeholder: show slide background only (no loading indicator).
+            newView.domElement.classList.add('slide-view--readiness-fallback');
+            effectiveTransition = { type: 'none', durationMs: 0, easing: 'linear' };
+        }
 
         newView.domElement.style.visibility = 'visible';
 

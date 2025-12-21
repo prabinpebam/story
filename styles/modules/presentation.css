@@ -37,6 +37,11 @@ body.mode-presentation .placeholder-icon-container {
     display: none !important;
 }
 
+/* Readiness timeout fallback: keep audience DOM stable and safe by rendering background only. */
+body.mode-presentation .slide-view.slide-view--readiness-fallback > :not(.slide-background) {
+    visibility: hidden !important;
+}
+
 body.mode-presentation #main-stage {
     background-color: var(--color-presentation-stage-bg);
 }
