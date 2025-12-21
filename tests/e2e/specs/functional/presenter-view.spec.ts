@@ -136,6 +136,65 @@ test.describe('Presenter View (Gate 7)', () => {
         await expect(elapsed).toHaveText('00:00:00');
     });
 
+    test('should support rehearsal timings (per-slide + total) in presenter view', async ({ page, context }) => {
+        const editor = new EditorPage(page);
+
+        await installSyncSpy(context);
+        await editor.goto();
+        await editor.waitForLoad();
+
+        // Ensure we have at least 2 slides to navigate.
+        await editor.addSlideBtn.click();
+
+        // Open app menu → Present submenu → Presenter View.
+        await page.locator('.app-menu-trigger').click();
+        await page.locator('.app-menu-item:has(.app-menu-item-label:text-is("Present"))').click();
+        await expect(page.locator('.app-menu-dropdown.app-menu-submenu')).toBeVisible();
+
+        const popupPromise = page.waitForEvent('popup');
+        await page
+            .locator('.app-menu-dropdown.app-menu-submenu .app-menu-item:has(.app-menu-item-label:text-is("Presenter View"))')
+            .click();
+        const presenterPage = await popupPromise;
+        await presenterPage.waitForLoadState('domcontentloaded');
+
+        await expect(presenterPage.locator('[data-testid="presenter-view-panel"]')).toBeVisible();
+
+        const rehearse = presenterPage.locator('[data-testid="presenter-rehearse"]');
+        const pause = presenterPage.locator('[data-testid="presenter-pause"]');
+        const summary = presenterPage.locator('[data-testid="presenter-rehearsal"]');
+        const next = presenterPage.locator('[data-testid="presenter-next"]');
+        const progress = presenterPage.locator('[data-testid="presenter-progress"]');
+
+        // Enable rehearsal.
+        await rehearse.click();
+        await expect(rehearse).toHaveAttribute('aria-pressed', 'true');
+
+        // Wait until it ticks to at least 1s total.
+        await expect
+            .poll(async () => (await summary.textContent()) || '', { timeout: 5000 })
+            .toContain('Total 00:00:01');
+
+        // Slide change should reset per-slide timer (total continues).
+        await next.click();
+        await expect(progress).toContainText('Slide 2/2');
+        await expect
+            .poll(async () => (await summary.textContent()) || '', { timeout: 5000 })
+            .toMatch(/Slide 00:00:0[01]/);
+
+        // Pause should freeze rehearsal timing as well.
+        const frozen = (await summary.textContent()) || '';
+        await pause.click();
+        await presenterPage.waitForTimeout(1500);
+        await expect(summary).toHaveText(frozen);
+
+        // Resume should allow it to advance again.
+        await pause.click();
+        await expect
+            .poll(async () => (await summary.textContent()) || '', { timeout: 5000 })
+            .not.toBe(frozen);
+    });
+
     test('should swap presenter role between windows (Swap Displays)', async ({ page, context }) => {
         const editor = new EditorPage(page);
 

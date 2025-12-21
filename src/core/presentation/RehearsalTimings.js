@@ -81,6 +81,10 @@ export function resumeRehearsal(state, now = Date.now()) {
         ...state,
         pausedAt: null,
         pausedMs: (Number(state.pausedMs) || 0) + pausedDuration,
+        // Ensure per-slide timing does not include paused duration.
+        slideStartedAt: (typeof state.slideStartedAt === 'number')
+            ? state.slideStartedAt + pausedDuration
+            : state.slideStartedAt,
     };
 }
 

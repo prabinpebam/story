@@ -15,7 +15,7 @@ References (must stay in sync):
 
 ---
 
-## Current Status (as of December 20, 2025)
+## Current Status (as of December 21, 2025)
 
 Status legend: ✅ Done (locked) · 🟡 In progress · ❌ Not started · ⛔ Blocked
 
@@ -37,7 +37,7 @@ Status legend: ✅ Done (locked) · 🟡 In progress · ❌ Not started · ⛔ B
   - Remaining: expand forced-colors/contrast coverage beyond smoke.
 
 - 🟡 Gate 9: In progress (observability/CI quality gates).
-- 🟡 Gates 10–11: In progress (kiosk/autoplay done; remaining: rehearsal/timer workflows if required + final parity audit).
+- 🟡 Gates 10–11: In progress (Gate 10 complete; remaining: final parity audit).
 
 ---
 
@@ -65,7 +65,7 @@ Gate details live in **Section 6**. This section is the quick status index.
 - ✅ Gate 7 — Presenter View + security/privacy boundary
 - 🟡 Gate 8 — Accessibility + theming discipline
 - 🟡 Gate 9 — Observability + CI quality gates
-- 🟡 Gate 10 — Kiosk/autoplay/rehearsal modes
+- ✅ Gate 10 — Kiosk/autoplay/rehearsal modes
 - ❌ Gate 11 — Final parity audit (“no spec/impl gaps”)
 
 ---
@@ -644,7 +644,7 @@ This is the **hardened** gate plan. It is intentionally more granular and more m
   - Remaining:
     - Expand crash fixture coverage and add explicit regression test for gated perf failure.
 
-### Gate 10 🟡 — Kiosk/autoplay/rehearsal modes
+### Gate 10 ✅ — Kiosk/autoplay/rehearsal modes
 **Goal:** implement unattended loops and rehearsal workflows deterministically.
 - Implement kiosk and rehearsal behind feature flags.
 - Exit criteria:
@@ -652,7 +652,12 @@ This is the **hardened** gate plan. It is intentionally more granular and more m
   - Current: kiosk/autoplay + loop + disableInput + optional password-hash exit implemented and covered by:
     - Unit: tests/unit/core/presentation/KioskMode.test.js
     - E2E: tests/e2e/specs/functional/kiosk-mode.spec.ts
-  - Remaining: rehearsal/timer workflows if required by benchmark parity checklist.
+  - Interruption policy: user input resets autoplay countdown, covered by:
+    - Unit: tests/unit/core/presentation/KioskMode.test.js
+    - E2E: tests/e2e/specs/functional/kiosk-mode.spec.ts
+  - Rehearsal timings (per-slide + total) + pause/resume semantics in Presenter View, covered by:
+    - Unit: tests/unit/core/presentation/RehearsalTimings.test.js
+    - E2E: tests/e2e/specs/functional/presenter-view.spec.ts
 
 ### Gate 11 ❌ — Final parity audit (“no spec/impl gaps”)
 **Goal:** formal sign-off.
