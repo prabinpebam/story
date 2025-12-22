@@ -56,7 +56,8 @@ This plan MUST satisfy the app principles:
 - Interpolation: base geometry + opacity, plus “shared PI” interpolation with zero-equivalent semantics.
 - Fallbacks: per-element cross-fade when incompatible; per-navigation fallback to `none` under readiness bounded-wait timeout.
 - Readiness: MUST use the shared readiness contract and maintain “no audience loader” rules.
-- Video + Code continuity: preserve runtime state when identities match using **state transfer** (per spec).
+- Backgrounds: solid/gradient/image/video/code MUST cross-fade during Morph.
+- Video + Code continuity: preserve runtime state when identities match using **state transfer or instance reuse** (per spec).
 - Telemetry: emit the same transition + readiness/perf telemetry events as other transitions (privacy-safe).
 - Testing: Vitest + Playwright coverage per spec, including continuity assertions.
 
@@ -255,9 +256,11 @@ Status legend: ✅ Done (locked) · 🟡 In progress · ❌ Not started · ⛔ B
 | MOR-003D | Gate 1 | ✅ | Legacy `magic` remains unsupported unless explicitly mapped (no silent morph). | 05-morph-slide-transition-spec.md — 3) Transition configuration | `src/core/presentation/SlideTransitionUtils.js` + `src/utils/StyleResolver.js` | Vitest: `tests/unit/core/renderer/PresentationRenderer.legacy-transition-telemetry.test.js` |
 | MOR-003E | Gate 1 | ✅ | Reduced-motion forces `none` for `morph` (forced transition fallback). | 05-morph-slide-transition-spec.md — 3) Transition configuration | `src/core/renderer/PresentationRenderer.js` | Vitest: `tests/unit/core/renderer/PresentationRenderer.reduced-motion.test.js` |
 | MOR-004 | Gate 2 | ✅ | Name-based deterministic matching; duplicates resolved top-most; exposed for tests. | 05-morph-slide-transition-spec.md — 5) Matching model | `src/core/presentation/MorphMatching.js` + `src/core/AnimationManager.js` | Vitest: `tests/unit/core/presentation/MorphMatching.test.js` · Playwright: `tests/e2e/specs/functional/presentation-transition-no-blank.spec.ts` (duplicate determinism) |
-| MOR-005 | Gate 3 | ❌ | Shared PI interpolation + zero-equivalent missing properties + per-element fallback. | 05-morph-slide-transition-spec.md — 6) Property model | TBD | Vitest |
-| MOR-006 | Gate 4 | ❌ | Same-identity video/code preserves runtime state via state transfer; no duplicate instances. | 05-morph-slide-transition-spec.md — 12) Animated fill state continuity | TBD | Playwright |
-| MOR-007 | Gate 5 | ❌ | Telemetry events and privacy constraints enforced (privacy-safe payloads). | 05-morph-slide-transition-spec.md — 13) Telemetry | TBD | Vitest |
+| MOR-004B | Gate 2 | ✅ | Duplicate-name conflict indicator is shown in Layers (non-blocking; theme-safe via tokens). | 05-morph-slide-transition-spec.md — 5.2 Duplicate names | `src/ui/LayerTree.js` + `styles/modules/components.css` | Playwright: `tests/e2e/specs/ui/layer-name-conflict-indicator.spec.ts` |
+| MOR-005A | Gate 3 | ✅ | Morph interpolates base geometry + opacity for matched L0 elements; unmatched elements fade; slide background cross-fades. | 05-morph-slide-transition-spec.md — 10.2, 10.3 | `src/core/AnimationManager.js` | Vitest: `tests/unit/core/AnimationManager.test.js` · Playwright: `tests/e2e/specs/functional/morph-element-coverage.spec.ts`, `tests/e2e/specs/functional/morph-background-stateful.spec.ts` |
+| MOR-005B | Gate 3 | ✅ | Shared PI interpolation + zero-equivalent missing properties + per-element fallback when incompatible. | 05-morph-slide-transition-spec.md — 6) Property model | `src/core/AnimationManager.js` | Vitest: `tests/unit/core/AnimationManager.test.js` |
+| MOR-006 | Gate 4 | ✅ | Background continuity: same-identity code/video preserves runtime state; different identities cross-fade while both continue during the transition; no duplicate instances after completion. | 05-morph-slide-transition-spec.md — 12) Animated fill state continuity | `src/core/renderer/PresentationRenderer.js` (bg transfer) + `src/core/AnimationManager.js` (bg cross-fade) | Playwright: `tests/e2e/specs/functional/morph-background-stateful.spec.ts` (code continuity), `tests/e2e/specs/functional/morph-background-video.spec.ts` (video continuity) |
+| MOR-007 | Gate 5 | ✅ | Telemetry events and privacy constraints enforced (privacy-safe payloads). | 05-morph-slide-transition-spec.md — 13) Telemetry | `src/core/telemetry/Telemetry.js` + `src/core/renderer/PresentationRenderer.js` | Vitest: `tests/unit/core/telemetry/Telemetry.test.js`, `tests/unit/core/renderer/PresentationRenderer.telemetry.test.js` |
 
 Ledger expansions status:
 - MOR-003 has been split into MOR-003A–MOR-003C and is now verified.

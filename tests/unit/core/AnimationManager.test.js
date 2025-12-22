@@ -260,6 +260,244 @@ describe('AnimationManager', () => {
             expect(container.contains(newContent)).toBe(true);
         });
 
+        describe('morph (PI-driven interpolation)', () => {
+            const makeSlideEl = ({
+                id,
+                name,
+                left = '0px',
+                top = '0px',
+                width = '100px',
+                height = '100px',
+                transform = 'rotate(0deg)',
+                opacity = '1',
+                borderRadius,
+                fill,
+                stroke
+            }) => {
+                const el = document.createElement('div');
+                el.className = 'slide-element';
+                el.setAttribute('data-element-id', id);
+                if (name !== undefined) el.setAttribute('data-layer-name', name);
+                el.style.position = 'absolute';
+                el.style.left = left;
+                el.style.top = top;
+                el.style.width = width;
+                el.style.height = height;
+                el.style.transform = transform;
+                el.style.opacity = opacity;
+                if (borderRadius !== undefined) el.style.borderRadius = borderRadius;
+
+                if (fill) {
+                    const layer = document.createElement('div');
+                    layer.className = 'fill-layer';
+                    layer.style.position = 'absolute';
+                    layer.style.inset = '0px';
+                    if (fill.kind === 'solid') {
+                        layer.style.backgroundColor = fill.color;
+                    } else if (fill.kind === 'gradient') {
+                        layer.style.background = fill.value;
+                    }
+                    if (fill.opacity !== undefined) layer.style.opacity = String(fill.opacity);
+                    el.appendChild(layer);
+                }
+
+                if (stroke) {
+                    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+                    svg.setAttribute('class', 'stroke-layer');
+                    svg.style.opacity = String(stroke.opacity ?? 1);
+                    const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+                    rect.setAttribute('stroke-width', String(stroke.width ?? 0));
+                    rect.setAttribute('stroke', stroke.color ?? '#000');
+                    svg.appendChild(rect);
+                    el.appendChild(svg);
+                }
+
+                return el;
+            };
+
+            it('should interpolate borderRadius for matched elements when compatible', async () => {
+                mockAnime.mockClear();
+
+                const src = makeSlideEl({
+                    id: 'src1',
+                    name: 'Box',
+                    left: '10px',
+                    top: '10px',
+                    width: '100px',
+                    height: '60px',
+                    borderRadius: '4px',
+                    fill: { kind: 'solid', color: '#ff0000', opacity: 1 }
+                });
+                const dst = makeSlideEl({
+                    id: 'dst1',
+                    name: 'Box',
+                    left: '210px',
+                    top: '110px',
+                    width: '160px',
+                    height: '90px',
+                    borderRadius: '12px',
+                    fill: { kind: 'solid', color: '#00ff00', opacity: 1 }
+                });
+
+                oldContent.appendChild(src);
+                newContent.appendChild(dst);
+
+                await manager.transition(container, oldContent, newContent, { type: 'morph', durationMs: 300, easing: 'linear' });
+
+                const calls = mockAnime.mock.calls.map((c) => c[0]);
+                const dstCall = calls.find((p) => p && p.targets === dst && Object.prototype.hasOwnProperty.call(p, 'borderRadius'));
+                expect(dstCall).toBeTruthy();
+                expect(dstCall.borderRadius).toEqual(['4px', '12px']);
+            });
+
+            it('should animate source geometry too when falling back to per-element crossfade', async () => {
+                mockAnime.mockClear();
+
+                const src = makeSlideEl({
+                    id: 'src2',
+                    name: 'Thing',
+                    left: '10px',
+                    top: '10px',
+                    width: '100px',
+                    height: '60px',
+                    fill: { kind: 'gradient', value: 'linear-gradient(90deg, #f00, #00f)', opacity: 1 }
+                });
+                const dst = makeSlideEl({
+                    id: 'dst2',
+                    name: 'Thing',
+                    left: '210px',
+                    top: '110px',
+                    width: '160px',
+                    height: '90px',
+                    fill: { kind: 'solid', color: '#00ff00', opacity: 1 }
+                });
+
+                oldContent.appendChild(src);
+                newContent.appendChild(dst);
+
+                await manager.transition(container, oldContent, newContent, { type: 'morph', durationMs: 300, easing: 'linear' });
+
+                const calls = mockAnime.mock.calls.map((c) => c[0]);
+                const srcGeom = calls.find((p) => p && p.targets === src && Object.prototype.hasOwnProperty.call(p, 'left') && Object.prototype.hasOwnProperty.call(p, 'top'));
+                expect(srcGeom).toBeTruthy();
+                expect(srcGeom.left).toEqual(['10px', '210px']);
+                expect(srcGeom.top).toEqual(['10px', '110px']);
+            });
+
+            it('should treat missing stroke as zero-equivalent and animate stroke opacity in', async () => {
+                mockAnime.mockClear();
+
+                const src = makeSlideEl({
+                    id: 'src3',
+                    name: 'StrokeBox',
+                    left: '0px',
+                    top: '0px',
+                    width: '100px',
+                    height: '60px',
+                    fill: { kind: 'solid', color: '#ffffff', opacity: 1 }
+                });
+                const dst = makeSlideEl({
+                    id: 'dst3',
+                    name: 'StrokeBox',
+                    left: '100px',
+                    top: '100px',
+                    width: '140px',
+                    height: '80px',
+                    fill: { kind: 'solid', color: '#ffffff', opacity: 1 },
+                    stroke: { width: 8, color: '#ff00ff', opacity: 1 }
+                });
+
+                oldContent.appendChild(src);
+                newContent.appendChild(dst);
+
+                await manager.transition(container, oldContent, newContent, { type: 'morph', durationMs: 300, easing: 'linear' });
+
+                const strokeLayer = dst.querySelector('.stroke-layer');
+                expect(strokeLayer).toBeTruthy();
+
+                const calls = mockAnime.mock.calls.map((c) => c[0]);
+                const strokeOpacityCall = calls.find((p) => p && p.targets === strokeLayer && Array.isArray(p.opacity) && p.opacity[0] === 0);
+                expect(strokeOpacityCall).toBeTruthy();
+            });
+
+            it('should interpolate solid fill layer color and opacity when compatible', async () => {
+                mockAnime.mockClear();
+
+                const src = makeSlideEl({
+                    id: 'src4',
+                    name: 'FillBox',
+                    left: '0px',
+                    top: '0px',
+                    width: '100px',
+                    height: '60px',
+                    fill: { kind: 'solid', color: '#ff0000', opacity: 0.4 }
+                });
+                const dst = makeSlideEl({
+                    id: 'dst4',
+                    name: 'FillBox',
+                    left: '100px',
+                    top: '100px',
+                    width: '140px',
+                    height: '80px',
+                    fill: { kind: 'solid', color: '#00ff00', opacity: 1 }
+                });
+
+                oldContent.appendChild(src);
+                newContent.appendChild(dst);
+
+                await manager.transition(container, oldContent, newContent, { type: 'morph', durationMs: 300, easing: 'linear' });
+
+                const dstFillLayer = dst.querySelector('.fill-layer');
+                expect(dstFillLayer).toBeTruthy();
+
+                const calls = mockAnime.mock.calls.map((c) => c[0]);
+                const fillOpacityCall = calls.find((p) => p && p.targets === dstFillLayer && Array.isArray(p.opacity));
+                expect(fillOpacityCall).toBeTruthy();
+
+                const fillColorCall = calls.find((p) => p && p.targets === dstFillLayer && Object.prototype.hasOwnProperty.call(p, 'backgroundColor'));
+                expect(fillColorCall).toBeTruthy();
+                const norm = (c) => String(c).replace(/\s+/g, '').toLowerCase();
+                expect(fillColorCall.backgroundColor.map(norm)).toEqual([
+                    norm('rgb(255, 0, 0)'),
+                    norm('rgb(0, 255, 0)')
+                ]);
+            });
+
+            it('should treat missing fill as zero-equivalent and fade the destination fill in', async () => {
+                mockAnime.mockClear();
+
+                const src = makeSlideEl({
+                    id: 'src5',
+                    name: 'NoFillBox',
+                    left: '0px',
+                    top: '0px',
+                    width: '100px',
+                    height: '60px'
+                });
+                const dst = makeSlideEl({
+                    id: 'dst5',
+                    name: 'NoFillBox',
+                    left: '100px',
+                    top: '100px',
+                    width: '140px',
+                    height: '80px',
+                    fill: { kind: 'solid', color: '#00ff00', opacity: 1 }
+                });
+
+                oldContent.appendChild(src);
+                newContent.appendChild(dst);
+
+                await manager.transition(container, oldContent, newContent, { type: 'morph', durationMs: 300, easing: 'linear' });
+
+                const dstFillLayer = dst.querySelector('.fill-layer');
+                expect(dstFillLayer).toBeTruthy();
+
+                const calls = mockAnime.mock.calls.map((c) => c[0]);
+                const fillOpacityCall = calls.find((p) => p && p.targets === dstFillLayer && Array.isArray(p.opacity) && p.opacity[0] === 0);
+                expect(fillOpacityCall).toBeTruthy();
+            });
+        });
+
         it('should fall back to none for unsupported legacy transition strings', async () => {
             mockAnime.mockClear();
 

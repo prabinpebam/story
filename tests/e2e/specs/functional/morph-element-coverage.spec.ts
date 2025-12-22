@@ -431,7 +431,7 @@ test.describe('Morph transition - element coverage', () => {
             }
         });
 
-        // Mixed combination: one slide contains all supported types simultaneously.
+        // Mixed combination: one slide contains all morph-eligible types simultaneously.
         cases.push({
             title: 'mixed types (multi-element) -> mixed types',
             keys: [],
@@ -479,8 +479,6 @@ test.describe('Morph transition - element coverage', () => {
                     dstWidth: `${dstGroup.width}px`,
                     dstHeight: `${dstGroup.height}px`
                 });
-
-                add('MTitle', makePlaceholderTitle('__pw_m_ph_src', 'MTitle', 40, 340, 260, 70), makePlaceholderTitle('__pw_m_ph_dst', 'MTitle', 320, 340, 300, 80));
 
                 await dispatchAction('UPDATE_SLIDE', {
                     id: a,

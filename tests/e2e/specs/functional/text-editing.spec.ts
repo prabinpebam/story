@@ -144,13 +144,29 @@ test.describe('Text Editing Scenarios', () => {
     await editor.setActiveTool('text');
     await canvas.clickAt(0.35, 0.35);
     await canvas.typeText('Select All Check');
-    await canvas.clickAt(0.1, 0.1); // Commit
+    await canvas.clickAt(0.5, 0.5); // Commit
     await editor.setActiveTool('select');
 
-    const textEl = page.locator('#slide-content .slide-element', { hasText: 'Select All Check' }).first();
+    // Resolve the new element id from app state (text content can be sanitized HTML).
+    const resolveId = async () => {
+      const deadline = Date.now() + 5000;
+      while (Date.now() < deadline) {
+        const state = await editor.getState();
+        const slide = state.slides[state.editor.activeSlideId];
+        const els = slide?.elements || {};
+        for (const [id, el] of Object.entries<any>(els)) {
+          if (el?.type === 'text' && String(el?.content || '').includes('Select All Check')) return id;
+        }
+        await page.waitForTimeout(50);
+      }
+      return null;
+    };
+
+    const elementId = await resolveId();
+    if (!elementId) throw new Error('Select All Check: failed to resolve element id from state');
+
+    const textEl = page.locator(`#slide-content .slide-element[data-element-id="${elementId}"]`);
     await expect(textEl).toBeVisible();
-    const elementId = await textEl.getAttribute('data-element-id');
-    if (!elementId) throw new Error('Select All Check text element missing data-element-id');
 
     await page.evaluate((id) => {
       const store = (window as any).__TEST_STORE__ || (window as any)._storyAppStore;
@@ -175,8 +191,7 @@ test.describe('Text Editing Scenarios', () => {
     expect(enterSelection.selected).toBe(enterSelection.fullText);
 
     // Exit edit mode
-    const modifier = process.platform === 'darwin' ? 'Meta' : 'Control';
-    await page.keyboard.press(`${modifier}+Enter`);
+    await page.keyboard.press('Escape');
     await expect(textEl).not.toHaveAttribute('contenteditable', 'true');
 
     // Double click: caret only (no select-all)

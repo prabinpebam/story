@@ -1,6 +1,6 @@
 # Morph (PowerPoint-style) — Slide Transition Spec (V1)
 
-Status: **spec complete; implementation pending**.
+Status: **spec complete; implementation in progress**. (Implementation status is tracked in `documentation/01-specs/slides/transitions/06-morph-ledger-and-gate-plan.md`.)
 
 This document defines an implementation-oriented spec for a **Morph** slide transition.
 
@@ -332,6 +332,22 @@ During an animated Morph transition:
 Implementation alignment note:
 - Presentation navigation commonly mounts a new slide view and unmounts the old one after the transition completes. Morph continuity for stateful fills (Section 12) therefore requires explicit orchestration (instance reuse or state transfer) and cannot be achieved by asset prefetch alone.
 
+### 10.3 Slide background behavior (required)
+
+During Morph, the slide background MUST cross-fade as part of the transition, independent of per-element matching.
+
+Normative requirements:
+- The source slide background and destination slide background MUST both exist in the DOM during the transition window (supports no-blank-stage).
+- The transition MUST cross-fade background opacity from source→destination for all background fill categories:
+  - solid
+  - gradient
+  - image
+  - video
+  - code
+
+Stateful background rule:
+- When the background fill is `code` or `video`, Morph MUST additionally apply the continuity rules in Section 12.
+
 ## 11) Readiness gating & lifecycle
 
 Morph MUST reuse the existing readiness model:
@@ -351,13 +367,31 @@ Timeout behavior:
 
 This section captures a special-case requirement:
 - **Video** and **Code** fills are stateful/animated at runtime.
-- When a matched element has the **same** video/code fill identity on both slides, Morph MUST preserve that runtime state (no reset) across the transition.
+- When the destination would otherwise restart a stateful fill that is effectively “the same”, Morph MUST preserve the runtime state across the transition.
+
+Applies to:
+- Slide background fills (Section 10.3), and
+- Matched element fills (when/if element-level continuity is implemented).
 
 This is distinct from presentation-mode caching:
 - Prefetch/readiness can warm assets (e.g., decode images, preload video first frame), but it **does not** preserve runtime instances (e.g., an `HTMLVideoElement` playback position or a `CodeRunner` timebase).
 - Therefore, state continuity MUST be implemented by Morph’s orchestration (instance reuse or explicit state transfer).
 
 ### 12.1 When continuity applies (normative)
+
+#### Slide background continuity
+
+Continuity applies when all of the following are true:
+- The transition type is `morph`.
+- The effective background fill on the source slide and destination slide is a stateful type (`code` or `video`).
+- The background fill identity matches (Section 12.2).
+
+If identity does not match:
+- Morph MUST cross-fade the two backgrounds.
+- Morph MUST NOT stop or pause either background at transition start; both are allowed to continue running during the cross-fade window.
+- After the transition completes, only the destination slide remains active; the source slide background may then be stopped/removed as part of unmount.
+
+#### Matched element fill continuity
 
 Continuity applies only when all of the following are true:
 - The source element and destination element are a Morph **match** (Section 5).
@@ -376,7 +410,9 @@ Continuity priority:
 
 A video fill is considered “the same” if:
 - `fill.type === 'video'` on both sides, and
-- `fill.assetId` is present on both sides and exactly equal.
+- one of the following identities matches:
+  - `fill.assetId` is present on both sides and exactly equal, OR
+  - (if `assetId` is missing) the effective `fill.value` (URL/string) matches exactly.
 
 Video fill settings reconciliation (normative):
 - Identity matching is based on `assetId` only.
@@ -419,12 +455,12 @@ Resource lifecycle requirements (normative):
 Allowed implementation strategies (non-normative guidance):
 
 V1 implementation strategy (normative):
-- **State transfer**: V1 MUST create the destination instance and copy forward runtime state.
-  - For video: set destination playback position + play/pause state without resetting playback.
-  - For code: apply a continuity time offset so the destination continues without restarting the timebase.
+- Continuity MAY be implemented via **instance reuse** (e.g., DOM reparenting) OR **state transfer**.
+  - Video: preserve playback position + play/pause state best-effort (autoplay policies apply).
+  - Code: preserve the animation timebase (no restart) and handle resize/bounds updates.
 
-Non-goal in V1:
-- Instance reuse / DOM reparenting is not required.
+Note:
+- Instance reuse is acceptable in V1 as long as it remains deterministic and does not violate cleanup guarantees.
 
 Note:
 - Prefetching video to first frame is still valuable for avoiding black/blank frames, but it does not satisfy continuity by itself.

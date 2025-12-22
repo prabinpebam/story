@@ -394,10 +394,19 @@ export class PresentationRenderer extends BaseRenderer {
                         return null;
                     };
 
+                    const normalizeCodeIdentity = (code) => {
+                        if (code == null) return '';
+                        try {
+                            return String(code).replace(/\r\n/g, '\n').trim();
+                        } catch {
+                            return '';
+                        }
+                    };
+
                     const fillKey = (fill) => {
                         if (!fill) return '';
                         if (fill.type === 'code') {
-                            return `code:${String(fill.code || fill.value || '')}`;
+                            return `code:${normalizeCodeIdentity(fill.code || fill.value || '')}`;
                         }
                         if (fill.type === 'video') {
                             if (fill.assetId) return `video:asset:${String(fill.assetId)}`;

@@ -13,6 +13,70 @@ export class LayerTree {
         this.init();
     }
 
+    getMorphMatchKeyForElement(el) {
+        const rawName = typeof el?.name === 'string' ? el.name : '';
+        const trimmed = rawName.trim();
+        if (trimmed) return trimmed;
+
+        const kind = getShapeKind(el);
+        switch (kind) {
+            case 'rectangle':
+                return 'Rect';
+            case 'ellipse':
+                return 'Circle';
+            case 'line':
+                return 'Line';
+            case 'vector':
+                return 'Vector';
+            case 'boolean':
+                return 'Boolean';
+            case 'mask':
+                return 'Mask';
+            default:
+                break;
+        }
+
+        switch (el?.type) {
+            case 'rect':
+            case 'rectangle':
+                return 'Rect';
+            case 'circle':
+            case 'ellipse':
+                return 'Circle';
+            case 'line':
+                return 'Line';
+            case 'vector':
+                return 'Vector';
+            case 'shape':
+                return 'Shape';
+            case 'text':
+                return 'Text';
+            case 'image':
+                return 'Image';
+            case 'svg':
+                return 'Svg';
+            case 'group':
+                return 'Group';
+            case 'placeholder': {
+                const t = typeof el.placeholderType === 'string' ? el.placeholderType.trim() : '';
+                if (t) {
+                    const placeholderNames = {
+                        title: 'Title Placeholder',
+                        subtitle: 'Subtitle Placeholder',
+                        body: 'Body Placeholder',
+                        text: 'Text Placeholder',
+                        picture: 'Picture Placeholder',
+                        media: 'Media Placeholder'
+                    };
+                    return placeholderNames[t] || 'Placeholder';
+                }
+                return 'Placeholder';
+            }
+            default:
+                return '';
+        }
+    }
+
     init() {
         this.render();
         store.on('state-changed', () => this.render());
@@ -121,6 +185,20 @@ export class LayerTree {
 
         const list = document.createElement('div');
         list.className = 'layer-list';
+
+        // Morph duplicate-name (match-key) conflicts: L0-only.
+        const morphNameCounts = new Map();
+        orderToRender.forEach((id) => {
+            if (hiddenIds.has(id)) return;
+            const el = elementsToRender[id];
+            if (!el) return;
+            if (el.parentId) return; // L0 only
+            const key = this.getMorphMatchKeyForElement(el);
+            if (!key) return;
+            const normalized = key.trim();
+            if (!normalized) return;
+            morphNameCounts.set(normalized, (morphNameCounts.get(normalized) || 0) + 1);
+        });
         
         // Group elements by source
         const slideElements = [];
@@ -141,20 +219,20 @@ export class LayerTree {
         // Render in reverse order (Front to Back visually)
         // Slide elements on top
         [...slideElements].reverse().forEach(el => {
-            list.appendChild(this.createLayerItem(el, 0, currentContainer, state, effectiveSlide));
+            list.appendChild(this.createLayerItem(el, 0, currentContainer, state, effectiveSlide, false, null, morphNameCounts));
         });
         
         // Layout/Theme elements in collapsible sections
         if (this.showInheritedElements && (layoutElements.length > 0 || themeElements.length > 0)) {
             // Layout section
             if (layoutElements.length > 0) {
-                const layoutSection = this.createInheritedSection('Layout', layoutElements, currentContainer, state, effectiveSlide);
+                const layoutSection = this.createInheritedSection('Layout', layoutElements, currentContainer, state, effectiveSlide, morphNameCounts);
                 list.appendChild(layoutSection);
             }
             
             // Theme section
             if (themeElements.length > 0) {
-                const themeSection = this.createInheritedSection('Theme', themeElements, currentContainer, state, effectiveSlide);
+                const themeSection = this.createInheritedSection('Theme', themeElements, currentContainer, state, effectiveSlide, morphNameCounts);
                 list.appendChild(themeSection);
             }
         }
@@ -165,7 +243,7 @@ export class LayerTree {
     /**
      * Create a collapsible section for inherited elements.
      */
-    createInheritedSection(label, elements, container, state, effectiveSlide) {
+    createInheritedSection(label, elements, container, state, effectiveSlide, morphNameCounts) {
         const section = document.createElement('div');
         section.className = 'layer-inherited-section';
         
@@ -182,16 +260,16 @@ export class LayerTree {
         header.appendChild(text);
         
         section.appendChild(header);
-        
+
         // Elements
         [...elements].reverse().forEach(el => {
-            section.appendChild(this.createLayerItem(el, 0, container, state, effectiveSlide, true));
+            section.appendChild(this.createLayerItem(el, 0, container, state, effectiveSlide, true, null, morphNameCounts));
         });
         
         return section;
     }
 
-    createLayerItem(el, depth, slide, state, effectiveSlide = null, isInherited = false, composite = null) {
+    createLayerItem(el, depth, slide, state, effectiveSlide = null, isInherited = false, composite = null, morphNameCounts = null) {
         const container = document.createElement('div');
         container.className = 'layer-item-container';
         
@@ -216,6 +294,11 @@ export class LayerTree {
         // Apply CSS classes for state
         if (isSelected) item.classList.add('selected');
         if (isInherited) item.classList.add('inherited');
+
+        // Duplicate-name conflict indicator (Morph): L0-only and non-empty key.
+        const morphKey = (!el.parentId) ? this.getMorphMatchKeyForElement(el) : '';
+        const isMorphDuplicate = Boolean(morphNameCounts && morphKey && morphNameCounts.get(morphKey.trim()) > 1);
+        if (isMorphDuplicate) item.classList.add('layer-item--name-conflict');
         
         // Dynamic padding based on depth (tokens only)
         item.style.paddingLeft = `calc(var(--spacing-2) + ${depth} * var(--spacing-4))`;
@@ -282,6 +365,14 @@ export class LayerTree {
                 warn.title = 'Boolean degraded (fallback result)';
                 iconContainer.appendChild(warn);
             }
+        }
+
+        // Morph duplicate-name conflict indicator (non-blocking): warn that only the top-most will match.
+        if (isMorphDuplicate) {
+            const warn = document.createElement('i');
+            warn.className = 'fa-solid fa-triangle-exclamation layer-item-warning-icon';
+            warn.title = 'Duplicate layer name (Morph will match top-most only)';
+            iconContainer.appendChild(warn);
         }
         
         item.appendChild(iconContainer);
