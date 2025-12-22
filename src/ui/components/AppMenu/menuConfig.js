@@ -215,7 +215,7 @@ export function getMenuConfig() {
         label: 'Slide',
         icon: 'fa-regular fa-images',
         submenu: [
-            { id: 'slide-new', label: 'New Slide', shortcut: 'Ctrl+Enter', icon: 'fa-solid fa-plus' },
+            { id: 'slide-new', label: 'New Slide', shortcut: 'Ctrl+M', icon: 'fa-solid fa-plus' },
             { id: 'slide-duplicate', label: 'Duplicate Slide', shortcut: 'Ctrl+Shift+D', icon: 'fa-regular fa-clone' },
             { id: 'slide-delete', label: 'Delete Slide', shortcut: 'Ctrl+Backspace', icon: 'fa-regular fa-trash-can' },
             { divider: true },

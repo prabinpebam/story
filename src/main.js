@@ -1,4 +1,5 @@
 import { store } from './core/Store.js';
+import anime from 'animejs/lib/anime.es.js';
 import './ui/components/Shimmer.js'; // Register Shimmer web component
 import { InputManager } from './core/InputManager.js';
 import { CanvasManager } from './core/CanvasManager.js';
@@ -32,6 +33,16 @@ import { menuActionHandler } from './ui/services/MenuActionHandler.js';
 import { FileIndicatorController } from './ui/services/FileIndicatorController.js';
 import { notify } from './ui/services/NotificationService.js';
 import { ViewportControls } from './ui/ViewportControls.js';
+
+// Ensure slide transitions have a local animation engine.
+// The runtime reads from `window.anime` (supports Anime.js v3/v4 shapes).
+try {
+    if (typeof window !== 'undefined' && !window.anime) {
+        window.anime = anime;
+    }
+} catch {
+    // Best-effort.
+}
 
 class App {
     constructor() {
@@ -275,8 +286,36 @@ class App {
                 return;
             }
 
+            // Presentation shortcuts
+            // - Ctrl/Cmd+Enter: start from beginning
+            // - Ctrl/Cmd+Shift+Enter: start from current slide
+            // Note: these are routed through MenuActionHandler so the behavior
+            // stays consistent with menu actions.
+            const isCmdOrCtrlForPresentation = e.ctrlKey || e.metaKey;
+            const isEnter = e.key === 'Enter' || e.code === 'Enter' || e.code === 'NumpadEnter';
+            if (isCmdOrCtrlForPresentation && isEnter) {
+                // Do not steal Enter from focused inputs/contenteditable.
+                if (InputManager.shouldBlockShortcut(e)) return;
+
+                e.preventDefault();
+                if (e.shiftKey) {
+                    menuActionHandler.handleAction('present-current');
+                } else {
+                    menuActionHandler.handleAction('present-start');
+                }
+                return;
+            }
+
             const state = store.getState();
             if (state.editor.mode === 'presentation') return;
+
+            // Slide operations
+            // PowerPoint-compatible: Ctrl/Cmd+M inserts a new slide.
+            if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key.toLowerCase() === 'm') {
+                e.preventDefault();
+                menuActionHandler.handleAction('slide-new');
+                return;
+            }
 
             // File Operations (handled before other shortcuts)
             if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key.toLowerCase() === 'n') {

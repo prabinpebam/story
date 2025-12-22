@@ -4,6 +4,10 @@ import { store } from '../Store.js';
 import { ThemeDiag } from '../../utils/ThemeDiagnostics.js';
 import { StyleResolver } from '../../utils/StyleResolver.js';
 import { getEffectiveSlotIndex } from '../../ui/panels/color-theme/ColorThemeUtils.js';
+import { mediaAssetManager } from '../media/MediaAssetManager.js';
+
+let __bgCodeCanvasSeq = 0;
+let __bgVideoSeq = 0;
 
 export class SlideView {
     constructor(slideId) {
@@ -12,6 +16,7 @@ export class SlideView {
         this.domElement = null;
         this.bgContainer = null;
         this.bgCodeRunner = null;
+        this.bgVideoEl = null;
         this.lastBgConfig = null;
     }
 
@@ -223,6 +228,9 @@ export class SlideView {
             this.bgCodeRunner.stop();
             this.bgCodeRunner = null;
         }
+
+        // Clean up previous video reference
+        this.bgVideoEl = null;
         
         // Clear container
         container.innerHTML = '';
@@ -271,11 +279,53 @@ export class SlideView {
                 layer.style.background = this.getGradientCss(fill.value);
             } else if (fill.type === 'image') {
                 layer.style.background = `url(${fill.value}) center/cover no-repeat`;
+            } else if (fill.type === 'video') {
+                const w = parseInt(this.domElement.style.width) || 1920;
+                const h = parseInt(this.domElement.style.height) || 1080;
+
+                const video = document.createElement('video');
+                video.className = 'bg-video';
+                video.setAttribute('data-bg-video-id', String(++__bgVideoSeq));
+                video.style.width = '100%';
+                video.style.height = '100%';
+                video.style.objectFit = fill.scaleMode || 'cover';
+                video.style.pointerEvents = 'none';
+                video.playsInline = true;
+
+                const src =
+                    (fill.assetId ? mediaAssetManager.getRenderableUrl(fill.assetId) : null) ||
+                    fill.value ||
+                    '';
+
+                if (src) {
+                    video.src = src;
+                }
+
+                // Match ShapeElement defaults where possible.
+                video.muted = fill.muted !== false;
+                video.loop = fill.loop !== false;
+                video.playbackRate = fill.playbackRate || 1;
+                video.volume = fill.volume || 0;
+
+                layer.appendChild(video);
+                this.bgVideoEl = video;
+
+                // Best-effort autoplay (often blocked until user gesture; presentation start counts as gesture)
+                if (fill.autoplay !== false) {
+                    try {
+                        video.play().catch(() => {
+                            // Autoplay blocked.
+                        });
+                    } catch {
+                        // ignore
+                    }
+                }
             } else if (fill.type === 'code') {
                 const w = parseInt(this.domElement.style.width) || 1920;
                 const h = parseInt(this.domElement.style.height) || 1080;
                 
                 const canvas = document.createElement('canvas');
+                canvas.setAttribute('data-bg-code-canvas-id', String(++__bgCodeCanvasSeq));
                 canvas.width = w;
                 canvas.height = h;
                 canvas.style.width = '100%';
@@ -316,6 +366,13 @@ export class SlideView {
     unmount() {
         if (this.bgCodeRunner) {
             this.bgCodeRunner.stop();
+        }
+        if (this.bgVideoEl) {
+            try {
+                this.bgVideoEl.pause();
+            } catch {
+                // ignore
+            }
         }
         this.elements.forEach(el => el.unmount());
         this.elements.clear();

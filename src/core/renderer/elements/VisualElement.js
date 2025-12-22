@@ -52,8 +52,73 @@ export class VisualElement {
         // Only set when a meaningful name exists; otherwise the element is unmatchable.
         const rawName = typeof el?.name === 'string' ? el.name : '';
         const trimmedName = rawName.trim();
-        if (trimmedName) {
-            div.setAttribute('data-layer-name', trimmedName);
+        const computeFallbackLayerName = (e) => {
+            if (!e || typeof e !== 'object') return '';
+
+            // Prefer shapeKind when present (canonical shapes).
+            const k = typeof e.shapeKind === 'string' ? e.shapeKind : '';
+            switch (k) {
+                case 'rectangle':
+                    return 'Rect';
+                case 'ellipse':
+                    return 'Circle';
+                case 'line':
+                    return 'Line';
+                case 'vector':
+                    return 'Vector';
+                case 'boolean':
+                    return 'Boolean';
+                case 'mask':
+                    return 'Mask';
+                default:
+                    break;
+            }
+
+            // Legacy/canonical element types.
+            switch (e.type) {
+                case 'rect':
+                case 'rectangle':
+                    return 'Rect';
+                case 'circle':
+                case 'ellipse':
+                    return 'Circle';
+                case 'line':
+                    return 'Line';
+                case 'vector':
+                    return 'Vector';
+                case 'shape':
+                    // For unknown shape variants, fall back to a generic label.
+                    return 'Shape';
+                case 'text':
+                    return 'Text';
+                case 'image':
+                    return 'Image';
+                case 'svg':
+                    return 'Svg';
+                case 'group':
+                    return 'Group';
+                case 'placeholder':
+                    if (typeof e.placeholderType === 'string' && e.placeholderType.trim()) {
+                        const t = e.placeholderType.trim();
+                        const placeholderNames = {
+                            title: 'Title Placeholder',
+                            subtitle: 'Subtitle Placeholder',
+                            body: 'Body Placeholder',
+                            text: 'Text Placeholder',
+                            picture: 'Picture Placeholder',
+                            media: 'Media Placeholder'
+                        };
+                        return placeholderNames[t] || 'Placeholder';
+                    }
+                    return 'Placeholder';
+                default:
+                    return '';
+            }
+        };
+
+        const layerName = trimmedName || computeFallbackLayerName(el);
+        if (layerName) {
+            div.setAttribute('data-layer-name', layerName);
         } else {
             div.removeAttribute('data-layer-name');
         }

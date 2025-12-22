@@ -342,6 +342,14 @@ export class AnimationManager {
             if (transition.type === SLIDE_TRANSITION_TYPES.MORPH) {
                 const q = (root) => Array.from(root?.querySelectorAll?.('.slide-element[data-element-id]') || []);
 
+                const getBg = (root) => {
+                    try {
+                        return root?.querySelector?.('.slide-background') || null;
+                    } catch {
+                        return null;
+                    }
+                };
+
                 const isEligible = (el) => {
                     if (!el) return false;
                     // V1: L0-only (no parent id)
@@ -467,6 +475,24 @@ export class AnimationManager {
                 /** @type {Map<HTMLElement, any>} */
                 const restoreNew = new Map();
 
+                // Background crossfade (slide-level)
+                const oldBg = getBg(oldContent);
+                const newBg = getBg(newContent);
+                let restoreBg = null;
+                if (oldBg || newBg) {
+                    restoreBg = {
+                        old: oldBg ? (oldBg.style.opacity || '') : null,
+                        next: newBg ? (newBg.style.opacity || '') : null
+                    };
+                    if (oldBg) oldBg.style.opacity = '1';
+                    if (newBg) newBg.style.opacity = '0';
+                    try {
+                        newContent.setAttribute('data-morph-bg-animated', '1');
+                    } catch {
+                        // ignore
+                    }
+                }
+
                 // Prepare unmatched new elements: hidden until animation
                 for (const el of unmatchedNew) {
                     const endOpacity = getEffectiveOpacity(el);
@@ -493,6 +519,23 @@ export class AnimationManager {
 
                 // Animate: matched dst in, src out; unmatched old out; unmatched new in
                 const animations = [];
+
+                if (oldBg) {
+                    animations.push(this._asFinishedPromise(this.run({
+                        targets: oldBg,
+                        opacity: [1, 0],
+                        duration,
+                        easing
+                    })));
+                }
+                if (newBg) {
+                    animations.push(this._asFinishedPromise(this.run({
+                        targets: newBg,
+                        opacity: [0, 1],
+                        duration,
+                        easing
+                    })));
+                }
 
                 for (const m of matches) {
                     const dstEnd = restoreNew.get(m.dst);
@@ -545,6 +588,15 @@ export class AnimationManager {
                         el.style.height = end.height;
                         el.style.transform = end.transform;
                         el.style.opacity = end.opacity;
+                    } catch {
+                        // ignore
+                    }
+                }
+
+                // Restore background inline opacity (new slide keeps final visual state).
+                if (restoreBg) {
+                    try {
+                        if (newBg) newBg.style.opacity = restoreBg.next;
                     } catch {
                         // ignore
                     }
