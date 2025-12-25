@@ -783,7 +783,9 @@ export class LayerTree {
             isPlaceholder,
             isInherited,
             layerItem,
-            startRename: () => this.startRename(layerItem),
+            // NOTE: selecting the element above triggers a render() which recreates
+            // the layer row DOM nodes. Resolve the row lazily at action time.
+            startRename: () => this.startRename(elementId),
             resetPlaceholderToMaster: (id, el) => this.resetPlaceholderToMaster(id, el)
         });
     }
@@ -811,8 +813,16 @@ export class LayerTree {
     /**
      * Start inline rename for an element.
      */
-    startRename(layerItem) {
-        const nameSpan = layerItem.querySelector('span');
+    startRename(layerItemOrId) {
+        const layerItem = (typeof layerItemOrId === 'string')
+            ? this.container.querySelector(`.layer-item[data-id="${(window?.CSS?.escape ? CSS.escape(layerItemOrId) : layerItemOrId)}"]`)
+            : layerItemOrId;
+
+        if (!layerItem) return;
+
+        // The layer row contains multiple <span>s (badges, labels, etc.).
+        // Rename must target the actual name label.
+        const nameSpan = layerItem.querySelector('.layer-item-name');
         if (!nameSpan) return;
         
         nameSpan.ondblclick?.({ stopPropagation: () => {} });
