@@ -3,8 +3,9 @@ import { EditorPage } from '../../pages/EditorPage';
 
 /**
  * Morph background behavior (video continuity):
- * - Background crossfades during Morph.
  * - If background video identity matches, the underlying <video> is preserved (no reset).
+ * - When state-transferred (data-morph-bg-transfer="video"), there is no background crossfade
+ *   (data-morph-bg-animated="0").
  *
  * This test generates a deterministic local blob: URL video via canvas.captureStream + MediaRecorder
  * (avoids relying on external assets/files).
@@ -12,7 +13,7 @@ import { EditorPage } from '../../pages/EditorPage';
  * DOM evidence:
  * - SlideView video: data-bg-video-id
  * - PresentationRenderer transfer: data-morph-bg-transfer="video"
- * - AnimationManager crossfade: data-morph-bg-animated="1"
+ * - AnimationManager crossfade: data-morph-bg-animated
  */
 
 test.describe('Morph background (video continuity)', () => {
@@ -264,7 +265,7 @@ test.describe('Morph background (video continuity)', () => {
         }, { slide1Id, slide2Id });
 
         expect(monitor.ok, JSON.stringify(monitor)).toBe(true);
-        expect(monitor.animated, JSON.stringify(monitor)).toBe('1');
+        expect(monitor.animated, JSON.stringify(monitor)).toBe('0');
         expect(monitor.beforeId, JSON.stringify(monitor)).toBeTruthy();
         expect(monitor.afterId, JSON.stringify(monitor)).toBe(monitor.beforeId);
         expect(monitor.beforePaused, JSON.stringify(monitor)).toBe(false);
