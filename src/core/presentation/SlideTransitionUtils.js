@@ -52,7 +52,11 @@ export function normalizeSlideTransitionConfig(config) {
     const input = config && typeof config === 'object' ? config : {};
     const type = typeof input.type === 'string' ? input.type : SLIDE_TRANSITION_TYPES.NONE;
 
-    const durationMs = clampDurationMs(input.durationMs);
+    let durationMs = clampDurationMs(input.durationMs);
+    // Product requirement: Morph defaults to 1000ms unless explicitly set.
+    if (type === SLIDE_TRANSITION_TYPES.MORPH && (input.durationMs === undefined || input.durationMs === null)) {
+        durationMs = clampDurationMs(1000);
+    }
     const easing = normalizeEasing(input.easing);
 
     if (type === SLIDE_TRANSITION_TYPES.NONE) {

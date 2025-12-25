@@ -84,6 +84,8 @@ export function getShortcutCatalog() {
         { id: 'panel-code-fill', section: 'Panels', label: 'Toggle Code Fill panel', shortcut: 'Cmd/Ctrl+Shift+K' },
 
         // Presentation
+        { id: 'present-start', section: 'Presentation', label: 'Start presentation (from beginning)', shortcut: 'Cmd/Ctrl+Enter' },
+        { id: 'present-current', section: 'Presentation', label: 'Start presentation (from current slide)', shortcut: 'Cmd/Ctrl+Shift+Enter' },
         { id: 'present-next', section: 'Presentation', label: 'Next (build, then slide)', shortcut: '→ / Space / Enter / PgDn / N' },
         { id: 'present-prev', section: 'Presentation', label: 'Previous (build, then slide)', shortcut: '← / Backspace / PgUp / P' },
         { id: 'present-exit', section: 'Presentation', label: 'Exit presentation', shortcut: 'Esc' },

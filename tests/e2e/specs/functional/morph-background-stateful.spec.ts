@@ -123,17 +123,18 @@ test.describe('Morph background (stateful)', () => {
       .poll(async () => slideContent.getAttribute('data-pm-transition-status'), { timeout: 10000 })
       .toBe('idle');
 
-    // Background should have animated (crossfade evidence on incoming slide).
+    // When the background is state-transferred (same code), there is only one
+    // underlying visual; crossfading opacity would fade it to blank (flicker).
     await expect(page.locator(`#slide-content .slide-view[data-slide-id="${slide2Id}"]`)).toHaveAttribute(
       'data-morph-bg-animated',
-      '1'
+      '0'
     );
 
-    // Crossfade sanity: new bg should have been < 1 at some point.
+    // Opacity sanity: new bg should remain fully visible.
     expect(monitor.sampleCount).toBeGreaterThan(2);
     expect(monitor.maxNew).not.toBeNull();
     expect(monitor.minNew).not.toBeNull();
-    expect((monitor.minNew as number)).toBeLessThan(0.99);
+    expect((monitor.minNew as number)).toBeGreaterThan(0.99);
 
     // Stateful transfer evidence.
     await expect(page.locator(`#slide-content .slide-view[data-slide-id="${slide2Id}"]`)).toHaveAttribute(

@@ -533,6 +533,134 @@ export class AnimationManager {
                     }
                 };
 
+                const isAnimatableSvgColor = (v) => {
+                    const s = (v || '').trim();
+                    if (!s) return false;
+                    // Gradients/patterns and CSS vars are not reliably interpolatable.
+                    if (s.startsWith('url(')) return false;
+                    if (s.startsWith('var(')) return false;
+                    return true;
+                };
+
+                const readStrokeRect = (layer) => {
+                    try {
+                        const rect = layer?.querySelector?.('rect') || null;
+                        if (!rect) return null;
+                        const readNumAttr = (name) => {
+                            const raw = (rect.getAttribute(name) || '').trim();
+                            if (!raw) return null;
+                            const v = Number(raw);
+                            return Number.isFinite(v) ? v : null;
+                        };
+                        const stroke = (rect.getAttribute('stroke') || '').trim();
+                        const strokeWidthRaw = (rect.getAttribute('stroke-width') || '').trim();
+                        const strokeWidth = Number(strokeWidthRaw);
+                        return {
+                            rect,
+                            stroke,
+                            strokeWidth: Number.isFinite(strokeWidth) ? strokeWidth : null,
+                            x: readNumAttr('x'),
+                            y: readNumAttr('y'),
+                            width: readNumAttr('width'),
+                            height: readNumAttr('height'),
+                            rx: readNumAttr('rx'),
+                            ry: readNumAttr('ry')
+                        };
+                    } catch {
+                        return null;
+                    }
+                };
+
+                const parsePx = (v) => {
+                    const s = String(v || '').trim();
+                    if (!s) return null;
+                    const m = s.match(/-?\d+(?:\.\d+)?/);
+                    if (!m) return null;
+                    const n = Number(m[0]);
+                    return Number.isFinite(n) ? n : null;
+                };
+
+                const cloneStrokeLayerForMorph = (srcLayer) => {
+                    try {
+                        if (!srcLayer) return null;
+                        const clone = srcLayer.cloneNode(true);
+                        if (!(clone instanceof SVGElement)) return null;
+                        const cls = (clone.getAttribute('class') || '').trim();
+                        clone.setAttribute('class', cls ? `${cls} morph-temp-stroke` : 'stroke-layer morph-temp-stroke');
+                        // Ensure it participates in rendering but does not interfere with input.
+                        try {
+                            clone.style.pointerEvents = 'none';
+                            clone.style.position = 'absolute';
+                            clone.style.left = '0';
+                            clone.style.top = '0';
+                            clone.style.width = '100%';
+                            clone.style.height = '100%';
+                            clone.style.overflow = 'visible';
+                        } catch {
+                            // ignore
+                        }
+                        return clone;
+                    } catch {
+                        return null;
+                    }
+                };
+
+                const getCodeRunnerHolders = (el) => {
+                    /** @type {Array<{holder: HTMLElement, runner: any, canvas: HTMLCanvasElement | null}>} */
+                    const items = [];
+                    if (!el) return items;
+
+                    const pushIfRunner = (holder) => {
+                        try {
+                            const runner = holder?._codeRunner;
+                            if (!runner) return;
+                            const canvas = holder.querySelector?.('canvas') || null;
+                            items.push({ holder, runner, canvas });
+                        } catch {
+                            // ignore
+                        }
+                    };
+
+                    // Legacy single code fill.
+                    pushIfRunner(el);
+
+                    // Multi-fill code layers.
+                    const fillLayers = getFillLayers(el);
+                    for (const layer of fillLayers) {
+                        pushIfRunner(layer);
+                    }
+
+                    return items.filter((i) => i.canvas);
+                };
+
+                const buildCodeTransferPlan = (srcEl, dstEl) => {
+                    const src = getCodeRunnerHolders(srcEl);
+                    const dst = getCodeRunnerHolders(dstEl);
+
+                    if (!src.length || src.length !== dst.length) return { ok: false, items: [] };
+
+                    /** @type {Array<{srcHolder: HTMLElement, dstHolder: HTMLElement, srcRunner: any, dstRunner: any, dstCanvas: HTMLCanvasElement}>} */
+                    const items = [];
+
+                    for (let i = 0; i < src.length; i++) {
+                        const s = src[i];
+                        const d = dst[i];
+                        const srcRunner = s.runner;
+                        const dstRunner = d.runner;
+                        const dstCanvas = d.canvas;
+                        const srcCode = String(srcRunner?.userCode || '').trim();
+                        const dstCode = String(dstRunner?.userCode || '').trim();
+
+                        if (!srcRunner || !dstRunner || !dstCanvas) return { ok: false, items: [] };
+                        if (!srcCode || srcCode !== dstCode) return { ok: false, items: [] };
+                        if (typeof srcRunner.transferToCanvas !== 'function') return { ok: false, items: [] };
+
+                        items.push({ srcHolder: s.holder, dstHolder: d.holder, srcRunner, dstRunner, dstCanvas });
+                    }
+
+                    return { ok: true, items };
+                };
+
                 const shortestArc = (fromDeg, toDeg) => {
                     const a = Number(fromDeg) || 0;
                     const b = Number(toDeg) || 0;
@@ -550,10 +678,30 @@ export class AnimationManager {
                         old: oldBg ? (oldBg.style.opacity || '') : null,
                         next: newBg ? (newBg.style.opacity || '') : null
                     };
-                    if (oldBg) oldBg.style.opacity = '1';
-                    if (newBg) newBg.style.opacity = '0';
+
+                    const bgTransfer = (() => {
+                        try {
+                            return (newContent.getAttribute('data-morph-bg-transfer') || '').trim();
+                        } catch {
+                            return '';
+                        }
+                    })();
+
+                    // When the background is state-transferred (code/video), we only have a single
+                    // underlying visual. Crossfading would fade that single visual to 0 (blank),
+                    // causing a black/blank flash. Keep it fully visible instead.
+                    const shouldCrossfadeBg = !bgTransfer;
+
+                    if (shouldCrossfadeBg) {
+                        if (oldBg) oldBg.style.opacity = '1';
+                        if (newBg) newBg.style.opacity = '0';
+                    } else {
+                        if (oldBg) oldBg.style.opacity = '0';
+                        if (newBg) newBg.style.opacity = '1';
+                    }
+
                     try {
-                        newContent.setAttribute('data-morph-bg-animated', '1');
+                        newContent.setAttribute('data-morph-bg-animated', shouldCrossfadeBg ? '1' : '0');
                     } catch {
                         // ignore
                     }
@@ -586,6 +734,9 @@ export class AnimationManager {
                     const dstFillLayers = getFillLayers(m.dst);
 
                     const canInterpolateFills = (() => {
+                        // No fill layers on either side is "fill-compatible" (there is nothing to interpolate).
+                        // Whether we treat the element as appearance-interpolatable is decided by a
+                        // higher-level guard that avoids the problematic 0-fill/0-stroke case.
                         if (srcFillLayers.length === 0 && dstFillLayers.length === 0) return true;
                         if (srcFillLayers.length === dstFillLayers.length) {
                             for (let i = 0; i < srcFillLayers.length; i++) {
@@ -603,15 +754,35 @@ export class AnimationManager {
                     const srcStrokeLayers = getStrokeLayers(m.src);
                     const dstStrokeLayers = getStrokeLayers(m.dst);
                     const canInterpolateStrokes = (() => {
+                        // No stroke layers on either side is "stroke-compatible" (there is nothing to interpolate).
                         if (srcStrokeLayers.length === 0 && dstStrokeLayers.length === 0) return true;
-                        if (srcStrokeLayers.length === dstStrokeLayers.length) return true;
+
+                        if (srcStrokeLayers.length === dstStrokeLayers.length) {
+                            // Only treat as compatible if they are the simple rect-based stroke layers.
+                            for (let i = 0; i < srcStrokeLayers.length; i++) {
+                                const s = readStrokeRect(srcStrokeLayers[i]);
+                                const d = readStrokeRect(dstStrokeLayers[i]);
+                                if (!s || !d) return false;
+                            }
+                            return true;
+                        }
                         // Zero-equivalent: allow a single stroke present <-> no stroke.
                         if (srcStrokeLayers.length === 0 && dstStrokeLayers.length === 1) return true;
                         if (srcStrokeLayers.length === 1 && dstStrokeLayers.length === 0) return true;
                         return false;
                     })();
 
-                    const canInterpolateAppearance = canInterpolateFills && canInterpolateStrokes;
+                    // Special-case: if we can transfer code fills (same code), treat as compatible
+                    // so we can preserve time continuity.
+                    const codeTransfer = buildCodeTransferPlan(m.src, m.dst);
+                    const canTransferCodeFills = Boolean(codeTransfer.ok);
+
+                    const hasAnyPaintStack =
+                        (srcFillLayers.length > 0 || dstFillLayers.length > 0 || srcStrokeLayers.length > 0 || dstStrokeLayers.length > 0);
+
+                    // Only treat the element as "appearance-interpolatable" when we can reason about
+                    // at least one paint stack (fill/stroke) OR when we can transfer code fills.
+                    const canInterpolateAppearance = (hasAnyPaintStack && canInterpolateFills && canInterpolateStrokes) || canTransferCodeFills;
 
                     const srcOpacity = Number(getEffectiveOpacity(m.src));
                     const dstOpacity = Number(dstEnd.opacity);
@@ -622,6 +793,9 @@ export class AnimationManager {
 
                     /** @type {Array<{layer: HTMLElement, startOpacity: number, endOpacity: number, startColor?: string, endColor?: string}>} */
                     const fillPlan = [];
+
+                    /** @type {Array<{layer: HTMLElement, rect: SVGElement, startOpacity: number, endOpacity: number, startStroke?: string, endStroke?: string, startWidth?: number, endWidth?: number, startX?: number, endX?: number, startY?: number, endY?: number, startRectWidth?: number, endRectWidth?: number, startRectHeight?: number, endRectHeight?: number, startRx?: number, endRx?: number, startRy?: number, endRy?: number}>} */
+                    const strokePlan = [];
 
                     if (canInterpolateAppearance) {
                         // Hide source visual; destination will start at source appearance.
@@ -654,17 +828,157 @@ export class AnimationManager {
                                     fillPlan.push({ layer: dstLayer, startOpacity, endOpacity, ...(startColor && endColor ? { startColor, endColor } : {}) });
                                 } else {
                                     // Zero-equivalent: missing fill on source => fade in destination fill.
-                                    dstLayer.style.opacity = '0';
-                                    fillPlan.push({ layer: dstLayer, startOpacity: 0, endOpacity });
+                                    // Also used for code fills (no color interpolation).
+                                    if (srcLayer) {
+                                        const startOpacity = getLayerOpacity(srcLayer);
+                                        dstLayer.style.opacity = String(startOpacity);
+                                        fillPlan.push({ layer: dstLayer, startOpacity, endOpacity });
+                                    } else {
+                                        dstLayer.style.opacity = '0';
+                                        fillPlan.push({ layer: dstLayer, startOpacity: 0, endOpacity });
+                                    }
                                 }
                             }
                         }
 
-                        // Prepare stroke layers on destination for zero-equivalent.
+                        // Zero-equivalent: stroke appears (source has no stroke, destination has stroke).
+                        // We need to align stroke geometry with the start (source) element box to avoid
+                        // visible mismatch between fill and stroke during the morph.
                         if (dstStrokeLayers.length && srcStrokeLayers.length === 0) {
-                            for (const l of dstStrokeLayers) {
+                            const srcW = parsePx(srcStart.width);
+                            const srcH = parsePx(srcStart.height);
+                            const dstW = parsePx(dstEnd.width);
+                            const dstH = parsePx(dstEnd.height);
+
+                            const wr = srcW && dstW ? srcW / dstW : 1;
+                            const hr = srcH && dstH ? srcH / dstH : 1;
+                            const rr = Math.min(wr, hr);
+
+                            for (const dstLayer of dstStrokeLayers) {
+                                const d = readStrokeRect(dstLayer);
+                                if (!d?.rect) continue;
+
+                                const endOpacity = getLayerOpacity(dstLayer);
+                                // Start from zero-equivalent.
                                 try {
-                                    l.style.opacity = '0';
+                                    dstLayer.style.opacity = '0';
+                                } catch {
+                                    // ignore
+                                }
+
+                                // Stroke width animates from 0.
+                                const endStrokeWidth = d.strokeWidth;
+                                d.rect.setAttribute('stroke-width', '0');
+
+                                // Geometry: scale destination rect geometry into the source box.
+                                if (Number.isFinite(d.x)) d.rect.setAttribute('x', String((d.x || 0) * wr));
+                                if (Number.isFinite(d.y)) d.rect.setAttribute('y', String((d.y || 0) * hr));
+                                if (Number.isFinite(d.width)) d.rect.setAttribute('width', String((d.width || 0) * wr));
+                                if (Number.isFinite(d.height)) d.rect.setAttribute('height', String((d.height || 0) * hr));
+                                if (Number.isFinite(d.rx)) d.rect.setAttribute('rx', String((d.rx || 0) * rr));
+                                if (Number.isFinite(d.ry)) d.rect.setAttribute('ry', String((d.ry || 0) * rr));
+
+                                strokePlan.push({
+                                    layer: dstLayer,
+                                    rect: d.rect,
+                                    startOpacity: 0,
+                                    endOpacity,
+                                    ...(isAnimatableSvgColor(d.stroke) ? { startStroke: d.stroke, endStroke: d.stroke } : {}),
+                                    ...(Number.isFinite(endStrokeWidth) ? { startWidth: 0, endWidth: endStrokeWidth } : {}),
+                                    ...(Number.isFinite(d.x) ? { startX: (d.x || 0) * wr, endX: d.x } : {}),
+                                    ...(Number.isFinite(d.y) ? { startY: (d.y || 0) * hr, endY: d.y } : {}),
+                                    ...(Number.isFinite(d.width) ? { startRectWidth: (d.width || 0) * wr, endRectWidth: d.width } : {}),
+                                    ...(Number.isFinite(d.height) ? { startRectHeight: (d.height || 0) * hr, endRectHeight: d.height } : {}),
+                                    ...(Number.isFinite(d.rx) ? { startRx: (d.rx || 0) * rr, endRx: d.rx } : {}),
+                                    ...(Number.isFinite(d.ry) ? { startRy: (d.ry || 0) * rr, endRy: d.ry } : {})
+                                });
+                            }
+                        }
+
+                        // Prepare simple stroke layers (rect-based) to match source at t=0.
+                        if (srcStrokeLayers.length && srcStrokeLayers.length === dstStrokeLayers.length) {
+                            for (let i = 0; i < dstStrokeLayers.length; i++) {
+                                const srcLayer = srcStrokeLayers[i];
+                                const dstLayer = dstStrokeLayers[i];
+                                const s = readStrokeRect(srcLayer);
+                                const d = readStrokeRect(dstLayer);
+                                if (!s || !d) continue;
+
+                                const startOpacity = getLayerOpacity(srcLayer);
+                                const endOpacity = getLayerOpacity(dstLayer);
+                                dstLayer.style.opacity = String(startOpacity);
+
+                                // Width interpolation is always safe.
+                                if (s.strokeWidth !== null) {
+                                    d.rect.setAttribute('stroke-width', String(s.strokeWidth));
+                                }
+
+                                // Geometry interpolation keeps stroke aligned with the element box during resize.
+                                if (s.x !== null) d.rect.setAttribute('x', String(s.x));
+                                if (s.y !== null) d.rect.setAttribute('y', String(s.y));
+                                if (s.width !== null) d.rect.setAttribute('width', String(s.width));
+                                if (s.height !== null) d.rect.setAttribute('height', String(s.height));
+                                if (s.rx !== null) d.rect.setAttribute('rx', String(s.rx));
+                                if (s.ry !== null) d.rect.setAttribute('ry', String(s.ry));
+
+                                // Color interpolation only for non-url / non-var values.
+                                if (isAnimatableSvgColor(s.stroke) && isAnimatableSvgColor(d.stroke)) {
+                                    if (s.stroke) d.rect.setAttribute('stroke', s.stroke);
+                                }
+
+                                strokePlan.push({
+                                    layer: dstLayer,
+                                    rect: d.rect,
+                                    startOpacity,
+                                    endOpacity,
+                                    ...(isAnimatableSvgColor(s.stroke) && isAnimatableSvgColor(d.stroke)
+                                        ? { startStroke: s.stroke, endStroke: d.stroke }
+                                        : {}),
+                                    ...(s.strokeWidth !== null && d.strokeWidth !== null
+                                        ? { startWidth: s.strokeWidth, endWidth: d.strokeWidth }
+                                        : {})
+                                    ,...(s.x !== null && d.x !== null ? { startX: s.x, endX: d.x } : {})
+                                    ,...(s.y !== null && d.y !== null ? { startY: s.y, endY: d.y } : {})
+                                    ,...(s.width !== null && d.width !== null ? { startRectWidth: s.width, endRectWidth: d.width } : {})
+                                    ,...(s.height !== null && d.height !== null ? { startRectHeight: s.height, endRectHeight: d.height } : {})
+                                    ,...(s.rx !== null && d.rx !== null ? { startRx: s.rx, endRx: d.rx } : {})
+                                    ,...(s.ry !== null && d.ry !== null ? { startRy: s.ry, endRy: d.ry } : {})
+                                });
+                            }
+                        }
+
+                        // Transfer code fill runners (preserve timebase) when possible.
+                        if (canTransferCodeFills) {
+                            for (const item of codeTransfer.items) {
+                                try {
+                                    // Copy bounds from the destination runner so mouse hit-tests remain correct.
+                                    if (item.dstRunner?.elementBounds) {
+                                        item.srcRunner.setElementBounds?.(item.dstRunner.elementBounds);
+                                    }
+                                } catch {
+                                    // ignore
+                                }
+
+                                try {
+                                    item.dstRunner?.destroy?.();
+                                } catch {
+                                    // ignore
+                                }
+
+                                try {
+                                    item.srcRunner.transferToCanvas(item.dstCanvas);
+                                } catch {
+                                    // ignore
+                                }
+
+                                try {
+                                    item.dstHolder._codeRunner = item.srcRunner;
+                                } catch {
+                                    // ignore
+                                }
+
+                                try {
+                                    delete item.srcHolder._codeRunner;
                                 } catch {
                                     // ignore
                                 }
@@ -679,7 +993,15 @@ export class AnimationManager {
                     }
 
                     // Cache decision for animation phase.
-                    restoreNew.set(m.dst, { ...dstEnd, __morphCanInterpolateAppearance: canInterpolateAppearance, __morphSrcOpacity: srcOpacity, __morphDstOpacity: dstOpacity, __morphBorderRadius: { src: srcBR, dst: dstBR }, __morphFillPlan: fillPlan });
+                    restoreNew.set(m.dst, {
+                        ...dstEnd,
+                        __morphCanInterpolateAppearance: canInterpolateAppearance,
+                        __morphSrcOpacity: srcOpacity,
+                        __morphDstOpacity: dstOpacity,
+                        __morphBorderRadius: { src: srcBR, dst: dstBR },
+                        __morphFillPlan: fillPlan,
+                        __morphStrokePlan: strokePlan
+                    });
                 }
 
                 // Ensure the incoming content is only revealed after its start state is applied.
@@ -688,21 +1010,34 @@ export class AnimationManager {
                 // Animate: matched dst in, src out; unmatched old out; unmatched new in
                 const animations = [];
 
-                if (oldBg) {
-                    animations.push(this._asFinishedPromise(this.run({
-                        targets: oldBg,
-                        opacity: [1, 0],
-                        duration,
-                        easing
-                    })));
-                }
-                if (newBg) {
-                    animations.push(this._asFinishedPromise(this.run({
-                        targets: newBg,
-                        opacity: [0, 1],
-                        duration,
-                        easing
-                    })));
+                /** @type {Array<HTMLElement | SVGElement>} */
+                const tempMorphNodesToRemove = [];
+
+                const shouldCrossfadeBg = (() => {
+                    try {
+                        return (newContent.getAttribute('data-morph-bg-animated') || '') === '1';
+                    } catch {
+                        return true;
+                    }
+                })();
+
+                if (shouldCrossfadeBg) {
+                    if (oldBg) {
+                        animations.push(this._asFinishedPromise(this.run({
+                            targets: oldBg,
+                            opacity: [1, 0],
+                            duration,
+                            easing
+                        })));
+                    }
+                    if (newBg) {
+                        animations.push(this._asFinishedPromise(this.run({
+                            targets: newBg,
+                            opacity: [0, 1],
+                            duration,
+                            easing
+                        })));
+                    }
                 }
 
                 for (const m of matches) {
@@ -762,18 +1097,68 @@ export class AnimationManager {
                     if (canInterpolateAppearance) {
                         const srcStrokeLayers = getStrokeLayers(m.src);
                         const dstStrokeLayers = getStrokeLayers(m.dst);
-                        if (srcStrokeLayers.length === 0 && dstStrokeLayers.length) {
-                            for (const l of dstStrokeLayers) {
-                                const endO = (() => {
-                                    const v = Number(l.style.opacity);
+                        // Zero-equivalent stroke behavior (disappear only):
+                        // source has stroke, destination has no stroke => clone source stroke onto destination and animate to width/opacity 0.
+                        // (Appear is planned via __morphStrokePlan so we also fix stroke geometry during resize.)
+                        if (srcStrokeLayers.length && dstStrokeLayers.length === 0) {
+                            // Disappear
+                            const srcW = parsePx(srcStart.width);
+                            const srcH = parsePx(srcStart.height);
+                            const dstW = parsePx(dstEnd.width);
+                            const dstH = parsePx(dstEnd.height);
+                            const wr = srcW && dstW ? dstW / srcW : 1;
+                            const hr = srcH && dstH ? dstH / srcH : 1;
+                            const rr = Math.min(wr, hr);
+
+                            for (const srcLayer of srcStrokeLayers) {
+                                const s = readStrokeRect(srcLayer);
+                                if (!s?.rect) continue;
+
+                                const temp = cloneStrokeLayerForMorph(srcLayer);
+                                if (!temp) continue;
+
+                                try {
+                                    m.dst.appendChild(temp);
+                                    tempMorphNodesToRemove.push(temp);
+                                } catch {
+                                    continue;
+                                }
+
+                                const tempInfo = readStrokeRect(temp);
+                                if (!tempInfo?.rect) continue;
+
+                                const startO = (() => {
+                                    const v = Number((temp).style?.opacity);
                                     return Number.isFinite(v) ? v : 1;
                                 })();
+
                                 animations.push(this._asFinishedPromise(this.run({
-                                    targets: l,
-                                    opacity: [0, endO],
+                                    targets: temp,
+                                    opacity: [startO, 0],
                                     duration,
                                     easing
                                 })));
+
+                                const startW = Number(tempInfo.rect.getAttribute('stroke-width'));
+                                const safeStartW = Number.isFinite(startW) ? startW : null;
+                                const rectParams = {
+                                    targets: tempInfo.rect,
+                                    duration,
+                                    easing
+                                };
+                                if (safeStartW !== null) rectParams['stroke-width'] = [safeStartW, 0];
+
+                                // Keep geometry aligned with the morphing element box as it resizes.
+                                if (tempInfo.x !== null) rectParams.x = [tempInfo.x, tempInfo.x * wr];
+                                if (tempInfo.y !== null) rectParams.y = [tempInfo.y, tempInfo.y * hr];
+                                if (tempInfo.width !== null) rectParams.width = [tempInfo.width, tempInfo.width * wr];
+                                if (tempInfo.height !== null) rectParams.height = [tempInfo.height, tempInfo.height * hr];
+                                if (tempInfo.rx !== null) rectParams.rx = [tempInfo.rx, tempInfo.rx * rr];
+                                if (tempInfo.ry !== null) rectParams.ry = [tempInfo.ry, tempInfo.ry * rr];
+
+                                if (rectParams['stroke-width'] || rectParams.x || rectParams.y || rectParams.width || rectParams.height || rectParams.rx || rectParams.ry) {
+                                    animations.push(this._asFinishedPromise(this.run(rectParams)));
+                                }
                             }
                         }
 
@@ -790,6 +1175,42 @@ export class AnimationManager {
                                 params.backgroundColor = [fp.startColor, fp.endColor];
                             }
                             animations.push(this._asFinishedPromise(this.run(params)));
+                        }
+
+                        // Stroke interpolation (simple rect-based strokes)
+                        const strokePlan = Array.isArray(dstEnd?.__morphStrokePlan) ? dstEnd.__morphStrokePlan : [];
+                        for (const sp of strokePlan) {
+                            // Layer opacity
+                            animations.push(this._asFinishedPromise(this.run({
+                                targets: sp.layer,
+                                opacity: [sp.startOpacity, sp.endOpacity],
+                                duration,
+                                easing
+                            })));
+
+                            // Rect attributes
+                            const rectParams = {
+                                targets: sp.rect,
+                                duration,
+                                easing
+                            };
+                            if (Number.isFinite(sp.startWidth) && Number.isFinite(sp.endWidth)) {
+                                // For SVG, we need to animate the actual attribute name.
+                                // Anime.js checks `getAttribute(prop)` to decide between CSS vs. attribute.
+                                rectParams['stroke-width'] = [sp.startWidth, sp.endWidth];
+                            }
+                            if (Number.isFinite(sp.startX) && Number.isFinite(sp.endX)) rectParams.x = [sp.startX, sp.endX];
+                            if (Number.isFinite(sp.startY) && Number.isFinite(sp.endY)) rectParams.y = [sp.startY, sp.endY];
+                            if (Number.isFinite(sp.startRectWidth) && Number.isFinite(sp.endRectWidth)) rectParams.width = [sp.startRectWidth, sp.endRectWidth];
+                            if (Number.isFinite(sp.startRectHeight) && Number.isFinite(sp.endRectHeight)) rectParams.height = [sp.startRectHeight, sp.endRectHeight];
+                            if (Number.isFinite(sp.startRx) && Number.isFinite(sp.endRx)) rectParams.rx = [sp.startRx, sp.endRx];
+                            if (Number.isFinite(sp.startRy) && Number.isFinite(sp.endRy)) rectParams.ry = [sp.startRy, sp.endRy];
+                            if (sp.startStroke && sp.endStroke) {
+                                rectParams.stroke = [sp.startStroke, sp.endStroke];
+                            }
+                            if (rectParams['stroke-width'] || rectParams.stroke || rectParams.x || rectParams.y || rectParams.width || rectParams.height || rectParams.rx || rectParams.ry) {
+                                animations.push(this._asFinishedPromise(this.run(rectParams)));
+                            }
                         }
                     }
                 }
@@ -814,6 +1235,15 @@ export class AnimationManager {
                 }
 
                 await Promise.all(animations);
+
+                // Remove any temporary morph nodes (e.g., synthetic strokes for zero-equivalent disappearance).
+                for (const n of tempMorphNodesToRemove) {
+                    try {
+                        n.remove();
+                    } catch {
+                        // ignore
+                    }
+                }
 
                 // Restore incoming elements to their canonical (post-slide-render) styles
                 for (const [el, end] of restoreNew.entries()) {

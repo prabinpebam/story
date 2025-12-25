@@ -68,6 +68,56 @@ export class CodeRunner {
         this._logicalHeight = canvas.height || 0;
         this._dpr = 1;
     }
+
+    /**
+     * Retarget this runner to a new canvas element without resetting timebase.
+     * This is used by Morph to preserve code-fill state across slide changes.
+     *
+     * @param {HTMLCanvasElement} nextCanvas
+     * @returns {boolean} true when the transfer succeeded
+     */
+    transferToCanvas(nextCanvas) {
+        if (this.isDestroyed) return false;
+        if (!nextCanvas || typeof nextCanvas.getContext !== 'function') return false;
+
+        const nextCtx = nextCanvas.getContext('2d');
+        if (!nextCtx) return false;
+
+        this.canvas = nextCanvas;
+        this.ctx = nextCtx;
+
+        const dpr = (typeof window !== 'undefined' && window.devicePixelRatio) ? window.devicePixelRatio : 1;
+        this._dpr = dpr;
+        this._logicalWidth = Math.max(1, Math.floor(nextCanvas.width / dpr));
+        this._logicalHeight = Math.max(1, Math.floor(nextCanvas.height / dpr));
+
+        try {
+            this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        } catch {
+            // ignore
+        }
+
+        // Reinitialize legacy canvas mouse props (some user code reads these).
+        try {
+            this.canvas.mouseX = this._logicalWidth / 2;
+            this.canvas.mouseY = this._logicalHeight / 2;
+            this.canvas.isMouseDown = false;
+        } catch {
+            // ignore
+        }
+
+        // Force a draw on the new canvas to avoid transient blank frames.
+        if (this.isPlaying && this.drawFunction) {
+            const time = (Date.now() - this.startTime) / 1000;
+            try {
+                this.drawFunction(time);
+            } catch {
+                // ignore
+            }
+        }
+
+        return true;
+    }
     
     /**
      * Set the bounds of the element containing this canvas (in world/slide coordinates)

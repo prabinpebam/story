@@ -1712,15 +1712,7 @@ export class PresentationManager {
         }
 
         // SHOULD prompt if exiting with unsaved changes.
-        try {
-            const hasUnsaved = typeof fileService?.hasUnsavedChanges === 'function' && fileService.hasUnsavedChanges();
-            if (hasUnsaved) {
-                const ok = window.confirm('You have unsaved changes. Exit presentation?');
-                if (!ok) return;
-            }
-        } catch {
-            // Best-effort only.
-        }
+        // Intentionally no confirmation prompt on exit.
 
         store.dispatch('SET_MODE', 'edit');
 
