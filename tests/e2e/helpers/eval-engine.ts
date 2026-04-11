@@ -32,6 +32,11 @@ export interface StoreElement {
   source: string;
   name: string;
   children?: string[];
+  fillCount: number;
+  fillHash: number;
+  strokeCount: number;
+  strokeHash: number;
+  effectHash: number;
 }
 
 export interface StoreLayer {
@@ -188,6 +193,26 @@ const CAPTURE_FN = `(function() {
       function collectElement(id) {
         var el = elMap[id];
         if (!el) return;
+
+        // Capture fill/stroke/effect summaries (bounded, not full dump)
+        var fillCount = 0; var fillHash = 0;
+        var fills = el.fills || (el.style && el.style.fills) || [];
+        if (fills && fills.length) {
+          fillCount = fills.length;
+          fillHash = hashStr(JSON.stringify(fills));
+        }
+        var strokeCount = 0; var strokeHash = 0;
+        var strokes = el.strokes || (el.style && el.style.strokes) || [];
+        if (strokes && strokes.length) {
+          strokeCount = strokes.length;
+          strokeHash = hashStr(JSON.stringify(strokes));
+        }
+        var effectHash = 0;
+        var style = el.style || {};
+        if (style.dropShadow || style.blur || style.innerShadow) {
+          effectHash = hashStr(JSON.stringify({ ds: style.dropShadow, bl: style.blur, is: style.innerShadow }));
+        }
+
         elements[id] = {
           id: el.id, type: el.type,
           x: el.x, y: el.y, width: el.width, height: el.height,
@@ -197,7 +222,10 @@ const CAPTURE_FN = `(function() {
           hidden: !!el.hidden, locked: !!el.locked,
           parentId: el.parentId || null,
           source: el.source || 'slide', name: el.name || '',
-          children: el.children || null
+          children: el.children || null,
+          fillCount: fillCount, fillHash: fillHash,
+          strokeCount: strokeCount, strokeHash: strokeHash,
+          effectHash: effectHash
         };
         if (el.children && el.children.length > 0) {
           for (var ci = 0; ci < el.children.length; ci++) {
@@ -759,6 +787,50 @@ function buildMutationTimeline(snapshots: EvalSnapshot[]): Mutation[] {
       });
     }
 
+    // Editor-level state changes (mode, tool, zoom, pan, editing)
+    if (prev.store.mode !== curr.store.mode) {
+      mutations.push({
+        snapshotIndex: i, type: 'mode-changed',
+        field: 'mode', oldValue: prev.store.mode, newValue: curr.store.mode,
+        detail: `mode: ${prev.store.mode} → ${curr.store.mode}`,
+      });
+    }
+    if (prev.store.activeTool !== curr.store.activeTool) {
+      mutations.push({
+        snapshotIndex: i, type: 'tool-changed',
+        field: 'activeTool', oldValue: prev.store.activeTool, newValue: curr.store.activeTool,
+        detail: `tool: ${prev.store.activeTool} → ${curr.store.activeTool}`,
+      });
+    }
+    if (prev.store.zoom !== curr.store.zoom) {
+      mutations.push({
+        snapshotIndex: i, type: 'viewport-changed',
+        field: 'zoom', oldValue: prev.store.zoom, newValue: curr.store.zoom,
+        detail: `zoom: ${prev.store.zoom} → ${curr.store.zoom}`,
+      });
+    }
+    if (prev.store.pan.x !== curr.store.pan.x || prev.store.pan.y !== curr.store.pan.y) {
+      mutations.push({
+        snapshotIndex: i, type: 'viewport-changed',
+        field: 'pan', oldValue: prev.store.pan, newValue: curr.store.pan,
+        detail: `pan: (${prev.store.pan.x},${prev.store.pan.y}) → (${curr.store.pan.x},${curr.store.pan.y})`,
+      });
+    }
+    if (prev.store.editingElementId !== curr.store.editingElementId) {
+      mutations.push({
+        snapshotIndex: i, type: 'editing-changed',
+        field: 'editingElementId', oldValue: prev.store.editingElementId, newValue: curr.store.editingElementId,
+        detail: `editing: ${prev.store.editingElementId} → ${curr.store.editingElementId}`,
+      });
+    }
+    if (prev.store.activeSlideId !== curr.store.activeSlideId) {
+      mutations.push({
+        snapshotIndex: i, type: 'slide-changed',
+        field: 'activeSlideId', oldValue: prev.store.activeSlideId, newValue: curr.store.activeSlideId,
+        detail: `slide: ${prev.store.activeSlideId} → ${curr.store.activeSlideId}`,
+      });
+    }
+
     // Element property changes
     for (const [id, currEl] of Object.entries(curr.store.elements)) {
       const prevEl = prev.store.elements[id];
@@ -769,7 +841,7 @@ function buildMutationTimeline(snapshots: EvalSnapshot[]): Mutation[] {
         });
         continue;
       }
-      for (const field of ['x', 'y', 'width', 'height', 'rotation', 'opacity', 'hidden'] as const) {
+      for (const field of ['x', 'y', 'width', 'height', 'rotation', 'opacity', 'hidden', 'locked', 'borderRadius', 'fillCount', 'fillHash', 'strokeCount', 'strokeHash', 'effectHash'] as const) {
         if ((currEl as any)[field] !== (prevEl as any)[field]) {
           mutations.push({
             snapshotIndex: i, type: 'element-changed', id, field,
@@ -1017,9 +1089,11 @@ function runTemporalRules(snapshots: EvalSnapshot[], mutations: Mutation[], acti
       tool: prev.store.activeTool,
       mode: prev.store.mode,
       zoom: prev.store.zoom,
+      pan: prev.store.pan,
+      slide: prev.store.activeSlideId,
       elCount: Object.keys(prev.store.elements).length,
       elState: Object.entries(prev.store.elements).map(([id, el]) =>
-        `${id}:${el.x},${el.y},${el.width},${el.height},${el.rotation},${el.opacity},${el.hidden},${el.locked}`
+        `${id}:${el.x},${el.y},${el.width},${el.height},${el.rotation},${el.opacity},${el.hidden},${el.locked},${el.fillHash},${el.strokeHash},${el.effectHash}`
       ).sort().join('|'),
     });
     const currStr = JSON.stringify({
@@ -1028,9 +1102,11 @@ function runTemporalRules(snapshots: EvalSnapshot[], mutations: Mutation[], acti
       tool: curr.store.activeTool,
       mode: curr.store.mode,
       zoom: curr.store.zoom,
+      pan: curr.store.pan,
+      slide: curr.store.activeSlideId,
       elCount: Object.keys(curr.store.elements).length,
       elState: Object.entries(curr.store.elements).map(([id, el]) =>
-        `${id}:${el.x},${el.y},${el.width},${el.height},${el.rotation},${el.opacity},${el.hidden},${el.locked}`
+        `${id}:${el.x},${el.y},${el.width},${el.height},${el.rotation},${el.opacity},${el.hidden},${el.locked},${el.fillHash},${el.strokeHash},${el.effectHash}`
       ).sort().join('|'),
     });
 
