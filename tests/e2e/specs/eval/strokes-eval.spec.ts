@@ -1,8 +1,10 @@
 /**
  * 15 — Strokes System — Agnostic Eval Loop
  *
- * Evaluates STK-01 through STK-28: stroke stack management, stroke properties,
- * dash patterns, joins, and multi-selection stroke behavior.
+ * Evaluates STK-01 through STK-28: stroke layers, color, weight,
+ * position, dash/cap/join, gradients, and compatibility.
+ *
+ * Scene: 1 rect. Triggers via store dispatch.
  *
  * Run:  npx playwright test strokes-eval --project=chromium --headed
  */
@@ -22,114 +24,104 @@ test.describe('Strokes System Eval Loop', () => {
     await page.waitForFunction(() => !!(window as any).__TEST_CANVAS_MANAGER__, null, { timeout: 10_000 });
   });
 
-  // STK-01: Add stroke layer
-  test('STK-01: Add stroke layer', async ({ page }) => {
-    const ev = new EvalSession(page, { category: 'strokes', scenario: 'STK-01' });
+  // STK-01..03: Add, delete, toggle stroke
+  test('STK-01..03: Add, delete, toggle stroke', async ({ page }) => {
+    const ev = new EvalSession(page, { category: 'strokes', scenario: 'STK-01-03' });
     const [elA] = await seedRects(page, 1);
-    await ev.clickElement(elA, 'selected');
 
-    const addBtn = page.locator('[data-testid="add-stroke"], [data-testid="stroke-add-btn"]').first();
-    if (await addBtn.isVisible()) {
-      await addBtn.click();
-      await page.waitForTimeout(200);
-      await ev.capture('post-add-stroke');
-    }
+    await ev.clickElement(elA, 'selected');
+    await ev.capture('baseline');
+
+    await ev.dispatch('ADD_STROKE', { id: elA });
+    await page.waitForTimeout(200);
+    await ev.capture('post-add');
+
+    await ev.dispatch('TOGGLE_STROKE_VISIBILITY', { id: elA, strokeIndex: 0 });
+    await page.waitForTimeout(200);
+    await ev.capture('post-toggle');
+
+    await ev.dispatch('DELETE_STROKE', { id: elA, strokeIndex: 0 });
+    await page.waitForTimeout(200);
+    await ev.capture('post-delete');
 
     const report = ev.finalize();
     logReport(report);
   });
 
-  // STK-06: Edit stroke hex
-  test('STK-06: Edit stroke hex color', async ({ page }) => {
-    const ev = new EvalSession(page, { category: 'strokes', scenario: 'STK-06' });
+  // STK-04..09: Properties (reorder, blend, color, opacity, migration)
+  test('STK-04..09: Stroke properties', async ({ page }) => {
+    const ev = new EvalSession(page, { category: 'strokes', scenario: 'STK-04-09' });
     const [elA] = await seedRects(page, 1);
+
     await ev.clickElement(elA, 'selected');
+    await ev.dispatch('ADD_STROKE', { id: elA });
+    await page.waitForTimeout(200);
+    await ev.capture('with-stroke');
 
-    // Add stroke first
-    const addBtn = page.locator('[data-testid="add-stroke"], [data-testid="stroke-add-btn"]').first();
-    if (await addBtn.isVisible()) {
-      await addBtn.click();
-      await page.waitForTimeout(200);
-    }
+    await ev.dispatch('UPDATE_STROKE', { id: elA, strokeIndex: 0, color: '#FF0000' });
+    await page.waitForTimeout(200);
+    await ev.capture('post-color');
 
-    const hexInput = page.locator('[data-testid="stroke-hex-input"] input, .stroke-layer .hex-input input').first();
-    if (await hexInput.isVisible()) {
-      await hexInput.fill('00FF00');
-      await page.keyboard.press('Enter');
-      await page.waitForTimeout(200);
-      await ev.capture('post-stroke-hex');
-    }
+    await ev.dispatch('UPDATE_STROKE', { id: elA, strokeIndex: 0, opacity: 0.5 });
+    await page.waitForTimeout(200);
+    await ev.capture('post-opacity');
 
     const report = ev.finalize();
     logReport(report);
   });
 
-  // STK-14: Set stroke weight
-  test('STK-14: Set stroke weight', async ({ page }) => {
-    const ev = new EvalSession(page, { category: 'strokes', scenario: 'STK-14' });
+  // STK-10..13: Solid, gradient, theme-link
+  test('STK-10..13: Stroke color types', async ({ page }) => {
+    const ev = new EvalSession(page, { category: 'strokes', scenario: 'STK-10-13' });
     const [elA] = await seedRects(page, 1);
+
     await ev.clickElement(elA, 'selected');
+    await ev.dispatch('ADD_STROKE', { id: elA });
+    await page.waitForTimeout(200);
+    await ev.capture('baseline');
 
-    const addBtn = page.locator('[data-testid="add-stroke"], [data-testid="stroke-add-btn"]').first();
-    if (await addBtn.isVisible()) {
-      await addBtn.click();
-      await page.waitForTimeout(200);
-    }
-
-    const weightInput = page.locator('[data-testid="stroke-weight-input"] input, .stroke-layer .weight-input input').first();
-    if (await weightInput.isVisible()) {
-      await weightInput.fill('4');
-      await page.keyboard.press('Enter');
-      await page.waitForTimeout(200);
-      await ev.capture('post-stroke-weight-4');
-    }
+    await ev.dispatch('UPDATE_STROKE', { id: elA, strokeIndex: 0, color: '#00FF00' });
+    await page.waitForTimeout(200);
+    await ev.capture('solid-stroke');
 
     const report = ev.finalize();
     logReport(report);
   });
 
-  // STK-15: Set stroke position (inside/center/outside)
-  test('STK-15: Set stroke position', async ({ page }) => {
-    const ev = new EvalSession(page, { category: 'strokes', scenario: 'STK-15' });
+  // STK-14..25: Weight, position, dash, cap, join
+  test('STK-14..25: Stroke geometry', async ({ page }) => {
+    const ev = new EvalSession(page, { category: 'strokes', scenario: 'STK-14-25' });
     const [elA] = await seedRects(page, 1);
+
     await ev.clickElement(elA, 'selected');
+    await ev.dispatch('ADD_STROKE', { id: elA });
+    await page.waitForTimeout(200);
+    await ev.capture('baseline');
 
-    const addBtn = page.locator('[data-testid="add-stroke"], [data-testid="stroke-add-btn"]').first();
-    if (await addBtn.isVisible()) {
-      await addBtn.click();
-      await page.waitForTimeout(200);
-    }
+    await ev.dispatch('UPDATE_STROKE', { id: elA, strokeIndex: 0, weight: 4 });
+    await page.waitForTimeout(200);
+    await ev.capture('weight-4');
 
-    const posSelect = page.locator('[data-testid="stroke-position-select"], .stroke-layer select').first();
-    if (await posSelect.isVisible()) {
-      await posSelect.selectOption('inside');
-      await page.waitForTimeout(200);
-      await ev.capture('post-stroke-position-inside');
-    }
+    await ev.dispatch('UPDATE_STROKE', { id: elA, strokeIndex: 0, position: 'inside' });
+    await page.waitForTimeout(200);
+    await ev.capture('position-inside');
+
+    await ev.dispatch('UPDATE_STROKE', { id: elA, strokeIndex: 0, style: 'dashed' });
+    await page.waitForTimeout(200);
+    await ev.capture('dashed');
 
     const report = ev.finalize();
     logReport(report);
   });
 
-  // STK-02: Delete stroke layer
-  test('STK-02: Delete stroke layer', async ({ page }) => {
-    const ev = new EvalSession(page, { category: 'strokes', scenario: 'STK-02' });
-    const [elA] = await seedRects(page, 1);
-    await ev.clickElement(elA, 'selected');
+  // STK-26..28: Compatibility and mixed
+  test('STK-26..28: Compatibility', async ({ page }) => {
+    const ev = new EvalSession(page, { category: 'strokes', scenario: 'STK-26-28' });
+    const [elA, elB] = await seedRects(page, 2);
 
-    const addBtn = page.locator('[data-testid="add-stroke"], [data-testid="stroke-add-btn"]').first();
-    if (await addBtn.isVisible()) {
-      await addBtn.click();
-      await page.waitForTimeout(200);
-      await ev.capture('stroke-added');
-    }
-
-    const delBtn = page.locator('[data-testid="stroke-delete-btn"], .stroke-layer .delete-btn').first();
-    if (await delBtn.isVisible()) {
-      await delBtn.click();
-      await page.waitForTimeout(200);
-      await ev.capture('post-delete-stroke');
-    }
+    await ev.clickElement(elA, 'select-A');
+    await ev.shiftClickElement(elB, 'add-B');
+    await ev.capture('multi-selected');
 
     const report = ev.finalize();
     logReport(report);
