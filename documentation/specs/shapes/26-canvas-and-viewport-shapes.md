@@ -1,0 +1,48 @@
+# Canvas & Viewport UX (Shapes delta)
+
+**Status**: Implemented (v1, partial)
+**Last Updated**: December 17, 2025
+
+This spec documents shapes-specific canvas UX beyond the existing canvas spec.
+
+Existing baseline: `documentation/specs/canvas/canvas-interaction.md`.
+
+---
+
+## 1. Coordinate feedback
+- When editing shapes, show:
+  - distances
+  - angles
+  - size deltas
+
+V1 non-goal:
+- Dedicated coordinate feedback UI (angles/deltas readouts) is not shipped in v1.
+
+## 2. Creation UX
+- Drag to create shapes
+- Shift to constrain
+- Alt/Option to draw from center (required)
+
+V1 note:
+- Alt/Option draw-from-center is implemented for drag-based creation.
+
+## 3. Viewport behaviors
+- Zoom-to-cursor consistency during edit.
+
+Current-implementation alignment notes:
+- `edit`/`master`: screen↔world mapping uses pan+zoom.
+- `presentation`: screen↔world mapping uses `PresentationManager` scale/offset; editing interactions are disabled.
+- Shapes interactions must use the active container for the current mode (active slide vs active master).
+
+## 4. Acceptance
+- Creating and editing shapes feels consistent with existing canvas behavior.
+
+## 5. Figma-class UX learnings (viewport + interaction)
+- Preserve zoom-to-cursor invariants during active drags; avoid subtle world-space drift when zooming while a gesture is in progress.
+- Use hysteresis for hover + snapping indicators so they don’t flicker at high zoom or near thresholds.
+- Prefer stable screen-space handles: minimum on-screen size with zoom-scaled hit slop.
+- Hard rule: `presentation` mode is view-only; do not show editing affordances or allow edit gestures to start.
+
+## 6. Quality critique (gaps + risks)
+- Coordinate feedback (angles/distances) needs explicit formatting and measurement sources; otherwise numbers will disagree with inspector values.
+- Zoom-to-cursor invariants must be validated under nested transforms (groups) and while editing master vs slide.
