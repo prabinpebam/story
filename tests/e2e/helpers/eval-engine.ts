@@ -373,6 +373,8 @@ const CAPTURE_FN = `(function() {
       var de = domElements[p];
       var se3 = storeState.elements[de.id];
       if (se3 && de.isVisible && !se3.parentId && !de.isPlaceholder && de.source !== 'master') {
+        // Skip text elements entirely — they auto-size via CSS content flow
+        if (se3.type === 'text') continue;
         var pdx = Math.abs(de.inlinePosition.left - se3.x);
         var pdy = Math.abs(de.inlinePosition.top - se3.y);
         if (pdx > 1 || pdy > 1) {
@@ -381,7 +383,7 @@ const CAPTURE_FN = `(function() {
         }
         var pdw = Math.abs(de.inlinePosition.width - se3.width);
         var pdh = Math.abs(de.inlinePosition.height - se3.height);
-        if (pdw > 1 || (se3.type !== 'text' && pdh > 1)) {
+        if (pdw > 1 || pdh > 1) {
           anomalies.push({ code: 'DIMENSION_DRIFT', severity: 'critical',
             category: 'spatial', message: 'Element ' + de.id + ': DOM size (' + de.inlinePosition.width + 'x' + de.inlinePosition.height + ') vs store (' + se3.width + 'x' + se3.height + ')' });
         }
@@ -599,15 +601,14 @@ function runHeuristicDetectors(snap: EvalSnapshot): Finding[] {
     if (domEl.isPlaceholder || domEl.source === 'master' || storeEl.source === 'master') continue;
     if (storeEl.parentId) continue;
     if (domEl.id.startsWith('placeholder-')) continue;
-    // Text elements auto-resize: their inline height may be 0 initially
-    // Use screen rect for text elements instead
+    // Text elements auto-size: DOM dimensions are driven by CSS content flow,
+    // not by inline width/height styles. Skip dimension checks entirely for text.
+    if (storeEl.type === 'text') continue;
     const domW = domEl.inlinePosition.width || domEl.screenRect.width;
     const domH = domEl.inlinePosition.height || domEl.screenRect.height;
     const dw = Math.abs(domW - storeEl.width);
     const dh = Math.abs(domH - storeEl.height);
-    // Skip height mismatch for text elements (auto-resize is expected behavior)
-    const isText = storeEl.type === 'text';
-    if (dw > 1 || (!isText && dh > 1)) {
+    if (dw > 1 || dh > 1) {
       findings.push({
         code: 'DIMENSION_DRIFT',
         severity: 'critical',
@@ -645,16 +646,11 @@ function runHeuristicDetectors(snap: EvalSnapshot): Finding[] {
   }
 
   // IDLE_WITH_STALE_INTERACTION
-  // After a click, CanvasManager sets dragStart to mouse position in handleMouseDown.
-  // If clicking empty space, it briefly enters SELECTING then returns to IDLE, leaving
-  // both dragStart and dragCurrent at the same position. This is normal click behavior.
-  // Only flag when dragStart !== dragCurrent (indicates incomplete drag).
+  // CanvasManager retains dragStart/dragCurrent after any completed drag
+  // (selection marquee, creation drag, element drag, resize). This is normal.
+  // Only flag activeHandle being set while IDLE — that indicates a stuck handle.
   if (ix.available && ix.interactionState === 'IDLE') {
-    const hasRealDrag = ix.dragStart && (ix.dragStart.x !== 0 || ix.dragStart.y !== 0);
-    const hasRealCurrent = ix.dragCurrent && (ix.dragCurrent.x !== 0 || ix.dragCurrent.y !== 0);
-    const dragStartEqualsCurrent = ix.dragStart && ix.dragCurrent &&
-      ix.dragStart.x === ix.dragCurrent.x && ix.dragStart.y === ix.dragCurrent.y;
-    if ((hasRealDrag && hasRealCurrent && !dragStartEqualsCurrent) || ix.activeHandle) {
+    if (ix.activeHandle) {
       findings.push({
         code: 'IDLE_WITH_STALE_INTERACTION',
         severity: 'warning',
@@ -942,10 +938,15 @@ function runTemporalRules(snapshots: EvalSnapshot[], mutations: Mutation[], acti
     if (!selChanged) continue;
 
     // Check that no element properties changed
+    // Text elements are excluded from width/height checks because they auto-resize
+    // when entering/exiting edit mode (content-driven sizing).
     for (const [id, currEl] of Object.entries(curr.store.elements)) {
       const prevEl = prev.store.elements[id];
       if (!prevEl) continue;
+      const isText = currEl.type === 'text';
       for (const field of ['x', 'y', 'width', 'height', 'rotation'] as const) {
+        // Skip dimension fields for text (auto-resize on edit enter/exit)
+        if (isText && (field === 'width' || field === 'height')) continue;
         const pv = (prevEl as any)[field];
         const cv = (currEl as any)[field];
         if (pv !== cv) {
