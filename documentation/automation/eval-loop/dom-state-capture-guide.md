@@ -202,6 +202,43 @@ This function runs inside Story's browser context via `page.evaluate()`. It read
 4. **Self-contained.** No imports, no closures, no external references. Everything inline.
 5. **Tolerant.** Never throws. Every DOM access wrapped in null checks. Returns partial data rather than crashing.
 
+### 2.2 Scoped Capture — What to Capture Per Taskflow
+
+The capture function captures all three layers generically. But **each eval loop controls what ends up in the snapshot through scene design, not capture filtering.** The capture records what exists — you control what exists.
+
+**The principle:** Seed only what the taskflow needs. A resize eval needs 1–2 elements, not 20. A text editing eval needs one text element. A selection eval needs 2–4 elements with spatial separation. More elements = bigger snapshots, more noise in the mutation timeline, harder-to-read reports.
+
+**Per-taskflow capture focus:**
+
+| Taskflow Category | Critical Store Fields | Critical DOM Fields | Critical Interaction Fields | Seed Size |
+|---|---|---|---|---|
+| **Selection** | `selectedElementIds`, element positions | `screenRect`, `isVisible` | `selectionBounds`, `interactionState` | 2–4 elements |
+| **Resize** | element `width`, `height`, `x`, `y` | `inlinePosition`, `screenRect` | `activeHandle`, `interactionState`, `initialElementState` | 1–2 elements |
+| **Rotation** | element `rotation` | `transform` | `interactionAction`, `interactionState` | 1 element |
+| **Movement/Drag** | element `x`, `y` | `inlinePosition` | `dragStart`, `dragCurrent`, `activeGuides` | 2–3 elements (for snapping) |
+| **Text Editing** | `editingElementId`, element properties | `textContentHash`, `textLength`, `hasTextContent` | `interactionState` | 1 text element |
+| **Context Menu** | pre/post action diffs on elements, `activeTool` | element count changes | `interactionState` | 1–2 elements |
+| **Viewport** | `zoom`, `pan` | `zoomDisplay`, `screenRect` | — | 1 element (position reference) |
+| **Undo/Redo** | full element snapshot (pre vs post) | full element positions | `initialElementState` | 1–2 elements |
+| **Fills/Strokes/Effects** | element fill/stroke/effect properties | computed styles | — | 1 element |
+| **Slide Management** | `activeSlideId`, slide count, `elementOrder` | `slidePresent`, `slideId` | — | 0 elements (slide-level) |
+
+**What this means for scenario design:**
+
+```
+WRONG — bloated scene, noisy capture:
+  Seed 10 elements, 3 slides, multiple groups
+  Capture at 250ms polling
+  50KB per snapshot × 40 snapshots = 2MB of noise
+
+RIGHT — focused scene, clean capture:
+  Seed 2 rects for selection eval
+  Capture on action: baseline → click → shift-click → deselect
+  4KB per snapshot × 4 snapshots = 16KB of signal
+```
+
+The capture function itself stays generic and complete — it always captures store, DOM, and interaction. The optimization happens in what you put on the canvas and when you trigger captures. This keeps the capture function reusable across all taskflows while each eval loop produces lean, readable recordings.
+
 ### 2.2 Implementation
 
 ```javascript

@@ -205,6 +205,20 @@ Every detector must specify:
 
 **Critical design rule: the recording format must be GENERIC and VERSATILE — not shaped to fit known detectors.** The recording serves two consumers (heuristic detectors AND semantic/LLM evaluation), and the semantic evaluation is open-ended. If the recording only captures what the heuristic detectors check, the semantic evaluation has nothing to work with. The recording must capture enough structured state that *any* anomaly — including ones you haven't thought of yet — can be detected after the fact.
 
+**Equally critical: each taskflow's capture must be SCOPED to what matters for that taskflow.** A generic capture function provides the full three-layer snapshot, but each eval loop scenario must be designed so that:
+
+1. **The scene contains only what's needed.** Seed the minimum elements required to exercise the taskflow. More elements = bigger snapshots, more noise, slower captures, harder-to-read diffs.
+
+2. **The capture focus matches the evaluation focus.** If you're evaluating selection behavior, the critical state is `selectedElementIds`, `selectionBounds`, and element positions (to verify no drift). You don't need to capture every text content hash or image load status. If you're evaluating text editing, the critical state is `editingElementId`, `textContentHash`, `textLength`. Define what's critical *per taskflow* during this planning step.
+
+3. **Snapshots stay bounded.** A single snapshot must stay under 20KB. If a slide has 50 elements and you're testing one resize, the 50-element DOM array produces noise. Seed 2–3 elements, not 50. The capture function captures what exists — control what exists.
+
+4. **Snapshot frequency matches the taskflow's time behavior.** A drag operation needs captures during motion (every 4th step). A keyboard shortcut needs exactly two: before and after. A click needs one after. Don't poll at 250ms for an instantaneous action. Don't capture once for a multi-step drag.
+
+The wrong approach: capture everything at maximum frequency and filter later. This produces multi-megabyte recordings where the signal is invisible.
+
+The right approach: design each eval loop's scene minimally, trigger precisely, and capture at the moments that matter. The capture function is generic — the *scenario design* controls what gets captured.
+
 **This is where technology enters the framework.** Steps 1–2 defined what the user should see (technology-agnostic). This step figures out *how* to observe and record evidence of what the user actually sees, using the specific technology stack of the application. If the app were rewritten in a different stack, Steps 1–2 would stay identical. Only this step and its downstream implementation (Steps 4–6) would change.
 
 ### Three Recording Layers

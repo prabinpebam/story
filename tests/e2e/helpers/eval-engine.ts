@@ -25,6 +25,7 @@ export interface StoreElement {
   width: number; height: number;
   rotation: number;
   opacity: number;
+  borderRadius: number;
   hidden: boolean;
   locked: boolean;
   parentId: string | null;
@@ -39,9 +40,11 @@ export interface StoreLayer {
   selectedElementIds: string[];
   editingElementId: string | null;
   activeTool: string;
+  deepEdit: unknown | null;
   zoom: number;
   pan: { x: number; y: number };
   isInteracting: boolean;
+  showLayoutGuides: boolean;
   elements: Record<string, StoreElement>;
   elementOrder: string[];
 }
@@ -52,6 +55,7 @@ export interface DomElement {
   shapeKind: string;
   source: string;
   isPlaceholder: boolean;
+  layerName: string;
   inlinePosition: { left: number; top: number; width: number; height: number };
   transform: string;
   zIndex: number;
@@ -60,7 +64,11 @@ export interface DomElement {
   screenRect: { x: number; y: number; width: number; height: number };
   isVisible: boolean;
   hasTextContent: boolean;
+  textContentHash: number;
+  textLength: number;
   hasSvgGeometry: boolean;
+  hasImage: boolean;
+  imageLoaded: boolean | null;
 }
 
 export interface DomLayer {
@@ -68,6 +76,8 @@ export interface DomLayer {
   slideId: string | null;
   elementCount: number;
   elements: DomElement[];
+  layoutGuidesVisible: boolean;
+  columnGuides: Array<{ x: number; y: number; width: number; height: number }>;
   zoomDisplay: string | null;
 }
 
@@ -77,9 +87,10 @@ export interface InteractionLayer {
   interactionAction: string | null;
   activeHandle: string | null;
   hoveredElementId: string | null;
-  activeGuides: Array<{ type: string; x?: number; y?: number }>;
+  activeGuides: Array<{ type: string; x?: number; y?: number; fromId?: string; toId?: string }>;
   dragStart: { x: number; y: number } | null;
   dragCurrent: { x: number; y: number } | null;
+  initialElementState: Record<string, { x: number; y: number; width: number; height: number; rotation: number }> | null;
   selectionBounds: {
     x: number; y: number;
     width: number; height: number;
@@ -154,6 +165,13 @@ const CAPTURE_FN = `(function() {
   function qsa(sel) { return [].slice.call(document.querySelectorAll(sel)); }
   function ga(el, a) { return el ? (el.getAttribute(a) || '') : ''; }
   function pf(v) { return parseFloat(v) || 0; }
+  function hashStr(s) {
+    var h = 0;
+    for (var i = 0; i < s.length; i++) {
+      h = ((h << 5) - h + s.charCodeAt(i)) | 0;
+    }
+    return h;
+  }
 
   // ── Store Layer ──
   var storeState = null;
@@ -175,6 +193,7 @@ const CAPTURE_FN = `(function() {
           x: el.x, y: el.y, width: el.width, height: el.height,
           rotation: el.rotation || 0,
           opacity: el.opacity != null ? el.opacity : 1,
+          borderRadius: el.borderRadius || 0,
           hidden: !!el.hidden, locked: !!el.locked,
           parentId: el.parentId || null,
           source: el.source || 'slide', name: el.name || '',
@@ -195,9 +214,11 @@ const CAPTURE_FN = `(function() {
         selectedElementIds: [].concat(editor.selectedElementIds || []),
         editingElementId: editor.editingElementId || null,
         activeTool: editor.activeToolId || editor.activeTool || 'select',
+        deepEdit: editor.deepEdit || null,
         zoom: editor.zoom || 1,
         pan: { x: (editor.pan && editor.pan.x) || 0, y: (editor.pan && editor.pan.y) || 0 },
         isInteracting: !!(s.ui && s.ui.isInteracting),
+        showLayoutGuides: editor.showLayoutGuides !== false,
         elements: elements,
         elementOrder: elOrder
       };
@@ -205,17 +226,21 @@ const CAPTURE_FN = `(function() {
   } catch(e) {}
 
   // ── DOM Layer ──
-  var slideView = document.querySelector('[data-testid="slide-view"]');
-  var domElements = qsa('.slide-element[data-element-id]').map(function(el) {
+  // Scope to #slide-content to exclude sidebar thumbnail duplicates
+  var slideView = document.querySelector('#slide-content [data-testid="slide-view"]') || document.querySelector('[data-testid="slide-view"]');
+  var domElements = qsa('#slide-content .slide-element[data-element-id]').map(function(el) {
     var st = el.style;
     var comp = getComputedStyle(el);
     var rect = el.getBoundingClientRect();
+    var textEl = el.querySelector('[contenteditable]');
+    var textContent = textEl ? (textEl.textContent || '') : '';
     return {
       id: ga(el, 'data-element-id'),
       type: ga(el, 'data-element-type'),
       shapeKind: ga(el, 'data-shape-kind'),
       source: ga(el, 'data-source'),
       isPlaceholder: ga(el, 'data-is-placeholder') === 'true',
+      layerName: ga(el, 'data-layer-name'),
       inlinePosition: {
         left: pf(st.left), top: pf(st.top),
         width: pf(st.width), height: pf(st.height)
@@ -226,16 +251,27 @@ const CAPTURE_FN = `(function() {
       display: comp.display,
       screenRect: { x: rect.x, y: rect.y, width: rect.width, height: rect.height },
       isVisible: comp.display !== 'none' && pf(comp.opacity) > 0 && rect.width > 0 && rect.height > 0,
-      hasTextContent: !!(el.querySelector('[contenteditable]') && (el.querySelector('[contenteditable]').textContent || '').length > 0),
-      hasSvgGeometry: !!el.querySelector('svg path, svg line, svg circle, svg ellipse, svg rect, svg polygon')
+      hasTextContent: textContent.length > 0,
+      textContentHash: hashStr(textContent),
+      textLength: textContent.length,
+      hasSvgGeometry: !!el.querySelector('svg path, svg line, svg circle, svg ellipse, svg rect, svg polygon'),
+      hasImage: !!el.querySelector('img'),
+      imageLoaded: el.querySelector('img') ? !!el.querySelector('img').complete : null
     };
   });
   var zoomEl = document.getElementById('zoom-display');
+  var guideOverlay = document.querySelector('[data-testid="layout-guide-overlay"]');
+  var columnGuides = qsa('[data-testid="layout-guide-column"]').map(function(g) {
+    return { x: pf(g.getAttribute('x')), y: pf(g.getAttribute('y')),
+             width: pf(g.getAttribute('width')), height: pf(g.getAttribute('height')) };
+  });
   var domState = {
     slidePresent: !!slideView,
     slideId: slideView ? ga(slideView, 'data-slide-id') : null,
     elementCount: domElements.length,
     elements: domElements,
+    layoutGuidesVisible: guideOverlay ? guideOverlay.style.display !== 'none' : false,
+    columnGuides: columnGuides,
     zoomDisplay: zoomEl ? (zoomEl.textContent || '').trim() : null
   };
 
@@ -270,6 +306,19 @@ const CAPTURE_FN = `(function() {
         }
       } catch(e) {}
 
+      // Capture initialElementState for undo verification
+      var ies = null;
+      try {
+        if (cm.initialElementState) {
+          ies = {};
+          var iesKeys = Object.keys(cm.initialElementState);
+          for (var k = 0; k < iesKeys.length; k++) {
+            var src = cm.initialElementState[iesKeys[k]];
+            ies[iesKeys[k]] = { x: src.x, y: src.y, width: src.width, height: src.height, rotation: src.rotation || 0 };
+          }
+        }
+      } catch(e) {}
+
       interactionState = {
         available: true,
         interactionState: cm.interactionState || 'IDLE',
@@ -277,20 +326,138 @@ const CAPTURE_FN = `(function() {
         activeHandle: cm.activeHandle || null,
         hoveredElementId: cm.hoveredElementId || null,
         activeGuides: (cm.activeGuides || []).map(function(g) {
-          return { type: g.type, x: g.x, y: g.y };
+          return { type: g.type, x: g.x, y: g.y, fromId: g.fromId, toId: g.toId };
         }),
         dragStart: cm.dragStart ? { x: cm.dragStart.x, y: cm.dragStart.y } : null,
         dragCurrent: cm.dragCurrent ? { x: cm.dragCurrent.x, y: cm.dragCurrent.y } : null,
+        initialElementState: ies,
         selectionBounds: selBounds
       };
     }
   } catch(e) {}
 
+  // ── Inline Anomaly Detection (runs at capture time in browser) ──
+  var anomalies = [];
+
+  // A1: Store↔DOM element count mismatch
+  if (storeState && domState.slidePresent) {
+    var storeVisible = 0;
+    var sKeys = Object.keys(storeState.elements);
+    for (var m = 0; m < sKeys.length; m++) {
+      var se = storeState.elements[sKeys[m]];
+      if (!se.hidden && se.type !== 'group') storeVisible++;
+    }
+    if (storeVisible !== domState.elementCount) {
+      anomalies.push({ code: 'ELEMENT_COUNT_MISMATCH', severity: 'critical',
+        category: 'sync', message: 'Store has ' + storeVisible + ' visible elements, DOM has ' + domState.elementCount });
+    }
+  }
+
+  // A2: Element in store but missing from DOM
+  if (storeState) {
+    var domIds = {};
+    for (var d = 0; d < domElements.length; d++) domIds[domElements[d].id] = true;
+    var seKeys = Object.keys(storeState.elements);
+    for (var n = 0; n < seKeys.length; n++) {
+      var se2 = storeState.elements[seKeys[n]];
+      if (!se2.hidden && se2.type !== 'group' && !domIds[se2.id]) {
+        anomalies.push({ code: 'ELEMENT_MISSING_IN_DOM', severity: 'critical',
+          category: 'sync', message: 'Element ' + se2.id + ' (' + se2.type + ') in store but not in DOM' });
+      }
+    }
+  }
+
+  // A3: Position drift (DOM position doesn't match store)
+  if (storeState) {
+    for (var p = 0; p < domElements.length; p++) {
+      var de = domElements[p];
+      var se3 = storeState.elements[de.id];
+      if (se3 && de.isVisible && !se3.parentId && !de.isPlaceholder && de.source !== 'master') {
+        var pdx = Math.abs(de.inlinePosition.left - se3.x);
+        var pdy = Math.abs(de.inlinePosition.top - se3.y);
+        if (pdx > 1 || pdy > 1) {
+          anomalies.push({ code: 'POSITION_DRIFT', severity: 'critical',
+            category: 'spatial', message: 'Element ' + de.id + ': DOM pos (' + de.inlinePosition.left + ',' + de.inlinePosition.top + ') vs store (' + se3.x + ',' + se3.y + ')' });
+        }
+        var pdw = Math.abs(de.inlinePosition.width - se3.width);
+        var pdh = Math.abs(de.inlinePosition.height - se3.height);
+        if (pdw > 1 || (se3.type !== 'text' && pdh > 1)) {
+          anomalies.push({ code: 'DIMENSION_DRIFT', severity: 'critical',
+            category: 'spatial', message: 'Element ' + de.id + ': DOM size (' + de.inlinePosition.width + 'x' + de.inlinePosition.height + ') vs store (' + se3.width + 'x' + se3.height + ')' });
+        }
+      }
+    }
+  }
+
+  // A4: Zoom display sync
+  if (storeState && domState.zoomDisplay) {
+    var expectedZoom = Math.round(storeState.zoom * 100) + '%';
+    if (domState.zoomDisplay !== expectedZoom) {
+      anomalies.push({ code: 'ZOOM_DISPLAY_DESYNC', severity: 'warning',
+        category: 'sync', message: 'Zoom display shows ' + domState.zoomDisplay + ' but store zoom is ' + storeState.zoom });
+    }
+  }
+
+  // A5: Editing element not in selection
+  if (storeState && storeState.editingElementId) {
+    if (storeState.selectedElementIds.indexOf(storeState.editingElementId) === -1) {
+      anomalies.push({ code: 'EDITING_NOT_SELECTED', severity: 'critical',
+        category: 'state', message: 'editingElementId ' + storeState.editingElementId + ' not in selectedElementIds' });
+    }
+  }
+
+  // A6: Drag without selection
+  if (interactionState.available && interactionState.interactionState === 'DRAGGING') {
+    if (!storeState || storeState.selectedElementIds.length === 0) {
+      anomalies.push({ code: 'DRAG_WITHOUT_SELECTION', severity: 'critical',
+        category: 'state', message: 'InteractionState is DRAGGING but no elements selected' });
+    }
+  }
+
+  // A7: Resize without active handle
+  if (interactionState.available && interactionState.interactionState === 'RESIZING') {
+    if (!interactionState.activeHandle) {
+      anomalies.push({ code: 'RESIZE_WITHOUT_HANDLE', severity: 'critical',
+        category: 'state', message: 'InteractionState is RESIZING but no activeHandle set' });
+    }
+  }
+
+  // A8: Image load failures
+  for (var q = 0; q < domElements.length; q++) {
+    if (domElements[q].hasImage && domElements[q].imageLoaded === false) {
+      anomalies.push({ code: 'IMAGE_LOAD_FAILURE', severity: 'critical',
+        category: 'rendering', message: 'Image element ' + domElements[q].id + ' failed to load' });
+    }
+  }
+
+  // A9: Shape without SVG geometry (only SVG-rendered types: line, vector, shape, boolean)
+  // rect and ellipse use CSS box model with fills, not SVG paths
+  var shapeTypes = { line:1, vector:1, shape:1, boolean:1 };
+  for (var r = 0; r < domElements.length; r++) {
+    if (shapeTypes[domElements[r].type] && domElements[r].isVisible && !domElements[r].hasSvgGeometry) {
+      anomalies.push({ code: 'SHAPE_MISSING_SVG', severity: 'critical',
+        category: 'rendering', message: 'Shape element ' + domElements[r].id + ' (' + domElements[r].type + ') has no SVG geometry' });
+    }
+  }
+
+  // A10: Hidden element visible in DOM
+  if (storeState) {
+    for (var u = 0; u < domElements.length; u++) {
+      var se4 = storeState.elements[domElements[u].id];
+      if (se4 && se4.hidden && domElements[u].isVisible) {
+        anomalies.push({ code: 'HIDDEN_BUT_VISIBLE', severity: 'critical',
+          category: 'sync', message: 'Element ' + domElements[u].id + ' hidden in store but visible in DOM' });
+      }
+    }
+  }
+
   return {
     timestamp: Date.now(),
     store: storeState,
     dom: domState,
-    interaction: interactionState
+    interaction: interactionState,
+    viewport: storeState ? { zoom: storeState.zoom, pan: storeState.pan } : { zoom: 1, pan: { x: 0, y: 0 } },
+    anomalies: anomalies
   };
 })()`;
 
@@ -932,12 +1099,14 @@ export class EvalSession {
 
   /** Capture a snapshot with screenshot */
   async capture(label: string): Promise<EvalSnapshot> {
-    // Capture three layers
+    // Capture three layers + viewport + inline anomalies
     const raw = await this.page.evaluate(CAPTURE_FN) as {
       timestamp: number;
       store: StoreLayer | null;
       dom: DomLayer;
       interaction: InteractionLayer;
+      viewport: { zoom: number; pan: { x: number; y: number } };
+      anomalies: Array<{ code: string; severity: string; category: string; message: string }>;
     };
 
     // Take screenshot
@@ -948,6 +1117,15 @@ export class EvalSession {
     const screenshotBuffer = await this.page.screenshot({ type: 'png' });
     fs.writeFileSync(screenshotPath, screenshotBuffer);
 
+    // Convert inline anomalies to Finding objects
+    const inlineFindings: Finding[] = (raw.anomalies || []).map(a => ({
+      code: a.code,
+      severity: a.severity as Finding['severity'],
+      category: `Inline: ${a.category}`,
+      message: a.message,
+      snapshot: label,
+    }));
+
     const snap: EvalSnapshot = {
       label,
       timestamp: raw.timestamp,
@@ -955,11 +1133,11 @@ export class EvalSession {
       dom: raw.dom,
       interaction: raw.interaction,
       screenshotPath: path.relative(this.outputDir, screenshotPath),
-      findings: [],
+      findings: inlineFindings,
     };
 
-    // Run heuristic detectors inline
-    snap.findings = runHeuristicDetectors(snap);
+    // Run post-capture heuristic detectors (complements inline detection)
+    snap.findings.push(...runHeuristicDetectors(snap));
 
     this.snapshots.push(snap);
     return snap;

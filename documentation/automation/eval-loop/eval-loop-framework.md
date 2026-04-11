@@ -338,6 +338,37 @@ async function captureSnapshot(page, label) {
 }
 ```
 
+### Optimal Capture — Scene Design Controls Snapshot Size
+
+The capture function is generic — it captures all three layers for whatever exists on the canvas. **The optimization happens through scene design, not capture filtering.**
+
+A DOM capture can become very large. A slide with 30 elements produces a snapshot with 30 DOM entries, 30 store entries, and 30 elements being diffed in the mutation timeline. For most taskflows, this is pure noise.
+
+**The rule: seed only what the taskflow needs to exercise.**
+
+| Taskflow | What to Seed | Why |
+|---|---|---|
+| Single select | 2 rects | Need two alternatives to verify click selects exactly one |
+| Multi-select | 3–4 rects | Need enough to test add/remove, but not so many the diff is noisy |
+| Resize | 1 rect | Only the element being resized matters |
+| Drag + snap | 2–3 rects | Need neighbors for snap guide detection |
+| Text editing | 1 text | Only the editing target matters |
+| Group enter/exit | 1 group (2 children) + 1 standalone | Need both inside and outside the group |
+| Context menu action | 1–2 elements | Enough to verify the action's effect on store state |
+| Slide management | 0 elements | Testing slide operations, not element state |
+| Undo/redo | 1–2 elements | Minimal scene to verify state restoration |
+
+**Snapshot frequency also must match the taskflow:**
+
+| Action Pattern | Capture Points | Example |
+|---|---|---|
+| Instantaneous (shortcut, click) | 2: baseline + post-action | Ctrl+A, Delete, Escape |
+| Two-phase (right-click → menu action) | 2: baseline + post-effect | Context menu operations |
+| Drag operation | 4–6: baseline + start + 2 mid + end + settled | Resize, move, marquee |
+| Sequential actions | 1 per action, bracketed | Multi-select: click + shift + shift |
+
+A well-designed eval loop produces 4–8 snapshots at 3–5KB each = under 40KB total. A poorly designed one produces 40 snapshots at 20KB each = 800KB of noise where the signal is invisible.
+
 ---
 
 ## 4. Anomaly Detection — Three Mechanisms
