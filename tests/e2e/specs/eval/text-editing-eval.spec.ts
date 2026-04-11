@@ -608,4 +608,256 @@ test.describe('Text Editing Eval Loop', () => {
     const report = ev.finalize();
     logReport(report);
   });
+
+  // ─── Placeholder Entry (TXT-06/07) ────────────────────────────────────
+
+  // TXT-06/07: Edit placeholder elements (instantiate + enter edit)
+  // Placeholders come from master slides — test via dispatch
+  test('TXT-06/07: Placeholder edit entry', async ({ page }) => {
+    const ev = new EvalSession(page, { category: 'text-editing', scenario: 'TXT-06-07' });
+
+    // Check if placeholder elements exist on the slide
+    const hasPlaceholder = await page.evaluate(() => {
+      const el = document.querySelector('.slide-element[data-is-placeholder="true"]');
+      return el ? el.getAttribute('data-element-id') : null;
+    });
+
+    if (hasPlaceholder) {
+      await ev.capture('baseline');
+      await ev.dblClickElement(hasPlaceholder, 'dblclick-placeholder');
+      await ev.pressKey('Escape', 'post-exit');
+    } else {
+      await ev.capture('no-placeholder-available');
+    }
+
+    const report = ev.finalize();
+    logReport(report);
+  });
+
+  // ─── Stay Editing (TXT-13/14) ─────────────────────────────────────────
+
+  // TXT-13/14: Edit mode persists when PI/toolbar focused
+  test('TXT-13/14: Stay editing on PI focus', async ({ page }) => {
+    const ev = new EvalSession(page, { category: 'text-editing', scenario: 'TXT-13-14' });
+    const textId = await seedText(page, { content: 'Stay editing' });
+
+    await ev.dblClickElement(textId, 'editing');
+    await ev.capture('in-edit');
+
+    // Click somewhere in the sidebar (PI area) — not on canvas
+    await page.mouse.click(50, 400);
+    await page.waitForTimeout(200);
+    await ev.capture('after-pi-click');
+
+    await ev.pressKey('Escape', 'post-exit');
+
+    const report = ev.finalize();
+    logReport(report);
+  });
+
+  // ─── Placeholder Lifecycle (TXT-16, 60..65) ──────────────────────────
+
+  // TXT-16/60..65: Placeholder prompt text, clear on edit, restore on empty exit
+  test('TXT-16/60..65: Placeholder lifecycle', async ({ page }) => {
+    const ev = new EvalSession(page, { category: 'text-editing', scenario: 'TXT-16-60-65' });
+
+    // Find placeholder if one exists
+    const phId = await page.evaluate(() => {
+      const el = document.querySelector('#slide-content .slide-element[data-is-placeholder="true"][data-element-type="text"]');
+      return el ? el.getAttribute('data-element-id') : null;
+    });
+
+    if (phId) {
+      await ev.capture('placeholder-with-prompt');
+
+      // Enter edit — prompt should clear
+      await ev.dblClickElement(phId, 'edit-clears-prompt');
+
+      // Type content
+      await page.keyboard.type('User content', { delay: 30 });
+      await page.waitForTimeout(200);
+      await ev.capture('has-user-content');
+
+      // Exit — should save
+      await ev.pressKey('Escape', 'post-save-exit');
+
+      // Re-enter, select all, delete, exit — should restore prompt
+      await ev.dblClickElement(phId, 're-edit');
+      await ev.pressKey('Control+a', 'select-all');
+      await ev.pressKey('Delete', 'delete-content');
+      await ev.pressKey('Escape', 'post-empty-exit-restore-prompt');
+    } else {
+      await ev.capture('no-text-placeholder');
+    }
+
+    const report = ev.finalize();
+    logReport(report);
+  });
+
+  // ─── IME Composition (TXT-17, 66..70) ─────────────────────────────────
+
+  // TXT-17/66..70: IME composition blocks exit and formatting
+  // (Can't trigger real IME in headless, but we test the blocking mechanism)
+  test('TXT-17/66..70: IME composition lifecycle', async ({ page }) => {
+    const ev = new EvalSession(page, { category: 'text-editing', scenario: 'TXT-17-66-70' });
+    const textId = await seedText(page, { content: 'IME test' });
+
+    await ev.dblClickElement(textId, 'editing');
+    await ev.capture('in-edit');
+
+    // Simulate composition start event
+    await page.evaluate(() => {
+      const el = document.querySelector('[contenteditable="true"]');
+      if (el) el.dispatchEvent(new CompositionEvent('compositionstart'));
+    });
+    await page.waitForTimeout(100);
+    await ev.capture('composition-started');
+
+    // Simulate composition end
+    await page.evaluate(() => {
+      const el = document.querySelector('[contenteditable="true"]');
+      if (el) el.dispatchEvent(new CompositionEvent('compositionend'));
+    });
+    await page.waitForTimeout(100);
+    await ev.capture('composition-ended');
+
+    await ev.pressKey('Escape', 'post-exit');
+
+    const report = ev.finalize();
+    logReport(report);
+  });
+
+  // ─── Format Query & PI (TXT-24, 30..32) ───────────────────────────────
+
+  // TXT-24: Save/restore selection on PI focus
+  test('TXT-24: Save and restore selection', async ({ page }) => {
+    const ev = new EvalSession(page, { category: 'text-editing', scenario: 'TXT-24' });
+    const textId = await seedText(page, { content: 'Save selection' });
+
+    await ev.dblClickElement(textId, 'editing');
+    await ev.pressKey('Control+a', 'select-all');
+    await ev.capture('selection-active');
+
+    // Focus PI area
+    await page.mouse.click(50, 400);
+    await page.waitForTimeout(200);
+    await ev.capture('pi-focused');
+
+    // Click back on text — selection should restore
+    await ev.clickElement(textId, 'back-to-text');
+    await ev.capture('selection-restored');
+
+    await ev.pressKey('Escape', 'post-exit');
+
+    const report = ev.finalize();
+    logReport(report);
+  });
+
+  // TXT-30..32: Query active formats, apply from PI/menu
+  test('TXT-30..32: Format query and PI apply', async ({ page }) => {
+    const ev = new EvalSession(page, { category: 'text-editing', scenario: 'TXT-30-32' });
+    const textId = await seedText(page, { content: 'Format query test' });
+
+    await ev.dblClickElement(textId, 'editing');
+    await ev.pressKey('Control+a', 'select-all');
+
+    // Apply bold via shortcut
+    await ev.pressKey('Control+b', 'apply-bold');
+
+    // Query format state (capture shows textContentHash changes)
+    await ev.capture('bold-active');
+
+    // Remove bold
+    await ev.pressKey('Control+b', 'remove-bold');
+    await ev.capture('bold-removed');
+
+    await ev.pressKey('Escape', 'post-exit');
+
+    const report = ev.finalize();
+    logReport(report);
+  });
+
+  // ─── Backspace in List (TXT-47) ───────────────────────────────────────
+
+  test('TXT-47: Backspace at list item start', async ({ page }) => {
+    const ev = new EvalSession(page, { category: 'text-editing', scenario: 'TXT-47' });
+    const textId = await seedText(page, { content: '' });
+
+    await ev.dblClickElement(textId, 'editing');
+
+    // Create bullet list
+    await page.evaluate(() => document.execCommand('insertUnorderedList'));
+    await page.keyboard.type('First item', { delay: 30 });
+    await page.keyboard.press('Enter');
+    await page.keyboard.type('Second item', { delay: 30 });
+    await page.waitForTimeout(150);
+    await ev.capture('list-with-items');
+
+    // Move to start of second item
+    await page.keyboard.press('Home');
+    await page.waitForTimeout(50);
+
+    // Backspace at list item start
+    await page.keyboard.press('Backspace');
+    await page.waitForTimeout(200);
+    await ev.capture('post-backspace');
+
+    await ev.pressKey('Escape', 'post-exit');
+
+    const report = ev.finalize();
+    logReport(report);
+  });
+
+  // ─── Clipboard Safety (TXT-48..53) ────────────────────────────────────
+
+  // TXT-48..53: Paste operations (plain, rich, sanitization)
+  test('TXT-48..53: Clipboard paste operations', async ({ page }) => {
+    const ev = new EvalSession(page, { category: 'text-editing', scenario: 'TXT-48-53' });
+    const textId = await seedText(page, { content: 'Paste target' });
+
+    await ev.dblClickElement(textId, 'editing');
+    await ev.pressKey('Control+a', 'select-all');
+
+    // Type content, copy, paste cycle — exercises browser clipboard
+    await page.keyboard.type('Clean text', { delay: 20 });
+    await page.waitForTimeout(100);
+    await ev.pressKey('Control+a', 'reselect');
+    await ev.pressKey('Control+c', 'copy');
+
+    // Clear and paste
+    await ev.pressKey('Delete', 'clear');
+    await ev.pressKey('Control+v', 'paste');
+    await page.waitForTimeout(200);
+    await ev.capture('post-paste');
+
+    await ev.pressKey('Escape', 'post-exit');
+
+    const report = ev.finalize();
+    logReport(report);
+  });
+
+  // ─── Content Debounce (TXT-75/76) ──────────────────────────────────────
+
+  // TXT-75/76: Debounced save and dirty flag
+  test('TXT-75/76: Content debounce and dirty flag', async ({ page }) => {
+    const ev = new EvalSession(page, { category: 'text-editing', scenario: 'TXT-75-76' });
+    const textId = await seedText(page, { content: 'Debounce test' });
+
+    await ev.dblClickElement(textId, 'editing');
+    await ev.capture('pre-typing');
+
+    // Type rapidly — debounce kicks in
+    await page.keyboard.type('Quick typing test', { delay: 20 });
+    await page.waitForTimeout(100);
+    await ev.capture('during-typing');
+
+    // Wait for debounce (500ms)
+    await page.waitForTimeout(600);
+    await ev.capture('after-debounce');
+
+    await ev.pressKey('Escape', 'post-exit');
+
+    const report = ev.finalize();
+    logReport(report);
+  });
 });

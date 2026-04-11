@@ -108,4 +108,63 @@ test.describe('Element Rotation Eval Loop', () => {
     const report = ev.finalize();
     logReport(report);
   });
+
+  // ROT-05/06: Rotation handle visibility based on element size
+  test('ROT-05/06: Rotation handle visibility by size', async ({ page }) => {
+    const ev = new EvalSession(page, { category: 'rotation', scenario: 'ROT-05-06' });
+
+    // ROT-06: Normal-sized element — handle should be visible
+    const [elA] = await seedRects(page, 1, { width: 150, height: 100 });
+    await ev.clickElement(elA, 'select-large');
+    await ev.capture('large-element-selected');
+
+    // ROT-05: Create tiny element — handle should be hidden at < 50px
+    await ev.dispatch('ADD_ELEMENT', {
+      id: `eval-tiny-${Date.now()}`,
+      type: 'rect', x: 500, y: 200, width: 30, height: 20,
+      rotation: 0, opacity: 1, name: 'Tiny Rect',
+      fills: [{ type: 'solid', color: '#EF4444' }],
+    });
+    await page.waitForTimeout(200);
+    const tinyId = await page.evaluate(() => {
+      const state = (window as any).__TEST_STORE__.getState();
+      const slideId = state.editor.activeSlideId;
+      const elements = state.slides[slideId].elements;
+      return Object.keys(elements).find(id => elements[id].name === 'Tiny Rect') || '';
+    });
+    await ev.clickElement(tinyId, 'select-tiny');
+    await ev.capture('tiny-element-selected');
+
+    const report = ev.finalize();
+    logReport(report);
+  });
+
+  // ROT-07/08: Rotated resize cursor changes based on element angle
+  test('ROT-07/08: Rotation-aware resize cursor', async ({ page }) => {
+    const ev = new EvalSession(page, { category: 'rotation', scenario: 'ROT-07-08' });
+    const [elA] = await seedRects(page, 1, { width: 150, height: 100 });
+
+    // Set rotation to 45° via dispatch
+    await ev.dispatch('UPDATE_ELEMENT', { id: elA, rotation: 45 });
+    await page.waitForTimeout(200);
+
+    await ev.clickElement(elA, 'select-rotated');
+    await ev.capture('rotated-45');
+
+    // Hover over the east handle area
+    const rect = await ev.getElementRect(elA);
+    const handleX = rect.x + rect.width;
+    const handleY = rect.y + rect.height / 2;
+    await page.mouse.move(handleX, handleY);
+    await page.waitForTimeout(200);
+    await ev.capture('hover-handle-rotated');
+
+    // Set rotation to 90° and check again
+    await ev.dispatch('UPDATE_ELEMENT', { id: elA, rotation: 90 });
+    await page.waitForTimeout(200);
+    await ev.capture('rotated-90');
+
+    const report = ev.finalize();
+    logReport(report);
+  });
 });

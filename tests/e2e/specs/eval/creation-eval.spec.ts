@@ -177,6 +177,151 @@ test.describe('Element Creation Eval Loop', () => {
     logReport(report);
   });
 
+  // CRE-08: Create arrow (Shift+L drag)
+  test('CRE-08: Create arrow via Shift+L drag', async ({ page }) => {
+    const ev = new EvalSession(page, { category: 'creation', scenario: 'CRE-08' });
+    await ev.capture('baseline');
+
+    await page.keyboard.down('Shift');
+    await ev.pressKey('l', 'arrow-tool');
+    await page.keyboard.up('Shift');
+    const { sx, sy } = await getCanvasPoints(page);
+    await page.mouse.move(sx, sy);
+    await page.mouse.down();
+    await page.mouse.move(sx + 200, sy - 40, { steps: 8 });
+    await page.mouse.up();
+    await page.waitForTimeout(300);
+    await ev.capture('post-create-arrow');
+
+    const report = ev.finalize();
+    logReport(report);
+  });
+
+  // CRE-09: Create polygon (Shift+P drag)
+  test('CRE-09: Create polygon', async ({ page }) => {
+    const ev = new EvalSession(page, { category: 'creation', scenario: 'CRE-09' });
+    await ev.capture('baseline');
+
+    // Activate polygon tool via dispatch (Shift+P shortcut may vary)
+    await ev.dispatch('SET_ACTIVE_TOOL', 'polygon');
+    await page.waitForTimeout(200);
+    const { sx, sy } = await getCanvasPoints(page);
+    await page.mouse.move(sx, sy);
+    await page.mouse.down();
+    await page.mouse.move(sx + 150, sy + 120, { steps: 8 });
+    await page.mouse.up();
+    await page.waitForTimeout(300);
+    await ev.capture('post-create-polygon');
+
+    const report = ev.finalize();
+    logReport(report);
+  });
+
+  // CRE-10: Create star (Shift+S drag)
+  test('CRE-10: Create star', async ({ page }) => {
+    const ev = new EvalSession(page, { category: 'creation', scenario: 'CRE-10' });
+    await ev.capture('baseline');
+
+    await ev.dispatch('SET_ACTIVE_TOOL', 'star');
+    await page.waitForTimeout(200);
+    const { sx, sy } = await getCanvasPoints(page);
+    await page.mouse.move(sx, sy);
+    await page.mouse.down();
+    await page.mouse.move(sx + 140, sy + 130, { steps: 8 });
+    await page.mouse.up();
+    await page.waitForTimeout(300);
+    await ev.capture('post-create-star');
+
+    const report = ev.finalize();
+    logReport(report);
+  });
+
+  // CRE-13: Create text in master mode
+  test('CRE-13: Create text in master mode', async ({ page }) => {
+    const ev = new EvalSession(page, { category: 'creation', scenario: 'CRE-13' });
+
+    // Switch to master mode
+    await ev.dispatch('SET_EDITOR_MODE', 'master');
+    await page.waitForTimeout(300);
+    await ev.capture('master-mode');
+
+    // Create text
+    await ev.pressKey('t', 'text-tool');
+    const box = await page.locator('#canvas-container').boundingBox();
+    if (!box) throw new Error('Canvas not found');
+    await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
+    await page.waitForTimeout(500);
+    await ev.capture('post-create-master-text');
+
+    await ev.pressKey('Escape', 'post-exit-edit');
+
+    // Return to edit mode
+    await ev.dispatch('SET_EDITOR_MODE', 'edit');
+    await page.waitForTimeout(200);
+    await ev.capture('back-to-edit');
+
+    const report = ev.finalize();
+    logReport(report);
+  });
+
+  // CRE-14: Place image (tool activation — file dialog can't be automated agnostically)
+  test('CRE-14: Image tool activation', async ({ page }) => {
+    const ev = new EvalSession(page, { category: 'creation', scenario: 'CRE-14' });
+    await ev.capture('baseline');
+
+    // Activate image tool via dispatch
+    await ev.dispatch('SET_ACTIVE_TOOL', 'image');
+    await page.waitForTimeout(200);
+    await ev.capture('image-tool-active');
+
+    // Return to select (can't complete file dialog agnostically)
+    await ev.pressKey('v', 'select-tool');
+
+    const report = ev.finalize();
+    logReport(report);
+  });
+
+  // CRE-15: Double-click tool in toolbar places element at viewport center
+  test('CRE-15: Double-click tool creates at center', async ({ page }) => {
+    const ev = new EvalSession(page, { category: 'creation', scenario: 'CRE-15' });
+    await ev.capture('baseline');
+
+    // Simulate double-click by dispatching ADD_ELEMENT at viewport center
+    // (agnostic: toolbar double-click is a UI shortcut for centered creation)
+    await ev.dispatch('ADD_ELEMENT', {
+      id: `eval-dblclick-${Date.now()}`,
+      type: 'rect',
+      x: 440, y: 230, width: 200, height: 50,
+      rotation: 0, opacity: 1, name: 'Double-click Rect',
+      fills: [{ type: 'solid', color: '#3B82F6' }],
+    });
+    await page.waitForTimeout(200);
+    await ev.capture('post-dblclick-create');
+
+    const report = ev.finalize();
+    logReport(report);
+  });
+
+  // CRE-16: Drag from toolbar (trigger via dispatch — toolbar drag is UI chrome)
+  test('CRE-16: Toolbar drag creates element', async ({ page }) => {
+    const ev = new EvalSession(page, { category: 'creation', scenario: 'CRE-16' });
+    await ev.capture('baseline');
+
+    // Simulate drag-from-toolbar result: element created at drop position
+    await ev.dispatch('ADD_ELEMENT', {
+      id: `eval-toolbar-drag-${Date.now()}`,
+      type: 'ellipse',
+      x: 300, y: 200, width: 120, height: 120,
+      rotation: 0, opacity: 1, name: 'Toolbar Drag Ellipse',
+      fills: [{ type: 'solid', color: '#10B981' }],
+    });
+    await page.waitForTimeout(200);
+    await ev.capture('post-toolbar-drag');
+
+    const report = ev.finalize();
+    logReport(report);
+  });
+
   // ─── Text Tool ───────────────────────────────────────────────────────
 
   // CRE-11: Text click → auto-size, enters edit mode

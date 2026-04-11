@@ -144,4 +144,137 @@ test.describe('Element Resize Eval Loop', () => {
     const report = ev.finalize();
     logReport(report);
   });
+
+  // RSZ-07: Resize group (all children scale proportionally)
+  test('RSZ-07: Resize group', async ({ page }) => {
+    const ev = new EvalSession(page, { category: 'resize', scenario: 'RSZ-07' });
+    const [elA, elB] = await seedRects(page, 2, { width: 100, height: 80 });
+
+    // Group them
+    await ev.clickElement(elA, 'select-A');
+    await ev.shiftClickElement(elB, 'add-B');
+    await ev.pressKey('Control+g', 'post-group');
+    await ev.capture('pre-resize-group');
+
+    // Resize the group via SE handle of first element (proxy for group gizmo)
+    await ev.dragHandle(elB, 'se', 60, 40, 'post-resize-group');
+
+    const report = ev.finalize();
+    logReport(report);
+  });
+
+  // RSZ-08: Resize with snapping
+  test('RSZ-08: Resize with snapping', async ({ page }) => {
+    const ev = new EvalSession(page, { category: 'resize', scenario: 'RSZ-08' });
+    const [elA, elB] = await seedRects(page, 2, { spacingX: 250, width: 120, height: 80 });
+
+    await ev.clickElement(elA, 'selected');
+    await ev.capture('pre-resize');
+
+    // Drag east handle toward elB to trigger snap
+    const posB = await ev.getElementCenter(elB);
+    const rectA = await ev.getElementRect(elA);
+    const handleX = rectA.x + rectA.width;
+    const handleY = rectA.y + rectA.height / 2;
+    await page.mouse.move(handleX, handleY);
+    await page.mouse.down();
+    await page.mouse.move(posB.x - 60, handleY, { steps: 10 });
+    await page.waitForTimeout(50);
+    await ev.capture('during-snap-resize');
+    await page.mouse.up();
+    await page.waitForTimeout(200);
+    await ev.capture('post-snap-resize');
+
+    const report = ev.finalize();
+    logReport(report);
+  });
+
+  // RSZ-11: Shift+drag text scales font size + dimensions
+  test('RSZ-11: Text scale transform', async ({ page }) => {
+    const ev = new EvalSession(page, { category: 'resize', scenario: 'RSZ-11' });
+    const textId = await seedText(page, { content: 'Scale me', width: 200, height: 60 });
+
+    await ev.clickElement(textId, 'selected');
+    await ev.capture('pre-scale');
+    await ev.dragHandle(textId, 'se', 80, 60, 'post-scale', { modifiers: ['Shift'] });
+
+    const report = ev.finalize();
+    logReport(report);
+  });
+
+  // RSZ-12: Auto-resize position adjust based on textAlign
+  test('RSZ-12: Text auto-resize position adjust', async ({ page }) => {
+    const ev = new EvalSession(page, { category: 'resize', scenario: 'RSZ-12' });
+    const textId = await seedText(page, { content: 'Auto resize', width: 200 });
+
+    await ev.clickElement(textId, 'selected');
+    await ev.capture('pre-auto-resize');
+
+    // Type more content to trigger auto-resize
+    await ev.dblClickElement(textId, 'editing');
+    await page.keyboard.type(' with extra long text content that wraps', { delay: 20 });
+    await page.waitForTimeout(300);
+    await ev.capture('post-type-resize');
+    await ev.pressKey('Escape', 'post-exit');
+
+    const report = ev.finalize();
+    logReport(report);
+  });
+
+  // RSZ-13/14: Gizmo hidden during resize, shown after
+  test('RSZ-13/14: Gizmo visibility during resize', async ({ page }) => {
+    const ev = new EvalSession(page, { category: 'resize', scenario: 'RSZ-13-14' });
+    const [elA] = await seedRects(page, 1, { width: 150, height: 100 });
+
+    await ev.clickElement(elA, 'selected');
+    await ev.capture('pre-resize-gizmo-visible');
+
+    // Start resize — capture during interaction
+    const rect = await ev.getElementRect(elA);
+    const cx = rect.x + rect.width;
+    const cy = rect.y + rect.height;
+    await page.mouse.move(cx, cy);
+    await page.mouse.down();
+    await page.mouse.move(cx + 40, cy + 30, { steps: 4 });
+    await page.waitForTimeout(50);
+    await ev.capture('during-resize-gizmo-hidden');
+    await page.mouse.up();
+    await page.waitForTimeout(200);
+    await ev.capture('post-resize-gizmo-restored');
+
+    const report = ev.finalize();
+    logReport(report);
+  });
+
+  // RSZ-15: Text overlay stays visible during resize
+  test('RSZ-15: Text overlay stays during resize', async ({ page }) => {
+    const ev = new EvalSession(page, { category: 'resize', scenario: 'RSZ-15' });
+    const textId = await seedText(page, { content: 'Resize overlay', width: 200, height: 60 });
+
+    await ev.clickElement(textId, 'selected');
+    await ev.capture('pre-text-resize');
+    await ev.dragHandle(textId, 'e', 80, 0, 'post-text-resize');
+
+    const report = ev.finalize();
+    logReport(report);
+  });
+
+  // RSZ-16: Scale tool (K key)
+  test('RSZ-16: Scale tool activation', async ({ page }) => {
+    const ev = new EvalSession(page, { category: 'resize', scenario: 'RSZ-16' });
+    const [elA] = await seedRects(page, 1, { width: 150, height: 100 });
+
+    await ev.clickElement(elA, 'selected');
+    await ev.capture('pre-scale-tool');
+
+    // Activate scale tool
+    await ev.pressKey('k', 'scale-tool-active');
+    await ev.capture('post-scale-tool');
+
+    // Return to select
+    await ev.pressKey('v', 'select-tool');
+
+    const report = ev.finalize();
+    logReport(report);
+  });
 });
