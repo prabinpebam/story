@@ -1,8 +1,12 @@
 /**
- * 04 — Element Movement — Agnostic Eval Loop
+ * 04 — Element Movement & Dragging — Agnostic Eval Loop
  *
  * Evaluates MOV-01 through MOV-17: canvas drag, keyboard nudge,
- * multi-selection drag, escape-cancel, and layer tree reordering.
+ * snap guides, escape cancel, locked element drag prevention.
+ *
+ * Scene: 2–3 rects for drag/snap/multi-selection scenarios.
+ * Critical state: element x,y positions, interaction state,
+ * activeGuides (snap), mutation timeline for position deltas.
  *
  * Run:  npx playwright test movement-eval --project=chromium --headed
  */
@@ -10,7 +14,7 @@
 import { test } from '../../fixtures/base-test';
 import { EditorPage } from '../../pages';
 import { EvalSession } from '../../helpers/eval-engine';
-import { seedRects, clearSelection, logReport } from '../../helpers/eval-seeders';
+import { seedRects, seedGroup, clearSelection, logReport } from '../../helpers/eval-seeders';
 
 let editor: EditorPage;
 
@@ -19,51 +23,84 @@ test.describe('Element Movement Eval Loop', () => {
     editor = new EditorPage(page);
     await editor.goto();
     await editor.waitForLoad();
-    await page.waitForFunction(() => !!(window as any).__TEST_CANVAS_MANAGER__, null, { timeout: 10_000 });
+    await page.waitForFunction(
+      () => !!(window as any).__TEST_CANVAS_MANAGER__,
+      null,
+      { timeout: 10_000 },
+    );
   });
+
+  // ─── Canvas Drag ─────────────────────────────────────────────────────
 
   // MOV-01: Drag single element
   test('MOV-01: Drag single element', async ({ page }) => {
     const ev = new EvalSession(page, { category: 'movement', scenario: 'MOV-01' });
     const [elA] = await seedRects(page, 1);
-    await ev.capture('baseline');
 
-    await ev.clickElement(elA, 'pre-drag');
+    await ev.clickElement(elA, 'selected');
+    await ev.capture('pre-drag');
     await ev.dragElement(elA, 100, 60, 'post-drag');
 
     const report = ev.finalize();
     logReport(report);
   });
 
-  // MOV-02: Drag multi-selection
+  // MOV-02: Drag multi-selection (all move together)
   test('MOV-02: Drag multi-selection', async ({ page }) => {
     const ev = new EvalSession(page, { category: 'movement', scenario: 'MOV-02' });
     const [elA, elB] = await seedRects(page, 2);
-    await ev.capture('baseline');
 
     await ev.clickElement(elA, 'select-A');
-    await ev.shiftClickElement(elB, 'select-A-B');
-    await ev.dragElement(elA, 80, 40, 'post-multi-drag');
+    await ev.shiftClickElement(elB, 'add-B');
+    await ev.capture('pre-drag');
+    await ev.dragElement(elA, 80, 40, 'post-drag');
 
     const report = ev.finalize();
     logReport(report);
   });
 
-  // MOV-04: Escape during drag
+  // MOV-03: Drag with snapping (snap guides appear near aligned elements)
+  test('MOV-03: Drag with snapping', async ({ page }) => {
+    const ev = new EvalSession(page, { category: 'movement', scenario: 'MOV-03' });
+    // Place two rects with known positions for snap alignment
+    const [elA, elB] = await seedRects(page, 2, { spacingX: 250 });
+
+    await ev.clickElement(elA, 'selected');
+    await ev.capture('pre-drag');
+
+    // Drag elA toward elB's vertical alignment to trigger snap
+    const posA = await ev.getElementCenter(elA);
+    const posB = await ev.getElementCenter(elB);
+    await page.mouse.move(posA.x, posA.y);
+    await page.mouse.down();
+    // Move toward B's x-center for vertical snap
+    await page.mouse.move(posB.x, posA.y, { steps: 15 });
+    await page.waitForTimeout(50);
+    await ev.capture('during-snap');
+    await page.mouse.up();
+    await page.waitForTimeout(200);
+    await ev.capture('post-snap-drag');
+
+    const report = ev.finalize();
+    logReport(report);
+  });
+
+  // MOV-04: Escape during drag cancels and reverts position
   test('MOV-04: Escape during drag', async ({ page }) => {
     const ev = new EvalSession(page, { category: 'movement', scenario: 'MOV-04' });
     const [elA] = await seedRects(page, 1);
-    await ev.clickElement(elA, 'pre-drag');
-    await ev.capture('selected');
+
+    await ev.clickElement(elA, 'selected');
+    await ev.capture('pre-drag');
 
     // Start drag
     const pos = await ev.getElementCenter(elA);
     await page.mouse.move(pos.x, pos.y);
     await page.mouse.down();
-    await page.mouse.move(pos.x + 100, pos.y + 80, { steps: 5 });
-    await ev.capture('mid-drag');
+    await page.mouse.move(pos.x + 150, pos.y + 100, { steps: 8 });
+    await page.waitForTimeout(50);
 
-    // Escape to cancel
+    // Press Escape to cancel
     await page.keyboard.press('Escape');
     await page.mouse.up();
     await page.waitForTimeout(200);
@@ -73,49 +110,74 @@ test.describe('Element Movement Eval Loop', () => {
     logReport(report);
   });
 
-  // MOV-07: Nudge 1px
-  test('MOV-07: Nudge 1px', async ({ page }) => {
-    const ev = new EvalSession(page, { category: 'movement', scenario: 'MOV-07' });
+  // MOV-05: Drop commits position
+  test('MOV-05: Drop commits position', async ({ page }) => {
+    const ev = new EvalSession(page, { category: 'movement', scenario: 'MOV-05' });
     const [elA] = await seedRects(page, 1);
-    await ev.clickElement(elA, 'selected');
 
-    await ev.pressKey('ArrowRight', 'post-nudge-right');
-    await ev.pressKey('ArrowDown', 'post-nudge-down');
+    await ev.clickElement(elA, 'selected');
+    await ev.capture('pre-drag');
+    await ev.dragElement(elA, 120, -40, 'post-drop');
 
     const report = ev.finalize();
     logReport(report);
   });
 
-  // MOV-08: Nudge 10px
-  test('MOV-08: Nudge 10px (Shift+Arrow)', async ({ page }) => {
-    const ev = new EvalSession(page, { category: 'movement', scenario: 'MOV-08' });
-    const [elA] = await seedRects(page, 1);
-    await ev.clickElement(elA, 'selected');
-
-    await ev.pressKey('Shift+ArrowRight', 'post-nudge-10-right');
-    await ev.pressKey('Shift+ArrowDown', 'post-nudge-10-down');
-
-    const report = ev.finalize();
-    logReport(report);
-  });
-
-  // MOV-06: Drag locked element
-  test('MOV-06: Drag locked element (blocked)', async ({ page }) => {
+  // MOV-06: Locked element cannot be dragged
+  test('MOV-06: Drag locked element blocked', async ({ page }) => {
     const ev = new EvalSession(page, { category: 'movement', scenario: 'MOV-06' });
     const [elA] = await seedRects(page, 1);
 
-    // Lock the element
-    await page.evaluate((id) => {
-      (window as any).__TEST_STORE__?.dispatch('UPDATE_ELEMENT', { id, locked: true });
-    }, elA);
-    await page.waitForTimeout(200);
-    await ev.capture('locked-baseline');
+    // Lock the element via store
+    await ev.dispatch('TOGGLE_ELEMENT_LOCK', { id: elA });
+    await clearSelection(page);
 
-    // Try to click (should not select)
+    await ev.capture('baseline-locked');
+
+    // Attempt to click and drag
     const pos = await ev.getElementCenter(elA);
     await page.mouse.click(pos.x, pos.y);
+    await page.waitForTimeout(150);
+    await page.mouse.move(pos.x, pos.y);
+    await page.mouse.down();
+    await page.mouse.move(pos.x + 100, pos.y + 50, { steps: 6 });
+    await page.mouse.up();
     await page.waitForTimeout(200);
-    await ev.capture('post-click-locked');
+    await ev.capture('post-drag-attempt');
+
+    const report = ev.finalize();
+    logReport(report);
+  });
+
+  // ─── Keyboard Nudge ──────────────────────────────────────────────────
+
+  // MOV-07: Arrow key nudges 1px
+  test('MOV-07: Nudge 1px with arrow key', async ({ page }) => {
+    const ev = new EvalSession(page, { category: 'movement', scenario: 'MOV-07' });
+    const [elA] = await seedRects(page, 1);
+
+    await ev.clickElement(elA, 'selected');
+    await ev.capture('pre-nudge');
+
+    await ev.pressKey('ArrowRight', 'nudge-right');
+    await ev.pressKey('ArrowDown', 'nudge-down');
+    await ev.pressKey('ArrowLeft', 'nudge-left');
+    await ev.pressKey('ArrowUp', 'nudge-up');
+
+    const report = ev.finalize();
+    logReport(report);
+  });
+
+  // MOV-08: Shift+Arrow nudges 10px
+  test('MOV-08: Nudge 10px with Shift+arrow', async ({ page }) => {
+    const ev = new EvalSession(page, { category: 'movement', scenario: 'MOV-08' });
+    const [elA] = await seedRects(page, 1);
+
+    await ev.clickElement(elA, 'selected');
+    await ev.capture('pre-nudge');
+
+    await ev.pressKey('Shift+ArrowRight', 'nudge-right-10');
+    await ev.pressKey('Shift+ArrowDown', 'nudge-down-10');
 
     const report = ev.finalize();
     logReport(report);
