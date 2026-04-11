@@ -1,6 +1,6 @@
 /**
  * 25 — Presentation Mode — Agnostic Eval Loop
- * Evaluates PRS-01..48. Triggers via dispatch + keyboard.
+ * Evaluates PRS-01..50. Uses SET_MODE (not SET_EDITOR_MODE).
  */
 import { test } from '../../fixtures/base-test';
 import { EditorPage } from '../../pages';
@@ -17,24 +17,21 @@ test.describe('Presentation Mode Eval Loop', () => {
     const ev = new EvalSession(page, { category: 'presentation', scenario: 'PRS-01-10' });
     await seedRects(page, 1);
     await ev.capture('edit-mode');
-    // Enter presentation
-    await ev.dispatch('SET_EDITOR_MODE', 'presentation');
+    await ev.dispatch('SET_MODE', 'presentation');
     await page.waitForTimeout(500); await ev.capture('presentation-mode');
-    // Exit
-    await ev.pressKey('Escape', 'post-exit-presentation');
+    await ev.pressKey('Escape', 'post-exit');
     logReport(ev.finalize());
   });
 
-  test('PRS-11..20: Slide navigation in presentation', async ({ page }) => {
+  test('PRS-11..20: Slide navigation', async ({ page }) => {
     const ev = new EvalSession(page, { category: 'presentation', scenario: 'PRS-11-20' });
     await ev.dispatch('ADD_SLIDE');
     await ev.dispatch('ADD_SLIDE');
     await page.waitForTimeout(300);
-    await ev.capture('baseline');
-    await ev.dispatch('SET_EDITOR_MODE', 'presentation');
+    await ev.dispatch('SET_MODE', 'presentation');
     await page.waitForTimeout(500); await ev.capture('in-presentation');
-    await ev.pressKey('ArrowRight', 'next-slide');
-    await ev.pressKey('ArrowLeft', 'prev-slide');
+    await ev.pressKey('ArrowRight', 'next');
+    await ev.pressKey('ArrowLeft', 'prev');
     await ev.pressKey('Escape', 'exit');
     logReport(ev.finalize());
   });
@@ -43,8 +40,8 @@ test.describe('Presentation Mode Eval Loop', () => {
     const ev = new EvalSession(page, { category: 'presentation', scenario: 'PRS-21-30' });
     await seedRects(page, 2);
     await ev.capture('pre-present');
-    await ev.dispatch('SET_EDITOR_MODE', 'presentation');
-    await page.waitForTimeout(500); await ev.capture('in-presentation');
+    await ev.dispatch('SET_MODE', 'presentation');
+    await page.waitForTimeout(500); await ev.capture('presenting');
     await ev.pressKey('Escape', 'exit');
     logReport(ev.finalize());
   });
@@ -53,31 +50,21 @@ test.describe('Presentation Mode Eval Loop', () => {
     const ev = new EvalSession(page, { category: 'presentation', scenario: 'PRS-31-40' });
     await ev.dispatch('ADD_SLIDE');
     await page.waitForTimeout(300);
-    await ev.dispatch('SET_EDITOR_MODE', 'presentation');
+    await ev.dispatch('SET_MODE', 'presentation');
     await page.waitForTimeout(500); await ev.capture('baseline');
     await ev.pressKey('Space', 'next-via-space');
     await ev.pressKey('Escape', 'exit');
     logReport(ev.finalize());
   });
 
-  test('PRS-41..48: Fullscreen and viewport', async ({ page }) => {
-    const ev = new EvalSession(page, { category: 'presentation', scenario: 'PRS-41-48' });
-    await ev.capture('baseline');
-    await ev.dispatch('SET_EDITOR_MODE', 'presentation');
-    await page.waitForTimeout(500); await ev.capture('presentation');
-    await ev.pressKey('Escape', 'exit');
-    logReport(ev.finalize());
-  });
-
-  // PRS-49/50: Navigation gating and ARIA live region
-  test('PRS-49/50: Navigation gating and accessibility', async ({ page }) => {
-    const ev = new EvalSession(page, { category: 'presentation', scenario: 'PRS-49-50' });
+  test('PRS-41..50: Fullscreen, viewport, gating, ARIA', async ({ page }) => {
+    const ev = new EvalSession(page, { category: 'presentation', scenario: 'PRS-41-50' });
     await ev.dispatch('ADD_SLIDE');
     await page.waitForTimeout(300);
-    await ev.dispatch('SET_EDITOR_MODE', 'presentation');
-    await page.waitForTimeout(500); await ev.capture('in-presentation');
-    // Navigate to next slide — gating and ARIA announcements fire
-    await ev.pressKey('ArrowRight', 'next-slide');
+    await ev.capture('baseline');
+    await ev.dispatch('SET_MODE', 'presentation');
+    await page.waitForTimeout(500); await ev.capture('presentation');
+    await ev.pressKey('ArrowRight', 'navigate');
     await ev.pressKey('Escape', 'exit');
     logReport(ev.finalize());
   });

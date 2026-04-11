@@ -574,8 +574,8 @@ test.describe('Selection & Hit-Testing Eval Loop', () => {
         fills: [{ type: 'solid', color: '#EF4444' }],
       });
       store.dispatch('UPDATE_SELECTION', [a, b]);
-      // Attempt boolean union
-      try { store.dispatch('BOOLEAN_UNION'); } catch(e) { /* may not exist */ }
+      // Create boolean union from selection
+      try { store.dispatch('CREATE_BOOLEAN_FROM_SELECTION', { operation: 'union' }); } catch(e) { /* may not exist */ }
       return { a, b };
     });
     await page.waitForTimeout(200);

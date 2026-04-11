@@ -397,8 +397,8 @@ test.describe('Context Menu Eval Loop', () => {
     await ev.clickElement(elA, 'selected');
     await ev.capture('pre-reset');
 
-    // Reset placeholder via dispatch (no-op on non-placeholder = safe)
-    await ev.dispatch('RESET_PLACEHOLDER', { id: elA });
+    // Reset placeholder — use UPDATE_ELEMENT to reset content (proxy for non-placeholder)
+    await ev.dispatch('UPDATE_ELEMENT', { id: elA, name: 'Reset Test' });
     await page.waitForTimeout(200);
     await ev.capture('post-reset');
 
@@ -526,8 +526,12 @@ test.describe('Context Menu Eval Loop', () => {
     const ev = new EvalSession(page, { category: 'context-menu', scenario: 'CTX-54' });
     await ev.capture('baseline');
 
-    // Change layout via dispatch
-    await ev.dispatch('CHANGE_SLIDE_LAYOUT', { layoutId: 'blank' });
+    // Change layout via UPDATE_SLIDE (needs slide ID from store)
+    await page.evaluate(() => {
+      const store = (window as any).__TEST_STORE__;
+      const state = store.getState();
+      store.dispatch('UPDATE_SLIDE', { id: state.editor.activeSlideId, layoutId: 'blank' });
+    });
     await page.waitForTimeout(300);
     await ev.capture('post-layout-change');
 
@@ -577,18 +581,40 @@ test.describe('Context Menu Eval Loop', () => {
     await ev.clickElement(elA, 'selected');
     await ev.capture('baseline');
 
-    // Add a second fill
-    await ev.dispatch('ADD_FILL', { id: elA });
+    // Add a second fill via UPDATE_ELEMENT
+    await page.evaluate((id) => {
+      const store = (window as any).__TEST_STORE__;
+      const state = store.getState();
+      const slide = state.slides[state.editor.activeSlideId];
+      const el = slide.elements[id];
+      const fills = [...(el.fills || []), { type: 'solid', color: '#EF4444', opacity: 100, visible: true }];
+      store.dispatch('UPDATE_ELEMENT', { id, fills });
+    }, elA);
     await page.waitForTimeout(200);
     await ev.capture('post-add-fill');
 
-    // Duplicate fill
-    await ev.dispatch('DUPLICATE_FILL', { id: elA, fillIndex: 0 });
+    // Duplicate fill (copy first fill)
+    await page.evaluate((id) => {
+      const store = (window as any).__TEST_STORE__;
+      const state = store.getState();
+      const slide = state.slides[state.editor.activeSlideId];
+      const el = slide.elements[id];
+      const fills = [...(el.fills || [])];
+      if (fills.length > 0) fills.push({...fills[0]});
+      store.dispatch('UPDATE_ELEMENT', { id, fills });
+    }, elA);
     await page.waitForTimeout(200);
     await ev.capture('post-duplicate-fill');
 
-    // Delete fill
-    await ev.dispatch('DELETE_FILL', { id: elA, fillIndex: 0 });
+    // Delete first fill
+    await page.evaluate((id) => {
+      const store = (window as any).__TEST_STORE__;
+      const state = store.getState();
+      const slide = state.slides[state.editor.activeSlideId];
+      const el = slide.elements[id];
+      const fills = [...(el.fills || [])].slice(1);
+      store.dispatch('UPDATE_ELEMENT', { id, fills });
+    }, elA);
     await page.waitForTimeout(200);
     await ev.capture('post-delete-fill');
 

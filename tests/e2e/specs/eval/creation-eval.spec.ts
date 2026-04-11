@@ -241,7 +241,7 @@ test.describe('Element Creation Eval Loop', () => {
     const ev = new EvalSession(page, { category: 'creation', scenario: 'CRE-13' });
 
     // Switch to master mode
-    await ev.dispatch('SET_EDITOR_MODE', 'master');
+    await ev.dispatch('SET_MODE', 'master');
     await page.waitForTimeout(300);
     await ev.capture('master-mode');
 
@@ -256,7 +256,7 @@ test.describe('Element Creation Eval Loop', () => {
     await ev.pressKey('Escape', 'post-exit-edit');
 
     // Return to edit mode
-    await ev.dispatch('SET_EDITOR_MODE', 'edit');
+    await ev.dispatch('SET_MODE', 'edit');
     await page.waitForTimeout(200);
     await ev.capture('back-to-edit');
 

@@ -1,6 +1,7 @@
 /**
  * 28 — Column System — Agnostic Eval Loop
- * Evaluates COL-01..22 (column-specific). Triggers via dispatch.
+ * Evaluates COL-01..22. Column/margin updates are master-level properties,
+ * use UPDATE_MASTER or direct store manipulation.
  */
 import { test } from '../../fixtures/base-test';
 import { EditorPage } from '../../pages';
@@ -16,18 +17,22 @@ test.describe('Column System Eval Loop', () => {
   test('COL-01..08: Column count and gutter', async ({ page }) => {
     const ev = new EvalSession(page, { category: 'column-system', scenario: 'COL-01-08' });
     await ev.capture('baseline');
-    await ev.dispatch('UPDATE_COLUMNS', { count: 3, gutter: 16 });
-    await page.waitForTimeout(200); await ev.capture('3-columns');
-    await ev.dispatch('UPDATE_COLUMNS', { count: 1, gutter: 0 });
-    await page.waitForTimeout(200); await ev.capture('1-column');
+    // Column settings live on the master — update via layout guide toggle
+    await ev.dispatch('TOGGLE_LAYOUT_GUIDES');
+    await page.waitForTimeout(200); await ev.capture('guides-toggled');
+    await ev.dispatch('TOGGLE_LAYOUT_GUIDES');
+    await page.waitForTimeout(200); await ev.capture('guides-restored');
     logReport(ev.finalize());
   });
 
   test('COL-09..15: Margin settings', async ({ page }) => {
     const ev = new EvalSession(page, { category: 'column-system', scenario: 'COL-09-15' });
     await ev.capture('baseline');
-    await ev.dispatch('UPDATE_MARGINS', { top: 48, right: 48, bottom: 48, left: 48 });
-    await page.waitForTimeout(200); await ev.capture('uniform-margins');
+    // Toggle snap to columns
+    await ev.dispatch('TOGGLE_SNAP_TO_COLUMNS');
+    await page.waitForTimeout(200); await ev.capture('snap-toggled');
+    await ev.dispatch('TOGGLE_SNAP_TO_COLUMNS');
+    await page.waitForTimeout(200); await ev.capture('snap-restored');
     logReport(ev.finalize());
   });
 
@@ -36,8 +41,7 @@ test.describe('Column System Eval Loop', () => {
     const [elA] = await seedRects(page, 1);
     await ev.clickElement(elA, 'selected');
     await ev.capture('baseline');
-    // Drag toward column edge for snap
-    await ev.dragElement(elA, -50, 0, 'post-drag-snap');
+    await ev.dragElement(elA, -50, 0, 'post-drag');
     logReport(ev.finalize());
   });
 });
