@@ -68,4 +68,17 @@ test.describe('Presentation Mode Eval Loop', () => {
     await ev.pressKey('Escape', 'exit');
     logReport(ev.finalize());
   });
+
+  // PRS-49/50: Navigation gating and ARIA live region
+  test('PRS-49/50: Navigation gating and accessibility', async ({ page }) => {
+    const ev = new EvalSession(page, { category: 'presentation', scenario: 'PRS-49-50' });
+    await ev.dispatch('ADD_SLIDE');
+    await page.waitForTimeout(300);
+    await ev.dispatch('SET_EDITOR_MODE', 'presentation');
+    await page.waitForTimeout(500); await ev.capture('in-presentation');
+    // Navigate to next slide — gating and ARIA announcements fire
+    await ev.pressKey('ArrowRight', 'next-slide');
+    await ev.pressKey('Escape', 'exit');
+    logReport(ev.finalize());
+  });
 });

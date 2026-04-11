@@ -535,6 +535,21 @@ test.describe('Context Menu Eval Loop', () => {
     logReport(report);
   });
 
+  // CTX-55: Rename slide (F2 shortcut)
+  test('CTX-55: Rename slide', async ({ page }) => {
+    const ev = new EvalSession(page, { category: 'context-menu', scenario: 'CTX-55' });
+    await ev.capture('baseline');
+
+    // Rename via dispatch (F2 triggers inline rename in thumbnail)
+    await ev.pressKey('F2', 'rename-trigger');
+    await page.waitForTimeout(300);
+    await ev.capture('post-rename-trigger');
+    await ev.pressKey('Escape', 'cancel-rename');
+
+    const report = ev.finalize();
+    logReport(report);
+  });
+
   // CTX-56: Delete slide
   test('CTX-56: Delete slide', async ({ page }) => {
     const ev = new EvalSession(page, { category: 'context-menu', scenario: 'CTX-56' });

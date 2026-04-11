@@ -206,9 +206,11 @@ test.describe('Property Inspector Eval Loop', () => {
     logReport(report);
   });
 
-  // PI-108..110: Export presets
-  test('PI-108..110: Export presets', async ({ page }) => {
-    const ev = new EvalSession(page, { category: 'property-inspector', scenario: 'PI-108-110' });
+  // PI-108..115: Export presets and operations
+  test('PI-108..115: Export presets and operations', async ({ page }) => {
+    const ev = new EvalSession(page, { category: 'property-inspector', scenario: 'PI-108-115' });
+    const [elA] = await seedRects(page, 1);
+    await ev.clickElement(elA, 'selected');
     await ev.capture('baseline');
 
     const report = ev.finalize();
