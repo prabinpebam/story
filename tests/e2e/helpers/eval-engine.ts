@@ -471,7 +471,31 @@ function runHeuristicDetectors(snap: EvalSnapshot): Finding[] {
   const dom = snap.dom;
   const ix = snap.interaction;
 
-  if (!store || !dom.slidePresent) return findings;
+  // ── Category Z: Snapshot Validity ──
+
+  // STORE_NULL: capture bridge not connected — snapshot is meaningless
+  if (!store) {
+    findings.push({
+      code: 'STORE_NULL',
+      severity: 'critical',
+      category: 'Z: Snapshot Validity',
+      message: 'Store layer is null — __TEST_STORE__ not available. Snapshot captures nothing.',
+      snapshot: snap.label,
+    });
+    return findings; // No point running other detectors
+  }
+
+  // SLIDE_NOT_PRESENT: DOM has no slide view — renderer not ready
+  if (!dom.slidePresent) {
+    findings.push({
+      code: 'SLIDE_NOT_PRESENT',
+      severity: 'critical',
+      category: 'Z: Snapshot Validity',
+      message: 'DOM slide view not present — renderer not initialized or in wrong mode.',
+      snapshot: snap.label,
+    });
+    return findings;
+  }
 
   // ── Category A: Selection Visual Correctness ──
 
@@ -957,6 +981,69 @@ function runTemporalRules(snapshots: EvalSnapshot[], mutations: Mutation[], acti
             message: `${id}.${field} changed from ${pv} to ${cv} during selection operation (snapshot ${i})`,
           });
         }
+      }
+    }
+  }
+
+  // ── VALIDITY: ZERO_MUTATIONS_AFTER_ACTIONS ──
+  // If the eval loop recorded actions (dispatches, clicks, key presses via engine methods)
+  // but the mutation timeline has zero entries, the actions had no observable effect.
+  // This catches silently-failed dispatches (non-existent action names, wrong payloads).
+  if (actions.length > 0 && mutations.length === 0 && snapshots.length > 1) {
+    // Only flag if snapshots have store data (not just baselines)
+    const hasStoreData = snapshots.some(s => s.store !== null);
+    if (hasStoreData) {
+      findings.push({
+        code: 'ZERO_MUTATIONS_AFTER_ACTIONS',
+        severity: 'critical',
+        category: 'Z: Snapshot Validity',
+        message: `${actions.length} action(s) recorded but mutation timeline is empty — no state changes observed. Actions may have silently failed (non-existent dispatch, wrong payload, or no effect).`,
+      });
+    }
+  }
+
+  // ── VALIDITY: IDENTICAL_CONSECUTIVE_SNAPSHOTS ──
+  // Two consecutive snapshots with identical store state mean the trigger between
+  // them had no effect. This catches scenarios where dispatches silently do nothing.
+  for (let i = 1; i < snapshots.length; i++) {
+    const prev = snapshots[i - 1];
+    const curr = snapshots[i];
+    if (!prev.store || !curr.store) continue;
+
+    // Compare store state keys that should change after an action
+    const prevStr = JSON.stringify({
+      sel: prev.store.selectedElementIds,
+      edit: prev.store.editingElementId,
+      tool: prev.store.activeTool,
+      mode: prev.store.mode,
+      zoom: prev.store.zoom,
+      elCount: Object.keys(prev.store.elements).length,
+      elState: Object.entries(prev.store.elements).map(([id, el]) =>
+        `${id}:${el.x},${el.y},${el.width},${el.height},${el.rotation},${el.opacity},${el.hidden},${el.locked}`
+      ).sort().join('|'),
+    });
+    const currStr = JSON.stringify({
+      sel: curr.store.selectedElementIds,
+      edit: curr.store.editingElementId,
+      tool: curr.store.activeTool,
+      mode: curr.store.mode,
+      zoom: curr.store.zoom,
+      elCount: Object.keys(curr.store.elements).length,
+      elState: Object.entries(curr.store.elements).map(([id, el]) =>
+        `${id}:${el.x},${el.y},${el.width},${el.height},${el.rotation},${el.opacity},${el.hidden},${el.locked}`
+      ).sort().join('|'),
+    });
+
+    if (prevStr === currStr) {
+      // Only flag if this isn't a 'baseline' → 'baseline' pair
+      const isBaselinePair = prev.label.includes('baseline') && curr.label.includes('baseline');
+      if (!isBaselinePair) {
+        findings.push({
+          code: 'IDENTICAL_CONSECUTIVE_SNAPSHOTS',
+          severity: 'warning',
+          category: 'Z: Snapshot Validity',
+          message: `Snapshots "${prev.label}" and "${curr.label}" have identical store state — trigger between them had no observable effect.`,
+        });
       }
     }
   }
