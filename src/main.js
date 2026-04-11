@@ -406,8 +406,17 @@ window.addEventListener('DOMContentLoaded', () => {
     window.app = new App();
 });
 
-// Expose store for E2E testing
+// Expose store and canvas manager for E2E testing
 if (import.meta.env.MODE === 'development' || import.meta.env.MODE === 'test') {
     window.__TEST_STORE__ = store;
+    // Expose CanvasManager after DOMContentLoaded (when App creates it)
+    window.addEventListener('DOMContentLoaded', () => {
+        // Small delay to let App constructor finish
+        setTimeout(() => {
+            if (window.app && window.app.canvasManager) {
+                window.__TEST_CANVAS_MANAGER__ = window.app.canvasManager;
+            }
+        }, 0);
+    });
     console.log('[TEST MODE] Store exposed on window.__TEST_STORE__');
 }
