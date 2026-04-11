@@ -1133,6 +1133,173 @@ export class EvalSession {
     return this.capture(label);
   }
 
+  // ─── Extended action methods ──────────────────────────────────────────
+
+  /** Press a keyboard shortcut and capture. */
+  async pressKey(key: string, label: string, opts?: { waitMs?: number }): Promise<EvalSnapshot> {
+    await this.page.keyboard.press(key);
+    await this.page.waitForTimeout(opts?.waitMs ?? 200);
+    return this.capture(label);
+  }
+
+  /** Type text (for text editing flows) and capture. */
+  async typeText(text: string, label: string): Promise<EvalSnapshot> {
+    await this.page.keyboard.type(text, { delay: 30 });
+    await this.page.waitForTimeout(150);
+    return this.capture(label);
+  }
+
+  /** Right-click on an element and capture (opens context menu). */
+  async rightClickElement(elementId: string, label: string): Promise<EvalSnapshot> {
+    const pos = await this.getElementCenter(elementId);
+    await this.page.mouse.click(pos.x, pos.y, { button: 'right' });
+    await this.page.waitForTimeout(200);
+    return this.capture(label);
+  }
+
+  /** Right-click on empty canvas and capture. */
+  async rightClickEmpty(label: string): Promise<EvalSnapshot> {
+    const pos = await this.getEmptyCanvasPoint();
+    await this.page.mouse.click(pos.x, pos.y, { button: 'right' });
+    await this.page.waitForTimeout(200);
+    return this.capture(label);
+  }
+
+  /** Drag an element by a delta (movement/reorder flow). */
+  async dragElement(
+    elementId: string,
+    deltaX: number,
+    deltaY: number,
+    label: string,
+    opts?: { steps?: number },
+  ): Promise<EvalSnapshot> {
+    const pos = await this.getElementCenter(elementId);
+    const steps = opts?.steps ?? 10;
+    await this.page.mouse.move(pos.x, pos.y);
+    await this.page.mouse.down();
+    await this.page.waitForTimeout(50);
+    for (let i = 1; i <= steps; i++) {
+      const progress = i / steps;
+      await this.page.mouse.move(
+        pos.x + deltaX * progress,
+        pos.y + deltaY * progress,
+      );
+      await this.page.waitForTimeout(15);
+    }
+    await this.page.mouse.up();
+    await this.page.waitForTimeout(200);
+    return this.capture(label);
+  }
+
+  /** Get element bounding rect in screen coordinates (scoped to main canvas). */
+  async getElementRect(elementId: string): Promise<{ x: number; y: number; width: number; height: number }> {
+    return await this.page.evaluate((id) => {
+      const candidates = document.querySelectorAll(`.slide-element[data-element-id="${id}"]`);
+      let target: Element | null = null;
+      for (const el of candidates) {
+        if (el.closest('#slide-content')) { target = el; break; }
+      }
+      if (!target) {
+        let maxArea = 0;
+        for (const el of candidates) {
+          const r = el.getBoundingClientRect();
+          if (r.width * r.height > maxArea) { maxArea = r.width * r.height; target = el; }
+        }
+      }
+      if (!target) throw new Error(`Element ${id} not found in DOM`);
+      const r = target.getBoundingClientRect();
+      return { x: r.x, y: r.y, width: r.width, height: r.height };
+    }, elementId);
+  }
+
+  /**
+   * Drag a resize handle on a selected element.
+   * Handles are canvas-drawn, so we compute screen position from the element bounding rect.
+   * @param elementId  ID of the selected element
+   * @param handle     Handle name: 'n' | 's' | 'e' | 'w' | 'ne' | 'nw' | 'se' | 'sw'
+   * @param deltaX     Pixels to drag horizontally
+   * @param deltaY     Pixels to drag vertically
+   * @param label      Snapshot label
+   */
+  async dragHandle(
+    elementId: string,
+    handle: 'n' | 's' | 'e' | 'w' | 'ne' | 'nw' | 'se' | 'sw',
+    deltaX: number,
+    deltaY: number,
+    label: string,
+    opts?: { modifiers?: ('Shift' | 'Alt')[] },
+  ): Promise<EvalSnapshot> {
+    const rect = await this.getElementRect(elementId);
+    // Map handle name to position on the bounding rect
+    const xMap: Record<string, number> = { nw: 0, w: 0, sw: 0, n: 0.5, s: 0.5, ne: 1, e: 1, se: 1 };
+    const yMap: Record<string, number> = { nw: 0, n: 0, ne: 0, w: 0.5, e: 0.5, sw: 1, s: 1, se: 1 };
+    const cx = rect.x + rect.width * xMap[handle];
+    const cy = rect.y + rect.height * yMap[handle];
+
+    for (const mod of opts?.modifiers ?? []) await this.page.keyboard.down(mod);
+    await this.page.mouse.move(cx, cy);
+    await this.page.mouse.down();
+    await this.page.waitForTimeout(50);
+    await this.page.mouse.move(cx + deltaX, cy + deltaY, { steps: 8 });
+    await this.page.mouse.up();
+    for (const mod of (opts?.modifiers ?? []).reverse()) await this.page.keyboard.up(mod);
+    await this.page.waitForTimeout(200);
+    return this.capture(label);
+  }
+
+  /** Scroll wheel (for zoom/pan taskflows). */
+  async scrollWheel(
+    deltaX: number,
+    deltaY: number,
+    label: string,
+    opts?: { modifiers?: ('Control' | 'Shift' | 'Alt')[] },
+  ): Promise<EvalSnapshot> {
+    const canvas = this.page.locator('#canvas-container');
+    const box = await canvas.boundingBox();
+    if (!box) throw new Error('Canvas container not found');
+    const cx = box.x + box.width / 2;
+    const cy = box.y + box.height / 2;
+    await this.page.mouse.move(cx, cy);
+    if (opts?.modifiers) {
+      for (const m of opts.modifiers) await this.page.keyboard.down(m);
+    }
+    await this.page.mouse.wheel(deltaX, deltaY);
+    if (opts?.modifiers) {
+      for (const m of opts.modifiers) await this.page.keyboard.up(m);
+    }
+    await this.page.waitForTimeout(200);
+    return this.capture(label);
+  }
+
+  /** Click a locator (for UI elements like menu items, buttons). */
+  async clickLocator(locator: string, label: string, opts?: { waitMs?: number }): Promise<EvalSnapshot> {
+    await this.page.locator(locator).first().click();
+    await this.page.waitForTimeout(opts?.waitMs ?? 200);
+    return this.capture(label);
+  }
+
+  /** Wait for a selector to appear, then capture. */
+  async waitAndCapture(selector: string, label: string, timeoutMs = 5000): Promise<EvalSnapshot> {
+    await this.page.locator(selector).first().waitFor({ state: 'visible', timeout: timeoutMs });
+    return this.capture(label);
+  }
+
+  /** Get store state (convenience for inline assertions). */
+  async getStoreState(): Promise<any> {
+    return this.page.evaluate(() => {
+      const store = (window as any).__TEST_STORE__;
+      return store ? store.getState() : null;
+    });
+  }
+
+  /** Dispatch a store action (for setup, not part of evaluation). */
+  async dispatch(action: string, payload?: any): Promise<void> {
+    await this.page.evaluate(({ action, payload }) => {
+      (window as any).__TEST_STORE__?.dispatch(action, payload);
+    }, { action, payload });
+    await this.page.waitForTimeout(100);
+  }
+
   /** Produce the final anomaly report */
   finalize(): AnomalyReport {
     // Build mutation timeline
