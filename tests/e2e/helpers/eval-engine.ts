@@ -52,6 +52,10 @@ export interface StoreLayer {
   showLayoutGuides: boolean;
   elements: Record<string, StoreElement>;
   elementOrder: string[];
+  slideLayoutId: string | null;
+  slideTransitionHash: number;
+  slideNotesHash: number;
+  slideCount: number;
 }
 
 export interface DomElement {
@@ -84,6 +88,9 @@ export interface DomLayer {
   layoutGuidesVisible: boolean;
   columnGuides: Array<{ x: number; y: number; width: number; height: number }>;
   zoomDisplay: string | null;
+  contextMenuVisible: boolean;
+  contextMenuItemCount: number;
+  cursorStyle: string;
 }
 
 export interface InteractionLayer {
@@ -248,7 +255,12 @@ const CAPTURE_FN = `(function() {
         isInteracting: !!(s.ui && s.ui.isInteracting),
         showLayoutGuides: editor.showLayoutGuides !== false,
         elements: elements,
-        elementOrder: elOrder
+        elementOrder: elOrder,
+        // Slide-level properties (transition, notes, layoutId)
+        slideLayoutId: slide ? (slide.layoutId || null) : null,
+        slideTransitionHash: slide && slide.transition ? hashStr(JSON.stringify(slide.transition)) : 0,
+        slideNotesHash: slide && slide.notesDoc ? hashStr(JSON.stringify(slide.notesDoc)) : 0,
+        slideCount: s.slideOrder ? s.slideOrder.length : 0
       };
     }
   } catch(e) {}
@@ -300,7 +312,15 @@ const CAPTURE_FN = `(function() {
     elements: domElements,
     layoutGuidesVisible: guideOverlay ? guideOverlay.style.display !== 'none' : false,
     columnGuides: columnGuides,
-    zoomDisplay: zoomEl ? (zoomEl.textContent || '').trim() : null
+    zoomDisplay: zoomEl ? (zoomEl.textContent || '').trim() : null,
+    // Context menu state
+    contextMenuVisible: !!document.querySelector('[role="menu"], .context-menu'),
+    contextMenuItemCount: qsa('[role="menuitem"], .context-menu-item').length,
+    // Cursor state on canvas
+    cursorStyle: (function() {
+      var cc = document.getElementById('canvas-container');
+      return cc ? getComputedStyle(cc).cursor : 'default';
+    })()
   };
 
   // ── Interaction Layer ──
@@ -831,6 +851,66 @@ function buildMutationTimeline(snapshots: EvalSnapshot[]): Mutation[] {
       });
     }
 
+    // Slide-level property changes
+    if (prev.store.slideCount !== curr.store.slideCount) {
+      mutations.push({
+        snapshotIndex: i, type: 'slide-count-changed',
+        field: 'slideCount', oldValue: prev.store.slideCount, newValue: curr.store.slideCount,
+        detail: `slideCount: ${prev.store.slideCount} → ${curr.store.slideCount}`,
+      });
+    }
+    if (prev.store.slideLayoutId !== curr.store.slideLayoutId) {
+      mutations.push({
+        snapshotIndex: i, type: 'layout-changed',
+        field: 'slideLayoutId', oldValue: prev.store.slideLayoutId, newValue: curr.store.slideLayoutId,
+        detail: `layout: ${prev.store.slideLayoutId} → ${curr.store.slideLayoutId}`,
+      });
+    }
+    if (prev.store.slideTransitionHash !== curr.store.slideTransitionHash) {
+      mutations.push({
+        snapshotIndex: i, type: 'transition-changed',
+        field: 'slideTransitionHash', oldValue: prev.store.slideTransitionHash, newValue: curr.store.slideTransitionHash,
+        detail: `transition hash changed`,
+      });
+    }
+    if (prev.store.slideNotesHash !== curr.store.slideNotesHash) {
+      mutations.push({
+        snapshotIndex: i, type: 'notes-changed',
+        field: 'slideNotesHash', oldValue: prev.store.slideNotesHash, newValue: curr.store.slideNotesHash,
+        detail: `notes hash changed`,
+      });
+    }
+
+    // DOM-level state changes
+    if (prev.dom.contextMenuVisible !== curr.dom.contextMenuVisible) {
+      mutations.push({
+        snapshotIndex: i, type: 'context-menu-changed',
+        field: 'contextMenuVisible', oldValue: prev.dom.contextMenuVisible, newValue: curr.dom.contextMenuVisible,
+        detail: `menu: ${prev.dom.contextMenuVisible} → ${curr.dom.contextMenuVisible}`,
+      });
+    }
+    if (prev.dom.contextMenuItemCount !== curr.dom.contextMenuItemCount) {
+      mutations.push({
+        snapshotIndex: i, type: 'context-menu-changed',
+        field: 'contextMenuItemCount', oldValue: prev.dom.contextMenuItemCount, newValue: curr.dom.contextMenuItemCount,
+        detail: `menuItems: ${prev.dom.contextMenuItemCount} → ${curr.dom.contextMenuItemCount}`,
+      });
+    }
+    if (prev.dom.cursorStyle !== curr.dom.cursorStyle) {
+      mutations.push({
+        snapshotIndex: i, type: 'cursor-changed',
+        field: 'cursorStyle', oldValue: prev.dom.cursorStyle, newValue: curr.dom.cursorStyle,
+        detail: `cursor: ${prev.dom.cursorStyle} → ${curr.dom.cursorStyle}`,
+      });
+    }
+    if (prev.dom.zoomDisplay !== curr.dom.zoomDisplay) {
+      mutations.push({
+        snapshotIndex: i, type: 'zoom-display-changed',
+        field: 'zoomDisplay', oldValue: prev.dom.zoomDisplay, newValue: curr.dom.zoomDisplay,
+        detail: `zoomDisplay: ${prev.dom.zoomDisplay} → ${curr.dom.zoomDisplay}`,
+      });
+    }
+
     // Element property changes
     for (const [id, currEl] of Object.entries(curr.store.elements)) {
       const prevEl = prev.store.elements[id];
@@ -1082,7 +1162,7 @@ function runTemporalRules(snapshots: EvalSnapshot[], mutations: Mutation[], acti
     const curr = snapshots[i];
     if (!prev.store || !curr.store) continue;
 
-    // Compare store state keys that should change after an action
+    // Compare ALL tracked state — store + DOM-level
     const prevStr = JSON.stringify({
       sel: prev.store.selectedElementIds,
       edit: prev.store.editingElementId,
@@ -1091,10 +1171,19 @@ function runTemporalRules(snapshots: EvalSnapshot[], mutations: Mutation[], acti
       zoom: prev.store.zoom,
       pan: prev.store.pan,
       slide: prev.store.activeSlideId,
+      slideCount: prev.store.slideCount,
+      layoutId: prev.store.slideLayoutId,
+      transHash: prev.store.slideTransitionHash,
+      notesHash: prev.store.slideNotesHash,
       elCount: Object.keys(prev.store.elements).length,
       elState: Object.entries(prev.store.elements).map(([id, el]) =>
         `${id}:${el.x},${el.y},${el.width},${el.height},${el.rotation},${el.opacity},${el.hidden},${el.locked},${el.fillHash},${el.strokeHash},${el.effectHash}`
       ).sort().join('|'),
+      // DOM-level state
+      ctxMenu: prev.dom.contextMenuVisible,
+      ctxItems: prev.dom.contextMenuItemCount,
+      cursor: prev.dom.cursorStyle,
+      zoomDisp: prev.dom.zoomDisplay,
     });
     const currStr = JSON.stringify({
       sel: curr.store.selectedElementIds,
@@ -1104,10 +1193,18 @@ function runTemporalRules(snapshots: EvalSnapshot[], mutations: Mutation[], acti
       zoom: curr.store.zoom,
       pan: curr.store.pan,
       slide: curr.store.activeSlideId,
+      slideCount: curr.store.slideCount,
+      layoutId: curr.store.slideLayoutId,
+      transHash: curr.store.slideTransitionHash,
+      notesHash: curr.store.slideNotesHash,
       elCount: Object.keys(curr.store.elements).length,
       elState: Object.entries(curr.store.elements).map(([id, el]) =>
         `${id}:${el.x},${el.y},${el.width},${el.height},${el.rotation},${el.opacity},${el.hidden},${el.locked},${el.fillHash},${el.strokeHash},${el.effectHash}`
       ).sort().join('|'),
+      ctxMenu: curr.dom.contextMenuVisible,
+      ctxItems: curr.dom.contextMenuItemCount,
+      cursor: curr.dom.cursorStyle,
+      zoomDisp: curr.dom.zoomDisplay,
     });
 
     if (prevStr === currStr) {
