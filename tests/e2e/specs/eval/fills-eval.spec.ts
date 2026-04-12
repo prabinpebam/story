@@ -76,6 +76,21 @@ test.describe('Fills System Eval Loop', () => {
     logReport(ev.finalize());
   });
 
+  test('FIL-04: Reorder fills', async ({ page }) => {
+    const ev = new EvalSession(page, { category: 'fills', scenario: 'FIL-04' });
+    const el = await seedRectWithFill(page);
+    await ev.clickElement(el, 'sel');
+    await setFills(page, el, [
+      { type: 'solid', color: '#3B82F6', value: '#3B82F6', opacity: 100, visible: true, blendMode: 'normal' },
+      { type: 'solid', color: '#EF4444', value: '#EF4444', opacity: 100, visible: true, blendMode: 'normal' },
+    ]); await ev.capture('blue-top-red-bottom');
+    await setFills(page, el, [
+      { type: 'solid', color: '#EF4444', value: '#EF4444', opacity: 100, visible: true, blendMode: 'normal' },
+      { type: 'solid', color: '#3B82F6', value: '#3B82F6', opacity: 100, visible: true, blendMode: 'normal' },
+    ]); await ev.capture('red-top-blue-bottom');
+    logReport(ev.finalize());
+  });
+
   test('FIL-05: Set blend mode', async ({ page }) => {
     const ev = new EvalSession(page, { category: 'fills', scenario: 'FIL-05' });
     const el = await seedRectWithFill(page);
@@ -258,6 +273,21 @@ test.describe('Fills System Eval Loop', () => {
     await setFills(page, el, [{ type: 'video', opacity: 75, visible: true, blendMode: 'normal',
       scaleMode: 'fit', playback: { autoplay: false, loop: false } }]);
     await ev.capture('video-fit-75');
+    logReport(ev.finalize());
+  });
+
+  test('FIL-59: Video adjustments', async ({ page }) => {
+    const ev = new EvalSession(page, { category: 'fills', scenario: 'FIL-59' });
+    const el = await seedRectWithFill(page);
+    await ev.clickElement(el, 'sel');
+    await setFills(page, el, [{ type: 'video', opacity: 100, visible: true, blendMode: 'normal',
+      scaleMode: 'fill', playback: { autoplay: false, loop: false },
+      filters: { brightness: 0, contrast: 0, saturation: 0 } }]);
+    await ev.capture('video-no-filters');
+    await setFills(page, el, [{ type: 'video', opacity: 100, visible: true, blendMode: 'normal',
+      scaleMode: 'fill', playback: { autoplay: false, loop: false },
+      filters: { brightness: 30, contrast: -15, saturation: 20 } }]);
+    await ev.capture('video-with-filters');
     logReport(ev.finalize());
   });
 
