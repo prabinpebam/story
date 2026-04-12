@@ -1,266 +1,300 @@
-/**
- * 14 — Fills System — Agnostic Eval Loop
- *
- * Evaluates FIL-01 through FIL-74: fill layers, color changes,
- * gradients, opacity, visibility, and multi-fill stacks.
- *
- * Scene: 1 rect. Triggers via UPDATE_ELEMENT with fills array.
- * Engine captures fillCount + fillHash per element — mutations
- * in these fields verify fill changes took effect.
- *
- * Run:  npx playwright test fills-eval --project=chromium --headed
- */
-
 import { test } from '../../fixtures/base-test';
 import { EditorPage } from '../../pages';
 import { EvalSession } from '../../helpers/eval-engine';
-import { seedRects, logReport } from '../../helpers/eval-seeders';
+import { logReport } from '../../helpers/eval-seeders';
 
 let editor: EditorPage;
 
+async function seedRectWithFill(page: any, color = '#3B82F6'): Promise<string> {
+  const id = await page.evaluate((c: string) => {
+    const store = (window as any).__TEST_STORE__;
+    const id = `eval-fill-${Date.now()}`;
+    store.dispatch('ADD_ELEMENT', {
+      id, type: 'rect', x: 200, y: 150, width: 200, height: 150,
+      rotation: 0, opacity: 1, name: 'Fill Rect',
+      style: { fills: [{ type: 'solid', color: c, value: c, opacity: 100, visible: true, blendMode: 'normal' }] },
+    });
+    store.dispatch('UPDATE_SELECTION', []);
+    return id;
+  }, color);
+  await page.waitForTimeout(200);
+  return id;
+}
+
+async function setFills(page: any, elId: string, fills: unknown[]) {
+  await page.evaluate(({ id, fills }: any) => {
+    (window as any).__TEST_STORE__.dispatch('UPDATE_ELEMENT', { id, style: { fills } });
+  }, { id: elId, fills });
+  await page.waitForTimeout(250);
+}
+
 test.describe('Fills System Eval Loop', () => {
   test.beforeEach(async ({ page }) => {
-    editor = new EditorPage(page);
-    await editor.goto();
-    await editor.waitForLoad();
+    editor = new EditorPage(page); await editor.goto(); await editor.waitForLoad();
     await page.waitForFunction(() => !!(window as any).__TEST_CANVAS_MANAGER__, null, { timeout: 10_000 });
   });
 
-  // FIL-01..03: Add, delete, toggle fill layer
-  test('FIL-01..03: Add, toggle, delete fill', async ({ page }) => {
-    const ev = new EvalSession(page, { category: 'fills', scenario: 'FIL-01-03' });
-    const [elA] = await seedRects(page, 1);
-    await ev.clickElement(elA, 'selected');
-    await ev.capture('baseline');
-
-    // FIL-01: Add a second fill (element already has one from seeding)
-    await ev.dispatch('UPDATE_ELEMENT', {
-      id: elA,
-      fills: [
-        { type: 'solid', color: '#3B82F6', opacity: 100, visible: true },
-        { type: 'solid', color: '#EF4444', opacity: 100, visible: true },
-      ],
-    });
-    await page.waitForTimeout(200);
-    await ev.capture('two-fills');
-
-    // FIL-03: Toggle second fill visibility
-    await ev.dispatch('UPDATE_ELEMENT', {
-      id: elA,
-      fills: [
-        { type: 'solid', color: '#3B82F6', opacity: 100, visible: true },
-        { type: 'solid', color: '#EF4444', opacity: 100, visible: false },
-      ],
-    });
-    await page.waitForTimeout(200);
-    await ev.capture('fill-toggled');
-
-    // FIL-02: Delete second fill (back to one)
-    await ev.dispatch('UPDATE_ELEMENT', {
-      id: elA,
-      fills: [{ type: 'solid', color: '#3B82F6', opacity: 100, visible: true }],
-    });
-    await page.waitForTimeout(200);
-    await ev.capture('fill-deleted');
-
-    const report = ev.finalize();
-    logReport(report);
+  test('FIL-01: Add fill layers', async ({ page }) => {
+    const ev = new EvalSession(page, { category: 'fills', scenario: 'FIL-01' });
+    const el = await seedRectWithFill(page, '#3B82F6');
+    await ev.clickElement(el, 'sel'); await ev.capture('one-fill');
+    await setFills(page, el, [
+      { type: 'solid', color: '#3B82F6', value: '#3B82F6', opacity: 100, visible: true, blendMode: 'normal' },
+      { type: 'solid', color: '#D9D9D9', value: '#D9D9D9', opacity: 100, visible: true, blendMode: 'normal' },
+    ]); await ev.capture('two-fills');
+    await setFills(page, el, [
+      { type: 'solid', color: '#3B82F6', value: '#3B82F6', opacity: 100, visible: true, blendMode: 'normal' },
+      { type: 'solid', color: '#D9D9D9', value: '#D9D9D9', opacity: 100, visible: true, blendMode: 'normal' },
+      { type: 'solid', color: '#EF4444', value: '#EF4444', opacity: 100, visible: true, blendMode: 'normal' },
+    ]); await ev.capture('three-fills');
+    logReport(ev.finalize());
   });
 
-  // FIL-04..09: Reorder, blend mode, hex color, opacity
-  test('FIL-04..09: Fill properties', async ({ page }) => {
-    const ev = new EvalSession(page, { category: 'fills', scenario: 'FIL-04-09' });
-    const [elA] = await seedRects(page, 1);
-    await ev.clickElement(elA, 'selected');
-    await ev.capture('baseline');
-
-    // FIL-06: Change fill color
-    await ev.dispatch('UPDATE_ELEMENT', {
-      id: elA,
-      fills: [{ type: 'solid', color: '#FF5500', opacity: 100, visible: true }],
-    });
-    await page.waitForTimeout(200);
-    await ev.capture('color-changed');
-
-    // FIL-07: Change fill opacity
-    await ev.dispatch('UPDATE_ELEMENT', {
-      id: elA,
-      fills: [{ type: 'solid', color: '#FF5500', opacity: 50, visible: true }],
-    });
-    await page.waitForTimeout(200);
-    await ev.capture('opacity-50');
-
-    const report = ev.finalize();
-    logReport(report);
+  test('FIL-02: Delete fill layer', async ({ page }) => {
+    const ev = new EvalSession(page, { category: 'fills', scenario: 'FIL-02' });
+    const el = await seedRectWithFill(page);
+    await ev.clickElement(el, 'sel');
+    await setFills(page, el, [
+      { type: 'solid', color: '#3B82F6', value: '#3B82F6', opacity: 100, visible: true, blendMode: 'normal' },
+      { type: 'solid', color: '#EF4444', value: '#EF4444', opacity: 100, visible: true, blendMode: 'normal' },
+    ]); await ev.capture('two-fills');
+    await setFills(page, el, [
+      { type: 'solid', color: '#3B82F6', value: '#3B82F6', opacity: 100, visible: true, blendMode: 'normal' },
+    ]); await ev.capture('one-fill');
+    await setFills(page, el, []); await ev.capture('no-fills');
+    logReport(ev.finalize());
   });
 
-  // FIL-10..24: Color picker, theme swatches, link/unlink
-  test('FIL-10..24: Color and theme', async ({ page }) => {
-    const ev = new EvalSession(page, { category: 'fills', scenario: 'FIL-10-24' });
-    const [elA] = await seedRects(page, 1);
-    await ev.clickElement(elA, 'selected');
-    await ev.capture('baseline');
-
-    // FIL-21: Theme-linked fill (themeSlot)
-    await ev.dispatch('UPDATE_ELEMENT', {
-      id: elA,
-      fills: [{ type: 'solid', color: '#3B82F6', opacity: 100, visible: true, themeSlot: 0 }],
-    });
-    await page.waitForTimeout(200);
-    await ev.capture('theme-linked');
-
-    // FIL-24: Unlink from theme (remove themeSlot)
-    await ev.dispatch('UPDATE_ELEMENT', {
-      id: elA,
-      fills: [{ type: 'solid', color: '#3B82F6', opacity: 100, visible: true }],
-    });
-    await page.waitForTimeout(200);
-    await ev.capture('theme-unlinked');
-
-    const report = ev.finalize();
-    logReport(report);
+  test('FIL-03: Toggle fill visibility', async ({ page }) => {
+    const ev = new EvalSession(page, { category: 'fills', scenario: 'FIL-03' });
+    const el = await seedRectWithFill(page, '#EF4444');
+    await ev.clickElement(el, 'sel'); await ev.capture('visible');
+    await setFills(page, el, [{ type: 'solid', color: '#EF4444', value: '#EF4444', opacity: 100, visible: false, blendMode: 'normal' }]);
+    await ev.capture('hidden');
+    await setFills(page, el, [{ type: 'solid', color: '#EF4444', value: '#EF4444', opacity: 100, visible: true, blendMode: 'normal' }]);
+    await ev.capture('shown');
+    logReport(ev.finalize());
   });
 
-  // FIL-25..36: Gradient fills
-  test('FIL-25..36: Gradient fills', async ({ page }) => {
-    const ev = new EvalSession(page, { category: 'fills', scenario: 'FIL-25-36' });
-    const [elA] = await seedRects(page, 1);
-    await ev.clickElement(elA, 'selected');
-    await ev.capture('baseline');
+  test('FIL-05: Set blend mode', async ({ page }) => {
+    const ev = new EvalSession(page, { category: 'fills', scenario: 'FIL-05' });
+    const el = await seedRectWithFill(page);
+    await ev.clickElement(el, 'sel'); await ev.capture('normal');
+    await setFills(page, el, [{ type: 'solid', color: '#3B82F6', value: '#3B82F6', opacity: 100, visible: true, blendMode: 'multiply' }]);
+    await ev.capture('multiply');
+    await setFills(page, el, [{ type: 'solid', color: '#3B82F6', value: '#3B82F6', opacity: 100, visible: true, blendMode: 'screen' }]);
+    await ev.capture('screen');
+    logReport(ev.finalize());
+  });
 
-    // FIL-25: Switch to linear gradient
-    await ev.dispatch('UPDATE_ELEMENT', {
-      id: elA,
-      fills: [{
-        type: 'linear-gradient', visible: true, opacity: 100, angle: 90,
-        stops: [
-          { color: '#FF0000', position: 0, opacity: 100 },
-          { color: '#0000FF', position: 100, opacity: 100 },
-        ],
-      }],
-    });
-    await page.waitForTimeout(200);
-    await ev.capture('linear-gradient');
+  test('FIL-06: Change hex color', async ({ page }) => {
+    const ev = new EvalSession(page, { category: 'fills', scenario: 'FIL-06' });
+    const el = await seedRectWithFill(page, '#3B82F6');
+    await ev.clickElement(el, 'sel'); await ev.capture('blue');
+    await setFills(page, el, [{ type: 'solid', color: '#FF5500', value: '#FF5500', opacity: 100, visible: true, blendMode: 'normal' }]);
+    await ev.capture('orange');
+    await setFills(page, el, [{ type: 'solid', color: '#10B981', value: '#10B981', opacity: 100, visible: true, blendMode: 'normal' }]);
+    await ev.capture('green');
+    logReport(ev.finalize());
+  });
 
-    // FIL-26: Change gradient angle
-    await ev.dispatch('UPDATE_ELEMENT', {
-      id: elA,
-      fills: [{
-        type: 'linear-gradient', visible: true, opacity: 100, angle: 45,
-        stops: [
-          { color: '#FF0000', position: 0, opacity: 100 },
-          { color: '#0000FF', position: 100, opacity: 100 },
-        ],
-      }],
-    });
-    await page.waitForTimeout(200);
-    await ev.capture('angle-45');
+  test('FIL-07: Change opacity', async ({ page }) => {
+    const ev = new EvalSession(page, { category: 'fills', scenario: 'FIL-07' });
+    const el = await seedRectWithFill(page, '#EF4444');
+    await ev.clickElement(el, 'sel'); await ev.capture('100pct');
+    await setFills(page, el, [{ type: 'solid', color: '#EF4444', value: '#EF4444', opacity: 50, visible: true, blendMode: 'normal' }]);
+    await ev.capture('50pct');
+    await setFills(page, el, [{ type: 'solid', color: '#EF4444', value: '#EF4444', opacity: 0, visible: true, blendMode: 'normal' }]);
+    await ev.capture('0pct');
+    logReport(ev.finalize());
+  });
 
-    // FIL-29: Add gradient stop
-    await ev.dispatch('UPDATE_ELEMENT', {
-      id: elA,
-      fills: [{
-        type: 'linear-gradient', visible: true, opacity: 100, angle: 45,
-        stops: [
-          { color: '#FF0000', position: 0, opacity: 100 },
-          { color: '#00FF00', position: 50, opacity: 100 },
-          { color: '#0000FF', position: 100, opacity: 100 },
-        ],
-      }],
-    });
-    await page.waitForTimeout(200);
+  test('FIL-14: Switch fill types', async ({ page }) => {
+    const ev = new EvalSession(page, { category: 'fills', scenario: 'FIL-14' });
+    const el = await seedRectWithFill(page);
+    await ev.clickElement(el, 'sel'); await ev.capture('solid');
+    await setFills(page, el, [{ type: 'gradient', opacity: 100, visible: true, blendMode: 'normal',
+      value: { type: 'linear', angle: 90, stops: [{ position: 0, color: '#F00' }, { position: 100, color: '#00F' }] } }]);
+    await ev.capture('gradient');
+    await setFills(page, el, [{ type: 'code', opacity: 100, visible: true, blendMode: 'normal',
+      code: 'ctx.fillStyle="gold";ctx.fillRect(0,0,w,h);', value: '' }]);
+    await ev.capture('code');
+    await setFills(page, el, [{ type: 'solid', color: '#8B5CF6', value: '#8B5CF6', opacity: 100, visible: true, blendMode: 'normal' }]);
+    await ev.capture('back-solid');
+    logReport(ev.finalize());
+  });
+
+  test('FIL-21/24: Theme link and unlink', async ({ page }) => {
+    const ev = new EvalSession(page, { category: 'fills', scenario: 'FIL-21-24' });
+    const el = await seedRectWithFill(page);
+    await ev.clickElement(el, 'sel'); await ev.capture('unlinked');
+    await setFills(page, el, [{ type: 'solid', color: '#3B82F6', value: '#3B82F6', opacity: 100, visible: true, blendMode: 'normal', themeSlot: 0 }]);
+    await ev.capture('linked-0');
+    await setFills(page, el, [{ type: 'solid', color: '#FF6633', value: '#FF6633', opacity: 100, visible: true, blendMode: 'normal' }]);
+    await ev.capture('unlinked-after-edit');
+    logReport(ev.finalize());
+  });
+
+  test('FIL-25: All gradient types', async ({ page }) => {
+    const ev = new EvalSession(page, { category: 'fills', scenario: 'FIL-25' });
+    const el = await seedRectWithFill(page);
+    await ev.clickElement(el, 'sel'); await ev.capture('solid-base');
+    const stops = [{ position: 0, color: '#FF0000' }, { position: 100, color: '#0000FF' }];
+    for (const gt of ['linear', 'radial', 'angular', 'diamond']) {
+      await setFills(page, el, [{ type: 'gradient', opacity: 100, visible: true, blendMode: 'normal',
+        value: { type: gt, angle: 90, stops } }]);
+      await ev.capture(`${gt}-gradient`);
+    }
+    logReport(ev.finalize());
+  });
+
+  test('FIL-26/27: Gradient angle and rotate 90', async ({ page }) => {
+    const ev = new EvalSession(page, { category: 'fills', scenario: 'FIL-26-27' });
+    const el = await seedRectWithFill(page);
+    await ev.clickElement(el, 'sel');
+    const stops = [{ position: 0, color: '#FF0000' }, { position: 100, color: '#FFFF00' }];
+    for (const angle of [0, 90, 180, 270]) {
+      await setFills(page, el, [{ type: 'gradient', opacity: 100, visible: true, blendMode: 'normal',
+        value: { type: 'linear', angle, stops } }]);
+      await ev.capture(`angle-${angle}`);
+    }
+    logReport(ev.finalize());
+  });
+
+  test('FIL-28: Reverse gradient', async ({ page }) => {
+    const ev = new EvalSession(page, { category: 'fills', scenario: 'FIL-28' });
+    const el = await seedRectWithFill(page);
+    await ev.clickElement(el, 'sel');
+    await setFills(page, el, [{ type: 'gradient', opacity: 100, visible: true, blendMode: 'normal',
+      value: { type: 'linear', angle: 90, stops: [{ position: 0, color: '#FF0000' }, { position: 100, color: '#0000FF' }] } }]);
+    await ev.capture('original');
+    await setFills(page, el, [{ type: 'gradient', opacity: 100, visible: true, blendMode: 'normal',
+      value: { type: 'linear', angle: 90, stops: [{ position: 0, color: '#0000FF' }, { position: 100, color: '#FF0000' }] } }]);
+    await ev.capture('reversed');
+    logReport(ev.finalize());
+  });
+
+  test('FIL-29/34: Add and remove gradient stops', async ({ page }) => {
+    const ev = new EvalSession(page, { category: 'fills', scenario: 'FIL-29-34' });
+    const el = await seedRectWithFill(page);
+    await ev.clickElement(el, 'sel');
+    await setFills(page, el, [{ type: 'gradient', opacity: 100, visible: true, blendMode: 'normal',
+      value: { type: 'linear', angle: 90, stops: [{ position: 0, color: '#F00' }, { position: 100, color: '#00F' }] } }]);
+    await ev.capture('two-stops');
+    await setFills(page, el, [{ type: 'gradient', opacity: 100, visible: true, blendMode: 'normal',
+      value: { type: 'linear', angle: 90, stops: [{ position: 0, color: '#F00' }, { position: 50, color: '#0F0' }, { position: 100, color: '#00F' }] } }]);
     await ev.capture('three-stops');
-
-    const report = ev.finalize();
-    logReport(report);
+    await setFills(page, el, [{ type: 'gradient', opacity: 100, visible: true, blendMode: 'normal',
+      value: { type: 'linear', angle: 90, stops: [
+        { position: 0, color: '#F00' }, { position: 25, color: '#F80' },
+        { position: 50, color: '#0F0' }, { position: 75, color: '#08F' }, { position: 100, color: '#00F' }] } }]);
+    await ev.capture('five-stops');
+    await setFills(page, el, [{ type: 'gradient', opacity: 100, visible: true, blendMode: 'normal',
+      value: { type: 'linear', angle: 90, stops: [{ position: 0, color: '#F00' }, { position: 100, color: '#00F' }] } }]);
+    await ev.capture('back-to-two');
+    logReport(ev.finalize());
   });
 
-  // FIL-37..50: Image fill properties
-  test('FIL-37..50: Image fill', async ({ page }) => {
-    const ev = new EvalSession(page, { category: 'fills', scenario: 'FIL-37-50' });
-    const [elA] = await seedRects(page, 1);
-    await ev.clickElement(elA, 'selected');
-    await ev.capture('baseline');
-
-    // Set image fill (no actual image upload — set the fill type)
-    await ev.dispatch('UPDATE_ELEMENT', {
-      id: elA,
-      fills: [{ type: 'image', visible: true, opacity: 100, scaleMode: 'fill' }],
-    });
-    await page.waitForTimeout(200);
-    await ev.capture('image-fill');
-
-    // FIL-41: Change scale mode
-    await ev.dispatch('UPDATE_ELEMENT', {
-      id: elA,
-      fills: [{ type: 'image', visible: true, opacity: 100, scaleMode: 'fit' }],
-    });
-    await page.waitForTimeout(200);
-    await ev.capture('scale-fit');
-
-    const report = ev.finalize();
-    logReport(report);
+  test('FIL-30/33: Move gradient stop position', async ({ page }) => {
+    const ev = new EvalSession(page, { category: 'fills', scenario: 'FIL-30-33' });
+    const el = await seedRectWithFill(page);
+    await ev.clickElement(el, 'sel');
+    await setFills(page, el, [{ type: 'gradient', opacity: 100, visible: true, blendMode: 'normal',
+      value: { type: 'linear', angle: 90, stops: [{ position: 0, color: '#F00' }, { position: 50, color: '#0F0' }, { position: 100, color: '#00F' }] } }]);
+    await ev.capture('mid-at-50');
+    await setFills(page, el, [{ type: 'gradient', opacity: 100, visible: true, blendMode: 'normal',
+      value: { type: 'linear', angle: 90, stops: [{ position: 0, color: '#F00' }, { position: 25, color: '#0F0' }, { position: 100, color: '#00F' }] } }]);
+    await ev.capture('mid-at-25');
+    await setFills(page, el, [{ type: 'gradient', opacity: 100, visible: true, blendMode: 'normal',
+      value: { type: 'linear', angle: 90, stops: [{ position: 0, color: '#F00' }, { position: 75, color: '#0F0' }, { position: 100, color: '#00F' }] } }]);
+    await ev.capture('mid-at-75');
+    logReport(ev.finalize());
   });
 
-  // FIL-51..59: Video fills
-  test('FIL-51..59: Video fill', async ({ page }) => {
-    const ev = new EvalSession(page, { category: 'fills', scenario: 'FIL-51-59' });
-    const [elA] = await seedRects(page, 1);
-    await ev.clickElement(elA, 'selected');
-    await ev.capture('baseline');
-
-    // Set video fill type
-    await ev.dispatch('UPDATE_ELEMENT', {
-      id: elA,
-      fills: [{ type: 'video', visible: true, opacity: 100, autoplay: true, loop: true }],
-    });
-    await page.waitForTimeout(200);
-    await ev.capture('video-fill');
-
-    const report = ev.finalize();
-    logReport(report);
+  test('FIL-32: Edit stop color', async ({ page }) => {
+    const ev = new EvalSession(page, { category: 'fills', scenario: 'FIL-32' });
+    const el = await seedRectWithFill(page);
+    await ev.clickElement(el, 'sel');
+    await setFills(page, el, [{ type: 'gradient', opacity: 100, visible: true, blendMode: 'normal',
+      value: { type: 'linear', angle: 90, stops: [{ position: 0, color: '#FF0000' }, { position: 100, color: '#0000FF' }] } }]);
+    await ev.capture('red-blue');
+    await setFills(page, el, [{ type: 'gradient', opacity: 100, visible: true, blendMode: 'normal',
+      value: { type: 'linear', angle: 90, stops: [{ position: 0, color: '#FFFF00' }, { position: 100, color: '#8B00FF' }] } }]);
+    await ev.capture('yellow-purple');
+    logReport(ev.finalize());
   });
 
-  // FIL-60..69: Code fills
-  test('FIL-60..69: Code fills', async ({ page }) => {
-    const ev = new EvalSession(page, { category: 'fills', scenario: 'FIL-60-69' });
-    const [elA] = await seedRects(page, 1);
-    await ev.clickElement(elA, 'selected');
-    await ev.capture('baseline');
-
-    // Set code fill
-    await ev.dispatch('UPDATE_ELEMENT', {
-      id: elA,
-      fills: [{ type: 'code', visible: true, opacity: 100, code: 'ctx.fillStyle="#FF0";ctx.fillRect(0,0,w,h);' }],
-    });
-    await page.waitForTimeout(200);
-    await ev.capture('code-fill');
-
-    const report = ev.finalize();
-    logReport(report);
+  test('FIL-37..45: Image fill modes', async ({ page }) => {
+    const ev = new EvalSession(page, { category: 'fills', scenario: 'FIL-37-45' });
+    const el = await seedRectWithFill(page);
+    await ev.clickElement(el, 'sel'); await ev.capture('solid');
+    for (const mode of ['fill', 'fit', 'stretch', 'tile']) {
+      await setFills(page, el, [{ type: 'image', opacity: 100, visible: true, blendMode: 'normal', scaleMode: mode, position: { x: 0.5, y: 0.5 } }]);
+      await ev.capture(`image-${mode}`);
+    }
+    logReport(ev.finalize());
   });
 
-  // FIL-70..74: Inheritance and compatibility
-  test('FIL-70..74: Fill inheritance', async ({ page }) => {
-    const ev = new EvalSession(page, { category: 'fills', scenario: 'FIL-70-74' });
-    const [elA, elB] = await seedRects(page, 2);
+  test('FIL-46..50: Image filters', async ({ page }) => {
+    const ev = new EvalSession(page, { category: 'fills', scenario: 'FIL-46-50' });
+    const el = await seedRectWithFill(page);
+    await ev.clickElement(el, 'sel');
+    await setFills(page, el, [{ type: 'image', opacity: 100, visible: true, blendMode: 'normal', scaleMode: 'fill',
+      filters: { brightness: 0, contrast: 0, saturation: 0, temperature: 0, blur: 0 } }]);
+    await ev.capture('no-filters');
+    await setFills(page, el, [{ type: 'image', opacity: 100, visible: true, blendMode: 'normal', scaleMode: 'fill',
+      filters: { brightness: 50, contrast: 30, saturation: -20, temperature: 10, blur: 5 } }]);
+    await ev.capture('all-filters');
+    logReport(ev.finalize());
+  });
 
-    // Multi-select  
-    await ev.clickElement(elA, 'select-A');
-    await ev.shiftClickElement(elB, 'add-B');
-    await ev.capture('multi-selected');
+  test('FIL-51..58: Video fill', async ({ page }) => {
+    const ev = new EvalSession(page, { category: 'fills', scenario: 'FIL-51-58' });
+    const el = await seedRectWithFill(page);
+    await ev.clickElement(el, 'sel'); await ev.capture('solid');
+    await setFills(page, el, [{ type: 'video', opacity: 100, visible: true, blendMode: 'normal',
+      scaleMode: 'fill', playback: { autoplay: true, loop: true } }]);
+    await ev.capture('video-autoplay-loop');
+    await setFills(page, el, [{ type: 'video', opacity: 75, visible: true, blendMode: 'normal',
+      scaleMode: 'fit', playback: { autoplay: false, loop: false } }]);
+    await ev.capture('video-fit-75');
+    logReport(ev.finalize());
+  });
 
-    // Both have same fill type = compatible
-    // Change one to gradient = incompatible stacks
-    await ev.dispatch('UPDATE_ELEMENT', {
-      id: elA,
-      fills: [{ type: 'linear-gradient', visible: true, opacity: 100, angle: 0,
-        stops: [{ color: '#FF0000', position: 0 }, { color: '#0000FF', position: 100 }] }],
+  test('FIL-61/67: Code fill', async ({ page }) => {
+    const ev = new EvalSession(page, { category: 'fills', scenario: 'FIL-61-67' });
+    const el = await seedRectWithFill(page);
+    await ev.clickElement(el, 'sel'); await ev.capture('solid');
+    await setFills(page, el, [{ type: 'code', opacity: 100, visible: true, blendMode: 'normal',
+      code: 'const g=ctx.createLinearGradient(0,0,w,h);g.addColorStop(0,"red");g.addColorStop(1,"blue");ctx.fillStyle=g;ctx.fillRect(0,0,w,h);', value: '' }]);
+    await ev.capture('code-gradient');
+    await setFills(page, el, [{ type: 'code', opacity: 100, visible: true, blendMode: 'normal',
+      code: 'for(let i=0;i<10;i++){ctx.fillStyle=`hsl(${i*36},100%,50%)`;ctx.fillRect(i*w/10,0,w/10,h);}', value: '' }]);
+    await ev.capture('code-rainbow');
+    logReport(ev.finalize());
+  });
+
+  test('FIL-73/74: Multi-selection compatibility', async ({ page }) => {
+    const ev = new EvalSession(page, { category: 'fills', scenario: 'FIL-73-74' });
+    const elA = await seedRectWithFill(page, '#3B82F6');
+    const elB = await page.evaluate(() => {
+      const store = (window as any).__TEST_STORE__;
+      const id = `eval-fill-b-${Date.now()}`;
+      store.dispatch('ADD_ELEMENT', { id, type: 'rect', x: 450, y: 150, width: 200, height: 150,
+        rotation: 0, opacity: 1, name: 'Fill B',
+        style: { fills: [{ type: 'solid', color: '#EF4444', value: '#EF4444', opacity: 100, visible: true, blendMode: 'normal' }] } });
+      store.dispatch('UPDATE_SELECTION', []);
+      return id;
     });
     await page.waitForTimeout(200);
-    await ev.capture('incompatible-fills');
-
-    const report = ev.finalize();
-    logReport(report);
+    await ev.clickElement(elA, 'selA');
+    await ev.shiftClickElement(elB, 'addB');
+    await ev.capture('compatible');
+    await setFills(page, elA, [
+      { type: 'solid', color: '#3B82F6', value: '#3B82F6', opacity: 100, visible: true, blendMode: 'normal' },
+      { type: 'solid', color: '#D9D9D9', value: '#D9D9D9', opacity: 100, visible: true, blendMode: 'normal' },
+    ]);
+    await ev.capture('incompatible');
+    logReport(ev.finalize());
   });
 });
