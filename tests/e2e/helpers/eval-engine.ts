@@ -93,6 +93,13 @@ export interface DomLayer {
   contextMenuVisible: boolean;
   contextMenuItemCount: number;
   cursorStyle: string;
+  fillPanel: {
+    rowCount: number;
+    rows: Array<{ hex: string; opacity: string; swatchColor: string; isLinked: boolean }>;
+    flyoutOpen: boolean;
+    gradientStopCount: number;
+    hash: number;
+  };
 }
 
 export interface InteractionLayer {
@@ -332,6 +339,40 @@ const CAPTURE_FN = `(function() {
     cursorStyle: (function() {
       var cc = document.getElementById('canvas-container');
       return cc ? getComputedStyle(cc).cursor : 'default';
+    })(),
+    // Fill panel state — what the user sees in the PI fill section
+    fillPanel: (function() {
+      var rows = qsa('[data-testid^="fill-hex-"]');
+      var fillRows = [];
+      for (var fi = 0; fi < rows.length; fi++) {
+        var hexInput = rows[fi];
+        var hexVal = hexInput.value || hexInput.textContent || '';
+        var opInput = document.querySelector('[data-testid="fill-opacity-' + fi + '"]');
+        var opVal = opInput ? (opInput.value || opInput.textContent || '') : '';
+        // Find the fill row wrapper to check visibility state
+        var rowWrapper = hexInput.closest('.pi-property-row') || hexInput.closest('.fill-row');
+        var isDisabled = hexInput.classList.contains('fill-hex-input--linked') || hexInput.disabled;
+        var swatchEl = rowWrapper ? rowWrapper.querySelector('.fill-swatch-trigger .fill-preview, .fill-preview') : null;
+        var swatchBg = swatchEl ? getComputedStyle(swatchEl).backgroundColor : '';
+        fillRows.push({
+          hex: hexVal.trim(),
+          opacity: opVal.trim(),
+          swatchColor: swatchBg,
+          isLinked: isDisabled
+        });
+      }
+      // Check for flyout (color picker open)
+      var flyout = document.querySelector('.fill-flyout, .ui-flyout');
+      var flyoutOpen = !!flyout && flyout.offsetWidth > 0;
+      // Gradient stops if gradient tab visible
+      var gradStops = qsa('.gradient-stop, [data-testid^="gradient-stop-"]');
+      return {
+        rowCount: fillRows.length,
+        rows: fillRows,
+        flyoutOpen: flyoutOpen,
+        gradientStopCount: gradStops.length,
+        hash: hashStr(JSON.stringify(fillRows) + flyoutOpen + gradStops.length)
+      };
     })()
   };
 
@@ -781,6 +822,25 @@ function runHeuristicDetectors(snap: EvalSnapshot): Finding[] {
     }
   }
 
+  // ── Category F: Fill Panel ↔ Store Sync ──
+
+  // FILL_PANEL_COUNT_MISMATCH: if a single element is selected and has fills,
+  // the PI fill panel should show the same number of fill rows
+  if (store.selectedElementIds.length === 1 && dom.fillPanel) {
+    const selEl = store.elements[store.selectedElementIds[0]];
+    if (selEl && selEl.fillCount > 0 && dom.fillPanel.rowCount > 0) {
+      if (selEl.fillCount !== dom.fillPanel.rowCount) {
+        findings.push({
+          code: 'FILL_PANEL_COUNT_MISMATCH',
+          severity: 'warning',
+          category: 'F: Fill Panel',
+          message: `Store has ${selEl.fillCount} fills but PI shows ${dom.fillPanel.rowCount} fill rows`,
+          snapshot: snap.label,
+        });
+      }
+    }
+  }
+
   return findings;
 }
 
@@ -934,6 +994,16 @@ function buildMutationTimeline(snapshots: EvalSnapshot[]): Mutation[] {
         snapshotIndex: i, type: 'dom-changed',
         field: 'domHash', oldValue: prev.dom.domHash, newValue: curr.dom.domHash,
         detail: `DOM hash changed (element positions/visibility/text shifted)`,
+      });
+    }
+    // Fill panel UI changes
+    if (prev.dom.fillPanel && curr.dom.fillPanel && prev.dom.fillPanel.hash !== curr.dom.fillPanel.hash) {
+      mutations.push({
+        snapshotIndex: i, type: 'fill-panel-changed',
+        field: 'fillPanel',
+        oldValue: { rows: prev.dom.fillPanel.rowCount, flyout: prev.dom.fillPanel.flyoutOpen, stops: prev.dom.fillPanel.gradientStopCount },
+        newValue: { rows: curr.dom.fillPanel.rowCount, flyout: curr.dom.fillPanel.flyoutOpen, stops: curr.dom.fillPanel.gradientStopCount },
+        detail: `Fill panel: rows ${prev.dom.fillPanel.rowCount}→${curr.dom.fillPanel.rowCount}, flyout ${prev.dom.fillPanel.flyoutOpen}→${curr.dom.fillPanel.flyoutOpen}`,
       });
     }
 
@@ -1212,6 +1282,7 @@ function runTemporalRules(snapshots: EvalSnapshot[], mutations: Mutation[], acti
       cursor: prev.dom.cursorStyle,
       zoomDisp: prev.dom.zoomDisplay,
       domHash: prev.dom.domHash,
+      fillPanel: prev.dom.fillPanel ? prev.dom.fillPanel.hash : 0,
     });
     const currStr = JSON.stringify({
       sel: curr.store.selectedElementIds,
@@ -1235,6 +1306,7 @@ function runTemporalRules(snapshots: EvalSnapshot[], mutations: Mutation[], acti
       cursor: curr.dom.cursorStyle,
       zoomDisp: curr.dom.zoomDisplay,
       domHash: curr.dom.domHash,
+      fillPanel: curr.dom.fillPanel ? curr.dom.fillPanel.hash : 0,
     });
 
     if (prevStr === currStr) {

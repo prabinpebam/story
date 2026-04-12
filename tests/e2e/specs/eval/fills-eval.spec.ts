@@ -132,7 +132,7 @@ test.describe('Fills System Eval Loop', () => {
       value: { type: 'linear', angle: 90, stops: [{ position: 0, color: '#F00' }, { position: 100, color: '#00F' }] } }]);
     await ev.capture('gradient');
     await setFills(page, el, [{ type: 'code', opacity: 100, visible: true, blendMode: 'normal',
-      code: 'ctx.fillStyle="gold";ctx.fillRect(0,0,w,h);', value: '' }]);
+      code: 'ctx.fillStyle="gold";ctx.fillRect(0,0,200,150);', value: '' }]);
     await ev.capture('code');
     await setFills(page, el, [{ type: 'solid', color: '#8B5CF6', value: '#8B5CF6', opacity: 100, visible: true, blendMode: 'normal' }]);
     await ev.capture('back-solid');
@@ -296,10 +296,10 @@ test.describe('Fills System Eval Loop', () => {
     const el = await seedRectWithFill(page);
     await ev.clickElement(el, 'sel'); await ev.capture('solid');
     await setFills(page, el, [{ type: 'code', opacity: 100, visible: true, blendMode: 'normal',
-      code: 'const g=ctx.createLinearGradient(0,0,w,h);g.addColorStop(0,"red");g.addColorStop(1,"blue");ctx.fillStyle=g;ctx.fillRect(0,0,w,h);', value: '' }]);
+      code: 'var g=ctx.createLinearGradient(0,0,200,150);g.addColorStop(0,"red");g.addColorStop(1,"blue");ctx.fillStyle=g;ctx.fillRect(0,0,200,150);', value: '' }]);
     await ev.capture('code-gradient');
     await setFills(page, el, [{ type: 'code', opacity: 100, visible: true, blendMode: 'normal',
-      code: 'for(let i=0;i<10;i++){ctx.fillStyle=`hsl(${i*36},100%,50%)`;ctx.fillRect(i*w/10,0,w/10,h);}', value: '' }]);
+      code: 'for(var i=0;i<10;i++){ctx.fillStyle="hsl("+i*36+",100%,50%)";ctx.fillRect(i*20,0,20,150);}', value: '' }]);
     await ev.capture('code-rainbow');
     logReport(ev.finalize());
   });
