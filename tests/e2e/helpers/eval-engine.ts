@@ -44,6 +44,7 @@ export interface StoreLayer {
   activeSlideId: string;
   selectedElementIds: string[];
   editingElementId: string | null;
+  isTextEditing: boolean;
   activeTool: string;
   deepEdit: unknown | null;
   zoom: number;
@@ -88,6 +89,7 @@ export interface DomLayer {
   layoutGuidesVisible: boolean;
   columnGuides: Array<{ x: number; y: number; width: number; height: number }>;
   zoomDisplay: string | null;
+  domHash: number;
   contextMenuVisible: boolean;
   contextMenuItemCount: number;
   cursorStyle: string;
@@ -247,7 +249,8 @@ const CAPTURE_FN = `(function() {
         mode: editor.mode || 'edit',
         activeSlideId: slideId,
         selectedElementIds: [].concat(editor.selectedElementIds || []),
-        editingElementId: editor.editingElementId || null,
+        editingElementId: editor.editingElementId || (editor.textEdit && editor.textEdit.elementId) || null,
+        isTextEditing: !!(editor.textEdit && editor.textEdit.isEditing),
         activeTool: editor.activeToolId || editor.activeTool || 'select',
         deepEdit: editor.deepEdit || null,
         zoom: editor.zoom || 1,
@@ -305,6 +308,15 @@ const CAPTURE_FN = `(function() {
     return { x: pf(g.getAttribute('x')), y: pf(g.getAttribute('y')),
              width: pf(g.getAttribute('width')), height: pf(g.getAttribute('height')) };
   });
+  // DOM-level aggregate hash — catches any DOM change not tracked individually
+  var domHash = hashStr(
+    domElements.length + '|' +
+    domElements.map(function(e) {
+      return e.id + ':' + Math.round(e.screenRect.x) + ',' + Math.round(e.screenRect.y) + ',' +
+        Math.round(e.screenRect.width) + ',' + Math.round(e.screenRect.height) + ',' +
+        e.textContentHash + ',' + e.isVisible;
+    }).join('|')
+  );
   var domState = {
     slidePresent: !!slideView,
     slideId: slideView ? ga(slideView, 'data-slide-id') : null,
@@ -313,7 +325,7 @@ const CAPTURE_FN = `(function() {
     layoutGuidesVisible: guideOverlay ? guideOverlay.style.display !== 'none' : false,
     columnGuides: columnGuides,
     zoomDisplay: zoomEl ? (zoomEl.textContent || '').trim() : null,
-    // Context menu state
+    domHash: domHash,
     contextMenuVisible: !!document.querySelector('[role="menu"], .context-menu'),
     contextMenuItemCount: qsa('[role="menuitem"], .context-menu-item').length,
     // Cursor state on canvas
@@ -843,6 +855,13 @@ function buildMutationTimeline(snapshots: EvalSnapshot[]): Mutation[] {
         detail: `editing: ${prev.store.editingElementId} → ${curr.store.editingElementId}`,
       });
     }
+    if (prev.store.isTextEditing !== curr.store.isTextEditing) {
+      mutations.push({
+        snapshotIndex: i, type: 'text-edit-changed',
+        field: 'isTextEditing', oldValue: prev.store.isTextEditing, newValue: curr.store.isTextEditing,
+        detail: `textEditing: ${prev.store.isTextEditing} → ${curr.store.isTextEditing}`,
+      });
+    }
     if (prev.store.activeSlideId !== curr.store.activeSlideId) {
       mutations.push({
         snapshotIndex: i, type: 'slide-changed',
@@ -908,6 +927,13 @@ function buildMutationTimeline(snapshots: EvalSnapshot[]): Mutation[] {
         snapshotIndex: i, type: 'zoom-display-changed',
         field: 'zoomDisplay', oldValue: prev.dom.zoomDisplay, newValue: curr.dom.zoomDisplay,
         detail: `zoomDisplay: ${prev.dom.zoomDisplay} → ${curr.dom.zoomDisplay}`,
+      });
+    }
+    if (prev.dom.domHash !== curr.dom.domHash) {
+      mutations.push({
+        snapshotIndex: i, type: 'dom-changed',
+        field: 'domHash', oldValue: prev.dom.domHash, newValue: curr.dom.domHash,
+        detail: `DOM hash changed (element positions/visibility/text shifted)`,
       });
     }
 
@@ -1166,6 +1192,7 @@ function runTemporalRules(snapshots: EvalSnapshot[], mutations: Mutation[], acti
     const prevStr = JSON.stringify({
       sel: prev.store.selectedElementIds,
       edit: prev.store.editingElementId,
+      textEdit: prev.store.isTextEditing,
       tool: prev.store.activeTool,
       mode: prev.store.mode,
       zoom: prev.store.zoom,
@@ -1184,10 +1211,12 @@ function runTemporalRules(snapshots: EvalSnapshot[], mutations: Mutation[], acti
       ctxItems: prev.dom.contextMenuItemCount,
       cursor: prev.dom.cursorStyle,
       zoomDisp: prev.dom.zoomDisplay,
+      domHash: prev.dom.domHash,
     });
     const currStr = JSON.stringify({
       sel: curr.store.selectedElementIds,
       edit: curr.store.editingElementId,
+      textEdit: curr.store.isTextEditing,
       tool: curr.store.activeTool,
       mode: curr.store.mode,
       zoom: curr.store.zoom,
@@ -1205,6 +1234,7 @@ function runTemporalRules(snapshots: EvalSnapshot[], mutations: Mutation[], acti
       ctxItems: curr.dom.contextMenuItemCount,
       cursor: curr.dom.cursorStyle,
       zoomDisp: curr.dom.zoomDisplay,
+      domHash: curr.dom.domHash,
     });
 
     if (prevStr === currStr) {

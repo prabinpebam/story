@@ -512,8 +512,11 @@ test.describe('Context Menu Eval Loop', () => {
     const ev = new EvalSession(page, { category: 'context-menu', scenario: 'CTX-50-53' });
     await ev.capture('baseline');
 
-    // CTX-50: Duplicate slide
-    await ev.dispatch('DUPLICATE_SLIDE');
+    // CTX-50: Duplicate slide (needs slide ID)
+    await page.evaluate(() => {
+      const store = (window as any).__TEST_STORE__;
+      store.dispatch('DUPLICATE_SLIDE', store.getState().editor.activeSlideId);
+    });
     await page.waitForTimeout(300);
     await ev.capture('post-duplicate');
 
@@ -563,7 +566,11 @@ test.describe('Context Menu Eval Loop', () => {
     await page.waitForTimeout(300);
     await ev.capture('two-slides');
 
-    await ev.dispatch('DELETE_SLIDE');
+    // Delete needs slide ID
+    await page.evaluate(() => {
+      const store = (window as any).__TEST_STORE__;
+      store.dispatch('DELETE_SLIDE', store.getState().editor.activeSlideId);
+    });
     await page.waitForTimeout(300);
     await ev.capture('post-delete-slide');
 
