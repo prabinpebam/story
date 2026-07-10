@@ -15,29 +15,32 @@ Priority definitions:
 | **P0** | Blocks reliable implementation of multiple product families or risks data loss and incompatible architecture. |
 | **P1** | Required for the Figma-class or PowerPoint-class product promise. |
 | **P2** | Deepens professional workflows after the core promise is coherent. |
-| **P3** | Differentiation or optional ecosystem expansion; must not block deterministic core work. |
+| **P3** | Optional ecosystem expansion; must not block deterministic core work. |
 
 ## 2. Program Sequence
 
 ```mermaid
 flowchart LR
-    A[0. Honest Baseline] --> B[1. Canonical Document Core]
+    A --> O[0.5 Product Operating Model]
+    O --> B
     B --> C[2. Unified Scene and Files]
-    C --> D[3. Figma-Class Authoring]
-    C --> E[4. PowerPoint-Class Authoring]
+    C --> N[2.5 Story-Native Model Vertical]
+    N --> D[3. Figma-Class Authoring]
+    N --> E[4. PowerPoint-Class Authoring]
     D --> F[5. Interoperability and Output]
     E --> F
     B --> G[6. Collaboration and Recovery]
-    F --> H[7. Delivery and Audience]
+    F --> V[5.5 Story-Native Delivery Proof]
+    V --> H[7. Delivery and Audience]
     G --> H
-    H --> I[8. Differentiation and Ecosystem]
+    H --> I[8. Ecosystem Expansion]
 ```
 
-Programs 3 and 4 may run in parallel only after Programs 1 and 2 pass their exit gates. Program 6 begins at the operation layer during Program 1 and becomes user-facing after file and scene fidelity are proven.
+Programs 3 and 4 may run in parallel only after Programs 1, 2, and the Story-native model vertical pass their exit gates. Program 6 begins at the operation layer during Program 1 and becomes user-facing after file and scene fidelity are proven. The later Story-native delivery proof closes runtime and output tasks after the thin required adapters exist. Differentiation does not wait for parity breadth: Story Systems, base narratives, audience editions, narrative components, governed overrides, and edition-aware runtime/output are P1 foundations of the first coherent release profile.
 
 ## 3. Program 0: Honest Baseline
 
-**Priority:** P0  
+**Priority:** P0
 **Outcome:** The repository can distinguish intended behavior, current implementation, verification, and historical material.
 
 | Work package | Scope | Exit evidence |
@@ -47,6 +50,18 @@ Programs 3 and 4 may run in parallel only after Programs 1 and 2 pass their exit
 | GOV-003 Production conformance tests | Assert the actual initial state, routed actions, history, save/open, media hydration, and cross-surface rendering. | Tests use production Store and services rather than shape-incompatible mocks. |
 | GOV-004 Remove false affordances | Audit menus and controls for actions or formats that have no handler. Disable, label experimental, or implement them. | Every enabled command reaches a valid operation and visible outcome. |
 | GOV-005 Repair quality tooling | Fix performance registry paths, generated indexes, and taskflow coverage reporting. | Required scripts run from a clean checkout and produce dated evidence. |
+
+## 3.1 Program 0.5: Product Operating Model
+
+**Priority:** P0
+**Outcome:** Product structure and interaction behavior are settled before architecture freezes user-visible assumptions.
+
+| Work package | Scope | Exit evidence |
+|---|---|---|
+| UX-001 Canonical shell | Five workspace views, edit scopes, tools, panels, focus, Escape, commit, state feedback, and adaptive tiers from Volume 02. | Canonical shell/reference-screen pack approved; no competing view/mode taxonomy. |
+| UX-002 Familiarity contracts | Freeze the Figma-transfer and PowerPoint-transfer tasks and accepted Story-specific divergences. | `BENCH-PRODUCT-001` pilot-ready with objective validators. |
+| UX-003 Story-native model | Story Systems, base narratives, narrative components, editions, overrides, source-update review, runtime admission, and output identity. | Cross-volume flow and schema review passes; no custom-show or copied-deck substitution. |
+| UX-004 R1 profile | Exact platforms, capability tiers, workflows, defaults, exclusions, and gates. | `PROFILE-R1-2026-01` accepted as a nonempty executable slice. |
 
 ## 4. Program 1: Canonical Document Core
 
@@ -113,6 +128,23 @@ Programs 3 and 4 may run in parallel only after Programs 1 and 2 pass their exit
 3. Unsupported features are preserved or reported; none disappear silently.
 4. Media and font failures produce deterministic fallbacks and actionable diagnostics.
 5. Autosave and recovery tests prove no data loss under refresh, crash simulation, and provider interruption.
+
+## 5.3 Program 2.5: Story-Native Model Vertical
+
+**Priority:** P1
+**Outcome:** Story proves its reason to exist before expanding parity breadth.
+
+| Work package | Scope | Product requirements | Depends on |
+|---|---|---|---|
+| NAR-001 System adoption | Convert an existing deck to a base narrative without visual mutation or copied slides. | `REQ-09-171`, `REQ-09-172` | Programs 1-2 |
+| NAR-002 Narrative components | Semantic slots, visual mapping, notes, motion, accessibility, and source identity. | `REQ-09-173` | DOC-005, SCN-001 |
+| NAR-003 Audience editions | Stable include/exclude/reorder/substitute/localize/mode directives over one base. | `REQ-09-174`, `REQ-09-175` | NAR-001 |
+| NAR-004 Update review | Compatible propagation, conflict/orphan classification, explicit reconciliation, preserved overrides. | `REQ-09-176`, `REQ-09-177` | NAR-002, NAR-003 |
+| NAR-005 Edition admission contract | Deterministic resolution hash and edition-aware runtime/output job inputs, validated without requiring production delivery adapters. | `REQ-09-178` through `REQ-09-180`, `REQ-10-003`, `REQ-11-221` through `REQ-11-223` | SCN-001 through SCN-004 |
+
+### Program 2.5 Exit Gate
+
+The first six Story-native benchmark tasks pass through deterministic model, authoring, resolution, save/reopen, and headed UI evidence. Tasks 7-8 have complete immutable admission/output plans and negative fixtures, but their production runtime/output execution closes at Program 5.5. No copied presentation roots, custom-show aliases, or silent drift are accepted.
 
 ## 6. Program 3: Figma-Class Authoring
 
@@ -251,10 +283,10 @@ Two or more real clients must converge after concurrent offline and online edits
 
 Published 10-, 50-, and 100-slide benchmark decks must present without blank frames, reordered builds, uncontrolled memory growth, private presenter-state leakage, or unrecoverable display/window failure on supported environments.
 
-## 11. Program 8: Differentiation and Ecosystem
+## 11. Program 8: Ecosystem Expansion
 
 **Priority:** P2 to P3  
-**Outcome:** Story extends beyond parity without weakening deterministic core authoring.
+**Outcome:** Story extends the proven differentiated core without weakening deterministic authoring or delivery.
 
 Candidate programs include code-driven visuals, live data binding, interactive components, audience analytics, extensions, automation APIs, and AI-assisted composition. Each must use canonical transactions, permissions, file semantics, accessibility, and explicit privacy controls. AI output must remain inspectable and editable and may not become necessary to achieve core product fidelity.
 
@@ -277,15 +309,16 @@ Every release candidate must pass these gates:
 
 The next implementation work should begin in this order:
 
-1. Production conformance tests for Store state, text undo, save/open, master and asset hydration, and cross-surface parity.
-2. Versioned canonical document schema and state separation.
-3. Typed transaction/operation boundary and unified history.
-4. Native-file and asset round-trip repair.
-5. Renderer-neutral resolved scene and export parity.
-6. Collaboration attachment to the canonical operation stream.
-7. Geometry-aware hit testing and text editing modernization.
-8. Auto Layout, constraints, components, variants, and variables.
-9. Native tables/charts/diagrams and animation sequencer.
-10. PPTX preservation architecture, compatibility report, and golden corpus.
+1. Accept the canonical shell/reference-screen pack, frozen benchmark, R1 atomic ledger, and foundational ADR packet from Program 0.5.
+2. Add production conformance tests for Store state, text undo, save/open, master and asset hydration, and cross-surface parity.
+3. Implement the versioned canonical document schema, stable addresses, and state separation.
+4. Implement the typed transaction/operation boundary, unified history, and ordered-operation contracts.
+5. Repair native-file/asset round trips and add the renderer-neutral resolved scene.
+6. Implement Story System adoption, base narratives, narrative components, audience editions, and update review through the Program 2.5 model gate.
+7. Attach collaboration to the canonical operation stream and prove deterministic two-client convergence.
+8. Complete geometry-aware selection, text modernization, Auto Layout, components, variables, and the R1 design benchmark families.
+9. Complete R1 slide structure, masters/layouts, data objects, motion sequencer, notes, rehearsal, and recording.
+10. Implement thin edition-aware runtime and output adapters, then close the Program 5.5 Story-native delivery proof.
+11. Complete preservation-first PPTX, PDF, portable web, compatibility reports, and the remaining R1 workflows.
 
 This order is mandatory unless a documented dependency analysis shows that a different sequence reduces foundational risk without creating a parallel system.

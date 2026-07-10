@@ -1,0 +1,4255 @@
+{
+  "schemaVersion": "story.protocol-registry/1.0.0",
+  "registryVersion": "1.0.0-draft",
+  "sourceRevision": "baad33c3189716f549949085887f221dd01bc3e3+working-tree",
+  "sourceReviewedAt": "2026-07-10",
+  "sourceHash": "78b4502fe00cc528c3496f7740fd5c694aaefb4f870c15f7f164177e51f5c1b8",
+  "aliases": {
+    "BENCH-PRODUCT-001": "TEST-01-001"
+  },
+  "templateDefinitions": {
+    "unit-model": "Deterministic model boundary with exact semantics and negative/mutation controls.",
+    "integration-contract": "Production module/service/store/authority/writer boundary with correlated success and failure state.",
+    "headed-e2e": "Visible headed browser, real input, focus/hit-test/paint, semantic terminal state, and recovery.",
+    "artifact-roundtrip": "Actual writer bytes, independent parser/consumer, semantic/preservation/visual validation.",
+    "accessibility-manual": "Actual claimed AT/IME/hardware environment with versioned operator procedure and observations.",
+    "performance-soak": "Correctness-first exact environment with semantic marks, raw samples, frames, memory, trends, and thresholds.",
+    "security-fault": "Adversarial/fault boundary with unchanged protected state, bounded rescue, and audit evidence.",
+    "usability-benchmark": "Qualified cohorts, frozen tasks/fixtures, objective validators, interventions, time/error/confidence, and privacy-safe results."
+  },
+  "protocolCount": 55,
+  "releaseAdmissibleCount": 0,
+  "protocols": [
+    {
+      "id": "TEST-01-001",
+      "aliases": [
+        "BENCH-PRODUCT-001"
+      ],
+      "definitionVersion": "1.0.0-draft",
+      "status": "draft-incomplete",
+      "owner": {
+        "volume": "01",
+        "source": "documentation/product/specification/benchmarks/familiarity-and-story-native.md"
+      },
+      "templates": [
+        "usability-benchmark",
+        "headed-e2e",
+        "artifact-roundtrip",
+        "accessibility-manual",
+        "performance-soak"
+      ],
+      "description": "Figma-transfer, PowerPoint-transfer, and Story-native product outcome benchmark.",
+      "applicability": {
+        "profiles": [
+          "PROFILE-R1-2026-01"
+        ],
+        "riskClasses": [],
+        "matrixCells": [],
+        "requirements": [],
+        "criteria": []
+      },
+      "setup": {
+        "fixtureIds": [
+          "FIX-PRODUCT-MEDIUM-01"
+        ],
+        "fixtureStatus": "manifest-present-artifacts-missing",
+        "environmentIds": [
+          "ENV-R1-WIN-DESKTOP-01",
+          "ENV-FIGMA-CURRENT",
+          "ENV-POWERPOINT-M365-WIN",
+          "ENV-R1-A11Y-01"
+        ],
+        "environmentStatus": "registry-entry-required",
+        "preconditions": [
+          "Candidate, specification, fixture, environment, and protocol revisions are frozen."
+        ],
+        "productionBoundaries": [
+          "Use the production boundary claimed by the source protocol; mocks must be disclosed and cannot prove the mocked boundary."
+        ],
+        "allowedSubstitutions": [],
+        "realInput": true
+      },
+      "procedure": {
+        "steps": [
+          "Figma-transfer, PowerPoint-transfer, and Story-native product outcome benchmark."
+        ],
+        "retries": {
+          "max": 0,
+          "policy": "append-only-diagnostic-reruns"
+        },
+        "timeoutMs": null
+      },
+      "evidence": {
+        "captureSchema": "SCH-15-008",
+        "captures": [
+          "34 frozen tasks, objective semantic validators, qualified cohorts, headed captures, artifacts, and manual accessibility sessions."
+        ],
+        "detectors": [],
+        "artifacts": [
+          "actual-produced-artifact",
+          "independent-parse-report"
+        ],
+        "privacy": "Volume 13 minimization, consent, access, retention, and no-secret rules apply.",
+        "retention": "Defined by the active conformance profile and evidence store policy."
+      },
+      "outcome": {
+        "terminalCondition": "Figma-transfer, PowerPoint-transfer, and Story-native product outcome benchmark.",
+        "assertions": [],
+        "pass": "All declared assertions and applicable matrix cells pass with current admissible evidence.",
+        "fail": "Any declared assertion fails or observed state contradicts the required terminal condition.",
+        "blocked": "Fixture, environment, production boundary, consent, hardware, or protocol field is unavailable or incomplete."
+      },
+      "cleanup": {
+        "steps": [
+          "Release protocol-owned processes, handles, temporary artifacts, permissions, devices, and injected state."
+        ],
+        "verification": "No protocol resource or temporary mutation remains unless retained as immutable evidence."
+      },
+      "limitations": [
+        "This generated draft is not release-admissible until every empty applicability/assertion/detector/timeout and registry reference required by SCH-15-007 is materialized and reviewed."
+      ]
+    },
+    {
+      "id": "TEST-07-001",
+      "aliases": [],
+      "definitionVersion": "1.0.0-draft",
+      "status": "draft-incomplete",
+      "owner": {
+        "volume": "07",
+        "source": "documentation/product/specification/07-collaboration-identity-and-sharing.md"
+      },
+      "templates": [
+        "integration-contract",
+        "unit-model"
+      ],
+      "description": "Deterministic model tests permute concurrent typed operations, duplicate delivery, reorder, gaps, and replay.",
+      "applicability": {
+        "profiles": [],
+        "riskClasses": [],
+        "matrixCells": [],
+        "requirements": [],
+        "criteria": []
+      },
+      "setup": {
+        "fixtureIds": [
+          "FIX-07-001"
+        ],
+        "fixtureStatus": "registry-entry-required",
+        "environmentIds": [
+          "ENV-07-001"
+        ],
+        "environmentStatus": "registry-entry-required",
+        "preconditions": [
+          "Candidate, specification, fixture, environment, and protocol revisions are frozen."
+        ],
+        "productionBoundaries": [
+          "Use the production boundary claimed by the source protocol; mocks must be disclosed and cannot prove the mocked boundary."
+        ],
+        "allowedSubstitutions": [],
+        "realInput": false
+      },
+      "procedure": {
+        "steps": [
+          "Deterministic model tests permute concurrent typed operations, duplicate delivery, reorder, gaps, and replay."
+        ],
+        "retries": {
+          "max": 0,
+          "policy": "append-only-diagnostic-reruns"
+        },
+        "timeoutMs": null
+      },
+      "evidence": {
+        "captureSchema": "SCH-15-008",
+        "captures": [
+          "Input seed, algorithm/version, operation trace, final hashes."
+        ],
+        "detectors": [],
+        "artifacts": [],
+        "privacy": "Volume 13 minimization, consent, access, retention, and no-secret rules apply.",
+        "retention": "Defined by the active conformance profile and evidence store policy."
+      },
+      "outcome": {
+        "terminalCondition": "Deterministic model tests permute concurrent typed operations, duplicate delivery, reorder, gaps, and replay.",
+        "assertions": [],
+        "pass": "All declared assertions and applicable matrix cells pass with current admissible evidence.",
+        "fail": "Any declared assertion fails or observed state contradicts the required terminal condition.",
+        "blocked": "Fixture, environment, production boundary, consent, hardware, or protocol field is unavailable or incomplete."
+      },
+      "cleanup": {
+        "steps": [
+          "Release protocol-owned processes, handles, temporary artifacts, permissions, devices, and injected state."
+        ],
+        "verification": "No protocol resource or temporary mutation remains unless retained as immutable evidence."
+      },
+      "limitations": [
+        "This generated draft is not release-admissible until every empty applicability/assertion/detector/timeout and registry reference required by SCH-15-007 is materialized and reviewed."
+      ]
+    },
+    {
+      "id": "TEST-07-002",
+      "aliases": [],
+      "definitionVersion": "1.0.0-draft",
+      "status": "draft-incomplete",
+      "owner": {
+        "volume": "07",
+        "source": "documentation/product/specification/07-collaboration-identity-and-sharing.md"
+      },
+      "templates": [
+        "integration-contract",
+        "security-fault"
+      ],
+      "description": "Multi-process integration tests run a real authority, durable store, asset store, and at least three independent replicas.",
+      "applicability": {
+        "profiles": [],
+        "riskClasses": [],
+        "matrixCells": [],
+        "requirements": [],
+        "criteria": []
+      },
+      "setup": {
+        "fixtureIds": [
+          "FIX-07-002"
+        ],
+        "fixtureStatus": "registry-entry-required",
+        "environmentIds": [
+          "ENV-07-002"
+        ],
+        "environmentStatus": "registry-entry-required",
+        "preconditions": [
+          "Candidate, specification, fixture, environment, and protocol revisions are frozen."
+        ],
+        "productionBoundaries": [
+          "Use the production boundary claimed by the source protocol; mocks must be disclosed and cannot prove the mocked boundary."
+        ],
+        "allowedSubstitutions": [],
+        "realInput": false
+      },
+      "procedure": {
+        "steps": [
+          "Multi-process integration tests run a real authority, durable store, asset store, and at least three independent replicas."
+        ],
+        "retries": {
+          "max": 0,
+          "policy": "append-only-diagnostic-reruns"
+        },
+        "timeoutMs": null
+      },
+      "evidence": {
+        "captureSchema": "SCH-15-008",
+        "captures": [
+          "Service config, fault schedule, accepted log, replica hashes."
+        ],
+        "detectors": [],
+        "artifacts": [],
+        "privacy": "Volume 13 minimization, consent, access, retention, and no-secret rules apply.",
+        "retention": "Defined by the active conformance profile and evidence store policy."
+      },
+      "outcome": {
+        "terminalCondition": "Multi-process integration tests run a real authority, durable store, asset store, and at least three independent replicas.",
+        "assertions": [],
+        "pass": "All declared assertions and applicable matrix cells pass with current admissible evidence.",
+        "fail": "Any declared assertion fails or observed state contradicts the required terminal condition.",
+        "blocked": "Fixture, environment, production boundary, consent, hardware, or protocol field is unavailable or incomplete."
+      },
+      "cleanup": {
+        "steps": [
+          "Release protocol-owned processes, handles, temporary artifacts, permissions, devices, and injected state."
+        ],
+        "verification": "No protocol resource or temporary mutation remains unless retained as immutable evidence."
+      },
+      "limitations": [
+        "This generated draft is not release-admissible until every empty applicability/assertion/detector/timeout and registry reference required by SCH-15-007 is materialized and reviewed."
+      ]
+    },
+    {
+      "id": "TEST-07-003",
+      "aliases": [],
+      "definitionVersion": "1.0.0-draft",
+      "status": "draft-incomplete",
+      "owner": {
+        "volume": "07",
+        "source": "documentation/product/specification/07-collaboration-identity-and-sharing.md"
+      },
+      "templates": [
+        "integration-contract",
+        "security-fault"
+      ],
+      "description": "Offline/crash tests terminate clients at every queue, submit, append, ack, snapshot, and compaction boundary.",
+      "applicability": {
+        "profiles": [],
+        "riskClasses": [],
+        "matrixCells": [],
+        "requirements": [],
+        "criteria": []
+      },
+      "setup": {
+        "fixtureIds": [
+          "FIX-07-003"
+        ],
+        "fixtureStatus": "registry-entry-required",
+        "environmentIds": [
+          "ENV-07-003"
+        ],
+        "environmentStatus": "registry-entry-required",
+        "preconditions": [
+          "Candidate, specification, fixture, environment, and protocol revisions are frozen."
+        ],
+        "productionBoundaries": [
+          "Use the production boundary claimed by the source protocol; mocks must be disclosed and cannot prove the mocked boundary."
+        ],
+        "allowedSubstitutions": [],
+        "realInput": false
+      },
+      "procedure": {
+        "steps": [
+          "Offline/crash tests terminate clients at every queue, submit, append, ack, snapshot, and compaction boundary."
+        ],
+        "retries": {
+          "max": 0,
+          "policy": "append-only-diagnostic-reruns"
+        },
+        "timeoutMs": null
+      },
+      "evidence": {
+        "captureSchema": "SCH-15-008",
+        "captures": [
+          "Crash point, recovered queue, accepted disposition, no-loss assertion."
+        ],
+        "detectors": [],
+        "artifacts": [],
+        "privacy": "Volume 13 minimization, consent, access, retention, and no-secret rules apply.",
+        "retention": "Defined by the active conformance profile and evidence store policy."
+      },
+      "outcome": {
+        "terminalCondition": "Offline/crash tests terminate clients at every queue, submit, append, ack, snapshot, and compaction boundary.",
+        "assertions": [],
+        "pass": "All declared assertions and applicable matrix cells pass with current admissible evidence.",
+        "fail": "Any declared assertion fails or observed state contradicts the required terminal condition.",
+        "blocked": "Fixture, environment, production boundary, consent, hardware, or protocol field is unavailable or incomplete."
+      },
+      "cleanup": {
+        "steps": [
+          "Release protocol-owned processes, handles, temporary artifacts, permissions, devices, and injected state."
+        ],
+        "verification": "No protocol resource or temporary mutation remains unless retained as immutable evidence."
+      },
+      "limitations": [
+        "This generated draft is not release-admissible until every empty applicability/assertion/detector/timeout and registry reference required by SCH-15-007 is materialized and reviewed."
+      ]
+    },
+    {
+      "id": "TEST-07-004",
+      "aliases": [],
+      "definitionVersion": "1.0.0-draft",
+      "status": "draft-incomplete",
+      "owner": {
+        "volume": "07",
+        "source": "documentation/product/specification/07-collaboration-identity-and-sharing.md"
+      },
+      "templates": [
+        "integration-contract",
+        "headed-e2e",
+        "artifact-roundtrip"
+      ],
+      "description": "Headed multi-context E2E exercises share, edit, text, reorder, comments, offline, reconnect, undo, role change, and revocation through production UI.",
+      "applicability": {
+        "profiles": [],
+        "riskClasses": [],
+        "matrixCells": [],
+        "requirements": [],
+        "criteria": []
+      },
+      "setup": {
+        "fixtureIds": [
+          "FIX-07-004"
+        ],
+        "fixtureStatus": "registry-entry-required",
+        "environmentIds": [
+          "ENV-07-004"
+        ],
+        "environmentStatus": "registry-entry-required",
+        "preconditions": [
+          "Candidate, specification, fixture, environment, and protocol revisions are frozen."
+        ],
+        "productionBoundaries": [
+          "Use the production boundary claimed by the source protocol; mocks must be disclosed and cannot prove the mocked boundary."
+        ],
+        "allowedSubstitutions": [],
+        "realInput": true
+      },
+      "procedure": {
+        "steps": [
+          "Headed multi-context E2E exercises share, edit, text, reorder, comments, offline, reconnect, undo, role change, and revocation through production UI."
+        ],
+        "retries": {
+          "max": 0,
+          "policy": "append-only-diagnostic-reruns"
+        },
+        "timeoutMs": null
+      },
+      "evidence": {
+        "captureSchema": "SCH-15-008",
+        "captures": [
+          "Visible browser video/screens, DOM/state capture, server log correlation, hashes."
+        ],
+        "detectors": [],
+        "artifacts": [
+          "actual-produced-artifact",
+          "independent-parse-report"
+        ],
+        "privacy": "Volume 13 minimization, consent, access, retention, and no-secret rules apply.",
+        "retention": "Defined by the active conformance profile and evidence store policy."
+      },
+      "outcome": {
+        "terminalCondition": "Headed multi-context E2E exercises share, edit, text, reorder, comments, offline, reconnect, undo, role change, and revocation through production UI.",
+        "assertions": [],
+        "pass": "All declared assertions and applicable matrix cells pass with current admissible evidence.",
+        "fail": "Any declared assertion fails or observed state contradicts the required terminal condition.",
+        "blocked": "Fixture, environment, production boundary, consent, hardware, or protocol field is unavailable or incomplete."
+      },
+      "cleanup": {
+        "steps": [
+          "Release protocol-owned processes, handles, temporary artifacts, permissions, devices, and injected state."
+        ],
+        "verification": "No protocol resource or temporary mutation remains unless retained as immutable evidence."
+      },
+      "limitations": [
+        "This generated draft is not release-admissible until every empty applicability/assertion/detector/timeout and registry reference required by SCH-15-007 is materialized and reviewed."
+      ]
+    },
+    {
+      "id": "TEST-07-005",
+      "aliases": [],
+      "definitionVersion": "1.0.0-draft",
+      "status": "draft-incomplete",
+      "owner": {
+        "volume": "07",
+        "source": "documentation/product/specification/07-collaboration-identity-and-sharing.md"
+      },
+      "templates": [
+        "integration-contract",
+        "security-fault"
+      ],
+      "description": "Security tests forge identity, role, epoch, base, operation targets, link tokens, sessions, and provider responses.",
+      "applicability": {
+        "profiles": [],
+        "riskClasses": [],
+        "matrixCells": [],
+        "requirements": [],
+        "criteria": []
+      },
+      "setup": {
+        "fixtureIds": [
+          "FIX-07-005"
+        ],
+        "fixtureStatus": "registry-entry-required",
+        "environmentIds": [
+          "ENV-07-005"
+        ],
+        "environmentStatus": "registry-entry-required",
+        "preconditions": [
+          "Candidate, specification, fixture, environment, and protocol revisions are frozen."
+        ],
+        "productionBoundaries": [
+          "Use the production boundary claimed by the source protocol; mocks must be disclosed and cannot prove the mocked boundary."
+        ],
+        "allowedSubstitutions": [],
+        "realInput": false
+      },
+      "procedure": {
+        "steps": [
+          "Security tests forge identity, role, epoch, base, operation targets, link tokens, sessions, and provider responses."
+        ],
+        "retries": {
+          "max": 0,
+          "policy": "append-only-diagnostic-reruns"
+        },
+        "timeoutMs": null
+      },
+      "evidence": {
+        "captureSchema": "SCH-15-008",
+        "captures": [
+          "Sanitized request/response, denial reason, unchanged head."
+        ],
+        "detectors": [],
+        "artifacts": [],
+        "privacy": "Volume 13 minimization, consent, access, retention, and no-secret rules apply.",
+        "retention": "Defined by the active conformance profile and evidence store policy."
+      },
+      "outcome": {
+        "terminalCondition": "Security tests forge identity, role, epoch, base, operation targets, link tokens, sessions, and provider responses.",
+        "assertions": [],
+        "pass": "All declared assertions and applicable matrix cells pass with current admissible evidence.",
+        "fail": "Any declared assertion fails or observed state contradicts the required terminal condition.",
+        "blocked": "Fixture, environment, production boundary, consent, hardware, or protocol field is unavailable or incomplete."
+      },
+      "cleanup": {
+        "steps": [
+          "Release protocol-owned processes, handles, temporary artifacts, permissions, devices, and injected state."
+        ],
+        "verification": "No protocol resource or temporary mutation remains unless retained as immutable evidence."
+      },
+      "limitations": [
+        "This generated draft is not release-admissible until every empty applicability/assertion/detector/timeout and registry reference required by SCH-15-007 is materialized and reviewed."
+      ]
+    },
+    {
+      "id": "TEST-07-006",
+      "aliases": [],
+      "definitionVersion": "1.0.0-draft",
+      "status": "draft-incomplete",
+      "owner": {
+        "volume": "07",
+        "source": "documentation/product/specification/07-collaboration-identity-and-sharing.md"
+      },
+      "templates": [
+        "integration-contract",
+        "artifact-roundtrip"
+      ],
+      "description": "Artifact tests inspect snapshots, log segments, `.str` checkpoints, asset roots, and audit exports.",
+      "applicability": {
+        "profiles": [],
+        "riskClasses": [],
+        "matrixCells": [],
+        "requirements": [],
+        "criteria": []
+      },
+      "setup": {
+        "fixtureIds": [
+          "FIX-07-006"
+        ],
+        "fixtureStatus": "registry-entry-required",
+        "environmentIds": [
+          "ENV-07-006"
+        ],
+        "environmentStatus": "registry-entry-required",
+        "preconditions": [
+          "Candidate, specification, fixture, environment, and protocol revisions are frozen."
+        ],
+        "productionBoundaries": [
+          "Use the production boundary claimed by the source protocol; mocks must be disclosed and cannot prove the mocked boundary."
+        ],
+        "allowedSubstitutions": [],
+        "realInput": false
+      },
+      "procedure": {
+        "steps": [
+          "Artifact tests inspect snapshots, log segments, `.str` checkpoints, asset roots, and audit exports."
+        ],
+        "retries": {
+          "max": 0,
+          "policy": "append-only-diagnostic-reruns"
+        },
+        "timeoutMs": null
+      },
+      "evidence": {
+        "captureSchema": "SCH-15-008",
+        "captures": [
+          "Parsed semantic fields and integrity digests, not file existence alone."
+        ],
+        "detectors": [],
+        "artifacts": [
+          "actual-produced-artifact",
+          "independent-parse-report"
+        ],
+        "privacy": "Volume 13 minimization, consent, access, retention, and no-secret rules apply.",
+        "retention": "Defined by the active conformance profile and evidence store policy."
+      },
+      "outcome": {
+        "terminalCondition": "Artifact tests inspect snapshots, log segments, `.str` checkpoints, asset roots, and audit exports.",
+        "assertions": [],
+        "pass": "All declared assertions and applicable matrix cells pass with current admissible evidence.",
+        "fail": "Any declared assertion fails or observed state contradicts the required terminal condition.",
+        "blocked": "Fixture, environment, production boundary, consent, hardware, or protocol field is unavailable or incomplete."
+      },
+      "cleanup": {
+        "steps": [
+          "Release protocol-owned processes, handles, temporary artifacts, permissions, devices, and injected state."
+        ],
+        "verification": "No protocol resource or temporary mutation remains unless retained as immutable evidence."
+      },
+      "limitations": [
+        "This generated draft is not release-admissible until every empty applicability/assertion/detector/timeout and registry reference required by SCH-15-007 is materialized and reviewed."
+      ]
+    },
+    {
+      "id": "TEST-07-007",
+      "aliases": [],
+      "definitionVersion": "1.0.0-draft",
+      "status": "draft-incomplete",
+      "owner": {
+        "volume": "07",
+        "source": "documentation/product/specification/07-collaboration-identity-and-sharing.md"
+      },
+      "templates": [
+        "integration-contract",
+        "artifact-roundtrip",
+        "performance-soak"
+      ],
+      "description": "Soak/load tests exercise the Volume 14 collaboration profiles with disconnect churn and presence flood.",
+      "applicability": {
+        "profiles": [],
+        "riskClasses": [],
+        "matrixCells": [],
+        "requirements": [],
+        "criteria": []
+      },
+      "setup": {
+        "fixtureIds": [
+          "FIX-07-007"
+        ],
+        "fixtureStatus": "registry-entry-required",
+        "environmentIds": [
+          "ENV-07-007"
+        ],
+        "environmentStatus": "registry-entry-required",
+        "preconditions": [
+          "Candidate, specification, fixture, environment, and protocol revisions are frozen."
+        ],
+        "productionBoundaries": [
+          "Use the production boundary claimed by the source protocol; mocks must be disclosed and cannot prove the mocked boundary."
+        ],
+        "allowedSubstitutions": [],
+        "realInput": false
+      },
+      "procedure": {
+        "steps": [
+          "Soak/load tests exercise the Volume 14 collaboration profiles with disconnect churn and presence flood."
+        ],
+        "retries": {
+          "max": 0,
+          "policy": "append-only-diagnostic-reruns"
+        },
+        "timeoutMs": null
+      },
+      "evidence": {
+        "captureSchema": "SCH-15-008",
+        "captures": [
+          "Percentiles, error rates, capacity, queue age, memory, convergence."
+        ],
+        "detectors": [],
+        "artifacts": [
+          "actual-produced-artifact",
+          "independent-parse-report"
+        ],
+        "privacy": "Volume 13 minimization, consent, access, retention, and no-secret rules apply.",
+        "retention": "Defined by the active conformance profile and evidence store policy."
+      },
+      "outcome": {
+        "terminalCondition": "Soak/load tests exercise the Volume 14 collaboration profiles with disconnect churn and presence flood.",
+        "assertions": [],
+        "pass": "All declared assertions and applicable matrix cells pass with current admissible evidence.",
+        "fail": "Any declared assertion fails or observed state contradicts the required terminal condition.",
+        "blocked": "Fixture, environment, production boundary, consent, hardware, or protocol field is unavailable or incomplete."
+      },
+      "cleanup": {
+        "steps": [
+          "Release protocol-owned processes, handles, temporary artifacts, permissions, devices, and injected state."
+        ],
+        "verification": "No protocol resource or temporary mutation remains unless retained as immutable evidence."
+      },
+      "limitations": [
+        "This generated draft is not release-admissible until every empty applicability/assertion/detector/timeout and registry reference required by SCH-15-007 is materialized and reviewed."
+      ]
+    },
+    {
+      "id": "TEST-07-008",
+      "aliases": [],
+      "definitionVersion": "1.0.0-draft",
+      "status": "draft-incomplete",
+      "owner": {
+        "volume": "07",
+        "source": "documentation/product/specification/07-collaboration-identity-and-sharing.md"
+      },
+      "templates": [
+        "integration-contract",
+        "accessibility-manual",
+        "security-fault"
+      ],
+      "description": "Manual assistive-technology review covers collaborator list, awareness announcements, comments, access review, conflict, and revocation recovery.",
+      "applicability": {
+        "profiles": [],
+        "riskClasses": [],
+        "matrixCells": [],
+        "requirements": [],
+        "criteria": []
+      },
+      "setup": {
+        "fixtureIds": [
+          "FIX-07-008"
+        ],
+        "fixtureStatus": "registry-entry-required",
+        "environmentIds": [
+          "ENV-07-008"
+        ],
+        "environmentStatus": "registry-entry-required",
+        "preconditions": [
+          "Candidate, specification, fixture, environment, and protocol revisions are frozen."
+        ],
+        "productionBoundaries": [
+          "Use the production boundary claimed by the source protocol; mocks must be disclosed and cannot prove the mocked boundary."
+        ],
+        "allowedSubstitutions": [],
+        "realInput": false
+      },
+      "procedure": {
+        "steps": [
+          "Manual assistive-technology review covers collaborator list, awareness announcements, comments, access review, conflict, and revocation recovery."
+        ],
+        "retries": {
+          "max": 0,
+          "policy": "append-only-diagnostic-reruns"
+        },
+        "timeoutMs": null
+      },
+      "evidence": {
+        "captureSchema": "SCH-15-008",
+        "captures": [
+          "Versioned checklist and observations per Volume 15."
+        ],
+        "detectors": [],
+        "artifacts": [],
+        "privacy": "Volume 13 minimization, consent, access, retention, and no-secret rules apply.",
+        "retention": "Defined by the active conformance profile and evidence store policy."
+      },
+      "outcome": {
+        "terminalCondition": "Manual assistive-technology review covers collaborator list, awareness announcements, comments, access review, conflict, and revocation recovery.",
+        "assertions": [],
+        "pass": "All declared assertions and applicable matrix cells pass with current admissible evidence.",
+        "fail": "Any declared assertion fails or observed state contradicts the required terminal condition.",
+        "blocked": "Fixture, environment, production boundary, consent, hardware, or protocol field is unavailable or incomplete."
+      },
+      "cleanup": {
+        "steps": [
+          "Release protocol-owned processes, handles, temporary artifacts, permissions, devices, and injected state."
+        ],
+        "verification": "No protocol resource or temporary mutation remains unless retained as immutable evidence."
+      },
+      "limitations": [
+        "This generated draft is not release-admissible until every empty applicability/assertion/detector/timeout and registry reference required by SCH-15-007 is materialized and reviewed."
+      ]
+    },
+    {
+      "id": "TEST-12-001",
+      "aliases": [],
+      "definitionVersion": "1.0.0-draft",
+      "status": "draft-incomplete",
+      "owner": {
+        "volume": "12",
+        "source": "documentation/product/specification/12-accessibility-and-internationalization.md"
+      },
+      "templates": [
+        "accessibility-manual",
+        "unit-model"
+      ],
+      "description": "Schema/model tests validate semantic resolution, reading-order reconciliation, inheritance, alternatives, captions, language, bidi, and migrations.",
+      "applicability": {
+        "profiles": [],
+        "riskClasses": [],
+        "matrixCells": [],
+        "requirements": [],
+        "criteria": []
+      },
+      "setup": {
+        "fixtureIds": [
+          "FIX-12-001"
+        ],
+        "fixtureStatus": "registry-entry-required",
+        "environmentIds": [
+          "ENV-12-001"
+        ],
+        "environmentStatus": "registry-entry-required",
+        "preconditions": [
+          "Candidate, specification, fixture, environment, and protocol revisions are frozen."
+        ],
+        "productionBoundaries": [
+          "Use the production boundary claimed by the source protocol; mocks must be disclosed and cannot prove the mocked boundary."
+        ],
+        "allowedSubstitutions": [],
+        "realInput": false
+      },
+      "procedure": {
+        "steps": [
+          "Schema/model tests validate semantic resolution, reading-order reconciliation, inheritance, alternatives, captions, language, bidi, and migrations."
+        ],
+        "retries": {
+          "max": 0,
+          "policy": "append-only-diagnostic-reruns"
+        },
+        "timeoutMs": null
+      },
+      "evidence": {
+        "captureSchema": "SCH-15-008",
+        "captures": [
+          "Fixtures, normalized trees, hashes, failure cases."
+        ],
+        "detectors": [],
+        "artifacts": [],
+        "privacy": "Volume 13 minimization, consent, access, retention, and no-secret rules apply.",
+        "retention": "Defined by the active conformance profile and evidence store policy."
+      },
+      "outcome": {
+        "terminalCondition": "Schema/model tests validate semantic resolution, reading-order reconciliation, inheritance, alternatives, captions, language, bidi, and migrations.",
+        "assertions": [],
+        "pass": "All declared assertions and applicable matrix cells pass with current admissible evidence.",
+        "fail": "Any declared assertion fails or observed state contradicts the required terminal condition.",
+        "blocked": "Fixture, environment, production boundary, consent, hardware, or protocol field is unavailable or incomplete."
+      },
+      "cleanup": {
+        "steps": [
+          "Release protocol-owned processes, handles, temporary artifacts, permissions, devices, and injected state."
+        ],
+        "verification": "No protocol resource or temporary mutation remains unless retained as immutable evidence."
+      },
+      "limitations": [
+        "This generated draft is not release-admissible until every empty applicability/assertion/detector/timeout and registry reference required by SCH-15-007 is materialized and reviewed."
+      ]
+    },
+    {
+      "id": "TEST-12-002",
+      "aliases": [],
+      "definitionVersion": "1.0.0-draft",
+      "status": "draft-incomplete",
+      "owner": {
+        "volume": "12",
+        "source": "documentation/product/specification/12-accessibility-and-internationalization.md"
+      },
+      "templates": [
+        "accessibility-manual",
+        "artifact-roundtrip",
+        "unit-model",
+        "integration-contract"
+      ],
+      "description": "Unit/integration tests exercise keyboard commands, focus transitions, announcements, checker detectors, output mappings, and rescue logic.",
+      "applicability": {
+        "profiles": [],
+        "riskClasses": [],
+        "matrixCells": [],
+        "requirements": [],
+        "criteria": []
+      },
+      "setup": {
+        "fixtureIds": [
+          "FIX-12-002"
+        ],
+        "fixtureStatus": "registry-entry-required",
+        "environmentIds": [
+          "ENV-12-002"
+        ],
+        "environmentStatus": "registry-entry-required",
+        "preconditions": [
+          "Candidate, specification, fixture, environment, and protocol revisions are frozen."
+        ],
+        "productionBoundaries": [
+          "Use the production boundary claimed by the source protocol; mocks must be disclosed and cannot prove the mocked boundary."
+        ],
+        "allowedSubstitutions": [],
+        "realInput": false
+      },
+      "procedure": {
+        "steps": [
+          "Unit/integration tests exercise keyboard commands, focus transitions, announcements, checker detectors, output mappings, and rescue logic."
+        ],
+        "retries": {
+          "max": 0,
+          "policy": "append-only-diagnostic-reruns"
+        },
+        "timeoutMs": null
+      },
+      "evidence": {
+        "captureSchema": "SCH-15-008",
+        "captures": [
+          "Production route, input trace, semantic result."
+        ],
+        "detectors": [],
+        "artifacts": [
+          "actual-produced-artifact",
+          "independent-parse-report"
+        ],
+        "privacy": "Volume 13 minimization, consent, access, retention, and no-secret rules apply.",
+        "retention": "Defined by the active conformance profile and evidence store policy."
+      },
+      "outcome": {
+        "terminalCondition": "Unit/integration tests exercise keyboard commands, focus transitions, announcements, checker detectors, output mappings, and rescue logic.",
+        "assertions": [],
+        "pass": "All declared assertions and applicable matrix cells pass with current admissible evidence.",
+        "fail": "Any declared assertion fails or observed state contradicts the required terminal condition.",
+        "blocked": "Fixture, environment, production boundary, consent, hardware, or protocol field is unavailable or incomplete."
+      },
+      "cleanup": {
+        "steps": [
+          "Release protocol-owned processes, handles, temporary artifacts, permissions, devices, and injected state."
+        ],
+        "verification": "No protocol resource or temporary mutation remains unless retained as immutable evidence."
+      },
+      "limitations": [
+        "This generated draft is not release-admissible until every empty applicability/assertion/detector/timeout and registry reference required by SCH-15-007 is materialized and reviewed."
+      ]
+    },
+    {
+      "id": "TEST-12-003",
+      "aliases": [],
+      "definitionVersion": "1.0.0-draft",
+      "status": "draft-incomplete",
+      "owner": {
+        "volume": "12",
+        "source": "documentation/product/specification/12-accessibility-and-internationalization.md"
+      },
+      "templates": [
+        "accessibility-manual",
+        "headed-e2e",
+        "artifact-roundtrip"
+      ],
+      "description": "Headed Playwright workflows use real keyboard, pointer, touch, pen emulation, media preferences, forced colors, zoom, and visible hit-testable controls.",
+      "applicability": {
+        "profiles": [],
+        "riskClasses": [],
+        "matrixCells": [],
+        "requirements": [],
+        "criteria": []
+      },
+      "setup": {
+        "fixtureIds": [
+          "FIX-12-003"
+        ],
+        "fixtureStatus": "registry-entry-required",
+        "environmentIds": [
+          "ENV-12-003"
+        ],
+        "environmentStatus": "registry-entry-required",
+        "preconditions": [
+          "Candidate, specification, fixture, environment, and protocol revisions are frozen."
+        ],
+        "productionBoundaries": [
+          "Use the production boundary claimed by the source protocol; mocks must be disclosed and cannot prove the mocked boundary."
+        ],
+        "allowedSubstitutions": [],
+        "realInput": true
+      },
+      "procedure": {
+        "steps": [
+          "Headed Playwright workflows use real keyboard, pointer, touch, pen emulation, media preferences, forced colors, zoom, and visible hit-testable controls."
+        ],
+        "retries": {
+          "max": 0,
+          "policy": "append-only-diagnostic-reruns"
+        },
+        "timeoutMs": null
+      },
+      "evidence": {
+        "captureSchema": "SCH-15-008",
+        "captures": [
+          "Trace, screenshots/video, DOM and accessibility snapshots, product state."
+        ],
+        "detectors": [],
+        "artifacts": [
+          "actual-produced-artifact",
+          "independent-parse-report"
+        ],
+        "privacy": "Volume 13 minimization, consent, access, retention, and no-secret rules apply.",
+        "retention": "Defined by the active conformance profile and evidence store policy."
+      },
+      "outcome": {
+        "terminalCondition": "Headed Playwright workflows use real keyboard, pointer, touch, pen emulation, media preferences, forced colors, zoom, and visible hit-testable controls.",
+        "assertions": [],
+        "pass": "All declared assertions and applicable matrix cells pass with current admissible evidence.",
+        "fail": "Any declared assertion fails or observed state contradicts the required terminal condition.",
+        "blocked": "Fixture, environment, production boundary, consent, hardware, or protocol field is unavailable or incomplete."
+      },
+      "cleanup": {
+        "steps": [
+          "Release protocol-owned processes, handles, temporary artifacts, permissions, devices, and injected state."
+        ],
+        "verification": "No protocol resource or temporary mutation remains unless retained as immutable evidence."
+      },
+      "limitations": [
+        "This generated draft is not release-admissible until every empty applicability/assertion/detector/timeout and registry reference required by SCH-15-007 is materialized and reviewed."
+      ]
+    },
+    {
+      "id": "TEST-12-004",
+      "aliases": [],
+      "definitionVersion": "1.0.0-draft",
+      "status": "draft-incomplete",
+      "owner": {
+        "volume": "12",
+        "source": "documentation/product/specification/12-accessibility-and-internationalization.md"
+      },
+      "templates": [
+        "accessibility-manual",
+        "headed-e2e"
+      ],
+      "description": "Manual assistive-technology matrix covers current supported combinations of NVDA, JAWS, Narrator, VoiceOver, TalkBack, magnification, voice control, and switch access.",
+      "applicability": {
+        "profiles": [],
+        "riskClasses": [],
+        "matrixCells": [],
+        "requirements": [],
+        "criteria": []
+      },
+      "setup": {
+        "fixtureIds": [
+          "FIX-12-004"
+        ],
+        "fixtureStatus": "registry-entry-required",
+        "environmentIds": [
+          "ENV-12-004"
+        ],
+        "environmentStatus": "registry-entry-required",
+        "preconditions": [
+          "Candidate, specification, fixture, environment, and protocol revisions are frozen."
+        ],
+        "productionBoundaries": [
+          "Use the production boundary claimed by the source protocol; mocks must be disclosed and cannot prove the mocked boundary."
+        ],
+        "allowedSubstitutions": [],
+        "realInput": true
+      },
+      "procedure": {
+        "steps": [
+          "Manual assistive-technology matrix covers current supported combinations of NVDA, JAWS, Narrator, VoiceOver, TalkBack, magnification, voice control, and switch access."
+        ],
+        "retries": {
+          "max": 0,
+          "policy": "append-only-diagnostic-reruns"
+        },
+        "timeoutMs": null
+      },
+      "evidence": {
+        "captureSchema": "SCH-15-008",
+        "captures": [
+          "AT/browser/OS versions, task observations, blockers, operator."
+        ],
+        "detectors": [],
+        "artifacts": [],
+        "privacy": "Volume 13 minimization, consent, access, retention, and no-secret rules apply.",
+        "retention": "Defined by the active conformance profile and evidence store policy."
+      },
+      "outcome": {
+        "terminalCondition": "Manual assistive-technology matrix covers current supported combinations of NVDA, JAWS, Narrator, VoiceOver, TalkBack, magnification, voice control, and switch access.",
+        "assertions": [],
+        "pass": "All declared assertions and applicable matrix cells pass with current admissible evidence.",
+        "fail": "Any declared assertion fails or observed state contradicts the required terminal condition.",
+        "blocked": "Fixture, environment, production boundary, consent, hardware, or protocol field is unavailable or incomplete."
+      },
+      "cleanup": {
+        "steps": [
+          "Release protocol-owned processes, handles, temporary artifacts, permissions, devices, and injected state."
+        ],
+        "verification": "No protocol resource or temporary mutation remains unless retained as immutable evidence."
+      },
+      "limitations": [
+        "This generated draft is not release-admissible until every empty applicability/assertion/detector/timeout and registry reference required by SCH-15-007 is materialized and reviewed."
+      ]
+    },
+    {
+      "id": "TEST-12-005",
+      "aliases": [],
+      "definitionVersion": "1.0.0-draft",
+      "status": "draft-incomplete",
+      "owner": {
+        "volume": "12",
+        "source": "documentation/product/specification/12-accessibility-and-internationalization.md"
+      },
+      "templates": [
+        "accessibility-manual",
+        "headed-e2e",
+        "artifact-roundtrip"
+      ],
+      "description": "International input matrix uses real browser/OS IMEs and hardware/software keyboards for declared scripts.",
+      "applicability": {
+        "profiles": [],
+        "riskClasses": [],
+        "matrixCells": [],
+        "requirements": [],
+        "criteria": []
+      },
+      "setup": {
+        "fixtureIds": [
+          "FIX-12-005"
+        ],
+        "fixtureStatus": "registry-entry-required",
+        "environmentIds": [
+          "ENV-12-005"
+        ],
+        "environmentStatus": "registry-entry-required",
+        "preconditions": [
+          "Candidate, specification, fixture, environment, and protocol revisions are frozen."
+        ],
+        "productionBoundaries": [
+          "Use the production boundary claimed by the source protocol; mocks must be disclosed and cannot prove the mocked boundary."
+        ],
+        "allowedSubstitutions": [],
+        "realInput": true
+      },
+      "procedure": {
+        "steps": [
+          "International input matrix uses real browser/OS IMEs and hardware/software keyboards for declared scripts."
+        ],
+        "retries": {
+          "max": 0,
+          "policy": "append-only-diagnostic-reruns"
+        },
+        "timeoutMs": null
+      },
+      "evidence": {
+        "captureSchema": "SCH-15-008",
+        "captures": [
+          "Composition event trace, resulting Unicode, undo/collaboration/file hashes."
+        ],
+        "detectors": [],
+        "artifacts": [
+          "actual-produced-artifact",
+          "independent-parse-report"
+        ],
+        "privacy": "Volume 13 minimization, consent, access, retention, and no-secret rules apply.",
+        "retention": "Defined by the active conformance profile and evidence store policy."
+      },
+      "outcome": {
+        "terminalCondition": "International input matrix uses real browser/OS IMEs and hardware/software keyboards for declared scripts.",
+        "assertions": [],
+        "pass": "All declared assertions and applicable matrix cells pass with current admissible evidence.",
+        "fail": "Any declared assertion fails or observed state contradicts the required terminal condition.",
+        "blocked": "Fixture, environment, production boundary, consent, hardware, or protocol field is unavailable or incomplete."
+      },
+      "cleanup": {
+        "steps": [
+          "Release protocol-owned processes, handles, temporary artifacts, permissions, devices, and injected state."
+        ],
+        "verification": "No protocol resource or temporary mutation remains unless retained as immutable evidence."
+      },
+      "limitations": [
+        "This generated draft is not release-admissible until every empty applicability/assertion/detector/timeout and registry reference required by SCH-15-007 is materialized and reviewed."
+      ]
+    },
+    {
+      "id": "TEST-12-006",
+      "aliases": [],
+      "definitionVersion": "1.0.0-draft",
+      "status": "draft-incomplete",
+      "owner": {
+        "volume": "12",
+        "source": "documentation/product/specification/12-accessibility-and-internationalization.md"
+      },
+      "templates": [
+        "accessibility-manual",
+        "artifact-roundtrip"
+      ],
+      "description": "Artifact tests parse `.str`, web, PDF, PPTX, print, video, SVG/raster metadata, and caption sidecars.",
+      "applicability": {
+        "profiles": [],
+        "riskClasses": [],
+        "matrixCells": [],
+        "requirements": [],
+        "criteria": []
+      },
+      "setup": {
+        "fixtureIds": [
+          "FIX-12-006"
+        ],
+        "fixtureStatus": "registry-entry-required",
+        "environmentIds": [
+          "ENV-12-006"
+        ],
+        "environmentStatus": "registry-entry-required",
+        "preconditions": [
+          "Candidate, specification, fixture, environment, and protocol revisions are frozen."
+        ],
+        "productionBoundaries": [
+          "Use the production boundary claimed by the source protocol; mocks must be disclosed and cannot prove the mocked boundary."
+        ],
+        "allowedSubstitutions": [],
+        "realInput": false
+      },
+      "procedure": {
+        "steps": [
+          "Artifact tests parse `.str`, web, PDF, PPTX, print, video, SVG/raster metadata, and caption sidecars."
+        ],
+        "retries": {
+          "max": 0,
+          "policy": "append-only-diagnostic-reruns"
+        },
+        "timeoutMs": null
+      },
+      "evidence": {
+        "captureSchema": "SCH-15-008",
+        "captures": [
+          "Parsed semantic structures and compatibility report comparison."
+        ],
+        "detectors": [],
+        "artifacts": [
+          "actual-produced-artifact",
+          "independent-parse-report"
+        ],
+        "privacy": "Volume 13 minimization, consent, access, retention, and no-secret rules apply.",
+        "retention": "Defined by the active conformance profile and evidence store policy."
+      },
+      "outcome": {
+        "terminalCondition": "Artifact tests parse `.str`, web, PDF, PPTX, print, video, SVG/raster metadata, and caption sidecars.",
+        "assertions": [],
+        "pass": "All declared assertions and applicable matrix cells pass with current admissible evidence.",
+        "fail": "Any declared assertion fails or observed state contradicts the required terminal condition.",
+        "blocked": "Fixture, environment, production boundary, consent, hardware, or protocol field is unavailable or incomplete."
+      },
+      "cleanup": {
+        "steps": [
+          "Release protocol-owned processes, handles, temporary artifacts, permissions, devices, and injected state."
+        ],
+        "verification": "No protocol resource or temporary mutation remains unless retained as immutable evidence."
+      },
+      "limitations": [
+        "This generated draft is not release-admissible until every empty applicability/assertion/detector/timeout and registry reference required by SCH-15-007 is materialized and reviewed."
+      ]
+    },
+    {
+      "id": "TEST-12-007",
+      "aliases": [],
+      "definitionVersion": "1.0.0-draft",
+      "status": "draft-incomplete",
+      "owner": {
+        "volume": "12",
+        "source": "documentation/product/specification/12-accessibility-and-internationalization.md"
+      },
+      "templates": [
+        "accessibility-manual",
+        "artifact-roundtrip"
+      ],
+      "description": "Visual accessibility tests measure contrast, focus, clipping, overlap, target size, grayscale, flash, reduced motion, and forced colors.",
+      "applicability": {
+        "profiles": [],
+        "riskClasses": [],
+        "matrixCells": [],
+        "requirements": [],
+        "criteria": []
+      },
+      "setup": {
+        "fixtureIds": [
+          "FIX-12-007"
+        ],
+        "fixtureStatus": "registry-entry-required",
+        "environmentIds": [
+          "ENV-12-007"
+        ],
+        "environmentStatus": "registry-entry-required",
+        "preconditions": [
+          "Candidate, specification, fixture, environment, and protocol revisions are frozen."
+        ],
+        "productionBoundaries": [
+          "Use the production boundary claimed by the source protocol; mocks must be disclosed and cannot prove the mocked boundary."
+        ],
+        "allowedSubstitutions": [],
+        "realInput": false
+      },
+      "procedure": {
+        "steps": [
+          "Visual accessibility tests measure contrast, focus, clipping, overlap, target size, grayscale, flash, reduced motion, and forced colors."
+        ],
+        "retries": {
+          "max": 0,
+          "policy": "append-only-diagnostic-reruns"
+        },
+        "timeoutMs": null
+      },
+      "evidence": {
+        "captureSchema": "SCH-15-008",
+        "captures": [
+          "Computed paint, pixels/video, thresholds, environment."
+        ],
+        "detectors": [],
+        "artifacts": [
+          "actual-produced-artifact",
+          "independent-parse-report"
+        ],
+        "privacy": "Volume 13 minimization, consent, access, retention, and no-secret rules apply.",
+        "retention": "Defined by the active conformance profile and evidence store policy."
+      },
+      "outcome": {
+        "terminalCondition": "Visual accessibility tests measure contrast, focus, clipping, overlap, target size, grayscale, flash, reduced motion, and forced colors.",
+        "assertions": [],
+        "pass": "All declared assertions and applicable matrix cells pass with current admissible evidence.",
+        "fail": "Any declared assertion fails or observed state contradicts the required terminal condition.",
+        "blocked": "Fixture, environment, production boundary, consent, hardware, or protocol field is unavailable or incomplete."
+      },
+      "cleanup": {
+        "steps": [
+          "Release protocol-owned processes, handles, temporary artifacts, permissions, devices, and injected state."
+        ],
+        "verification": "No protocol resource or temporary mutation remains unless retained as immutable evidence."
+      },
+      "limitations": [
+        "This generated draft is not release-admissible until every empty applicability/assertion/detector/timeout and registry reference required by SCH-15-007 is materialized and reviewed."
+      ]
+    },
+    {
+      "id": "TEST-12-008",
+      "aliases": [],
+      "definitionVersion": "1.0.0-draft",
+      "status": "draft-incomplete",
+      "owner": {
+        "volume": "12",
+        "source": "documentation/product/specification/12-accessibility-and-internationalization.md"
+      },
+      "templates": [
+        "accessibility-manual",
+        "artifact-roundtrip"
+      ],
+      "description": "Accessibility eval capture records agenda-free document semantics, DOM/accessibility tree, canvas proxy, focus, announcements, execution, and artifacts before detectors run.",
+      "applicability": {
+        "profiles": [],
+        "riskClasses": [],
+        "matrixCells": [],
+        "requirements": [],
+        "criteria": []
+      },
+      "setup": {
+        "fixtureIds": [
+          "FIX-12-008"
+        ],
+        "fixtureStatus": "registry-entry-required",
+        "environmentIds": [
+          "ENV-12-008"
+        ],
+        "environmentStatus": "registry-entry-required",
+        "preconditions": [
+          "Candidate, specification, fixture, environment, and protocol revisions are frozen."
+        ],
+        "productionBoundaries": [
+          "Use the production boundary claimed by the source protocol; mocks must be disclosed and cannot prove the mocked boundary."
+        ],
+        "allowedSubstitutions": [],
+        "realInput": false
+      },
+      "procedure": {
+        "steps": [
+          "Accessibility eval capture records agenda-free document semantics, DOM/accessibility tree, canvas proxy, focus, announcements, execution, and artifacts before detectors run."
+        ],
+        "retries": {
+          "max": 0,
+          "policy": "append-only-diagnostic-reruns"
+        },
+        "timeoutMs": null
+      },
+      "evidence": {
+        "captureSchema": "SCH-15-008",
+        "captures": [
+          "Raw timeline, detector version/results, manual review."
+        ],
+        "detectors": [],
+        "artifacts": [
+          "actual-produced-artifact",
+          "independent-parse-report"
+        ],
+        "privacy": "Volume 13 minimization, consent, access, retention, and no-secret rules apply.",
+        "retention": "Defined by the active conformance profile and evidence store policy."
+      },
+      "outcome": {
+        "terminalCondition": "Accessibility eval capture records agenda-free document semantics, DOM/accessibility tree, canvas proxy, focus, announcements, execution, and artifacts before detectors run.",
+        "assertions": [],
+        "pass": "All declared assertions and applicable matrix cells pass with current admissible evidence.",
+        "fail": "Any declared assertion fails or observed state contradicts the required terminal condition.",
+        "blocked": "Fixture, environment, production boundary, consent, hardware, or protocol field is unavailable or incomplete."
+      },
+      "cleanup": {
+        "steps": [
+          "Release protocol-owned processes, handles, temporary artifacts, permissions, devices, and injected state."
+        ],
+        "verification": "No protocol resource or temporary mutation remains unless retained as immutable evidence."
+      },
+      "limitations": [
+        "This generated draft is not release-admissible until every empty applicability/assertion/detector/timeout and registry reference required by SCH-15-007 is materialized and reviewed."
+      ]
+    },
+    {
+      "id": "TEST-13-001",
+      "aliases": [],
+      "definitionVersion": "1.0.0-draft",
+      "status": "draft-incomplete",
+      "owner": {
+        "volume": "13",
+        "source": "documentation/product/specification/13-security-privacy-and-trust.md"
+      },
+      "templates": [
+        "security-fault",
+        "integration-contract"
+      ],
+      "description": "OAuth/OIDC and session integration tests exercise PKCE, state, nonce, claims, issuer/audience, linking, refresh rotation, replay, sign-out, and provider outage.",
+      "applicability": {
+        "profiles": [],
+        "riskClasses": [],
+        "matrixCells": [],
+        "requirements": [],
+        "criteria": []
+      },
+      "setup": {
+        "fixtureIds": [
+          "FIX-13-001"
+        ],
+        "fixtureStatus": "registry-entry-required",
+        "environmentIds": [
+          "ENV-13-001"
+        ],
+        "environmentStatus": "registry-entry-required",
+        "preconditions": [
+          "Candidate, specification, fixture, environment, and protocol revisions are frozen."
+        ],
+        "productionBoundaries": [
+          "Use the production boundary claimed by the source protocol; mocks must be disclosed and cannot prove the mocked boundary."
+        ],
+        "allowedSubstitutions": [],
+        "realInput": false
+      },
+      "procedure": {
+        "steps": [
+          "OAuth/OIDC and session integration tests exercise PKCE, state, nonce, claims, issuer/audience, linking, refresh rotation, replay, sign-out, and provider outage."
+        ],
+        "retries": {
+          "max": 0,
+          "policy": "append-only-diagnostic-reruns"
+        },
+        "timeoutMs": null
+      },
+      "evidence": {
+        "captureSchema": "SCH-15-008",
+        "captures": [
+          "Sanitized request/claim classes, session dispositions, no-secret captures."
+        ],
+        "detectors": [],
+        "artifacts": [],
+        "privacy": "Volume 13 minimization, consent, access, retention, and no-secret rules apply.",
+        "retention": "Defined by the active conformance profile and evidence store policy."
+      },
+      "outcome": {
+        "terminalCondition": "OAuth/OIDC and session integration tests exercise PKCE, state, nonce, claims, issuer/audience, linking, refresh rotation, replay, sign-out, and provider outage.",
+        "assertions": [],
+        "pass": "All declared assertions and applicable matrix cells pass with current admissible evidence.",
+        "fail": "Any declared assertion fails or observed state contradicts the required terminal condition.",
+        "blocked": "Fixture, environment, production boundary, consent, hardware, or protocol field is unavailable or incomplete."
+      },
+      "cleanup": {
+        "steps": [
+          "Release protocol-owned processes, handles, temporary artifacts, permissions, devices, and injected state."
+        ],
+        "verification": "No protocol resource or temporary mutation remains unless retained as immutable evidence."
+      },
+      "limitations": [
+        "This generated draft is not release-admissible until every empty applicability/assertion/detector/timeout and registry reference required by SCH-15-007 is materialized and reviewed."
+      ]
+    },
+    {
+      "id": "TEST-13-002",
+      "aliases": [],
+      "definitionVersion": "1.0.0-draft",
+      "status": "draft-incomplete",
+      "owner": {
+        "volume": "13",
+        "source": "documentation/product/specification/13-security-privacy-and-trust.md"
+      },
+      "templates": [
+        "security-fault",
+        "headed-e2e",
+        "performance-soak",
+        "integration-contract"
+      ],
+      "description": "Token/secret storage inspection tests browser stores, process memory boundaries where observable, source maps/bundles, logs, URLs, crash reports, and multi-tab cleanup.",
+      "applicability": {
+        "profiles": [],
+        "riskClasses": [],
+        "matrixCells": [],
+        "requirements": [],
+        "criteria": []
+      },
+      "setup": {
+        "fixtureIds": [
+          "FIX-13-002"
+        ],
+        "fixtureStatus": "registry-entry-required",
+        "environmentIds": [
+          "ENV-13-002"
+        ],
+        "environmentStatus": "registry-entry-required",
+        "preconditions": [
+          "Candidate, specification, fixture, environment, and protocol revisions are frozen."
+        ],
+        "productionBoundaries": [
+          "Use the production boundary claimed by the source protocol; mocks must be disclosed and cannot prove the mocked boundary."
+        ],
+        "allowedSubstitutions": [],
+        "realInput": true
+      },
+      "procedure": {
+        "steps": [
+          "Token/secret storage inspection tests browser stores, process memory boundaries where observable, source maps/bundles, logs, URLs, crash reports, and multi-tab cleanup."
+        ],
+        "retries": {
+          "max": 0,
+          "policy": "append-only-diagnostic-reruns"
+        },
+        "timeoutMs": null
+      },
+      "evidence": {
+        "captureSchema": "SCH-15-008",
+        "captures": [
+          "Storage inventory, secret canaries, rotation/revocation trace."
+        ],
+        "detectors": [],
+        "artifacts": [],
+        "privacy": "Volume 13 minimization, consent, access, retention, and no-secret rules apply.",
+        "retention": "Defined by the active conformance profile and evidence store policy."
+      },
+      "outcome": {
+        "terminalCondition": "Token/secret storage inspection tests browser stores, process memory boundaries where observable, source maps/bundles, logs, URLs, crash reports, and multi-tab cleanup.",
+        "assertions": [],
+        "pass": "All declared assertions and applicable matrix cells pass with current admissible evidence.",
+        "fail": "Any declared assertion fails or observed state contradicts the required terminal condition.",
+        "blocked": "Fixture, environment, production boundary, consent, hardware, or protocol field is unavailable or incomplete."
+      },
+      "cleanup": {
+        "steps": [
+          "Release protocol-owned processes, handles, temporary artifacts, permissions, devices, and injected state."
+        ],
+        "verification": "No protocol resource or temporary mutation remains unless retained as immutable evidence."
+      },
+      "limitations": [
+        "This generated draft is not release-admissible until every empty applicability/assertion/detector/timeout and registry reference required by SCH-15-007 is materialized and reviewed."
+      ]
+    },
+    {
+      "id": "TEST-13-003",
+      "aliases": [],
+      "definitionVersion": "1.0.0-draft",
+      "status": "draft-incomplete",
+      "owner": {
+        "volume": "13",
+        "source": "documentation/product/specification/13-security-privacy-and-trust.md"
+      },
+      "templates": [
+        "security-fault",
+        "artifact-roundtrip"
+      ],
+      "description": "File/parser fuzzing covers package limits, paths, JSON/XML, media signatures, fonts, archives, corruption, cancellation, and recovery.",
+      "applicability": {
+        "profiles": [],
+        "riskClasses": [],
+        "matrixCells": [],
+        "requirements": [],
+        "criteria": []
+      },
+      "setup": {
+        "fixtureIds": [
+          "FIX-13-003"
+        ],
+        "fixtureStatus": "registry-entry-required",
+        "environmentIds": [
+          "ENV-13-003"
+        ],
+        "environmentStatus": "registry-entry-required",
+        "preconditions": [
+          "Candidate, specification, fixture, environment, and protocol revisions are frozen."
+        ],
+        "productionBoundaries": [
+          "Use the production boundary claimed by the source protocol; mocks must be disclosed and cannot prove the mocked boundary."
+        ],
+        "allowedSubstitutions": [],
+        "realInput": false
+      },
+      "procedure": {
+        "steps": [
+          "File/parser fuzzing covers package limits, paths, JSON/XML, media signatures, fonts, archives, corruption, cancellation, and recovery."
+        ],
+        "retries": {
+          "max": 0,
+          "policy": "append-only-diagnostic-reruns"
+        },
+        "timeoutMs": null
+      },
+      "evidence": {
+        "captureSchema": "SCH-15-008",
+        "captures": [
+          "Corpus version, resource usage, findings, unchanged prior hash."
+        ],
+        "detectors": [],
+        "artifacts": [
+          "actual-produced-artifact",
+          "independent-parse-report"
+        ],
+        "privacy": "Volume 13 minimization, consent, access, retention, and no-secret rules apply.",
+        "retention": "Defined by the active conformance profile and evidence store policy."
+      },
+      "outcome": {
+        "terminalCondition": "File/parser fuzzing covers package limits, paths, JSON/XML, media signatures, fonts, archives, corruption, cancellation, and recovery.",
+        "assertions": [],
+        "pass": "All declared assertions and applicable matrix cells pass with current admissible evidence.",
+        "fail": "Any declared assertion fails or observed state contradicts the required terminal condition.",
+        "blocked": "Fixture, environment, production boundary, consent, hardware, or protocol field is unavailable or incomplete."
+      },
+      "cleanup": {
+        "steps": [
+          "Release protocol-owned processes, handles, temporary artifacts, permissions, devices, and injected state."
+        ],
+        "verification": "No protocol resource or temporary mutation remains unless retained as immutable evidence."
+      },
+      "limitations": [
+        "This generated draft is not release-admissible until every empty applicability/assertion/detector/timeout and registry reference required by SCH-15-007 is materialized and reviewed."
+      ]
+    },
+    {
+      "id": "TEST-13-004",
+      "aliases": [],
+      "definitionVersion": "1.0.0-draft",
+      "status": "draft-incomplete",
+      "owner": {
+        "volume": "13",
+        "source": "documentation/product/specification/13-security-privacy-and-trust.md"
+      },
+      "templates": [
+        "security-fault",
+        "artifact-roundtrip"
+      ],
+      "description": "SVG/HTML/clipboard/PPTX adversarial corpus verifies sanitization, no execution/network, quarantine, active-content preservation, signatures, encryption, and reports.",
+      "applicability": {
+        "profiles": [],
+        "riskClasses": [],
+        "matrixCells": [],
+        "requirements": [],
+        "criteria": []
+      },
+      "setup": {
+        "fixtureIds": [
+          "FIX-13-004"
+        ],
+        "fixtureStatus": "registry-entry-required",
+        "environmentIds": [
+          "ENV-13-004"
+        ],
+        "environmentStatus": "registry-entry-required",
+        "preconditions": [
+          "Candidate, specification, fixture, environment, and protocol revisions are frozen."
+        ],
+        "productionBoundaries": [
+          "Use the production boundary claimed by the source protocol; mocks must be disclosed and cannot prove the mocked boundary."
+        ],
+        "allowedSubstitutions": [],
+        "realInput": false
+      },
+      "procedure": {
+        "steps": [
+          "SVG/HTML/clipboard/PPTX adversarial corpus verifies sanitization, no execution/network, quarantine, active-content preservation, signatures, encryption, and reports."
+        ],
+        "retries": {
+          "max": 0,
+          "policy": "append-only-diagnostic-reruns"
+        },
+        "timeoutMs": null
+      },
+      "evidence": {
+        "captureSchema": "SCH-15-008",
+        "captures": [
+          "Raw input hashes, safe parsed output, network/execution capture, artifact report."
+        ],
+        "detectors": [],
+        "artifacts": [
+          "actual-produced-artifact",
+          "independent-parse-report"
+        ],
+        "privacy": "Volume 13 minimization, consent, access, retention, and no-secret rules apply.",
+        "retention": "Defined by the active conformance profile and evidence store policy."
+      },
+      "outcome": {
+        "terminalCondition": "SVG/HTML/clipboard/PPTX adversarial corpus verifies sanitization, no execution/network, quarantine, active-content preservation, signatures, encryption, and reports.",
+        "assertions": [],
+        "pass": "All declared assertions and applicable matrix cells pass with current admissible evidence.",
+        "fail": "Any declared assertion fails or observed state contradicts the required terminal condition.",
+        "blocked": "Fixture, environment, production boundary, consent, hardware, or protocol field is unavailable or incomplete."
+      },
+      "cleanup": {
+        "steps": [
+          "Release protocol-owned processes, handles, temporary artifacts, permissions, devices, and injected state."
+        ],
+        "verification": "No protocol resource or temporary mutation remains unless retained as immutable evidence."
+      },
+      "limitations": [
+        "This generated draft is not release-admissible until every empty applicability/assertion/detector/timeout and registry reference required by SCH-15-007 is materialized and reviewed."
+      ]
+    },
+    {
+      "id": "TEST-13-005",
+      "aliases": [],
+      "definitionVersion": "1.0.0-draft",
+      "status": "draft-incomplete",
+      "owner": {
+        "volume": "13",
+        "source": "documentation/product/specification/13-security-privacy-and-trust.md"
+      },
+      "templates": [
+        "security-fault",
+        "headed-e2e",
+        "artifact-roundtrip",
+        "performance-soak"
+      ],
+      "description": "Headed sandbox/embed/link workflows exercise origin isolation, capabilities, messages, budgets, CSP/Permissions Policy, navigation, offline, and output fallbacks.",
+      "applicability": {
+        "profiles": [],
+        "riskClasses": [],
+        "matrixCells": [],
+        "requirements": [],
+        "criteria": []
+      },
+      "setup": {
+        "fixtureIds": [
+          "FIX-13-005"
+        ],
+        "fixtureStatus": "registry-entry-required",
+        "environmentIds": [
+          "ENV-13-005"
+        ],
+        "environmentStatus": "registry-entry-required",
+        "preconditions": [
+          "Candidate, specification, fixture, environment, and protocol revisions are frozen."
+        ],
+        "productionBoundaries": [
+          "Use the production boundary claimed by the source protocol; mocks must be disclosed and cannot prove the mocked boundary."
+        ],
+        "allowedSubstitutions": [],
+        "realInput": true
+      },
+      "procedure": {
+        "steps": [
+          "Headed sandbox/embed/link workflows exercise origin isolation, capabilities, messages, budgets, CSP/Permissions Policy, navigation, offline, and output fallbacks."
+        ],
+        "retries": {
+          "max": 0,
+          "policy": "append-only-diagnostic-reruns"
+        },
+        "timeoutMs": null
+      },
+      "evidence": {
+        "captureSchema": "SCH-15-008",
+        "captures": [
+          "Visible browser, frame policies, message/network trace, pixels, termination."
+        ],
+        "detectors": [],
+        "artifacts": [
+          "actual-produced-artifact",
+          "independent-parse-report"
+        ],
+        "privacy": "Volume 13 minimization, consent, access, retention, and no-secret rules apply.",
+        "retention": "Defined by the active conformance profile and evidence store policy."
+      },
+      "outcome": {
+        "terminalCondition": "Headed sandbox/embed/link workflows exercise origin isolation, capabilities, messages, budgets, CSP/Permissions Policy, navigation, offline, and output fallbacks.",
+        "assertions": [],
+        "pass": "All declared assertions and applicable matrix cells pass with current admissible evidence.",
+        "fail": "Any declared assertion fails or observed state contradicts the required terminal condition.",
+        "blocked": "Fixture, environment, production boundary, consent, hardware, or protocol field is unavailable or incomplete."
+      },
+      "cleanup": {
+        "steps": [
+          "Release protocol-owned processes, handles, temporary artifacts, permissions, devices, and injected state."
+        ],
+        "verification": "No protocol resource or temporary mutation remains unless retained as immutable evidence."
+      },
+      "limitations": [
+        "This generated draft is not release-admissible until every empty applicability/assertion/detector/timeout and registry reference required by SCH-15-007 is materialized and reviewed."
+      ]
+    },
+    {
+      "id": "TEST-13-006",
+      "aliases": [],
+      "definitionVersion": "1.0.0-draft",
+      "status": "draft-incomplete",
+      "owner": {
+        "volume": "13",
+        "source": "documentation/product/specification/13-security-privacy-and-trust.md"
+      },
+      "templates": [
+        "security-fault",
+        "headed-e2e",
+        "artifact-roundtrip",
+        "accessibility-manual"
+      ],
+      "description": "Headed recording/device matrix exercises permission, preflight, indicators, start/stop, screen privacy, retake failure, provisional recovery, transcription, and deletion.",
+      "applicability": {
+        "profiles": [],
+        "riskClasses": [],
+        "matrixCells": [],
+        "requirements": [],
+        "criteria": []
+      },
+      "setup": {
+        "fixtureIds": [
+          "FIX-13-006"
+        ],
+        "fixtureStatus": "registry-entry-required",
+        "environmentIds": [
+          "ENV-13-006"
+        ],
+        "environmentStatus": "registry-entry-required",
+        "preconditions": [
+          "Candidate, specification, fixture, environment, and protocol revisions are frozen."
+        ],
+        "productionBoundaries": [
+          "Use the production boundary claimed by the source protocol; mocks must be disclosed and cannot prove the mocked boundary."
+        ],
+        "allowedSubstitutions": [],
+        "realInput": true
+      },
+      "procedure": {
+        "steps": [
+          "Headed recording/device matrix exercises permission, preflight, indicators, start/stop, screen privacy, retake failure, provisional recovery, transcription, and deletion."
+        ],
+        "retries": {
+          "max": 0,
+          "policy": "append-only-diagnostic-reruns"
+        },
+        "timeoutMs": null
+      },
+      "evidence": {
+        "captureSchema": "SCH-15-008",
+        "captures": [
+          "Device/track events, video/audio samples, UI/AT capture, artifact inventory."
+        ],
+        "detectors": [],
+        "artifacts": [
+          "actual-produced-artifact",
+          "independent-parse-report"
+        ],
+        "privacy": "Volume 13 minimization, consent, access, retention, and no-secret rules apply.",
+        "retention": "Defined by the active conformance profile and evidence store policy."
+      },
+      "outcome": {
+        "terminalCondition": "Headed recording/device matrix exercises permission, preflight, indicators, start/stop, screen privacy, retake failure, provisional recovery, transcription, and deletion.",
+        "assertions": [],
+        "pass": "All declared assertions and applicable matrix cells pass with current admissible evidence.",
+        "fail": "Any declared assertion fails or observed state contradicts the required terminal condition.",
+        "blocked": "Fixture, environment, production boundary, consent, hardware, or protocol field is unavailable or incomplete."
+      },
+      "cleanup": {
+        "steps": [
+          "Release protocol-owned processes, handles, temporary artifacts, permissions, devices, and injected state."
+        ],
+        "verification": "No protocol resource or temporary mutation remains unless retained as immutable evidence."
+      },
+      "limitations": [
+        "This generated draft is not release-admissible until every empty applicability/assertion/detector/timeout and registry reference required by SCH-15-007 is materialized and reviewed."
+      ]
+    },
+    {
+      "id": "TEST-13-007",
+      "aliases": [],
+      "definitionVersion": "1.0.0-draft",
+      "status": "draft-incomplete",
+      "owner": {
+        "volume": "13",
+        "source": "documentation/product/specification/13-security-privacy-and-trust.md"
+      },
+      "templates": [
+        "security-fault",
+        "performance-soak",
+        "unit-model"
+      ],
+      "description": "AI boundary tests capture minimized requests, consent/disclosure, endpoint validation, prompt injection, tool checks, response schemas, diffs, transactions, provenance, and failure.",
+      "applicability": {
+        "profiles": [],
+        "riskClasses": [],
+        "matrixCells": [],
+        "requirements": [],
+        "criteria": []
+      },
+      "setup": {
+        "fixtureIds": [
+          "FIX-13-007"
+        ],
+        "fixtureStatus": "registry-entry-required",
+        "environmentIds": [
+          "ENV-13-007"
+        ],
+        "environmentStatus": "registry-entry-required",
+        "preconditions": [
+          "Candidate, specification, fixture, environment, and protocol revisions are frozen."
+        ],
+        "productionBoundaries": [
+          "Use the production boundary claimed by the source protocol; mocks must be disclosed and cannot prove the mocked boundary."
+        ],
+        "allowedSubstitutions": [],
+        "realInput": false
+      },
+      "procedure": {
+        "steps": [
+          "AI boundary tests capture minimized requests, consent/disclosure, endpoint validation, prompt injection, tool checks, response schemas, diffs, transactions, provenance, and failure."
+        ],
+        "retries": {
+          "max": 0,
+          "policy": "append-only-diagnostic-reruns"
+        },
+        "timeoutMs": null
+      },
+      "evidence": {
+        "captureSchema": "SCH-15-008",
+        "captures": [
+          "Proxy payload manifest, response disposition, semantic hashes, transaction/audit trace."
+        ],
+        "detectors": [],
+        "artifacts": [],
+        "privacy": "Volume 13 minimization, consent, access, retention, and no-secret rules apply.",
+        "retention": "Defined by the active conformance profile and evidence store policy."
+      },
+      "outcome": {
+        "terminalCondition": "AI boundary tests capture minimized requests, consent/disclosure, endpoint validation, prompt injection, tool checks, response schemas, diffs, transactions, provenance, and failure.",
+        "assertions": [],
+        "pass": "All declared assertions and applicable matrix cells pass with current admissible evidence.",
+        "fail": "Any declared assertion fails or observed state contradicts the required terminal condition.",
+        "blocked": "Fixture, environment, production boundary, consent, hardware, or protocol field is unavailable or incomplete."
+      },
+      "cleanup": {
+        "steps": [
+          "Release protocol-owned processes, handles, temporary artifacts, permissions, devices, and injected state."
+        ],
+        "verification": "No protocol resource or temporary mutation remains unless retained as immutable evidence."
+      },
+      "limitations": [
+        "This generated draft is not release-admissible until every empty applicability/assertion/detector/timeout and registry reference required by SCH-15-007 is materialized and reviewed."
+      ]
+    },
+    {
+      "id": "TEST-13-008",
+      "aliases": [],
+      "definitionVersion": "1.0.0-draft",
+      "status": "draft-incomplete",
+      "owner": {
+        "volume": "13",
+        "source": "documentation/product/specification/13-security-privacy-and-trust.md"
+      },
+      "templates": [
+        "security-fault",
+        "performance-soak",
+        "unit-model"
+      ],
+      "description": "Telemetry/privacy tests fuzz every event field and sink, preferences, DNT/GPC, crash reporting, identifiers, backpressure, and vendor payloads.",
+      "applicability": {
+        "profiles": [],
+        "riskClasses": [],
+        "matrixCells": [],
+        "requirements": [],
+        "criteria": []
+      },
+      "setup": {
+        "fixtureIds": [
+          "FIX-13-008"
+        ],
+        "fixtureStatus": "registry-entry-required",
+        "environmentIds": [
+          "ENV-13-008"
+        ],
+        "environmentStatus": "registry-entry-required",
+        "preconditions": [
+          "Candidate, specification, fixture, environment, and protocol revisions are frozen."
+        ],
+        "productionBoundaries": [
+          "Use the production boundary claimed by the source protocol; mocks must be disclosed and cannot prove the mocked boundary."
+        ],
+        "allowedSubstitutions": [],
+        "realInput": false
+      },
+      "procedure": {
+        "steps": [
+          "Telemetry/privacy tests fuzz every event field and sink, preferences, DNT/GPC, crash reporting, identifiers, backpressure, and vendor payloads."
+        ],
+        "retries": {
+          "max": 0,
+          "policy": "append-only-diagnostic-reruns"
+        },
+        "timeoutMs": null
+      },
+      "evidence": {
+        "captureSchema": "SCH-15-008",
+        "captures": [
+          "Raw pre-sink/sink capture, schema detector, secret/content canaries."
+        ],
+        "detectors": [],
+        "artifacts": [],
+        "privacy": "Volume 13 minimization, consent, access, retention, and no-secret rules apply.",
+        "retention": "Defined by the active conformance profile and evidence store policy."
+      },
+      "outcome": {
+        "terminalCondition": "Telemetry/privacy tests fuzz every event field and sink, preferences, DNT/GPC, crash reporting, identifiers, backpressure, and vendor payloads.",
+        "assertions": [],
+        "pass": "All declared assertions and applicable matrix cells pass with current admissible evidence.",
+        "fail": "Any declared assertion fails or observed state contradicts the required terminal condition.",
+        "blocked": "Fixture, environment, production boundary, consent, hardware, or protocol field is unavailable or incomplete."
+      },
+      "cleanup": {
+        "steps": [
+          "Release protocol-owned processes, handles, temporary artifacts, permissions, devices, and injected state."
+        ],
+        "verification": "No protocol resource or temporary mutation remains unless retained as immutable evidence."
+      },
+      "limitations": [
+        "This generated draft is not release-admissible until every empty applicability/assertion/detector/timeout and registry reference required by SCH-15-007 is materialized and reviewed."
+      ]
+    },
+    {
+      "id": "TEST-13-009",
+      "aliases": [],
+      "definitionVersion": "1.0.0-draft",
+      "status": "draft-incomplete",
+      "owner": {
+        "volume": "13",
+        "source": "documentation/product/specification/13-security-privacy-and-trust.md"
+      },
+      "templates": [
+        "security-fault",
+        "integration-contract"
+      ],
+      "description": "Retention/deletion exercises enumerate client/service/provider/processor/backup targets, holds, retries, receipts, privacy export, and expiry.",
+      "applicability": {
+        "profiles": [],
+        "riskClasses": [],
+        "matrixCells": [],
+        "requirements": [],
+        "criteria": []
+      },
+      "setup": {
+        "fixtureIds": [
+          "FIX-13-009"
+        ],
+        "fixtureStatus": "registry-entry-required",
+        "environmentIds": [
+          "ENV-13-009"
+        ],
+        "environmentStatus": "registry-entry-required",
+        "preconditions": [
+          "Candidate, specification, fixture, environment, and protocol revisions are frozen."
+        ],
+        "productionBoundaries": [
+          "Use the production boundary claimed by the source protocol; mocks must be disclosed and cannot prove the mocked boundary."
+        ],
+        "allowedSubstitutions": [],
+        "realInput": false
+      },
+      "procedure": {
+        "steps": [
+          "Retention/deletion exercises enumerate client/service/provider/processor/backup targets, holds, retries, receipts, privacy export, and expiry."
+        ],
+        "retries": {
+          "max": 0,
+          "policy": "append-only-diagnostic-reruns"
+        },
+        "timeoutMs": null
+      },
+      "evidence": {
+        "captureSchema": "SCH-15-008",
+        "captures": [
+          "Policy versions, clock controls, per-target state, receipts, exceptions."
+        ],
+        "detectors": [],
+        "artifacts": [],
+        "privacy": "Volume 13 minimization, consent, access, retention, and no-secret rules apply.",
+        "retention": "Defined by the active conformance profile and evidence store policy."
+      },
+      "outcome": {
+        "terminalCondition": "Retention/deletion exercises enumerate client/service/provider/processor/backup targets, holds, retries, receipts, privacy export, and expiry.",
+        "assertions": [],
+        "pass": "All declared assertions and applicable matrix cells pass with current admissible evidence.",
+        "fail": "Any declared assertion fails or observed state contradicts the required terminal condition.",
+        "blocked": "Fixture, environment, production boundary, consent, hardware, or protocol field is unavailable or incomplete."
+      },
+      "cleanup": {
+        "steps": [
+          "Release protocol-owned processes, handles, temporary artifacts, permissions, devices, and injected state."
+        ],
+        "verification": "No protocol resource or temporary mutation remains unless retained as immutable evidence."
+      },
+      "limitations": [
+        "This generated draft is not release-admissible until every empty applicability/assertion/detector/timeout and registry reference required by SCH-15-007 is materialized and reviewed."
+      ]
+    },
+    {
+      "id": "TEST-13-010",
+      "aliases": [],
+      "definitionVersion": "1.0.0-draft",
+      "status": "draft-incomplete",
+      "owner": {
+        "volume": "13",
+        "source": "documentation/product/specification/13-security-privacy-and-trust.md"
+      },
+      "templates": [
+        "security-fault",
+        "integration-contract"
+      ],
+      "description": "Collaboration/sharing security tests forge principals, grants, operations, presence, comments, links, provider roles, revocation, notification, and outcome ambiguity.",
+      "applicability": {
+        "profiles": [],
+        "riskClasses": [],
+        "matrixCells": [],
+        "requirements": [],
+        "criteria": []
+      },
+      "setup": {
+        "fixtureIds": [
+          "FIX-13-010"
+        ],
+        "fixtureStatus": "registry-entry-required",
+        "environmentIds": [
+          "ENV-13-010"
+        ],
+        "environmentStatus": "registry-entry-required",
+        "preconditions": [
+          "Candidate, specification, fixture, environment, and protocol revisions are frozen."
+        ],
+        "productionBoundaries": [
+          "Use the production boundary claimed by the source protocol; mocks must be disclosed and cannot prove the mocked boundary."
+        ],
+        "allowedSubstitutions": [],
+        "realInput": false
+      },
+      "procedure": {
+        "steps": [
+          "Collaboration/sharing security tests forge principals, grants, operations, presence, comments, links, provider roles, revocation, notification, and outcome ambiguity."
+        ],
+        "retries": {
+          "max": 0,
+          "policy": "append-only-diagnostic-reruns"
+        },
+        "timeoutMs": null
+      },
+      "evidence": {
+        "captureSchema": "SCH-15-008",
+        "captures": [
+          "Denial/acceptance responses, unchanged/accepted heads, audit chain."
+        ],
+        "detectors": [],
+        "artifacts": [],
+        "privacy": "Volume 13 minimization, consent, access, retention, and no-secret rules apply.",
+        "retention": "Defined by the active conformance profile and evidence store policy."
+      },
+      "outcome": {
+        "terminalCondition": "Collaboration/sharing security tests forge principals, grants, operations, presence, comments, links, provider roles, revocation, notification, and outcome ambiguity.",
+        "assertions": [],
+        "pass": "All declared assertions and applicable matrix cells pass with current admissible evidence.",
+        "fail": "Any declared assertion fails or observed state contradicts the required terminal condition.",
+        "blocked": "Fixture, environment, production boundary, consent, hardware, or protocol field is unavailable or incomplete."
+      },
+      "cleanup": {
+        "steps": [
+          "Release protocol-owned processes, handles, temporary artifacts, permissions, devices, and injected state."
+        ],
+        "verification": "No protocol resource or temporary mutation remains unless retained as immutable evidence."
+      },
+      "limitations": [
+        "This generated draft is not release-admissible until every empty applicability/assertion/detector/timeout and registry reference required by SCH-15-007 is materialized and reviewed."
+      ]
+    },
+    {
+      "id": "TEST-13-011",
+      "aliases": [],
+      "definitionVersion": "1.0.0-draft",
+      "status": "draft-incomplete",
+      "owner": {
+        "volume": "13",
+        "source": "documentation/product/specification/13-security-privacy-and-trust.md"
+      },
+      "templates": [
+        "security-fault",
+        "performance-soak"
+      ],
+      "description": "Abuse/load tests exercise brute force, spam, mention/notification floods, endpoint quotas, mute/block, moderation, and metadata side channels.",
+      "applicability": {
+        "profiles": [],
+        "riskClasses": [],
+        "matrixCells": [],
+        "requirements": [],
+        "criteria": []
+      },
+      "setup": {
+        "fixtureIds": [
+          "FIX-13-011"
+        ],
+        "fixtureStatus": "registry-entry-required",
+        "environmentIds": [
+          "ENV-13-011"
+        ],
+        "environmentStatus": "registry-entry-required",
+        "preconditions": [
+          "Candidate, specification, fixture, environment, and protocol revisions are frozen."
+        ],
+        "productionBoundaries": [
+          "Use the production boundary claimed by the source protocol; mocks must be disclosed and cannot prove the mocked boundary."
+        ],
+        "allowedSubstitutions": [],
+        "realInput": false
+      },
+      "procedure": {
+        "steps": [
+          "Abuse/load tests exercise brute force, spam, mention/notification floods, endpoint quotas, mute/block, moderation, and metadata side channels."
+        ],
+        "retries": {
+          "max": 0,
+          "policy": "append-only-diagnostic-reruns"
+        },
+        "timeoutMs": null
+      },
+      "evidence": {
+        "captureSchema": "SCH-15-008",
+        "captures": [
+          "Rate/quota observations, legitimate-work continuity, moderation records."
+        ],
+        "detectors": [],
+        "artifacts": [],
+        "privacy": "Volume 13 minimization, consent, access, retention, and no-secret rules apply.",
+        "retention": "Defined by the active conformance profile and evidence store policy."
+      },
+      "outcome": {
+        "terminalCondition": "Abuse/load tests exercise brute force, spam, mention/notification floods, endpoint quotas, mute/block, moderation, and metadata side channels.",
+        "assertions": [],
+        "pass": "All declared assertions and applicable matrix cells pass with current admissible evidence.",
+        "fail": "Any declared assertion fails or observed state contradicts the required terminal condition.",
+        "blocked": "Fixture, environment, production boundary, consent, hardware, or protocol field is unavailable or incomplete."
+      },
+      "cleanup": {
+        "steps": [
+          "Release protocol-owned processes, handles, temporary artifacts, permissions, devices, and injected state."
+        ],
+        "verification": "No protocol resource or temporary mutation remains unless retained as immutable evidence."
+      },
+      "limitations": [
+        "This generated draft is not release-admissible until every empty applicability/assertion/detector/timeout and registry reference required by SCH-15-007 is materialized and reviewed."
+      ]
+    },
+    {
+      "id": "TEST-13-012",
+      "aliases": [],
+      "definitionVersion": "1.0.0-draft",
+      "status": "draft-incomplete",
+      "owner": {
+        "volume": "13",
+        "source": "documentation/product/specification/13-security-privacy-and-trust.md"
+      },
+      "templates": [
+        "security-fault",
+        "accessibility-manual"
+      ],
+      "description": "Incident/admin/supply-chain exercises cover just-in-time access, audit tampering, compromise containment, key rotation, vulnerable dependency, build rollback, notification decision, and evidence preservation.",
+      "applicability": {
+        "profiles": [],
+        "riskClasses": [],
+        "matrixCells": [],
+        "requirements": [],
+        "criteria": []
+      },
+      "setup": {
+        "fixtureIds": [
+          "FIX-13-012"
+        ],
+        "fixtureStatus": "registry-entry-required",
+        "environmentIds": [
+          "ENV-13-012"
+        ],
+        "environmentStatus": "registry-entry-required",
+        "preconditions": [
+          "Candidate, specification, fixture, environment, and protocol revisions are frozen."
+        ],
+        "productionBoundaries": [
+          "Use the production boundary claimed by the source protocol; mocks must be disclosed and cannot prove the mocked boundary."
+        ],
+        "allowedSubstitutions": [],
+        "realInput": false
+      },
+      "procedure": {
+        "steps": [
+          "Incident/admin/supply-chain exercises cover just-in-time access, audit tampering, compromise containment, key rotation, vulnerable dependency, build rollback, notification decision, and evidence preservation."
+        ],
+        "retries": {
+          "max": 0,
+          "policy": "append-only-diagnostic-reruns"
+        },
+        "timeoutMs": null
+      },
+      "evidence": {
+        "captureSchema": "SCH-15-008",
+        "captures": [
+          "Incident timeline, approvals, integrity proof, recovery and retrospective."
+        ],
+        "detectors": [],
+        "artifacts": [],
+        "privacy": "Volume 13 minimization, consent, access, retention, and no-secret rules apply.",
+        "retention": "Defined by the active conformance profile and evidence store policy."
+      },
+      "outcome": {
+        "terminalCondition": "Incident/admin/supply-chain exercises cover just-in-time access, audit tampering, compromise containment, key rotation, vulnerable dependency, build rollback, notification decision, and evidence preservation.",
+        "assertions": [],
+        "pass": "All declared assertions and applicable matrix cells pass with current admissible evidence.",
+        "fail": "Any declared assertion fails or observed state contradicts the required terminal condition.",
+        "blocked": "Fixture, environment, production boundary, consent, hardware, or protocol field is unavailable or incomplete."
+      },
+      "cleanup": {
+        "steps": [
+          "Release protocol-owned processes, handles, temporary artifacts, permissions, devices, and injected state."
+        ],
+        "verification": "No protocol resource or temporary mutation remains unless retained as immutable evidence."
+      },
+      "limitations": [
+        "This generated draft is not release-admissible until every empty applicability/assertion/detector/timeout and registry reference required by SCH-15-007 is materialized and reviewed."
+      ]
+    },
+    {
+      "id": "TEST-14-001",
+      "aliases": [],
+      "definitionVersion": "1.0.0-draft",
+      "status": "draft-incomplete",
+      "owner": {
+        "volume": "14",
+        "source": "documentation/product/specification/14-quality-attributes-and-observability.md"
+      },
+      "templates": [
+        "performance-soak",
+        "unit-model"
+      ],
+      "description": "Fixture conformance",
+      "applicability": {
+        "profiles": [],
+        "riskClasses": [],
+        "matrixCells": [],
+        "requirements": [],
+        "criteria": []
+      },
+      "setup": {
+        "fixtureIds": [
+          "FIX-14-001"
+        ],
+        "fixtureStatus": "registry-entry-required",
+        "environmentIds": [
+          "ENV-14-001"
+        ],
+        "environmentStatus": "registry-entry-required",
+        "preconditions": [
+          "Candidate, specification, fixture, environment, and protocol revisions are frozen."
+        ],
+        "productionBoundaries": [
+          "Use the production boundary claimed by the source protocol; mocks must be disclosed and cannot prove the mocked boundary."
+        ],
+        "allowedSubstitutions": [],
+        "realInput": false
+      },
+      "procedure": {
+        "steps": [
+          "Fixture conformance"
+        ],
+        "retries": {
+          "max": 0,
+          "policy": "append-only-diagnostic-reruns"
+        },
+        "timeoutMs": null
+      },
+      "evidence": {
+        "captureSchema": "SCH-15-008",
+        "captures": [
+          "Validate schemas, counts, hashes, feature mix, nondegeneracy, expected semantics, and reproducibility."
+        ],
+        "detectors": [],
+        "artifacts": [],
+        "privacy": "Volume 13 minimization, consent, access, retention, and no-secret rules apply.",
+        "retention": "Defined by the active conformance profile and evidence store policy."
+      },
+      "outcome": {
+        "terminalCondition": "Fixture conformance",
+        "assertions": [],
+        "pass": "All declared assertions and applicable matrix cells pass with current admissible evidence.",
+        "fail": "Any declared assertion fails or observed state contradicts the required terminal condition.",
+        "blocked": "Fixture, environment, production boundary, consent, hardware, or protocol field is unavailable or incomplete."
+      },
+      "cleanup": {
+        "steps": [
+          "Release protocol-owned processes, handles, temporary artifacts, permissions, devices, and injected state."
+        ],
+        "verification": "No protocol resource or temporary mutation remains unless retained as immutable evidence."
+      },
+      "limitations": [
+        "This generated draft is not release-admissible until every empty applicability/assertion/detector/timeout and registry reference required by SCH-15-007 is materialized and reviewed."
+      ]
+    },
+    {
+      "id": "TEST-14-002",
+      "aliases": [],
+      "definitionVersion": "1.0.0-draft",
+      "status": "draft-incomplete",
+      "owner": {
+        "volume": "14",
+        "source": "documentation/product/specification/14-quality-attributes-and-observability.md"
+      },
+      "templates": [
+        "performance-soak",
+        "unit-model"
+      ],
+      "description": "Microbenchmark correctness",
+      "applicability": {
+        "profiles": [],
+        "riskClasses": [],
+        "matrixCells": [],
+        "requirements": [],
+        "criteria": []
+      },
+      "setup": {
+        "fixtureIds": [
+          "FIX-14-002"
+        ],
+        "fixtureStatus": "registry-entry-required",
+        "environmentIds": [
+          "ENV-14-002"
+        ],
+        "environmentStatus": "registry-entry-required",
+        "preconditions": [
+          "Candidate, specification, fixture, environment, and protocol revisions are frozen."
+        ],
+        "productionBoundaries": [
+          "Use the production boundary claimed by the source protocol; mocks must be disclosed and cannot prove the mocked boundary."
+        ],
+        "allowedSubstitutions": [],
+        "realInput": false
+      },
+      "procedure": {
+        "steps": [
+          "Microbenchmark correctness"
+        ],
+        "retries": {
+          "max": 0,
+          "policy": "append-only-diagnostic-reruns"
+        },
+        "timeoutMs": null
+      },
+      "evidence": {
+        "captureSchema": "SCH-15-008",
+        "captures": [
+          "Pure deterministic unit benchmarks for validation, hashing, resolution subphases, geometry, text, and operation transforms; never used alone for user latency."
+        ],
+        "detectors": [],
+        "artifacts": [],
+        "privacy": "Volume 13 minimization, consent, access, retention, and no-secret rules apply.",
+        "retention": "Defined by the active conformance profile and evidence store policy."
+      },
+      "outcome": {
+        "terminalCondition": "Microbenchmark correctness",
+        "assertions": [],
+        "pass": "All declared assertions and applicable matrix cells pass with current admissible evidence.",
+        "fail": "Any declared assertion fails or observed state contradicts the required terminal condition.",
+        "blocked": "Fixture, environment, production boundary, consent, hardware, or protocol field is unavailable or incomplete."
+      },
+      "cleanup": {
+        "steps": [
+          "Release protocol-owned processes, handles, temporary artifacts, permissions, devices, and injected state."
+        ],
+        "verification": "No protocol resource or temporary mutation remains unless retained as immutable evidence."
+      },
+      "limitations": [
+        "This generated draft is not release-admissible until every empty applicability/assertion/detector/timeout and registry reference required by SCH-15-007 is materialized and reviewed."
+      ]
+    },
+    {
+      "id": "TEST-14-003",
+      "aliases": [],
+      "definitionVersion": "1.0.0-draft",
+      "status": "draft-incomplete",
+      "owner": {
+        "volume": "14",
+        "source": "documentation/product/specification/14-quality-attributes-and-observability.md"
+      },
+      "templates": [
+        "performance-soak",
+        "headed-e2e"
+      ],
+      "description": "Headed interaction benchmark",
+      "applicability": {
+        "profiles": [],
+        "riskClasses": [],
+        "matrixCells": [],
+        "requirements": [],
+        "criteria": []
+      },
+      "setup": {
+        "fixtureIds": [
+          "FIX-14-003"
+        ],
+        "fixtureStatus": "registry-entry-required",
+        "environmentIds": [
+          "ENV-14-003"
+        ],
+        "environmentStatus": "registry-entry-required",
+        "preconditions": [
+          "Candidate, specification, fixture, environment, and protocol revisions are frozen."
+        ],
+        "productionBoundaries": [
+          "Use the production boundary claimed by the source protocol; mocks must be disclosed and cannot prove the mocked boundary."
+        ],
+        "allowedSubstitutions": [],
+        "realInput": true
+      },
+      "procedure": {
+        "steps": [
+          "Headed interaction benchmark"
+        ],
+        "retries": {
+          "max": 0,
+          "policy": "append-only-diagnostic-reruns"
+        },
+        "timeoutMs": null
+      },
+      "evidence": {
+        "captureSchema": "SCH-15-008",
+        "captures": [
+          "Real browser input to visible/semantic/stable marks with raw samples, frame windows, hit testing, and functional assertions."
+        ],
+        "detectors": [],
+        "artifacts": [],
+        "privacy": "Volume 13 minimization, consent, access, retention, and no-secret rules apply.",
+        "retention": "Defined by the active conformance profile and evidence store policy."
+      },
+      "outcome": {
+        "terminalCondition": "Headed interaction benchmark",
+        "assertions": [],
+        "pass": "All declared assertions and applicable matrix cells pass with current admissible evidence.",
+        "fail": "Any declared assertion fails or observed state contradicts the required terminal condition.",
+        "blocked": "Fixture, environment, production boundary, consent, hardware, or protocol field is unavailable or incomplete."
+      },
+      "cleanup": {
+        "steps": [
+          "Release protocol-owned processes, handles, temporary artifacts, permissions, devices, and injected state."
+        ],
+        "verification": "No protocol resource or temporary mutation remains unless retained as immutable evidence."
+      },
+      "limitations": [
+        "This generated draft is not release-admissible until every empty applicability/assertion/detector/timeout and registry reference required by SCH-15-007 is materialized and reviewed."
+      ]
+    },
+    {
+      "id": "TEST-14-004",
+      "aliases": [],
+      "definitionVersion": "1.0.0-draft",
+      "status": "draft-incomplete",
+      "owner": {
+        "volume": "14",
+        "source": "documentation/product/specification/14-quality-attributes-and-observability.md"
+      },
+      "templates": [
+        "performance-soak",
+        "headed-e2e",
+        "artifact-roundtrip",
+        "security-fault"
+      ],
+      "description": "Headed rendering and frame protocol",
+      "applicability": {
+        "profiles": [],
+        "riskClasses": [],
+        "matrixCells": [],
+        "requirements": [],
+        "criteria": []
+      },
+      "setup": {
+        "fixtureIds": [
+          "FIX-14-004"
+        ],
+        "fixtureStatus": "registry-entry-required",
+        "environmentIds": [
+          "ENV-14-004"
+        ],
+        "environmentStatus": "registry-entry-required",
+        "preconditions": [
+          "Candidate, specification, fixture, environment, and protocol revisions are frozen."
+        ],
+        "productionBoundaries": [
+          "Use the production boundary claimed by the source protocol; mocks must be disclosed and cannot prove the mocked boundary."
+        ],
+        "allowedSubstitutions": [],
+        "realInput": true
+      },
+      "procedure": {
+        "steps": [
+          "Headed rendering and frame protocol"
+        ],
+        "retries": {
+          "max": 0,
+          "policy": "append-only-diagnostic-reruns"
+        },
+        "timeoutMs": null
+      },
+      "evidence": {
+        "captureSchema": "SCH-15-008",
+        "captures": [
+          "DOM/canvas/pixel/semantic capture during authoring and audience motion at fixed refresh/DPR profiles."
+        ],
+        "detectors": [],
+        "artifacts": [
+          "actual-produced-artifact",
+          "independent-parse-report"
+        ],
+        "privacy": "Volume 13 minimization, consent, access, retention, and no-secret rules apply.",
+        "retention": "Defined by the active conformance profile and evidence store policy."
+      },
+      "outcome": {
+        "terminalCondition": "Headed rendering and frame protocol",
+        "assertions": [],
+        "pass": "All declared assertions and applicable matrix cells pass with current admissible evidence.",
+        "fail": "Any declared assertion fails or observed state contradicts the required terminal condition.",
+        "blocked": "Fixture, environment, production boundary, consent, hardware, or protocol field is unavailable or incomplete."
+      },
+      "cleanup": {
+        "steps": [
+          "Release protocol-owned processes, handles, temporary artifacts, permissions, devices, and injected state."
+        ],
+        "verification": "No protocol resource or temporary mutation remains unless retained as immutable evidence."
+      },
+      "limitations": [
+        "This generated draft is not release-admissible until every empty applicability/assertion/detector/timeout and registry reference required by SCH-15-007 is materialized and reviewed."
+      ]
+    },
+    {
+      "id": "TEST-14-005",
+      "aliases": [],
+      "definitionVersion": "1.0.0-draft",
+      "status": "draft-incomplete",
+      "owner": {
+        "volume": "14",
+        "source": "documentation/product/specification/14-quality-attributes-and-observability.md"
+      },
+      "templates": [
+        "performance-soak",
+        "security-fault",
+        "integration-contract"
+      ],
+      "description": "Storage and recovery protocol",
+      "applicability": {
+        "profiles": [],
+        "riskClasses": [],
+        "matrixCells": [],
+        "requirements": [],
+        "criteria": []
+      },
+      "setup": {
+        "fixtureIds": [
+          "FIX-14-005"
+        ],
+        "fixtureStatus": "registry-entry-required",
+        "environmentIds": [
+          "ENV-14-005"
+        ],
+        "environmentStatus": "registry-entry-required",
+        "preconditions": [
+          "Candidate, specification, fixture, environment, and protocol revisions are frozen."
+        ],
+        "productionBoundaries": [
+          "Use the production boundary claimed by the source protocol; mocks must be disclosed and cannot prove the mocked boundary."
+        ],
+        "allowedSubstitutions": [],
+        "realInput": false
+      },
+      "procedure": {
+        "steps": [
+          "Storage and recovery protocol"
+        ],
+        "retries": {
+          "max": 0,
+          "policy": "append-only-diagnostic-reruns"
+        },
+        "timeoutMs": null
+      },
+      "evidence": {
+        "captureSchema": "SCH-15-008",
+        "captures": [
+          "Real package, object store, provider capability, crash/fault injection, readback, hashes, and durability boundary."
+        ],
+        "detectors": [],
+        "artifacts": [],
+        "privacy": "Volume 13 minimization, consent, access, retention, and no-secret rules apply.",
+        "retention": "Defined by the active conformance profile and evidence store policy."
+      },
+      "outcome": {
+        "terminalCondition": "Storage and recovery protocol",
+        "assertions": [],
+        "pass": "All declared assertions and applicable matrix cells pass with current admissible evidence.",
+        "fail": "Any declared assertion fails or observed state contradicts the required terminal condition.",
+        "blocked": "Fixture, environment, production boundary, consent, hardware, or protocol field is unavailable or incomplete."
+      },
+      "cleanup": {
+        "steps": [
+          "Release protocol-owned processes, handles, temporary artifacts, permissions, devices, and injected state."
+        ],
+        "verification": "No protocol resource or temporary mutation remains unless retained as immutable evidence."
+      },
+      "limitations": [
+        "This generated draft is not release-admissible until every empty applicability/assertion/detector/timeout and registry reference required by SCH-15-007 is materialized and reviewed."
+      ]
+    },
+    {
+      "id": "TEST-14-006",
+      "aliases": [],
+      "definitionVersion": "1.0.0-draft",
+      "status": "draft-incomplete",
+      "owner": {
+        "volume": "14",
+        "source": "documentation/product/specification/14-quality-attributes-and-observability.md"
+      },
+      "templates": [
+        "performance-soak",
+        "security-fault",
+        "integration-contract"
+      ],
+      "description": "Collaboration load protocol",
+      "applicability": {
+        "profiles": [],
+        "riskClasses": [],
+        "matrixCells": [],
+        "requirements": [],
+        "criteria": []
+      },
+      "setup": {
+        "fixtureIds": [
+          "FIX-14-006"
+        ],
+        "fixtureStatus": "registry-entry-required",
+        "environmentIds": [
+          "ENV-14-006"
+        ],
+        "environmentStatus": "registry-entry-required",
+        "preconditions": [
+          "Candidate, specification, fixture, environment, and protocol revisions are frozen."
+        ],
+        "productionBoundaries": [
+          "Use the production boundary claimed by the source protocol; mocks must be disclosed and cannot prove the mocked boundary."
+        ],
+        "allowedSubstitutions": [],
+        "realInput": false
+      },
+      "procedure": {
+        "steps": [
+          "Collaboration load protocol"
+        ],
+        "retries": {
+          "max": 0,
+          "policy": "append-only-diagnostic-reruns"
+        },
+        "timeoutMs": null
+      },
+      "evidence": {
+        "captureSchema": "SCH-15-008",
+        "captures": [
+          "Real authority/store, independent clients, network shaping, presence load, accepted log, queue, convergence, and recovery."
+        ],
+        "detectors": [],
+        "artifacts": [],
+        "privacy": "Volume 13 minimization, consent, access, retention, and no-secret rules apply.",
+        "retention": "Defined by the active conformance profile and evidence store policy."
+      },
+      "outcome": {
+        "terminalCondition": "Collaboration load protocol",
+        "assertions": [],
+        "pass": "All declared assertions and applicable matrix cells pass with current admissible evidence.",
+        "fail": "Any declared assertion fails or observed state contradicts the required terminal condition.",
+        "blocked": "Fixture, environment, production boundary, consent, hardware, or protocol field is unavailable or incomplete."
+      },
+      "cleanup": {
+        "steps": [
+          "Release protocol-owned processes, handles, temporary artifacts, permissions, devices, and injected state."
+        ],
+        "verification": "No protocol resource or temporary mutation remains unless retained as immutable evidence."
+      },
+      "limitations": [
+        "This generated draft is not release-admissible until every empty applicability/assertion/detector/timeout and registry reference required by SCH-15-007 is materialized and reviewed."
+      ]
+    },
+    {
+      "id": "TEST-14-007",
+      "aliases": [],
+      "definitionVersion": "1.0.0-draft",
+      "status": "draft-incomplete",
+      "owner": {
+        "volume": "14",
+        "source": "documentation/product/specification/14-quality-attributes-and-observability.md"
+      },
+      "templates": [
+        "performance-soak",
+        "headed-e2e",
+        "accessibility-manual"
+      ],
+      "description": "Runtime/host protocol",
+      "applicability": {
+        "profiles": [],
+        "riskClasses": [],
+        "matrixCells": [],
+        "requirements": [],
+        "criteria": []
+      },
+      "setup": {
+        "fixtureIds": [
+          "FIX-14-007"
+        ],
+        "fixtureStatus": "registry-entry-required",
+        "environmentIds": [
+          "ENV-14-007"
+        ],
+        "environmentStatus": "registry-entry-required",
+        "preconditions": [
+          "Candidate, specification, fixture, environment, and protocol revisions are frozen."
+        ],
+        "productionBoundaries": [
+          "Use the production boundary claimed by the source protocol; mocks must be disclosed and cannot prove the mocked boundary."
+        ],
+        "allowedSubstitutions": [],
+        "realInput": true
+      },
+      "procedure": {
+        "steps": [
+          "Runtime/host protocol"
+        ],
+        "retries": {
+          "max": 0,
+          "policy": "append-only-diagnostic-reruns"
+        },
+        "timeoutMs": null
+      },
+      "evidence": {
+        "captureSchema": "SCH-15-008",
+        "captures": [
+          "Headed runtime plus physical display/input/capture hardware for claimed host-dependent capabilities."
+        ],
+        "detectors": [],
+        "artifacts": [],
+        "privacy": "Volume 13 minimization, consent, access, retention, and no-secret rules apply.",
+        "retention": "Defined by the active conformance profile and evidence store policy."
+      },
+      "outcome": {
+        "terminalCondition": "Runtime/host protocol",
+        "assertions": [],
+        "pass": "All declared assertions and applicable matrix cells pass with current admissible evidence.",
+        "fail": "Any declared assertion fails or observed state contradicts the required terminal condition.",
+        "blocked": "Fixture, environment, production boundary, consent, hardware, or protocol field is unavailable or incomplete."
+      },
+      "cleanup": {
+        "steps": [
+          "Release protocol-owned processes, handles, temporary artifacts, permissions, devices, and injected state."
+        ],
+        "verification": "No protocol resource or temporary mutation remains unless retained as immutable evidence."
+      },
+      "limitations": [
+        "This generated draft is not release-admissible until every empty applicability/assertion/detector/timeout and registry reference required by SCH-15-007 is materialized and reviewed."
+      ]
+    },
+    {
+      "id": "TEST-14-008",
+      "aliases": [],
+      "definitionVersion": "1.0.0-draft",
+      "status": "draft-incomplete",
+      "owner": {
+        "volume": "14",
+        "source": "documentation/product/specification/14-quality-attributes-and-observability.md"
+      },
+      "templates": [
+        "performance-soak",
+        "artifact-roundtrip"
+      ],
+      "description": "Output throughput/fidelity protocol",
+      "applicability": {
+        "profiles": [],
+        "riskClasses": [],
+        "matrixCells": [],
+        "requirements": [],
+        "criteria": []
+      },
+      "setup": {
+        "fixtureIds": [
+          "FIX-14-008"
+        ],
+        "fixtureStatus": "registry-entry-required",
+        "environmentIds": [
+          "ENV-14-008"
+        ],
+        "environmentStatus": "registry-entry-required",
+        "preconditions": [
+          "Candidate, specification, fixture, environment, and protocol revisions are frozen."
+        ],
+        "productionBoundaries": [
+          "Use the production boundary claimed by the source protocol; mocks must be disclosed and cannot prove the mocked boundary."
+        ],
+        "allowedSubstitutions": [],
+        "realInput": false
+      },
+      "procedure": {
+        "steps": [
+          "Output throughput/fidelity protocol"
+        ],
+        "retries": {
+          "max": 0,
+          "policy": "append-only-diagnostic-reruns"
+        },
+        "timeoutMs": null
+      },
+      "evidence": {
+        "captureSchema": "SCH-15-008",
+        "captures": [
+          "Immutable plan, actual writer, independent parser, semantic comparison, pixel/media samples, and destination safety."
+        ],
+        "detectors": [],
+        "artifacts": [
+          "actual-produced-artifact",
+          "independent-parse-report"
+        ],
+        "privacy": "Volume 13 minimization, consent, access, retention, and no-secret rules apply.",
+        "retention": "Defined by the active conformance profile and evidence store policy."
+      },
+      "outcome": {
+        "terminalCondition": "Output throughput/fidelity protocol",
+        "assertions": [],
+        "pass": "All declared assertions and applicable matrix cells pass with current admissible evidence.",
+        "fail": "Any declared assertion fails or observed state contradicts the required terminal condition.",
+        "blocked": "Fixture, environment, production boundary, consent, hardware, or protocol field is unavailable or incomplete."
+      },
+      "cleanup": {
+        "steps": [
+          "Release protocol-owned processes, handles, temporary artifacts, permissions, devices, and injected state."
+        ],
+        "verification": "No protocol resource or temporary mutation remains unless retained as immutable evidence."
+      },
+      "limitations": [
+        "This generated draft is not release-admissible until every empty applicability/assertion/detector/timeout and registry reference required by SCH-15-007 is materialized and reviewed."
+      ]
+    },
+    {
+      "id": "TEST-14-009",
+      "aliases": [],
+      "definitionVersion": "1.0.0-draft",
+      "status": "draft-incomplete",
+      "owner": {
+        "volume": "14",
+        "source": "documentation/product/specification/14-quality-attributes-and-observability.md"
+      },
+      "templates": [
+        "performance-soak"
+      ],
+      "description": "Prolonged-use protocol",
+      "applicability": {
+        "profiles": [],
+        "riskClasses": [],
+        "matrixCells": [],
+        "requirements": [],
+        "criteria": []
+      },
+      "setup": {
+        "fixtureIds": [
+          "FIX-14-009"
+        ],
+        "fixtureStatus": "registry-entry-required",
+        "environmentIds": [
+          "ENV-14-009"
+        ],
+        "environmentStatus": "registry-entry-required",
+        "preconditions": [
+          "Candidate, specification, fixture, environment, and protocol revisions are frozen."
+        ],
+        "productionBoundaries": [
+          "Use the production boundary claimed by the source protocol; mocks must be disclosed and cannot prove the mocked boundary."
+        ],
+        "allowedSubstitutions": [],
+        "realInput": false
+      },
+      "procedure": {
+        "steps": [
+          "Prolonged-use protocol"
+        ],
+        "retries": {
+          "max": 0,
+          "policy": "append-only-diagnostic-reruns"
+        },
+        "timeoutMs": null
+      },
+      "evidence": {
+        "captureSchema": "SCH-15-008",
+        "captures": [
+          "Four-hour Medium workflow, five-minute windows, repeated workload, pressure injections, resource ownership, cleanup, and trend analysis."
+        ],
+        "detectors": [],
+        "artifacts": [],
+        "privacy": "Volume 13 minimization, consent, access, retention, and no-secret rules apply.",
+        "retention": "Defined by the active conformance profile and evidence store policy."
+      },
+      "outcome": {
+        "terminalCondition": "Prolonged-use protocol",
+        "assertions": [],
+        "pass": "All declared assertions and applicable matrix cells pass with current admissible evidence.",
+        "fail": "Any declared assertion fails or observed state contradicts the required terminal condition.",
+        "blocked": "Fixture, environment, production boundary, consent, hardware, or protocol field is unavailable or incomplete."
+      },
+      "cleanup": {
+        "steps": [
+          "Release protocol-owned processes, handles, temporary artifacts, permissions, devices, and injected state."
+        ],
+        "verification": "No protocol resource or temporary mutation remains unless retained as immutable evidence."
+      },
+      "limitations": [
+        "This generated draft is not release-admissible until every empty applicability/assertion/detector/timeout and registry reference required by SCH-15-007 is materialized and reviewed."
+      ]
+    },
+    {
+      "id": "TEST-14-010",
+      "aliases": [],
+      "definitionVersion": "1.0.0-draft",
+      "status": "draft-incomplete",
+      "owner": {
+        "volume": "14",
+        "source": "documentation/product/specification/14-quality-attributes-and-observability.md"
+      },
+      "templates": [
+        "performance-soak",
+        "security-fault",
+        "unit-model"
+      ],
+      "description": "Observability privacy/overhead protocol",
+      "applicability": {
+        "profiles": [],
+        "riskClasses": [],
+        "matrixCells": [],
+        "requirements": [],
+        "criteria": []
+      },
+      "setup": {
+        "fixtureIds": [
+          "FIX-14-010"
+        ],
+        "fixtureStatus": "registry-entry-required",
+        "environmentIds": [
+          "ENV-14-010"
+        ],
+        "environmentStatus": "registry-entry-required",
+        "preconditions": [
+          "Candidate, specification, fixture, environment, and protocol revisions are frozen."
+        ],
+        "productionBoundaries": [
+          "Use the production boundary claimed by the source protocol; mocks must be disclosed and cannot prove the mocked boundary."
+        ],
+        "allowedSubstitutions": [],
+        "realInput": false
+      },
+      "procedure": {
+        "steps": [
+          "Observability privacy/overhead protocol"
+        ],
+        "retries": {
+          "max": 0,
+          "policy": "append-only-diagnostic-reruns"
+        },
+        "timeoutMs": null
+      },
+      "evidence": {
+        "captureSchema": "SCH-15-008",
+        "captures": [
+          "Schema fuzzing, forbidden canaries, cardinality, sampling, rate limits, retention, and observer-control A/B runs."
+        ],
+        "detectors": [],
+        "artifacts": [],
+        "privacy": "Volume 13 minimization, consent, access, retention, and no-secret rules apply.",
+        "retention": "Defined by the active conformance profile and evidence store policy."
+      },
+      "outcome": {
+        "terminalCondition": "Observability privacy/overhead protocol",
+        "assertions": [],
+        "pass": "All declared assertions and applicable matrix cells pass with current admissible evidence.",
+        "fail": "Any declared assertion fails or observed state contradicts the required terminal condition.",
+        "blocked": "Fixture, environment, production boundary, consent, hardware, or protocol field is unavailable or incomplete."
+      },
+      "cleanup": {
+        "steps": [
+          "Release protocol-owned processes, handles, temporary artifacts, permissions, devices, and injected state."
+        ],
+        "verification": "No protocol resource or temporary mutation remains unless retained as immutable evidence."
+      },
+      "limitations": [
+        "This generated draft is not release-admissible until every empty applicability/assertion/detector/timeout and registry reference required by SCH-15-007 is materialized and reviewed."
+      ]
+    },
+    {
+      "id": "TEST-14-011",
+      "aliases": [],
+      "definitionVersion": "1.0.0-draft",
+      "status": "draft-incomplete",
+      "owner": {
+        "volume": "14",
+        "source": "documentation/product/specification/14-quality-attributes-and-observability.md"
+      },
+      "templates": [
+        "performance-soak",
+        "security-fault"
+      ],
+      "description": "Runbook exercise",
+      "applicability": {
+        "profiles": [],
+        "riskClasses": [],
+        "matrixCells": [],
+        "requirements": [],
+        "criteria": []
+      },
+      "setup": {
+        "fixtureIds": [
+          "FIX-14-011"
+        ],
+        "fixtureStatus": "registry-entry-required",
+        "environmentIds": [
+          "ENV-14-011"
+        ],
+        "environmentStatus": "registry-entry-required",
+        "preconditions": [
+          "Candidate, specification, fixture, environment, and protocol revisions are frozen."
+        ],
+        "productionBoundaries": [
+          "Use the production boundary claimed by the source protocol; mocks must be disclosed and cannot prove the mocked boundary."
+        ],
+        "allowedSubstitutions": [],
+        "realInput": false
+      },
+      "procedure": {
+        "steps": [
+          "Runbook exercise"
+        ],
+        "retries": {
+          "max": 0,
+          "policy": "append-only-diagnostic-reruns"
+        },
+        "timeoutMs": null
+      },
+      "evidence": {
+        "captureSchema": "SCH-15-008",
+        "captures": [
+          "Synthetic incident trigger through mitigation, evidence preservation, validation, communication, and closure."
+        ],
+        "detectors": [],
+        "artifacts": [],
+        "privacy": "Volume 13 minimization, consent, access, retention, and no-secret rules apply.",
+        "retention": "Defined by the active conformance profile and evidence store policy."
+      },
+      "outcome": {
+        "terminalCondition": "Runbook exercise",
+        "assertions": [],
+        "pass": "All declared assertions and applicable matrix cells pass with current admissible evidence.",
+        "fail": "Any declared assertion fails or observed state contradicts the required terminal condition.",
+        "blocked": "Fixture, environment, production boundary, consent, hardware, or protocol field is unavailable or incomplete."
+      },
+      "cleanup": {
+        "steps": [
+          "Release protocol-owned processes, handles, temporary artifacts, permissions, devices, and injected state."
+        ],
+        "verification": "No protocol resource or temporary mutation remains unless retained as immutable evidence."
+      },
+      "limitations": [
+        "This generated draft is not release-admissible until every empty applicability/assertion/detector/timeout and registry reference required by SCH-15-007 is materialized and reviewed."
+      ]
+    },
+    {
+      "id": "TEST-14-012",
+      "aliases": [],
+      "definitionVersion": "1.0.0-draft",
+      "status": "draft-incomplete",
+      "owner": {
+        "volume": "14",
+        "source": "documentation/product/specification/14-quality-attributes-and-observability.md"
+      },
+      "templates": [
+        "performance-soak"
+      ],
+      "description": "Calibration and regression protocol",
+      "applicability": {
+        "profiles": [],
+        "riskClasses": [],
+        "matrixCells": [],
+        "requirements": [],
+        "criteria": []
+      },
+      "setup": {
+        "fixtureIds": [
+          "FIX-14-012"
+        ],
+        "fixtureStatus": "registry-entry-required",
+        "environmentIds": [
+          "ENV-14-012"
+        ],
+        "environmentStatus": "registry-entry-required",
+        "preconditions": [
+          "Candidate, specification, fixture, environment, and protocol revisions are frozen."
+        ],
+        "productionBoundaries": [
+          "Use the production boundary claimed by the source protocol; mocks must be disclosed and cannot prove the mocked boundary."
+        ],
+        "allowedSubstitutions": [],
+        "realInput": false
+      },
+      "procedure": {
+        "steps": [
+          "Calibration and regression protocol"
+        ],
+        "retries": {
+          "max": 0,
+          "policy": "append-only-diagnostic-reruns"
+        },
+        "timeoutMs": null
+      },
+      "evidence": {
+        "captureSchema": "SCH-15-008",
+        "captures": [
+          "Multi-day stable collection, formula recomputation, worst-sample traces, dual regression rule, and baseline-version review."
+        ],
+        "detectors": [],
+        "artifacts": [],
+        "privacy": "Volume 13 minimization, consent, access, retention, and no-secret rules apply.",
+        "retention": "Defined by the active conformance profile and evidence store policy."
+      },
+      "outcome": {
+        "terminalCondition": "Calibration and regression protocol",
+        "assertions": [],
+        "pass": "All declared assertions and applicable matrix cells pass with current admissible evidence.",
+        "fail": "Any declared assertion fails or observed state contradicts the required terminal condition.",
+        "blocked": "Fixture, environment, production boundary, consent, hardware, or protocol field is unavailable or incomplete."
+      },
+      "cleanup": {
+        "steps": [
+          "Release protocol-owned processes, handles, temporary artifacts, permissions, devices, and injected state."
+        ],
+        "verification": "No protocol resource or temporary mutation remains unless retained as immutable evidence."
+      },
+      "limitations": [
+        "This generated draft is not release-admissible until every empty applicability/assertion/detector/timeout and registry reference required by SCH-15-007 is materialized and reviewed."
+      ]
+    },
+    {
+      "id": "TEST-15-001",
+      "aliases": [],
+      "definitionVersion": "1.0.0-draft",
+      "status": "draft-incomplete",
+      "owner": {
+        "volume": "15",
+        "source": "documentation/product/specification/15-acceptance-and-release-conformance.md"
+      },
+      "templates": [
+        "integration-contract",
+        "unit-model"
+      ],
+      "description": "Specification, identifier, link, ASCII, schema, and traceability lint",
+      "applicability": {
+        "profiles": [],
+        "riskClasses": [],
+        "matrixCells": [],
+        "requirements": [],
+        "criteria": []
+      },
+      "setup": {
+        "fixtureIds": [
+          "FIX-15-001"
+        ],
+        "fixtureStatus": "registry-entry-required",
+        "environmentIds": [
+          "ENV-15-001"
+        ],
+        "environmentStatus": "registry-entry-required",
+        "preconditions": [
+          "Candidate, specification, fixture, environment, and protocol revisions are frozen."
+        ],
+        "productionBoundaries": [
+          "Use the production boundary claimed by the source protocol; mocks must be disclosed and cannot prove the mocked boundary."
+        ],
+        "allowedSubstitutions": [],
+        "realInput": false
+      },
+      "procedure": {
+        "steps": [
+          "Specification, identifier, link, ASCII, schema, and traceability lint"
+        ],
+        "retries": {
+          "max": 0,
+          "policy": "append-only-diagnostic-reruns"
+        },
+        "timeoutMs": null
+      },
+      "evidence": {
+        "captureSchema": "SCH-15-008",
+        "captures": [],
+        "detectors": [],
+        "artifacts": [],
+        "privacy": "Volume 13 minimization, consent, access, retention, and no-secret rules apply.",
+        "retention": "Defined by the active conformance profile and evidence store policy."
+      },
+      "outcome": {
+        "terminalCondition": "Specification, identifier, link, ASCII, schema, and traceability lint",
+        "assertions": [],
+        "pass": "All declared assertions and applicable matrix cells pass with current admissible evidence.",
+        "fail": "Any declared assertion fails or observed state contradicts the required terminal condition.",
+        "blocked": "Fixture, environment, production boundary, consent, hardware, or protocol field is unavailable or incomplete."
+      },
+      "cleanup": {
+        "steps": [
+          "Release protocol-owned processes, handles, temporary artifacts, permissions, devices, and injected state."
+        ],
+        "verification": "No protocol resource or temporary mutation remains unless retained as immutable evidence."
+      },
+      "limitations": [
+        "This generated draft is not release-admissible until every empty applicability/assertion/detector/timeout and registry reference required by SCH-15-007 is materialized and reviewed."
+      ]
+    },
+    {
+      "id": "TEST-15-002",
+      "aliases": [],
+      "definitionVersion": "1.0.0-draft",
+      "status": "draft-incomplete",
+      "owner": {
+        "volume": "15",
+        "source": "documentation/product/specification/15-acceptance-and-release-conformance.md"
+      },
+      "templates": [
+        "integration-contract",
+        "unit-model"
+      ],
+      "description": "Unit/model protocol using pure and mutation-testing fixtures",
+      "applicability": {
+        "profiles": [],
+        "riskClasses": [],
+        "matrixCells": [],
+        "requirements": [],
+        "criteria": []
+      },
+      "setup": {
+        "fixtureIds": [
+          "FIX-15-002"
+        ],
+        "fixtureStatus": "registry-entry-required",
+        "environmentIds": [
+          "ENV-15-002"
+        ],
+        "environmentStatus": "registry-entry-required",
+        "preconditions": [
+          "Candidate, specification, fixture, environment, and protocol revisions are frozen."
+        ],
+        "productionBoundaries": [
+          "Use the production boundary claimed by the source protocol; mocks must be disclosed and cannot prove the mocked boundary."
+        ],
+        "allowedSubstitutions": [],
+        "realInput": false
+      },
+      "procedure": {
+        "steps": [
+          "Unit/model protocol using pure and mutation-testing fixtures"
+        ],
+        "retries": {
+          "max": 0,
+          "policy": "append-only-diagnostic-reruns"
+        },
+        "timeoutMs": null
+      },
+      "evidence": {
+        "captureSchema": "SCH-15-008",
+        "captures": [],
+        "detectors": [],
+        "artifacts": [],
+        "privacy": "Volume 13 minimization, consent, access, retention, and no-secret rules apply.",
+        "retention": "Defined by the active conformance profile and evidence store policy."
+      },
+      "outcome": {
+        "terminalCondition": "Unit/model protocol using pure and mutation-testing fixtures",
+        "assertions": [],
+        "pass": "All declared assertions and applicable matrix cells pass with current admissible evidence.",
+        "fail": "Any declared assertion fails or observed state contradicts the required terminal condition.",
+        "blocked": "Fixture, environment, production boundary, consent, hardware, or protocol field is unavailable or incomplete."
+      },
+      "cleanup": {
+        "steps": [
+          "Release protocol-owned processes, handles, temporary artifacts, permissions, devices, and injected state."
+        ],
+        "verification": "No protocol resource or temporary mutation remains unless retained as immutable evidence."
+      },
+      "limitations": [
+        "This generated draft is not release-admissible until every empty applicability/assertion/detector/timeout and registry reference required by SCH-15-007 is materialized and reviewed."
+      ]
+    },
+    {
+      "id": "TEST-15-003",
+      "aliases": [],
+      "definitionVersion": "1.0.0-draft",
+      "status": "draft-incomplete",
+      "owner": {
+        "volume": "15",
+        "source": "documentation/product/specification/15-acceptance-and-release-conformance.md"
+      },
+      "templates": [
+        "integration-contract"
+      ],
+      "description": "Integration/contract protocol through production module boundaries",
+      "applicability": {
+        "profiles": [],
+        "riskClasses": [],
+        "matrixCells": [],
+        "requirements": [],
+        "criteria": []
+      },
+      "setup": {
+        "fixtureIds": [
+          "FIX-15-003"
+        ],
+        "fixtureStatus": "registry-entry-required",
+        "environmentIds": [
+          "ENV-15-003"
+        ],
+        "environmentStatus": "registry-entry-required",
+        "preconditions": [
+          "Candidate, specification, fixture, environment, and protocol revisions are frozen."
+        ],
+        "productionBoundaries": [
+          "Use the production boundary claimed by the source protocol; mocks must be disclosed and cannot prove the mocked boundary."
+        ],
+        "allowedSubstitutions": [],
+        "realInput": false
+      },
+      "procedure": {
+        "steps": [
+          "Integration/contract protocol through production module boundaries"
+        ],
+        "retries": {
+          "max": 0,
+          "policy": "append-only-diagnostic-reruns"
+        },
+        "timeoutMs": null
+      },
+      "evidence": {
+        "captureSchema": "SCH-15-008",
+        "captures": [],
+        "detectors": [],
+        "artifacts": [],
+        "privacy": "Volume 13 minimization, consent, access, retention, and no-secret rules apply.",
+        "retention": "Defined by the active conformance profile and evidence store policy."
+      },
+      "outcome": {
+        "terminalCondition": "Integration/contract protocol through production module boundaries",
+        "assertions": [],
+        "pass": "All declared assertions and applicable matrix cells pass with current admissible evidence.",
+        "fail": "Any declared assertion fails or observed state contradicts the required terminal condition.",
+        "blocked": "Fixture, environment, production boundary, consent, hardware, or protocol field is unavailable or incomplete."
+      },
+      "cleanup": {
+        "steps": [
+          "Release protocol-owned processes, handles, temporary artifacts, permissions, devices, and injected state."
+        ],
+        "verification": "No protocol resource or temporary mutation remains unless retained as immutable evidence."
+      },
+      "limitations": [
+        "This generated draft is not release-admissible until every empty applicability/assertion/detector/timeout and registry reference required by SCH-15-007 is materialized and reviewed."
+      ]
+    },
+    {
+      "id": "TEST-15-004",
+      "aliases": [],
+      "definitionVersion": "1.0.0-draft",
+      "status": "draft-incomplete",
+      "owner": {
+        "volume": "15",
+        "source": "documentation/product/specification/15-acceptance-and-release-conformance.md"
+      },
+      "templates": [
+        "integration-contract",
+        "headed-e2e"
+      ],
+      "description": "Visible headed Playwright workflow protocol using real input",
+      "applicability": {
+        "profiles": [],
+        "riskClasses": [],
+        "matrixCells": [],
+        "requirements": [],
+        "criteria": []
+      },
+      "setup": {
+        "fixtureIds": [
+          "FIX-15-004"
+        ],
+        "fixtureStatus": "registry-entry-required",
+        "environmentIds": [
+          "ENV-15-004"
+        ],
+        "environmentStatus": "registry-entry-required",
+        "preconditions": [
+          "Candidate, specification, fixture, environment, and protocol revisions are frozen."
+        ],
+        "productionBoundaries": [
+          "Use the production boundary claimed by the source protocol; mocks must be disclosed and cannot prove the mocked boundary."
+        ],
+        "allowedSubstitutions": [],
+        "realInput": true
+      },
+      "procedure": {
+        "steps": [
+          "Visible headed Playwright workflow protocol using real input"
+        ],
+        "retries": {
+          "max": 0,
+          "policy": "append-only-diagnostic-reruns"
+        },
+        "timeoutMs": null
+      },
+      "evidence": {
+        "captureSchema": "SCH-15-008",
+        "captures": [],
+        "detectors": [],
+        "artifacts": [],
+        "privacy": "Volume 13 minimization, consent, access, retention, and no-secret rules apply.",
+        "retention": "Defined by the active conformance profile and evidence store policy."
+      },
+      "outcome": {
+        "terminalCondition": "Visible headed Playwright workflow protocol using real input",
+        "assertions": [],
+        "pass": "All declared assertions and applicable matrix cells pass with current admissible evidence.",
+        "fail": "Any declared assertion fails or observed state contradicts the required terminal condition.",
+        "blocked": "Fixture, environment, production boundary, consent, hardware, or protocol field is unavailable or incomplete."
+      },
+      "cleanup": {
+        "steps": [
+          "Release protocol-owned processes, handles, temporary artifacts, permissions, devices, and injected state."
+        ],
+        "verification": "No protocol resource or temporary mutation remains unless retained as immutable evidence."
+      },
+      "limitations": [
+        "This generated draft is not release-admissible until every empty applicability/assertion/detector/timeout and registry reference required by SCH-15-007 is materialized and reviewed."
+      ]
+    },
+    {
+      "id": "TEST-15-005",
+      "aliases": [],
+      "definitionVersion": "1.0.0-draft",
+      "status": "draft-incomplete",
+      "owner": {
+        "volume": "15",
+        "source": "documentation/product/specification/15-acceptance-and-release-conformance.md"
+      },
+      "templates": [
+        "integration-contract",
+        "unit-model"
+      ],
+      "description": "Agenda-free eval capture and deterministic/temporal/semantic detector protocol",
+      "applicability": {
+        "profiles": [],
+        "riskClasses": [],
+        "matrixCells": [],
+        "requirements": [],
+        "criteria": []
+      },
+      "setup": {
+        "fixtureIds": [
+          "FIX-15-005"
+        ],
+        "fixtureStatus": "registry-entry-required",
+        "environmentIds": [
+          "ENV-15-005"
+        ],
+        "environmentStatus": "registry-entry-required",
+        "preconditions": [
+          "Candidate, specification, fixture, environment, and protocol revisions are frozen."
+        ],
+        "productionBoundaries": [
+          "Use the production boundary claimed by the source protocol; mocks must be disclosed and cannot prove the mocked boundary."
+        ],
+        "allowedSubstitutions": [],
+        "realInput": false
+      },
+      "procedure": {
+        "steps": [
+          "Agenda-free eval capture and deterministic/temporal/semantic detector protocol"
+        ],
+        "retries": {
+          "max": 0,
+          "policy": "append-only-diagnostic-reruns"
+        },
+        "timeoutMs": null
+      },
+      "evidence": {
+        "captureSchema": "SCH-15-008",
+        "captures": [],
+        "detectors": [],
+        "artifacts": [],
+        "privacy": "Volume 13 minimization, consent, access, retention, and no-secret rules apply.",
+        "retention": "Defined by the active conformance profile and evidence store policy."
+      },
+      "outcome": {
+        "terminalCondition": "Agenda-free eval capture and deterministic/temporal/semantic detector protocol",
+        "assertions": [],
+        "pass": "All declared assertions and applicable matrix cells pass with current admissible evidence.",
+        "fail": "Any declared assertion fails or observed state contradicts the required terminal condition.",
+        "blocked": "Fixture, environment, production boundary, consent, hardware, or protocol field is unavailable or incomplete."
+      },
+      "cleanup": {
+        "steps": [
+          "Release protocol-owned processes, handles, temporary artifacts, permissions, devices, and injected state."
+        ],
+        "verification": "No protocol resource or temporary mutation remains unless retained as immutable evidence."
+      },
+      "limitations": [
+        "This generated draft is not release-admissible until every empty applicability/assertion/detector/timeout and registry reference required by SCH-15-007 is materialized and reviewed."
+      ]
+    },
+    {
+      "id": "TEST-15-006",
+      "aliases": [],
+      "definitionVersion": "1.0.0-draft",
+      "status": "draft-incomplete",
+      "owner": {
+        "volume": "15",
+        "source": "documentation/product/specification/15-acceptance-and-release-conformance.md"
+      },
+      "templates": [
+        "integration-contract",
+        "artifact-roundtrip"
+      ],
+      "description": "Native file, clipboard, and output artifact parsing/round-trip protocol",
+      "applicability": {
+        "profiles": [],
+        "riskClasses": [],
+        "matrixCells": [],
+        "requirements": [],
+        "criteria": []
+      },
+      "setup": {
+        "fixtureIds": [
+          "FIX-15-006"
+        ],
+        "fixtureStatus": "registry-entry-required",
+        "environmentIds": [
+          "ENV-15-006"
+        ],
+        "environmentStatus": "registry-entry-required",
+        "preconditions": [
+          "Candidate, specification, fixture, environment, and protocol revisions are frozen."
+        ],
+        "productionBoundaries": [
+          "Use the production boundary claimed by the source protocol; mocks must be disclosed and cannot prove the mocked boundary."
+        ],
+        "allowedSubstitutions": [],
+        "realInput": false
+      },
+      "procedure": {
+        "steps": [
+          "Native file, clipboard, and output artifact parsing/round-trip protocol"
+        ],
+        "retries": {
+          "max": 0,
+          "policy": "append-only-diagnostic-reruns"
+        },
+        "timeoutMs": null
+      },
+      "evidence": {
+        "captureSchema": "SCH-15-008",
+        "captures": [],
+        "detectors": [],
+        "artifacts": [
+          "actual-produced-artifact",
+          "independent-parse-report"
+        ],
+        "privacy": "Volume 13 minimization, consent, access, retention, and no-secret rules apply.",
+        "retention": "Defined by the active conformance profile and evidence store policy."
+      },
+      "outcome": {
+        "terminalCondition": "Native file, clipboard, and output artifact parsing/round-trip protocol",
+        "assertions": [],
+        "pass": "All declared assertions and applicable matrix cells pass with current admissible evidence.",
+        "fail": "Any declared assertion fails or observed state contradicts the required terminal condition.",
+        "blocked": "Fixture, environment, production boundary, consent, hardware, or protocol field is unavailable or incomplete."
+      },
+      "cleanup": {
+        "steps": [
+          "Release protocol-owned processes, handles, temporary artifacts, permissions, devices, and injected state."
+        ],
+        "verification": "No protocol resource or temporary mutation remains unless retained as immutable evidence."
+      },
+      "limitations": [
+        "This generated draft is not release-admissible until every empty applicability/assertion/detector/timeout and registry reference required by SCH-15-007 is materialized and reviewed."
+      ]
+    },
+    {
+      "id": "TEST-15-007",
+      "aliases": [],
+      "definitionVersion": "1.0.0-draft",
+      "status": "draft-incomplete",
+      "owner": {
+        "volume": "15",
+        "source": "documentation/product/specification/15-acceptance-and-release-conformance.md"
+      },
+      "templates": [
+        "integration-contract"
+      ],
+      "description": "Multi-client collaboration, role, permission, offline, and convergence protocol",
+      "applicability": {
+        "profiles": [],
+        "riskClasses": [],
+        "matrixCells": [],
+        "requirements": [],
+        "criteria": []
+      },
+      "setup": {
+        "fixtureIds": [
+          "FIX-15-007"
+        ],
+        "fixtureStatus": "registry-entry-required",
+        "environmentIds": [
+          "ENV-15-007"
+        ],
+        "environmentStatus": "registry-entry-required",
+        "preconditions": [
+          "Candidate, specification, fixture, environment, and protocol revisions are frozen."
+        ],
+        "productionBoundaries": [
+          "Use the production boundary claimed by the source protocol; mocks must be disclosed and cannot prove the mocked boundary."
+        ],
+        "allowedSubstitutions": [],
+        "realInput": false
+      },
+      "procedure": {
+        "steps": [
+          "Multi-client collaboration, role, permission, offline, and convergence protocol"
+        ],
+        "retries": {
+          "max": 0,
+          "policy": "append-only-diagnostic-reruns"
+        },
+        "timeoutMs": null
+      },
+      "evidence": {
+        "captureSchema": "SCH-15-008",
+        "captures": [],
+        "detectors": [],
+        "artifacts": [],
+        "privacy": "Volume 13 minimization, consent, access, retention, and no-secret rules apply.",
+        "retention": "Defined by the active conformance profile and evidence store policy."
+      },
+      "outcome": {
+        "terminalCondition": "Multi-client collaboration, role, permission, offline, and convergence protocol",
+        "assertions": [],
+        "pass": "All declared assertions and applicable matrix cells pass with current admissible evidence.",
+        "fail": "Any declared assertion fails or observed state contradicts the required terminal condition.",
+        "blocked": "Fixture, environment, production boundary, consent, hardware, or protocol field is unavailable or incomplete."
+      },
+      "cleanup": {
+        "steps": [
+          "Release protocol-owned processes, handles, temporary artifacts, permissions, devices, and injected state."
+        ],
+        "verification": "No protocol resource or temporary mutation remains unless retained as immutable evidence."
+      },
+      "limitations": [
+        "This generated draft is not release-admissible until every empty applicability/assertion/detector/timeout and registry reference required by SCH-15-007 is materialized and reviewed."
+      ]
+    },
+    {
+      "id": "TEST-15-008",
+      "aliases": [],
+      "definitionVersion": "1.0.0-draft",
+      "status": "draft-incomplete",
+      "owner": {
+        "volume": "15",
+        "source": "documentation/product/specification/15-acceptance-and-release-conformance.md"
+      },
+      "templates": [
+        "integration-contract",
+        "accessibility-manual",
+        "security-fault"
+      ],
+      "description": "Runtime mode/input/display/failure and audience-privacy protocol",
+      "applicability": {
+        "profiles": [],
+        "riskClasses": [],
+        "matrixCells": [],
+        "requirements": [],
+        "criteria": []
+      },
+      "setup": {
+        "fixtureIds": [
+          "FIX-15-008"
+        ],
+        "fixtureStatus": "registry-entry-required",
+        "environmentIds": [
+          "ENV-15-008"
+        ],
+        "environmentStatus": "registry-entry-required",
+        "preconditions": [
+          "Candidate, specification, fixture, environment, and protocol revisions are frozen."
+        ],
+        "productionBoundaries": [
+          "Use the production boundary claimed by the source protocol; mocks must be disclosed and cannot prove the mocked boundary."
+        ],
+        "allowedSubstitutions": [],
+        "realInput": false
+      },
+      "procedure": {
+        "steps": [
+          "Runtime mode/input/display/failure and audience-privacy protocol"
+        ],
+        "retries": {
+          "max": 0,
+          "policy": "append-only-diagnostic-reruns"
+        },
+        "timeoutMs": null
+      },
+      "evidence": {
+        "captureSchema": "SCH-15-008",
+        "captures": [],
+        "detectors": [],
+        "artifacts": [],
+        "privacy": "Volume 13 minimization, consent, access, retention, and no-secret rules apply.",
+        "retention": "Defined by the active conformance profile and evidence store policy."
+      },
+      "outcome": {
+        "terminalCondition": "Runtime mode/input/display/failure and audience-privacy protocol",
+        "assertions": [],
+        "pass": "All declared assertions and applicable matrix cells pass with current admissible evidence.",
+        "fail": "Any declared assertion fails or observed state contradicts the required terminal condition.",
+        "blocked": "Fixture, environment, production boundary, consent, hardware, or protocol field is unavailable or incomplete."
+      },
+      "cleanup": {
+        "steps": [
+          "Release protocol-owned processes, handles, temporary artifacts, permissions, devices, and injected state."
+        ],
+        "verification": "No protocol resource or temporary mutation remains unless retained as immutable evidence."
+      },
+      "limitations": [
+        "This generated draft is not release-admissible until every empty applicability/assertion/detector/timeout and registry reference required by SCH-15-007 is materialized and reviewed."
+      ]
+    },
+    {
+      "id": "TEST-15-009",
+      "aliases": [],
+      "definitionVersion": "1.0.0-draft",
+      "status": "draft-incomplete",
+      "owner": {
+        "volume": "15",
+        "source": "documentation/product/specification/15-acceptance-and-release-conformance.md"
+      },
+      "templates": [
+        "integration-contract",
+        "accessibility-manual"
+      ],
+      "description": "Accessibility, internationalization, real IME, and manual AT protocol",
+      "applicability": {
+        "profiles": [],
+        "riskClasses": [],
+        "matrixCells": [],
+        "requirements": [],
+        "criteria": []
+      },
+      "setup": {
+        "fixtureIds": [
+          "FIX-15-009"
+        ],
+        "fixtureStatus": "registry-entry-required",
+        "environmentIds": [
+          "ENV-15-009"
+        ],
+        "environmentStatus": "registry-entry-required",
+        "preconditions": [
+          "Candidate, specification, fixture, environment, and protocol revisions are frozen."
+        ],
+        "productionBoundaries": [
+          "Use the production boundary claimed by the source protocol; mocks must be disclosed and cannot prove the mocked boundary."
+        ],
+        "allowedSubstitutions": [],
+        "realInput": false
+      },
+      "procedure": {
+        "steps": [
+          "Accessibility, internationalization, real IME, and manual AT protocol"
+        ],
+        "retries": {
+          "max": 0,
+          "policy": "append-only-diagnostic-reruns"
+        },
+        "timeoutMs": null
+      },
+      "evidence": {
+        "captureSchema": "SCH-15-008",
+        "captures": [],
+        "detectors": [],
+        "artifacts": [],
+        "privacy": "Volume 13 minimization, consent, access, retention, and no-secret rules apply.",
+        "retention": "Defined by the active conformance profile and evidence store policy."
+      },
+      "outcome": {
+        "terminalCondition": "Accessibility, internationalization, real IME, and manual AT protocol",
+        "assertions": [],
+        "pass": "All declared assertions and applicable matrix cells pass with current admissible evidence.",
+        "fail": "Any declared assertion fails or observed state contradicts the required terminal condition.",
+        "blocked": "Fixture, environment, production boundary, consent, hardware, or protocol field is unavailable or incomplete."
+      },
+      "cleanup": {
+        "steps": [
+          "Release protocol-owned processes, handles, temporary artifacts, permissions, devices, and injected state."
+        ],
+        "verification": "No protocol resource or temporary mutation remains unless retained as immutable evidence."
+      },
+      "limitations": [
+        "This generated draft is not release-admissible until every empty applicability/assertion/detector/timeout and registry reference required by SCH-15-007 is materialized and reviewed."
+      ]
+    },
+    {
+      "id": "TEST-15-010",
+      "aliases": [],
+      "definitionVersion": "1.0.0-draft",
+      "status": "draft-incomplete",
+      "owner": {
+        "volume": "15",
+        "source": "documentation/product/specification/15-acceptance-and-release-conformance.md"
+      },
+      "templates": [
+        "integration-contract",
+        "performance-soak"
+      ],
+      "description": "Volume 14 benchmark, frame, memory, capacity, and prolonged-use protocol",
+      "applicability": {
+        "profiles": [],
+        "riskClasses": [],
+        "matrixCells": [],
+        "requirements": [],
+        "criteria": []
+      },
+      "setup": {
+        "fixtureIds": [
+          "FIX-15-010"
+        ],
+        "fixtureStatus": "registry-entry-required",
+        "environmentIds": [
+          "ENV-15-010"
+        ],
+        "environmentStatus": "registry-entry-required",
+        "preconditions": [
+          "Candidate, specification, fixture, environment, and protocol revisions are frozen."
+        ],
+        "productionBoundaries": [
+          "Use the production boundary claimed by the source protocol; mocks must be disclosed and cannot prove the mocked boundary."
+        ],
+        "allowedSubstitutions": [],
+        "realInput": false
+      },
+      "procedure": {
+        "steps": [
+          "Volume 14 benchmark, frame, memory, capacity, and prolonged-use protocol"
+        ],
+        "retries": {
+          "max": 0,
+          "policy": "append-only-diagnostic-reruns"
+        },
+        "timeoutMs": null
+      },
+      "evidence": {
+        "captureSchema": "SCH-15-008",
+        "captures": [],
+        "detectors": [],
+        "artifacts": [],
+        "privacy": "Volume 13 minimization, consent, access, retention, and no-secret rules apply.",
+        "retention": "Defined by the active conformance profile and evidence store policy."
+      },
+      "outcome": {
+        "terminalCondition": "Volume 14 benchmark, frame, memory, capacity, and prolonged-use protocol",
+        "assertions": [],
+        "pass": "All declared assertions and applicable matrix cells pass with current admissible evidence.",
+        "fail": "Any declared assertion fails or observed state contradicts the required terminal condition.",
+        "blocked": "Fixture, environment, production boundary, consent, hardware, or protocol field is unavailable or incomplete."
+      },
+      "cleanup": {
+        "steps": [
+          "Release protocol-owned processes, handles, temporary artifacts, permissions, devices, and injected state."
+        ],
+        "verification": "No protocol resource or temporary mutation remains unless retained as immutable evidence."
+      },
+      "limitations": [
+        "This generated draft is not release-admissible until every empty applicability/assertion/detector/timeout and registry reference required by SCH-15-007 is materialized and reviewed."
+      ]
+    },
+    {
+      "id": "TEST-15-011",
+      "aliases": [],
+      "definitionVersion": "1.0.0-draft",
+      "status": "draft-incomplete",
+      "owner": {
+        "volume": "15",
+        "source": "documentation/product/specification/15-acceptance-and-release-conformance.md"
+      },
+      "templates": [
+        "integration-contract",
+        "security-fault"
+      ],
+      "description": "Fault injection, crash, durability, migration, recovery, and runbook protocol",
+      "applicability": {
+        "profiles": [],
+        "riskClasses": [],
+        "matrixCells": [],
+        "requirements": [],
+        "criteria": []
+      },
+      "setup": {
+        "fixtureIds": [
+          "FIX-15-011"
+        ],
+        "fixtureStatus": "registry-entry-required",
+        "environmentIds": [
+          "ENV-15-011"
+        ],
+        "environmentStatus": "registry-entry-required",
+        "preconditions": [
+          "Candidate, specification, fixture, environment, and protocol revisions are frozen."
+        ],
+        "productionBoundaries": [
+          "Use the production boundary claimed by the source protocol; mocks must be disclosed and cannot prove the mocked boundary."
+        ],
+        "allowedSubstitutions": [],
+        "realInput": false
+      },
+      "procedure": {
+        "steps": [
+          "Fault injection, crash, durability, migration, recovery, and runbook protocol"
+        ],
+        "retries": {
+          "max": 0,
+          "policy": "append-only-diagnostic-reruns"
+        },
+        "timeoutMs": null
+      },
+      "evidence": {
+        "captureSchema": "SCH-15-008",
+        "captures": [],
+        "detectors": [],
+        "artifacts": [],
+        "privacy": "Volume 13 minimization, consent, access, retention, and no-secret rules apply.",
+        "retention": "Defined by the active conformance profile and evidence store policy."
+      },
+      "outcome": {
+        "terminalCondition": "Fault injection, crash, durability, migration, recovery, and runbook protocol",
+        "assertions": [],
+        "pass": "All declared assertions and applicable matrix cells pass with current admissible evidence.",
+        "fail": "Any declared assertion fails or observed state contradicts the required terminal condition.",
+        "blocked": "Fixture, environment, production boundary, consent, hardware, or protocol field is unavailable or incomplete."
+      },
+      "cleanup": {
+        "steps": [
+          "Release protocol-owned processes, handles, temporary artifacts, permissions, devices, and injected state."
+        ],
+        "verification": "No protocol resource or temporary mutation remains unless retained as immutable evidence."
+      },
+      "limitations": [
+        "This generated draft is not release-admissible until every empty applicability/assertion/detector/timeout and registry reference required by SCH-15-007 is materialized and reviewed."
+      ]
+    },
+    {
+      "id": "TEST-15-012",
+      "aliases": [],
+      "definitionVersion": "1.0.0-draft",
+      "status": "draft-incomplete",
+      "owner": {
+        "volume": "15",
+        "source": "documentation/product/specification/15-acceptance-and-release-conformance.md"
+      },
+      "templates": [
+        "integration-contract",
+        "security-fault"
+      ],
+      "description": "Security, privacy, malformed-input, authorization, secret, and telemetry protocol",
+      "applicability": {
+        "profiles": [],
+        "riskClasses": [],
+        "matrixCells": [],
+        "requirements": [],
+        "criteria": []
+      },
+      "setup": {
+        "fixtureIds": [
+          "FIX-15-012"
+        ],
+        "fixtureStatus": "registry-entry-required",
+        "environmentIds": [
+          "ENV-15-012"
+        ],
+        "environmentStatus": "registry-entry-required",
+        "preconditions": [
+          "Candidate, specification, fixture, environment, and protocol revisions are frozen."
+        ],
+        "productionBoundaries": [
+          "Use the production boundary claimed by the source protocol; mocks must be disclosed and cannot prove the mocked boundary."
+        ],
+        "allowedSubstitutions": [],
+        "realInput": false
+      },
+      "procedure": {
+        "steps": [
+          "Security, privacy, malformed-input, authorization, secret, and telemetry protocol"
+        ],
+        "retries": {
+          "max": 0,
+          "policy": "append-only-diagnostic-reruns"
+        },
+        "timeoutMs": null
+      },
+      "evidence": {
+        "captureSchema": "SCH-15-008",
+        "captures": [],
+        "detectors": [],
+        "artifacts": [],
+        "privacy": "Volume 13 minimization, consent, access, retention, and no-secret rules apply.",
+        "retention": "Defined by the active conformance profile and evidence store policy."
+      },
+      "outcome": {
+        "terminalCondition": "Security, privacy, malformed-input, authorization, secret, and telemetry protocol",
+        "assertions": [],
+        "pass": "All declared assertions and applicable matrix cells pass with current admissible evidence.",
+        "fail": "Any declared assertion fails or observed state contradicts the required terminal condition.",
+        "blocked": "Fixture, environment, production boundary, consent, hardware, or protocol field is unavailable or incomplete."
+      },
+      "cleanup": {
+        "steps": [
+          "Release protocol-owned processes, handles, temporary artifacts, permissions, devices, and injected state."
+        ],
+        "verification": "No protocol resource or temporary mutation remains unless retained as immutable evidence."
+      },
+      "limitations": [
+        "This generated draft is not release-admissible until every empty applicability/assertion/detector/timeout and registry reference required by SCH-15-007 is materialized and reviewed."
+      ]
+    },
+    {
+      "id": "TEST-15-013",
+      "aliases": [],
+      "definitionVersion": "1.0.0-draft",
+      "status": "draft-incomplete",
+      "owner": {
+        "volume": "15",
+        "source": "documentation/product/specification/15-acceptance-and-release-conformance.md"
+      },
+      "templates": [
+        "integration-contract",
+        "headed-e2e",
+        "accessibility-manual"
+      ],
+      "description": "Platform/browser/device/hardware/Office/printer/codec compatibility protocol",
+      "applicability": {
+        "profiles": [],
+        "riskClasses": [],
+        "matrixCells": [],
+        "requirements": [],
+        "criteria": []
+      },
+      "setup": {
+        "fixtureIds": [
+          "FIX-15-013"
+        ],
+        "fixtureStatus": "registry-entry-required",
+        "environmentIds": [
+          "ENV-15-013"
+        ],
+        "environmentStatus": "registry-entry-required",
+        "preconditions": [
+          "Candidate, specification, fixture, environment, and protocol revisions are frozen."
+        ],
+        "productionBoundaries": [
+          "Use the production boundary claimed by the source protocol; mocks must be disclosed and cannot prove the mocked boundary."
+        ],
+        "allowedSubstitutions": [],
+        "realInput": true
+      },
+      "procedure": {
+        "steps": [
+          "Platform/browser/device/hardware/Office/printer/codec compatibility protocol"
+        ],
+        "retries": {
+          "max": 0,
+          "policy": "append-only-diagnostic-reruns"
+        },
+        "timeoutMs": null
+      },
+      "evidence": {
+        "captureSchema": "SCH-15-008",
+        "captures": [],
+        "detectors": [],
+        "artifacts": [],
+        "privacy": "Volume 13 minimization, consent, access, retention, and no-secret rules apply.",
+        "retention": "Defined by the active conformance profile and evidence store policy."
+      },
+      "outcome": {
+        "terminalCondition": "Platform/browser/device/hardware/Office/printer/codec compatibility protocol",
+        "assertions": [],
+        "pass": "All declared assertions and applicable matrix cells pass with current admissible evidence.",
+        "fail": "Any declared assertion fails or observed state contradicts the required terminal condition.",
+        "blocked": "Fixture, environment, production boundary, consent, hardware, or protocol field is unavailable or incomplete."
+      },
+      "cleanup": {
+        "steps": [
+          "Release protocol-owned processes, handles, temporary artifacts, permissions, devices, and injected state."
+        ],
+        "verification": "No protocol resource or temporary mutation remains unless retained as immutable evidence."
+      },
+      "limitations": [
+        "This generated draft is not release-admissible until every empty applicability/assertion/detector/timeout and registry reference required by SCH-15-007 is materialized and reviewed."
+      ]
+    },
+    {
+      "id": "TEST-15-014",
+      "aliases": [],
+      "definitionVersion": "1.0.0-draft",
+      "status": "draft-incomplete",
+      "owner": {
+        "volume": "15",
+        "source": "documentation/product/specification/15-acceptance-and-release-conformance.md"
+      },
+      "templates": [
+        "integration-contract"
+      ],
+      "description": "Release dossier reconciliation, independent review, decision, and rollback drill",
+      "applicability": {
+        "profiles": [],
+        "riskClasses": [],
+        "matrixCells": [],
+        "requirements": [],
+        "criteria": []
+      },
+      "setup": {
+        "fixtureIds": [
+          "FIX-15-014"
+        ],
+        "fixtureStatus": "registry-entry-required",
+        "environmentIds": [
+          "ENV-15-014"
+        ],
+        "environmentStatus": "registry-entry-required",
+        "preconditions": [
+          "Candidate, specification, fixture, environment, and protocol revisions are frozen."
+        ],
+        "productionBoundaries": [
+          "Use the production boundary claimed by the source protocol; mocks must be disclosed and cannot prove the mocked boundary."
+        ],
+        "allowedSubstitutions": [],
+        "realInput": false
+      },
+      "procedure": {
+        "steps": [
+          "Release dossier reconciliation, independent review, decision, and rollback drill"
+        ],
+        "retries": {
+          "max": 0,
+          "policy": "append-only-diagnostic-reruns"
+        },
+        "timeoutMs": null
+      },
+      "evidence": {
+        "captureSchema": "SCH-15-008",
+        "captures": [],
+        "detectors": [],
+        "artifacts": [],
+        "privacy": "Volume 13 minimization, consent, access, retention, and no-secret rules apply.",
+        "retention": "Defined by the active conformance profile and evidence store policy."
+      },
+      "outcome": {
+        "terminalCondition": "Release dossier reconciliation, independent review, decision, and rollback drill",
+        "assertions": [],
+        "pass": "All declared assertions and applicable matrix cells pass with current admissible evidence.",
+        "fail": "Any declared assertion fails or observed state contradicts the required terminal condition.",
+        "blocked": "Fixture, environment, production boundary, consent, hardware, or protocol field is unavailable or incomplete."
+      },
+      "cleanup": {
+        "steps": [
+          "Release protocol-owned processes, handles, temporary artifacts, permissions, devices, and injected state."
+        ],
+        "verification": "No protocol resource or temporary mutation remains unless retained as immutable evidence."
+      },
+      "limitations": [
+        "This generated draft is not release-admissible until every empty applicability/assertion/detector/timeout and registry reference required by SCH-15-007 is materialized and reviewed."
+      ]
+    }
+  ]
+}

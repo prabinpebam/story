@@ -1,9 +1,22 @@
-# Story Product Specification
+# Story Parent Capability Charter
 
-> **Status:** Normative product direction
+> **Status:** Normative parent-capability gateway
 > **Owner:** Story product and engineering
 > **Last updated:** July 10, 2026
-> **Scope:** Defines what Story must become. Feature specifications define how individual systems satisfy this contract.
+> **Scope:** Preserves the stable `DES`, `PRE`, and `ARC` parent capabilities. The complete normative product specification is [Story Product Specification System v2](specification/README.md).
+
+## Specification v2
+
+The exhaustive specification is divided into 16 numbered volumes so each product concept has one normative owner. Start with:
+
+1. [Product Constitution](specification/01-product-constitution.md) for vision, users, primary wedge, Story Systems, audience editions, narrative components, bounded parity, and outcomes.
+2. [Experience Architecture](specification/02-experience-architecture.md) for the canonical shell, five workspace views, scopes, tools, states, adaptive tiers, UI language, and Quiet Stagecraft direction.
+3. [Figma-Class Design Authoring](specification/08-figma-class-design-authoring.md) and [PowerPoint-Class Presentation Authoring](specification/09-powerpoint-class-presentation-authoring.md) for detailed familiar capability contracts.
+4. [Presentation Runtime](specification/10-presentation-runtime.md) and [Interchange and Output](specification/11-interchange-and-output.md) for deterministic delivery and preservation-first professional output.
+5. [R1 Preview Profile](specification/profiles/R1-preview.md) for the first executable 24-workflow product slice.
+6. [Familiarity and Story-Native Benchmark](specification/benchmarks/familiarity-and-story-native.md) for the fixed transfer and differentiation tasks.
+
+This charter remains the immutable parent-ID registry. Numbered volumes decompose these broad capabilities into atomic `REQ-*`, `AC-*`, schema, state, flow, objective, protocol, and evidence contracts.
 
 ## 1. Product Thesis
 
@@ -14,7 +27,7 @@ Story is a professional presentation design environment with two equally load-be
 
 Story is not a drawing application with a slideshow button, and it is not a slide editor with a decorative vector tool. Design and presentation share one document model, one editing environment, and one fidelity contract.
 
-The product advantage is the combination: design-system precision while authoring, presentation-native structure and storytelling, and reliable delivery from the same source document.
+Parity is the adoption floor. Story's advantage is the governed bridge: one living presentation system can produce reusable narrative components, audience editions, deterministic live runs, and professional outputs without duplicate-deck drift or silent fidelity loss.
 
 ## 2. Product Promise
 
@@ -28,7 +41,7 @@ Story must let a user move through this complete workflow without changing tools
 6. Present confidently to an audience on one or more displays.
 7. Export or exchange the work without silent loss of content or behavior.
 
-The authoring canvas must remain the source of truth throughout this workflow. Editor, thumbnail, presenter, audience, print, and export surfaces must resolve the same document semantics.
+The canonical authored document is the source of truth. Canvas, Grid, Outline, Notes, System, thumbnail, presenter, audience, recording, print, and output surfaces are projections of the same semantic contract or declare a bounded degradation.
 
 ## 3. Target Users
 

@@ -1,0 +1,56 @@
+{
+  "schemaVersion": "story.fixture-manifest/1.0.0",
+  "fixtureId": "FIX-PRODUCT-MEDIUM-01",
+  "version": "1.0.0-draft",
+  "status": "specified-not-materialized",
+  "owner": "Product Research and Quality",
+  "sourceProtocol": "TEST-01-001",
+  "description": "Frozen 24-slide medium product-launch presentation for Figma-transfer, PowerPoint-transfer, Story-native, accessibility, failure, and interchange benchmarks.",
+  "contentProfile": {
+    "slides": 24,
+    "sections": 4,
+    "masterFamilies": 2,
+    "layoutsMinimum": 3,
+    "visualElements": 180,
+    "nestedGroups": 30,
+    "componentSets": 1,
+    "variants": 3,
+    "animationSteps": 18,
+    "notesSlides": 8,
+    "audienceBriefs": ["executive", "customer"]
+  },
+  "requiredFamilies": [
+    "rich-text-and-ime",
+    "responsive-card-component",
+    "styles-and-two-variable-modes",
+    "fills-effects-media-masks-booleans",
+    "editable-svg-icon",
+    "native-table",
+    "column-and-combo-charts",
+    "process-diagram",
+    "notes-transitions-morph-animation",
+    "accessibility-and-captions",
+    "preservable-unknown-pptx-part",
+    "base-narrative-candidate",
+    "compatible-source-update",
+    "incompatible-source-update"
+  ],
+  "requiredVariants": [
+    "missing-font",
+    "offline-provider-interruption",
+    "audience-window-failure",
+    "wrong-edition",
+    "custom-show-edition-alias",
+    "copied-presentation-edition",
+    "silent-source-drift"
+  ],
+  "artifacts": {
+    "storySource": { "path": null, "sha256": null, "status": "required-before-pilot" },
+    "pptxSource": { "path": null, "sha256": null, "status": "required-before-pilot" },
+    "expectedSemanticManifest": { "path": null, "sha256": null, "status": "required-before-pilot" },
+    "renderReferences": { "path": null, "sha256": null, "status": "required-before-pilot" },
+    "taskCheckpoints": { "path": null, "sha256": null, "status": "required-before-pilot" },
+    "taskValidators": { "path": null, "sha256": null, "status": "required-before-pilot" }
+  },
+  "releaseRule": "No R1 familiarity or Story-native benchmark execution is admissible until every artifact has a non-null path and SHA-256, all 34 task validators pass self-tests, and the fixture conformance protocol TEST-14-001 passes."
+}

@@ -3,12 +3,13 @@
 > **Status:** Evidence ledger  
 > **Audit date:** July 10, 2026  
 > **Code baseline:** `244df70`  
-> **Requirement source:** [Story Product Specification](product-spec.md)  
+> **Requirement source:** [Parent Capability Charter](product-spec.md)
+> **Atomic specification:** [Story Product Specification System](specification/README.md)
 > **Detailed findings:** [Capability Audit](capability-audit.md)
 
 ## 1. Status Contract
 
-This ledger is a point-in-time map, not a substitute for executable evidence.
+This ledger is a point-in-time map of the 74 immutable parent capabilities, not a substitute for executable evidence and not a status ledger for the 1,465 atomic v2 requirements. Atomic requirement/profile status must be derived through Volumes 00 and 15.
 
 | Field | Values | Meaning |
 |---|---|---|

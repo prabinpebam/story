@@ -4,25 +4,31 @@ This directory contains product intent, feature specifications, implementation e
 
 ## Start Here
 
-1. [Product Specification](product/product-spec.md) defines the product Story must become.
-2. [Capability Audit](product/capability-audit.md) records what the current repository proves and what remains missing.
-3. [Requirement Status](product/requirement-status.md) maps every product requirement to current evidence and the next delivery program.
-4. [Delivery Roadmap](product/delivery-roadmap.md) defines dependency order and release gates.
-5. [Product Glossary](product/glossary.md) defines canonical terminology.
-6. [Principles](product/principles.md) defines cross-cutting engineering and design constraints.
-7. [Feature Specifications](specs/README.md) route to detailed domain behavior and architecture.
-8. [Automation](automation/index.md) defines how user-visible behavior is verified.
+1. [Complete Product Specification](product/specification/README.md) is the normative multi-volume system from vision through release evidence.
+2. [Product Constitution](product/specification/01-product-constitution.md) defines why Story exists, whom it serves first, and what is uniquely Story.
+3. [Experience Architecture](product/specification/02-experience-architecture.md) defines the shell, views, scopes, tools, states, adaptive tiers, and visual direction.
+4. [R1 Preview Profile](product/specification/profiles/R1-preview.md) defines the first executable 24-workflow product slice.
+5. [Familiarity and Story-Native Benchmark](product/specification/benchmarks/familiarity-and-story-native.md) freezes the Figma, PowerPoint, and Story-native evaluation tasks.
+6. [Parent Capability Charter](product/product-spec.md) retains the stable `DES`, `PRE`, and `ARC` capability IDs and provides a concise gateway to v2.
+7. [Capability Audit](product/capability-audit.md) records what the current repository proves and what remains missing.
+8. [Parent Requirement Status](product/requirement-status.md) maps the 74 parent capabilities to current evidence and delivery programs.
+9. [Delivery Roadmap](product/delivery-roadmap.md) defines dependency order and release gates.
+10. [Feature Specifications](specs/README.md) route to detailed domain behavior and architecture.
+11. [Automation](automation/index.md) defines how user-visible behavior is verified.
 
 ## Authority Model
 
 When documents disagree, use this order:
 
-1. **Product intent:** `product/product-spec.md`
-2. **Accepted domain behavior:** the domain entry point under `specs/`
-3. **Current implementation:** production source code
-4. **Current verification:** executable tests and dated artifacts from the same revision
-5. **Current status:** `product/capability-audit.md`
-6. **Historical context:** `archive/`
+1. **Specification governance and ownership:** `product/specification/00-governance-and-traceability.md`
+2. **Product intent:** `product/specification/01-product-constitution.md`
+3. **Accepted numbered-volume behavior:** the sole owning volume under `product/specification/`
+4. **Selected release scope:** the accepted profile under `product/specification/profiles/`
+5. **Adopted domain detail:** the domain entry point under `specs/`
+6. **Current implementation:** production source code
+7. **Current verification:** executable tests and dated artifacts from the same revision
+8. **Current status:** `product/capability-audit.md`
+9. **Historical context:** `archive/`
 
 Source code is authoritative for what the current build does, but it does not override the intended product behavior. A difference between code and accepted specification is a product gap, not permission to rewrite the requirement silently.
 
@@ -72,4 +78,4 @@ A feature change should update, in order:
 4. Deterministic tests and headed user-flow evidence.
 5. Capability status after evidence passes on the current revision.
 
-The [Definition of Done](product/product-spec.md#9-definition-of-done) applies to every major capability.
+Run `npm run spec:validate` after changing the product specification. The [Completeness Standard](product/specification/README.md#7-completeness-standard) and [Acceptance and Release Conformance](product/specification/15-acceptance-and-release-conformance.md) apply to every major capability.

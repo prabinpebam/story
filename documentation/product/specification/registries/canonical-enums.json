@@ -1,0 +1,47 @@
+{
+  "schemaVersion": "story.canonical-enums/1.0.0",
+  "version": "1.0.0-draft",
+  "owner": "STORY-SPEC-02",
+  "windowTiers": [
+    {
+      "id": "W4",
+      "name": "Expansive",
+      "condition": "width >= 1440 CSS px and height >= 800 CSS px",
+      "authoringSupport": "full"
+    },
+    {
+      "id": "W3",
+      "name": "Standard",
+      "condition": "width 1100-1439 CSS px and height >= 700 CSS px",
+      "authoringSupport": "full"
+    },
+    {
+      "id": "W2",
+      "name": "Compact",
+      "condition": "width 760-1099 CSS px or height 560-699 CSS px",
+      "authoringSupport": "full only while center stage >= 480 x 360 CSS px"
+    },
+    {
+      "id": "W1",
+      "name": "Focused",
+      "condition": "width < 760 CSS px or height < 560 CSS px",
+      "authoringSupport": "bounded"
+    }
+  ],
+  "inputTiers": [
+    { "id": "D3", "name": "Precision" },
+    { "id": "D2", "name": "Hybrid" },
+    { "id": "D1", "name": "Companion" }
+  ],
+  "workspaceViews": ["Canvas", "Grid", "Outline", "Notes", "System"],
+  "runtimeModes": ["Preview", "Rehearsal", "Recording", "Presentation", "Kiosk"],
+  "surfaceRoles": ["Editor", "Audience", "Presenter", "Recorder controller", "Remote controller", "Observer"],
+  "placements": ["Fullscreen", "Windowed", "Embedded preview", "External display"],
+  "authoringRuntimeState": null,
+  "notes": [
+    "Authoring is represented by no active runtime, not by a runtime-mode enum value.",
+    "Presenter View is the Presenter surface role, not a runtime mode.",
+    "Fullscreen and Windowed are placement values, not runtime modes.",
+    "Reading is not a canonical mode; the equivalent nonauthoring workflow is Preview."
+  ]
+}

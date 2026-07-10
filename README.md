@@ -8,6 +8,9 @@ Story is a professional, browser-based presentation design environment. Its prod
 The governing requirements, current audit, and delivery sequence are documented in:
 
 - [Product Specification](./documentation/product/product-spec.md)
+- [Complete Specification System](./documentation/product/specification/README.md)
+- [R1 Preview Profile](./documentation/product/specification/profiles/R1-preview.md)
+- [Familiarity and Story-Native Benchmark](./documentation/product/specification/benchmarks/familiarity-and-story-native.md)
 - [Capability Audit](./documentation/product/capability-audit.md)
 - [Requirement Status](./documentation/product/requirement-status.md)
 - [Delivery Roadmap](./documentation/product/delivery-roadmap.md)
@@ -77,6 +80,11 @@ Prereqs:
    Navigate to `http://localhost:5173`
 
 ## Testing
+
+```bash
+# Validate the complete product specification graph
+npm run spec:validate
+```
 
 ```bash
 # Run all tests
