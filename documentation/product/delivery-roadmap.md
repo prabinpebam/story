@@ -249,6 +249,21 @@ PowerPoint-experienced users must complete benchmark tasks covering sections, ma
 3. Compatibility reports match actual artifact degradation.
 4. PDF, print, video, and web outputs are inspected semantically and visually, not only checked for file existence.
 
+## 8.1 Program 5.5: Story-Native Delivery Proof
+
+**Priority:** P1
+**Outcome:** The differentiating Story-native model is proven through real presentation and output boundaries before broad delivery expansion.
+
+| Work package | Scope | Product requirements | Depends on |
+|---|---|---|---|
+| NAR-510 Runtime admission | Bind base/edition identity, resolution hash, show plan, variable modes, locale, readiness, accessibility, capability, and privacy into `SCH-10-001`. | `REQ-09-178`, `REQ-10-003`, `REQ-10-024` | NAR-005, PPT-222, SCN-004 |
+| NAR-511 Correct-edition delivery | Launch executive/customer editions with Presenter/Audience privacy, exact notes/settings/order, and recoverable audience-window loss. | `REQ-09-179`, `REQ-10-121`, `REQ-10-131`, `REQ-10-185`, `REQ-10-191` | NAR-510, RUN-502 thin adapter |
+| NAR-512 Edition-aware artifacts | Produce PPTX, PDF, and portable web artifacts bound to the same admission snapshot and independent compatibility reports. | `REQ-11-221` through `REQ-11-223` | OUT-302, OUT-303, OUT-310, OUT-312 thin adapters |
+
+### Program 5.5 Exit Gate
+
+`BENCH-STORY-07` and `BENCH-STORY-08` pass with actual headed runtime and parsed artifacts. Wrong-edition, stale-readiness, copied-root, compatibility-misattribution, notes-leak, and tampered-snapshot fixtures all fail before audience reveal or artifact finalization.
+
 ## 9. Program 6: Collaboration, Review, and Recovery
 
 **Priority:** P1  

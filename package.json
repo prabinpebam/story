@@ -29,7 +29,7 @@
     "spec:r1:check": "node scripts/generate-r1-profile-ledger.mjs --check",
     "spec:protocols": "node scripts/generate-protocol-registry.mjs",
     "spec:protocols:check": "node scripts/generate-protocol-registry.mjs --check",
-    "spec:validate": "node scripts/generate-product-spec-index.mjs --check && node scripts/generate-r1-profile-ledger.mjs --check && node scripts/generate-protocol-registry.mjs --check && node scripts/validate-product-spec.mjs",
+    "spec:validate": "node scripts/generate-product-spec-index.mjs --check && node scripts/generate-r1-profile-ledger.mjs --check && node scripts/generate-protocol-registry.mjs --check && node scripts/validate-product-spec.mjs && node scripts/validate-product-spec-hardening.mjs",
     "lint": "eslint src/**/*.js",
     "lint:fix": "eslint src/**/*.js --fix"
   },
