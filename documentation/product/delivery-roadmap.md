@@ -3,10 +3,13 @@
 > **Status:** Normative sequencing plan  
 > **Last updated:** July 10, 2026  
 > **Inputs:** [Product Specification](product-spec.md) and [Capability Audit](capability-audit.md)
+> **Master execution and total-closure plan:** [Story 100% Implementation Plan](implementation-plan.md)
 
 ## 1. Roadmap Rule
 
 The product goal cannot be reached by implementing a long list of independent controls. Story must first make document mutation, history, files, assets, collaboration, rendering, and evidence one system. Major design and presentation features are then built on that foundation in complete vertical workflows.
+
+This roadmap is the detailed work-package catalog. The [Story 100% Implementation Plan](implementation-plan.md) consolidates these programs into six execution phases and defines the non-gameable completion standard. Where sequencing language differs, the implementation plan controls phase order and this roadmap controls work-package detail; neither may weaken the numbered specification volumes.
 
 Priority definitions:
 

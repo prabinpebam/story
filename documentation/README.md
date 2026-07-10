@@ -12,9 +12,10 @@ This directory contains product intent, feature specifications, implementation e
 6. [Parent Capability Charter](product/product-spec.md) retains the stable `DES`, `PRE`, and `ARC` capability IDs and provides a concise gateway to v2.
 7. [Capability Audit](product/capability-audit.md) records what the current repository proves and what remains missing.
 8. [Parent Requirement Status](product/requirement-status.md) maps the 74 parent capabilities to current evidence and delivery programs.
-9. [Delivery Roadmap](product/delivery-roadmap.md) defines dependency order and release gates.
-10. [Feature Specifications](specs/README.md) route to detailed domain behavior and architecture.
-11. [Automation](automation/index.md) defines how user-visible behavior is verified.
+9. [100% Implementation Plan](product/implementation-plan.md) defines the six execution phases and strict full-specification closure standard.
+10. [Delivery Roadmap](product/delivery-roadmap.md) defines detailed work packages, dependency order, and release gates.
+11. [Feature Specifications](specs/README.md) route to detailed domain behavior and architecture.
+12. [Automation](automation/index.md) defines how user-visible behavior is verified.
 
 ## Authority Model
 

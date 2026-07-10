@@ -50,6 +50,7 @@ Parity is the adoption floor, not the complete reason to choose Story. Story's p
 | [Current Product Entry](../product-spec.md) | Human-readable entry point and constitutional summary | Normative only where it links to the volumes above |
 | [Capability Audit](../capability-audit.md) | Dated description of verified current implementation and gaps | Informative; never creates requirements |
 | [Requirement Status](../requirement-status.md) | Dated status of parent capabilities | Informative; must be generated or reviewed against traceability records |
+| [100% Implementation Plan](../implementation-plan.md) | Six-phase execution program and strict full-specification closure contract | Controlled plan; owns phase sequence and completion accounting but never feature semantics |
 | [Delivery Roadmap](../delivery-roadmap.md) | Dependency-ordered implementation programs | Controlled plan; may sequence but never weaken requirements |
 | [Glossary](../glossary.md) | Transitional terminology registry | Normative until terminology moves into Volume 00 |
 | [Product Principles](../principles.md) | Engineering and craft reminders | Normative where not superseded by a numbered volume |
