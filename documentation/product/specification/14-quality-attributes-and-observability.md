@@ -1047,7 +1047,7 @@ Every protocol run emits `SCH-14-008`. Volume 15 assigns an immutable ID using t
 | [Volume 07](07-collaboration-identity-and-sharing.md) | Collaboration objectives, convergence, revocation, RPO/RTO, and load protocols | Current isolated modules are not conformance evidence. |
 | [Volume 10](10-presentation-runtime.md) | Runtime clocks, readiness, frame privacy, recovery, and event trace | This volume owns thresholds; Volume 10 owns behavior. |
 | [Volume 11](11-interchange-and-output.md) | Artifact validation, fidelity dimensions, output throughput boundaries | Enabled labels and file existence are excluded as evidence. |
-| [Performance Benchmarks](../../automation/testing/performance-benchmarks.md) | Existing metric IDs, scenario vocabulary, target candidates, environment fingerprint, and stability concept | Historical run output is stale evidence; several marks are provisional and runner paths are stale. |
+| [Performance Benchmarks](../../automation/testing/performance-benchmarks.md) | Existing metric IDs, scenario vocabulary, target candidates, environment fingerprint, and stability concept | Historical run output is stale evidence and several marks remain provisional; canonical runner paths and headed launch wiring are repaired but do not create release evidence by themselves. |
 | [Performance Testing](../../automation/testing/performance-testing.md) | Performance API, CDP memory, frame, and baseline practices | Example thresholds yield to this volume; developer-machine and headless evidence cannot gate release. |
 | [Eval Loop Framework](../../automation/eval-loop/eval-loop-framework.md) | Three-layer state capture, temporal detectors, real input, screenshots, and convergence | Capture remains agenda-free; detector-specific filtering cannot replace raw observation. |
 | [DOM State Capture](../../automation/eval-loop/dom-state-capture-guide.md) | DOM/store/canvas capture and visual hit-test evidence | Current selectors and store fields are implementation-specific. |
@@ -1055,7 +1055,7 @@ Every protocol run emits `SCH-14-008`. Volume 15 assigns an immutable ID using t
 
 ### 15.3 Known Baseline Constraints
 
-The current performance runner references removed `documentation/03-automation` registry paths, labels several end conditions provisional, caps samples below this volume's release protocol, and uses a scaled-down placeholder for `soak.60min`. These facts require repair before those paths can create current release evidence. This statement is a specification input, not a claim about future repair or current conformance.
+The performance runner now uses the active `documentation/automation/testing` registry/catalog/run paths and explicitly launches headed Playwright. Several end conditions remain provisional, benchmark defaults cap samples below this volume's release protocol, and `soak.60min` remains a scaled-down diagnostic placeholder. Those remaining constraints prevent current release evidence until the exact protocol workload, marks, samples, environments, and duration are materialized and pass. Repaired command wiring is not conformance evidence.
 
 ---
 

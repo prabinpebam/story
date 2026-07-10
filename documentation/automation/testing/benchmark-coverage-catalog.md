@@ -3,7 +3,7 @@
 This document defines the **required coverage surface** for performance benchmarking. It is meant to prevent “silent omissions” where a subsystem exists in the app but has no benchmark coverage.
 
 It is intentionally split into:
-- **V1 required coverage**: the minimum contract we must always track (currently aligned to the registry in `11-performance-benchmark-report.md`).
+- **V1 required coverage**: the minimum contract we must always track (currently aligned to the registry in `performance-benchmarks.md`).
 - **VNext coverage backlog**: the broader subsystem surface that must be added to reach “nothing missed” across the whole app.
 
 The coverage lint reads the machine-readable JSON block below.

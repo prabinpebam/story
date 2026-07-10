@@ -26,8 +26,8 @@ function spawnCross(command, args, options = {}) {
 }
 
 const repoRoot = process.cwd();
-const reportPath = path.join(repoRoot, 'documentation', '03-automation', '11-performance-benchmark-report.md');
-const runsDir = path.join(repoRoot, 'documentation', '03-automation', 'perf-runs');
+const reportPath = path.join(repoRoot, 'documentation', 'automation', 'testing', 'performance-benchmarks.md');
+const runsDir = path.join(repoRoot, 'documentation', 'automation', 'testing', 'perf-runs');
 
 function usage() {
   console.log(`Usage:
@@ -35,8 +35,8 @@ function usage() {
 
 Defaults:
   - runs Playwright benchmark spec with PW_WORKERS=1
-  - writes JSONL results into documentation/03-automation/perf-runs/<timestamp>.jsonl
-  - updates 11-performance-benchmark-report.md (auto-generated sections)
+  - writes JSONL results into documentation/automation/testing/perf-runs/<timestamp>.jsonl
+  - updates performance-benchmarks.md (auto-generated sections)
 
 Gate mode:
   - pass --gate to enforce registry gate thresholds (CI-style)
@@ -61,7 +61,7 @@ function readRegistryFromReport(markdown) {
   const startIdx = markdown.indexOf(start);
   const endIdx = markdown.indexOf(end);
   if (startIdx === -1 || endIdx === -1 || endIdx <= startIdx) {
-    throw new Error('Missing BENCH_REGISTRY_JSON block in 11-performance-benchmark-report.md');
+    throw new Error('Missing BENCH_REGISTRY_JSON block in performance-benchmarks.md');
   }
   const jsonText = markdown
     .slice(startIdx + start.length, endIdx)
@@ -139,7 +139,7 @@ function renderLatestRunSection({ stamp, envClass, resultsByMetricScenario, regi
   lines.push('');
   lines.push(`- Run timestamp: ${stamp}`);
   lines.push(`- Environment class: ${envClass}`);
-  lines.push(`- Output file: \`documentation/03-automation/perf-runs/${stamp}.jsonl\``);
+  lines.push(`- Output file: \`documentation/automation/testing/perf-runs/${stamp}.jsonl\``);
 
   const env = meta?.env ?? null;
   const run = meta?.run ?? null;
@@ -412,7 +412,7 @@ if (!noRun) {
 
   const result = spawnSyncCross(
     'npx',
-    ['playwright', 'test', 'tests/e2e/specs/performance/performance-benchmark-suite.spec.ts'],
+    ['playwright', 'test', 'tests/e2e/specs/performance/performance-benchmark-suite.spec.ts', '--headed'],
     { stdio: 'inherit', env }
   );
 

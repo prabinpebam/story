@@ -3,8 +3,8 @@ import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 
 const repoRoot = process.cwd();
-const reportPath = path.join(repoRoot, 'documentation', '03-automation', '11-performance-benchmark-report.md');
-const catalogPath = path.join(repoRoot, 'documentation', '03-automation', '13-performance-benchmark-coverage-catalog.md');
+const reportPath = path.join(repoRoot, 'documentation', 'automation', 'testing', 'performance-benchmarks.md');
+const catalogPath = path.join(repoRoot, 'documentation', 'automation', 'testing', 'benchmark-coverage-catalog.md');
 
 function readJsonBlock({ markdown, start, end, errorName }) {
   const startIdx = markdown.indexOf(start);

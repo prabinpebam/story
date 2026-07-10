@@ -31,7 +31,7 @@ function nowStamp() {
 }
 
 const repoRoot = process.cwd();
-const runsDir = path.join(repoRoot, 'documentation', '03-automation', 'perf-runs');
+const runsDir = path.join(repoRoot, 'documentation', 'automation', 'testing', 'perf-runs');
 
 const args = process.argv.slice(2);
 const useDevServer = args.includes('--dev');
@@ -78,7 +78,7 @@ const env = {
 // Capture stdout so we can extract the JSON payload emitted by the test.
 const result = spawnSyncCross(
   'npx',
-  ['playwright', 'test', 'tests/e2e/specs/performance/performance-soak-diagnose.spec.ts', '--reporter=line'],
+  ['playwright', 'test', 'tests/e2e/specs/performance/performance-soak-diagnose.spec.ts', '--headed', '--reporter=line'],
   { env, encoding: 'utf8' }
 );
 

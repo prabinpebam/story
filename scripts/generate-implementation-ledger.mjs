@@ -303,7 +303,7 @@ const markdown = `# Generated Story Implementation Ledger
 
 > **Generated artifact:** Do not edit manually.  
 > **Bootstrap:** \`${ledger.bootstrapId}\` v${ledger.bootstrapVersion}  
-> **Specification revision:** \`${ledger.sourceRevision}\`  
+> **Specification revision:** \`${ledger.sourceRevision}\`
 > **Assignment hash:** \`${ledger.assignmentHash}\`  
 > **Regenerate:** \`npm run implementation:ledger\`  
 > **Validate:** \`npm run implementation:validate\`

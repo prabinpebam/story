@@ -2,7 +2,7 @@
 
 > **Generated artifact:** Do not edit manually.  
 > **Bootstrap:** `BOOTSTRAP-PHASE-1` v1.0.0  
-> **Specification revision:** `sha256:e8fc04a2e7387c7f5db29c91f87e2cef93b2b5ef0811f4d548d37dd92565411b`  
+> **Specification revision:** `sha256:8bf742b977f0d5a5180341a44200577a3f6ec30ab0effba2ede052db3bbeb5d1`
 > **Assignment hash:** `7464986a1fb861cb5d18355bef1954f26ae30122498c73475b9a98b85de13785`  
 > **Regenerate:** `npm run implementation:ledger`  
 > **Validate:** `npm run implementation:validate`

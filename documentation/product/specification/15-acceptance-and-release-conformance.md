@@ -539,7 +539,7 @@ Current release-safe command forms are:
 | Targeted Playwright | `npx playwright test <spec-or-grep> --headed` | Candidate headed protocol |
 | Playwright debug/UI | `npm run test:e2e:debug` or `npm run test:e2e:ui` | Diagnostic/manual evidence when artifacts are recorded |
 | Default Playwright script without headed enforcement | `npm run test:e2e` | Prohibited for conformance until the script itself enforces headed execution |
-| Existing performance wrappers that omit headed enforcement | `npm run perf:bench`, `npm run perf:bench:gate`, `npm run perf:soak` | Inadmissible for release until they launch visible headed Playwright and satisfy Volume 14 |
+| Headed performance wrappers | `npm run perf:bench`, `npm run perf:bench:gate`, `npm run perf:soak` | Candidate headed execution only; release credit still requires exact Volume 14 workloads, environments, samples, functional assertions, artifacts, and visibility attestation |
 
 This table describes present command wiring. Future script changes can alter the command form only when the headed invariant remains explicit and testable.
 

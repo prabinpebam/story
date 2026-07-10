@@ -17,9 +17,24 @@ function readRegistryFromReport(markdown) {
 }
 
 describe('PERF gate: perf-bench --gate', () => {
+    it('uses canonical documentation paths and headed Playwright wrappers', () => {
+        const repoRoot = process.cwd();
+        const benchmarkScript = fs.readFileSync(path.join(repoRoot, 'scripts', 'perf', 'perf-bench.mjs'), 'utf8');
+        const soakScript = fs.readFileSync(path.join(repoRoot, 'scripts', 'perf', 'perf-soak.mjs'), 'utf8');
+        const coverageScript = fs.readFileSync(path.join(repoRoot, 'scripts', 'perf', 'perf-coverage-lint.mjs'), 'utf8');
+
+        for (const source of [benchmarkScript, soakScript, coverageScript]) {
+            expect(source).not.toContain("'03-automation'");
+        }
+        expect(benchmarkScript).toContain("'performance-benchmarks.md'");
+        expect(coverageScript).toContain("'benchmark-coverage-catalog.md'");
+        expect(benchmarkScript).toMatch(/\['playwright', 'test',[\s\S]*?'--headed'/);
+        expect(soakScript).toMatch(/\['playwright', 'test',[\s\S]*?'--headed'/);
+    });
+
     it('exits non-zero when a gated metric violates its threshold', () => {
         const repoRoot = process.cwd();
-        const reportPath = path.join(repoRoot, 'documentation', '03-automation', '11-performance-benchmark-report.md');
+        const reportPath = path.join(repoRoot, 'documentation', 'automation', 'testing', 'performance-benchmarks.md');
         const reportMd = fs.readFileSync(reportPath, 'utf8');
         const registry = readRegistryFromReport(reportMd);
 

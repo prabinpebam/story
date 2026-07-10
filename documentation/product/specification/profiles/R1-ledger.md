@@ -2,7 +2,7 @@
 
 > **Generated artifact:** Do not edit manually.  
 > **Profile:** `PROFILE-R1-2026-01`  
-> **Source revision:** `sha256:e8fc04a2e7387c7f5db29c91f87e2cef93b2b5ef0811f4d548d37dd92565411b`
+> **Source revision:** `sha256:8bf742b977f0d5a5180341a44200577a3f6ec30ab0effba2ede052db3bbeb5d1`
 > **Source reviewed:** 2026-07-10  
 > **Requirement-set hash:** `a57d131a9e49c42bedd6cad06e4e79cd93aae915dbafc7a27513e48e924b4b3d`  
 > **Regenerate:** `npm run spec:r1`
