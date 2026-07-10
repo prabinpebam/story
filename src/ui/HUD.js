@@ -72,7 +72,7 @@ export class HUD {
         this.container.querySelector('#hud-laser').onclick = () => store.dispatch('TOGGLE_LASER');
         this.container.querySelector('#hud-grid').onclick = () => store.dispatch('TOGGLE_GRID_VIEW');
         this.container.querySelector('#hud-black').onclick = () => store.dispatch('TOGGLE_BLACK_SCREEN');
-        this.container.querySelector('#hud-exit').onclick = () => store.dispatch('SET_MODE', 'edit');
+        this.container.querySelector('#hud-exit').onclick = () => store.dispatch('EXIT_RUNTIME');
 
         this.container.querySelector('#hud-fullscreen').onclick = async () => {
             const state = store.getState();

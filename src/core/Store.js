@@ -135,6 +135,10 @@ export class Store extends EventEmitter {
             case 'SET_ACTIVE_MASTER': 
             case 'SET_ACTIVE_TOOL': 
             case 'SET_DRAG_PLACEHOLDER':
+            case 'SET_VIEW':
+            case 'SET_EDIT_SCOPE':
+            case 'ENTER_RUNTIME':
+            case 'EXIT_RUNTIME':
             case 'SET_MODE': 
             case 'SET_EDITING_ELEMENT': 
             case 'SET_DEEP_EDIT':
@@ -171,6 +175,10 @@ export class Store extends EventEmitter {
                         case 'SET_ACTIVE_MASTER': EditorHandlers.handleSetActiveMaster(draft, payload); break;
                         case 'SET_ACTIVE_TOOL': EditorHandlers.handleSetActiveTool(draft, payload); break;
                         case 'SET_DRAG_PLACEHOLDER': EditorHandlers.handleSetDragPlaceholder(draft, payload); break;
+                        case 'SET_VIEW': EditorHandlers.handleSetView(draft, payload); break;
+                        case 'SET_EDIT_SCOPE': EditorHandlers.handleSetEditScope(draft, payload); break;
+                        case 'ENTER_RUNTIME': EditorHandlers.handleEnterRuntime(draft, payload); break;
+                        case 'EXIT_RUNTIME': EditorHandlers.handleExitRuntime(draft); break;
                         case 'SET_MODE': EditorHandlers.handleSetMode(draft, payload); break;
                         case 'SET_EDITING_ELEMENT': EditorHandlers.handleSetEditingElement(draft, payload); break;
                         case 'SET_DEEP_EDIT': EditorHandlers.handleSetDeepEdit(draft, payload); break;
@@ -190,7 +198,13 @@ export class Store extends EventEmitter {
                 
                 this.emit('state-changed', this.state);
                 
-                if (type === 'SET_MODE') this.emit('mode-changed', payload);
+                if (type === 'SET_MODE') this.emit('mode-changed', this.state.editor.mode);
+                if (['SET_MODE', 'SET_VIEW', 'SET_EDIT_SCOPE', 'ENTER_RUNTIME', 'EXIT_RUNTIME'].includes(type)) {
+                    this.emit('context-changed', this.state.context);
+                }
+                if (['SET_EDIT_SCOPE', 'ENTER_RUNTIME', 'EXIT_RUNTIME'].includes(type)) {
+                    this.emit('mode-changed', this.state.editor.mode);
+                }
                 if (type === 'UPDATE_VIEWPORT') this.emit('viewport-changed', { pan: this.state.editor.pan, zoom: this.state.editor.zoom });
                 if (type === 'UPDATE_SELECTION') this.emit('selection-changed', this.state.editor.selectedElementIds);
                 if (type === 'TOGGLE_THEME') this.emit('theme-change', this.state.theme);

@@ -62,15 +62,100 @@ export function handleSetDragPlaceholder(draft, payload) {
     draft.editor.dragPlaceholderType = payload?.type || null;
 }
 
-export function handleSetMode(draft, payload) {
-    draft.editor.mode = payload;
+const AUTHORING_VIEWS = new Set(['Canvas', 'Grid', 'Outline', 'Notes', 'System']);
+const EDIT_SCOPES = new Set(['Slide', 'Master', 'Layout', 'Component', 'Narrative component', 'Edition']);
+const RUNTIME_MODES = new Set(['Preview', 'Rehearsal', 'Recording', 'Presentation', 'Kiosk']);
+const SURFACE_ROLES = new Set(['Editor', 'Audience', 'Presenter', 'Recorder controller', 'Remote controller', 'Observer']);
+const PLACEMENTS = new Set(['Fullscreen', 'Windowed', 'Embedded preview', 'External display']);
 
-    // Mode switches must clear any in-progress edit context.
+function ensureContext(draft) {
+    draft.context ??= {
+        productSpace: 'Authoring',
+        view: 'Canvas',
+        editScope: draft.editor.mode === 'master' ? 'Master' : 'Slide',
+        runtimeMode: null,
+        surfaceRole: 'Editor',
+        placement: null,
+        authoringSnapshot: null
+    };
+}
+
+export function handleSetView(draft, payload) {
+    ensureContext(draft);
+    if (!AUTHORING_VIEWS.has(payload)) return;
+    draft.context.view = payload;
+}
+
+export function handleSetEditScope(draft, payload) {
+    ensureContext(draft);
+    if (draft.context.runtimeMode !== null || !EDIT_SCOPES.has(payload)) return;
+    draft.context.editScope = payload;
+    draft.editor.mode = payload === 'Master' ? 'master' : 'edit';
+}
+
+export function handleEnterRuntime(draft, payload = {}) {
+    ensureContext(draft);
+    const runtimeMode = payload.mode ?? 'Presentation';
+    const surfaceRole = payload.surfaceRole ?? 'Audience';
+    const placement = payload.placement ?? 'Fullscreen';
+    if (!RUNTIME_MODES.has(runtimeMode) || !SURFACE_ROLES.has(surfaceRole) || !PLACEMENTS.has(placement)) return;
+
+    if (draft.context.runtimeMode === null) {
+        draft.context.authoringSnapshot = {
+            view: draft.context.view,
+            editScope: draft.context.editScope,
+            activeSlideId: draft.editor.activeSlideId,
+            selectedSlideIds: [...draft.editor.selectedSlideIds],
+            selectedElementIds: [...draft.editor.selectedElementIds],
+            activeTool: draft.editor.activeTool,
+            zoom: draft.editor.zoom,
+            pan: { ...draft.editor.pan }
+        };
+    }
     draft.editor.selectedElementIds = [];
     draft.editor.editingElementId = null;
     draft.editor.deepEdit = null;
     draft.editor.deepEditStack = [];
-    
+    draft.context.productSpace = 'Runtime';
+    draft.context.runtimeMode = runtimeMode;
+    draft.context.surfaceRole = surfaceRole;
+    draft.context.placement = placement;
+    draft.editor.mode = 'presentation';
+    draft.presentation.isActive = true;
+    draft.presentation.buildIndex = -1;
+    draft.presentation.buildCount = 0;
+    const currentIndex = draft.slideOrder.indexOf(draft.editor.activeSlideId);
+    draft.presentation.currentSlideIndex = currentIndex !== -1 ? currentIndex : 0;
+}
+
+export function handleExitRuntime(draft) {
+    ensureContext(draft);
+    const snapshot = draft.context.authoringSnapshot;
+    if (snapshot) {
+        draft.context.view = snapshot.view;
+        draft.context.editScope = snapshot.editScope;
+        draft.editor.activeSlideId = snapshot.activeSlideId;
+        draft.editor.selectedSlideIds = [...snapshot.selectedSlideIds];
+        draft.editor.selectedElementIds = [...snapshot.selectedElementIds];
+        draft.editor.activeTool = snapshot.activeTool;
+        draft.editor.zoom = snapshot.zoom;
+        draft.editor.pan = { ...snapshot.pan };
+    }
+    draft.context.productSpace = 'Authoring';
+    draft.context.runtimeMode = null;
+    draft.context.surfaceRole = 'Editor';
+    draft.context.placement = null;
+    draft.context.authoringSnapshot = null;
+    draft.editor.mode = draft.context.editScope === 'Master' ? 'master' : 'edit';
+    draft.presentation.isActive = false;
+    if (draft.presentation.kiosk) draft.presentation.kiosk.enabled = false;
+    draft.presentation.laserPointer = false;
+    draft.presentation.blackScreen = false;
+    draft.presentation.whiteScreen = false;
+    draft.presentation.gridView = false;
+}
+
+export function handleSetMode(draft, payload) {
     if (payload === 'master' && !draft.editor.activeMasterId) {
         const firstMaster = Object.keys(draft.slideMasterPresets)[0];
         if (firstMaster) {
@@ -79,20 +164,27 @@ export function handleSetMode(draft, payload) {
     }
 
     if (payload === 'presentation') {
-        draft.presentation.isActive = true;
-        draft.presentation.buildIndex = -1;
-        draft.presentation.buildCount = 0;
-        const currentIndex = draft.slideOrder.indexOf(draft.editor.activeSlideId);
-        draft.presentation.currentSlideIndex = currentIndex !== -1 ? currentIndex : 0;
+        handleEnterRuntime(draft, {
+            mode: 'Presentation',
+            surfaceRole: 'Audience',
+            placement: draft.presentation.requestFullscreen === false ? 'Windowed' : 'Fullscreen'
+        });
+    } else if (payload === 'master') {
+        draft.editor.selectedElementIds = [];
+        draft.editor.editingElementId = null;
+        draft.editor.deepEdit = null;
+        draft.editor.deepEditStack = [];
+        handleSetEditScope(draft, 'Master');
     } else {
-        draft.presentation.isActive = false;
-        if (draft.presentation.kiosk) {
-            draft.presentation.kiosk.enabled = false;
+        const wasInRuntime = draft.context?.runtimeMode != null || draft.editor.mode === 'presentation';
+        handleExitRuntime(draft);
+        if (!wasInRuntime) {
+            draft.editor.selectedElementIds = [];
+            draft.editor.editingElementId = null;
+            draft.editor.deepEdit = null;
+            draft.editor.deepEditStack = [];
+            handleSetEditScope(draft, 'Slide');
         }
-        draft.presentation.laserPointer = false;
-        draft.presentation.blackScreen = false;
-        draft.presentation.whiteScreen = false;
-        draft.presentation.gridView = false;
     }
 }
 

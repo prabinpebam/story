@@ -41,6 +41,18 @@ describe('Store', () => {
             expect(state.editor.zoom).toBe(1);
         });
 
+        it('should initialize orthogonal authoring context axes', () => {
+            expect(store.getState().context).toEqual({
+                productSpace: 'Authoring',
+                view: 'Canvas',
+                editScope: 'Slide',
+                runtimeMode: null,
+                surfaceRole: 'Editor',
+                placement: null,
+                authoringSnapshot: null
+            });
+        });
+
         it('should have default presentation settings', () => {
             const state = store.getState();
             expect(state.presentation.isActive).toBe(false);
@@ -118,6 +130,54 @@ describe('Store', () => {
         it('should dispatch SET_MODE', () => {
             store.dispatch('SET_MODE', 'master');
             expect(store.getState().editor.mode).toBe('master');
+        });
+
+        it('should migrate a contextless legacy master state back to slide scope', () => {
+            const legacyState = createInitialState();
+            delete legacyState.context;
+            legacyState.editor.mode = 'master';
+            store.restoreState(legacyState);
+
+            store.dispatch('SET_MODE', 'edit');
+
+            const state = store.getState();
+            expect(state.editor.mode).toBe('edit');
+            expect(state.context.editScope).toBe('Slide');
+            expect(state.context.runtimeMode).toBeNull();
+        });
+
+        it('should change view without changing edit scope or runtime', () => {
+            store.dispatch('SET_VIEW', 'Outline');
+
+            const { context } = store.getState();
+            expect(context.view).toBe('Outline');
+            expect(context.editScope).toBe('Slide');
+            expect(context.runtimeMode).toBeNull();
+        });
+
+        it('should change edit scope without entering runtime', () => {
+            store.dispatch('SET_EDIT_SCOPE', 'Master');
+
+            const state = store.getState();
+            expect(state.context.editScope).toBe('Master');
+            expect(state.context.runtimeMode).toBeNull();
+            expect(state.editor.mode).toBe('master');
+        });
+
+        it('should ignore invalid context values', () => {
+            store.dispatch('SET_VIEW', 'Presenter');
+            store.dispatch('SET_EDIT_SCOPE', 'Presentation');
+            store.dispatch('ENTER_RUNTIME', { mode: 'Authoring' });
+
+            expect(store.getState().context).toEqual({
+                productSpace: 'Authoring',
+                view: 'Canvas',
+                editScope: 'Slide',
+                runtimeMode: null,
+                surfaceRole: 'Editor',
+                placement: null,
+                authoringSnapshot: null
+            });
         });
 
         it('should dispatch SET_ACTIVE_SLIDE', () => {
@@ -301,6 +361,58 @@ describe('Store', () => {
             expect(store.getState().presentation.isActive).toBe(false);
         });
 
+        it('should restore captured authoring context on runtime exit', () => {
+            store.dispatch('SET_VIEW', 'System');
+            store.dispatch('SET_EDIT_SCOPE', 'Master');
+            store.dispatch('SET_ACTIVE_TOOL', 'text');
+            store.dispatch('UPDATE_VIEWPORT', { zoom: 1.5, pan: { x: 120, y: 80 } });
+            store.dispatch('UPDATE_SELECTION', ['element-1', 'element-2']);
+
+            store.dispatch('ENTER_RUNTIME', {
+                mode: 'Preview',
+                surfaceRole: 'Audience',
+                placement: 'Embedded preview'
+            });
+
+            let state = store.getState();
+            expect(state.context.productSpace).toBe('Runtime');
+            expect(state.context.runtimeMode).toBe('Preview');
+            expect(state.context.surfaceRole).toBe('Audience');
+            expect(state.context.placement).toBe('Embedded preview');
+            expect(state.editor.mode).toBe('presentation');
+            expect(state.editor.selectedElementIds).toEqual([]);
+
+            store.dispatch('EXIT_RUNTIME');
+
+            state = store.getState();
+            expect(state.context.productSpace).toBe('Authoring');
+            expect(state.context.view).toBe('System');
+            expect(state.context.editScope).toBe('Master');
+            expect(state.context.runtimeMode).toBeNull();
+            expect(state.context.surfaceRole).toBe('Editor');
+            expect(state.context.placement).toBeNull();
+            expect(state.context.authoringSnapshot).toBeNull();
+            expect(state.editor.mode).toBe('master');
+            expect(state.editor.activeTool).toBe('text');
+            expect(state.editor.selectedElementIds).toEqual(['element-1', 'element-2']);
+            expect(state.editor.zoom).toBe(1.5);
+            expect(state.editor.pan).toEqual({ x: 120, y: 80 });
+            expect(state.presentation.isActive).toBe(false);
+        });
+
+        it('should block edit-scope changes while runtime is active', () => {
+            store.dispatch('ENTER_RUNTIME', {
+                mode: 'Presentation',
+                surfaceRole: 'Presenter',
+                placement: 'External display'
+            });
+            store.dispatch('SET_EDIT_SCOPE', 'Master');
+
+            const state = store.getState();
+            expect(state.context.runtimeMode).toBe('Presentation');
+            expect(state.context.editScope).toBe('Slide');
+        });
+
         it('should dispatch PRESENTATION_NEXT', () => {
             // Add slides so we have more than one
             store.dispatch('ADD_SLIDE');
@@ -393,6 +505,53 @@ describe('Store', () => {
             
             expect(listener).toHaveBeenCalledWith('master');
             
+            store.off('mode-changed', listener);
+        });
+
+        it('should emit context-changed for canonical context transitions', () => {
+            const listener = vi.fn();
+            store.on('context-changed', listener);
+
+            store.dispatch('SET_VIEW', 'Notes');
+
+            expect(listener).toHaveBeenCalledWith(expect.objectContaining({
+                view: 'Notes',
+                editScope: 'Slide',
+                runtimeMode: null
+            }));
+
+            store.off('context-changed', listener);
+        });
+
+        it('should emit context-changed for legacy mode transitions during migration', () => {
+            const listener = vi.fn();
+            store.on('context-changed', listener);
+
+            store.dispatch('SET_MODE', 'master');
+
+            expect(listener).toHaveBeenCalledWith(expect.objectContaining({
+                productSpace: 'Authoring',
+                editScope: 'Master',
+                runtimeMode: null
+            }));
+
+            store.off('context-changed', listener);
+        });
+
+        it('should emit the compatibility mode event for canonical runtime transitions', () => {
+            const listener = vi.fn();
+            store.on('mode-changed', listener);
+
+            store.dispatch('ENTER_RUNTIME', {
+                mode: 'Presentation',
+                surfaceRole: 'Audience',
+                placement: 'Windowed'
+            });
+            store.dispatch('EXIT_RUNTIME');
+
+            expect(listener).toHaveBeenNthCalledWith(1, 'presentation');
+            expect(listener).toHaveBeenNthCalledWith(2, 'edit');
+
             store.off('mode-changed', listener);
         });
 

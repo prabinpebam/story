@@ -238,13 +238,13 @@ class App {
 
         if (editMasterBtn) {
             editMasterBtn.onclick = () => {
-                store.dispatch('SET_MODE', 'master');
+                store.dispatch('SET_EDIT_SCOPE', 'Master');
             };
         }
 
         if (closeMasterBtn) {
             closeMasterBtn.onclick = () => {
-                store.dispatch('SET_MODE', 'edit');
+                store.dispatch('SET_EDIT_SCOPE', 'Slide');
             };
         }
 
@@ -358,9 +358,9 @@ class App {
                 e.preventDefault();
                 const currentMode = state.editor.mode;
                 if (currentMode === 'master') {
-                    store.dispatch('SET_MODE', 'edit');
+                    store.dispatch('SET_EDIT_SCOPE', 'Slide');
                 } else if (currentMode === 'edit') {
-                    store.dispatch('SET_MODE', 'master');
+                    store.dispatch('SET_EDIT_SCOPE', 'Master');
                 }
             }
         });

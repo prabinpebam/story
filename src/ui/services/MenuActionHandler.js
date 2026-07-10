@@ -236,9 +236,9 @@ class MenuActionHandler {
     toggleMasterEdit() {
         const state = store.getState();
         if (state.editor.mode === 'master') {
-            store.dispatch('SET_MODE', 'edit');
+            store.dispatch('SET_EDIT_SCOPE', 'Slide');
         } else {
-            store.dispatch('SET_MODE', 'master');
+            store.dispatch('SET_EDIT_SCOPE', 'Master');
         }
     }
 
@@ -300,7 +300,11 @@ class MenuActionHandler {
 
     startPresentation({ slideIndex = 0, requestFullscreen = true } = {}) {
         store.dispatch('PRESENTATION_SET_REQUEST_FULLSCREEN', requestFullscreen);
-        store.dispatch('SET_MODE', 'presentation');
+        store.dispatch('ENTER_RUNTIME', {
+            mode: 'Presentation',
+            surfaceRole: 'Audience',
+            placement: requestFullscreen ? 'Fullscreen' : 'Windowed'
+        });
         store.dispatch('PRESENTATION_GOTO', slideIndex);
     }
 
@@ -312,8 +316,9 @@ class MenuActionHandler {
 
     startPresenterView() {
         // Gate 7: start the audience presentation (windowed) and open a synced presenter window.
-        store.dispatch('PRESENTATION_SET_REQUEST_FULLSCREEN', false);
-        this.startPresentationFromCurrent();
+        const state = store.getState();
+        const currentIndex = state.slideOrder?.indexOf(state.editor.activeSlideId) ?? 0;
+        this.startPresentation({ slideIndex: Math.max(0, currentIndex), requestFullscreen: false });
         window.dispatchEvent(new CustomEvent('presentation:open-presenter-view'));
     }
 

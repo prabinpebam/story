@@ -1795,6 +1795,15 @@ export function createInitialState() {
         ui: {
             isInteracting: false
         },
+        context: {
+            productSpace: "Authoring",
+            view: "Canvas",
+            editScope: "Slide",
+            runtimeMode: null,
+            surfaceRole: "Editor",
+            placement: null,
+            authoringSnapshot: null
+        },
         editor: {
             mode: "edit",
             activeSlideId: "slide-1",

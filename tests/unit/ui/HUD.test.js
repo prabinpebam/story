@@ -203,11 +203,11 @@ describe('HUD', () => {
             expect(mockDispatch).toHaveBeenCalledWith('TOGGLE_BLACK_SCREEN');
         });
 
-        it('should dispatch SET_MODE edit on exit button click', () => {
+        it('should dispatch EXIT_RUNTIME on exit button click', () => {
             const exitBtn = container.querySelector('#hud-exit');
             exitBtn.click();
             
-            expect(mockDispatch).toHaveBeenCalledWith('SET_MODE', 'edit');
+            expect(mockDispatch).toHaveBeenCalledWith('EXIT_RUNTIME');
         });
     });
 
