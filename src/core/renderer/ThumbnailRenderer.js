@@ -61,10 +61,11 @@ class ThumbnailRendererClass {
      * Returns a container with a live, scaled-down SlideView.
      * 
      * @param {string} slideId
-     * @param {Object} slideData - Effective slide data from store.getEffectiveSlide()
+    * @param {Object} slideData - Effective slide data from store.getEffectiveSlide()
+    * @param {string} [instanceKey=slideId] - Unique projection key when one slide appears in multiple live views
      * @returns {HTMLElement} - Container with the thumbnail
      */
-    createThumbnail(slideId, slideData) {
+    createThumbnail(slideId, slideData, instanceKey = slideId) {
         // Create outer container (fixed thumbnail size)
         const container = document.createElement('div');
         container.className = 'slide-thumbnail-preview';
@@ -112,12 +113,15 @@ class ThumbnailRendererClass {
         container._resizeObserver = resizeObserver;
         
         // Check if we already have a SlideView for this slide
-        let instance = this.instances.get(slideId);
+        let instance = this.instances.get(instanceKey);
         
         if (instance) {
             // Reuse existing SlideView - just update it
+            instance.resizeObserver?.disconnect();
             instance.view.update(slideData);
             scaleWrapper.appendChild(instance.view.domElement);
+            instance.container = scaleWrapper;
+            instance.resizeObserver = resizeObserver;
         } else {
             // Create new SlideView
             // IMPORTANT: SlideView/StyleResolver expect real slide/master IDs for cascade lookup.
@@ -131,9 +135,11 @@ class ThumbnailRendererClass {
             slideView.update(slideData);
             
             // Store reference for later updates
-            this.instances.set(slideId, {
+            this.instances.set(instanceKey, {
                 view: slideView,
-                container: scaleWrapper
+                container: scaleWrapper,
+                slideId,
+                resizeObserver
             });
         }
         
@@ -145,11 +151,11 @@ class ThumbnailRendererClass {
      * Update an existing thumbnail with new slide data.
      * Call this when slide content changes.
      * 
-     * @param {string} slideId
+     * @param {string} instanceKey
      * @param {Object} slideData
      */
-    updateThumbnail(slideId, slideData) {
-        const instance = this.instances.get(slideId);
+    updateThumbnail(instanceKey, slideData) {
+        const instance = this.instances.get(instanceKey);
         if (instance) {
             instance.view.update(slideData);
         }
@@ -159,45 +165,41 @@ class ThumbnailRendererClass {
      * Invalidate (mark for re-render) a specific slide's thumbnail.
      * Debounced to prevent excessive updates.
      * 
-     * @param {string} slideId
+     * @param {string} instanceKey
      */
-    invalidate(slideId) {
+    invalidate(instanceKey) {
         // Debounce updates
-        if (this.updateTimers.has(slideId)) {
-            clearTimeout(this.updateTimers.get(slideId));
+        if (this.updateTimers.has(instanceKey)) {
+            clearTimeout(this.updateTimers.get(instanceKey));
         }
         
-        this.updateTimers.set(slideId, setTimeout(() => {
+        this.updateTimers.set(instanceKey, setTimeout(() => {
+            const slideId = this.instances.get(instanceKey)?.slideId ?? instanceKey;
             const effectiveSlide = store.getEffectiveSlide(slideId);
             if (effectiveSlide) {
-                this.updateThumbnail(slideId, effectiveSlide);
+                this.updateThumbnail(instanceKey, effectiveSlide);
             }
-            this.updateTimers.delete(slideId);
+            this.updateTimers.delete(instanceKey);
         }, 100));
     }
 
     /**
      * Destroy a thumbnail instance (call when slide is deleted)
      * 
-     * @param {string} slideId
+     * @param {string} instanceKey
      */
-    destroyThumbnail(slideId) {
-        const instance = this.instances.get(slideId);
+    destroyThumbnail(instanceKey) {
+        const instance = this.instances.get(instanceKey);
         if (instance) {
             instance.view.unmount();
+            instance.resizeObserver?.disconnect();
             
-            // Clean up ResizeObserver if exists
-            if (instance.container._resizeObserver) {
-                instance.container._resizeObserver.disconnect();
-                delete instance.container._resizeObserver;
-            }
-            
-            this.instances.delete(slideId);
+            this.instances.delete(instanceKey);
         }
         
-        if (this.updateTimers.has(slideId)) {
-            clearTimeout(this.updateTimers.get(slideId));
-            this.updateTimers.delete(slideId);
+        if (this.updateTimers.has(instanceKey)) {
+            clearTimeout(this.updateTimers.get(instanceKey));
+            this.updateTimers.delete(instanceKey);
         }
     }
 
@@ -217,6 +219,7 @@ class ThumbnailRendererClass {
     destroyAll() {
         for (const [slideId, instance] of this.instances) {
             instance.view.unmount();
+            instance.resizeObserver?.disconnect();
         }
         this.instances.clear();
         

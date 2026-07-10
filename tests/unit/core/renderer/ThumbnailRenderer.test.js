@@ -144,6 +144,24 @@ describe('ThumbnailRenderer', () => {
             // Update should have been called
             expect(instance1.view.update).toHaveBeenCalledTimes(2);
         });
+
+        it('should keep separate live projections for the same slide', () => {
+            const slideData = {
+                id: 'slide-1',
+                width: 1920,
+                height: 1080,
+                elements: {},
+                elementOrder: []
+            };
+
+            const sidebar = ThumbnailRenderer.createThumbnail('slide-1', slideData);
+            const grid = ThumbnailRenderer.createThumbnail('slide-1', slideData, 'authoring-grid:slide-1');
+
+            expect(ThumbnailRenderer.instances.has('slide-1')).toBe(true);
+            expect(ThumbnailRenderer.instances.has('authoring-grid:slide-1')).toBe(true);
+            expect(sidebar.querySelector('.slide-view')).not.toBeNull();
+            expect(grid.querySelector('.slide-view')).not.toBeNull();
+        });
     });
 
     describe('updateThumbnail', () => {

@@ -33,6 +33,7 @@ import { menuActionHandler } from './ui/services/MenuActionHandler.js';
 import { FileIndicatorController } from './ui/services/FileIndicatorController.js';
 import { notify } from './ui/services/NotificationService.js';
 import { ViewportControls } from './ui/ViewportControls.js';
+import { AuthoringViewManager } from './ui/AuthoringViewManager.js';
 
 // Ensure slide transitions have a local animation engine.
 // The runtime reads from `window.anime` (supports Anime.js v3/v4 shapes).
@@ -150,6 +151,7 @@ class App {
         this.gridView = new GridView('presentation-grid-view');
         this.hud = new HUD('presentation-hud');
         this.viewportControls = new ViewportControls();
+        this.authoringViewManager = new AuthoringViewManager();
         
         // Initialize App Menu (file menu in sidebar header)
         this.appMenu = new AppMenu('app-menu-container');
