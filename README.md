@@ -1,10 +1,21 @@
-# Story - Presentation Maker
+# Story - Presentation Design Environment
 
-Story is a modern, web-based presentation tool built with vanilla JavaScript. It provides a powerful visual editor for creating interactive and animated presentations directly in the browser.
+Story is a professional, browser-based presentation design environment. Its product goal combines Figma-class design capability with PowerPoint-class presentation capability in one document and one authoring workflow.
 
-## Features
+- A Figma user should feel at home creating precise, reusable visual design.
+- A PowerPoint user should feel at home structuring, rehearsing, delivering, and exporting a presentation.
 
-- **Visual Editor**: Intuitive drag-and-drop interface for manipulating elements on the canvas.
+The governing requirements, current audit, and delivery sequence are documented in:
+
+- [Product Specification](./documentation/product/product-spec.md)
+- [Capability Audit](./documentation/product/capability-audit.md)
+- [Requirement Status](./documentation/product/requirement-status.md)
+- [Delivery Roadmap](./documentation/product/delivery-roadmap.md)
+- [Documentation Guide](./documentation/README.md)
+
+## Current Foundation
+
+- **Visual Editor**: Direct manipulation, selection, transforms, snapping, vector editing, booleans, and masks.
 - **Slide Management**: Create, duplicate, and reorder slides easily.
 - **Master Slides & Layouts**: Define global styles and layouts using a robust Master Slide system.
 - **Rich Property Inspector**:
@@ -14,9 +25,11 @@ Story is a modern, web-based presentation tool built with vanilla JavaScript. It
   - **Typography**: Comprehensive text styling options.
 - **Layer Management**: A dedicated layer tree to manage element hierarchy and visibility.
 - **Presentation Mode**: Full-screen playback with smooth transitions and animations.
-- **Cloud Storage**: Save and load presentations from OneDrive or Google Drive
-- **OAuth Authentication**: Sign in with Microsoft or Google accounts
+- **Presenter Workflow**: Speaker notes, Presenter View, timings, navigation, transitions, and Morph.
+- **Cloud Foundation**: OneDrive and Google Drive providers with Microsoft and Google authentication.
 - **AI Integration**: (Experimental) AI-assisted content generation.
+
+This list describes the strongest current foundations, not completion of the full product goal. See the capability audit for verified, partial, specified-only, and missing areas.
 
 ## Tech Stack
 
@@ -53,7 +66,7 @@ Prereqs:
    cp .env.example .env
    # Edit .env with your OAuth client IDs
    ```
-   See [OAuth Setup Guide](./documentation/oauth-setup-guide.md) for detailed instructions.
+   See [OAuth Setup Guide](./documentation/guides/oauth-setup-guide.md) for detailed instructions.
 
 4. **Start the development server**
    ```bash

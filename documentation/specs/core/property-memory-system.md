@@ -576,9 +576,9 @@ When user switches from one element to another:
 
 ## 10. Related Documents
 
-- [Color Picker UI Specification](../fills/color-picker-ui.md)
-- [Gradient Fill Specification](../fills/gradient-fill.md)
-- [Code Fill Panel Specification](../fills/code-fill-panel.md)
-- [Media Fill System](../fills/media-fill-system.md)
-- [Typography Style Manager](../slide-themes-styles/typography-style-manager.md)
-- [Data Model Properties](../storage/data-model-properties.md)
+- [Color Picker UI Specification](../canvas/fills/color-picker-ui.md)
+- [Gradient Fill Specification](../canvas/fills/gradient-fill.md)
+- [Code Fill Panel Specification](../canvas/fills/code-fill-panel.md)
+- [Media Fill System](../canvas/fills/media-fill-system.md)
+- [Typography Style Manager](../slides/themes/typography-style-manager.md)
+- [Data Model Properties](../collaboration/storage/data-model-properties.md)

@@ -541,7 +541,7 @@ Surface existing theme system in Property Inspector UI. PI does NOT implement th
 **Spec Reference:** 
 - [16-theme-linked-properties.md](./16-theme-linked-properties.md) - UI patterns only
 - [slides/01-architecture.md](../../../specs/slides/01-architecture.md) - Data model + cascade source of truth
-- [PHASE-4-IMPLEMENTATION-GUIDE.md](./PHASE-4-IMPLEMENTATION-GUIDE.md) - Detailed implementation steps
+- [Story Delivery Roadmap](../../../product/delivery-roadmap.md) - Current product sequencing and quality gates
 - [slides/01-architecture.md](../../slides/01-architecture.md) - Data model + cascade source of truth
 - [Color Theme Cascade](../../slides/themes/color-theme-cascade-architecture.md) - Existing cascade logic
 

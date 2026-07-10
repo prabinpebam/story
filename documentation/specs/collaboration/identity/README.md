@@ -57,7 +57,7 @@ This folder contains specifications for Story's **decentralized identity managem
 | [session-lifecycle.md](./session-lifecycle.md) | Sign-in, session, sign-out flows |
 | [cross-device-identity.md](./cross-device-identity.md) | Multi-device and sync considerations |
 | [user-preferences-file.md](./user-preferences-file.md) | Core encrypted preferences storage spec |
-| [account-linking.md](./account-linking.md) | Linking multiple OAuth providers |
+| Account linking | Not yet specified; tracked as an identity-system gap |
 
 ### User Preferences System
 
@@ -84,7 +84,7 @@ This folder contains specifications for Story's **decentralized identity managem
 |------|-------------|
 | [collaboration-identity.md](./collaboration-identity.md) | Identity in real-time collaboration |
 | [trust-relationships.md](./trust-relationships.md) | How users establish trust with each other |
-| [identity-verification.md](./identity-verification.md) | Verifying identity claims |
+| Identity verification | Not yet specified; tracked as an identity-system gap |
 
 ### Privacy & Security
 
@@ -162,10 +162,10 @@ This folder contains specifications for Story's **decentralized identity managem
 
 ## Related Specifications
 
-- [Authentication](../collaboration/authentication.md) - OAuth provider implementation
-- [Sharing & Permissions](../collaboration/sharing-permissions.md) - Access control
-- [Real-Time Collaboration](../collaboration/realtime-collaboration.md) - Collaboration architecture
-- [Cloud Storage Abstraction](../collaboration/cloud-storage-abstraction.md) - File storage
+- [Authentication](../authentication.md) - OAuth provider implementation
+- [Sharing & Permissions](../sharing-permissions.md) - Access control
+- [Real-Time Collaboration](../realtime-collaboration.md) - Collaboration architecture
+- [Cloud Storage Abstraction](../cloud-storage-abstraction.md) - File storage
 
 ---
 

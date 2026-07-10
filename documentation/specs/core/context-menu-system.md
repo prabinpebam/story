@@ -943,9 +943,9 @@ describe('Accessibility', () => {
 
 ### B. Related Specifications
 
-- [UI Design System](../app-ui-design-system/ui-design-system.md)
-- [Interaction Model](../../tech-specs/core/interaction-model.md)
-- [Master Slide System](../slides/slide-master-system.md)
+- [UI Design System](../ui-system/ui-design-system.md)
+- [Interaction Model](interaction-model.md)
+- [Slide Architecture](../slides/01-architecture.md)
 
 ### C. Keyboard Shortcuts Reference
 

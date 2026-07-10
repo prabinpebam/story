@@ -1,6 +1,6 @@
-# Slide Transitions (No Morph)
+# Slide Transitions
 
-This folder documents the **current slide transition implementation**.
+This folder specifies slide transitions and Morph behavior. Implementation status must be verified through current production paths and behavior-focused tests rather than this README alone.
 
 Supported transition types:
 - `none`
@@ -9,11 +9,7 @@ Supported transition types:
 - `push`
 - `cover`
 - `uncover`
-
-Out of scope (not implemented as a slide transition):
-- Morph / Smart Animate
-	- Planned spec: [05-morph-slide-transition-spec.md](05-morph-slide-transition-spec.md) (not implemented)
-	- Delivery ledger: [06-morph-ledger-and-gate-plan.md](06-morph-ledger-and-gate-plan.md)
+- `morph`
 
 ## Primary docs
 - [01-phase-1-slide-transitions-spec.md](01-phase-1-slide-transitions-spec.md)
@@ -26,6 +22,10 @@ Out of scope (not implemented as a slide transition):
 	- Readiness probe contract and bounded wait behavior
 - [04-testing-and-verification.md](04-testing-and-verification.md)
 	- Unit + Playwright coverage that locks in behavior
+- [05-morph-slide-transition-spec.md](05-morph-slide-transition-spec.md)
+	- Morph matching, interpolation, fallback, and authoring requirements
+- [06-morph-ledger-and-gate-plan.md](06-morph-ledger-and-gate-plan.md)
+	- Point-in-time Morph delivery ledger; confirm claims against current evidence
 
 ## Archived historical/process docs
 The following files are intentionally no longer maintained at the top level:

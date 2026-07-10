@@ -680,11 +680,11 @@ export class MyComponent {
 ### Design System Documentation
 
 - [UI Design System](./ui-design-system.md) - Detailed token reference
-- [Design System UX Guide](./design-system-ux-guide.md) - User-facing design system
-- [Color Theme Manager](./color-theme-manager.md) - Theme management
-- [Typography Style Manager](./typography-style-manager.md) - Typography system
+- [Interaction Patterns](./interaction-patterns.md) - User-facing interaction behavior
+- [Theme Architecture](./theme-architecture.md) - App theme management
+- [Typography System](../typography-system/00-index.md) - Typography architecture and workflows
 - [Theme Architecture](./theme-architecture.md) - Technical theming details
-- [Linked Properties System](./linked-properties-system.md) - Property linking
+- [Linked Properties System](../slides/themes/linked-properties-system.md) - Property linking
 
 ### Component Documentation
 
@@ -694,8 +694,8 @@ export class MyComponent {
 
 ### Implementation Guides
 
-- [Design Token Standardization Plan](../../plans/design-token-standardization-plan.md)
-- [Color Theme Manager Implementation](../../plans/color-theme-manager-implementation-plan.md)
+- [Story Delivery Roadmap](../../product/delivery-roadmap.md)
+- [Product Requirement Status](../../product/requirement-status.md)
 
 ---
 

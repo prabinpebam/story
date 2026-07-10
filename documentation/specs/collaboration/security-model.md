@@ -365,7 +365,7 @@ class AssetValidator {
 
 Story supports two encryption modes:
 1. **Password Protection** - For sharing encrypted presentations
-2. **Identity-Bound Encryption** - For user preferences files (see [User Preferences File](../identity/user-preferences-file.md))
+2. **Identity-Bound Encryption** - For user preferences files (see [User Preferences File](identity/user-preferences-file.md))
 
 ### Password Protection
 
@@ -525,7 +525,7 @@ class IdentityBoundEncryption {
 }
 ```
 
-> **See [User Preferences File](../identity/user-preferences-file.md) for complete implementation.**
+> **See [User Preferences File](identity/user-preferences-file.md) for complete implementation.**
 
 ---
 

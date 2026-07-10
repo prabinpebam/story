@@ -2,7 +2,7 @@
 
 This document outlines our strategy for using the Playwright automation suite as a primary tool for **identifying, isolating, and verifying fixes** for bugs in the application.
 
-Since we acknowledge that many features in the [Test Scenarios](./04-test-scenarios.md) may not be working perfectly, we shift from a "Verification" mindset to a **"Discovery & Fix"** mindset.
+Since we acknowledge that many features in the [Test Scenarios](./test-scenarios.md) may not be working perfectly, we shift from a "Verification" mindset to a **"Discovery & Fix"** mindset.
 
 ## 1. The "Test-Fail-Fix-Verify" Loop
 
@@ -65,7 +65,7 @@ For complex areas like **Fills** and **Typography** which are known to have issu
 
 ## 5. Status Tracking
 
-We will update `04-test-scenarios.md` with specific status codes:
+We will update `test-scenarios.md` with specific status codes:
 
 *   ✅ **Pass:** Working as expected.
 *   🔴 **Fail (Bug):** Implemented but broken. (Requires Fix).

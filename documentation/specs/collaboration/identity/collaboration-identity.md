@@ -7,7 +7,7 @@ This specification defines how **user identity works in real-time collaboration*
 **Related Specifications:**
 - [Identity Architecture](./identity-architecture.md) - Overall architecture
 - [User Profile Model](./user-profile-model.md) - Profile data
-- [Real-Time Collaboration](../collaboration/realtime-collaboration.md) - Collaboration system
+- [Real-Time Collaboration](../realtime-collaboration.md) - Collaboration system
 - [Trust Relationships](./trust-relationships.md) - Trust model
 
 ---
@@ -825,8 +825,8 @@ type IdentityTrust = 'verified' | 'anonymous' | 'guest';
 - [Identity Architecture](./identity-architecture.md) - Overall identity model
 - [User Profile Model](./user-profile-model.md) - Profile structure
 - [Trust Relationships](./trust-relationships.md) - Trust model
-- [Real-Time Collaboration](../collaboration/realtime-collaboration.md) - Collaboration system
-- [Collaboration Protocol](../collaboration/collaboration-protocol.md) - Message protocol
+- [Real-Time Collaboration](../realtime-collaboration.md) - Collaboration system
+- [Collaboration Protocol](../collaboration-protocol.md) - Message protocol
 
 ---
 

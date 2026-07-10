@@ -229,6 +229,6 @@ For production deployment, ensure:
 
 ## Related Documentation
 
-- [OAuth Identity Flow Spec](./specs/identity/oauth-identity-flow.md)
-- [Identity Architecture](./specs/identity/identity-architecture.md)
-- [Session Lifecycle](./specs/identity/session-lifecycle.md)
+- [OAuth Identity Flow Spec](../specs/collaboration/identity/oauth-identity-flow.md)
+- [Identity Architecture](../specs/collaboration/identity/identity-architecture.md)
+- [Session Lifecycle](../specs/collaboration/identity/session-lifecycle.md)

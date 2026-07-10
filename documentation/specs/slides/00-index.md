@@ -1,13 +1,15 @@
-# Slides — Specs (Implementation-aligned)
+# Slides - Specification Index
 
-**Last updated:** Dec 20, 2025
+**Last updated:** July 10, 2026
 
-This folder contains the *current, implementation-aligned* documentation for the slide system.
+This folder contains requirements and technical contracts for slides, masters, layouts, themes, transitions, notes, SVG objects, and presentation runtime behavior.
 
-## Source of truth
+## Authority
 
-- The running app + the codebase are the source of truth.
-- These specs describe what exists today (and only lightly note what’s explicitly not implemented).
+- Product intent: [Story Product Specification](../../product/product-spec.md)
+- Current implementation status: [Capability Audit](../../product/capability-audit.md)
+- This index routes to domain behavior. A specification does not prove implementation.
+- Production code defines what the current build does; a difference from an accepted specification is a recorded gap.
 
 ## What’s in scope here
 
@@ -36,10 +38,16 @@ This folder contains the *current, implementation-aligned* documentation for the
   - [themes/typography-style-manager.md](themes/typography-style-manager.md)
   - [themes/linked-properties-system.md](themes/linked-properties-system.md)
 
-- Presentation modes (partial / experimental):
-  - [presentation/presentation-mode.md](presentation/presentation-mode.md)
-  - [presentation/presentation-mode-caching.md](presentation/presentation-mode-caching.md)
-  - [presentation/animation-transitions.md](presentation/animation-transitions.md)
+- Presentation runtime and presenter tools:
+  - [presentation-mode/00-master-outline.md](presentation-mode/00-master-outline.md) - normative suite entry
+  - [presentation-mode/23-ledger-and-gate-plan.md](presentation-mode/23-ledger-and-gate-plan.md) - point-in-time delivery evidence; verify against current code and tests
+
+- Slide transitions and Morph:
+  - [transitions/README.md](transitions/README.md)
+
+## Pending Consolidation
+
+The older `presentation/` documents contain useful requirements but are not a second authority. Unique valid requirements must be reconciled into `presentation-mode/`; contradictory or superseded material then moves to the archive.
 
 ## Archive
 

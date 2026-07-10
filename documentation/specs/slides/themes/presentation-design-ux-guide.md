@@ -498,8 +498,8 @@ Think of it like CSS for presentations: define your design system once, apply it
 
 ## Related Documentation
 
-- [Color Theme Manager Specification](./color-theme-manager.md)
+- [Color Themes Specification](./color-themes-spec.md)
 - [Typography Style Manager Specification](./typography-style-manager.md)
-- [Slide Master System](../slides/slide-master-system.md)
-- [App UI Design System](../app-ui-design-system/ui-design-system.md)
-- [Color Picker UI](../fills/color-picker-ui.md)
+- [Slide Architecture](../01-architecture.md)
+- [App UI Design System](../../ui-system/ui-design-system.md)
+- [Color Picker UI](../../canvas/fills/color-picker-ui.md)

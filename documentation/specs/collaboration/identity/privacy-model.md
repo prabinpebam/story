@@ -648,7 +648,7 @@ const GDPR_ARCHITECTURE = {
 - [Identity Architecture](./identity-architecture.md) - Overall architecture
 - [Identity Security](./identity-security.md) - Security considerations
 - [Collaboration Identity](./collaboration-identity.md) - Identity in collaboration
-- [Sharing & Permissions](../collaboration/sharing-permissions.md) - Access control
+- [Sharing & Permissions](../sharing-permissions.md) - Access control
 
 ---
 

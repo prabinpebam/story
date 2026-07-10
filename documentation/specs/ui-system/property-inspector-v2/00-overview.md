@@ -354,7 +354,7 @@ When a section exists but has no items (e.g., no fills):
 | Arrow Keys | Adjust values in inputs |
 | Escape | Close flyouts, cancel edits |
 
-See [11-interactions.md](./11-interactions.md) for complete keyboard reference.
+See [12-interactions.md](./12-interactions.md) for complete keyboard reference.
 
 ---
 

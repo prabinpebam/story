@@ -630,7 +630,7 @@ async function loadFont(family, weight) {
 
 ## 13. State Memory System
 
-The Typography Style Manager and typography controls implement a memory system to preserve user preferences. See [Property Memory System](../core/property-memory-system.md) for full specification.
+The Typography Style Manager and typography controls implement a memory system to preserve user preferences. See [Property Memory System](../../core/property-memory-system.md) for full specification.
 
 ### 13.1 Session Memory
 
@@ -682,8 +682,8 @@ Text color uses the fill memory system with context key `fill.text`. This is sep
 
 ## 14. Related Documents
 - [Presentation Design UX Guide](./presentation-design-ux-guide.md) - Mental model and user experience
-- [Property Memory System](../core/property-memory-system.md) - Memory persistence rules
-- [Property Inspector: Typography](../property-inspector/property-inspector-typography.md)
-- [Slide Master System](../slides/slide-master-system.md)
-- [App UI Design System](../app-ui-design-system/ui-design-system.md)
-- [Color Theme Manager](./color-theme-manager.md)
+- [Property Memory System](../../core/property-memory-system.md) - Memory persistence rules
+- [Property Inspector: Typography](../../ui-system/property-inspector-v2/08-typography-section.md)
+- [Slide Architecture](../01-architecture.md)
+- [App UI Design System](../../ui-system/ui-design-system.md)
+- [Color Themes Specification](./color-themes-spec.md)

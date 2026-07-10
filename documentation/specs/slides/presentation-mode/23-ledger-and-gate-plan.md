@@ -8,7 +8,7 @@ Non-negotiable outcomes:
 - ✅ Gates exit only when backed by **strict TDD** (Vitest) and **DOM/UI validation** (Playwright).
 
 References (must stay in sync):
-- Strict TDD rules: [documentation/guides/00-strict-tdd-and-dom-validation.md](../../../guides/00-strict-tdd-and-dom-validation.md)
+- Strict TDD rules: [documentation/guides/strict-tdd-and-dom-validation.md](../../../guides/strict-tdd-and-dom-validation.md)
 - Global app principles: [documentation/product/principles.md](../../../product/principles.md)
 - Presentation Mode principles: [01-principles.md](01-principles.md)
 - Slide Notes / Presenter Notes (canonical format + sanitization contract): [../05-slide-notes.md](../05-slide-notes.md)

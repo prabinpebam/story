@@ -274,4 +274,4 @@ The thickness of a stroke line, measured in pixels.
 
 - [00-overview.md](./00-overview.md) - Main specification overview
 - [01-architecture.md](./01-architecture.md) - Component architecture
-- [11-interactions.md](./11-interactions.md) - Interaction patterns
+- [12-interactions.md](./12-interactions.md) - Interaction patterns

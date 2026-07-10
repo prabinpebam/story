@@ -1,7 +1,9 @@
 # Eval Loop Taskflow Catalog — Index
 
-> Exhaustive inventory of every discrete user taskflow in Story.
-> Each taskflow maps to one eval loop test scenario.
+> Inventory of user-observable behaviors expected by the current taskflow specifications.
+> A taskflow row is a requirement candidate, not proof of implementation or test coverage.
+
+The catalog predates the unified [Story Product Specification](../../../product/product-spec.md). Existing IDs remain useful for detailed interaction behavior, but each category must be reconciled with the product requirements as it is implemented. Coverage is valid only when a test performs the listed user action and asserts the resulting visible state, document state, and artifact where applicable.
 
 ## Files
 
@@ -44,8 +46,16 @@
 ## Conventions
 
 - **ID format**: `CAT-NN` (e.g., `SEL-01`, `FIL-14`, `PI-32`)
-- **Each row** = one discrete user action → one eval loop scenario
+- **Each row** = one discrete user action and expected result
 - **Trigger** = the exact user gesture (click, drag, key combo, etc.)
 - **Expected behavior** = observable outcome (store change, DOM change, visual change)
 - **Store dispatch** = the action dispatched to the Immer store
 - **Conditional** = when the taskflow only applies under specific conditions
+
+## Coverage Rules
+
+- A baseline capture does not cover a taskflow unless it performs the trigger and evaluates the expected outcome.
+- Multiple taskflow IDs may share setup, but each expected behavior needs discriminating evidence.
+- DOM presence alone does not prove visible, hit-testable paint or interaction.
+- Store state alone does not prove that the user received the result.
+- Coverage claims must record the test, evidence type, revision, date, and result separately from this inventory.

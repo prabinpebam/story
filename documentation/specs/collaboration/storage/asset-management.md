@@ -7,7 +7,7 @@ This specification defines the asset pipeline including import, optimization, ca
 **Related Specifications:**
 - [Memory Management](./memory-management.md) - Comprehensive memory strategy
 - [Progressive Loading](./progressive-loading.md) - Streaming and phased loading
-- [Presentation Mode Caching](../presentation/presentation-mode-caching.md) - Presentation-specific caching
+- [Presentation Performance and Caching](../../slides/presentation-mode/02-performance-and-caching.md) - Presentation-specific caching
 
 ---
 

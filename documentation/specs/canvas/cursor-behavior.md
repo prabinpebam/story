@@ -492,6 +492,6 @@ describe('CursorManager', () => {
 ## 10. Related Documents
 
 - [Canvas Interaction Spec](./canvas-interaction.md)
-- [UI Design System](../app-ui-design-system/ui-design-system.md)
-- [Toolbar Redesign](../toolbar/toolbar-redesign.md)
-- [Presentation Mode Plan](../../plans/presentation-mode-implementation-plan.md)
+- [UI Design System](../ui-system/ui-design-system.md)
+- [Toolbar Redesign](../ui-system/toolbar/toolbar-redesign.md)
+- [Presentation Mode](../slides/presentation-mode/00-master-outline.md)

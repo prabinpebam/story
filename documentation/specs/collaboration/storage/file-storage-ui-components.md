@@ -12,8 +12,8 @@ This specification defines the UI components for file management in Story, inclu
 
 **Related Specifications:**
 - [File Storage UX](./file-storage-ux.md) - Overall UX flows
-- [UI Design System](../app-ui-design-system/ui-design-system.md) - Design tokens
-- [App Menu](../toolbar/app-menu.md) - Menu integration
+- [UI Design System](../../ui-system/ui-design-system.md) - Design tokens
+- [App Menu](../../ui-system/toolbar/app-menu.md) - Menu integration
 
 ---
 

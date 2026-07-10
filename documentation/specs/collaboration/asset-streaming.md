@@ -11,7 +11,7 @@ This specification defines how **embedded assets** (videos, images, fonts) are s
 - **Efficient streaming** - Videos play without full download
 
 **Related Specifications:**
-- [File Format & Storage](../storage/file-format-storage.md) - ZIP structure
+- [File Format & Storage](storage/file-format-storage.md) - ZIP structure
 - [Cloud Storage Abstraction](./cloud-storage-abstraction.md) - OneDrive/Google Drive APIs
 - [State Sync Engine](./state-sync-engine.md) - How operations are synced
 
@@ -976,7 +976,7 @@ When assets are added/removed, the manifest must be updated:
 
 ## Related Documents
 
-- [File Format & Storage](../storage/file-format-storage.md)
+- [File Format & Storage](storage/file-format-storage.md)
 - [Cloud Storage Abstraction](./cloud-storage-abstraction.md)
 - [State Sync Engine](./state-sync-engine.md)
 - [Sharing & Permissions](./sharing-permissions.md)

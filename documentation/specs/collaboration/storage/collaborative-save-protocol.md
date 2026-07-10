@@ -12,8 +12,8 @@ This specification defines how file save operations coordinate with real-time co
 
 **Related Specifications:**
 - [File Format & Storage](./file-format-storage.md) - Core file format
-- [State Sync Engine](../collaboration/state-sync-engine.md) - Real-time sync
-- [Cloud Storage Abstraction](../collaboration/cloud-storage-abstraction.md) - Storage API
+- [State Sync Engine](../state-sync-engine.md) - Real-time sync
+- [Cloud Storage Abstraction](../cloud-storage-abstraction.md) - Storage API
 
 ---
 
@@ -890,8 +890,8 @@ await exportManager.exportLocal({
 ## Related Documents
 
 - [File Format & Storage](./file-format-storage.md)
-- [State Sync Engine](../collaboration/state-sync-engine.md)
-- [Cloud Storage Abstraction](../collaboration/cloud-storage-abstraction.md)
+- [State Sync Engine](../state-sync-engine.md)
+- [Cloud Storage Abstraction](../cloud-storage-abstraction.md)
 - [Error Handling (Section 17)](./file-format-storage.md#17-error-handling)
 
 ---

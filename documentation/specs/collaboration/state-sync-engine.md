@@ -14,7 +14,7 @@ This specification defines the **state synchronization engine** for real-time co
 - [Collaboration Protocol](./collaboration-protocol.md) - Message types and formats
 - [Azure SignalR Integration](./azure-signalr-integration.md) - Transport layer
 - [Cloud Storage Abstraction](./cloud-storage-abstraction.md) - File persistence
-- [Undo/Redo System](./undo-redo-collaborative.md) - Collaborative undo
+- [Undo/Redo System](../core/undo-redo.md) - Current history contract; collaboration-safe local undo remains a product gap
 
 ---
 

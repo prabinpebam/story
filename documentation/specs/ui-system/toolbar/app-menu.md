@@ -5,8 +5,8 @@
 The App Menu is the primary navigation hub accessed via the Story logo in the sidebar header. It provides comprehensive access to all application functionality through a hierarchical dropdown menu system.
 
 **Related Specifications:**
-- [Design System Variables](../../plans/design-token-standardization-plan.md)
-- [File Format & Storage](../storage/file-format-storage.md)
+- [Design Tokens Reference](../design-tokens-reference.md)
+- [File Format & Storage](../../collaboration/storage/file-format-storage.md)
 
 ---
 

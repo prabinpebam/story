@@ -41,7 +41,7 @@ This specification strictly separates **Application UI** (Editor chrome) from **
    - Correct Heading/Body labels in Slide Typography row
    - Strict linking: style dictates properties; detach to edit locally
 
-6. **[Implementation Status](./05-implementation-status.md)**
+6. **Implementation status:** See the [Product Requirement Status](../../product/requirement-status.md) and current typography tests; no separate maintained status document exists.
    - Current state vs. Specification
    - Known gaps and technical debt
 

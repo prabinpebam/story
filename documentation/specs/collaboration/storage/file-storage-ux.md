@@ -13,7 +13,7 @@ This specification defines the complete user experience for opening, saving, and
 **Related Specifications:**
 - [Cloud Storage Abstraction](./cloud-storage-abstraction.md) - Provider APIs
 - [File Format Storage](./file-format-storage.md) - .str file format
-- [App Menu](../toolbar/app-menu.md) - Menu integration
+- [App Menu](../../ui-system/toolbar/app-menu.md) - Menu integration
 - [User Preferences File](../identity/user-preferences-file.md) - Encryption model
 
 ---
@@ -806,7 +806,7 @@ Before implementation, verify:
 - [Cloud Storage Abstraction](./cloud-storage-abstraction.md) - Provider API details
 - [File Format Storage](./file-format-storage.md) - .str file structure
 - [User Preferences File](../identity/user-preferences-file.md) - Encryption details
-- [App Menu](../toolbar/app-menu.md) - Menu integration
+- [App Menu](../../ui-system/toolbar/app-menu.md) - Menu integration
 
 ---
 

@@ -259,7 +259,7 @@ The list of supported blend modes is defined in `src/core/constants/BlendModes.j
 
 ## State Memory System
 
-The Color Picker implements a memory system to preserve user settings. See [Property Memory System](../core/property-memory-system.md) for full specification.
+The Color Picker implements a memory system to preserve user settings. See [Property Memory System](../../core/property-memory-system.md) for full specification.
 
 ### Session Memory (Flyout Open)
 

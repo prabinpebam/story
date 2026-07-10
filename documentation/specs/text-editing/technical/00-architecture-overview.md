@@ -175,12 +175,12 @@ src/core/text/
 - [01-text-edit-manager.md](01-text-edit-manager.md) - Core orchestrator
 - [02-placeholder-manager.md](02-placeholder-manager.md) - Master/slide placeholders
 - [03-selection-manager.md](03-selection-manager.md) - Selection handling
-- [04-style-integration.md](04-style-integration.md) - Style system
-- [05-state-management.md](05-state-management.md) - Store integration
-- [06-undo-redo.md](06-undo-redo.md) - History integration
-- [07-ime-handling.md](07-ime-handling.md) - IME support
-- [08-keyboard-shortcuts.md](08-keyboard-shortcuts.md) - Shortcuts
-- [09-error-handling.md](09-error-handling.md) - Recovery
+- [04-content-sanitizer.md](04-content-sanitizer.md) - Content sanitization
+- [05-style-bridge.md](05-style-bridge.md) - Style system
+- [06-history-bridge.md](06-history-bridge.md) - History integration
+- [07-ime-handler.md](07-ime-handler.md) - IME support
+- [08-content-recovery.md](08-content-recovery.md) - Recovery
+- [10-store-handlers.md](10-store-handlers.md) - Store integration
 
 ## 8. Principles Compliance
 

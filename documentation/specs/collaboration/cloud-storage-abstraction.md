@@ -12,7 +12,7 @@ This specification defines a **provider-agnostic cloud storage interface** that 
 - [Real-Time Collaboration](./realtime-collaboration.md) - Overall collaboration architecture
 - [Azure SignalR Integration](./azure-signalr-integration.md) - Real-time messaging
 - [Authentication](./authentication.md) - OAuth and identity management
-- [File Format Storage](../storage/file-format-storage.md) - .str file format
+- [File Format Storage](storage/file-format-storage.md) - .str file format
 
 ---
 
@@ -1442,7 +1442,7 @@ class SelfHostedProvider implements CloudStorageProvider {
 - [Real-Time Collaboration](./realtime-collaboration.md)
 - [Azure SignalR Integration](./azure-signalr-integration.md)
 - [Authentication](./authentication.md)
-- [File Format Storage](../storage/file-format-storage.md)
+- [File Format Storage](storage/file-format-storage.md)
 
 ---
 

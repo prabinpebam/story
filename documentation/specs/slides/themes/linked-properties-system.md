@@ -1097,13 +1097,13 @@ function getLinkSource(element, propertyPath) {
 
 ## 12. Related Documents
 
-- [Color Theme Manager Specification](./color-theme-manager.md)
+- [Color Themes Specification](./color-themes-spec.md)
 - [Typography Style Manager Specification](./typography-style-manager.md)
 - [Presentation Design UX Guide](./presentation-design-ux-guide.md)
-- [Property Inspector: Fill](../property-inspector/property-inspector-fill.md)
-- [Property Inspector: Typography](../property-inspector/property-inspector-typography.md)
-- [App UI Design System](../app-ui-design-system/ui-design-system.md)
-- [Master Slide System](../slides/slide-master-system.md)
+- [Property Inspector: Fill](../../ui-system/property-inspector-v2/05-fill-section.md)
+- [Property Inspector: Typography](../../ui-system/property-inspector-v2/08-typography-section.md)
+- [App UI Design System](../../ui-system/ui-design-system.md)
+- [Slide Architecture](../01-architecture.md)
 
 ---
 

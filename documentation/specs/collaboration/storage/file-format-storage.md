@@ -13,11 +13,11 @@ Story presentations are saved as `.str` files - a single portable archive contai
 - [User Preferences File](../identity/user-preferences-file.md) - Encrypted preferences storage
 
 **Collaboration Specifications:**
-- [Real-Time Collaboration](../collaboration/realtime-collaboration.md) - Collaboration architecture overview
-- [Cloud Storage Abstraction](../collaboration/cloud-storage-abstraction.md) - OneDrive/Google Drive integration
-- [Azure SignalR Integration](../collaboration/azure-signalr-integration.md) - Real-time messaging
-- [Authentication](../collaboration/authentication.md) - OAuth with Microsoft/Google
-- [Security Model](../collaboration/security-model.md) - Sandboxing, encryption, validation
+- [Real-Time Collaboration](../realtime-collaboration.md) - Collaboration architecture overview
+- [Cloud Storage Abstraction](../cloud-storage-abstraction.md) - OneDrive/Google Drive integration
+- [Azure SignalR Integration](../azure-signalr-integration.md) - Real-time messaging
+- [Authentication](../authentication.md) - OAuth with Microsoft/Google
+- [Security Model](../security-model.md) - Sandboxing, encryption, validation
 
 ---
 
@@ -45,7 +45,7 @@ Story presentations are saved as `.str` files - a single portable archive contai
 - [Collaborative Save Protocol](./collaborative-save-protocol.md) - Multi-user save coordination
 - [Cross-Tab Coordination](./cross-tab-coordination.md) - BroadcastChannel sync
 - [Large File Handling](./large-file-handling.md) - Chunked upload/download
-- [Storage Testing Strategy](./storage-testing-strategy.md) - Mocking and test patterns
+- Storage verification and round-trip gates: [Delivery Roadmap](../../../product/delivery-roadmap.md#5-program-2-unified-scene-files-and-assets)
 
 ---
 
@@ -735,7 +735,7 @@ const MIGRATIONS = {
 
 ## 10. Security & Encryption
 
-> **See [Security Model Specification](../collaboration/security-model.md) for complete details.**
+> **See [Security Model Specification](../security-model.md) for complete details.**
 
 ### 10.1 Password Protection
 
@@ -1855,7 +1855,7 @@ Finally implement FileWriter/FileReader to bundle everything.
 |----------|------------|
 | **Compression** | Use streaming ZIP (fflate) with per-chunk compression; store thumbnails uncompressed for fast preview |
 | **Streaming** | Chunk-based loading allows streaming; large videos use range requests |
-| **Collaboration** | Future-proofed with Google OAuth; see [Real-Time Collaboration](../collaboration/realtime-collaboration.md) |
+| **Collaboration** | Future-proofed with Google OAuth; see [Real-Time Collaboration](../realtime-collaboration.md) |
 | **Asset CDN** | For shared presentations, assets uploaded to CDN with signed URLs |
 | **Versioning** | Migration functions applied sequentially; no multi-version support needed |
 
@@ -1866,21 +1866,21 @@ Finally implement FileWriter/FileReader to bundle everything.
 - [Industry Benchmark Analysis](./file-format-benchmark.md) *(New)*
 - [Progressive Loading Specification](./progressive-loading.md)
 - [Asset Management & Caching](./asset-management.md)
-- [Security Model](../collaboration/security-model.md)
-- [Real-Time Collaboration](../collaboration/realtime-collaboration.md)
-- [Media Asset Integration (Tech Spec)](../../tech-specs/fills/media-asset-integration.md)
-- [File Format Implementation Plan](../../plans/file-format-implementation-plan.md)
+- [Security Model](../security-model.md)
+- [Real-Time Collaboration](../realtime-collaboration.md)
+- [Media Asset Integration](../../canvas/fills/media-asset-integration.md)
+- [Delivery Roadmap](../../../product/delivery-roadmap.md#5-program-2-unified-scene-files-and-assets)
 
 ---
 
 ## Next Steps
 
-1. ✅ Detail the manifest.json and presentation.json schemas
-2. ✅ Design the AssetManager class → See [Media Asset Integration](../../tech-specs/fills/media-asset-integration.md)
-3. ✅ Document progressive loading strategy → See [Progressive Loading](./progressive-loading.md)
-4. ✅ Document real-time collaboration architecture → See [Real-Time Collaboration](../collaboration/realtime-collaboration.md)
-5. ✅ Document security model → See [Security Model](../collaboration/security-model.md)
-6. ✅ Document asset caching system → See [Asset Management](./asset-management.md)
+1. Maintain manifest and presentation schemas with production conformance tests.
+2. Integrate the asset lifecycle described by [Media Asset Integration](../../canvas/fills/media-asset-integration.md).
+3. Validate the [Progressive Loading](./progressive-loading.md) strategy against production files.
+4. Connect storage to [Real-Time Collaboration](../realtime-collaboration.md) through the canonical operation model.
+5. Enforce the [Security Model](../security-model.md) at every file boundary.
+6. Validate [Asset Management](./asset-management.md) across save, close, reopen, migration, and render.
 7. Prototype File System Access API integration
 8. Evaluate ZIP library options (fflate recommended)
 9. Plan IndexedDB schema

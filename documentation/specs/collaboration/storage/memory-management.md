@@ -6,7 +6,7 @@ This specification defines comprehensive memory management strategies for Story,
 
 **Related Specifications:**
 - [Asset Management & Caching](./asset-management.md) - Cache layer architecture
-- [Presentation Mode Caching](../presentation/presentation-mode-caching.md) - Presentation-specific caching
+- [Presentation Performance and Caching](../../slides/presentation-mode/02-performance-and-caching.md) - Presentation-specific caching
 - [Progressive Loading](./progressive-loading.md) - Loading strategies
 
 ---

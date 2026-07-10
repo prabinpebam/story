@@ -1,11 +1,16 @@
 # Principles
 If you are making any updates or changes to the codebase, the following principles should be respected.
 
+The [Story Product Specification](product-spec.md) is the governing product contract. The [Capability Audit](capability-audit.md) records current evidence, and the [Delivery Roadmap](delivery-roadmap.md) defines dependency order. A domain specification may add detail but may not weaken that contract.
+
 ## App integrity
 - Small incremental changes
 - Mandatory validation with test
     - Use vitest and not jest
 - Always call out risks, dependencies and have mitigation plan
+- Do not claim implementation from a specification, module, control label, or test filename alone
+- Route every document mutation through the canonical transaction model
+- Preserve behavior across undo/redo, native-file reopen, collaboration, presentation, and output surfaces
 
 ## Design & craft
 - Extremely important!!
@@ -66,6 +71,8 @@ The design system is only as good as its ability to support multiple themes.
 
 ## Performance
 - Performance standard should be set and the experience should never go below the benchmark
+- Keep unrelated I/O, indexing, serialization, and network work out of interaction hot paths
+- Benchmark realistic small, medium, large, and prolonged-use documents
 
 ## Feature compatibility with undo/redo system
 - Whenever applicable, always ensure the change/update is compatible with the existing undo/redo system.

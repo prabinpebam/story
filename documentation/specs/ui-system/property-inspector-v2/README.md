@@ -126,19 +126,12 @@ Each section document has a header indicating which design system components it 
 
 - [Component Library](../component-library.md) - Design system components
 - [Design Tokens Reference](../design-tokens-reference.md) - CSS variables
-- [Automation Best Practices](../../../automation/02-best-practices.md) - Testing patterns
-- [Automation-Driven Debugging](../../../automation/06-automation-driven-debugging.md) - Debug workflow
+- [Automation Best Practices](../../../automation/testing/best-practices.md) - Testing patterns
+- [Automation-Driven Debugging](../../../automation/testing/debugging-with-automation.md) - Debug workflow
 - Legacy specs archived in `../property-inspector/`
 
 ---
 
-## Specification Score
+## Status Evidence
 
-| Metric | Score |
-|--------|-------|
-| Completeness | 95/100 |
-| Implementation Alignment | 96/100 |
-| Accessibility (ARIA) | 85/100 |
-| Test Documentation | 90/100 |
-
-See [EVALUATION-REPORT.md](./EVALUATION-REPORT.md) for detailed assessment (if retained).
+Do not infer implementation completeness from this specification or its implementation plan. Current product-level status is maintained in the [Capability Audit](../../../product/capability-audit.md) and [Product Requirement Status](../../../product/requirement-status.md). Section-level coverage requires current unit, integration, headed browser, and artifact evidence for the listed behavior.
