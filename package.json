@@ -30,6 +30,9 @@
     "spec:protocols": "node scripts/generate-protocol-registry.mjs",
     "spec:protocols:check": "node scripts/generate-protocol-registry.mjs --check",
     "spec:validate": "node scripts/generate-product-spec-index.mjs --check && node scripts/generate-r1-profile-ledger.mjs --check && node scripts/generate-protocol-registry.mjs --check && node scripts/validate-product-spec.mjs && node scripts/validate-product-spec-hardening.mjs",
+    "implementation:ledger": "node scripts/generate-implementation-ledger.mjs",
+    "implementation:ledger:check": "node scripts/generate-implementation-ledger.mjs --check",
+    "implementation:validate": "npm run spec:validate && node scripts/generate-implementation-ledger.mjs --check",
     "lint": "eslint src/**/*.js",
     "lint:fix": "eslint src/**/*.js --fix"
   },
