@@ -1799,6 +1799,7 @@ export function createInitialState() {
             runtimeMode: null,
             surfaceRole: "Editor",
             placement: null,
+            editScopeStack: [],
             authoringSnapshot: null
         },
         editor: {

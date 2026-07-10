@@ -6,6 +6,7 @@ import { store } from '../Store.js';
 export class ViewportController {
     constructor(canvasManager) {
         this.cm = canvasManager;
+        this.lastFit = null;
     }
 
     fitToView() {
@@ -28,6 +29,15 @@ export class ViewportController {
 
         const newPanX = (containerRect.width - slideWidth * newZoom) / 2;
         const newPanY = (containerRect.height - slideHeight * newZoom) / 2;
+
+        this.lastFit = {
+            zoom: newZoom,
+            pan: { x: newPanX, y: newPanY },
+            width: containerRect.width,
+            height: containerRect.height,
+            slideWidth,
+            slideHeight
+        };
 
         store.dispatch('UPDATE_VIEWPORT', {
             zoom: newZoom,
@@ -86,11 +96,21 @@ export class ViewportController {
         if (!this.cm.container || !this.cm.canvas) return;
 
         const rect = this.cm.container.getBoundingClientRect();
+        const wasFitted = this.lastFit
+            && Math.abs(state.editor.zoom - this.lastFit.zoom) < 0.0001
+            && Math.abs(state.editor.pan.x - this.lastFit.pan.x) < 0.5
+            && Math.abs(state.editor.pan.y - this.lastFit.pan.y) < 0.5;
+        const sizeChanged = !this.lastFit
+            || Math.abs(rect.width - this.lastFit.width) >= 1
+            || Math.abs(rect.height - this.lastFit.height) >= 1;
         this.cm.canvas.width = rect.width;
         this.cm.canvas.height = rect.height;
         // Ensure CSS size matches canvas size to avoid scaling issues
         this.cm.canvas.style.width = `${rect.width}px`;
         this.cm.canvas.style.height = `${rect.height}px`;
+        if (wasFitted && sizeChanged && rect.width > 0 && rect.height > 0) {
+            this.fitToView();
+        }
     }
 
     updateViewportTransform({ pan, zoom }) {

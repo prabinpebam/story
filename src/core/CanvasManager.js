@@ -151,6 +151,7 @@ export class CanvasManager {
         // Resize canvas to match window/container
         this.resize();
         window.addEventListener('resize', () => this.resize());
+        window.addEventListener('story:fit-to-view', () => this.fitToView());
         
         // Subscribe to store changes
         store.on('viewport-changed', (viewport) => {
@@ -168,8 +169,6 @@ export class CanvasManager {
                 this.isRendering = false;
                 return;
             } else {
-                // Reset or fit to view again
-                setTimeout(() => this.fitToView(), 100);
                 if (!this.isRendering) {
                     this.render();
                 }
@@ -180,6 +179,19 @@ export class CanvasManager {
             if (state.editor.mode === 'presentation') return;
             if (this.interactionState === 'IDLE' && !this.isSpacePressed) {
                 this.container.style.cursor = state.editor.activeTool === 'hand' ? 'grab' : 'default';
+            }
+        });
+
+        this._lastContextView = store.getState().context?.view ?? 'Canvas';
+        store.on('context-changed', (context) => {
+            const previousView = this._lastContextView;
+            this._lastContextView = context?.view ?? 'Canvas';
+            if (context?.runtimeMode == null && context?.view === 'Canvas' && previousView !== 'Canvas') {
+                requestAnimationFrame(() => {
+                    this.resize();
+                    const state = store.getState();
+                    this.updateViewportTransform({ pan: state.editor.pan, zoom: state.editor.zoom });
+                });
             }
         });
 

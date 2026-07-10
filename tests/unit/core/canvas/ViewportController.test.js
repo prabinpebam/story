@@ -290,6 +290,38 @@ describe('ViewportController', () => {
 
             expect(() => viewportController.resize()).not.toThrow();
         });
+
+        it('should refit when a fitted container changes size', () => {
+            const mockSlide = { width: 1920, height: 1080 };
+            mockCanvasManager.getActiveContainer.mockReturnValue(mockSlide);
+            viewportController.fitToView();
+            const initialFit = store.dispatch.mock.calls.at(-1)[1];
+            mockState.editor.zoom = initialFit.zoom;
+            mockState.editor.pan = initialFit.pan;
+            mockCanvasManager.container.getBoundingClientRect.mockReturnValue({ width: 800, height: 700 });
+            store.dispatch.mockClear();
+
+            viewportController.resize();
+
+            expect(store.dispatch).toHaveBeenCalledWith('UPDATE_VIEWPORT', expect.objectContaining({
+                zoom: expect.any(Number),
+                pan: expect.any(Object)
+            }));
+        });
+
+        it('should preserve a manually changed viewport on resize', () => {
+            const mockSlide = { width: 1920, height: 1080 };
+            mockCanvasManager.getActiveContainer.mockReturnValue(mockSlide);
+            viewportController.fitToView();
+            mockState.editor.zoom = 1.5;
+            mockState.editor.pan = { x: 20, y: 30 };
+            mockCanvasManager.container.getBoundingClientRect.mockReturnValue({ width: 800, height: 700 });
+            store.dispatch.mockClear();
+
+            viewportController.resize();
+
+            expect(store.dispatch).not.toHaveBeenCalled();
+        });
     });
 
     describe('updateViewportTransform()', () => {

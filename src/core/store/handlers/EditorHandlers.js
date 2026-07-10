@@ -76,8 +76,10 @@ function ensureContext(draft) {
         runtimeMode: null,
         surfaceRole: 'Editor',
         placement: null,
+        editScopeStack: [],
         authoringSnapshot: null
     };
+    draft.context.editScopeStack ??= [];
 }
 
 export function handleSetView(draft, payload) {
@@ -89,8 +91,79 @@ export function handleSetView(draft, payload) {
 export function handleSetEditScope(draft, payload) {
     ensureContext(draft);
     if (draft.context.runtimeMode !== null || !EDIT_SCOPES.has(payload)) return;
+    const activeSource = draft.slideMasterPresets[draft.editor.activeMasterId];
+    if (payload === 'Master' && activeSource?.type === 'layoutMaster' && activeSource.parentMasterId) {
+        draft.editor.activeMasterId = activeSource.parentMasterId;
+    }
+    if (payload === 'Layout' && activeSource?.type !== 'layoutMaster') {
+        const activeSlideLayoutId = draft.slides[draft.editor.activeSlideId]?.layoutId;
+        const activeSlideLayout = draft.slideMasterPresets[activeSlideLayoutId];
+        const firstLayoutId = activeSource?.layoutIds?.find((id) => draft.slideMasterPresets[id]?.type === 'layoutMaster');
+        const activeSlideLayoutBelongsToSource = activeSlideLayout?.type === 'layoutMaster'
+            && activeSlideLayout.parentMasterId === activeSource?.id;
+        draft.editor.activeMasterId = firstLayoutId
+            ?? (activeSlideLayoutBelongsToSource ? activeSlideLayoutId : draft.editor.activeMasterId);
+    }
     draft.context.editScope = payload;
-    draft.editor.mode = payload === 'Master' ? 'master' : 'edit';
+    draft.editor.mode = payload === 'Master' || payload === 'Layout' ? 'master' : 'edit';
+}
+
+export function handleEnterEditScope(draft, payload = {}) {
+    ensureContext(draft);
+    const scope = payload.scope;
+    const sourceId = payload.sourceId;
+    const source = sourceId ? draft.slideMasterPresets[sourceId] ?? draft.slides[sourceId] : null;
+    if (draft.context.runtimeMode !== null || !EDIT_SCOPES.has(scope)) return;
+    if (scope === 'Master' && source?.type !== 'slideMasterPreset') return;
+    if (scope === 'Layout' && source?.type !== 'layoutMaster') return;
+    if (scope === 'Slide' && !draft.slides[sourceId]) return;
+
+    draft.context.editScopeStack.push({
+        view: draft.context.view,
+        editScope: draft.context.editScope,
+        activeSlideId: draft.editor.activeSlideId,
+        activeMasterId: draft.editor.activeMasterId,
+        selectedSlideIds: [...draft.editor.selectedSlideIds],
+        selectedElementIds: [...draft.editor.selectedElementIds],
+        editingElementId: draft.editor.editingElementId,
+        deepEdit: draft.editor.deepEdit,
+        deepEditStack: [...draft.editor.deepEditStack],
+        activeTool: draft.editor.activeTool,
+        activeToolOptions: draft.editor.activeToolOptions ? { ...draft.editor.activeToolOptions } : null,
+        zoom: draft.editor.zoom,
+        pan: { ...draft.editor.pan }
+    });
+
+    if (scope === 'Master' || scope === 'Layout') draft.editor.activeMasterId = sourceId;
+    if (scope === 'Slide') draft.editor.activeSlideId = sourceId;
+    if (AUTHORING_VIEWS.has(payload.view)) draft.context.view = payload.view;
+    draft.context.editScope = scope;
+    draft.editor.mode = scope === 'Master' || scope === 'Layout' ? 'master' : 'edit';
+    draft.editor.selectedElementIds = [];
+    draft.editor.editingElementId = null;
+    draft.editor.deepEdit = null;
+    draft.editor.deepEditStack = [];
+}
+
+export function handleExitEditScope(draft) {
+    ensureContext(draft);
+    if (draft.context.runtimeMode !== null) return;
+    const snapshot = draft.context.editScopeStack.pop();
+    if (!snapshot) return;
+    draft.context.view = snapshot.view;
+    draft.context.editScope = snapshot.editScope;
+    draft.editor.activeSlideId = snapshot.activeSlideId;
+    draft.editor.activeMasterId = snapshot.activeMasterId;
+    draft.editor.selectedSlideIds = [...snapshot.selectedSlideIds];
+    draft.editor.selectedElementIds = [...snapshot.selectedElementIds];
+    draft.editor.editingElementId = snapshot.editingElementId;
+    draft.editor.deepEdit = snapshot.deepEdit;
+    draft.editor.deepEditStack = [...snapshot.deepEditStack];
+    draft.editor.activeTool = snapshot.activeTool;
+    draft.editor.activeToolOptions = snapshot.activeToolOptions ? { ...snapshot.activeToolOptions } : null;
+    draft.editor.zoom = snapshot.zoom;
+    draft.editor.pan = { ...snapshot.pan };
+    draft.editor.mode = snapshot.editScope === 'Master' || snapshot.editScope === 'Layout' ? 'master' : 'edit';
 }
 
 export function handleEnterRuntime(draft, payload = {}) {
@@ -108,6 +181,7 @@ export function handleEnterRuntime(draft, payload = {}) {
             selectedSlideIds: [...draft.editor.selectedSlideIds],
             selectedElementIds: [...draft.editor.selectedElementIds],
             activeTool: draft.editor.activeTool,
+            activeToolOptions: draft.editor.activeToolOptions ? { ...draft.editor.activeToolOptions } : null,
             zoom: draft.editor.zoom,
             pan: { ...draft.editor.pan }
         };
@@ -138,6 +212,7 @@ export function handleExitRuntime(draft) {
         draft.editor.selectedSlideIds = [...snapshot.selectedSlideIds];
         draft.editor.selectedElementIds = [...snapshot.selectedElementIds];
         draft.editor.activeTool = snapshot.activeTool;
+        draft.editor.activeToolOptions = snapshot.activeToolOptions ? { ...snapshot.activeToolOptions } : null;
         draft.editor.zoom = snapshot.zoom;
         draft.editor.pan = { ...snapshot.pan };
     }
@@ -146,7 +221,7 @@ export function handleExitRuntime(draft) {
     draft.context.surfaceRole = 'Editor';
     draft.context.placement = null;
     draft.context.authoringSnapshot = null;
-    draft.editor.mode = draft.context.editScope === 'Master' ? 'master' : 'edit';
+    draft.editor.mode = draft.context.editScope === 'Master' || draft.context.editScope === 'Layout' ? 'master' : 'edit';
     draft.presentation.isActive = false;
     if (draft.presentation.kiosk) draft.presentation.kiosk.enabled = false;
     draft.presentation.laserPointer = false;

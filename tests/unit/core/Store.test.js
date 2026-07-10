@@ -70,6 +70,7 @@ describe('Store', () => {
                 runtimeMode: null,
                 surfaceRole: 'Editor',
                 placement: null,
+                editScopeStack: [],
                 authoringSnapshot: null
             });
         });
@@ -185,6 +186,15 @@ describe('Store', () => {
             expect(state.editor.mode).toBe('master');
         });
 
+        it('should project Layout scope through the master renderer compatibility mode', () => {
+            store.dispatch('SET_EDIT_SCOPE', 'Layout');
+
+            const state = store.getState();
+            expect(state.context.editScope).toBe('Layout');
+            expect(state.context.runtimeMode).toBeNull();
+            expect(state.editor.mode).toBe('master');
+        });
+
         it('should ignore invalid context values', () => {
             store.dispatch('SET_VIEW', 'Presenter');
             store.dispatch('SET_EDIT_SCOPE', 'Presentation');
@@ -197,8 +207,77 @@ describe('Store', () => {
                 runtimeMode: null,
                 surfaceRole: 'Editor',
                 placement: null,
+                editScopeStack: [],
                 authoringSnapshot: null
             });
+        });
+
+        it('should normalize Master and Layout scope to matching source types', () => {
+            store.dispatch('SET_ACTIVE_MASTER', 'layout-title');
+            store.dispatch('SET_EDIT_SCOPE', 'Master');
+            expect(store.getState().slideMasterPresets[store.getState().editor.activeMasterId].type).toBe('slideMasterPreset');
+
+            store.dispatch('SET_EDIT_SCOPE', 'Slide');
+            store.dispatch('SET_ACTIVE_MASTER', 'master-default');
+            store.dispatch('SET_EDIT_SCOPE', 'Layout');
+            expect(store.getState().slideMasterPresets[store.getState().editor.activeMasterId].type).toBe('layoutMaster');
+        });
+
+        it('should choose a layout owned by the selected master', () => {
+            const state = structuredClone(createInitialState());
+            state.slideMasterPresets['master-secondary'] = {
+                id: 'master-secondary',
+                type: 'slideMasterPreset',
+                name: 'Secondary Master',
+                layoutIds: ['layout-secondary'],
+                elements: {},
+                elementOrder: []
+            };
+            state.slideMasterPresets['layout-secondary'] = {
+                id: 'layout-secondary',
+                type: 'layoutMaster',
+                parentMasterId: 'master-secondary',
+                name: 'Secondary Layout',
+                elements: {},
+                elementOrder: []
+            };
+            store.restoreState(state);
+            store.dispatch('SET_ACTIVE_MASTER', 'master-secondary');
+
+            store.dispatch('SET_EDIT_SCOPE', 'Layout');
+
+            const activeSource = store.getState().slideMasterPresets[store.getState().editor.activeMasterId];
+            expect(activeSource.id).toBe('layout-secondary');
+            expect(activeSource.parentMasterId).toBe('master-secondary');
+        });
+
+        it('should enter and exit a source scope without losing authoring context', () => {
+            store.dispatch('SET_VIEW', 'System');
+            store.dispatch('SET_ACTIVE_TOOL', { tool: 'shape', shapeKind: 'rectangle' });
+            store.dispatch('UPDATE_SELECTION', ['placeholder-title']);
+            store.dispatch('UPDATE_VIEWPORT', { zoom: 1.25, pan: { x: 30, y: 40 } });
+
+            store.dispatch('ENTER_EDIT_SCOPE', { scope: 'Layout', sourceId: 'layout-title', view: 'Canvas' });
+
+            let state = store.getState();
+            expect(state.context.editScope).toBe('Layout');
+            expect(state.context.view).toBe('Canvas');
+            expect(state.editor.activeMasterId).toBe('layout-title');
+            expect(state.editor.selectedElementIds).toEqual([]);
+            expect(state.context.editScopeStack).toHaveLength(1);
+
+            store.dispatch('EXIT_EDIT_SCOPE');
+
+            state = store.getState();
+            expect(state.context.editScope).toBe('Slide');
+            expect(state.context.view).toBe('System');
+            expect(state.editor.activeMasterId).toBe('master-default');
+            expect(state.editor.selectedElementIds).toEqual(['placeholder-title']);
+            expect(state.editor.activeTool).toBe('shape');
+            expect(state.editor.activeToolOptions).toEqual({ tool: 'shape', shapeKind: 'rectangle' });
+            expect(state.editor.zoom).toBe(1.25);
+            expect(state.editor.pan).toEqual({ x: 30, y: 40 });
+            expect(state.context.editScopeStack).toEqual([]);
         });
 
         it('should dispatch SET_ACTIVE_SLIDE', () => {
@@ -385,7 +464,7 @@ describe('Store', () => {
         it('should restore captured authoring context on runtime exit', () => {
             store.dispatch('SET_VIEW', 'System');
             store.dispatch('SET_EDIT_SCOPE', 'Master');
-            store.dispatch('SET_ACTIVE_TOOL', 'text');
+            store.dispatch('SET_ACTIVE_TOOL', { tool: 'shape', shapeKind: 'star' });
             store.dispatch('UPDATE_VIEWPORT', { zoom: 1.5, pan: { x: 120, y: 80 } });
             store.dispatch('UPDATE_SELECTION', ['element-1', 'element-2']);
 
@@ -414,7 +493,8 @@ describe('Store', () => {
             expect(state.context.placement).toBeNull();
             expect(state.context.authoringSnapshot).toBeNull();
             expect(state.editor.mode).toBe('master');
-            expect(state.editor.activeTool).toBe('text');
+            expect(state.editor.activeTool).toBe('shape');
+            expect(state.editor.activeToolOptions).toEqual({ tool: 'shape', shapeKind: 'star' });
             expect(state.editor.selectedElementIds).toEqual(['element-1', 'element-2']);
             expect(state.editor.zoom).toBe(1.5);
             expect(state.editor.pan).toEqual({ x: 120, y: 80 });
@@ -574,6 +654,27 @@ describe('Store', () => {
             expect(listener).toHaveBeenNthCalledWith(2, 'edit');
 
             store.off('mode-changed', listener);
+        });
+
+        it('should emit restored viewport paint state after scope and runtime exit', () => {
+            const listener = vi.fn();
+            store.on('viewport-changed', listener);
+            store.dispatch('UPDATE_VIEWPORT', { zoom: 1.4, pan: { x: 31, y: 47 } });
+            listener.mockClear();
+
+            store.dispatch('ENTER_EDIT_SCOPE', { scope: 'Layout', sourceId: 'layout-title', view: 'Canvas' });
+            store.dispatch('UPDATE_VIEWPORT', { zoom: 0.5, pan: { x: 2, y: 3 } });
+            listener.mockClear();
+            store.dispatch('EXIT_EDIT_SCOPE');
+            expect(listener).toHaveBeenLastCalledWith({ zoom: 1.4, pan: { x: 31, y: 47 } });
+
+            store.dispatch('ENTER_RUNTIME', { mode: 'Preview', surfaceRole: 'Audience', placement: 'Embedded preview' });
+            store.dispatch('UPDATE_VIEWPORT', { zoom: 0.75, pan: { x: 5, y: 6 } });
+            listener.mockClear();
+            store.dispatch('EXIT_RUNTIME');
+            expect(listener).toHaveBeenLastCalledWith({ zoom: 1.4, pan: { x: 31, y: 47 } });
+
+            store.off('viewport-changed', listener);
         });
 
         it('should emit selection-changed when selection changes', () => {

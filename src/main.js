@@ -34,6 +34,7 @@ import { FileIndicatorController } from './ui/services/FileIndicatorController.j
 import { notify } from './ui/services/NotificationService.js';
 import { ViewportControls } from './ui/ViewportControls.js';
 import { AuthoringViewManager } from './ui/AuthoringViewManager.js';
+import { CueLine } from './ui/CueLine.js';
 
 // Ensure slide transitions have a local animation engine.
 // The runtime reads from `window.anime` (supports Anime.js v3/v4 shapes).
@@ -152,6 +153,7 @@ class App {
         this.hud = new HUD('presentation-hud');
         this.viewportControls = new ViewportControls();
         this.authoringViewManager = new AuthoringViewManager();
+        this.cueLine = new CueLine();
         
         // Initialize App Menu (file menu in sidebar header)
         this.appMenu = new AppMenu('app-menu-container');
