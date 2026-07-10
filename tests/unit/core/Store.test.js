@@ -6,6 +6,8 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import fs from 'node:fs';
+import path from 'node:path';
 import { store } from '../../../src/core/Store.js';
 import { createInitialState } from '../../../src/core/store/InitialState.js';
 
@@ -26,6 +28,25 @@ describe('Store', () => {
     });
 
     describe('Initialization', () => {
+        it('should keep legacy SET_MODE dispatches out of production callers', () => {
+            const srcRoot = path.join(process.cwd(), 'src');
+            const files = [];
+            const visit = (directory) => {
+                for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
+                    const filePath = path.join(directory, entry.name);
+                    if (entry.isDirectory()) {
+                        if (entry.name !== 'vendor') visit(filePath);
+                    } else if (entry.name.endsWith('.js')) {
+                        files.push(filePath);
+                    }
+                }
+            };
+            visit(srcRoot);
+
+            const offenders = files.filter((filePath) => /dispatch\(\s*['"]SET_MODE['"]/.test(fs.readFileSync(filePath, 'utf8')));
+            expect(offenders).toEqual([]);
+        });
+
         it('should have initial state defined', () => {
             const state = store.getState();
             expect(state).toBeDefined();

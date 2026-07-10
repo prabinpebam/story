@@ -214,18 +214,47 @@ describe('PresentationManager', () => {
     });
 
     describe('startPresentation()', () => {
-        it('should dispatch SET_MODE with presentation', () => {
+        it('should enter Presentation runtime for the audience', () => {
             presentationManager.startPresentation();
 
-            expect(store.dispatch).toHaveBeenCalledWith('SET_MODE', 'presentation');
+            expect(store.dispatch).toHaveBeenCalledWith('ENTER_RUNTIME', {
+                mode: 'Presentation',
+                surfaceRole: 'Audience',
+                placement: 'Fullscreen'
+            });
+        });
+
+        it('uses the Presenter surface role in a presenter window', () => {
+            presentationManager._sync.role = 'presenter';
+
+            presentationManager.startPresentationWithOptions({ requestFullscreen: false });
+
+            expect(store.dispatch).toHaveBeenCalledWith('ENTER_RUNTIME', {
+                mode: 'Presentation',
+                surfaceRole: 'Presenter',
+                placement: 'Windowed'
+            });
+        });
+
+        it('enters Kiosk runtime with the requested placement', () => {
+            presentationManager.startKioskWithOptions({
+                requestFullscreen: false,
+                kiosk: { autoAdvanceSeconds: 10, loop: true }
+            });
+
+            expect(store.dispatch).toHaveBeenCalledWith('ENTER_RUNTIME', {
+                mode: 'Kiosk',
+                surfaceRole: 'Audience',
+                placement: 'Windowed'
+            });
         });
     });
 
     describe('stopPresentation()', () => {
-        it('should dispatch SET_MODE with edit', () => {
+        it('should exit the active runtime', () => {
             presentationManager.stopPresentation();
 
-            expect(store.dispatch).toHaveBeenCalledWith('SET_MODE', 'edit');
+            expect(store.dispatch).toHaveBeenCalledWith('EXIT_RUNTIME');
         });
     });
 
@@ -675,7 +704,7 @@ describe('PresentationManager', () => {
             const event = new KeyboardEvent('keydown', { key: 'Escape' });
             document.dispatchEvent(event);
 
-            expect(store.dispatch).toHaveBeenCalledWith('SET_MODE', 'edit');
+            expect(store.dispatch).toHaveBeenCalledWith('EXIT_RUNTIME');
         });
 
         it('should toggle black screen on b key', () => {
@@ -906,7 +935,7 @@ describe('PresentationManager', () => {
             document.dispatchEvent(event);
 
             // Spec: presentation continues windowed; no mode exit.
-            expect(store.dispatch).not.toHaveBeenCalledWith('SET_MODE', 'edit');
+            expect(store.dispatch).not.toHaveBeenCalledWith('EXIT_RUNTIME');
         });
 
         it('should not stop presentation if still in fullscreen', () => {

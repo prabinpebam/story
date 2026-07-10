@@ -188,6 +188,14 @@ export class PresentationManager {
         return new URLSearchParams(window.location.search).get('presenter') === '1';
     }
 
+    _enterRuntime(mode, requestFullscreen) {
+        store.dispatch('ENTER_RUNTIME', {
+            mode,
+            surfaceRole: this._isPresenter() ? 'Presenter' : 'Audience',
+            placement: requestFullscreen === false ? 'Windowed' : 'Fullscreen'
+        });
+    }
+
     _getKioskConfigForSession(state) {
         const base = normalizeKioskConfig(state?.presentation?.kiosk);
 
@@ -411,7 +419,7 @@ export class PresentationManager {
         if (msg.type === 'exit') {
             this._sync.isApplyingRemote = true;
             try {
-                store.dispatch('SET_MODE', 'edit');
+                store.dispatch('EXIT_RUNTIME');
             } finally {
                 this._sync.isApplyingRemote = false;
             }
@@ -445,7 +453,7 @@ export class PresentationManager {
                 const state = store.getState();
                 if (state?.editor?.mode !== 'presentation') {
                     store.dispatch('PRESENTATION_SET_REQUEST_FULLSCREEN', false);
-                    store.dispatch('SET_MODE', 'presentation');
+                    this._enterRuntime('Presentation', false);
                 }
             }
 
@@ -468,7 +476,7 @@ export class PresentationManager {
             const state = store.getState();
             if (state?.editor?.mode !== 'presentation') {
                 store.dispatch('PRESENTATION_SET_REQUEST_FULLSCREEN', false);
-                store.dispatch('SET_MODE', 'presentation');
+                this._enterRuntime('Presentation', false);
             }
             store.dispatch('PRESENTATION_GOTO', { index: slideIndex, buildIndex });
         } finally {
@@ -1668,7 +1676,7 @@ export class PresentationManager {
 
         store.dispatch('PRESENTATION_SET_REQUEST_FULLSCREEN', requestFullscreen !== false);
         store.dispatch('PRESENTATION_SET_KIOSK_CONFIG', null);
-        store.dispatch('SET_MODE', 'presentation');
+        this._enterRuntime('Presentation', requestFullscreen);
     }
 
     startKioskWithOptions({ requestFullscreen, kiosk }) {
@@ -1681,7 +1689,7 @@ export class PresentationManager {
 
         store.dispatch('PRESENTATION_SET_REQUEST_FULLSCREEN', requestFullscreen !== false);
         store.dispatch('PRESENTATION_SET_KIOSK_CONFIG', normalizeKioskConfig({ enabled: true, ...(kiosk || {}) }));
-        store.dispatch('SET_MODE', 'presentation');
+        this._enterRuntime('Kiosk', requestFullscreen);
     }
 
     async stopPresentation() {
@@ -1714,7 +1722,7 @@ export class PresentationManager {
         // SHOULD prompt if exiting with unsaved changes.
         // Intentionally no confirmation prompt on exit.
 
-        store.dispatch('SET_MODE', 'edit');
+        store.dispatch('EXIT_RUNTIME');
 
         // Presenter-only: ensure timer state doesn't leak between sessions.
         this._presenterUi.timer = null;

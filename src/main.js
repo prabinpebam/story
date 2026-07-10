@@ -114,7 +114,7 @@ class App {
                 // Standardize common actions for store-driven notifications
                 if (next.actionLabel === 'Open Layout Picker' && typeof next.onAction !== 'function') {
                     next.onAction = () => {
-                        store.dispatch('SET_MODE', 'edit');
+                        store.dispatch('SET_EDIT_SCOPE', 'Slide');
                         setTimeout(() => {
                             const btn = document.querySelector('.layout-trigger-btn');
                             if (btn) btn.click();
