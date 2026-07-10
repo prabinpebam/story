@@ -1,7 +1,7 @@
 # Generated Protocol Registry
 
 > **Generated artifact:** Do not edit manually.  
-> **Source revision:** `baad33c3189716f549949085887f221dd01bc3e3+working-tree`  
+> **Source revision:** `sha256:e8fc04a2e7387c7f5db29c91f87e2cef93b2b5ef0811f4d548d37dd92565411b`
 > **Source reviewed:** 2026-07-10  
 > **Protocols:** 55  
 > **Release-admissible:** 0  

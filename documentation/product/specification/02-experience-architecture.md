@@ -765,12 +765,12 @@ Adaptation is driven by effective workspace size, input modality, zoom, and user
 
 | Tier | Effective viewport | Shell composition | Precision-authoring posture |
 |---|---|---|---|
-| **W4 Expansive** | Width >= 1440 and height >= 800 CSS px | Both rails docked; optional tray; labeled views; full command zones | Full |
-| **W3 Standard** | Width 1100-1439 and height >= 700 CSS px | Both rails available; one may be narrower; secondary actions overflow | Full |
-| **W2 Compact** | Width 760-1099 or height 560-699 CSS px | At most one docked rail; other rail becomes drawer; tray overlays/resizes; compact command bar | Full when center stage remains at least 480 x 360 CSS px |
-| **W1 Focused** | Width < 760 or height < 560 CSS px | One primary region at a time; rails become full-height sheets; tool dock edge-docks; secondary commands use menus | Bounded; no full-precision parity claim |
+| **W4 Expansive** | Width >= 1440 CSS px and height >= 800 CSS px | Both rails docked; optional tray; labeled views; full command zones | Full |
+| **W3 Standard** | Otherwise, width >= 1100 CSS px and height >= 700 CSS px | Both rails available; one may be narrower; secondary actions overflow | Full |
+| **W2 Compact** | Otherwise, width >= 760 CSS px and height >= 560 CSS px | At most one docked rail; other rail becomes drawer; tray overlays/resizes; compact command bar | Full when center stage remains at least 480 x 360 CSS px |
+| **W1 Focused** | All smaller effective viewports | One primary region at a time; rails become full-height sheets; tool dock edge-docks; secondary commands use menus | Bounded; no full-precision parity claim |
 
-If browser zoom or system text scaling reduces usable space, Story selects the resulting effective tier rather than clipping the W3/W4 layout.
+The rows are evaluated in W4-to-W1 order and the first match wins, making the function total and disjoint. If browser zoom or system text scaling reduces usable space, Story selects the resulting effective tier rather than clipping the W3/W4 layout.
 
 ### 15.2 Deterministic Collapse Order
 
@@ -977,7 +977,7 @@ The Cue Line is not decoration, a progress bar, or a breadcrumb duplicate. It:
 - never appears in audience output, exported slide pixels, or presentation content;
 - becomes the recognizable Story-specific bridge between design-system provenance and presentation delivery.
 
-Every canonical reference screen must demonstrate the Cue Line in at least one inherited, overridden, conflicted, or runtime-ready state. If research shows it does not improve source/scope prediction under `SLO-14-062`, the visual treatment may change through an ADR, but the requirement for one scanable provenance chain remains.
+Every canonical reference screen must demonstrate the Cue Line in at least one inherited, overridden, conflicted, or runtime-ready state. If research shows it does not improve provenance-chain comprehension under `SLO-14-078`, the visual treatment may change through an ADR, but the requirement for one scanable provenance chain remains.
 
 ### 18.4 Color Direction
 
@@ -1213,7 +1213,7 @@ Transitions change only the named axes plus explicitly listed dependent cleanup.
 | Enter master/layout/component | `EditScope`, optional `View` | Prior context snapshot | End incompatible deep edit; keep document |
 | Activate tool | `Tool` | View, scope, valid selection | Cancel active incompatible preview |
 | Enter runtime | `ProductSpace`, `RuntimeMode`, `SurfaceRole` | Captured authoring context | Close authoring transient overlays; validate readiness |
-| Exit runtime | `ProductSpace=Authoring`, `RuntimeMode=Authoring` | Restore captured context | Dispose runtime-only overlays/state |
+| Exit runtime | `ProductSpace=Authoring`, `RuntimeMode=null` | Restore captured context | Dispose runtime-only overlays/state |
 | Resize/reflow | Window tier only | All semantic axes and drafts | Re-home panels without closing valid work |
 
 ### 21.2 Overlay and Escape - `SM-02-002`
@@ -1481,7 +1481,7 @@ Each criterion is pass/fail and evaluates the corresponding requirement at this 
 | `AC-02-012` | `REQ-02-012` | A seeded view round trip preserves document, edition, compatible scope, selection, and source identity; incompatible selection replacement is explained and reversible. |
 | `AC-02-013` | `REQ-02-013` | State inspection and UI evidence show separate view, edit-scope, and runtime fields; changing one does not implicitly overwrite the others. |
 | `AC-02-014` | `REQ-02-014` | Every mutation in master, layout, component, narrative-component, and edition fixtures occurs only after the context bar and inspector name that owner. |
-| `AC-02-015` | `REQ-02-015` | Entering Edit master/layout leaves runtime mode Authoring, records master/layout as scope, and restores the prior scope on exit. |
+| `AC-02-015` | `REQ-02-015` | Entering Edit master/layout leaves `RuntimeMode=null`, records master/layout as scope, and restores the prior scope on exit. |
 | `AC-02-016` | `REQ-02-016` | Canvas, Grid, Outline, Notes, and System projections of an edition all display edition/audience and base identity plus material difference state. |
 | `AC-02-017` | `REQ-02-017` | Activating every tool changes only editor-session/tool state and leaves the document semantic hash and history length unchanged. |
 | `AC-02-018` | `REQ-02-018` | Holding/releasing each temporary tool restores the exact preceding compatible tool, cursor, and pressed state with no document mutation. |
@@ -1526,7 +1526,7 @@ Each criterion is pass/fail and evaluates the corresponding requirement at this 
 | `AC-02-057` | `REQ-02-057` | Computed hit regions for every D2/D1 interactive target are at least 44 x 44 CSS px and the same actions are available without hover. |
 | `AC-02-058` | `REQ-02-058` | Grayscale, forced-color, and color-vision simulations plus semantic inspection distinguish every named state using shape, text, border, icon, or pattern in addition to hue. |
 | `AC-02-059` | `REQ-02-059` | Terminology/copy lint and task review find canonical terms, sentence-case labels, correct ellipses, literal destructive targets, and no competing term for the same concept. |
-| `AC-02-060` | `REQ-02-060` | Visual review across every view confirms center-stage primacy, aligned rails, stable geometry, task-sized surfaces, no nested decorative cards, and master-craft joint alignment. |
+| `AC-02-060` | `REQ-02-060` | Visual review across every view confirms center-stage primacy, aligned rails, stable geometry, task-sized surfaces, no nested decorative cards, and master-craft joint alignment. Seeded Cue Line tasks identify source, edition, scope, readiness, and exact break location; navigate each permitted owner without mutation; expose the full chain at constrained width; remain absent from audience/output pixels; and satisfy `SLO-14-078`. |
 | `AC-02-061` | `REQ-02-061` | Light, dark, compact, comfortable, touch, and one alternate app theme preserve contrast, hierarchy, target size, focus order, shell geometry, and unchanged presentation semantic hash. |
 | `AC-02-062` | `REQ-02-062` | A summative study satisfying Section 23 meets every threshold in `SLO-14-053` and `SLO-14-054`. |
 | `AC-02-063` | `REQ-02-063` | A summative interaction study meets every threshold in `SLO-14-055`, `SLO-14-056`, and `SLO-14-057` with zero committed-data-loss event. |

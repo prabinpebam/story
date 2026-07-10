@@ -14,6 +14,8 @@
 
 This profile turns the end-state product specification into one executable product slice. It does not redefine, narrow, or mark complete the full Story vision. Requirements excluded from R1 remain accepted end-state scope and stay visible in traceability.
 
+The editable selection pins the exact atomic requirement-ID universe by count and SHA-256. Its broad default inclusion expresses the deliberate R1 parity-and-safety floor; it is not an open-ended wildcard. Any added, removed, or renumbered requirement fails profile generation until its disposition is reviewed and the pinned universe is explicitly advanced. The 24 workflows are product-outcome spines, not the only evidence containers: included cross-cutting requirements without a workflow link remain release-gating through their acceptance criterion and Volume 15 evidence-matrix cells.
+
 R1 proves one complete promise:
 
 > A design-led team can open or create a presentation, establish a reusable visual and presentation system, produce two governed audience editions without copying the deck, reconcile a shared update, rehearse and present the correct edition, and exchange the work with explicit fidelity and recovery.
@@ -211,7 +213,7 @@ Each workflow has a stable profile ID. Workflow conformance requires the functio
 | Runtime | Admission snapshot immutable; session state mutable; recovery checkpoint reconstructive |
 | Runtime axes | Mode, surface role, placement, timing, and interaction policy remain orthogonal |
 | Table formulas | Arithmetic plus `SUM`, `AVERAGE`, `MIN`, `MAX`, `COUNT`; same-table references only |
-| Charts | Column, bar, line, area, pie, doughnut, scatter, combo |
+| Charts | Column, bar, line, area, pie, doughnut, scatter, bubble, radar, combo, histogram, and box-and-whisker |
 | Equations | Linear UnicodeMath-compatible input and visual editing for included construct matrix; unsupported source preserved |
 | Presentation theme modes | Two named modes minimum; semantic slots retain meaning across modes |
 | PPTX target | Office Open XML Transitional `.pptx`; validated against current supported Microsoft 365 desktop PowerPoint on Windows for the published subset |

@@ -12,19 +12,19 @@
     {
       "id": "W3",
       "name": "Standard",
-      "condition": "width 1100-1439 CSS px and height >= 700 CSS px",
+      "condition": "otherwise, width >= 1100 CSS px and height >= 700 CSS px",
       "authoringSupport": "full"
     },
     {
       "id": "W2",
       "name": "Compact",
-      "condition": "width 760-1099 CSS px or height 560-699 CSS px",
+      "condition": "otherwise, width >= 760 CSS px and height >= 560 CSS px",
       "authoringSupport": "full only while center stage >= 480 x 360 CSS px"
     },
     {
       "id": "W1",
       "name": "Focused",
-      "condition": "width < 760 CSS px or height < 560 CSS px",
+      "condition": "all smaller effective viewports",
       "authoringSupport": "bounded"
     }
   ],

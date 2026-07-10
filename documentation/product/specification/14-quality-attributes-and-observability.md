@@ -492,6 +492,7 @@ Only enabled, fully routed output profiles participate. Disabled or unimplemente
 | `SLO-14-075` | External AI/transcription payload or unreviewed-commit deviations | 0 | 0 |
 | `SLO-14-076` | Retention/deletion truthful terminal or declared pending/hold disposition | 100 percent | 100 percent |
 | `SLO-14-077` | Privileged-action audit completeness / denial metadata leaks | 100 percent / 0 | 100 percent / 0 |
+| `SLO-14-078` | Cue Line source, edition, scope, readiness, and exact-break comprehension / permitted-owner navigation without mutation | >= 90 percent / 100 percent | >= 85 percent / 100 percent; 0 audience/output leakage |
 
 Local recovery RPO is at most the last accepted change older than 5 seconds under normal storage availability. Shared acknowledged operations have RPO 0 under `SLO-14-051`. Any user-visible claim states which durability boundary applies.
 
@@ -1084,7 +1085,7 @@ Defaults remain in force until an accepted decision supersedes them.
 | Invariants | 16 | `INV-14-001` through `INV-14-016` |
 | State machines | 3 | `SM-14-001` through `SM-14-003` |
 | Flows | 5 | `FLOW-14-001` through `FLOW-14-005` |
-| SLOs | 77 | `SLO-14-001` through `SLO-14-077` |
+| SLOs | 78 | `SLO-14-001` through `SLO-14-078` |
 | Acceptance criteria | 61 | `AC-14-001` through `AC-14-061` |
 | Test protocols | 12 | `TEST-14-001` through `TEST-14-012` |
 | Open decisions | 8 | `OD-14-001` through `OD-14-008` |

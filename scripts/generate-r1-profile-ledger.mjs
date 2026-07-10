@@ -48,6 +48,13 @@ function writeOrCheck(filePath, content) {
 const traceability = readJson(traceabilityPath);
 const selection = readJson(selectionPath);
 const allRequirementIds = new Set(traceability.requirements.map((entry) => entry.id));
+const requirementIdsHash = sha256([...allRequirementIds].sort().join('\n'));
+if (selection.expectedRequirementCount !== allRequirementIds.size) {
+    throw new Error(`R1 selection expected ${selection.expectedRequirementCount} requirements; found ${allRequirementIds.size}. Classify the changed requirement universe explicitly.`);
+}
+if (selection.expectedRequirementIdsSha256 !== requirementIdsHash) {
+    throw new Error('R1 requirement universe changed. Review every added/removed ID and update the pinned count and hash explicitly.');
+}
 const dispositionByRequirement = new Map(traceability.requirements.map((entry) => [entry.id, selection.defaultDisposition]));
 const explicitAssignments = new Map();
 
@@ -152,7 +159,7 @@ const markdown = `# Generated R1 Preview Atomic Ledger
 
 > **Generated artifact:** Do not edit manually.  
 > **Profile:** \`${ledger.profileId}\`  
-> **Source revision:** \`${ledger.sourceRevision}\`  
+> **Source revision:** \`${ledger.sourceRevision}\`
 > **Source reviewed:** ${ledger.sourceReviewedAt}  
 > **Requirement-set hash:** \`${ledger.requirementSetHash}\`  
 > **Regenerate:** \`npm run spec:r1\`

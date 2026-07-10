@@ -2,6 +2,8 @@
   "schemaVersion": "story.profile-selection/1.0.0",
   "profileId": "PROFILE-R1-2026-01",
   "profileVersion": "1.0.0-draft",
+  "expectedRequirementCount": 1465,
+  "expectedRequirementIdsSha256": "b0b03a34e1edc08f60dec3207deae81a2ff3ef89b45953e469c695d1d5721a2d",
   "defaultDisposition": "included",
   "dispositionRanges": {
     "deferred": [

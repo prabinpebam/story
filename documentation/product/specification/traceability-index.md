@@ -2,9 +2,9 @@
 
 > **Generated artifact:** Do not edit manually.  
 > **Source:** Numbered volumes 00-15  
-> **Source revision:** `baad33c3189716f549949085887f221dd01bc3e3+working-tree`  
+> **Source revision:** `sha256:e8fc04a2e7387c7f5db29c91f87e2cef93b2b5ef0811f4d548d37dd92565411b`
 > **Source reviewed:** 2026-07-10  
-> **Source hash:** `b22606fc690f897fc5f5343dfc689e68defef3066dab64cf7437ed367bb3c337`  
+> **Source hash:** `e8fc04a2e7387c7f5db29c91f87e2cef93b2b5ef0811f4d548d37dd92565411b`
 > **Regenerate:** `npm run spec:index`  
 > **Validate:** `npm run spec:validate`
 

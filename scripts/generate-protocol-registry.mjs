@@ -157,7 +157,7 @@ const json = `${JSON.stringify(registry, null, 2)}\n`;
 const markdown = `# Generated Protocol Registry
 
 > **Generated artifact:** Do not edit manually.  
-> **Source revision:** \`${registry.sourceRevision}\`  
+> **Source revision:** \`${registry.sourceRevision}\`
 > **Source reviewed:** ${registry.sourceReviewedAt}  
 > **Protocols:** ${registry.protocolCount}  
 > **Release-admissible:** ${registry.releaseAdmissibleCount}  

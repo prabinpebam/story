@@ -8,7 +8,6 @@ const specDir = path.join(root, 'documentation', 'product', 'specification');
 const jsonPath = path.join(specDir, 'traceability-index.json');
 const markdownPath = path.join(specDir, 'traceability-index.md');
 const checkOnly = process.argv.includes('--check');
-const sourceRevision = process.env.STORY_SPEC_SOURCE_REVISION || 'baad33c3189716f549949085887f221dd01bc3e3+working-tree';
 const sourceReviewedAt = '2026-07-10';
 
 function read(filePath) {
@@ -116,11 +115,12 @@ const parents = [...parentMap.values()]
     }))
     .sort((left, right) => left.id.localeCompare(right.id));
 
+const sourceHash = sha256(sourceParts.join('\n---\n'));
 const registry = {
     schemaVersion: 1,
-    sourceRevision,
+    sourceRevision: `sha256:${sourceHash}`,
     sourceReviewedAt,
-    sourceHash: sha256(sourceParts.join('\n---\n')),
+    sourceHash,
     volumeCount: volumes.length,
     requirementCount: requirements.length,
     acceptanceCount: acceptanceIds.size,
@@ -134,9 +134,9 @@ const markdown = `# Generated Product Specification Index
 
 > **Generated artifact:** Do not edit manually.  
 > **Source:** Numbered volumes 00-15  
-> **Source revision:** \`${registry.sourceRevision}\`  
+> **Source revision:** \`${registry.sourceRevision}\`
 > **Source reviewed:** ${registry.sourceReviewedAt}  
-> **Source hash:** \`${registry.sourceHash}\`  
+> **Source hash:** \`${registry.sourceHash}\`
 > **Regenerate:** \`npm run spec:index\`  
 > **Validate:** \`npm run spec:validate\`
 
