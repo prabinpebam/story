@@ -1792,9 +1792,6 @@ export function createInitialState() {
             loading: false,
             error: null
         },
-        ui: {
-            isInteracting: false
-        },
         context: {
             productSpace: "Authoring",
             view: "Canvas",

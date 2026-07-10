@@ -105,7 +105,7 @@ function rgbaString(hex, alpha) {
 function parseUrlPaintId(value) {
     if (typeof value !== 'string') return null;
     const v = value.trim();
-    const m = v.match(/^url\(\s*#?([^\)\s]+)\s*\)$/i);
+    const m = v.match(/^url\(\s*#?([^\s)]+)\s*\)$/i);
     if (!m) return null;
     return m[1];
 }
@@ -114,7 +114,7 @@ function parseUrlRefId(value) {
     // Accept url(#id) and url(id) forms.
     if (typeof value !== 'string') return null;
     const v = value.trim();
-    const m = v.match(/^url\(\s*#?([^\)\s]+)\s*\)$/i);
+    const m = v.match(/^url\(\s*#?([^\s)]+)\s*\)$/i);
     if (!m) return null;
     return m[1];
 }
@@ -1785,8 +1785,6 @@ function parseScaleTranslateOnlyTransform(transform) {
         return { ok: false };
     }
     return { ok: true, ...combined };
-
-    return { ok: false };
 }
 
 function parseTransformSalvageFull(transform) {

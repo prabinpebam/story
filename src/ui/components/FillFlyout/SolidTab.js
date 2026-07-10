@@ -601,7 +601,7 @@ export class SolidTab {
             return;
         }
 
-        const eyeDropper = new EyeDropper();
+        const eyeDropper = new window.EyeDropper();
         try {
             const result = await eyeDropper.open();
             const rgb = ColorUtils.hexToRgb(result.sRGBHex);

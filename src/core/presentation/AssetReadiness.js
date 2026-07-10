@@ -26,7 +26,7 @@ function extractUrlsFromCssBackground(value) {
     if (!value || typeof value !== 'string') return [];
     // Handles: url(foo), url("foo"), url('foo')
     const urls = [];
-    const re = /url\((?:"([^"]+)"|'([^']+)'|([^\)]+))\)/g;
+    const re = /url\((?:"([^"]+)"|'([^']+)'|([^)]+))\)/g;
     let match;
     while ((match = re.exec(value)) !== null) {
         const url = (match[1] || match[2] || match[3] || '').trim();

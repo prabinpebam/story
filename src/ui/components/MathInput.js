@@ -96,7 +96,7 @@ export class MathInput {
         const raw = input.value;
         try {
             // Basic safety check: only allow numbers and math operators
-            if (/^[0-9\.\+\-\*\/\(\)\s]+$/.test(raw)) {
+            if (/^[0-9.+*/()\s-]+$/.test(raw)) {
                 // Use Function constructor for safer eval than eval()
                 // eslint-disable-next-line no-new-func
                 const result = new Function(`return ${raw}`)();

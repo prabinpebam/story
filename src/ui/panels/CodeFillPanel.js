@@ -758,7 +758,7 @@ export class CodeFillPanel extends DraggablePanel {
         this.editorContainer.innerHTML = '';
         
         // Create CodeMirror instance
-        this.codeMirror = CodeMirror(this.editorContainer, {
+        this.codeMirror = window.CodeMirror(this.editorContainer, {
             value: '',
             mode: 'javascript',
             theme: 'dracula',

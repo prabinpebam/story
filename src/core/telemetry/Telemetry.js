@@ -7,7 +7,13 @@ function normalizeDnt(value) {
 function safeString(value, maxLen = 200) {
     if (typeof value !== 'string') return null;
     // Remove control chars and angle brackets to reduce accidental HTML-ish payloads.
-    const cleaned = value.replace(/[\u0000-\u001F\u007F]/g, '').replace(/[<>]/g, '');
+    const cleaned = [...value]
+        .filter((char) => {
+            const code = char.charCodeAt(0);
+            return code > 31 && code !== 127;
+        })
+        .join('')
+        .replace(/[<>]/g, '');
     return cleaned.length > maxLen ? cleaned.slice(0, maxLen) : cleaned;
 }
 
