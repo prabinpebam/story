@@ -1,0 +1,12 @@
+{
+  "schemaVersion": "story.endstate-profile-pointer/1.0.0",
+  "status": "bootstrap-draft-not-active",
+  "activeProfileId": null,
+  "activeUniverseId": null,
+  "draftProfileId": "PROFILE-ENDSTATE-1",
+  "draftProfileSha256": "dd7e846f6fc6d9661650f474cd0b12c22836f5a118da54f8a2c0241ab5f470e2",
+  "draftUniverseId": "EXPECTED-UNIVERSE-1",
+  "activationDecisionId": "ENDSTATE-UNIVERSE-ACTIVATION",
+  "predecessorPair": null,
+  "successorPair": null
+}

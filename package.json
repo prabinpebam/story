@@ -33,6 +33,10 @@
     "implementation:ledger": "node scripts/generate-implementation-ledger.mjs",
     "implementation:ledger:check": "node scripts/generate-implementation-ledger.mjs --check",
     "implementation:validate": "npm run spec:validate && node scripts/generate-implementation-ledger.mjs --check",
+    "universe:generate": "node scripts/generate-expected-universe-v3.mjs",
+    "universe:check": "node scripts/generate-expected-universe-v3.mjs --check",
+    "universe:mutations": "node scripts/test-expected-universe-mutations.mjs",
+    "universe:validate": "npm run implementation:validate && node scripts/generate-expected-universe-v3.mjs --check && node scripts/validate-expected-universe.mjs && node scripts/test-expected-universe-mutations.mjs",
     "lint": "eslint src/**/*.js",
     "lint:fix": "eslint src/**/*.js --fix"
   },

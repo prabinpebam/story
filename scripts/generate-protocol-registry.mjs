@@ -30,6 +30,42 @@ function read(filePath) {
     return fs.readFileSync(filePath, 'utf8');
 }
 
+function expandIdReferences(text, prefix) {
+    const ids = new Set();
+    const rangePattern = new RegExp(`\\b(${prefix}-(\\d{2})-(\\d{3}))\\b\\s*(?:through|to|\\.\\.)\\s*(?:${prefix}-)?(?:\\d{2}-)?(\\d{3})\\b`, 'gi');
+    const covered = [];
+    for (const match of text.matchAll(rangePattern)) {
+        const start = Number(match[3]);
+        const end = Number(match[4]);
+        if (end < start) throw new Error(`Descending ${prefix} range: ${match[0]}`);
+        for (let value = start; value <= end; value += 1) {
+            ids.add(`${prefix}-${match[2]}-${String(value).padStart(3, '0')}`);
+        }
+        covered.push([match.index, match.index + match[0].length]);
+    }
+    const singlePattern = new RegExp(`\\b${prefix}-\\d{2}-\\d{3}\\b`, 'g');
+    for (const match of text.matchAll(singlePattern)) {
+        if (!covered.some(([start, end]) => match.index >= start && match.index < end)) ids.add(match[0]);
+    }
+    return [...ids].sort();
+}
+
+function requirementProtocolMappings(text) {
+    const mappings = [];
+    let heading = '';
+    for (const line of text.split(/\r?\n/)) {
+        if (/^#{1,6}\s+/.test(line)) heading = line;
+        if (!line.includes('REQ-') || !line.includes('TEST-')) continue;
+        if (!/(Traceability and Release Gate|Parent-Capability and Protocol Coverage|Requirement Coverage|Protocol Requirements|Protocol Mapping)/i.test(heading)) continue;
+        const normalized = line.replaceAll('`', '');
+        if (/TEST-\d{2}-\d{3}\s+(?:through|to|\.\.)\s+(?:TEST-)?(?:\d{2}-)?\d{3}\s+by risk and boundary/i.test(normalized)) continue;
+        const requirements = expandIdReferences(normalized, 'REQ');
+        const protocols = expandIdReferences(normalized, 'TEST');
+        if (requirements.length && protocols.length) mappings.push({ requirements, protocols });
+    }
+    return mappings;
+}
+
 function protocolRows(fileName, text) {
     return text.split(/\r?\n/).flatMap((line) => {
         const match = line.match(/^\|\s*`?(TEST-(\d{2})-\d{3})`?\s*\|\s*(.+?)\s*\|(?:\s*(.+?)\s*\|)?$/);
@@ -51,6 +87,26 @@ function chooseTemplates(row) {
     return [...templates];
 }
 
+function chooseVerificationLayers(id, templates) {
+    const layerByTemplate = {
+        'unit-model': 'unit',
+        'integration-contract': 'integration',
+        'headed-e2e': 'headed-e2e',
+        'artifact-roundtrip': 'artifact',
+        'accessibility-manual': 'manual-hardware-at',
+        'performance-soak': 'performance-soak',
+        'security-fault': 'fault-security',
+        'usability-benchmark': 'eval',
+    };
+    const layers = new Set(templates.map((template) => layerByTemplate[template]).filter(Boolean));
+    if (id === 'TEST-15-001') layers.add('lint');
+    if (id === 'TEST-15-005') layers.add('eval');
+    if (id === 'TEST-15-011') layers.add('runbook');
+    if (id === 'TEST-15-012') layers.add('adversarial-corpus');
+    if (id === 'TEST-15-014') layers.add('independent-review');
+    return [...layers].sort();
+}
+
 const rows = [];
 for (const fileName of fs.readdirSync(specDir).filter((name) => /^\d{2}-.*\.md$/.test(name)).sort()) {
     rows.push(...protocolRows(fileName, read(path.join(specDir, fileName))));
@@ -70,13 +126,29 @@ for (const row of rows) {
 }
 
 const traceability = JSON.parse(read(path.join(specDir, 'traceability-index.json')));
+const knownRequirementIds = new Set(traceability.requirements.map((entry) => entry.id));
+const requirementsByProtocol = new Map();
+for (const fileName of fs.readdirSync(specDir).filter((name) => /^\d{2}-.*\.md$/.test(name)).sort()) {
+    for (const mapping of requirementProtocolMappings(read(path.join(specDir, fileName)))) {
+        for (const requirementId of mapping.requirements) {
+            if (!knownRequirementIds.has(requirementId)) throw new Error(`${fileName} maps unknown requirement ${requirementId}`);
+        }
+        for (const protocolId of mapping.protocols) {
+            const mapped = requirementsByProtocol.get(protocolId) ?? new Set();
+            for (const requirementId of mapping.requirements) mapped.add(requirementId);
+            requirementsByProtocol.set(protocolId, mapped);
+        }
+    }
+}
 const fixtureIdByProtocol = (id) => id === 'TEST-01-001' ? ['FIX-PRODUCT-MEDIUM-01'] : [`FIX-${id.slice(5)}`];
 const environmentIdByProtocol = (id) => id === 'TEST-01-001' ? ['ENV-R1-WIN-DESKTOP-01', 'ENV-FIGMA-CURRENT', 'ENV-POWERPOINT-M365-WIN', 'ENV-R1-A11Y-01'] : [`ENV-${id.slice(5)}`];
 
 const protocols = [...uniqueRows.values()].sort((left, right) => left.id.localeCompare(right.id)).map((row) => {
     const templates = chooseTemplates(row);
+    const verificationLayers = chooseVerificationLayers(row.id, templates);
     const fixtureIds = fixtureIdByProtocol(row.id);
     const environmentIds = environmentIdByProtocol(row.id);
+    const mappedRequirements = [...(requirementsByProtocol.get(row.id) ?? [])].sort();
     const isMaterializedBenchmark = row.id === 'TEST-01-001' && fs.existsSync(path.join(specDir, 'fixtures', 'FIX-PRODUCT-MEDIUM-01.json'));
     return {
         id: row.id,
@@ -85,13 +157,14 @@ const protocols = [...uniqueRows.values()].sort((left, right) => left.id.localeC
         status: 'draft-incomplete',
         owner: { volume: row.volume, source: `documentation/product/specification/${row.fileName}` },
         templates,
+        verificationLayers,
         description: row.description,
         applicability: {
             profiles: row.id === 'TEST-01-001' ? ['PROFILE-R1-2026-01'] : [],
             riskClasses: [],
             matrixCells: [],
-            requirements: [],
-            criteria: [],
+            requirements: mappedRequirements,
+            criteria: mappedRequirements.map((id) => id.replace('REQ-', 'AC-')),
         },
         setup: {
             fixtureIds,
@@ -136,7 +209,7 @@ const registry = {
     registryVersion: '1.0.0-draft',
     sourceRevision: traceability.sourceRevision,
     sourceReviewedAt: traceability.sourceReviewedAt,
-    sourceHash: sha256(protocols.map((item) => `${item.id}:${item.description}`).join('\n')),
+    sourceHash: sha256(JSON.stringify(protocols)),
     aliases: { 'BENCH-PRODUCT-001': 'TEST-01-001' },
     templateDefinitions: {
         'unit-model': 'Deterministic model boundary with exact semantics and negative/mutation controls.',

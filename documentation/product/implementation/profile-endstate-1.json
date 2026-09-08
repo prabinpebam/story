@@ -1,0 +1,455 @@
+{
+  "schemaVersion": "story.endstate-profile/1.0.0",
+  "profileId": "PROFILE-ENDSTATE-1",
+  "profileVersion": "1.0.0-draft",
+  "status": "draft-not-accepted",
+  "releaseTierTarget": "R3-assured",
+  "releaseTier": "R3-assured",
+  "specificationRevision": "sha256:8bf742b977f0d5a5180341a44200577a3f6ec30ab0effba2ede052db3bbeb5d1",
+  "requirementSetHash": "b0b03a34e1edc08f60dec3207deae81a2ff3ef89b45953e469c695d1d5721a2d",
+  "productCommit": "UNFROZEN",
+  "buildId": "UNFROZEN",
+  "sourceRevision": "sha256:8bf742b977f0d5a5180341a44200577a3f6ec30ab0effba2ede052db3bbeb5d1",
+  "implementationPlanSha256": "bce3e6114c6430cd4e59b35ffc614e0ab9af03efdc21cd3261fada03783775da",
+  "traceabilityIndexSha256": "b06eafc326739c2a2d0b39b41e5a20bf7c2dbc76c99761ba5fc54941782e0b47",
+  "canonicalEnumsSha256": "250533875aadb277555b1b3682c3b2f8c508b7e218790630965369fd5475e047",
+  "protocolRegistrySha256": "6ca3e6c18e1a99b935c522eb58d6ae7b928abb52eef7c585d57686fa90426742",
+  "qualityRegistryVersion": "STORY-SPEC-14@sha256:ff926ab543baab0a3254802be0eb763d27b610d6137636985162451345920039",
+  "conformanceMatrixVersion": "STORY-SPEC-15@sha256:5c6dc6b2b8c86c15b7249887eaaa3bd8e3720cfaa80f5a1eed3c94682f053b39",
+  "allowedWaiverClasses": [],
+  "evidenceFreshnessPolicy": {
+    "candidateExact": true,
+    "invalidateOnMaterialDependencyChange": true,
+    "maximumAgeDays": 0,
+    "rationale": "R3 end-state activation requires exact-candidate evidence; specialist manual/hardware age exceptions require a future accepted profile revision."
+  },
+  "decisionAuthorities": ["Product", "Engineering", "Quality", "Accessibility", "Security", "Privacy", "Operations", "Evidence Custodian"],
+  "expectedRequirementCount": 1465,
+  "expectedRequirementIdsSha256": "b0b03a34e1edc08f60dec3207deae81a2ff3ef89b45953e469c695d1d5721a2d",
+  "requiredVolumeSet": ["00", "01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12", "13", "14", "15"],
+  "surfaces": [
+    "SUR-HUB", "SUR-SHELL", "SUR-NAV", "SUR-CANVAS", "SUR-INSPECT",
+    "SUR-MASTER", "SUR-SYSTEM", "SUR-AUDIENCE", "SUR-PRESENTER", "SUR-RECORDER",
+    "SUR-NATIVE", "SUR-CLIP", "SUR-OUTPUT", "SUR-SERVICE", "SUR-DIAG"
+  ],
+  "lifecycles": [
+    "LC-CREATE", "LC-READ", "LC-EDIT", "LC-CANCEL", "LC-UNDO", "LC-SAVE",
+    "LC-COLLAB", "LC-MIGRATE", "LC-RESOLVE", "LC-PRESENT", "LC-OUTPUT",
+    "LC-DELETE", "LC-FAIL"
+  ],
+  "ownerMinimums": {
+    "00": {
+      "surfaces": ["SUR-DIAG", "SUR-OUTPUT", "SUR-NATIVE"],
+      "lifecycles": ["LC-CREATE", "LC-READ", "LC-MIGRATE", "LC-FAIL"]
+    },
+    "01": {
+      "surfaces": ["SUR-HUB", "SUR-SHELL", "SUR-NAV", "SUR-CANVAS", "SUR-INSPECT", "SUR-MASTER", "SUR-SYSTEM", "SUR-AUDIENCE", "SUR-PRESENTER", "SUR-RECORDER", "SUR-CLIP", "SUR-OUTPUT", "SUR-SERVICE"],
+      "lifecycles": ["LC-CREATE", "LC-READ", "LC-PRESENT", "LC-OUTPUT", "LC-FAIL"]
+    },
+    "02": {
+      "surfaces": ["SUR-HUB", "SUR-SHELL", "SUR-NAV", "SUR-CANVAS", "SUR-INSPECT", "SUR-SYSTEM"],
+      "lifecycles": ["LC-CREATE", "LC-READ", "LC-EDIT", "LC-CANCEL", "LC-PRESENT", "LC-FAIL"]
+    },
+    "03": {
+      "surfaces": ["SUR-HUB", "SUR-SHELL", "SUR-NAV", "SUR-CANVAS", "SUR-INSPECT", "SUR-MASTER", "SUR-SYSTEM", "SUR-AUDIENCE", "SUR-PRESENTER", "SUR-RECORDER", "SUR-NATIVE", "SUR-CLIP", "SUR-OUTPUT", "SUR-SERVICE", "SUR-DIAG"],
+      "lifecycles": ["LC-CREATE", "LC-READ", "LC-EDIT", "LC-UNDO", "LC-SAVE", "LC-COLLAB", "LC-MIGRATE", "LC-RESOLVE", "LC-DELETE", "LC-FAIL"]
+    },
+    "04": {
+      "surfaces": ["SUR-SHELL", "SUR-NAV", "SUR-CANVAS", "SUR-INSPECT", "SUR-MASTER", "SUR-SYSTEM", "SUR-NATIVE", "SUR-CLIP", "SUR-OUTPUT", "SUR-SERVICE", "SUR-DIAG"],
+      "lifecycles": ["LC-CREATE", "LC-EDIT", "LC-CANCEL", "LC-UNDO", "LC-SAVE", "LC-COLLAB", "LC-MIGRATE", "LC-DELETE", "LC-FAIL"]
+    },
+    "05": {
+      "surfaces": ["SUR-CANVAS", "SUR-NAV", "SUR-AUDIENCE", "SUR-PRESENTER", "SUR-RECORDER", "SUR-OUTPUT"],
+      "lifecycles": ["LC-READ", "LC-EDIT", "LC-RESOLVE", "LC-PRESENT", "LC-OUTPUT", "LC-FAIL"]
+    },
+    "06": {
+      "surfaces": ["SUR-HUB", "SUR-SHELL", "SUR-NAV", "SUR-CANVAS", "SUR-MASTER", "SUR-SYSTEM", "SUR-AUDIENCE", "SUR-PRESENTER", "SUR-RECORDER", "SUR-NATIVE", "SUR-OUTPUT", "SUR-SERVICE"],
+      "lifecycles": ["LC-CREATE", "LC-READ", "LC-EDIT", "LC-UNDO", "LC-SAVE", "LC-COLLAB", "LC-MIGRATE", "LC-RESOLVE", "LC-DELETE", "LC-FAIL"]
+    },
+    "07": {
+      "surfaces": ["SUR-SHELL", "SUR-NAV", "SUR-CANVAS", "SUR-SYSTEM", "SUR-NATIVE", "SUR-SERVICE", "SUR-DIAG"],
+      "lifecycles": ["LC-CREATE", "LC-READ", "LC-EDIT", "LC-UNDO", "LC-SAVE", "LC-COLLAB", "LC-MIGRATE", "LC-RESOLVE", "LC-DELETE", "LC-FAIL"]
+    },
+    "08": {
+      "surfaces": ["SUR-CANVAS", "SUR-NAV", "SUR-INSPECT", "SUR-MASTER", "SUR-NATIVE", "SUR-CLIP", "SUR-OUTPUT"],
+      "lifecycles": ["LC-CREATE", "LC-READ", "LC-EDIT", "LC-CANCEL", "LC-UNDO", "LC-SAVE", "LC-COLLAB", "LC-MIGRATE", "LC-RESOLVE", "LC-OUTPUT", "LC-DELETE", "LC-FAIL"]
+    },
+    "09": {
+      "surfaces": ["SUR-NAV", "SUR-CANVAS", "SUR-INSPECT", "SUR-MASTER", "SUR-SYSTEM", "SUR-RECORDER", "SUR-NATIVE", "SUR-AUDIENCE", "SUR-OUTPUT"],
+      "lifecycles": ["LC-CREATE", "LC-READ", "LC-EDIT", "LC-CANCEL", "LC-UNDO", "LC-SAVE", "LC-COLLAB", "LC-MIGRATE", "LC-RESOLVE", "LC-PRESENT", "LC-OUTPUT", "LC-DELETE", "LC-FAIL"]
+    },
+    "10": {
+      "surfaces": ["SUR-SHELL", "SUR-SYSTEM", "SUR-AUDIENCE", "SUR-PRESENTER", "SUR-RECORDER", "SUR-SERVICE", "SUR-DIAG"],
+      "lifecycles": ["LC-CREATE", "LC-READ", "LC-CANCEL", "LC-RESOLVE", "LC-PRESENT", "LC-OUTPUT", "LC-DELETE", "LC-FAIL"]
+    },
+    "11": {
+      "surfaces": ["SUR-HUB", "SUR-SYSTEM", "SUR-NATIVE", "SUR-CLIP", "SUR-OUTPUT"],
+      "lifecycles": ["LC-CREATE", "LC-READ", "LC-EDIT", "LC-CANCEL", "LC-SAVE", "LC-MIGRATE", "LC-RESOLVE", "LC-OUTPUT", "LC-DELETE", "LC-FAIL"]
+    },
+    "12": {
+      "surfaces": ["SUR-HUB", "SUR-SHELL", "SUR-NAV", "SUR-CANVAS", "SUR-INSPECT", "SUR-MASTER", "SUR-SYSTEM", "SUR-AUDIENCE", "SUR-PRESENTER", "SUR-RECORDER", "SUR-NATIVE", "SUR-CLIP", "SUR-OUTPUT"],
+      "lifecycles": ["LC-CREATE", "LC-READ", "LC-EDIT", "LC-CANCEL", "LC-UNDO", "LC-SAVE", "LC-COLLAB", "LC-MIGRATE", "LC-RESOLVE", "LC-PRESENT", "LC-OUTPUT", "LC-FAIL"]
+    },
+    "13": {
+      "surfaces": ["SUR-HUB", "SUR-SHELL", "SUR-NAV", "SUR-CANVAS", "SUR-INSPECT", "SUR-MASTER", "SUR-SYSTEM", "SUR-AUDIENCE", "SUR-PRESENTER", "SUR-RECORDER", "SUR-NATIVE", "SUR-CLIP", "SUR-OUTPUT", "SUR-SERVICE", "SUR-DIAG"],
+      "lifecycles": ["LC-CREATE", "LC-READ", "LC-EDIT", "LC-SAVE", "LC-COLLAB", "LC-PRESENT", "LC-OUTPUT", "LC-DELETE", "LC-FAIL"]
+    },
+    "14": {
+      "surfaces": ["SUR-HUB", "SUR-SHELL", "SUR-NAV", "SUR-CANVAS", "SUR-INSPECT", "SUR-MASTER", "SUR-SYSTEM", "SUR-AUDIENCE", "SUR-PRESENTER", "SUR-RECORDER", "SUR-NATIVE", "SUR-CLIP", "SUR-OUTPUT", "SUR-SERVICE", "SUR-DIAG"],
+      "lifecycles": ["LC-READ", "LC-RESOLVE", "LC-FAIL"]
+    },
+    "15": {
+      "surfaces": ["SUR-DIAG", "SUR-OUTPUT", "SUR-NATIVE"],
+      "lifecycles": ["LC-CREATE", "LC-READ", "LC-EDIT", "LC-MIGRATE", "LC-OUTPUT", "LC-FAIL"]
+    }
+  },
+  "windowTiers": ["W4", "W3", "W2", "W1"],
+  "inputTiers": ["D3", "D2", "D1"],
+  "workspaceViews": ["Canvas", "Grid", "Outline", "Notes", "System"],
+  "runtimeModes": ["Preview", "Rehearsal", "Recording", "Presentation", "Kiosk"],
+  "runtimeRoles": ["Editor", "Audience", "Presenter", "Recorder controller", "Remote controller", "Observer"],
+  "placements": ["Fullscreen", "Windowed", "Embedded preview", "External display"],
+  "normativeRuntimeRolePlacements": {
+    "Preview": {
+      "Audience": ["Windowed", "Embedded preview"]
+    },
+    "Rehearsal": {
+      "Audience": ["Fullscreen", "Windowed"]
+    },
+    "Recording": {
+      "Audience": ["Fullscreen", "Windowed"]
+    },
+    "Presentation": {
+      "Audience": ["Fullscreen", "Windowed"]
+    },
+    "Kiosk": {
+      "Audience": ["Fullscreen", "Windowed"]
+    }
+  },
+  "runtimeRequiredPrivateRoles": {
+    "Preview": [],
+    "Rehearsal": ["Presenter"],
+    "Recording": ["Presenter", "Recorder controller"],
+    "Presentation": [],
+    "Kiosk": ["HOST-CONTROLLER-UNRESOLVED"]
+  },
+  "runtimeInputs": ["KEYBOARD", "POINTER-HUD", "TOUCH", "PEN-INK", "CLICKER", "NETWORK-REMOTE", "TIMER-LINK-MEDIA", "ASSISTIVE-TECH"],
+  "runtimeInputDispositions": {
+    "Preview": ["X", "X", "X when claimed", "D/N", "X where mapped", "D/N", "X", "X"],
+    "Rehearsal": ["X", "X", "X when claimed", "X when captured", "X", "D/N", "X", "X"],
+    "Recording": ["X", "X", "X when claimed", "X when enabled", "X", "D/N", "X", "X"],
+    "Presentation": ["X", "X", "X when claimed", "X when enabled", "X", "X when enabled", "X", "X"],
+    "Kiosk": ["Restricted X", "Policy X", "Policy X", "N by default", "N by default", "Policy X", "X", "Essential X"]
+  },
+  "runtimeDisplays": ["WINDOWED", "PRESENTER-WINDOW", "TWO-DISPLAY", "DENIED", "ROLE-SWAP", "HOTPLUG", "AUDIENCE-LOSS", "AUTHORITY-LOSS", "RECORDING-DISPLAY"],
+  "runtimeDisplayBehaviors": {
+    "WINDOWED": "Audience-clean root and deliberate windowed controls",
+    "PRESENTER-WINDOW": "Role handshake with private presenter root and stable audience",
+    "TWO-DISPLAY": "Chosen assignment, DPR/scale, fullscreen target, and role privacy",
+    "DENIED": "Explicit fallback without semantic position loss",
+    "ROLE-SWAP": "Privacy barrier before new-role paint",
+    "HOTPLUG": "Audience stability and presenter reassignment or bounded collapse",
+    "AUDIENCE-LOSS": "Authority and semantic position retained across reopen",
+    "AUTHORITY-LOSS": "Authorized recovery/election without private leakage",
+    "RECORDING-DISPLAY": "Consented selected source only with indicator and stop behavior"
+  },
+  "runtimeFailures": ["INVALID-SHOW-PLAN", "SCENE-UNRESOLVED", "OPTIONAL-RESOURCE", "DISPLAY-DENIAL", "NETWORK-LOSS", "SLEEP-THROTTLE", "MEMORY-PRESSURE", "CAPTURE-DEVICE-LOSS", "WINDOW-AUTHORITY-FAILURE", "PRIVACY-INTEGRITY-BREACH"],
+  "runtimeFailureDispositions": {
+    "INVALID-SHOW-PLAN": ["B", "B", "B", "B", "B"],
+    "SCENE-UNRESOLVED": ["D/B", "D/B", "D/B and preserve chunks", "Hold last frame, D/B", "Safe screen, D/B"],
+    "OPTIONAL-RESOURCE": ["D", "D", "D and gap/fallback", "D without navigation block", "D without loop storm"],
+    "DISPLAY-DENIAL": ["D", "D", "D", "D", "B or configured D"],
+    "NETWORK-LOSS": ["X local/cached", "X local/cached", "X eligible tracks", "X local navigation", "X cached/fallback"],
+    "SLEEP-THROTTLE": ["Suspend/resync", "Suspend/resync", "Mark capture gap", "Hold/resync", "Configured resume/restart"],
+    "MEMORY-PRESSURE": ["Degrade/evict", "Degrade/evict", "Retain recording-critical", "Retain active frame", "Retain safe frame"],
+    "CAPTURE-DEVICE-LOSS": ["N", "D if analysis enabled", "Stop track, preserve chunks, D/B", "N unless live captions", "N"],
+    "WINDOW-AUTHORITY-FAILURE": ["Rebuild/exit", "Recover", "Recover tracks/session", "Hold/recover/end", "Configured restart/resume"],
+    "PRIVACY-INTEGRITY-BREACH": ["End/block", "End/block", "Stop capture/end", "Safe frame/end", "Safe screen/end"]
+  },
+  "entityFamilies": ["DOC-METADATA", "NARRATIVE-STRUCTURE", "MASTER-LAYOUT", "THEME-STYLE-VARIABLE", "COMPONENT", "SCENE", "VECTOR", "RICH-TEXT", "PAINT-STACK", "TABLE", "CHART-DATA", "DIAGRAM-EQUATION", "MEDIA-ASSET", "MOTION", "NOTE-COMMENT-A11Y", "REHEARSAL-RECORDING", "OPAQUE-PRESERVATION", "SHARING-GRANT-AUDIT", "EDITOR-EPHEMERAL", "RUNTIME-EPHEMERAL", "SAVED-RUNTIME-CAPTURE"],
+  "operationsByEntityFamily": {
+    "DOC-METADATA": ["SET", "CLEAR", "RESIZE-POLICY", "FIELDS"],
+    "NARRATIVE-STRUCTURE": ["CREATE", "DUPLICATE", "MOVE", "HIDE", "DELETE", "SUBSTITUTE", "RESTORE"],
+    "MASTER-LAYOUT": ["CREATE", "MAP", "RESET", "DETACH", "RESTORE", "RECONCILE", "DELETE"],
+    "THEME-STYLE-VARIABLE": ["CREATE", "BIND", "ALIAS", "UPDATE", "DELETE", "PUBLISH-APPLY"],
+    "COMPONENT": ["INSTANTIATE", "SWAP", "OVERRIDE", "RESET", "DETACH", "SOURCE-UPDATE"],
+    "SCENE": ["CREATE", "TRANSFORM", "REPARENT", "REORDER", "CONSTRAIN", "LAYOUT-EDIT"],
+    "VECTOR": ["PARAMETER-EDIT", "POINT-PATH-EDIT", "OPERAND-MASK-EDIT", "FLATTEN"],
+    "RICH-TEXT": ["INSERT", "DELETE", "MARK", "PARAGRAPH-LIST", "IME-COMMIT", "STYLE"],
+    "PAINT-STACK": ["ADD", "SET", "REORDER", "TOGGLE", "DELETE", "MULTI-EDIT"],
+    "TABLE": ["CELL-RANGE-EDIT", "ROW-COLUMN", "MERGE", "FORMULA", "STYLE"],
+    "CHART-DATA": ["DATA-EDIT", "FAMILY", "SERIES-AXIS", "REFRESH-SNAPSHOT"],
+    "DIAGRAM-EQUATION": ["STRUCTURE", "LAYOUT", "SOURCE-EDIT", "CONVERT"],
+    "MEDIA-ASSET": ["REGISTER", "REFERENCE", "CROP-TRIM", "REPLACE", "RELINK-EMBED", "REMOVE"],
+    "MOTION": ["ADD", "TARGET", "REORDER", "TIMING", "TRIGGER", "MORPH-MAP"],
+    "NOTE-COMMENT-A11Y": ["EDIT", "ANCHOR", "REPLY", "RESOLVE", "READING-ORDER", "CAPTIONS"],
+    "REHEARSAL-RECORDING": ["ACCEPT-TIMING", "TRACK-TAKE-SELECTION", "TRIM", "RETAKE", "DELETE"],
+    "OPAQUE-PRESERVATION": ["RETAIN", "CLASSIFY", "DIRTY-SCOPE-REWRITE", "EXPLICIT-DISCARD"],
+    "SHARING-GRANT-AUDIT": ["INVITE", "ROLE", "REVOKE", "TRANSFER", "RESTORE"],
+    "EDITOR-EPHEMERAL": ["SELECT", "FOCUS", "VIEWPORT", "PREVIEW", "PANEL-STATE"],
+    "RUNTIME-EPHEMERAL": ["NAVIGATE", "PAUSE", "BLACK-WHITE", "POINTER", "TRANSIENT-INK"],
+    "SAVED-RUNTIME-CAPTURE": ["CONVERT-TO-AUTHORED-TRANSACTION"]
+  },
+  "durabilityAxes": ["DUR-UNDO", "DUR-NATIVE", "DUR-COLLAB", "DUR-MIGRATE"],
+  "durabilityLifecycleByAxis": {
+    "DUR-UNDO": "LC-UNDO",
+    "DUR-NATIVE": "LC-SAVE",
+    "DUR-COLLAB": "LC-COLLAB",
+    "DUR-MIGRATE": "LC-MIGRATE"
+  },
+  "durabilityDispositionByEntity": {
+    "DOC-METADATA": ["R", "R", "R", "R"],
+    "NARRATIVE-STRUCTURE": ["R", "R", "R", "R"],
+    "MASTER-LAYOUT": ["R", "R", "R", "R"],
+    "THEME-STYLE-VARIABLE": ["R", "R", "R", "R"],
+    "COMPONENT": ["R", "R", "R", "R"],
+    "SCENE": ["R", "R", "R", "R"],
+    "VECTOR": ["R", "R", "R", "R"],
+    "RICH-TEXT": ["R", "R", "R", "R"],
+    "PAINT-STACK": ["R", "R", "R", "R"],
+    "TABLE": ["R", "R", "R", "R"],
+    "CHART-DATA": ["R", "R", "R", "R"],
+    "DIAGRAM-EQUATION": ["R", "R", "R", "R"],
+    "MEDIA-ASSET": ["R", "R", "R", "R"],
+    "MOTION": ["R", "R", "R", "R"],
+    "NOTE-COMMENT-A11Y": ["R", "R", "R", "R"],
+    "REHEARSAL-RECORDING": ["R", "R", "C", "R"],
+    "OPAQUE-PRESERVATION": ["C", "R", "C", "R"],
+    "SHARING-GRANT-AUDIT": ["N", "C", "R", "R"],
+    "EDITOR-EPHEMERAL": ["N", "N", "N", "N"],
+    "RUNTIME-EPHEMERAL": ["N", "C", "C", "N"],
+    "SAVED-RUNTIME-CAPTURE": ["R", "R", "C", "R"]
+  },
+  "outputProfiles": ["NATIVE", "CLIPBOARD", "SVG", "RASTER", "PDF", "PRINT", "VIDEO", "PORTABLE-WEB", "PPTX-PRESERVATION", "PPTX-CLEAN", "COMPAT-REPORT"],
+  "fidelityDimensions": ["S", "E", "V", "B", "A", "P", "I"],
+  "requiredFidelityByOutput": {
+    "NATIVE": ["S", "E", "V", "B", "A", "P", "I"],
+    "CLIPBOARD": ["S", "E", "V", "A", "P", "I"],
+    "SVG": ["S", "E", "V", "A", "P", "I"],
+    "RASTER": ["V", "P", "I"],
+    "PDF": ["S", "E", "V", "A", "P", "I"],
+    "PRINT": ["S", "V", "A", "P", "I"],
+    "VIDEO": ["S", "V", "B", "A", "P", "I"],
+    "PORTABLE-WEB": ["S", "V", "B", "A", "P", "I"],
+    "PPTX-PRESERVATION": ["S", "E", "V", "B", "A", "P", "I"],
+    "PPTX-CLEAN": ["S", "E", "V", "B", "A", "P", "I"],
+    "COMPAT-REPORT": ["S", "A", "P", "I"]
+  },
+  "authorizationRoles": ["OWNER", "COOWNER", "EDITOR", "COMMENTER", "VIEWER", "PRESENTER"],
+  "authorizationCapabilities": ["VIEW", "MUTATE", "COMMENT", "RESOLVE-THREAD", "EXPORT", "PRESENT", "RECORD", "INVITE", "CHANGE-ROLE", "TRANSFER-DELETE", "AUDIT-DIAGNOSTICS"],
+  "authorizationPolicyRows": {
+    "OWNER": ["allow", "allow", "allow", "allow", "allow", "allow", "policy", "allow", "allow", "allow", "policy"],
+    "COOWNER": ["allow", "allow", "allow", "allow", "allow", "allow", "policy", "allow", "allow", "policy", "policy"],
+    "EDITOR": ["allow", "allow", "allow", "policy", "policy", "allow", "policy", "policy", "deny", "deny", "deny"],
+    "COMMENTER": ["allow", "deny", "allow", "deny", "policy", "deny", "deny", "deny", "deny", "deny", "deny"],
+    "VIEWER": ["allow", "deny", "deny", "deny", "policy", "policy", "deny", "deny", "deny", "deny", "deny"],
+    "PRESENTER": ["allow", "deny", "policy", "deny", "policy", "allow", "policy", "deny", "deny", "deny", "deny"]
+  },
+  "authorizationCapabilityClasses": {
+    "VIEW": "read",
+    "MUTATE": "mutation",
+    "COMMENT": "mutation",
+    "RESOLVE-THREAD": "mutation",
+    "EXPORT": "read",
+    "PRESENT": "read",
+    "RECORD": "mutation",
+    "INVITE": "mutation",
+    "CHANGE-ROLE": "mutation",
+    "TRANSFER-DELETE": "mutation",
+    "AUDIT-DIAGNOSTICS": "read"
+  },
+  "authorizationConnectivityTransforms": {
+    "ONLINE-CLEAN": { "read": { "allow": "allow", "policy": "policy", "deny": "deny" }, "mutation": { "allow": "allow", "policy": "policy", "deny": "deny" } },
+    "ONLINE-PENDING": { "read": { "allow": "allow", "policy": "policy-current-grant", "deny": "deny" }, "mutation": { "allow": "policy-pending-acknowledgment", "policy": "policy-pending-acknowledgment", "deny": "deny" } },
+    "OFFLINE-CLEAN": { "read": { "allow": "policy-cached-within-grant", "policy": "policy-cached-within-grant", "deny": "deny" }, "mutation": { "allow": "policy-offline-editing", "policy": "policy-offline-editing", "deny": "deny" } },
+    "OFFLINE-PENDING": { "read": { "allow": "policy-cached-within-grant", "policy": "policy-cached-within-grant", "deny": "deny" }, "mutation": { "allow": "policy-local-only-pending", "policy": "policy-local-only-pending", "deny": "deny" } },
+    "RECONNECTING": { "read": { "allow": "policy-refresh-grant-before-protected-read", "policy": "policy-refresh-grant-before-protected-read", "deny": "deny" }, "mutation": { "allow": "policy-refresh-auth-epoch-permission-head", "policy": "policy-refresh-auth-epoch-permission-head", "deny": "deny" } },
+    "CONFLICT-RECONCILING": { "read": { "allow": "policy-stable-accepted-state", "policy": "policy-stable-accepted-state", "deny": "deny" }, "mutation": { "allow": "policy-explicit-reconciliation", "policy": "policy-explicit-reconciliation", "deny": "deny" } },
+    "REVOKED": { "read": { "allow": "deny", "policy": "deny", "deny": "deny" }, "mutation": { "allow": "deny", "policy": "deny", "deny": "deny" } },
+    "EPOCH-CHANGED": { "read": { "allow": "policy-reauthorize-current-lineage", "policy": "policy-reauthorize-current-lineage", "deny": "deny" }, "mutation": { "allow": "policy-block-replay-fork-copy-discard", "policy": "policy-block-replay-fork-copy-discard", "deny": "deny" } },
+    "SERVICE-UNAVAILABLE": { "read": { "allow": "policy-cached-within-grant", "policy": "policy-cached-within-grant", "deny": "deny" }, "mutation": { "allow": "policy-preserve-local-no-shared-claim", "policy": "policy-preserve-local-no-shared-claim", "deny": "deny" } }
+  },
+  "connectivityStates": ["ONLINE-CLEAN", "ONLINE-PENDING", "OFFLINE-CLEAN", "OFFLINE-PENDING", "RECONNECTING", "CONFLICT-RECONCILING", "REVOKED", "EPOCH-CHANGED", "SERVICE-UNAVAILABLE"],
+  "environmentClasses": ["ref.win.desktop", "win.desktop", "mac.desktop", "linux.desktop", "win.hybrid", "tablet.hybrid", "companion.mobile", "runner.release"],
+  "environmentClassTemplates": {
+    "ref.win.desktop": { "osBuild": "Windows 11 x64 UNFROZEN", "architecture": "x64", "cpuClass": "4+ performance cores", "ramBucket": "16GB", "gpuDriverClass": "integrated-or-better", "storageClass": "SSD", "viewportWindow": "1920x1080", "dpr": "1", "displayRefreshRate": "60Hz", "colorProfile": "sRGB", "inputDevices": ["keyboard", "mouse"] },
+    "win.desktop": { "osBuild": "Windows 11 supported UNFROZEN", "architecture": "x64|ARM64", "cpuClass": "UNFROZEN", "ramBucket": "UNFROZEN", "gpuDriverClass": "UNFROZEN", "storageClass": "UNFROZEN", "viewportWindow": "W4|W3", "dpr": "1|1.25|1.5|2", "displayRefreshRate": "UNFROZEN", "colorProfile": "sRGB", "inputDevices": ["keyboard", "mouse", "trackpad"] },
+    "mac.desktop": { "osBuild": "macOS supported UNFROZEN", "architecture": "ARM64", "cpuClass": "UNFROZEN", "ramBucket": "UNFROZEN", "gpuDriverClass": "UNFROZEN", "storageClass": "SSD", "viewportWindow": "W4|W3", "dpr": "2|1 external", "displayRefreshRate": "UNFROZEN", "colorProfile": "sRGB", "inputDevices": ["keyboard", "mouse", "trackpad"] },
+    "linux.desktop": { "osBuild": "Ubuntu LTS UNFROZEN", "architecture": "x64", "cpuClass": "UNFROZEN", "ramBucket": "UNFROZEN", "gpuDriverClass": "UNFROZEN", "storageClass": "UNFROZEN", "viewportWindow": "W4|W3", "dpr": "1", "displayRefreshRate": "UNFROZEN", "colorProfile": "sRGB", "inputDevices": ["keyboard", "mouse"] },
+    "win.hybrid": { "osBuild": "Windows touch hardware UNFROZEN", "architecture": "x64|ARM64", "cpuClass": "UNFROZEN", "ramBucket": "UNFROZEN", "gpuDriverClass": "UNFROZEN", "storageClass": "UNFROZEN", "viewportWindow": "W4|W3|W2", "dpr": "1|2", "displayRefreshRate": "UNFROZEN", "colorProfile": "sRGB", "inputDevices": ["keyboard", "mouse", "touch", "pen"] },
+    "tablet.hybrid": { "osBuild": "iPadOS supported UNFROZEN", "architecture": "ARM64", "cpuClass": "UNFROZEN", "ramBucket": "UNFROZEN", "gpuDriverClass": "UNFROZEN", "storageClass": "UNFROZEN", "viewportWindow": "W2|W1", "dpr": "2", "displayRefreshRate": "UNFROZEN", "colorProfile": "sRGB", "inputDevices": ["touch", "pen", "hardware-keyboard"] },
+    "companion.mobile": { "osBuild": "iOS|Android supported UNFROZEN", "architecture": "ARM64", "cpuClass": "UNFROZEN", "ramBucket": "UNFROZEN", "gpuDriverClass": "UNFROZEN", "storageClass": "UNFROZEN", "viewportWindow": "W1", "dpr": "UNFROZEN", "displayRefreshRate": "UNFROZEN", "colorProfile": "sRGB", "inputDevices": ["touch", "screen-reader"] },
+    "runner.release": { "osBuild": "immutable runner image UNFROZEN", "architecture": "UNFROZEN", "cpuClass": "pinned UNFROZEN", "ramBucket": "pinned UNFROZEN", "gpuDriverClass": "pinned UNFROZEN", "storageClass": "pinned UNFROZEN", "viewportWindow": "fixed UNFROZEN", "dpr": "fixed UNFROZEN", "displayRefreshRate": "fixed UNFROZEN", "colorProfile": "sRGB", "inputDevices": ["automation"] }
+  },
+  "environmentTargets": [
+    "ref.win.desktop|playwright-chromium-pinned",
+    "win.desktop|edge-current", "win.desktop|edge-previous", "win.desktop|chrome-current", "win.desktop|chrome-previous",
+    "mac.desktop|safari-current", "mac.desktop|safari-previous", "mac.desktop|chrome-current", "mac.desktop|chrome-previous",
+    "linux.desktop|chrome-current", "linux.desktop|chrome-previous", "linux.desktop|firefox-current", "linux.desktop|firefox-previous",
+    "win.hybrid|edge-current", "win.hybrid|chrome-current",
+    "tablet.hybrid|safari-current", "tablet.hybrid|safari-previous",
+    "companion.mobile|safari-current", "companion.mobile|chrome-current",
+    "runner.release|browser-pinned"
+  ],
+  "networkProfiles": ["local", "regional-broadband", "constrained", "unstable", "offline"],
+  "powerProfiles": ["AC-BEST", "BATTERY-LOW-POWER"],
+  "accessibilityVariants": ["KEYBOARD", "MOUSE", "TRACKPAD", "TOUCH", "PEN", "IME", "CLICKER-REMOTE", "MULTI-DISPLAY", "CAPTURE-DEVICE", "SCREEN-READER", "VOICE-SWITCH-MAGNIFICATION", "ZOOM-200", "FORCED-COLORS", "REDUCED-MOTION", "LARGE-TEXT", "ORIENTATION", "LTR", "RTL", "COMPLEX-SCRIPT", "LOCALE-FORMATTING", "PSEUDOLOCALIZATION", "DOCUMENT-LANGUAGE", "READING-ORDER", "ALTERNATIVES", "CAPTIONS", "TABLE-CHART-SEMANTICS", "KEYBOARD-PLAYER"],
+  "platformApplicabilityProfiles": [
+    {
+      "id": "PLATFORM-DESKTOP-AUTHORING",
+      "environmentClasses": ["ref.win.desktop", "win.desktop", "mac.desktop", "linux.desktop"],
+      "accessibilityVariants": ["MOUSE", "KEYBOARD", "ZOOM-200", "FORCED-COLORS", "REDUCED-MOTION", "SCREEN-READER"],
+      "outputProfiles": ["NATIVE", "CLIPBOARD", "SVG", "RASTER", "PDF", "PRINT", "VIDEO", "PORTABLE-WEB", "PPTX-PRESERVATION", "PPTX-CLEAN", "COMPAT-REPORT"],
+      "runtimeModes": ["Preview", "Presentation"],
+      "lifecycleCode": "LC-EDIT"
+    },
+    {
+      "id": "PLATFORM-HYBRID-AUTHORING",
+      "environmentClasses": ["win.hybrid", "tablet.hybrid"],
+      "accessibilityVariants": ["TOUCH", "PEN", "KEYBOARD", "ORIENTATION", "ZOOM-200", "SCREEN-READER"],
+      "outputProfiles": ["NATIVE", "RASTER", "PDF", "VIDEO", "PORTABLE-WEB", "COMPAT-REPORT"],
+      "runtimeModes": ["Preview", "Presentation"],
+      "lifecycleCode": "LC-EDIT"
+    },
+    {
+      "id": "PLATFORM-COMPANION",
+      "environmentClasses": ["companion.mobile"],
+      "accessibilityVariants": ["TOUCH", "SCREEN-READER", "LARGE-TEXT", "ORIENTATION", "KEYBOARD"],
+      "outputProfiles": ["NATIVE", "COMPAT-REPORT"],
+      "runtimeModes": ["Preview", "Presentation"],
+      "lifecycleCode": "LC-READ"
+    },
+    {
+      "id": "PLATFORM-PRESENTATION",
+      "environmentClasses": ["ref.win.desktop", "win.desktop", "mac.desktop", "linux.desktop", "win.hybrid", "tablet.hybrid", "companion.mobile"],
+      "accessibilityVariants": ["KEYBOARD", "MOUSE", "TOUCH", "SCREEN-READER", "REDUCED-MOTION", "FORCED-COLORS", "CAPTIONS"],
+      "outputProfiles": ["NATIVE"],
+      "runtimeModes": ["Preview", "Rehearsal", "Recording", "Presentation", "Kiosk"],
+      "lifecycleCode": "LC-PRESENT"
+    },
+    {
+      "id": "PLATFORM-PRESENTER-VIEW",
+      "environmentClasses": ["ref.win.desktop", "win.desktop", "mac.desktop", "linux.desktop"],
+      "accessibilityVariants": ["KEYBOARD", "SCREEN-READER", "ZOOM-200", "LOCALE-FORMATTING", "FORCED-COLORS", "MULTI-DISPLAY"],
+      "outputProfiles": ["NATIVE"],
+      "runtimeModes": ["Presentation"],
+      "lifecycleCode": "LC-PRESENT"
+    },
+    {
+      "id": "PLATFORM-ACCESSIBLE-OUTPUT",
+      "environmentClasses": ["ref.win.desktop", "win.desktop", "mac.desktop", "linux.desktop", "runner.release"],
+      "accessibilityVariants": ["DOCUMENT-LANGUAGE", "READING-ORDER", "ALTERNATIVES", "CAPTIONS", "TABLE-CHART-SEMANTICS", "KEYBOARD-PLAYER"],
+      "outputProfiles": ["SVG", "RASTER", "PDF", "PRINT", "VIDEO", "PORTABLE-WEB", "PPTX-PRESERVATION", "PPTX-CLEAN", "COMPAT-REPORT"],
+      "runtimeModes": ["Preview"],
+      "lifecycleCode": "LC-OUTPUT"
+    },
+    {
+      "id": "PLATFORM-INTERNATIONAL-AUTHORING",
+      "environmentClasses": ["ref.win.desktop", "win.desktop", "mac.desktop", "linux.desktop", "win.hybrid", "tablet.hybrid", "companion.mobile"],
+      "accessibilityVariants": ["IME", "LTR", "RTL", "COMPLEX-SCRIPT", "LOCALE-FORMATTING", "PSEUDOLOCALIZATION", "DOCUMENT-LANGUAGE"],
+      "outputProfiles": ["NATIVE", "SVG", "RASTER", "PDF", "PRINT", "VIDEO", "PORTABLE-WEB", "PPTX-PRESERVATION", "PPTX-CLEAN", "COMPAT-REPORT"],
+      "runtimeModes": ["Preview", "Presentation"],
+      "lifecycleCode": "LC-EDIT"
+    }
+  ],
+  "operationFamiliesByVolume": {
+    "00": ["GOVERNANCE-CHANGE"], "01": ["PRODUCT-OUTCOME"], "02": ["EXPERIENCE-CONTEXT"],
+    "03": ["DOCUMENT-ENTITY"], "04": ["MUTATION-HISTORY"], "05": ["SCENE-RESOLUTION"],
+    "06": ["FILE-ASSET-RECOVERY"], "07": ["COLLAB-IDENTITY-SHARING"], "08": ["DESIGN-AUTHORING"],
+    "09": ["PRESENTATION-AUTHORING"], "10": ["RUNTIME-SESSION"], "11": ["INTERCHANGE-OUTPUT"],
+    "12": ["ACCESSIBILITY-I18N"], "13": ["SECURITY-PRIVACY"], "14": ["QUALITY-OBSERVABILITY"],
+    "15": ["CONFORMANCE-RELEASE"]
+  },
+  "riskClassByVolume": {
+    "00": "C3-cross-boundary", "01": "C2-workflow", "02": "C2-workflow", "03": "C4-critical",
+    "04": "C4-critical", "05": "C3-cross-boundary", "06": "C4-critical", "07": "C4-critical",
+    "08": "C3-cross-boundary", "09": "C3-cross-boundary", "10": "C4-critical", "11": "C4-critical",
+    "12": "C4-critical", "13": "C4-critical", "14": "C3-cross-boundary", "15": "C4-critical"
+  },
+  "riskClassificationStatus": "proposed-volume-default-requires-cell-review",
+  "requiredVerificationLayersByRisk": {
+    "C0-editorial": ["lint", "independent-review"],
+    "C1-local": ["unit", "integration"],
+    "C2-workflow": ["unit", "integration", "headed-e2e", "eval"],
+    "C3-cross-boundary": ["unit", "integration", "headed-e2e", "eval", "artifact", "fault-security", "manual-hardware-at"],
+    "C4-critical": ["unit", "integration", "headed-e2e", "eval", "artifact", "manual-hardware-at", "performance-soak", "fault-security", "adversarial-corpus", "independent-review", "runbook"]
+  },
+  "requiredProtocolIdsByFacet": {
+    "RSL": [],
+    "CTX": ["TEST-15-004", "TEST-15-005", "TEST-15-009"],
+    "ED": ["TEST-15-002", "TEST-15-003", "TEST-15-006", "TEST-15-007", "TEST-15-011"],
+    "OUT": ["TEST-15-006"],
+    "RTI": ["TEST-15-008"],
+    "RTD": ["TEST-15-008"],
+    "RTF": ["TEST-15-008", "TEST-15-011"],
+    "RRP": ["TEST-15-008"],
+    "AUTH": ["TEST-15-007", "TEST-15-012"],
+    "A11Y": ["TEST-15-009", "TEST-15-013"],
+    "JOIN": ["TEST-15-003", "TEST-15-014"],
+    "QUAL": ["TEST-15-010"],
+    "FAIL": ["TEST-15-011"]
+  },
+  "qualityEnvironmentSelectors": [
+    { "start": "SLO-01-001", "end": "SLO-01-010", "environmentClasses": ["ref.win.desktop"], "networkProfiles": ["local"], "powerProfiles": ["AC-BEST"] },
+    { "start": "SLO-14-001", "end": "SLO-14-038", "environmentClasses": ["ref.win.desktop"], "networkProfiles": ["local"], "powerProfiles": ["AC-BEST"] },
+    { "start": "SLO-14-039", "end": "SLO-14-040", "environmentClasses": ["ref.win.desktop"], "networkProfiles": ["regional-broadband"], "powerProfiles": ["AC-BEST"] },
+    { "start": "SLO-14-041", "end": "SLO-14-046", "environmentClasses": ["ref.win.desktop"], "networkProfiles": ["local"], "powerProfiles": ["AC-BEST"] },
+    { "start": "SLO-14-047", "end": "SLO-14-047", "environmentClasses": ["ref.win.desktop"], "networkProfiles": ["regional-broadband"], "powerProfiles": ["AC-BEST"] },
+    { "start": "SLO-14-048", "end": "SLO-14-048", "environmentClasses": ["ref.win.desktop"], "networkProfiles": ["unstable"], "powerProfiles": ["AC-BEST"] },
+    { "start": "SLO-14-049", "end": "SLO-14-049", "environmentClasses": ["ref.win.desktop"], "networkProfiles": ["local"], "powerProfiles": ["AC-BEST"] },
+    { "start": "SLO-14-050", "end": "SLO-14-050", "environmentClasses": ["ref.win.desktop"], "networkProfiles": ["regional-broadband"], "powerProfiles": ["AC-BEST"] },
+    { "start": "SLO-14-051", "end": "SLO-14-051", "environmentClasses": ["ref.win.desktop"], "networkProfiles": ["regional-broadband"], "powerProfiles": ["AC-BEST"] },
+    { "start": "SLO-14-052", "end": "SLO-14-052", "environmentClasses": ["ref.win.desktop"], "networkProfiles": ["offline"], "powerProfiles": ["AC-BEST"] },
+    { "start": "SLO-14-053", "end": "SLO-14-063", "environmentClasses": ["ref.win.desktop"], "networkProfiles": ["local"], "powerProfiles": ["AC-BEST"] },
+    { "start": "SLO-14-064", "end": "SLO-14-064", "environmentClasses": ["win.hybrid", "tablet.hybrid"], "networkProfiles": ["local"], "powerProfiles": ["AC-BEST"] },
+    { "start": "SLO-14-065", "end": "SLO-14-069", "environmentClasses": ["ref.win.desktop", "win.desktop", "mac.desktop", "linux.desktop", "win.hybrid", "tablet.hybrid", "companion.mobile"], "networkProfiles": ["local"], "powerProfiles": ["AC-BEST"] },
+    { "start": "SLO-14-070", "end": "SLO-14-078", "environmentClasses": ["ref.win.desktop", "runner.release"], "networkProfiles": ["local", "unstable"], "powerProfiles": ["AC-BEST"] },
+    { "start": "SLO-15-001", "end": "SLO-15-010", "environmentClasses": ["runner.release"], "networkProfiles": ["local"], "powerProfiles": ["AC-BEST"] }
+  ],
+  "qualityObjectiveOwnerOverrides": {
+    "SLO-14-065": ["REQ-12-011"],
+    "SLO-14-066": ["REQ-12-021", "REQ-12-023", "REQ-12-029", "REQ-12-033"],
+    "SLO-14-067": ["REQ-12-016", "REQ-12-061"],
+    "SLO-14-068": ["REQ-12-046", "REQ-12-047"],
+    "SLO-14-069": ["REQ-12-108"],
+    "SLO-14-070": ["REQ-13-002", "REQ-13-003", "REQ-13-004", "REQ-13-005", "REQ-13-010"],
+    "SLO-14-071": ["REQ-13-008", "REQ-13-028", "REQ-13-092", "REQ-13-093", "REQ-13-094", "REQ-13-097"],
+    "SLO-14-072": ["REQ-13-017", "REQ-13-018", "REQ-13-033", "REQ-13-034", "REQ-13-035", "REQ-13-036", "REQ-13-037", "REQ-13-038", "REQ-13-039", "REQ-13-040", "REQ-13-041", "REQ-13-042", "REQ-13-043", "REQ-13-044", "REQ-13-045"],
+    "SLO-14-073": ["REQ-13-049", "REQ-13-050", "REQ-13-051", "REQ-13-053"],
+    "SLO-14-074": ["REQ-13-064", "REQ-13-065", "REQ-13-066", "REQ-13-067", "REQ-13-068", "REQ-13-069", "REQ-13-070"],
+    "SLO-14-075": ["REQ-13-076", "REQ-13-077", "REQ-13-078", "REQ-13-079", "REQ-13-080", "REQ-13-081", "REQ-13-082", "REQ-13-083", "REQ-13-084", "REQ-13-085", "REQ-13-086", "REQ-13-087", "REQ-13-088", "REQ-13-089", "REQ-13-090"],
+    "SLO-14-076": ["REQ-13-091", "REQ-13-099", "REQ-13-100", "REQ-13-101", "REQ-13-102", "REQ-13-103", "REQ-13-104"],
+    "SLO-14-077": ["REQ-13-024", "REQ-13-028", "REQ-13-029", "REQ-13-106", "REQ-13-107", "REQ-13-108", "REQ-13-109", "REQ-13-110"],
+    "SLO-14-078": ["REQ-02-060"],
+    "SLO-15-006": ["REQ-15-034"],
+    "SLO-15-007": ["REQ-15-008", "REQ-15-029", "REQ-15-039", "REQ-15-042", "REQ-15-065", "REQ-15-067"],
+    "SLO-15-008": ["REQ-15-056"],
+    "SLO-15-009": ["REQ-15-054", "REQ-15-064"],
+    "SLO-15-010": ["REQ-15-063", "REQ-15-068", "REQ-15-070"]
+  },
+  "generalFailureClasses": ["MISSING-FONT", "MISSING-LINKED-ASSET", "CORRUPT-EMBEDDED-ASSET", "DECODER", "HIGH-LATENCY", "PROVIDER-CONFLICT", "PERMISSION-DOWNGRADE", "COLLAB-GAP-HASH", "STALE-CACHE", "QUOTA-PRESSURE", "RENDERER-NODE", "DISPLAY-CHANGE", "EXPORT-FINALIZATION", "MIGRATION"],
+  "workloadProfiles": ["TINY", "SMALL", "MEDIUM", "LARGE", "STRESS", "PROLONGED"],
+  "evidenceClasses": ["EVC-SPEC", "EVC-MODEL", "EVC-HEADED", "EVC-EVAL", "EVC-ARTIFACT", "EVC-COLLAB", "EVC-MANUAL", "EVC-QUALITY", "EVC-RESCUE", "EVC-RELEASE"],
+  "corpusFamilies": ["COR-DOC", "COR-OPS", "COR-SCENE", "COR-FILE", "COR-COLLAB", "COR-DESIGN", "COR-PRES", "COR-RUNTIME", "COR-INTEROP", "COR-OUTPUT", "COR-A11Y", "COR-SEC", "COR-PERF", "COR-RESCUE"],
+  "goldenTypes": ["SEMANTIC", "DIAGNOSTIC", "VISUAL", "ARTIFACT", "PRESERVATION", "INTERACTION", "MANUAL-REFERENCE"],
+  "goldenTypesByCorpus": {
+    "COR-DOC": ["SEMANTIC", "DIAGNOSTIC", "PRESERVATION"],
+    "COR-OPS": ["SEMANTIC", "DIAGNOSTIC", "INTERACTION"],
+    "COR-SCENE": ["SEMANTIC", "VISUAL", "INTERACTION"],
+    "COR-FILE": ["SEMANTIC", "DIAGNOSTIC", "ARTIFACT", "PRESERVATION"],
+    "COR-COLLAB": ["SEMANTIC", "DIAGNOSTIC", "INTERACTION"],
+    "COR-DESIGN": ["SEMANTIC", "VISUAL", "INTERACTION", "MANUAL-REFERENCE"],
+    "COR-PRES": ["SEMANTIC", "VISUAL", "INTERACTION", "MANUAL-REFERENCE"],
+    "COR-RUNTIME": ["SEMANTIC", "DIAGNOSTIC", "VISUAL", "INTERACTION", "MANUAL-REFERENCE"],
+    "COR-INTEROP": ["SEMANTIC", "DIAGNOSTIC", "VISUAL", "ARTIFACT", "PRESERVATION"],
+    "COR-OUTPUT": ["SEMANTIC", "VISUAL", "ARTIFACT", "PRESERVATION", "MANUAL-REFERENCE"],
+    "COR-A11Y": ["SEMANTIC", "DIAGNOSTIC", "VISUAL", "ARTIFACT", "INTERACTION", "MANUAL-REFERENCE"],
+    "COR-SEC": ["SEMANTIC", "DIAGNOSTIC", "ARTIFACT"],
+    "COR-PERF": ["DIAGNOSTIC", "INTERACTION", "MANUAL-REFERENCE"],
+    "COR-RESCUE": ["SEMANTIC", "DIAGNOSTIC", "INTERACTION", "MANUAL-REFERENCE"]
+  },
+  "phaseDecisionIds": ["PHASE-1-EXIT", "PHASE-2-EXIT", "PHASE-3-EXIT", "PHASE-4-EXIT", "PHASE-5-EXIT", "PHASE-6-EXIT"],
+  "releaseDecisionIds": ["R0-INTERNAL", "STORY-NATIVE-PROOF", "AUTHORING-INTERNAL", "R1-PREVIEW", "R2-SUPPORTED", "R3-ASSURED", "PRODUCT-100"],
+  "rollbackDecisionIds": ["ROLLBACK-DATA", "ROLLBACK-AUTH", "ROLLBACK-PRIVACY", "ROLLBACK-MIGRATION", "ROLLBACK-COLLAB", "ROLLBACK-OUTPUT", "ROLLBACK-AUDIENCE", "ROLLBACK-RECOVERY", "ROLLBACK-ERROR-BUDGET"],
+  "activationDecisionId": "ENDSTATE-UNIVERSE-ACTIVATION"
+}
