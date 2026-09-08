@@ -7,6 +7,7 @@ Story is a professional, browser-based presentation design environment. Its prod
 
 The governing requirements, current audit, and delivery sequence are documented in:
 
+- [World-Class Definition of Done](./documentation/product/definition-of-done.md) - long-term acceptance proposal, current-state review, and measurable completion gates.
 - [Product Specification](./documentation/product/product-spec.md)
 - [Complete Specification System](./documentation/product/specification/README.md)
 - [R1 Preview Profile](./documentation/product/specification/profiles/R1-preview.md)

@@ -4,6 +4,8 @@ This directory contains product intent, feature specifications, implementation e
 
 ## Start Here
 
+For the long-term destination and the evidence required to call Story finished, read the [World-Class Definition of Done](product/definition-of-done.md). It combines a September 8, 2026 current-state review with complete product outcome bundles, cross-cutting acceptance, and proposed comparative/craft gates. Its additions require adoption by the existing numbered owners; it does not supersede their authority or claim current conformance.
+
 1. [Complete Product Specification](product/specification/README.md) is the normative multi-volume system from vision through release evidence.
 2. [Product Constitution](product/specification/01-product-constitution.md) defines why Story exists, whom it serves first, and what is uniquely Story.
 3. [Experience Architecture](product/specification/02-experience-architecture.md) defines the shell, views, scopes, tools, states, adaptive tiers, and visual direction.
