@@ -59,7 +59,7 @@ class App {
         // Keep dev free of SW caching issues.
         try {
             if (import.meta?.env?.PROD && 'serviceWorker' in navigator && window.location.protocol !== 'file:') {
-                navigator.serviceWorker.register('/sw.js').catch(() => {
+                navigator.serviceWorker.register(`${import.meta.env.BASE_URL}sw.js`).catch(() => {
                     // Best-effort.
                 });
             }

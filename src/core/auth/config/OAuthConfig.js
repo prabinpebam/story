@@ -7,6 +7,14 @@
  * @module core/auth/config/OAuthConfig
  */
 
+function getBaseUrl() {
+    try {
+        return import.meta.env?.BASE_URL || '/';
+    } catch (e) {
+        return '/';
+    }
+}
+
 /**
  * Safely get environment variable
  * Works with Vite, or falls back to empty string for non-bundled environments
@@ -40,7 +48,7 @@ export const OAuthConfig = {
     microsoft: {
         clientId: getEnvVar('VITE_MICROSOFT_CLIENT_ID'),
         authority: 'https://login.microsoftonline.com/common',
-        redirectUri: `${window.location.origin}/auth/callback`,
+        redirectUri: `${window.location.origin}${getBaseUrl()}auth/callback`,
         scopes: [
             'openid',
             'profile',
@@ -61,7 +69,7 @@ export const OAuthConfig = {
         apiKey: getEnvVar('VITE_GOOGLE_API_KEY'),
         authorizationEndpoint: 'https://accounts.google.com/o/oauth2/v2/auth',
         tokenEndpoint: 'https://oauth2.googleapis.com/token',
-        redirectUri: `${window.location.origin}/auth/callback`,
+        redirectUri: `${window.location.origin}${getBaseUrl()}auth/callback`,
         scopes: [
             'openid',
             'profile',

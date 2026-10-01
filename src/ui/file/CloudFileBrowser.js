@@ -183,9 +183,9 @@ export class CloudFileBrowser {
      */
     getProviderIconSVG() {
         if (this.provider === 'onedrive') {
-            return `<img src="/assets/icons/one-drive.svg" alt="OneDrive" class="cfb-provider-icon">`;
+            return `<img src="${import.meta.env.BASE_URL}assets/icons/one-drive.svg" alt="OneDrive" class="cfb-provider-icon">`;
         }
-        return `<img src="/assets/icons/google-drive.svg" alt="Google Drive" class="cfb-provider-icon">`;
+        return `<img src="${import.meta.env.BASE_URL}assets/icons/google-drive.svg" alt="Google Drive" class="cfb-provider-icon">`;
     }
     
     /**

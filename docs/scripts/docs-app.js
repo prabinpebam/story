@@ -215,7 +215,7 @@ class DocsApp {
     
     async loadDocument(path) {
         // Construct full path to documentation file
-        const basePath = '/documentation/';
+        const basePath = `${import.meta.env.BASE_URL}documentation/`;
         let fullPath = basePath + path;
         
         // Handle paths that might already include documentation/

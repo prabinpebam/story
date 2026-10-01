@@ -11,7 +11,7 @@ self.addEventListener('install', (event) => {
   event.waitUntil((async () => {
     // Cache minimal shell; the rest is runtime cached.
     const cache = await caches.open(APP_SHELL_CACHE);
-    await cache.addAll(['/']);
+    await cache.addAll([self.registration.scope]);
     await self.skipWaiting();
   })());
 });
@@ -42,7 +42,7 @@ function shouldCacheRequest(request) {
 
   const url = new URL(request.url);
   // Don't cache dev endpoints or opaque cross-origin.
-  if (url.pathname.startsWith('/@')) return false;
+  if (url.pathname.startsWith(new URL('@', self.registration.scope).pathname)) return false;
   return true;
 }
 
@@ -60,7 +60,7 @@ self.addEventListener('fetch', (event) => {
         return res;
       } catch {
         const cached = await cache.match(req);
-        return cached || cache.match('/') || Response.error();
+        return cached || cache.match(self.registration.scope) || Response.error();
       }
     })());
     return;

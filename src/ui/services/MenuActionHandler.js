@@ -328,7 +328,7 @@ class MenuActionHandler {
 
     openDocumentation() {
         // Open documentation viewer in new tab
-        window.open('/docs/', '_blank');
+        window.open(`${import.meta.env.BASE_URL}docs/`, '_blank');
     }
 
     showAbout() {
